@@ -28,11 +28,16 @@ DEFAULT_INVENTORY_REPORT = (
 )
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_seq_rebuild_preflight_20260630_v1"
 DEFAULT_PLANNED_DATASET_DIR = (
-    FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_candidate_20260630"
+    FOUNDATION_DATASET_DIR.parent.parent
+    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
 )
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_PROJECT_STATE = REPO_ROOT / "PROJECT_STATE_artifacts.json"
 REQUIRED_GX1_DATA_ROOT = "/home/andre2/GX1_DATA"
 MTF_CACHE_ENV = "GX1_V10_MULTI_TF_V2_CACHE_DIR"
 MTF_CACHE_DIR_NAME = "MULTI_TF_V2_CACHE"
+PERTF_CLOSED_BAR_ENV = "GX1_PERTF_CLOSED_BAR"
+MTF_ALLOW_STALE_ENV = "GX1_MTF_CACHE_ALLOW_STALE"
 FIXED_BASE_COUNTS = {
     "base_signal_features": 41,
     "foundation_sequence_extension_features": 105,
@@ -220,6 +225,45 @@ def _split_schedule(split_contracts: dict[str, dict[str, Any]]) -> dict[str, dic
     return out
 
 
+def _active_xgb_placeholder_contract() -> dict[str, Any]:
+    """Resolve the active XGB path only as a neutral-bridge builder placeholder."""
+    project_state_path = DEFAULT_PROJECT_STATE
+    out: dict[str, Any] = {
+        "project_state_path": str(project_state_path),
+        "project_state_exists": project_state_path.exists(),
+        "path": "",
+        "status": "",
+        "exists": False,
+        "model_exists": False,
+        "usable_as_neutral_placeholder": False,
+        "role": "legacy_builder_contract_placeholder_only",
+    }
+    if not project_state_path.exists():
+        return out
+    data = _read_json(project_state_path)
+    active = data.get("active") if isinstance(data.get("active"), dict) else {}
+    xgb = active.get("xgb") if isinstance(active.get("xgb"), dict) else {}
+    path_text = str(xgb.get("path") or "").strip()
+    out["status"] = str(xgb.get("status") or "")
+    if not path_text:
+        return out
+    path = Path(path_text).expanduser().resolve()
+    model_path = path / "xgb_universal_multihead_v2.joblib"
+    out.update(
+        {
+            "path": str(path),
+            "exists": path.exists(),
+            "model_exists": model_path.exists(),
+            "usable_as_neutral_placeholder": (
+                out["status"] == "ACTIVE"
+                and path.exists()
+                and model_path.exists()
+            ),
+        }
+    )
+    return out
+
+
 def _check(checks: list[dict[str, Any]], name: str, ok: bool, details: Any = None) -> None:
     checks.append({"name": name, "ok": bool(ok), "details": details})
 
@@ -233,6 +277,8 @@ def _command_contract(
     manifest_variant: str,
     split_schedule: dict[str, dict[str, str]],
     mtf_cache_dir: str,
+    recorded_xgb_bundle: str,
+    xgb_bundle_source: str,
 ) -> dict[str, Any]:
     output = planned_dataset_dir / f"v10_{manifest_variant}.parquet"
     argv = [
@@ -242,6 +288,18 @@ def _command_contract(
         "--swap",
         "2G",
         "--",
+        "env",
+        "GX1_DATA=/home/andre2/GX1_DATA",
+        f"{MTF_CACHE_ENV}={mtf_cache_dir}",
+        f"{PERTF_CLOSED_BAR_ENV}=1",
+        f"{MTF_ALLOW_STALE_ENV}=0",
+        f"{LEGACY_RESEARCH_ACK_ENV}={LEGACY_RESEARCH_ACK_VALUE}",
+        "GX1_ENTRY_DIRECTION_TARGET_MODE=path_utility_v2",
+        "GX1_ENTRY_DIRECTION_UTILITY_MFE_WEIGHT=0.35",
+        "GX1_ENTRY_DIRECTION_UTILITY_MAE_WEIGHT=1.15",
+        "GX1_ENTRY_DIRECTION_UTILITY_PATH_WEIGHT=0.25",
+        "GX1_ENTRY_DIRECTION_UTILITY_MIN_BPS=15.0",
+        "GX1_ENTRY_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS=4.0",
         ".venv/bin/python",
         "-m",
         "gx1.scripts.build_entry_v10_ctx_training_dataset_v3",
@@ -258,6 +316,7 @@ def _command_contract(
         "--neutral-xgb-bridge",
         "--hold-bars",
         "3",
+        "--allow-missing-hold-map",
         "--output",
         str(output),
     ]
@@ -287,7 +346,16 @@ def _command_contract(
         "required_environment": {
             "GX1_DATA": REQUIRED_GX1_DATA_ROOT,
             MTF_CACHE_ENV: mtf_cache_dir,
+            PERTF_CLOSED_BAR_ENV: "1",
+            MTF_ALLOW_STALE_ENV: "0",
             LEGACY_RESEARCH_ACK_ENV: LEGACY_RESEARCH_ACK_VALUE,
+        },
+        "mtf_context_contract": {
+            "closed_bar_required": True,
+            "stale_cache_allowed": False,
+            "cache_env": MTF_CACHE_ENV,
+            "closed_bar_env": PERTF_CLOSED_BAR_ENV,
+            "stale_cache_env": MTF_ALLOW_STALE_ENV,
         },
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
@@ -301,6 +369,25 @@ def _command_contract(
         "planned_dataset_dir": str(planned_dataset_dir),
         "planned_output_stem": output.stem,
         "split_schedule": split_schedule,
+        "xgb_bridge_contract": {
+            "neutral_xgb_bridge_required": True,
+            "bridge_source": "neutral_uniform_proba",
+            "uses_xgb_model_predictions": False,
+            "xgb_model_loaded_by_builder": False,
+            "xgb_bundle_arg_role": "legacy_builder_contract_placeholder_only",
+            "xgb_bundle_source": xgb_bundle_source,
+            "recorded_split_xgb_bundle": recorded_xgb_bundle,
+            "command_xgb_bundle": xgb_bundle,
+        },
+        "hold_horizon_contract": {
+            "allow_missing_hold_map": True,
+            "head_can_be_inactive": True,
+            "reason": (
+                "historical train split predates current replay handoff coverage; "
+                "direction-repair build must mark hold_horizon inactive instead of "
+                "emitting a silent constant target"
+            ),
+        },
     }
 
 
@@ -345,6 +432,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     smart_selected = [str(x) for x in smart_manifest.get("selected_features", []) if str(x).strip()]
     duplicate_selected = len(smart_selected) - len(set(smart_selected))
+    active_xgb_placeholder = _active_xgb_placeholder_contract()
 
     _check(checks, "smart report decision is rebuild-manifest ready", smart_report.get("decision") == "READY_FOR_SMART_CHALLENGER_DATASET_REBUILD_MANIFEST", smart_report_path)
     _check(checks, "smart manifest exists", smart_manifest_path.exists(), smart_manifest_path)
@@ -442,8 +530,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check(checks, f"{split} source parquet exists", row["source_parquet_exists"], row["source_parquet"])
         _check(checks, f"{split} source parquet recorded sha256 present", _is_sha256(row["source_parquet_recorded_sha256"]), row["source_parquet_recorded_sha256"])
         _check(checks, f"{split} source parquet observed hash matches recorded", row["source_parquet_hash_verified"] is True, row)
-        _check(checks, f"{split} xgb bundle exists", row["xgb_bundle_exists"], row["xgb_bundle"])
+        _check(
+            checks,
+            f"{split} xgb bundle exists or neutral placeholder is available",
+            row["xgb_bundle_exists"]
+            or (row["signal_bridge"]["neutral_xgb_bridge"] is True and active_xgb_placeholder["usable_as_neutral_placeholder"] is True),
+            {
+                "recorded_xgb_bundle": row["xgb_bundle"],
+                "recorded_xgb_bundle_exists": row["xgb_bundle_exists"],
+                "neutral_xgb_bridge": row["signal_bridge"]["neutral_xgb_bridge"],
+                "active_xgb_placeholder": active_xgb_placeholder,
+            },
+        )
         _check(checks, f"{split} signal bridge is V3", row["signal_bridge"]["id"] == "XGB_SIGNAL_BRIDGE_V3", row["signal_bridge"])
+        _check(
+            checks,
+            f"{split} signal bridge is neutral",
+            row["signal_bridge"]["neutral_xgb_bridge"] is True,
+            row["signal_bridge"],
+        )
         _check(checks, f"{split} active source seq dim is 146", row["signal_bridge"]["seq_input_dim"] == 146, row["signal_bridge"])
         _check(checks, f"{split} active foundation extension dim is 105", row["signal_bridge"]["seq_structure_extension_dim"] == 105, row["signal_bridge"])
         _check(checks, f"{split} ctx contract is CTX6CAT5", row["ctx_contract"]["tag"] == "CTX6CAT5", row["ctx_contract"])
@@ -453,6 +558,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _check(checks, "all splits use one source parquet", len(source_parquets) == 1, sorted(source_parquets))
     _check(checks, "all splits use one recorded source sha256", len(recorded_source_hashes) == 1 and all(_is_sha256(x) for x in recorded_source_hashes), sorted(recorded_source_hashes))
     _check(checks, "all splits use one xgb bundle", len(xgb_bundles) == 1, sorted(xgb_bundles))
+    all_splits_neutral_bridge = all(
+        row["signal_bridge"]["neutral_xgb_bridge"] is True
+        for row in split_contracts.values()
+    )
+    _check(
+        checks,
+        "all splits keep neutral xgb bridge",
+        all_splits_neutral_bridge,
+        {split: row["signal_bridge"] for split, row in split_contracts.items()},
+    )
     _check(
         checks,
         "active split schedule is explicit and consistent",
@@ -461,7 +576,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     source_parquet = next(iter(source_parquets)) if len(source_parquets) == 1 else ""
-    xgb_bundle = next(iter(xgb_bundles)) if len(xgb_bundles) == 1 else ""
+    recorded_xgb_bundle = next(iter(xgb_bundles)) if len(xgb_bundles) == 1 else ""
+    xgb_bundle = recorded_xgb_bundle
+    xgb_bundle_source = "recorded_foundation_split_manifest_neutral_placeholder"
+    if recorded_xgb_bundle and not Path(recorded_xgb_bundle).exists() and all_splits_neutral_bridge:
+        xgb_bundle = str(active_xgb_placeholder["path"] or recorded_xgb_bundle)
+        xgb_bundle_source = "project_state_active_xgb_placeholder_for_neutral_bridge"
     mtf_cache = _mtf_cache_contract(Path(source_parquet).parent / MTF_CACHE_DIR_NAME, split_schedule)
     command_contract = _command_contract(
         source_parquet=source_parquet,
@@ -471,6 +591,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         manifest_variant=str(smart_manifest.get("manifest_variant") or "smart_seq_candidate"),
         split_schedule=split_schedule,
         mtf_cache_dir=mtf_cache["cache_dir"],
+        recorded_xgb_bundle=recorded_xgb_bundle,
+        xgb_bundle_source=xgb_bundle_source,
     )
     argv = command_contract["argv"]
     _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "22G", "--swap", "2G", "--"], argv[:8])
@@ -478,6 +600,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _check(checks, "rebuild command pins canonical_v2 parquet", "--canonical_v2_parquet" in argv and source_parquet in argv, argv)
     _check(checks, "rebuild command computes smart extension inline", "--seq-structure-compute-inline" in argv, argv)
     _check(checks, "rebuild command keeps neutral xgb bridge", "--neutral-xgb-bridge" in argv, argv)
+    _check(
+        checks,
+        "rebuild command allows explicit inactive hold horizon head",
+        "--allow-missing-hold-map" in argv
+        and command_contract["hold_horizon_contract"]["allow_missing_hold_map"] is True,
+        command_contract["hold_horizon_contract"],
+    )
+    _check(
+        checks,
+        "rebuild command xgb is neutral placeholder only",
+        command_contract["xgb_bridge_contract"]["neutral_xgb_bridge_required"] is True
+        and command_contract["xgb_bridge_contract"]["uses_xgb_model_predictions"] is False
+        and command_contract["xgb_bridge_contract"]["xgb_model_loaded_by_builder"] is False,
+        command_contract["xgb_bridge_contract"],
+    )
+    _check(
+        checks,
+        "rebuild command xgb placeholder path exists",
+        bool(xgb_bundle) and Path(xgb_bundle).exists(),
+        command_contract["xgb_bridge_contract"],
+    )
     _check(
         checks,
         "rebuild command declares legacy builder ack env",
@@ -508,6 +651,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "rebuild command declares fresh multi-TF cache env",
         command_contract.get("required_environment", {}).get(MTF_CACHE_ENV) == mtf_cache["cache_dir"],
         command_contract.get("required_environment"),
+    )
+    _check(
+        checks,
+        "rebuild command declares closed-bar multi-TF context",
+        command_contract.get("required_environment", {}).get(PERTF_CLOSED_BAR_ENV) == "1"
+        and command_contract.get("mtf_context_contract", {}).get("closed_bar_required") is True,
+        {
+            "required_environment": command_contract.get("required_environment"),
+            "mtf_context_contract": command_contract.get("mtf_context_contract"),
+        },
+    )
+    _check(
+        checks,
+        "rebuild command disallows stale multi-TF cache",
+        command_contract.get("required_environment", {}).get(MTF_ALLOW_STALE_ENV) == "0"
+        and command_contract.get("mtf_context_contract", {}).get("stale_cache_allowed") is False,
+        {
+            "required_environment": command_contract.get("required_environment"),
+            "mtf_context_contract": command_contract.get("mtf_context_contract"),
+        },
     )
     _check(checks, "rebuild command does not start trainer", command_contract["starts_trainer"] is False, command_contract)
 
@@ -551,6 +714,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "inventory_report": _artifact_meta(inventory_path),
             "foundation_dataset_dir": str(foundation_dataset_dir),
             "multi_tf_cache": mtf_cache,
+            "active_xgb_placeholder": active_xgb_placeholder,
         },
         "split_contracts": split_contracts,
         "rebuild_command_contract": command_contract,

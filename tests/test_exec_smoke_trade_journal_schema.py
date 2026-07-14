@@ -7,6 +7,7 @@ Verifies that a "test trade" JSON has test_mode=true, execution_events
 are appended in correct order, and client_ext_id format is correct.
 """
 import json
+import csv
 import tempfile
 import unittest
 from pathlib import Path
@@ -175,7 +176,60 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
         self.assertEqual(events[0]["event_type"], "ORDER_SUBMITTED")
         self.assertEqual(events[0]["client_extensions"]["id"], client_ext_id)
 
+    def test_index_preserves_smart_trendline_rail_fields(self):
+        """Test that SMART trendline fields are preserved in the index CSV."""
+        self.trade_journal.log_entry_snapshot(
+            trade_id=self.trade_id,
+            entry_time="2026-07-08T18:00:00Z",
+            instrument="XAU_USD",
+            side="short",
+            entry_price=2360.0,
+            session="US",
+            entry_model_version="smart_seq520_candidate_v1",
+            entry_score={
+                "smart_p_long": 0.61,
+                "smart_p_short": 0.24,
+                "smart_p_flat": 0.15,
+                "smart_p_trade": 0.83,
+                "smart_p_long_given_trade": 0.72,
+                "smart_p_short_given_trade": 0.28,
+                "smart_expected_utility_long_bps": 18.5,
+                "smart_expected_utility_short_bps": -7.0,
+                "smart_geometry_rising_support_rail_long_pressure": 0.81,
+                "smart_geometry_rising_support_rail_short_trap_pressure": 0.77,
+                "smart_trendline_rail_long_minus_short": 0.42,
+                "smart_mtf_trend_evidence": 0.69,
+                "smart_calibration_version": "dircal_v2",
+                "smart_direction_calibration_enabled": True,
+                "smart_direction_calibration_temperature": 1.15,
+                "smart_direction_calibration_bias": [0.1, -0.1, 0.0],
+                "smart_path_calibration_enabled": True,
+            },
+        )
+        self.trade_journal.log_exit_summary(
+            trade_id=self.trade_id,
+            exit_time="2026-07-08T18:20:00Z",
+            exit_price=2365.0,
+            exit_reason="SL",
+            realized_pnl_bps=-21.0,
+        )
+
+        with self.trade_journal.index_path.open(newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["smart_p_long"], "0.61")
+        self.assertEqual(row["smart_p_short"], "0.24")
+        self.assertEqual(row["instrument"], "XAU_USD")
+        self.assertEqual(row["smart_geometry_rising_support_rail_long_pressure"], "0.81")
+        self.assertEqual(row["smart_geometry_rising_support_rail_short_trap_pressure"], "0.77")
+        self.assertEqual(row["smart_trendline_rail_long_minus_short"], "0.42")
+        self.assertEqual(row["smart_calibration_version"], "dircal_v2")
+        self.assertEqual(row["smart_direction_calibration_enabled"], "True")
+        self.assertEqual(row["smart_direction_calibration_temperature"], "1.15")
+        self.assertEqual(row["smart_path_calibration_enabled"], "True")
+
 
 if __name__ == "__main__":
     unittest.main()
-

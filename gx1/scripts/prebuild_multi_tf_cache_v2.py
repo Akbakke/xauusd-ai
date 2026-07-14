@@ -26,12 +26,21 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def main() -> int:
@@ -46,6 +55,8 @@ def main() -> int:
     from gx1.features.htf_features import (
         build_multi_tf_per_bar_features_v2,
         MULTI_TF_FEATURE_COUNT_V2,
+        MULTI_TF_PER_BAR_FEATURES_V2,
+        MULTI_TF_SHIFT,
     )
     import pyarrow.parquet as pq
 
@@ -71,7 +82,11 @@ def main() -> int:
 
     manifest = {
         "feature_count": int(MULTI_TF_FEATURE_COUNT_V2),
+        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+        "shift_contract": {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()},
+        "builder_version": "prebuild_multi_tf_cache_v2_feature_order_shift_manifest_20260713",
         "m5_prebuilt_source": str(args.m5_prebuilt.resolve()),
+        "m5_prebuilt_source_sha256": _sha256_file(args.m5_prebuilt),
         "tfs": {},
     }
     for tf, df in feats.items():

@@ -59,11 +59,17 @@ def _max_abs(a: np.ndarray, b: np.ndarray) -> float:
 
 def _build_overrides(cv3: pd.DataFrame) -> pd.DataFrame:
     from gx1.execution.v12_smart520_state_live import (
+        Smart520StateContract,
         compute_bucket_ctx_cat_full_frame,
         compute_htf_ctx_full_frame,
     )
+    state_contract = Smart520StateContract.legacy()
     return pd.concat(
-        [compute_bucket_ctx_cat_full_frame(cv3), compute_htf_ctx_full_frame(cv3)], axis=1
+        [
+            compute_bucket_ctx_cat_full_frame(cv3, state_contract),
+            compute_htf_ctx_full_frame(cv3, state_contract),
+        ],
+        axis=1,
     )
 
 

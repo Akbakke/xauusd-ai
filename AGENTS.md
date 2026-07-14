@@ -1,16 +1,12 @@
-# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-08 (SMART CHAIN PROMOTED)
+# ACTIVE XAUUSD DIRECTION REPAIR OVERRIDE - 2026-07-14
 
-Read `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md` (STATUS 2026-07-08 section),
-`/home/andre2/GX1_DATA/HANDOVER_2026_07_08_SMART_CHAIN_PROMOTED.md` and
-`PROJECT_STATE_artifacts.json` (the ONE selection truth; promotion commit
-d98bc61e) before acting on Entry/Exit AI work. The 2026-07-02 smoke-wave
-instructions are COMPLETED history — the smart chain qualified the entire
-ladder (smoke -> bundle audit -> calibration -> replay-readiness -> joint
-replay) and was PROMOTED. The older XGB/V10/Entry-IQL live-practice runtime
-notes below describe the RETIRED legacy chain; its bundles are physically gone
-(20260707 delete-incident).
+Read `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md` before acting on Entry/Exit AI
+work. That file is the current handover and continuation goal for the XAU-only
+direction repair. The 2026-07-08 smart-chain promotion notes below are historical
+context only and are not launch-valid until the fresh XAU direction-repair
+dataset, parity, live-like replay, calibration, and pocket audits pass.
 
-Active state (every flip by explicit user vedtak):
+Historical pre-repair state (do not use as launch authority):
 - v10_entry = smart_seq520 cand#4 ACTIVE (vedtak
   SMART_JOINT_POLICY_PROMOTION_20260708, commit d98bc61e): pin-aligned bundle
   audit PASS, calibrated (direction NLL 1.87->1.02, path corr +0.251),

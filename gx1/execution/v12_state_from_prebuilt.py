@@ -239,7 +239,7 @@ class PrebuiltStateLoader:
             # is inherited via copy-on-write (zero IPC for input), only the
             # new columns are pickled back (small payload). Falls back to
             # sequential on any multiprocessing error so the runner stays up.
-            if new_cv3 is not None and cv3_advanced:
+            if new_cv3 is not None and (cv3_advanced or b28_advanced):
                 t_aug = pd.Timestamp.utcnow()
                 # Fast augmenters in main thread (~3s total)
                 new_cv3 = self._augment_cv3_with_volume_features(new_cv3)
@@ -302,8 +302,9 @@ class PrebuiltStateLoader:
                 try:
                     new_mtf_bundle = self.build_multi_tf_features(new_cv3)
                 except Exception as exc:
-                    LOG.warning(f"multi-TF refresh failed: {exc} — keeping stale")
-                    new_mtf_bundle = None
+                    raise RuntimeError(
+                        "multi-TF refresh failed; aborting cv3 swap to avoid new-cv3/stale-mtf split-brain"
+                    ) from exc
 
             # --- atomic swap (single attribute assignments are GIL-atomic) ---
             old_cutoff = self._cv3.index[-1] if self._cv3 is not None else None

@@ -3,6 +3,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from gx1.scripts import materialize_entry_smart_seq520_smoke_manifest_v1 as manifest_gate
+from gx1.scripts import verify_entry_smart_seq520_trainability_readiness_v1 as trainability_gate
 from gx1.scripts import verify_entry_smart_seq520_smoke_readiness_v1 as readiness
 
 
@@ -21,6 +23,13 @@ def _sha256(path: Path) -> str:
 
 def _model_contract() -> dict:
     return json.loads(json.dumps(readiness.EXPECTED_MODEL_CONTRACT))
+
+
+def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
+    assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == manifest_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
+    assert readiness.DIRECTION_BALANCE_RECIPE_CONTRACT == trainability_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
+    assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == manifest_gate.DIRECTION_BALANCE_ENV_TEMPLATE
+    assert readiness.DIRECTION_BALANCE_ENV_TEMPLATE == trainability_gate.DIRECTION_BALANCE_ENV_TEMPLATE
 
 
 def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) -> argparse.Namespace:

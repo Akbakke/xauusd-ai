@@ -23,6 +23,7 @@
 set -euo pipefail
 
 REPO=/home/andre2/src/GX1_ENGINE
+PY="$REPO/.venv/bin/python"
 DATA_DIR=/home/andre2/GX1_DATA
 PAPER_RUNS=$DATA_DIR/reports/v12_paper_runs
 LOG_DIR=/tmp/gx1_live_practice
@@ -37,14 +38,28 @@ if [[ -f .env ]]; then
     set +o allexport
 fi
 
+FORCE=0
+[[ "${1-}" == "--force" ]] && FORCE=1
+
+# ── Rule 2: git-clean before the live launch (2026-06-13 audit gap) ──────────
+# Must run before any Python preflight, so a dirty tree cannot execute live code
+# and then abort later.
+if [[ "$FORCE" != "1" ]] && [[ -n "$(git -C "$REPO" status --short)" ]]; then
+    echo "FATAL: git tree is dirty — rule 2 (git-clean before any run, incl. live launch). Commit/stash, or pass --force to override deliberately:"
+    git -C "$REPO" status --short
+    exit 1
+fi
+
 # ── SMART-SERVING LAUNCH GATE (serving wave, vedtak SMART_JOINT_POLICY_PROMOTION_20260708) ──
 # The legacy XGB->V10->Entry-IQL entry chain is RETIRED (bundles physically gone
 # 2026-07-07); the entry policy is the contract-ACTIVE smart_seq520 cand#4 served
 # by gx1/execution/v12_smart_entry_live (operating point read from the contract —
-# ONE truth, no env pins here). Launch is fail-closed on TWO artifacts:
+# ONE truth, no env pins here). Launch is fail-closed on THREE artifacts:
 #   1. the TRAIN==SERVE parity gate PASS for the contract-ACTIVE bundle
 #      (gx1.scripts.verify_smart520_serve_parity_v1 -> SMART520_SERVE_PARITY_latest.json)
-#   2. an explicit user LAUNCH VEDTAK id in GX1_SMART_LAUNCH_VEDTAK
+#   2. the directional live-like pocket audit PASS for the contract-ACTIVE bundle
+#      (gx1.scripts.audit_smart_direction_live_like_pockets_v1 -> SMART_DIRECTION_LIVE_LIKE_POCKET_AUDIT_latest.json)
+#   3. an explicit user LAUNCH VEDTAK id in GX1_SMART_LAUNCH_VEDTAK
 # (This replaces the 20260627 legacy-ack block, which guarded — and referenced —
 # the retired chain.)
 if [[ -z "${GX1_SMART_LAUNCH_VEDTAK:-}" ]]; then
@@ -54,7 +69,7 @@ if [[ -z "${GX1_SMART_LAUNCH_VEDTAK:-}" ]]; then
     exit 2
 fi
 echo "[preflight] smart520 train==serve parity-gate check…"
-PYTHONPATH=$REPO "$REPO/.venv/bin/python" - <<'PYEOF' || { echo "FATAL: smart520 serve gate BLOCKED — run scripts/gx1_capped_run.sh --mem 34G -- .venv/bin/python -m gx1.scripts.verify_smart520_serve_parity_v1 to (re)prove parity for the contract-ACTIVE bundle, then relaunch." >&2; exit 2; }
+PYTHONPATH=$REPO "$PY" - <<'PYEOF' || { echo "FATAL: smart520 serve gate BLOCKED — rerun parity and directional pocket audit for the contract-ACTIVE bundle before relaunch." >&2; exit 2; }
 # ONE truth: the same assert the runner's own guard calls — launcher and
 # runner-direct cannot diverge (gx1/execution/v12_smart_entry_live.py).
 from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
@@ -139,7 +154,7 @@ export GX1_LWR_MIN_PNL_BPS=15.0
 # REMOVED with the retired entry_iql chain (serving wave 2026-07-08): the smart entry consumes
 # its operating point in-process from v10_entry.operating_point (asserted in the smart-gate above).
 echo "[preflight] contract operating-point launch-assert (exit live_env)…"
-PYTHONPATH=$REPO "$REPO/.venv/bin/python" - <<'PYEOF' || { echo "FATAL: launcher exports do not match the contract live_env — fix the export blocks above (or the contract, via explicit vedtak) before launching."; exit 1; }
+PYTHONPATH=$REPO "$PY" - <<'PYEOF' || { echo "FATAL: launcher exports do not match the contract live_env — fix the export blocks above (or the contract, via explicit vedtak) before launching."; exit 1; }
 import json, sys
 from gx1.execution.v12_exit_iql_live import exit_env_contract_diff
 
@@ -163,21 +178,6 @@ PYEOF
 # Entry-IQL candidate bundles; the smart chain v1 has no entry-IQL layer, so a
 # shadow export would only produce fail-safe load errors in the runner log.
 # Re-enable (new adapter class) when a smart-chain shadow candidate exists.
-
-FORCE=0
-[[ "${1-}" == "--force" ]] && FORCE=1
-
-# ── Rule 2: git-clean before the live launch (2026-06-13 audit gap) ──────────
-# CLAUDE.md rule 2 says git-clean before ANY run, explicitly incl. live launch —
-# but this launcher had no git check, so the highest-stakes run (the live XGB→V10
-# →IQL→V3→Exit decision stack) could start on a dirty tree (we don't know what
-# we're running). Mirror fase2b_rebuild.sh / gx1_candidate_gate.sh. --force skips
-# (deliberate operator override only).
-if [[ "$FORCE" != "1" ]] && [[ -n "$(git -C /home/andre2/src/GX1_ENGINE status --short)" ]]; then
-    echo "FATAL: git tree is dirty — rule 2 (git-clean before any run, incl. live launch). Commit/stash, or pass --force to override deliberately:"
-    git -C /home/andre2/src/GX1_ENGINE status --short
-    exit 1
-fi
 
 # ── Rule-9 LIVE-TAIL preflight (user vedtak 2026-06-11) ─────────────────────
 # Freeze-signature scan of the live cv3+BASE34 prebuilt tails BEFORE launching anything:
@@ -257,7 +257,7 @@ elif pid=$(is_alive "$COLL_PID_FILE"); then
     echo "[1/4] oanda_data_collector already RUNNING (PID $pid) — skip"
 else
     echo "[1/4] launching v12_oanda_data_collector..."
-    nohup python3 -m gx1.execution.v12_oanda_data_collector \
+    nohup "$PY" -m gx1.execution.v12_oanda_data_collector \
         > "$LOG_DIR/oanda_data_collector.log" 2>&1 &
     echo $! > "$COLL_PID_FILE"
     echo "    PID=$(cat $COLL_PID_FILE), log=$LOG_DIR/oanda_data_collector.log"
@@ -272,7 +272,7 @@ elif pid=$(is_alive "$CANON_PID_FILE"); then
     echo "[2/4] canonical_incremental already RUNNING (PID $pid) — skip"
 else
     echo "[2/4] launching v12_canonical_incremental --loop --interval 60..."
-    nohup python3 -m gx1.execution.v12_canonical_incremental --loop --interval 60 \
+    nohup "$PY" -m gx1.execution.v12_canonical_incremental --loop --interval 60 \
         > "$LOG_DIR/canonical_incremental.log" 2>&1 &
     echo $! > "$CANON_PID_FILE"
     echo "    PID=$(cat $CANON_PID_FILE), log=$LOG_DIR/canonical_incremental.log"
@@ -288,7 +288,8 @@ UNITS=${GX1_PAPER_UNITS:-5}   # 2026-06-11: 10→5 with SIZING_MAX_MULT=2.0 — 
 # −201 DD was measured at this cap. Default was 100 (unbounded-risk footgun); pinned to 3 for live.
 MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-smart520_cand4_usoverlap_pure_phase6}   # 2026-07-08 smart serving wave (was open100_conv_sized_skipasia)
+SUFFIX=${GX1_PAPER_SUFFIX:-smart520_cand4_usoverlap_latency90}   # 2026-07-09: no stale/backlog smart entries
+ENTRY_DECISION_LATENCY_SEC=${GX1_MAX_ENTRY_DECISION_LATENCY_SEC:-90}
 
 # Orphan-reaper (2026-06-13 audit): the spawn gate below only kill -0's the SINGLE pid in the
 # pid-file, so every relaunch that found that pid dead spawned a fresh runner ON TOP of still-alive
@@ -309,7 +310,8 @@ if pid=$(is_alive "$RUNNER_PID_FILE"); then
 else
     echo "[3/4] launching v12_paper_runner --units $UNITS --max-trades $MAX_TRADES ..."
     GX1_PURE_PHASE6=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_EXIT_AUGMENT_64=1 \
-    nohup python3 -m gx1.execution.v12_paper_runner \
+    GX1_MAX_ENTRY_DECISION_LATENCY_SEC="$ENTRY_DECISION_LATENCY_SEC" \
+    nohup "$PY" -m gx1.execution.v12_paper_runner \
         --units "$UNITS" \
         --max-trades "$MAX_TRADES" \
         --max-spread-bps "$MAX_SPREAD" \

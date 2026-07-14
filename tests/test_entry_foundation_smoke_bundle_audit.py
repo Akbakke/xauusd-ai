@@ -374,10 +374,11 @@ def test_require_edge_failures_rejects_wrong_signed_path_heads() -> None:
         "bad_path": {"prob_vs_path_quality_spearman": 0.10},
     }
 
-    failures = _require_edge_failures("test", split_report)
+    failures, advisories = _require_edge_failures("test", split_report)
 
     assert "test: path_quality_pred is not positively related to path_quality_bps" in failures
     assert "test: bad_path_prob is not negatively related to path_quality_bps" in failures
+    assert advisories == []
 
 
 def test_require_edge_failures_accepts_correct_signed_path_heads() -> None:
@@ -389,7 +390,10 @@ def test_require_edge_failures_accepts_correct_signed_path_heads() -> None:
         "bad_path": {"prob_vs_path_quality_spearman": -0.10},
     }
 
-    assert _require_edge_failures("val", split_report) == []
+    failures, advisories = _require_edge_failures("val", split_report)
+
+    assert failures == []
+    assert advisories == []
 
 
 def test_path_calibration_recipe_contract_requires_full_batch_path_quality_rank() -> None:
@@ -453,14 +457,28 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
         "best_direction_balance_guard_ok": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
-            "pred_balance_alpha": 0.20,
+            "pred_balance_alpha": 0.50,
             "pred_balance_target": "label",
             "pred_balance_class_weights": [1.0, 1.0, 4.0],
-            "direction_ce_scale": 1.30,
+            "direction_ce_scale": 2.00,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "hier_side_validity_weight": 1.50,
+            "hier_side_validity_min_utility_bps": 15.0,
+            "hier_side_validity_pos_weight_cap": 8.0,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
             "ckpt_monitor": "dir_acc",
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
         }
     }
 
@@ -472,6 +490,18 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["ckpt_class_balance_guard_weight"] == 0.50
     assert report["ckpt_class_balance_min_pred_to_label"] == 0.35
     assert report["ckpt_class_balance_min_pred_rate"] == 0.05
+    assert report["direction_min_pred_rate_loss_weight"] == 2.50
+    assert report["direction_min_pred_rate_fraction"] == 0.50
+    assert report["direction_min_pred_rate_floor"] == 0.05
+    assert report["hierarchical_entry_heads_enabled"] is True
+    assert report["side_validity_head_enabled"] is True
+    assert report["hier_side_validity_weight"] == 1.50
+    assert report["trendline_rail_head_enabled"] is True
+    assert report["trendline_rail_aux_weight"] == 1.00
+    assert report["trendline_rail_wrong_side_weight"] == 1.50
+    assert report["hier_legacy_ce_mult"] == 1.00
+    assert report["anchor_gate_enabled"] is True
+    assert report["anchor_gate_init"] == 0.0
     assert report["best_direction_balance_guard_ok"] is True
 
 
@@ -481,16 +511,30 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
         "enable_mtf_direction_head": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
-            "pred_balance_alpha": 0.20,
+            "pred_balance_alpha": 0.50,
             "pred_balance_target": "label",
             "pred_balance_class_weights": [1.0, 1.0, 4.0],
             "mtf_dir_aux_weight": 0.30,
             "mtf_dir_aux_uses_direction_balance_repair": True,
-            "direction_ce_scale": 1.30,
+            "direction_ce_scale": 2.00,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "hier_side_validity_weight": 1.50,
+            "hier_side_validity_min_utility_bps": 15.0,
+            "hier_side_validity_pos_weight_cap": 8.0,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
             "ckpt_monitor": "dir_acc",
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
         },
     }
 
@@ -507,15 +551,29 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
         "enable_mtf_direction_head": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
-            "pred_balance_alpha": 0.20,
+            "pred_balance_alpha": 0.50,
             "pred_balance_target": "label",
             "pred_balance_class_weights": [1.0, 1.0, 4.0],
             "mtf_dir_aux_weight": 0.30,
-            "direction_ce_scale": 1.30,
+            "direction_ce_scale": 2.00,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "hier_side_validity_weight": 1.50,
+            "hier_side_validity_min_utility_bps": 15.0,
+            "hier_side_validity_pos_weight_cap": 8.0,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
             "ckpt_monitor": "dir_acc",
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
         },
     }
 
@@ -544,6 +602,8 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("pred_balance_alpha" in failure for failure in report["failures"])
     assert any("pred_balance_class_weights" in failure for failure in report["failures"])
     assert any("ckpt_class_balance_guard_weight" in failure for failure in report["failures"])
+    assert any("direction_min_pred_rate_loss_weight" in failure for failure in report["failures"])
+    assert any("trendline_rail_head_enabled" in failure for failure in report["failures"])
 
 
 def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_guard() -> None:
@@ -551,14 +611,28 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
         "best_direction_balance_guard_ok": False,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
-            "pred_balance_alpha": 0.20,
+            "pred_balance_alpha": 0.50,
             "pred_balance_target": "label",
             "pred_balance_class_weights": [1.0, 1.0, 4.0],
-            "direction_ce_scale": 1.30,
+            "direction_ce_scale": 2.00,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "hier_side_validity_weight": 1.50,
+            "hier_side_validity_min_utility_bps": 15.0,
+            "hier_side_validity_pos_weight_cap": 8.0,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
             "ckpt_monitor": "dir_acc",
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
         },
     }
 
@@ -645,6 +719,60 @@ def test_smart_symmetric_validation_recipe_contract_requires_bidir_validation() 
     assert report["decision"] == "PASS"
     assert report["aux_selector_mode"] == "long_short_union"
     assert report["clean_edge_target_mode"] == "bidir"
+    assert report["expected_bad_path_prob_penalty_in_validation"] is True
+
+
+def test_smart_symmetric_validation_recipe_contract_accepts_xau_side_specific_bad_path_repair() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path", "side_validity", "trendline_rail"],
+            "symmetric_negatives": True,
+            "selector_masked_aux": True,
+            "validation_objective_matches_train": True,
+            "aux_selector_mode": "long_short_union",
+            "clean_edge_target_mode": "bidir",
+            "survival_target_mode": "bidir",
+            "bad_path_ce_in_direction_loss": True,
+            "bad_path_prob_penalty_in_validation": False,
+            "symmetric_short_prob_penalties": True,
+            "symmetric_clean_edge_rank": True,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "trendline_rail_head_enabled": True,
+        }
+    }
+
+    report = _symmetric_validation_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "PASS"
+    assert report["xau_side_specific_repair"] is True
+    assert report["expected_bad_path_prob_penalty_in_validation"] is False
+
+
+def test_smart_symmetric_validation_recipe_contract_rejects_legacy_bad_path_penalty_for_xau_repair() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path", "side_validity", "trendline_rail"],
+            "symmetric_negatives": True,
+            "selector_masked_aux": True,
+            "validation_objective_matches_train": True,
+            "aux_selector_mode": "long_short_union",
+            "clean_edge_target_mode": "bidir",
+            "survival_target_mode": "bidir",
+            "bad_path_ce_in_direction_loss": True,
+            "bad_path_prob_penalty_in_validation": True,
+            "symmetric_short_prob_penalties": True,
+            "symmetric_clean_edge_rank": True,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "trendline_rail_head_enabled": True,
+        }
+    }
+
+    report = _symmetric_validation_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert any("bad_path_prob_penalty_in_validation=false" in failure for failure in report["failures"])
 
 
 def test_smart_symmetric_validation_recipe_contract_rejects_long_only_validation() -> None:
@@ -785,6 +913,86 @@ def test_head_contract_report_rejects_unapproved_extra_head() -> None:
 
     assert report["decision"] == "FAIL"
     assert any("unapproved heads" in failure for failure in report["failures"])
+
+
+def test_head_contract_report_accepts_smart_direction_repair_heads() -> None:
+    target_audit = {
+        "decision": "PASS",
+        "target_head_contract": {
+            "active_training_heads": ["direction", "path_quality", "tf_agreement"],
+            "blocked_heads": ["hold_horizon"],
+        },
+    }
+    capabilities = {
+        "supported_heads": [
+            "direction",
+            "path_quality",
+            "tf_agreement",
+            "anchor_gate",
+            "trade_side_hierarchy",
+            "trendline_rail",
+            "side_validity",
+        ],
+        "declared_active_heads": [
+            "direction",
+            "path_quality",
+            "tf_agreement",
+            "anchor_gate",
+            "trade_side_hierarchy",
+            "trendline_rail",
+            "side_validity",
+        ],
+        "state_dict_heads": [
+            "direction",
+            "path_quality",
+            "tf_agreement",
+            "anchor_gate",
+            "trade_side_hierarchy",
+            "trendline_rail",
+            "side_validity",
+        ],
+    }
+    split_reports = {
+        "val": {
+            "output_keys_seen": [
+                "direction_logits",
+                "path_quality",
+                "tf_agreement_logit",
+                "trade_logit",
+                "side_logits",
+                "side_utility",
+                "side_bad_path_logit",
+                "side_mae",
+                "trendline_rail_logits",
+                "side_validity_logit",
+            ],
+            "output_shapes_seen": {
+                "direction_logits": [[3]],
+                "path_quality": [[1]],
+                "tf_agreement_logit": [[1]],
+                "trade_logit": [[1]],
+                "side_logits": [[2]],
+                "side_utility": [[2]],
+                "side_bad_path_logit": [[2]],
+                "side_mae": [[2]],
+                "trendline_rail_logits": [[6]],
+                "side_validity_logit": [[2]],
+            },
+        },
+    }
+
+    report = _head_contract_report(
+        target_audit=target_audit,
+        capabilities=capabilities,
+        split_reports=split_reports,
+        contract_mode="smart_seq520_candidate",
+    )
+
+    assert report["decision"] == "PASS"
+    assert report["smart_extra_active_heads"] == ["trade_side_hierarchy", "trendline_rail", "side_validity"]
+    assert "trade_side_hierarchy" in report["active_training_heads"]
+    assert "trendline_rail" in report["active_training_heads"]
+    assert "side_validity" in report["active_training_heads"]
 
 
 def test_pretrain_manifest_contract_accepts_exact_provenance(tmp_path) -> None:

@@ -3,9 +3,7 @@
 
 Builds the per-M5-bar 520-dim smart_seq520 entry state — seq (96, 520) + snap (520)
 + ctx_cont (142) + ctx_cat (5) — from the LIVE cv3/BASE28 prebuilts, bit-parity-exact
-with the offline dataset builder that produced the promoted cand#4 bundle's inputs
-(gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py, julyext dataset
-v10_dataset_smart_candidate_julyext_20260705, TEST-split convention).
+with the offline dataset builder and the active bundle's smart520_state_contract.
 
 Extend-don't-fork note (CLAUDE.md rule 7): the existing live entry state builder
 (v12_v10_live.V10LiveInference._build_seq_matrix / _build_ctx_cont) implements the
@@ -37,20 +35,23 @@ frame-window-dependent feature in the promoted evidence (test split 2026-01-01 .
     normalization + volume/entry-smart rolling windows: all clip at the frame
     start.
 This builder therefore reproduces that convention EXACTLY: the state frame is the
-live joined cv3+BASE28 window from SMART520_STATE_FRAME_ANCHOR_UTC (== the julyext
-dataset --test_start) to the decision bar, and the frame-dependent families
-(group-A/dip-struct, volume, entry-smart, extension layers) are recomputed on that
-anchored frame — overwriting the loader's full-history in-memory values. Columns
-whose offline values came from the FULL-history FULL_PLUS_CTX source (micro, swing,
-session, HTF ctx, REGIME_V4, per-bar price-state) are taken from the live prebuilts
-as-is (both sides full-history + converged; proven by the parity gate).
+live joined cv3+BASE28 window from the active bundle's
+smart520_state_contract.frame_anchor_utc to the decision bar, and the
+frame-dependent families (group-A/dip-struct, volume, entry-smart, extension
+layers) are recomputed on that anchored frame — overwriting the loader's
+full-history in-memory values. Columns whose offline values came from the
+FULL-history FULL_PLUS_CTX source (micro, swing, session, HTF ctx, REGIME_V4,
+per-bar price-state) are taken from the live prebuilts as-is (both sides
+full-history + converged; proven by the parity gate).
 
-The anchor is a PROMOTION-COUPLED constant: it must be re-pinned in the same wave
-as any future contract flip whose evidence dataset uses a different split anchor.
+The active bundle metadata carries the promotion-coupled anchor/rank-reference
+contract. Any future dataset/retrain must re-pin that contract with the bundle.
 Parity proof: gx1/scripts/verify_smart520_serve_parity_v1.py (mandatory gate).
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import os
 import tempfile
@@ -74,11 +75,9 @@ from gx1.features.volume_features import VOLUME_FEATURE_NAMES
 
 LOG = logging.getLogger("v12_smart520_state_live")
 
-# ONE-TRUTH frame anchor = the offline dataset's TEST-split start (see module
-# docstring). Source of the value: julyext dataset build command --test_start
-# (v10_dataset_smart_candidate_julyext_20260705/*_test.manifest.json) — the split
-# whose predictions locked the promoted operating point (RUN_MANIFEST
-# joint_smart_policy_replay_20260708). PROMOTION-COUPLED: re-pin on contract flip.
+# Legacy July promotion constants are kept only for explicit historical selftests.
+# Active live serving and parity helpers must load a Smart520StateContract from
+# bundle metadata; direct helper calls without a contract fail loud.
 SMART520_STATE_FRAME_ANCHOR_UTC = pd.Timestamp("2026-01-01 00:00:00", tz="UTC")
 
 # Model-range start of the offline FULL_PLUS_CTX frame (v10_6yr_rebuild_20260626.sh
@@ -88,16 +87,11 @@ SMART520_STATE_FRAME_ANCHOR_UTC = pd.Timestamp("2026-01-01 00:00:00", tz="UTC")
 # with a FROZEN-reference digitize for bars after RANK_REF_END.
 SMART520_MODEL_RANGE_START_UTC = pd.Timestamp("2020-11-09 00:00:00", tz="UTC")
 
-# End of the offline FULL_PLUS_CTX frame (julyext build cutoff == test_end).
-# Bucket ranks are computed over EXACTLY [MODEL_RANGE_START, RANK_REF_END] (the
-# offline frame) so historical buckets match the promoted evidence BIT-EXACTLY;
-# bars AFTER this get percentile-vs-frozen-reference digitize (deterministic,
-# no rank drift as live data accumulates). PROMOTION-COUPLED like the anchor.
+# Legacy July promotion reference end. Active XAU direction-repair serving reads
+# this from smart520_state_contract instead.
 SMART520_RANK_REFERENCE_END_UTC = pd.Timestamp("2026-07-03 16:55:00", tz="UTC")
-# Pinned per-timestamp bucket table + frozen distributions from the JULYEXT
-# evidence frame (built 2026-07-08; see compute_bucket_ctx_cat_full_frame).
-# MUST be re-pinned together with the anchor/ref-end constants at the next
-# dataset rebuild / contract flip (promotion-coupled constant).
+# Legacy pinned per-timestamp bucket table. Active XAU direction-repair bundles
+# must carry a fresh rank_reference_npz and live launch gates reject this path.
 SMART520_RANK_REFERENCE_NPZ = "/home/andre2/GX1_DATA/models/smart520_rank_reference_julyext_20260708.npz"
 
 SEQ_LEN_SMART520 = 96
@@ -110,6 +104,134 @@ CTX_CAT_DIM_SMART520 = len(ORDERED_CTX_CAT_NAMES_V3)     # 5
 #   _build_price_derived_layer  -> time + mid|close + atr|atr50|_v1_atr14
 #   _build_candlestick_*        -> time/open/high/low/close
 _SOURCE_PARQUET_COLS = ["time", "mid", "close", "atr", "open", "high", "low"]
+
+
+def _contract_ts(raw: Any, *, name: str) -> pd.Timestamp:
+    try:
+        ts = pd.to_datetime(str(raw), utc=True, errors="coerce")
+        if pd.isna(ts):
+            raise ValueError("NaT")
+        return ts
+    except Exception as exc:
+        raise RuntimeError(f"[SMART520_STATE_CONTRACT] invalid {name}: {raw!r}") from exc
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+@dataclass(frozen=True)
+class Smart520StateContract:
+    """Dataset-specific state convention for smart520 train==serve parity."""
+
+    frame_anchor_utc: pd.Timestamp
+    model_range_start_utc: pd.Timestamp
+    rank_reference_end_utc: pd.Timestamp
+    rank_reference_npz: Path
+    raw: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def legacy(cls) -> "Smart520StateContract":
+        return cls(
+            frame_anchor_utc=SMART520_STATE_FRAME_ANCHOR_UTC,
+            model_range_start_utc=SMART520_MODEL_RANGE_START_UTC,
+            rank_reference_end_utc=SMART520_RANK_REFERENCE_END_UTC,
+            rank_reference_npz=Path(SMART520_RANK_REFERENCE_NPZ),
+            raw={
+                "schema_version": "smart520_state_contract_legacy_julyext_v1",
+                "frame_anchor_utc": str(SMART520_STATE_FRAME_ANCHOR_UTC),
+                "model_range_start_utc": str(SMART520_MODEL_RANGE_START_UTC),
+                "rank_reference_end_utc": str(SMART520_RANK_REFERENCE_END_UTC),
+                "rank_reference_npz": SMART520_RANK_REFERENCE_NPZ,
+            },
+        )
+
+    @classmethod
+    def from_metadata(
+        cls,
+        raw: Any,
+        *,
+        require_xau_direction_repair: bool = False,
+    ) -> "Smart520StateContract":
+        if not isinstance(raw, dict):
+            raise RuntimeError("[SMART520_STATE_CONTRACT] bundle metadata lacks smart520_state_contract")
+        if str(raw.get("schema_version") or "") != "smart520_state_contract_v1":
+            raise RuntimeError(
+                "[SMART520_STATE_CONTRACT] schema_version must be smart520_state_contract_v1, "
+                f"got {raw.get('schema_version')!r}"
+            )
+        rank_ref = Path(str(raw.get("rank_reference_npz") or "")).expanduser()
+        if not rank_ref.is_file():
+            raise RuntimeError(f"[SMART520_STATE_CONTRACT] rank_reference_npz missing: {rank_ref}")
+        rank_ref = rank_ref.resolve()
+        if require_xau_direction_repair:
+            low = str(rank_ref).lower()
+            for marker in ("julyext", "smart_candidate_20260630", "utilityrepair", "20260710"):
+                if marker in low:
+                    raise RuntimeError(
+                        "[SMART520_STATE_CONTRACT] rank_reference_npz uses stale XAU marker "
+                        f"{marker!r}: {rank_ref}"
+                    )
+            expected_sha = str(raw.get("rank_reference_npz_sha256") or "").strip().lower()
+            if not expected_sha:
+                raise RuntimeError("[SMART520_STATE_CONTRACT] rank_reference_npz_sha256 missing")
+            actual_sha = _sha256_file(rank_ref)
+            if expected_sha != actual_sha:
+                raise RuntimeError(
+                    "[SMART520_STATE_CONTRACT] rank_reference_npz_sha256 mismatch: "
+                    f"metadata={expected_sha} actual={actual_sha} path={rank_ref}"
+                )
+            sidecar = rank_ref.with_suffix(rank_ref.suffix + ".json")
+            if not sidecar.is_file():
+                raise RuntimeError(f"[SMART520_STATE_CONTRACT] rank reference sidecar missing: {sidecar}")
+            try:
+                sidecar_data = json.loads(sidecar.read_text(encoding="utf-8"))
+            except Exception as exc:
+                raise RuntimeError(f"[SMART520_STATE_CONTRACT] rank reference sidecar unreadable: {sidecar}: {exc}") from exc
+            if str(sidecar_data.get("out_npz_sha256") or "").strip().lower() != expected_sha:
+                raise RuntimeError(
+                    "[SMART520_STATE_CONTRACT] rank reference sidecar out_npz_sha256 mismatch: "
+                    f"{sidecar_data.get('out_npz_sha256')!r} != {expected_sha}"
+                )
+        contract = cls(
+            frame_anchor_utc=_contract_ts(raw.get("frame_anchor_utc"), name="frame_anchor_utc"),
+            model_range_start_utc=_contract_ts(raw.get("model_range_start_utc"), name="model_range_start_utc"),
+            rank_reference_end_utc=_contract_ts(raw.get("rank_reference_end_utc"), name="rank_reference_end_utc"),
+            rank_reference_npz=rank_ref,
+            raw=dict(raw),
+        )
+        if contract.rank_reference_end_utc < contract.model_range_start_utc:
+            raise RuntimeError("[SMART520_STATE_CONTRACT] rank_reference_end_utc precedes model_range_start_utc")
+        if contract.frame_anchor_utc < contract.model_range_start_utc:
+            raise RuntimeError("[SMART520_STATE_CONTRACT] frame_anchor_utc precedes model_range_start_utc")
+        if contract.frame_anchor_utc > contract.rank_reference_end_utc:
+            raise RuntimeError("[SMART520_STATE_CONTRACT] frame_anchor_utc exceeds rank_reference_end_utc")
+        return contract
+
+    def as_report(self) -> dict[str, Any]:
+        return {
+            "frame_anchor_utc": str(self.frame_anchor_utc),
+            "model_range_start_utc": str(self.model_range_start_utc),
+            "rank_reference_end_utc": str(self.rank_reference_end_utc),
+            "rank_reference_npz": str(self.rank_reference_npz),
+            "rank_reference_npz_sha256": str(self.raw.get("rank_reference_npz_sha256") or ""),
+            "schema_version": str(self.raw.get("schema_version") or ""),
+            "time_split_reference_split": str(self.raw.get("time_split_reference_split") or ""),
+        }
+
+
+def _require_state_contract(state_contract: Smart520StateContract | None) -> Smart520StateContract:
+    if state_contract is None:
+        raise RuntimeError(
+            "[SMART520_STATE_CONTRACT] explicit smart520 state contract required; "
+            "load it from the active bundle metadata or pass Smart520StateContract.legacy() "
+            "only in historical selftests"
+        )
+    return state_contract
 
 
 def _compute_bare_atr14(frame: pd.DataFrame) -> np.ndarray:
@@ -203,6 +325,7 @@ class Smart520StateBuilder:
         computed inline (manifest order == bundle order, verified at init).
     """
     ordered_signal_names: list[str]
+    state_contract: Smart520StateContract
     multi_tf: dict | None = None   # in-memory MTF-v2 bundle for group-A recompute
     _ext_names: list[str] = field(default_factory=list, init=False)
 
@@ -277,7 +400,7 @@ class Smart520StateBuilder:
         # (14-bar bounded, verified equal). Same pinning pattern as the rank
         # reference below.
         try:
-            _refA = np.load(SMART520_RANK_REFERENCE_NPZ)
+            _refA = np.load(self.state_contract.rank_reference_npz)
             if "atr_pinned" in _refA.files:
                 _t = pd.to_datetime(frame["time"], utc=True).astype("int64").to_numpy()
                 _pos = np.searchsorted(_refA["time_ns"], _t)
@@ -289,7 +412,7 @@ class Smart520StateBuilder:
                     frame["atr"] = atr_col
         except FileNotFoundError:
             raise RuntimeError(
-                f"[SMART520_STATE] pinned rank reference missing: {SMART520_RANK_REFERENCE_NPZ}")
+                f"[SMART520_STATE] pinned rank reference missing: {self.state_contract.rank_reference_npz}")
         mid_hl = (pd.to_numeric(frame["high"], errors="coerce")
                   + pd.to_numeric(frame["low"], errors="coerce")) * 0.5
         frame["atr_bps"] = (
@@ -472,7 +595,10 @@ class Smart520StateBuilder:
         }
 
 
-def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
+def compute_bucket_ctx_cat_full_frame(
+    cv3: pd.DataFrame,
+    state_contract: Smart520StateContract | None = None,
+) -> pd.DataFrame:
     """vol_regime_id / atr_bucket / spread_bucket with the OFFLINE convention:
     FRAME-GLOBAL percentile-rank buckets (one-truth _rank_bucket_0_4 from
     add_ctx_cont_columns_to_prebuilt.py:705-712) over the model-range frame
@@ -498,7 +624,8 @@ def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
     )
     if not isinstance(cv3.index, pd.DatetimeIndex):
         raise RuntimeError("[SMART520_STATE] cv3 must have a DatetimeIndex for bucket recompute")
-    sub = cv3.loc[cv3.index >= SMART520_MODEL_RANGE_START_UTC,
+    contract = _require_state_contract(state_contract)
+    sub = cv3.loc[cv3.index >= contract.model_range_start_utc,
                   [c for c in ("high", "low", "close", "bid_close", "ask_close") if c in cv3.columns]].copy()
     atr = _compute_bare_atr14(sub).astype(np.float64)
     mid = (pd.to_numeric(sub["high"], errors="coerce")
@@ -511,7 +638,7 @@ def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
         dtype=float,
     )
 
-    # BIT-TRUE in-ref buckets via the PINNED julyext reference table (same
+    # BIT-TRUE in-ref buckets via the PINNED bundle reference table (same
     # pattern as the daemon's frozen regime_bucket_edges_v1, 2026-06-13): the
     # in-ref rows are LOOKED UP from the exact buckets the promoted evidence
     # used — recomputing ranks from the live frame lets any tiny 6-yr history
@@ -519,23 +646,24 @@ def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
     # 2026-07-08: session_regime atr_bucket single-row flips). Tail bars are
     # digitized against the FROZEN reference distribution. Fail-loud if the
     # pinned artifact is missing or the live frame misses >0.1% of ref rows.
-    _ref = np.load(SMART520_RANK_REFERENCE_NPZ)
+    _ref = np.load(contract.rank_reference_npz)
     ref_time_ns = _ref["time_ns"]
     lookup_pos = np.searchsorted(ref_time_ns, sub.index.asi8)
     in_table = (lookup_pos < len(ref_time_ns))
     in_table[in_table] &= ref_time_ns[lookup_pos[in_table]] == sub.index.asi8[in_table]
-    in_ref_mask = np.asarray(sub.index <= SMART520_RANK_REFERENCE_END_UTC)
+    in_ref_mask = np.asarray(sub.index <= contract.rank_reference_end_utc)
+    pinned_mask = in_table & in_ref_mask
     miss = in_ref_mask & ~in_table
     if miss.sum() > max(10, 0.001 * in_ref_mask.sum()):
         raise RuntimeError(
             f"[SMART520_STATE] {int(miss.sum())} in-ref bars missing from pinned rank reference "
-            f"{SMART520_RANK_REFERENCE_NPZ} — live frame has drifted from the promoted evidence frame; "
+            f"{contract.rank_reference_npz} — live frame has drifted from the promoted evidence frame; "
             f"repair the prebuilt or re-pin the reference (own vedtak)")
 
     def _bucket_pinned(values: np.ndarray, table_col: str, sorted_key: str, fallback: int) -> np.ndarray:
         out = np.full(len(values), int(fallback), dtype=np.int64)
-        out[in_table] = _ref[table_col][lookup_pos[in_table]].astype(np.int64)
-        rest = ~in_table
+        out[pinned_mask] = _ref[table_col][lookup_pos[pinned_mask]].astype(np.int64)
+        rest = ~pinned_mask
         if rest.any():
             frozen = _ref[sorted_key]
             pct = np.searchsorted(frozen, values[rest], side="right") / max(len(frozen), 1)
@@ -554,7 +682,10 @@ def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def compute_htf_ctx_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
+def compute_htf_ctx_full_frame(
+    cv3: pd.DataFrame,
+    state_contract: Smart520StateContract | None = None,
+) -> pd.DataFrame:
     """The 5 long-lookback HTF ctx columns (D1_dist_from_ema200_atr,
     D1_atr_percentile_252, H1_range_compression_ratio,
     M15_range_compression_ratio, H4_trend_sign_cat) recomputed FRESH over the
@@ -568,7 +699,8 @@ def compute_htf_ctx_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
     from gx1.execution.v12_ctx_augment_live import _add_htf_features
     if not isinstance(cv3.index, pd.DatetimeIndex):
         raise RuntimeError("[SMART520_STATE] cv3 must have a DatetimeIndex for HTF recompute")
-    sub_idx = cv3.index[cv3.index >= SMART520_MODEL_RANGE_START_UTC]
+    contract = _require_state_contract(state_contract)
+    sub_idx = cv3.index[cv3.index >= contract.model_range_start_utc]
     m5 = cv3.loc[sub_idx, ["open", "high", "low", "close"]].copy()
     work = pd.DataFrame(index=sub_idx)
     _add_htf_features(work, m5)

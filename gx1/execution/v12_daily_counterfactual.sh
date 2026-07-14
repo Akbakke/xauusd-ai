@@ -43,6 +43,11 @@ EOF
 fi
 
 REPO=/home/andre2/src/GX1_ENGINE
+PY="${GX1_PYTHON:-$REPO/.venv/bin/python}"
+if [[ ! -x "$PY" ]]; then
+    echo "FATAL: repo Python venv missing: $PY" >&2
+    exit 2
+fi
 PAPER_DIR=/home/andre2/GX1_DATA/reports/v12_paper_runs
 CF_DIR="$PAPER_DIR/counterfactual_reports"
 VARIANT_DIR="$PAPER_DIR/variant_shadow_reports"
@@ -98,7 +103,7 @@ run_pending_replays() {
         echo "[$(date -u +%H:%M:%SZ)] replaying $BASE (age $((AGE/3600))h)"
         SUFFIX_ARG=""
         [[ -n "$SUFFIX" ]] && SUFFIX_ARG="--journal-suffix $SUFFIX"
-        if PYTHONPATH=$REPO python3 -u $REPO/gx1/execution/v12_counterfactual_replay.py \
+        if PYTHONPATH=$REPO "$PY" -u $REPO/gx1/execution/v12_counterfactual_replay.py \
             --journal-date "$DATE" $SUFFIX_ARG \
             --out-dir "$CF_DIR" \
             > "$LOG_DIR/cf_replay_${BASE}.log" 2>&1; then
@@ -109,7 +114,7 @@ run_pending_replays() {
             SUMMARY="$CF_DIR/counterfactual_summary_${DATE}${SUFFIX:+_$SUFFIX}.json"
             if [[ -f "$SUMMARY" ]]; then
                 echo "  Summary:"
-                python3 -c "
+                "$PY" -c "
 import json
 s = json.load(open('$SUMMARY'))
 print(f\"    total_events={s.get('total_events',0)}\")
@@ -149,7 +154,7 @@ run_variant_shadow() {
             [[ -n "$SUFFIX" ]] && SUFFIX_ARG="--journal-suffix $SUFFIX"
             local BUNDLE_ARG=""
             [[ -n "$SHADOW_BUNDLE_DIR" ]] && BUNDLE_ARG="--bundle-dir $SHADOW_BUNDLE_DIR"
-            if PYTHONPATH=$REPO python3 -u $REPO/gx1/execution/v12_counterfactual_replay.py \
+            if PYTHONPATH=$REPO "$PY" -u $REPO/gx1/execution/v12_counterfactual_replay.py \
                 --journal-date "$DATE" $SUFFIX_ARG \
                 --mode variants --variants "$SHADOW_VARIANTS" $BUNDLE_ARG \
                 --out-dir "$VARIANT_DIR" \

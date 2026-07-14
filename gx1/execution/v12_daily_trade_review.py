@@ -169,6 +169,22 @@ def _classify_pattern(metrics: dict, exit_summary: dict | None) -> list[str]:
     return tags
 
 
+def _score_value(score: dict, key: str, legacy_key: str | None = None, default: Any = "") -> Any:
+    value = score.get(key, None)
+    if value is None and legacy_key:
+        value = score.get(legacy_key, None)
+    return default if value is None else value
+
+
+def _fmt_score(value: Any, fmt: str, default: str = "?") -> str:
+    try:
+        if value == "":
+            return default
+        return format(float(value), fmt)
+    except Exception:
+        return default
+
+
 # ── trade JSON → summary row ───────────────────────────────────────────────
 
 def trade_summary_row(trade_json: dict) -> dict[str, Any]:
@@ -194,6 +210,30 @@ def trade_summary_row(trade_json: dict) -> dict[str, Any]:
         "v10_mfe_pred": entry_score.get("v10_mfe_pred_at_entry", ""),
         "v10_tradable": entry_score.get("v10_tradable_prob", ""),
         "v10_bad_path": entry_score.get("v10_bad_path_prob", ""),
+        "smart_p_long": _score_value(entry_score, "smart_p_long", "v10_p_long"),
+        "smart_p_short": _score_value(entry_score, "smart_p_short", "v10_p_short"),
+        "smart_p_flat": _score_value(entry_score, "smart_p_flat"),
+        "smart_p_trade": _score_value(entry_score, "smart_p_trade"),
+        "smart_p_long_given_trade": _score_value(entry_score, "smart_p_long_given_trade"),
+        "smart_p_short_given_trade": _score_value(entry_score, "smart_p_short_given_trade"),
+        "smart_expected_utility_long_bps": _score_value(entry_score, "smart_expected_utility_long_bps"),
+        "smart_expected_utility_short_bps": _score_value(entry_score, "smart_expected_utility_short_bps"),
+        "smart_long_bad_path_prob": _score_value(entry_score, "smart_long_bad_path_prob"),
+        "smart_short_bad_path_prob": _score_value(entry_score, "smart_short_bad_path_prob"),
+        "smart_geometry_rising_support_rail_long_pressure": _score_value(
+            entry_score, "smart_geometry_rising_support_rail_long_pressure"
+        ),
+        "smart_geometry_rising_support_rail_short_trap_pressure": _score_value(
+            entry_score, "smart_geometry_rising_support_rail_short_trap_pressure"
+        ),
+        "smart_geometry_falling_resistance_rail_short_pressure": _score_value(
+            entry_score, "smart_geometry_falling_resistance_rail_short_pressure"
+        ),
+        "smart_geometry_falling_resistance_rail_long_trap_pressure": _score_value(
+            entry_score, "smart_geometry_falling_resistance_rail_long_trap_pressure"
+        ),
+        "smart_trendline_rail_long_minus_short": _score_value(entry_score, "smart_trendline_rail_long_minus_short"),
+        "smart_mtf_trend_evidence": _score_value(entry_score, "smart_mtf_trend_evidence"),
         "q_take_long": entry_score.get("q_take_long", ""),
         "q_take_short": entry_score.get("q_take_short", ""),
         "q_skip": entry_score.get("q_skip", ""),
@@ -242,6 +282,51 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
     lines.append(f"- path_quality: {score.get('v10_path_quality_pred', 0):.3f}  ·  mfe_pred: {score.get('v10_mfe_pred_at_entry', 0):.2f} bps")
     lines.append(f"- tradable_prob: {score.get('v10_tradable_prob', 0):.3f}  ·  bad_path_prob: {score.get('v10_bad_path_prob', 0):.3f}")
     lines.append("")
+    if any(str(k).startswith("smart_") for k in score):
+        lines.append("### SMART entry outputs")
+        lines.append(
+            "- p_long: **"
+            + _fmt_score(score.get("smart_p_long"), ".3f")
+            + "**  ·  p_short: "
+            + _fmt_score(score.get("smart_p_short"), ".3f")
+            + "  ·  p_flat: "
+            + _fmt_score(score.get("smart_p_flat"), ".3f")
+        )
+        lines.append(
+            "- p_trade: "
+            + _fmt_score(score.get("smart_p_trade"), ".3f")
+            + "  ·  p_long|trade: "
+            + _fmt_score(score.get("smart_p_long_given_trade"), ".3f")
+            + "  ·  p_short|trade: "
+            + _fmt_score(score.get("smart_p_short_given_trade"), ".3f")
+        )
+        lines.append(
+            "- expected utility L/S: "
+            + _fmt_score(score.get("smart_expected_utility_long_bps"), "+.2f")
+            + " / "
+            + _fmt_score(score.get("smart_expected_utility_short_bps"), "+.2f")
+            + " bps  ·  bad-path L/S: "
+            + _fmt_score(score.get("smart_long_bad_path_prob"), ".3f")
+            + " / "
+            + _fmt_score(score.get("smart_short_bad_path_prob"), ".3f")
+        )
+        lines.append(
+            "- trendline rail L-S: **"
+            + _fmt_score(score.get("smart_trendline_rail_long_minus_short"), "+.3f")
+            + "**  ·  rising-support long/trap: "
+            + _fmt_score(score.get("smart_geometry_rising_support_rail_long_pressure"), ".3f")
+            + " / "
+            + _fmt_score(score.get("smart_geometry_rising_support_rail_short_trap_pressure"), ".3f")
+        )
+        lines.append(
+            "- falling-resistance short/trap: "
+            + _fmt_score(score.get("smart_geometry_falling_resistance_rail_short_pressure"), ".3f")
+            + " / "
+            + _fmt_score(score.get("smart_geometry_falling_resistance_rail_long_trap_pressure"), ".3f")
+            + "  ·  mtf_trend: "
+            + _fmt_score(score.get("smart_mtf_trend_evidence"), "+.3f")
+        )
+        lines.append("")
     lines.append("### Entry-IQL Q-values")
     lines.append(f"- Q_take_long: **{score.get('q_take_long', 0):+.2f}**  ·  Q_take_short: {score.get('q_take_short', 0):+.2f}  ·  Q_skip: {score.get('q_skip', 0):+.4f}")
     lines.append(f"- Advantage over skip: **{score.get('advantage_over_skip', 0):+.2f}** bps  (long: {score.get('advantage_over_skip_long', 0):+.2f}, short: {score.get('advantage_over_skip_short', 0):+.2f})")

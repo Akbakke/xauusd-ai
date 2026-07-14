@@ -52,6 +52,11 @@ fi
 
 INTERVAL_SEC=${INTERVAL_SEC:-1800}   # 30 min default
 REPO=/home/andre2/src/GX1_ENGINE
+PY="${GX1_PYTHON:-$REPO/.venv/bin/python}"
+if [[ ! -x "$PY" ]]; then
+    echo "FATAL: repo Python venv missing: $PY" >&2
+    exit 2
+fi
 LOG_DIR=/home/andre2/GX1_DATA/reports/v12_live_data/logs
 MANIFEST=/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json
 mkdir -p "$LOG_DIR"
@@ -64,17 +69,17 @@ while true; do
     echo "[refresh-daemon] cycle $cycle starting at $TS" | tee -a "$LOG"
 
     # Step 1: M1 backfill
-    PYTHONPATH=$REPO timeout 600 python3 -u $REPO/gx1/execution/v12_backfill_to_present.py >> "$LOG" 2>&1 \
+    PYTHONPATH=$REPO timeout 600 "$PY" -u $REPO/gx1/execution/v12_backfill_to_present.py >> "$LOG" 2>&1 \
         && echo "[refresh] ok m1_backfill" | tee -a "$LOG" \
         || echo "[refresh] WARN m1_backfill failed" | tee -a "$LOG"
 
     # Step 2: M5 downsample (incremental)
-    PYTHONPATH=$REPO timeout 120 python3 -u $REPO/gx1/execution/v12_m1_to_m5_downsample.py >> "$LOG" 2>&1 \
+    PYTHONPATH=$REPO timeout 120 "$PY" -u $REPO/gx1/execution/v12_m1_to_m5_downsample.py >> "$LOG" 2>&1 \
         && echo "[refresh] ok m5_downsample" | tee -a "$LOG" \
         || echo "[refresh] WARN m5_downsample failed" | tee -a "$LOG"
 
     # Step 3: canonical_v2 build
-    PYTHONPATH=$REPO timeout 600 python3 -u $REPO/gx1/scripts/materialize_build_canonical_features_v2.py >> "$LOG" 2>&1 \
+    PYTHONPATH=$REPO timeout 600 "$PY" -u $REPO/gx1/scripts/materialize_build_canonical_features_v2.py >> "$LOG" 2>&1 \
         && echo "[refresh] ok canonical_v2" | tee -a "$LOG" \
         || { echo "[refresh] FAIL canonical_v2 — skipping rest of cycle" | tee -a "$LOG"; sleep "$INTERVAL_SEC"; continue; }
 
@@ -84,13 +89,13 @@ while true; do
        && echo "[refresh] ok canonical_v2 sync" | tee -a "$LOG"
 
     # Step 5: canonical_v3 augment
-    PYTHONPATH=$REPO timeout 300 python3 -u $REPO/gx1/scripts/materialize_canonical_v3_augment.py >> "$LOG" 2>&1 \
+    PYTHONPATH=$REPO timeout 300 "$PY" -u $REPO/gx1/scripts/materialize_canonical_v3_augment.py >> "$LOG" 2>&1 \
         && echo "[refresh] ok canonical_v3" | tee -a "$LOG" \
         || { echo "[refresh] FAIL canonical_v3 — skipping rest" | tee -a "$LOG"; sleep "$INTERVAL_SEC"; continue; }
 
     # Step 6: BASE34 M1-rebuild (full from 2020-11-09 to tomorrow-exclusive)
     END_EXCLUSIVE=$(date -u -d 'tomorrow' +%Y-%m-%dT00:00:00Z)
-    PYTHONPATH=$REPO timeout 1800 python3 -u $REPO/gx1/scripts/build_truth_monday_week_prebuilt_extension_v1.py \
+    PYTHONPATH=$REPO timeout 1800 "$PY" -u $REPO/gx1/scripts/build_truth_monday_week_prebuilt_extension_v1.py \
         --start 2020-11-09T00:00:00Z \
         --end-exclusive "$END_EXCLUSIVE" \
         --output-root /home/andre2/GX1_DATA/data/data/prebuilt/MONDAY_WEEK_EXTENSION_CANDIDATES \
@@ -103,7 +108,7 @@ while true; do
     NEW_FILE=$(ls "$NEW_DIR"/xauusd_m1_EXPANDED_BASE34_CTX16CAT6_*_RAW_INDEX.parquet 2>/dev/null | head -1)
     if [[ -f "$NEW_FILE" ]]; then
         cp "$MANIFEST" "${MANIFEST}.backup_$(date -u +%Y%m%dT%H%M%SZ)"
-        python3 -c "
+        "$PY" -c "
 import json, hashlib
 import pyarrow.parquet as pq
 fp = '$NEW_FILE'

@@ -91,6 +91,15 @@ class CtxModelConfig:
     # Anchored entry
     residual_scale: float = 0.35
     anchor_eps: float = 1e-6
+    # XAU direction repair (2026-07-10): optional learned anchor gate +
+    # hierarchical trade/side/utility heads. Defaults OFF so existing bundles
+    # keep strict-load and identical forward behaviour.
+    enable_anchor_gate: bool = False
+    anchor_gate_init: float = 1.0
+    enable_hierarchical_entry_heads: bool = False
+    enable_side_validity_head: bool = False
+    enable_trendline_rail_head: bool = False
+    trendline_rail_output_dim: int = 4
     # ── Multi-TF extension (V12.2) ────────────────────────────────────
     # When disabled (default), model behaves identically to v3: no extra
     # layers created, no extra parameters in state_dict, no extra compute.
@@ -265,6 +274,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         ctx_cat_dim: int = 6,
         residual_scale: float = 0.35,
         anchor_eps: float = 1e-6,
+        enable_anchor_gate: bool = False,
+        anchor_gate_init: float = 1.0,
+        enable_hierarchical_entry_heads: bool = False,
+        enable_side_validity_head: bool = False,
+        enable_trendline_rail_head: bool = False,
+        trendline_rail_output_dim: int = 4,
         # Multi-TF extension (V12.2). All default to OFF — model behaves
         # identically to v3 unless a bundle explicitly enables them.
         enable_multi_tf: bool = False,
@@ -329,6 +344,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError(
                 f"MULTI_TF_M5_DIM_INVALID: enable_multi_tf_m5=True requires m5_seq_dim > 0; got {m5_seq_dim}"
             )
+        if enable_trendline_rail_head and int(trendline_rail_output_dim) < 4:
+            raise RuntimeError(
+                "TRENDLINE_RAIL_OUTPUT_DIM_INVALID: trendline rail head requires at least 4 outputs; "
+                f"got {int(trendline_rail_output_dim)}"
+            )
+        if enable_side_validity_head and not enable_hierarchical_entry_heads:
+            raise RuntimeError("SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
 
         self.cfg = CtxModelConfig(
             seq_input_dim=seq_input_dim,
@@ -338,6 +360,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
             ctx_cat_dim=int(ctx_cat_dim),
             residual_scale=float(residual_scale),
             anchor_eps=float(anchor_eps),
+            enable_anchor_gate=bool(enable_anchor_gate),
+            anchor_gate_init=float(anchor_gate_init),
+            enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+            enable_side_validity_head=bool(enable_side_validity_head),
+            enable_trendline_rail_head=bool(enable_trendline_rail_head),
+            trendline_rail_output_dim=int(trendline_rail_output_dim),
             enable_multi_tf=bool(enable_multi_tf),
             m15_seq_dim=int(m15_seq_dim),
             h1_seq_dim=int(h1_seq_dim),
@@ -490,6 +518,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # bundle overwrites these weights, so it's bit-parity-neutral for existing bundles.
         nn.init.zeros_(self.head_direction.weight)
         nn.init.zeros_(self.head_direction.bias)
+        if self.cfg.enable_anchor_gate:
+            self.head_anchor_gate = nn.Linear(d_model, 3)
+            nn.init.zeros_(self.head_anchor_gate.weight)
+            init = min(max(float(self.cfg.anchor_gate_init), 1e-4), 1.0 - 1e-4)
+            nn.init.constant_(self.head_anchor_gate.bias, math.log(init / (1.0 - init)))
         # Regime FiLM (BIG-9): condition direction on the ctx_cat embedding (regime slots).
         # ZERO-INIT final layer -> gamma=beta=0 at init -> z_dir==z -> bit-parity with cement.
         if bool(getattr(self.cfg, "enable_regime_film", False)):
@@ -508,6 +541,24 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Replay-oriented quality heads used by training/audit. Runtime may ignore them.
         self.head_clean_edge = nn.Linear(d_model, 1)
         self.head_survival = nn.Linear(d_model, 1)
+        if self.cfg.enable_hierarchical_entry_heads:
+            self.head_trade = nn.Linear(d_model, 1)
+            self.head_side = nn.Linear(d_model, 2)              # LONG / SHORT conditional on trade
+            self.head_side_utility = nn.Linear(d_model, 2)      # expected path utility, bps
+            self.head_side_bad_path = nn.Linear(d_model, 2)     # side-specific bad-path logits
+            self.head_side_mae = nn.Linear(d_model, 2)          # side-specific expected MAE, bps
+            if self.cfg.enable_side_validity_head:
+                self.head_side_validity = nn.Linear(d_model, 2)  # side-specific valid-trade logits
+            nn.init.zeros_(self.head_trade.bias)
+            nn.init.zeros_(self.head_side.bias)
+            nn.init.zeros_(self.head_side_utility.bias)
+            nn.init.zeros_(self.head_side_bad_path.bias)
+            nn.init.zeros_(self.head_side_mae.bias)
+            if self.cfg.enable_side_validity_head:
+                nn.init.zeros_(self.head_side_validity.bias)
+        if self.cfg.enable_trendline_rail_head:
+            self.head_trendline_rail = nn.Linear(d_model, int(self.cfg.trendline_rail_output_dim))
+            nn.init.zeros_(self.head_trendline_rail.bias)
 
         # ── Distillation Q-head (V13 prep) ────────────────────────────
         # Only instantiated when enable_q_head=True. Zero-init so a fresh
@@ -830,12 +881,25 @@ class EntryV10CtxHybridTransformer(nn.Module):
             z_v3 = z_v3 + self.specialist_fusion_scale.to(specialist_correction.dtype) * specialist_correction
 
         # ── Multi-TF second-stage fusion (V12.2 + V2 M5 extension) ──
-        # Only active when the model was constructed with enable_multi_tf=True
-        # AND the caller provides required TF tensors. If model is v3-mode but
-        # caller mistakenly passes multi-TF inputs, we ignore them (no-op).
-        _mtf_inputs_present = all(
-            t is not None for t in (seq_m15, seq_h1, seq_h4, seq_d1)
-        )
+        # Only active when the model was constructed with enable_multi_tf=True.
+        # Missing tensors are a train/serve contract violation; silently falling
+        # back to the single-TF path makes live/replay parity meaningless.
+        _mtf_inputs_present = all(t is not None for t in (seq_m15, seq_h1, seq_h4, seq_d1))
+        if self.cfg.enable_multi_tf and not _mtf_inputs_present:
+            missing = [
+                name
+                for name, value in (
+                    ("seq_m15", seq_m15),
+                    ("seq_h1", seq_h1),
+                    ("seq_h4", seq_h4),
+                    ("seq_d1", seq_d1),
+                )
+                if value is None
+            ]
+            raise RuntimeError(
+                "MULTI_TF_INPUTS_MISSING: enable_multi_tf=True requires "
+                f"m15/h1/h4/d1 tensors; missing={missing}"
+            )
         if self.cfg.enable_multi_tf and _mtf_inputs_present:
             for name, t, exp_len, exp_dim in (
                 ("seq_m15", seq_m15, self.cfg.m15_seq_len, self._expected_m15_seq_dim),
@@ -924,7 +988,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
             z_dir = z
         delta_logits = self.head_direction(z_dir)   # (B,3)
         anchor_logits = self._anchor_logits_from_snap(snap_x)
-        direction_logits = anchor_logits + (self.residual_scale.to(delta_logits.dtype) * delta_logits)
+        anchor_gate = None
+        if hasattr(self, "head_anchor_gate"):
+            anchor_gate = torch.sigmoid(self.head_anchor_gate(z_dir))
+            _assert_finite("anchor_gate", anchor_gate)
+            anchor_mean = anchor_logits.mean(dim=1, keepdim=True)
+            gated_anchor_logits = anchor_mean + anchor_gate * (anchor_logits - anchor_mean)
+            direction_logits = gated_anchor_logits + (
+                self.residual_scale.to(delta_logits.dtype) * delta_logits
+            )
+        else:
+            direction_logits = anchor_logits + (self.residual_scale.to(delta_logits.dtype) * delta_logits)
         # Forceful MTF→dir (2026-06-06): dedicated, non-zeroable multi-TF term on
         # direction logits. Only when the head exists (cross-TF branch + enabled).
         # Emits mtf_dir_logits for the aux CE that forces the multi-TF repr to
@@ -969,6 +1043,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "direction_logits": direction_logits,
             "anchor_logits": anchor_logits,
             "delta_logits": delta_logits,
+            **({"anchor_gate": anchor_gate} if anchor_gate is not None else {}),
             **({"mtf_dir_logits": mtf_dir_logits} if mtf_dir_logits is not None else {}),
             "path_quality": path_quality,
             "mfe_first_n": mfe_first_n,
@@ -979,6 +1054,34 @@ class EntryV10CtxHybridTransformer(nn.Module):
         }
         if specialist_gate is not None:
             out["specialist_gate"] = specialist_gate
+        if self.cfg.enable_hierarchical_entry_heads and hasattr(self, "head_trade"):
+            trade_logit = self.head_trade(z)
+            side_logits = self.head_side(z)
+            side_utility = self.head_side_utility(z)
+            side_bad_path_logit = self.head_side_bad_path(z)
+            side_mae = self.head_side_mae(z)
+            side_validity_logit = self.head_side_validity(z) if hasattr(self, "head_side_validity") else None
+            _assert_finite("trade_logit", trade_logit)
+            _assert_finite("side_logits", side_logits)
+            _assert_finite("side_utility", side_utility)
+            _assert_finite("side_bad_path_logit", side_bad_path_logit)
+            _assert_finite("side_mae", side_mae)
+            if side_validity_logit is not None:
+                _assert_finite("side_validity_logit", side_validity_logit)
+            out.update(
+                {
+                    "trade_logit": trade_logit,
+                    "side_logits": side_logits,
+                    "side_utility": side_utility,
+                    "side_bad_path_logit": side_bad_path_logit,
+                    "side_mae": side_mae,
+                    **({"side_validity_logit": side_validity_logit} if side_validity_logit is not None else {}),
+                }
+            )
+        if self.cfg.enable_trendline_rail_head and hasattr(self, "head_trendline_rail"):
+            trendline_rail_logits = self.head_trendline_rail(z)
+            _assert_finite("trendline_rail_logits", trendline_rail_logits)
+            out["trendline_rail_logits"] = trendline_rail_logits
         # Distillation Q-head — only emit when enabled in this bundle.
         if self.cfg.enable_q_head and hasattr(self, "q_head"):
             q_per_action = self.q_head(z)  # (B, 3) — [q_skip, q_long, q_short]

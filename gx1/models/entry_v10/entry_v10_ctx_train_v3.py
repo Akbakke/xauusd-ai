@@ -218,6 +218,21 @@ _ENTRY_ALLOWED_COMPAT_STATE_KEYS = {
     "head_position_size.bias",
     "head_hold_horizon.weight",
     "head_hold_horizon.bias",
+    # XAU direction repair challengers (opt-in).
+    "head_anchor_gate.weight",
+    "head_anchor_gate.bias",
+    "head_trade.weight",
+    "head_trade.bias",
+    "head_side.weight",
+    "head_side.bias",
+    "head_side_utility.weight",
+    "head_side_utility.bias",
+    "head_side_bad_path.weight",
+    "head_side_bad_path.bias",
+    "head_side_mae.weight",
+    "head_side_mae.bias",
+    "head_trendline_rail.weight",
+    "head_trendline_rail.bias",
 }
 
 
@@ -294,6 +309,9 @@ ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR", "val_loss").strip().lower(
 ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", "0.0"))
 ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", "0.0"))
 ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", "0.0"))
+ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "0.0"))
+ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", "0.0"))
+ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", "0.0"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -345,6 +363,41 @@ ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_CLEAN_EDGE_POS_W
 ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP", "10.0"))
 ENTRY_CLEAN_EDGE_RANKING_WEIGHT = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_WEIGHT", "0.25"))
 ENTRY_CLEAN_EDGE_RANKING_MARGIN = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_MARGIN", "0.12"))
+# XAU direction repair (2026-07-10): losses for opt-in hierarchical
+# trade/no-trade, conditional side and per-side path heads.
+ENTRY_HIER_TRADE_WEIGHT = float(_env_str("ENTRY_HIER_TRADE_WEIGHT", "0.85"))
+ENTRY_HIER_SIDE_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_WEIGHT", "0.85"))
+ENTRY_HIER_UTILITY_WEIGHT = float(_env_str("ENTRY_HIER_UTILITY_WEIGHT", "0.20"))
+ENTRY_HIER_BAD_PATH_WEIGHT = float(_env_str("ENTRY_HIER_BAD_PATH_WEIGHT", "0.35"))
+ENTRY_HIER_MAE_WEIGHT = float(_env_str("ENTRY_HIER_MAE_WEIGHT", "0.15"))
+ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
+ENTRY_HIER_LEGACY_CE_MULT = float(_env_str("ENTRY_HIER_LEGACY_CE_MULT", "0.35"))
+ENTRY_HIER_SIDE_VALIDITY_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", "0.0"))
+ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", "10.0"))
+ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", "20.0"))
+ENTRY_HIER_POCKET_ABSTAIN_WEIGHT = float(_env_str("ENTRY_HIER_POCKET_ABSTAIN_WEIGHT", "0.0"))
+ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT = float(_env_str("ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT", "0.0"))
+ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS = float(_env_str("ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS", "10.0"))
+ENTRY_TRENDLINE_RAIL_AUX_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", "0.25"))
+ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT", "0.20"))
+ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT = float(
+    _env_str(
+        "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT",
+        str(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
+    )
+)
+ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT = float(
+    _env_str(
+        "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT",
+        str(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
+    )
+)
+ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT", "0.0"))
+ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT", "0.0"))
+ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT", "0.0"))
+ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT", "0.0"))
+ENTRY_TRENDLINE_RAIL_MARGIN = float(_env_str("ENTRY_TRENDLINE_RAIL_MARGIN", "0.50"))
+ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS = float(_env_str("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS", "5.0"))
 
 # -----------------------------------------------------------------------------
 # Micro features (ctx_cont extension)
@@ -444,6 +497,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.0",
     "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.0",
     "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.0",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.0",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
@@ -481,6 +537,29 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP": "10.0",
     "ENTRY_CLEAN_EDGE_RANKING_WEIGHT": "0.25",
     "ENTRY_CLEAN_EDGE_RANKING_MARGIN": "0.12",
+    "ENTRY_HIER_TRADE_WEIGHT": "0.85",
+    "ENTRY_HIER_SIDE_WEIGHT": "0.85",
+    "ENTRY_HIER_UTILITY_WEIGHT": "0.20",
+    "ENTRY_HIER_BAD_PATH_WEIGHT": "0.35",
+    "ENTRY_HIER_MAE_WEIGHT": "0.15",
+    "ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_HIER_LEGACY_CE_MULT": "0.35",
+    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "0.0",
+    "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "10.0",
+    "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT": "0.0",
+    "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT": "0.0",
+    "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS": "10.0",
+    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": "0.25",
+    "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT": "0.20",
+    "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT": "0.20",
+    "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT": "0.20",
+    "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT": "0.0",
+    "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT": "0.0",
+    "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT": "0.0",
+    "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT": "0.0",
+    "ENTRY_TRENDLINE_RAIL_MARGIN": "0.50",
+    "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS": "5.0",
     "GX1_CTX_CONTRACT": "V_NEXT",
     "ENTRY_RESIDUAL_SCALE": "0.35",
     "ENTRY_ANCHOR_EPS": "1e-6",
@@ -640,6 +719,10 @@ def _build_active_head_names(
     enable_timing_head: bool,
     enable_tail_risk_head: bool,
     enable_vol_forecast_head: bool,
+    enable_anchor_gate: bool = False,
+    enable_hierarchical_entry_heads: bool = False,
+    enable_side_validity_head: bool = False,
+    enable_trendline_rail_head: bool = False,
 ) -> List[str]:
     heads = [
         "direction",
@@ -661,6 +744,10 @@ def _build_active_head_names(
         ("timing", enable_timing_head),
         ("tail_risk", enable_tail_risk_head),
         ("vol_forecast", enable_vol_forecast_head),
+        ("anchor_gate", enable_anchor_gate),
+        ("trade_side_hierarchy", enable_hierarchical_entry_heads),
+        ("side_validity", enable_side_validity_head),
+        ("trendline_rail", enable_trendline_rail_head),
     ]
     heads.extend(name for name, enabled in optional_heads if bool(enabled))
     return heads
@@ -1042,6 +1129,102 @@ def _signal_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dic
     return _signal_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
 
 
+def _smart520_state_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
+    extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
+    contract = extra.get("smart520_state_contract")
+    return dict(contract) if isinstance(contract, dict) else {}
+
+
+def _smart520_state_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
+    if dataset_manifest is None:
+        return {}
+    p = Path(dataset_manifest).expanduser().resolve()
+    if not p.exists():
+        return {}
+    return _smart520_state_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
+
+
+def _smart520_state_contract_for_parquet(parquet_path: Path) -> Dict[str, Any]:
+    return _smart520_state_contract_from_manifest_path(
+        Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
+    )
+
+
+def _smart520_state_contract_failures(contract: Dict[str, Any], *, split: str) -> list[str]:
+    failures: list[str] = []
+    required = {
+        "schema_version",
+        "frame_anchor_utc",
+        "model_range_start_utc",
+        "rank_reference_end_utc",
+        "rank_reference_npz",
+        "rank_reference_npz_sha256",
+    }
+    if not isinstance(contract, dict) or not contract:
+        return [f"{split} manifest missing smart520_state_contract for XAU direction repair"]
+    missing = sorted(required - set(contract))
+    if missing:
+        failures.append(
+            f"{split} smart520_state_contract missing fields for XAU direction repair: {','.join(missing)}"
+        )
+    if str(contract.get("schema_version") or "") != "smart520_state_contract_v1":
+        failures.append(
+            f"{split} smart520_state_contract schema_version must be smart520_state_contract_v1, "
+            f"got {contract.get('schema_version')!r}"
+        )
+    rank_ref = str(contract.get("rank_reference_npz") or "").strip()
+    rank_ref_low = rank_ref.lower()
+    if not rank_ref:
+        failures.append(f"{split} smart520_state_contract rank_reference_npz missing")
+    elif not Path(rank_ref).expanduser().is_file():
+        failures.append(f"{split} smart520_state_contract rank_reference_npz does not exist: {rank_ref}")
+    else:
+        rank_ref_path = Path(rank_ref).expanduser()
+        expected_sha = str(contract.get("rank_reference_npz_sha256") or "").strip().lower()
+        actual_sha = _sha256_file(rank_ref_path)
+        if expected_sha != actual_sha:
+            failures.append(
+                f"{split} smart520_state_contract rank_reference_npz_sha256 mismatch: "
+                f"metadata={expected_sha!r} actual={actual_sha} path={rank_ref}"
+            )
+        sidecar_path = rank_ref_path.with_suffix(rank_ref_path.suffix + ".json")
+        if not sidecar_path.is_file():
+            failures.append(f"{split} smart520_state_contract rank reference sidecar missing: {sidecar_path}")
+        else:
+            try:
+                sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                sidecar_sha = str(sidecar.get("out_npz_sha256") or "").strip().lower()
+                if sidecar_sha != expected_sha:
+                    failures.append(
+                        f"{split} smart520_state_contract sidecar out_npz_sha256 mismatch: "
+                        f"sidecar={sidecar_sha!r} metadata={expected_sha!r}"
+                    )
+            except Exception as exc:
+                failures.append(f"{split} smart520_state_contract rank reference sidecar unreadable: {sidecar_path}: {exc}")
+    for marker in ("julyext", "smart_candidate_20260630", "utilityrepair", "20260710"):
+        if marker in rank_ref_low:
+            failures.append(
+                f"{split} smart520_state_contract rank_reference_npz references stale marker "
+                f"{marker!r}: {rank_ref}"
+            )
+    parsed_ts: Dict[str, pd.Timestamp] = {}
+    for key in ("frame_anchor_utc", "model_range_start_utc", "rank_reference_end_utc"):
+        try:
+            ts = pd.to_datetime(str(contract.get(key) or ""), utc=True, errors="coerce")
+            if pd.isna(ts):
+                raise ValueError("NaT")
+            parsed_ts[key] = ts
+        except Exception:
+            failures.append(f"{split} smart520_state_contract {key} is not a valid timestamp")
+    if not failures and parsed_ts["frame_anchor_utc"] < parsed_ts["model_range_start_utc"]:
+        failures.append(f"{split} smart520_state_contract frame_anchor_utc precedes model_range_start_utc")
+    if not failures and parsed_ts["rank_reference_end_utc"] < parsed_ts["model_range_start_utc"]:
+        failures.append(f"{split} smart520_state_contract rank_reference_end_utc precedes model_range_start_utc")
+    if not failures and parsed_ts["frame_anchor_utc"] > parsed_ts["rank_reference_end_utc"]:
+        failures.append(f"{split} smart520_state_contract frame_anchor_utc exceeds rank_reference_end_utc")
+    return failures
+
+
 def _signal_contract_for_parquet(parquet_path: Path, seq_dim: int, snap_dim: int) -> Dict[str, Any]:
     manifest_path = Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
     if manifest_path.exists():
@@ -1060,6 +1243,240 @@ def _signal_contract_for_parquet(parquet_path: Path, seq_dim: int, snap_dim: int
         "neutral_xgb_bridge": False,
         "bridge_source": "unknown_no_manifest",
     }
+
+
+def _xau_direction_repair_source_failures(paths: Dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    stale_markers = (
+        "utilityrepair",
+        "20260710",
+        "smart_candidate_20260630",
+        "julyext",
+    )
+    for label, raw_path in paths.items():
+        text = str(raw_path or "").strip()
+        low = text.lower()
+        if not text:
+            failures.append(f"{label} missing for XAU direction repair")
+            continue
+        if "/eur" in low or "\\eur" in low or "_eur" in low or "eur_" in low:
+            failures.append(f"{label} must not reference non-XAU project data for XAU direction repair: {text}")
+        if "xau" not in low:
+            failures.append(f"{label} must be XAU-specific for XAU direction repair: {text}")
+        for marker in stale_markers:
+            if marker in low:
+                failures.append(f"{label} references stale pre-repair dataset marker {marker!r}: {text}")
+    return failures
+
+
+def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    for split, raw_path in parquet_paths.items():
+        parquet_path = Path(raw_path).expanduser()
+        manifest_path = parquet_path.with_suffix(".manifest.json")
+        if not manifest_path.is_file():
+            failures.append(f"{split} manifest missing for XAU direction repair: {manifest_path}")
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            failures.append(f"{split} manifest unreadable for XAU direction repair: {manifest_path}: {exc}")
+            continue
+        extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+        bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+        neutral_xgb_bridge = bool(
+            manifest.get("neutral_xgb_bridge", False)
+            or bridge.get("neutral_xgb_bridge", False)
+        )
+        xgb_bridge_source = str(
+            manifest.get("xgb_bridge_source")
+            or bridge.get("bridge_source")
+            or extra.get("xgb_bridge_source")
+            or ""
+        )
+        tape_root = str(manifest.get("tape_root") or extra.get("tape_root") or "").lower()
+        if neutral_xgb_bridge is not True:
+            failures.append(f"{split} manifest must declare neutral_xgb_bridge=true for XAU direction repair")
+        if xgb_bridge_source != "neutral_uniform_proba":
+            failures.append(
+                f"{split} manifest must declare xgb_bridge_source=neutral_uniform_proba "
+                f"for XAU direction repair, got {xgb_bridge_source!r}"
+            )
+        if "xauusd" not in tape_root:
+            failures.append(f"{split} manifest must prove XAUUSD tape_root for XAU direction repair, got {tape_root!r}")
+        failures.extend(
+            _smart520_state_contract_failures(
+                _smart520_state_contract_from_manifest_obj(manifest),
+                split=split,
+            )
+        )
+    return failures
+
+
+def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> list[str]:
+    required = [
+        "y_direction",
+        "y_bad_path",
+        "y_trade",
+        "y_tradable",
+        "y_side",
+        "y_side_mask",
+        "mae_first_n_bps",
+        "mfe_first_n_bps",
+        "path_quality_bps",
+        "y_position_size_target",
+        "mfe_long_first_n_bps",
+        "mae_long_first_n_bps",
+        "mfe_short_first_n_bps",
+        "mae_short_first_n_bps",
+        "y_long_path_utility_bps",
+        "y_short_path_utility_bps",
+        "y_long_bad_path",
+        "y_short_bad_path",
+        "y_long_expected_mae_bps",
+        "y_short_expected_mae_bps",
+        "y_rising_channel_support_touch",
+        "y_falling_channel_resistance_touch",
+        "y_support_retest_continuation",
+        "y_resistance_retest_continuation",
+        "y_countertrend_short_trap",
+        "y_countertrend_long_trap",
+        "y_long_high_mae_low_mfe_early_failure",
+        "y_short_high_mae_low_mfe_early_failure",
+    ]
+    failures: list[str] = []
+    missing = [name for name in required if name not in df.columns]
+    if missing:
+        failures.append(
+            f"{split_name} missing XAU direction-repair target columns: {missing}. "
+            "Rebuild the fresh XAU path-utility dataset; repair heads must not train on fallback labels."
+        )
+        return failures
+
+    y_direction = pd.to_numeric(df["y_direction"], errors="coerce").to_numpy(dtype=np.float64)
+    y_trade = pd.to_numeric(df["y_trade"], errors="coerce").to_numpy(dtype=np.float64)
+    y_tradable = pd.to_numeric(df["y_tradable"], errors="coerce").to_numpy(dtype=np.float64)
+    y_side = pd.to_numeric(df["y_side"], errors="coerce").to_numpy(dtype=np.float64)
+    y_side_mask = pd.to_numeric(df["y_side_mask"], errors="coerce").to_numpy(dtype=np.float64)
+    y_bad_path = pd.to_numeric(df["y_bad_path"], errors="coerce").to_numpy(dtype=np.float64)
+    mae_first = pd.to_numeric(df["mae_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    mfe_first = pd.to_numeric(df["mfe_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    path_quality = pd.to_numeric(df["path_quality_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    y_long_utility = pd.to_numeric(df["y_long_path_utility_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    y_short_utility = pd.to_numeric(df["y_short_path_utility_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    y_long_bad = pd.to_numeric(df["y_long_bad_path"], errors="coerce").to_numpy(dtype=np.float64)
+    y_short_bad = pd.to_numeric(df["y_short_bad_path"], errors="coerce").to_numpy(dtype=np.float64)
+    y_long_mae = pd.to_numeric(df["y_long_expected_mae_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    y_short_mae = pd.to_numeric(df["y_short_expected_mae_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    mfe_long = pd.to_numeric(df["mfe_long_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    mae_long = pd.to_numeric(df["mae_long_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    mfe_short = pd.to_numeric(df["mfe_short_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    mae_short = pd.to_numeric(df["mae_short_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    y_position_size = pd.to_numeric(df["y_position_size_target"], errors="coerce").to_numpy(dtype=np.float64)
+    arrays = [
+        y_direction,
+        y_trade,
+        y_tradable,
+        y_side,
+        y_side_mask,
+        y_bad_path,
+        mae_first,
+        mfe_first,
+        path_quality,
+        y_long_utility,
+        y_short_utility,
+        y_long_bad,
+        y_short_bad,
+        y_long_mae,
+        y_short_mae,
+        mfe_long,
+        mae_long,
+        mfe_short,
+        mae_short,
+        y_position_size,
+    ]
+    if any(not np.isfinite(arr).all() for arr in arrays):
+        failures.append(f"{split_name} XAU direction-repair targets contain non-finite values")
+        return failures
+
+    anti_short = np.zeros(len(df), dtype=bool)
+    for name in (
+        "y_rising_channel_support_touch",
+        "y_support_retest_continuation",
+        "y_countertrend_short_trap",
+        "y_short_high_mae_low_mfe_early_failure",
+    ):
+        anti_short |= pd.to_numeric(df[name], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64) > 0.5
+    anti_long = np.zeros(len(df), dtype=bool)
+    for name in (
+        "y_falling_channel_resistance_touch",
+        "y_resistance_retest_continuation",
+        "y_countertrend_long_trap",
+        "y_long_high_mae_low_mfe_early_failure",
+    ):
+        anti_long |= pd.to_numeric(df[name], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64) > 0.5
+    anti_short_only = anti_short & (~anti_long)
+    anti_long_only = anti_long & (~anti_short)
+    conflict_rows = anti_short & anti_long
+
+    repaired_scalar_bad = np.zeros(len(df), dtype=np.float64)
+    long_rows = (y_trade > 0.5) & (y_side == 0)
+    short_rows = (y_trade > 0.5) & (y_side == 1)
+    flat_rows = y_trade <= 0.5
+    repaired_scalar_bad[long_rows] = y_long_bad[long_rows]
+    repaired_scalar_bad[short_rows] = y_short_bad[short_rows]
+    expected_mfe = np.zeros(len(df), dtype=np.float64)
+    expected_mae = np.zeros(len(df), dtype=np.float64)
+    expected_mfe[long_rows] = mfe_long[long_rows]
+    expected_mae[long_rows] = mae_long[long_rows]
+    expected_mfe[short_rows] = mfe_short[short_rows]
+    expected_mae[short_rows] = mae_short[short_rows]
+    expected_path = expected_mfe - expected_mae
+
+    checks = {
+        "y_direction contains values outside LONG/SHORT/FLAT": ~np.isin(y_direction, [0.0, 1.0, 2.0]),
+        "trade rows have y_direction FLAT": (y_trade > 0.5) & (y_direction == 2),
+        "LONG direction rows are not marked y_trade": (y_direction == 0) & (y_trade <= 0.5),
+        "SHORT direction rows are not marked y_trade": (y_direction == 1) & (y_trade <= 0.5),
+        "FLAT direction rows are marked y_trade": (y_direction == 2) & (y_trade > 0.5),
+        "y_tradable mismatches y_trade": np.abs(y_tradable - y_trade) > 1e-5,
+        "trade rows have y_side_mask off": (y_trade > 0.5) & (y_side_mask <= 0.5),
+        "flat rows have y_side_mask on": flat_rows & (y_side_mask > 0.5),
+        "LONG trade rows have non-LONG y_side": long_rows & (y_side != 0),
+        "SHORT trade rows have non-SHORT y_side": short_rows & (y_side != 1),
+        "LONG direction rows have non-LONG y_side": (y_direction == 0) & (y_side_mask > 0.5) & (y_side != 0),
+        "SHORT direction rows have non-SHORT y_side": (y_direction == 1) & (y_side_mask > 0.5) & (y_side != 1),
+        "scalar y_bad_path mismatches repaired side-specific bad-path targets": np.abs(y_bad_path - repaired_scalar_bad) > 1e-5,
+        "mfe_first_n_bps mismatches selected side-specific MFE": np.abs(mfe_first - expected_mfe) > 1e-5,
+        "mae_first_n_bps mismatches selected side-specific MAE": np.abs(mae_first - expected_mae) > 1e-5,
+        "path_quality_bps mismatches selected side-specific path": np.abs(path_quality - expected_path) > 1e-5,
+        "FLAT/no-trade rows have non-neutral y_position_size_target": flat_rows & (np.abs(y_position_size - 0.5) > 1e-5),
+        "anti-short structural rows still labeled SHORT": anti_short_only & (y_direction == 1),
+        "anti-long structural rows still labeled LONG": anti_long_only & (y_direction == 0),
+        "anti-short structural rows still teach SHORT through side mask": anti_short_only & (y_side_mask > 0.5) & (y_side == 1),
+        "anti-long structural rows still teach LONG through side mask": anti_long_only & (y_side_mask > 0.5) & (y_side == 0),
+        "conflict structural rows are not FLAT/no-trade": conflict_rows
+        & ((y_direction != 2) | (y_trade > 0.5) | (y_side_mask > 0.5)),
+        "anti-short structural rows still have SHORT utility >= LONG utility": anti_short_only
+        & (y_short_utility >= y_long_utility),
+        "anti-long structural rows still have LONG utility >= SHORT utility": anti_long_only
+        & (y_long_utility >= y_short_utility),
+        "anti-short structural rows do not force SHORT bad-path target": anti_short_only & (y_short_bad < 0.999),
+        "anti-long structural rows do not force LONG bad-path target": anti_long_only & (y_long_bad < 0.999),
+        "anti-short structural rows do not make SHORT expected MAE worse": anti_short_only & (y_short_mae <= y_long_mae),
+        "anti-long structural rows do not make LONG expected MAE worse": anti_long_only & (y_long_mae <= y_short_mae),
+    }
+    if "y_direction_long_score_bps" in df.columns:
+        alias = pd.to_numeric(df["y_direction_long_score_bps"], errors="coerce").to_numpy(dtype=np.float64)
+        checks["y_direction_long_score_bps mismatches repaired long utility"] = np.abs(alias - y_long_utility) > 1e-5
+    if "y_direction_short_score_bps" in df.columns:
+        alias = pd.to_numeric(df["y_direction_short_score_bps"], errors="coerce").to_numpy(dtype=np.float64)
+        checks["y_direction_short_score_bps mismatches repaired short utility"] = np.abs(alias - y_short_utility) > 1e-5
+    for reason, mask in checks.items():
+        count = int(np.asarray(mask, dtype=bool).sum())
+        if count:
+            failures.append(f"{split_name}: {reason}: mismatches={count}")
+    return failures
 
 
 def _resolve_test_parquet(
@@ -1239,6 +1656,7 @@ class EntryV10CtxDataset(Dataset):
         multi_tf_seq_len: int = 96,
         # V2 fast-train: per-TF seq_len overrides + smoke date subset
         per_tf_seq_lens: Optional[Dict[str, int]] = None,
+        multi_tf_closed_bar: Optional[bool] = None,
         smoke_date_from: str = "",
         smoke_date_to: str = "",
     ):
@@ -1251,6 +1669,11 @@ class EntryV10CtxDataset(Dataset):
         self.xgb_bridge_source = "xgb_bundle_inference"
         self.enable_multi_tf = bool(enable_multi_tf)
         self.multi_tf_seq_len = int(multi_tf_seq_len)
+        self._multi_tf_closed_bar = (
+            os.environ.get("GX1_PERTF_CLOSED_BAR", "0") == "1"
+            if multi_tf_closed_bar is None
+            else bool(multi_tf_closed_bar)
+        )
         # per_tf_seq_lens: dict like {"M5": 96, "M15": 96, "H1": 96, "H4": 48, "D1": 30}.
         # Unset TFs fall back to multi_tf_seq_len.
         self.per_tf_seq_lens: Dict[str, int] = dict(per_tf_seq_lens) if per_tf_seq_lens else {}
@@ -1333,6 +1756,11 @@ class EntryV10CtxDataset(Dataset):
 
             df["time"] = pd.to_datetime(df["time"], utc=True, errors="coerce")
             _require(not df["time"].isna().any(), "[ENTRY_V10_CTX_TIME_PARSE_FAIL]")
+            _require(
+                bool(df["time"].is_monotonic_increasing),
+                "[ENTRY_V10_CTX_ADVANCED_TIME_ORDER_FAIL] advanced parquet rows must be time-monotonic; "
+                "nested seq/snap tensors are loaded in parquet row order and cannot be sorted independently",
+            )
             df = df.sort_values("time").reset_index(drop=True)
 
             # ── Memory fix (V12.2 OOM): bypass pandas entirely for nested-list
@@ -1605,8 +2033,44 @@ class EntryV10CtxDataset(Dataset):
                 log.info(f"[MULTI_TF] reusing cached feature tables (key={m5_path.name} v2={v2_mode})")
                 self._multi_tf_feats = cached
             elif v2_mode and _disk_cache_dir:
-                from gx1.features.htf_features import load_multi_tf_v2_cache
+                from gx1.features.htf_features import (
+                    MULTI_TF_PER_BAR_FEATURES_V2,
+                    MULTI_TF_SHIFT,
+                    load_multi_tf_v2_cache,
+                )
                 log.info(f"[MULTI_TF] loading V2 disk cache: {_disk_cache_dir}")
+                _disk_manifest_path = Path(_disk_cache_dir) / "manifest.json"
+                if not _disk_manifest_path.is_file():
+                    raise RuntimeError(f"[MULTI_TF_CACHE_MANIFEST_MISSING] {_disk_manifest_path}")
+                _disk_manifest = json.loads(_disk_manifest_path.read_text(encoding="utf-8"))
+                _observed_features = [str(x) for x in (_disk_manifest.get("feature_names") or [])]
+                _expected_features = list(MULTI_TF_PER_BAR_FEATURES_V2)
+                if _observed_features != _expected_features:
+                    raise RuntimeError(
+                        "[MULTI_TF_CACHE_FEATURE_CONTRACT_MISMATCH] "
+                        f"cache={_disk_cache_dir} observed={_observed_features or '<missing>'} "
+                        f"expected={_expected_features}"
+                    )
+                _observed_shift = (
+                    _disk_manifest.get("shift_contract")
+                    if isinstance(_disk_manifest.get("shift_contract"), dict)
+                    else {}
+                )
+                _expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
+                if _observed_shift != _expected_shift:
+                    raise RuntimeError(
+                        "[MULTI_TF_CACHE_SHIFT_CONTRACT_MISMATCH] "
+                        f"cache={_disk_cache_dir} observed={_observed_shift or '<missing>'} "
+                        f"expected={_expected_shift}"
+                    )
+                _expected_source_sha = _sha256_file(m5_path)
+                _observed_source_sha = str(_disk_manifest.get("m5_prebuilt_source_sha256") or "").strip()
+                if _observed_source_sha != _expected_source_sha:
+                    raise RuntimeError(
+                        "[MULTI_TF_CACHE_SOURCE_SHA_MISMATCH] "
+                        f"cache={_disk_cache_dir} observed={_observed_source_sha or '<missing>'} "
+                        f"expected={_expected_source_sha} m5_prebuilt={m5_path}"
+                    )
                 _loaded_cache = load_multi_tf_v2_cache(_disk_cache_dir)
                 # FRESHNESS GUARD (2026-07-04 stale-cache incident): the disk cache is
                 # keyed by filename, so an in-place-extended prebuilt silently serves a
@@ -1660,6 +2124,11 @@ class EntryV10CtxDataset(Dataset):
                 import gc; gc.collect()
                 _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
             self._multi_tf_shift = MULTI_TF_SHIFT
+            self._multi_tf_target_availability_shift = (
+                pd.Timedelta(minutes=5)
+                if self._multi_tf_closed_bar
+                else pd.Timedelta(0)
+            )
             self._multi_tf_feature_count = (
                 int(MULTI_TF_FEATURE_COUNT_V2) if v2_mode else int(MULTI_TF_FEATURE_COUNT)
             )
@@ -1699,10 +2168,15 @@ class EntryV10CtxDataset(Dataset):
         from gx1.features.htf_features import get_last_n_at_or_before
         default_n = self.multi_tf_seq_len
         out: Dict[str, np.ndarray] = {}
+        availability_ts = pd.Timestamp(target_ts) + getattr(
+            self,
+            "_multi_tf_target_availability_shift",
+            pd.Timedelta(0),
+        )
         for tf, feats in self._multi_tf_feats.items():
             n = int(self.per_tf_seq_lens.get(tf, default_n))
             out[f"seq_{tf.lower()}"] = get_last_n_at_or_before(
-                feats, target_ts, n=n, tf_shift=self._multi_tf_shift[tf],
+                feats, availability_ts, n=n, tf_shift=self._multi_tf_shift[tf],
             )
         return out
 
@@ -1767,6 +2241,24 @@ class EntryV10CtxDataset(Dataset):
                 "y_selector_short_mask": torch.tensor(float(row.get("y_selector_short_mask", 0.0)), dtype=torch.float32),
                 "y_clean_edge_bidir": torch.tensor(float(row.get("y_clean_edge_bidir", 0.0)), dtype=torch.float32),
                 "y_survival_bidir": torch.tensor(float(row.get("y_survival_bidir", 0.0)), dtype=torch.float32),
+                "y_trade": torch.tensor(float(row.get("y_trade", row.get("y_tradable", 1.0 if y in (0, 1) else 0.0))), dtype=torch.float32),
+                "y_side": torch.tensor(int(row.get("y_side", 0 if y == 0 else 1 if y == 1 else 0)), dtype=torch.long),
+                "y_side_mask": torch.tensor(float(row.get("y_side_mask", 1.0 if y in (0, 1) else 0.0)), dtype=torch.float32),
+                "y_long_path_utility_bps": torch.tensor(float(row.get("y_long_path_utility_bps", row.get("y_direction_long_score_bps", 0.0))), dtype=torch.float32),
+                "y_short_path_utility_bps": torch.tensor(float(row.get("y_short_path_utility_bps", row.get("y_direction_short_score_bps", 0.0))), dtype=torch.float32),
+                "y_long_bad_path": torch.tensor(float(row.get("y_long_bad_path", 0.0)), dtype=torch.float32),
+                "y_short_bad_path": torch.tensor(float(row.get("y_short_bad_path", 0.0)), dtype=torch.float32),
+                "y_long_expected_mae_bps": torch.tensor(float(row.get("y_long_expected_mae_bps", 0.0)), dtype=torch.float32),
+                "y_short_expected_mae_bps": torch.tensor(float(row.get("y_short_expected_mae_bps", 0.0)), dtype=torch.float32),
+                "y_rising_channel_support_touch": torch.tensor(float(row.get("y_rising_channel_support_touch", 0.0)), dtype=torch.float32),
+                "y_falling_channel_resistance_touch": torch.tensor(float(row.get("y_falling_channel_resistance_touch", 0.0)), dtype=torch.float32),
+                "y_support_retest_continuation": torch.tensor(float(row.get("y_support_retest_continuation", 0.0)), dtype=torch.float32),
+                "y_resistance_retest_continuation": torch.tensor(float(row.get("y_resistance_retest_continuation", 0.0)), dtype=torch.float32),
+                "y_countertrend_short_trap": torch.tensor(float(row.get("y_countertrend_short_trap", 0.0)), dtype=torch.float32),
+                "y_countertrend_long_trap": torch.tensor(float(row.get("y_countertrend_long_trap", 0.0)), dtype=torch.float32),
+                "y_mtf_conflict_m5_vs_higher_side": torch.tensor(float(row.get("y_mtf_conflict_m5_vs_higher_side", 0.0)), dtype=torch.float32),
+                "y_long_high_mae_low_mfe_early_failure": torch.tensor(float(row.get("y_long_high_mae_low_mfe_early_failure", 0.0)), dtype=torch.float32),
+                "y_short_high_mae_low_mfe_early_failure": torch.tensor(float(row.get("y_short_high_mae_low_mfe_early_failure", 0.0)), dtype=torch.float32),
                 "y_teacher_bad_long": torch.tensor(float(row.get("y_teacher_bad_long", row.get("y_v6_teacher_bad_long", 0.0))), dtype=torch.float32),
                 "y_teacher_winner_long": torch.tensor(float(row.get("y_teacher_winner_long", row.get("y_v6_teacher_winner_long", 0.0))), dtype=torch.float32),
                 "y_selector_long_mask": torch.tensor(float(row.get("y_selector_long_mask", 0.0)), dtype=torch.float32),
@@ -1820,6 +2312,24 @@ class EntryV10CtxDataset(Dataset):
                 "y_selector_short_mask": torch.tensor(0.0, dtype=torch.float32),
                 "y_clean_edge_bidir": torch.tensor(0.0, dtype=torch.float32),
                 "y_survival_bidir": torch.tensor(0.0, dtype=torch.float32),
+                "y_trade": torch.tensor(float(1.0 if y in (0, 1) else 0.0), dtype=torch.float32),
+                "y_side": torch.tensor(0 if y == 0 else 1 if y == 1 else 0, dtype=torch.long),
+                "y_side_mask": torch.tensor(float(1.0 if y in (0, 1) else 0.0), dtype=torch.float32),
+                "y_long_path_utility_bps": torch.tensor(0.0, dtype=torch.float32),
+                "y_short_path_utility_bps": torch.tensor(0.0, dtype=torch.float32),
+                "y_long_bad_path": torch.tensor(0.0, dtype=torch.float32),
+                "y_short_bad_path": torch.tensor(0.0, dtype=torch.float32),
+                "y_long_expected_mae_bps": torch.tensor(0.0, dtype=torch.float32),
+                "y_short_expected_mae_bps": torch.tensor(0.0, dtype=torch.float32),
+                "y_rising_channel_support_touch": torch.tensor(0.0, dtype=torch.float32),
+                "y_falling_channel_resistance_touch": torch.tensor(0.0, dtype=torch.float32),
+                "y_support_retest_continuation": torch.tensor(0.0, dtype=torch.float32),
+                "y_resistance_retest_continuation": torch.tensor(0.0, dtype=torch.float32),
+                "y_countertrend_short_trap": torch.tensor(0.0, dtype=torch.float32),
+                "y_countertrend_long_trap": torch.tensor(0.0, dtype=torch.float32),
+                "y_mtf_conflict_m5_vs_higher_side": torch.tensor(0.0, dtype=torch.float32),
+                "y_long_high_mae_low_mfe_early_failure": torch.tensor(0.0, dtype=torch.float32),
+                "y_short_high_mae_low_mfe_early_failure": torch.tensor(0.0, dtype=torch.float32),
                 "y_teacher_bad_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_teacher_winner_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_selector_long_mask": torch.tensor(0.0, dtype=torch.float32),
@@ -1884,6 +2394,9 @@ class CostSensitiveCrossEntropyLoss(nn.Module):
         balance_loss = _direction_balance_term(probs, targets, self)
         if balance_loss.numel() == 1:
             loss = loss + balance_loss
+        min_pred_rate_loss = _direction_min_pred_rate_term(probs, targets)
+        if min_pred_rate_loss.numel() == 1:
+            loss = loss + min_pred_rate_loss
         return loss.mean()
 
 
@@ -1906,6 +2419,31 @@ def _direction_balance_term(
     weights = weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
     balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
     return float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
+
+
+def _direction_min_pred_rate_term(
+    probs: torch.Tensor,
+    targets: torch.Tensor,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=probs.device, dtype=probs.dtype)
+    weight = float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if probs.ndim != 2 or probs.shape[1] < 2:
+        return zero
+    mean_probs = probs.mean(dim=0)
+    counts = torch.bincount(targets, minlength=probs.shape[1]).to(device=probs.device, dtype=probs.dtype)
+    label_rates = counts / counts.sum().clamp(min=1.0)
+    side_label_rates = label_rates[:2]
+    active_side = side_label_rates > 0.0
+    if not bool(active_side.any().detach().cpu().item()):
+        return zero
+    side_pred_rates = mean_probs[:2]
+    fraction_req = torch.clamp(side_label_rates * float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION), min=0.0)
+    floor_req = torch.full_like(fraction_req, max(0.0, float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR)))
+    required = torch.maximum(fraction_req, floor_req)
+    deficit = torch.relu(required[active_side] - side_pred_rates[active_side])
+    return weight * deficit.sum()
 
 
 def _build_cost_sensitive_criterion(
@@ -2128,6 +2666,518 @@ def _direction_aux_ce_loss(
     return aux_ce + aux_balance
 
 
+def _hierarchical_entry_loss(
+    out: Dict[str, torch.Tensor],
+    batch: Dict[str, torch.Tensor],
+    device: torch.device,
+    *,
+    trade_pos_weight: float,
+    side_bad_path_pos_weight: Any,
+) -> tuple[torch.Tensor, Dict[str, float]]:
+    """Opt-in XAU direction repair objective.
+
+    The legacy LONG/SHORT/FLAT CE is kept for compatibility. These heads teach
+    the missing decomposition explicitly: trade/no-trade first, then side given
+    trade, then per-side path utility / bad-path / MAE.
+    """
+    total = torch.tensor(0.0, device=device)
+    stats: Dict[str, float] = {
+        "hier_trade_loss": 0.0,
+        "hier_side_loss": 0.0,
+        "hier_utility_loss": 0.0,
+        "hier_bad_path_loss": 0.0,
+        "hier_mae_loss": 0.0,
+        "hier_side_validity_loss": 0.0,
+        "hier_long_valid_target_rate": 0.0,
+        "hier_short_valid_target_rate": 0.0,
+        "hier_long_valid_prob_mean": 0.0,
+        "hier_short_valid_prob_mean": 0.0,
+        "hier_pocket_abstain_loss": 0.0,
+        "hier_pocket_abstain_rows": 0.0,
+        "hier_pocket_side_margin_loss": 0.0,
+        "hier_pocket_anti_short_rows": 0.0,
+        "hier_pocket_anti_long_rows": 0.0,
+        "hier_side_rows": 0.0,
+        "hier_side_acc": 0.0,
+        "hier_long_bad_target_rate": 0.0,
+        "hier_short_bad_target_rate": 0.0,
+        "hier_countertrend_long_trap_rate": 0.0,
+        "hier_countertrend_short_trap_rate": 0.0,
+    }
+    trade_logit = out.get("trade_logit")
+    side_logits = out.get("side_logits")
+    side_utility = out.get("side_utility")
+    side_bad_path_logit = out.get("side_bad_path_logit")
+    side_mae = out.get("side_mae")
+    side_validity_logit = out.get("side_validity_logit")
+    if (
+        trade_logit is None
+        and side_logits is None
+        and side_utility is None
+        and side_bad_path_logit is None
+        and side_mae is None
+        and side_validity_logit is None
+    ):
+        return total, stats
+
+    non_blocking = device.type == "cuda"
+    y_trade = batch["y_trade"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    y_side = batch["y_side"].to(device, non_blocking=non_blocking).long().clamp(0, 1)
+    y_side_mask = batch["y_side_mask"].to(device, non_blocking=non_blocking).float() > 0.5
+    y_long_util = batch["y_long_path_utility_bps"].to(device, non_blocking=non_blocking).float()
+    y_short_util = batch["y_short_path_utility_bps"].to(device, non_blocking=non_blocking).float()
+    y_long_bad = batch["y_long_bad_path"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    y_short_bad = batch["y_short_bad_path"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    y_long_mae = batch["y_long_expected_mae_bps"].to(device, non_blocking=non_blocking).float().clamp_min(0.0)
+    y_short_mae = batch["y_short_expected_mae_bps"].to(device, non_blocking=non_blocking).float().clamp_min(0.0)
+
+    def optional_label(name: str, like: torch.Tensor) -> torch.Tensor:
+        value = batch.get(name)
+        if value is None:
+            return torch.zeros_like(like)
+        return value.to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+
+    # Direction repair: turn explicit continuation/trap labels into side-specific
+    # bad-path supervision. This is a learned target contract, not a live rule:
+    # the model still decides, but it is punished for assigning low bad-path
+    # probability to the wrong side in known support/resistance continuation traps.
+    y_support_retest_continue = optional_label("y_support_retest_continuation", y_short_bad)
+    y_resistance_retest_continue = optional_label("y_resistance_retest_continuation", y_long_bad)
+    y_countertrend_short_trap = optional_label("y_countertrend_short_trap", y_short_bad)
+    y_countertrend_long_trap = optional_label("y_countertrend_long_trap", y_long_bad)
+    y_short_early_fail = optional_label("y_short_high_mae_low_mfe_early_failure", y_short_bad)
+    y_long_early_fail = optional_label("y_long_high_mae_low_mfe_early_failure", y_long_bad)
+    y_rising_support_touch = optional_label("y_rising_channel_support_touch", y_trade)
+    y_falling_resistance_touch = optional_label("y_falling_channel_resistance_touch", y_trade)
+    y_short_bad = torch.maximum(
+        y_short_bad,
+        torch.maximum(
+            torch.maximum(y_support_retest_continue, y_countertrend_short_trap),
+            y_short_early_fail,
+        ),
+    )
+    y_long_bad = torch.maximum(
+        y_long_bad,
+        torch.maximum(
+            torch.maximum(y_resistance_retest_continue, y_countertrend_long_trap),
+            y_long_early_fail,
+        ),
+    )
+    stats["hier_long_bad_target_rate"] = float(y_long_bad.detach().mean().cpu().item())
+    stats["hier_short_bad_target_rate"] = float(y_short_bad.detach().mean().cpu().item())
+    stats["hier_countertrend_long_trap_rate"] = float(y_countertrend_long_trap.detach().mean().cpu().item())
+    stats["hier_countertrend_short_trap_rate"] = float(y_countertrend_short_trap.detach().mean().cpu().item())
+    util_scale = max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS))
+    mae_scale = max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS))
+    valid_long_trade_target = (
+        (y_long_util >= float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS))
+        & (y_long_bad < 0.5)
+        & (y_long_early_fail <= 0.5)
+    )
+    valid_short_trade_target = (
+        (y_short_util >= float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS))
+        & (y_short_bad < 0.5)
+        & (y_short_early_fail <= 0.5)
+    )
+    support_touch_abstain = (
+        (y_rising_support_touch > 0.5)
+        & (y_support_retest_continue <= 0.5)
+        & (~valid_long_trade_target)
+    )
+    resistance_touch_abstain = (
+        (y_falling_resistance_touch > 0.5)
+        & (y_resistance_retest_continue <= 0.5)
+        & (~valid_short_trade_target)
+    )
+    long_failure_abstain = (y_long_early_fail > 0.5) & (~valid_short_trade_target)
+    short_failure_abstain = (y_short_early_fail > 0.5) & (~valid_long_trade_target)
+    pocket_abstain_mask = (
+        support_touch_abstain
+        | resistance_touch_abstain
+        | long_failure_abstain
+        | short_failure_abstain
+    )
+    anti_short_mask = (
+        (y_rising_support_touch > 0.5)
+        | (y_support_retest_continue > 0.5)
+        | (y_countertrend_short_trap > 0.5)
+        | (y_short_early_fail > 0.5)
+    )
+    anti_long_mask = (
+        (y_falling_resistance_touch > 0.5)
+        | (y_resistance_retest_continue > 0.5)
+        | (y_countertrend_long_trap > 0.5)
+        | (y_long_early_fail > 0.5)
+    )
+    stats["hier_pocket_abstain_rows"] = float(int(pocket_abstain_mask.sum().detach().cpu().item()))
+    stats["hier_pocket_anti_short_rows"] = float(int(anti_short_mask.sum().detach().cpu().item()))
+    stats["hier_pocket_anti_long_rows"] = float(int(anti_long_mask.sum().detach().cpu().item()))
+
+    if trade_logit is not None and float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
+        raw = nn.functional.binary_cross_entropy_with_logits(
+            trade_logit.squeeze(1),
+            y_trade,
+            pos_weight=torch.tensor(float(trade_pos_weight), device=device, dtype=trade_logit.dtype),
+        )
+        weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_trade_loss"] = float(weighted.detach().cpu().item())
+
+    if (
+        trade_logit is not None
+        and float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT) > 0.0
+        and pocket_abstain_mask.any()
+    ):
+        raw = nn.functional.binary_cross_entropy_with_logits(
+            trade_logit.reshape(-1)[pocket_abstain_mask],
+            torch.zeros_like(y_trade[pocket_abstain_mask], dtype=trade_logit.dtype),
+        )
+        weighted = float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_pocket_abstain_loss"] = float(weighted.detach().cpu().item())
+
+    if side_logits is not None and float(ENTRY_HIER_SIDE_WEIGHT) > 0.0:
+        if y_side_mask.any():
+            raw = nn.functional.cross_entropy(side_logits[y_side_mask], y_side[y_side_mask])
+            weighted = float(ENTRY_HIER_SIDE_WEIGHT) * raw
+            total = total + weighted
+            pred_side = torch.argmax(side_logits[y_side_mask], dim=1)
+            stats["hier_side_rows"] = float(int(y_side_mask.sum().detach().cpu().item()))
+            stats["hier_side_acc"] = float((pred_side == y_side[y_side_mask]).float().mean().detach().cpu().item())
+            stats["hier_side_loss"] = float(weighted.detach().cpu().item())
+
+    if side_utility is not None and float(ENTRY_HIER_UTILITY_WEIGHT) > 0.0:
+        util_target = (torch.stack([y_long_util, y_short_util], dim=1) / util_scale).to(dtype=side_utility.dtype)
+        raw = nn.functional.smooth_l1_loss(side_utility, util_target)
+        weighted = float(ENTRY_HIER_UTILITY_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_utility_loss"] = float(weighted.detach().cpu().item())
+
+    if side_bad_path_logit is not None and float(ENTRY_HIER_BAD_PATH_WEIGHT) > 0.0:
+        bad_target = torch.stack([y_long_bad, y_short_bad], dim=1).to(dtype=side_bad_path_logit.dtype)
+        if isinstance(side_bad_path_pos_weight, (list, tuple, np.ndarray)):
+            weights = [float(x) for x in list(side_bad_path_pos_weight)[:2]]
+            if len(weights) != 2:
+                weights = [1.0, 1.0]
+        else:
+            weights = [float(side_bad_path_pos_weight), float(side_bad_path_pos_weight)]
+        raw = nn.functional.binary_cross_entropy_with_logits(
+            side_bad_path_logit,
+            bad_target,
+            pos_weight=torch.tensor(
+                weights,
+                device=device,
+                dtype=side_bad_path_logit.dtype,
+            ),
+        )
+        weighted = float(ENTRY_HIER_BAD_PATH_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_bad_path_loss"] = float(weighted.detach().cpu().item())
+
+    if side_mae is not None and float(ENTRY_HIER_MAE_WEIGHT) > 0.0:
+        mae_target = (torch.stack([y_long_mae, y_short_mae], dim=1) / mae_scale).to(dtype=side_mae.dtype)
+        raw = nn.functional.smooth_l1_loss(side_mae, mae_target)
+        weighted = float(ENTRY_HIER_MAE_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_mae_loss"] = float(weighted.detach().cpu().item())
+
+    if side_validity_logit is not None and float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT) > 0.0:
+        validity_target = torch.stack(
+            [valid_long_trade_target.float(), valid_short_trade_target.float()],
+            dim=1,
+        ).to(dtype=side_validity_logit.dtype)
+        pos = validity_target.sum(dim=0)
+        neg = torch.clamp(torch.tensor(float(validity_target.shape[0]), device=device, dtype=validity_target.dtype) - pos, min=0.0)
+        cap = max(1.0, float(ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP))
+        pos_weight = torch.where(
+            pos > 0.5,
+            torch.clamp(neg / torch.clamp(pos, min=1.0), min=1.0, max=cap),
+            torch.ones_like(pos),
+        )
+        raw = nn.functional.binary_cross_entropy_with_logits(
+            side_validity_logit,
+            validity_target,
+            pos_weight=pos_weight.to(device=device, dtype=side_validity_logit.dtype),
+        )
+        weighted = float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT) * raw
+        total = total + weighted
+        valid_prob = torch.sigmoid(side_validity_logit.detach().float())
+        stats["hier_side_validity_loss"] = float(weighted.detach().cpu().item())
+        stats["hier_long_valid_target_rate"] = float(validity_target[:, 0].detach().mean().cpu().item())
+        stats["hier_short_valid_target_rate"] = float(validity_target[:, 1].detach().mean().cpu().item())
+        stats["hier_long_valid_prob_mean"] = float(valid_prob[:, 0].mean().cpu().item())
+        stats["hier_short_valid_prob_mean"] = float(valid_prob[:, 1].mean().cpu().item())
+
+    pocket_margin_terms = []
+    if float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT) > 0.0:
+        margin = float(ENTRY_TRENDLINE_RAIL_MARGIN)
+        if side_logits is not None and isinstance(side_logits, torch.Tensor) and side_logits.ndim == 2 and side_logits.shape[1] >= 2:
+            side_logits_f = side_logits.float()
+            if anti_short_mask.any():
+                pocket_margin_terms.append(
+                    nn.functional.softplus(
+                        side_logits_f[anti_short_mask, 1] - side_logits_f[anti_short_mask, 0] + margin
+                    ).mean()
+                )
+            if anti_long_mask.any():
+                pocket_margin_terms.append(
+                    nn.functional.softplus(
+                        side_logits_f[anti_long_mask, 0] - side_logits_f[anti_long_mask, 1] + margin
+                    ).mean()
+                )
+        if side_bad_path_logit is not None and isinstance(side_bad_path_logit, torch.Tensor) and side_bad_path_logit.ndim == 2 and side_bad_path_logit.shape[1] >= 2:
+            side_bad_f = side_bad_path_logit.float()
+            if anti_short_mask.any():
+                pocket_margin_terms.append(
+                    nn.functional.softplus(
+                        side_bad_f[anti_short_mask, 0] - side_bad_f[anti_short_mask, 1] + margin
+                    ).mean()
+                )
+            if anti_long_mask.any():
+                pocket_margin_terms.append(
+                    nn.functional.softplus(
+                        side_bad_f[anti_long_mask, 1] - side_bad_f[anti_long_mask, 0] + margin
+                    ).mean()
+                )
+        if side_utility is not None and isinstance(side_utility, torch.Tensor) and side_utility.ndim == 2 and side_utility.shape[1] >= 2:
+            side_utility_f = side_utility.float()
+            utility_margin = float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS) / util_scale
+            if anti_short_mask.any():
+                pocket_margin_terms.append(
+                    nn.functional.softplus(
+                        side_utility_f[anti_short_mask, 1] - side_utility_f[anti_short_mask, 0] + utility_margin
+                    ).mean()
+                )
+            if anti_long_mask.any():
+                pocket_margin_terms.append(
+                    nn.functional.softplus(
+                        side_utility_f[anti_long_mask, 0] - side_utility_f[anti_long_mask, 1] + utility_margin
+                    ).mean()
+                )
+    if pocket_margin_terms:
+        raw = torch.stack(pocket_margin_terms).mean()
+        weighted = float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_pocket_side_margin_loss"] = float(weighted.detach().cpu().item())
+
+    return total, stats
+
+
+def _trendline_rail_aux_loss(
+    out: Dict[str, torch.Tensor],
+    batch: Dict[str, torch.Tensor],
+    direction_probs: torch.Tensor,
+    device: torch.device,
+) -> tuple[torch.Tensor, Dict[str, float]]:
+    logits = out.get("trendline_rail_logits")
+    stats = {
+        "trendline_rail_loss": 0.0,
+        "trendline_rail_rows": 0.0,
+        "trendline_rising_rows": 0.0,
+        "trendline_falling_rows": 0.0,
+        "trendline_wrong_side_prob": 0.0,
+        "trendline_rising_wrong_short_prob": 0.0,
+        "trendline_falling_wrong_long_prob": 0.0,
+        "trendline_final_margin_loss": 0.0,
+        "trendline_hier_margin_loss": 0.0,
+        "trendline_flat_trade_loss": 0.0,
+        "trendline_utility_margin_loss": 0.0,
+    }
+    if logits is None or not isinstance(logits, torch.Tensor) or logits.numel() == 0:
+        return torch.tensor(0.0, device=device), stats
+    if float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) <= 0.0:
+        return torch.tensor(0.0, device=device), stats
+
+    non_blocking = device.type == "cuda"
+    rising = batch["y_rising_channel_support_touch"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    falling = batch["y_falling_channel_resistance_touch"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    short_trap = batch["y_countertrend_short_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    long_trap = batch["y_countertrend_long_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    like = rising
+
+    def optional_label(name: str) -> torch.Tensor:
+        value = batch.get(name)
+        if value is None:
+            return torch.zeros_like(like)
+        return value.to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+
+    support_continue = optional_label("y_support_retest_continuation")
+    resistance_continue = optional_label("y_resistance_retest_continuation")
+    short_early_fail = optional_label("y_short_high_mae_low_mfe_early_failure")
+    long_early_fail = optional_label("y_long_high_mae_low_mfe_early_failure")
+    target_parts = [rising, falling, short_trap, long_trap]
+    if logits.ndim == 2 and logits.shape[1] >= 6:
+        target_parts.extend([short_early_fail, long_early_fail])
+    targets = torch.stack(target_parts, dim=1).to(dtype=logits.dtype)
+    if logits.ndim != 2 or logits.shape[1] != targets.shape[1]:
+        raise RuntimeError(
+            "[ENTRY_TRENDLINE_RAIL_OUTPUT_DIM_MISMATCH] "
+            f"logits_shape={tuple(logits.shape)} targets_shape={tuple(targets.shape)}"
+        )
+    raw = nn.functional.binary_cross_entropy_with_logits(logits, targets)
+
+    anti_short_score = torch.maximum(
+        torch.maximum(torch.maximum(rising, support_continue), short_trap),
+        short_early_fail,
+    )
+    anti_long_score = torch.maximum(
+        torch.maximum(torch.maximum(falling, resistance_continue), long_trap),
+        long_early_fail,
+    )
+    rising_wrong_side = anti_short_score > 0.5
+    falling_wrong_side = anti_long_score > 0.5
+    wrong_side_terms = []
+    weighted_wrong_side_terms = []
+    if rising_wrong_side.any():
+        rising_wrong_short = direction_probs[rising_wrong_side, 1].mean()
+        wrong_side_terms.append(rising_wrong_short)
+        weighted_wrong_side_terms.append(
+            float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * rising_wrong_short
+        )
+        stats["trendline_rising_wrong_short_prob"] = float(rising_wrong_short.detach().cpu().item())
+    if falling_wrong_side.any():
+        falling_wrong_long = direction_probs[falling_wrong_side, 0].mean()
+        wrong_side_terms.append(falling_wrong_long)
+        weighted_wrong_side_terms.append(
+            float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * falling_wrong_long
+        )
+        stats["trendline_falling_wrong_long_prob"] = float(falling_wrong_long.detach().cpu().item())
+    wrong_side = (
+        torch.stack(wrong_side_terms).mean()
+        if wrong_side_terms
+        else torch.tensor(0.0, device=device, dtype=direction_probs.dtype)
+    )
+    weighted_wrong_side = (
+        torch.stack(weighted_wrong_side_terms).mean()
+        if weighted_wrong_side_terms
+        else torch.tensor(0.0, device=device, dtype=direction_probs.dtype)
+    )
+    loss = float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) * raw
+    if weighted_wrong_side_terms:
+        loss = loss + weighted_wrong_side
+    margin = float(ENTRY_TRENDLINE_RAIL_MARGIN)
+    direction_logits = out.get("direction_logits")
+    if (
+        direction_logits is not None
+        and isinstance(direction_logits, torch.Tensor)
+        and direction_logits.ndim == 2
+        and direction_logits.shape[1] >= 3
+        and float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT) > 0.0
+    ):
+        dir_logits = direction_logits.float()
+        final_margin_terms = []
+        if rising_wrong_side.any():
+            allowed = torch.maximum(dir_logits[:, 0], dir_logits[:, 2])
+            short_margin = nn.functional.softplus(dir_logits[rising_wrong_side, 1] - allowed[rising_wrong_side] + margin).mean()
+            final_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * short_margin)
+        if falling_wrong_side.any():
+            allowed = torch.maximum(dir_logits[:, 1], dir_logits[:, 2])
+            long_margin = nn.functional.softplus(dir_logits[falling_wrong_side, 0] - allowed[falling_wrong_side] + margin).mean()
+            final_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * long_margin)
+        if final_margin_terms:
+            final_margin_loss = torch.stack(final_margin_terms).mean()
+            weighted_final_margin = float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT) * final_margin_loss
+            loss = loss + weighted_final_margin
+            stats["trendline_final_margin_loss"] = float(weighted_final_margin.detach().cpu().item())
+
+    hier_margin_terms = []
+    side_logits = out.get("side_logits")
+    if (
+        side_logits is not None
+        and isinstance(side_logits, torch.Tensor)
+        and side_logits.ndim == 2
+        and side_logits.shape[1] >= 2
+        and float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT) > 0.0
+    ):
+        side_logits_f = side_logits.float()
+        if rising_wrong_side.any():
+            side_short_margin = nn.functional.softplus(
+                side_logits_f[rising_wrong_side, 1] - side_logits_f[rising_wrong_side, 0] + margin
+            ).mean()
+            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * side_short_margin)
+        if falling_wrong_side.any():
+            side_long_margin = nn.functional.softplus(
+                side_logits_f[falling_wrong_side, 0] - side_logits_f[falling_wrong_side, 1] + margin
+            ).mean()
+            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * side_long_margin)
+
+    utility_margin_terms = []
+    side_utility = out.get("side_utility")
+    if (
+        side_utility is not None
+        and isinstance(side_utility, torch.Tensor)
+        and side_utility.ndim == 2
+        and side_utility.shape[1] >= 2
+        and float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT) > 0.0
+    ):
+        side_utility_f = side_utility.float()
+        utility_margin = float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS) / max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS))
+        if rising_wrong_side.any():
+            short_utility_margin = nn.functional.softplus(
+                side_utility_f[rising_wrong_side, 1] - side_utility_f[rising_wrong_side, 0] + utility_margin
+            ).mean()
+            utility_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * short_utility_margin)
+        if falling_wrong_side.any():
+            long_utility_margin = nn.functional.softplus(
+                side_utility_f[falling_wrong_side, 0] - side_utility_f[falling_wrong_side, 1] + utility_margin
+            ).mean()
+            utility_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * long_utility_margin)
+    if utility_margin_terms:
+        utility_margin_loss = torch.stack(utility_margin_terms).mean()
+        weighted_utility_margin = float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT) * utility_margin_loss
+        loss = loss + weighted_utility_margin
+        stats["trendline_utility_margin_loss"] = float(weighted_utility_margin.detach().cpu().item())
+
+    side_bad_path_logit = out.get("side_bad_path_logit")
+    if (
+        side_bad_path_logit is not None
+        and isinstance(side_bad_path_logit, torch.Tensor)
+        and side_bad_path_logit.ndim == 2
+        and side_bad_path_logit.shape[1] >= 2
+        and float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT) > 0.0
+    ):
+        side_bad_f = side_bad_path_logit.float()
+        if rising_wrong_side.any():
+            short_bad_margin = nn.functional.softplus(
+                side_bad_f[rising_wrong_side, 0] - side_bad_f[rising_wrong_side, 1] + margin
+            ).mean()
+            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * short_bad_margin)
+        if falling_wrong_side.any():
+            long_bad_margin = nn.functional.softplus(
+                side_bad_f[falling_wrong_side, 1] - side_bad_f[falling_wrong_side, 0] + margin
+            ).mean()
+            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * long_bad_margin)
+    if hier_margin_terms:
+        hier_margin_loss = torch.stack(hier_margin_terms).mean()
+        weighted_hier_margin = float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT) * hier_margin_loss
+        loss = loss + weighted_hier_margin
+        stats["trendline_hier_margin_loss"] = float(weighted_hier_margin.detach().cpu().item())
+
+    trade_logit = out.get("trade_logit")
+    if (
+        trade_logit is not None
+        and isinstance(trade_logit, torch.Tensor)
+        and float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT) > 0.0
+        and "y_trade" in batch
+    ):
+        y_trade = batch["y_trade"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+        flat_pocket = (rising_wrong_side | falling_wrong_side) & (y_trade <= 0.5)
+        if flat_pocket.any():
+            flat_trade_loss = nn.functional.binary_cross_entropy_with_logits(
+                trade_logit.reshape(-1)[flat_pocket],
+                torch.zeros_like(y_trade[flat_pocket], dtype=trade_logit.dtype),
+            )
+            weighted_flat_trade = float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT) * flat_trade_loss
+            loss = loss + weighted_flat_trade
+            stats["trendline_flat_trade_loss"] = float(weighted_flat_trade.detach().cpu().item())
+    stats["trendline_rail_loss"] = float(loss.detach().cpu().item())
+    stats["trendline_rail_rows"] = float(int((targets.max(dim=1).values > 0.5).sum().detach().cpu().item()))
+    stats["trendline_rising_rows"] = float(int(rising_wrong_side.sum().detach().cpu().item()))
+    stats["trendline_falling_rows"] = float(int(falling_wrong_side.sum().detach().cpu().item()))
+    stats["trendline_wrong_side_prob"] = float(wrong_side.detach().cpu().item())
+    return loss, stats
+
+
 def _aux_selector_mask(
     y_selector_long_mask: torch.Tensor,
     y_selector_short_mask: torch.Tensor,
@@ -2211,6 +3261,8 @@ def train_epoch(
     clean_edge_pos_weight: float,
     survival_pos_weight: float,
     bad_path_pos_weight: float,
+    hier_trade_pos_weight: float,
+    hier_bad_path_pos_weight: Any,
     scheduler=None,  # GX1_FAST_TRAIN: cosine+warmup scheduler, stepped per opt.step()
 ):
     model.train()
@@ -2266,6 +3318,27 @@ def train_epoch(
     bad_path_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
     tail_direction_rows = 0
+    hier_trade_loss_sum = 0.0
+    hier_side_loss_sum = 0.0
+    hier_utility_loss_sum = 0.0
+    hier_side_bad_path_loss_sum = 0.0
+    hier_side_mae_loss_sum = 0.0
+    hier_side_validity_loss_sum = 0.0
+    hier_long_valid_target_rate_sum = 0.0
+    hier_short_valid_target_rate_sum = 0.0
+    hier_long_valid_prob_sum = 0.0
+    hier_short_valid_prob_sum = 0.0
+    hier_long_bad_target_rate_sum = 0.0
+    hier_short_bad_target_rate_sum = 0.0
+    hier_countertrend_long_trap_rate_sum = 0.0
+    hier_countertrend_short_trap_rate_sum = 0.0
+    hier_side_rows_sum = 0
+    hier_side_correct_sum = 0.0
+    trendline_rail_loss_sum = 0.0
+    trendline_rail_rows_sum = 0
+    trendline_rising_rows_sum = 0
+    trendline_falling_rows_sum = 0
+    trendline_wrong_side_prob_sum = 0.0
 
     for batch in loader:
         non_blocking = device.type == "cuda"
@@ -2328,7 +3401,8 @@ def train_epoch(
             residual_hard_neg_short,
         ).to(device=ce_per.device, dtype=ce_per.dtype)
         ce_loss_raw = (ce_per * ce_sample_weight).mean()
-        ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
+        legacy_ce_mult = float(ENTRY_HIER_LEGACY_CE_MULT) if "trade_logit" in out else 1.0
+        ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * legacy_ce_mult * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
         tail_direction_loss = torch.tensor(0.0, device=device)
         tail_direction_mask = torch.zeros_like(y, dtype=torch.bool)
@@ -2339,12 +3413,13 @@ def train_epoch(
 
         cost_term = torch.tensor(0.0, device=device)
         balance_term = _direction_balance_term(probs, y, criterion)
+        min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
             expected_cost = (cost * probs).sum(dim=1)
             cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
 
-        loss = ce_loss + cost_term + balance_term
+        loss = ce_loss + cost_term + balance_term + min_pred_rate_term
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
             loss = loss + tail_direction_loss
         if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
@@ -2353,6 +3428,18 @@ def train_epoch(
             loss = loss + bad_path_quality_rank_loss
         if float(ENTRY_PATH_QUALITY_RANK_WEIGHT) > 0.0:
             loss = loss + path_quality_rank_loss
+        hier_loss, hier_stats = _hierarchical_entry_loss(
+            out,
+            batch,
+            device,
+            trade_pos_weight=hier_trade_pos_weight,
+            side_bad_path_pos_weight=hier_bad_path_pos_weight,
+        )
+        if hier_loss.numel() == 1:
+            loss = loss + hier_loss
+        trendline_rail_loss, trendline_stats = _trendline_rail_aux_loss(out, batch, probs, device)
+        if trendline_rail_loss.numel() == 1:
+            loss = loss + trendline_rail_loss
         hard_neg_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_prob_loss = torch.tensor(0.0, device=device)
         teaser_neg_prob_loss = torch.tensor(0.0, device=device)
@@ -2583,6 +3670,29 @@ def train_epoch(
         path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
         bad_path_loss_sum += float(bad_path_prob_loss) * bs
+        hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
+        hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
+        hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
+        hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
+        hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
+        hier_side_validity_loss_sum += float(hier_stats.get("hier_side_validity_loss", 0.0)) * bs
+        hier_long_valid_target_rate_sum += float(hier_stats.get("hier_long_valid_target_rate", 0.0)) * bs
+        hier_short_valid_target_rate_sum += float(hier_stats.get("hier_short_valid_target_rate", 0.0)) * bs
+        hier_long_valid_prob_sum += float(hier_stats.get("hier_long_valid_prob_mean", 0.0)) * bs
+        hier_short_valid_prob_sum += float(hier_stats.get("hier_short_valid_prob_mean", 0.0)) * bs
+        hier_long_bad_target_rate_sum += float(hier_stats.get("hier_long_bad_target_rate", 0.0)) * bs
+        hier_short_bad_target_rate_sum += float(hier_stats.get("hier_short_bad_target_rate", 0.0)) * bs
+        hier_countertrend_long_trap_rate_sum += float(hier_stats.get("hier_countertrend_long_trap_rate", 0.0)) * bs
+        hier_countertrend_short_trap_rate_sum += float(hier_stats.get("hier_countertrend_short_trap_rate", 0.0)) * bs
+        _side_rows = int(hier_stats.get("hier_side_rows", 0.0))
+        if _side_rows > 0:
+            hier_side_rows_sum += _side_rows
+            hier_side_correct_sum += float(hier_stats.get("hier_side_acc", 0.0)) * _side_rows
+        trendline_rail_loss_sum += float(trendline_stats.get("trendline_rail_loss", 0.0)) * bs
+        trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
+        trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
+        trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
+        trendline_wrong_side_prob_sum += float(trendline_stats.get("trendline_wrong_side_prob", 0.0)) * bs
         if aux_path_weight > 0.0:
             total_aux_path += float(path_loss) * bs
         if aux_mfe_weight > 0.0:
@@ -2629,6 +3739,27 @@ def train_epoch(
         "aux_clean_edge_loss_mean": (clean_edge_loss_sum / max(1, n)),
         "aux_survival_loss_mean": (survival_loss_sum / max(1, n)),
         "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
+        "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
+        "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
+        "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
+        "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
+        "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
+        "hier_side_validity_loss_mean": (hier_side_validity_loss_sum / max(1, n)),
+        "hier_long_valid_target_rate": (hier_long_valid_target_rate_sum / max(1, n)),
+        "hier_short_valid_target_rate": (hier_short_valid_target_rate_sum / max(1, n)),
+        "hier_long_valid_prob_mean": (hier_long_valid_prob_sum / max(1, n)),
+        "hier_short_valid_prob_mean": (hier_short_valid_prob_sum / max(1, n)),
+        "hier_long_bad_target_rate": (hier_long_bad_target_rate_sum / max(1, n)),
+        "hier_short_bad_target_rate": (hier_short_bad_target_rate_sum / max(1, n)),
+        "hier_countertrend_long_trap_rate": (hier_countertrend_long_trap_rate_sum / max(1, n)),
+        "hier_countertrend_short_trap_rate": (hier_countertrend_short_trap_rate_sum / max(1, n)),
+        "hier_side_rows": int(hier_side_rows_sum),
+        "hier_side_acc": (hier_side_correct_sum / hier_side_rows_sum if hier_side_rows_sum > 0 else 0.0),
+        "trendline_rail_loss_mean": (trendline_rail_loss_sum / max(1, n)),
+        "trendline_rail_rows": int(trendline_rail_rows_sum),
+        "trendline_rising_rows": int(trendline_rising_rows_sum),
+        "trendline_falling_rows": int(trendline_falling_rows_sum),
+        "trendline_wrong_side_prob_mean": (trendline_wrong_side_prob_sum / max(1, n)),
     }
 
 
@@ -2831,6 +3962,8 @@ def validate(
     clean_edge_pos_weight: float,
     survival_pos_weight: float,
     bad_path_pos_weight: float,
+    hier_trade_pos_weight: float,
+    hier_bad_path_pos_weight: Any,
 ):
     model.eval()
     total = 0.0
@@ -2859,6 +3992,27 @@ def validate(
     bad_path_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
     tail_direction_rows = 0
+    hier_trade_loss_sum = 0.0
+    hier_side_loss_sum = 0.0
+    hier_utility_loss_sum = 0.0
+    hier_side_bad_path_loss_sum = 0.0
+    hier_side_mae_loss_sum = 0.0
+    hier_side_validity_loss_sum = 0.0
+    hier_long_valid_target_rate_sum = 0.0
+    hier_short_valid_target_rate_sum = 0.0
+    hier_long_valid_prob_sum = 0.0
+    hier_short_valid_prob_sum = 0.0
+    hier_long_bad_target_rate_sum = 0.0
+    hier_short_bad_target_rate_sum = 0.0
+    hier_countertrend_long_trap_rate_sum = 0.0
+    hier_countertrend_short_trap_rate_sum = 0.0
+    hier_side_rows_sum = 0
+    hier_side_correct_sum = 0.0
+    trendline_rail_loss_sum = 0.0
+    trendline_rail_rows_sum = 0
+    trendline_rising_rows_sum = 0
+    trendline_falling_rows_sum = 0
+    trendline_wrong_side_prob_sum = 0.0
     # V10-AUX-02: read-only accumulators for the cross-head / AUC / realized-target panel.
     _diag_pred: "dict[str, list]" = {k: [] for k in (
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
@@ -2945,7 +4099,8 @@ def validate(
                 residual_hard_neg_short,
             ).to(device=ce_per.device, dtype=ce_per.dtype)
             ce_loss_raw = (ce_per * ce_sample_weight).mean()
-            ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
+            legacy_ce_mult = float(ENTRY_HIER_LEGACY_CE_MULT) if "trade_logit" in out else 1.0
+            ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * legacy_ce_mult * ce_loss_raw
             probs = torch.softmax(logits, dim=1)
             tail_direction_loss = torch.tensor(0.0, device=device)
             tail_direction_mask = torch.zeros_like(y, dtype=torch.bool)
@@ -2956,18 +4111,31 @@ def validate(
 
             cost_term = torch.tensor(0.0, device=device)
             balance_term = _direction_balance_term(probs, y, criterion)
+            min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
                 expected_cost = (cost * probs).sum(dim=1)
                 cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
 
-            loss = ce_loss + cost_term + balance_term
+            loss = ce_loss + cost_term + balance_term + min_pred_rate_term
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
                 loss = loss + tail_direction_loss
             if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) > 0.0:
                 loss = loss + bad_path_quality_rank_loss
             if float(ENTRY_PATH_QUALITY_RANK_WEIGHT) > 0.0:
                 loss = loss + path_quality_rank_loss
+            hier_loss, hier_stats = _hierarchical_entry_loss(
+                out,
+                batch,
+                device,
+                trade_pos_weight=hier_trade_pos_weight,
+                side_bad_path_pos_weight=hier_bad_path_pos_weight,
+            )
+            if hier_loss.numel() == 1:
+                loss = loss + hier_loss
+            trendline_rail_loss, trendline_stats = _trendline_rail_aux_loss(out, batch, probs, device)
+            if trendline_rail_loss.numel() == 1:
+                loss = loss + trendline_rail_loss
             hard_neg_prob_loss = torch.tensor(0.0, device=device)
             dead_neg_prob_loss = torch.tensor(0.0, device=device)
             teaser_neg_prob_loss = torch.tensor(0.0, device=device)
@@ -3117,6 +4285,29 @@ def validate(
             path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
             hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
             bad_path_loss_sum += float(bad_path_prob_loss) * bs
+            hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
+            hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
+            hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
+            hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
+            hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
+            hier_side_validity_loss_sum += float(hier_stats.get("hier_side_validity_loss", 0.0)) * bs
+            hier_long_valid_target_rate_sum += float(hier_stats.get("hier_long_valid_target_rate", 0.0)) * bs
+            hier_short_valid_target_rate_sum += float(hier_stats.get("hier_short_valid_target_rate", 0.0)) * bs
+            hier_long_valid_prob_sum += float(hier_stats.get("hier_long_valid_prob_mean", 0.0)) * bs
+            hier_short_valid_prob_sum += float(hier_stats.get("hier_short_valid_prob_mean", 0.0)) * bs
+            hier_long_bad_target_rate_sum += float(hier_stats.get("hier_long_bad_target_rate", 0.0)) * bs
+            hier_short_bad_target_rate_sum += float(hier_stats.get("hier_short_bad_target_rate", 0.0)) * bs
+            hier_countertrend_long_trap_rate_sum += float(hier_stats.get("hier_countertrend_long_trap_rate", 0.0)) * bs
+            hier_countertrend_short_trap_rate_sum += float(hier_stats.get("hier_countertrend_short_trap_rate", 0.0)) * bs
+            _side_rows = int(hier_stats.get("hier_side_rows", 0.0))
+            if _side_rows > 0:
+                hier_side_rows_sum += _side_rows
+                hier_side_correct_sum += float(hier_stats.get("hier_side_acc", 0.0)) * _side_rows
+            trendline_rail_loss_sum += float(trendline_stats.get("trendline_rail_loss", 0.0)) * bs
+            trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
+            trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
+            trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
+            trendline_wrong_side_prob_sum += float(trendline_stats.get("trendline_wrong_side_prob", 0.0)) * bs
             n += bs
 
             p = probs.cpu().numpy()
@@ -3160,6 +4351,27 @@ def validate(
         "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
+        "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
+        "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
+        "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
+        "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
+        "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
+        "hier_side_validity_loss_mean": (hier_side_validity_loss_sum / max(1, n)),
+        "hier_long_valid_target_rate": (hier_long_valid_target_rate_sum / max(1, n)),
+        "hier_short_valid_target_rate": (hier_short_valid_target_rate_sum / max(1, n)),
+        "hier_long_valid_prob_mean": (hier_long_valid_prob_sum / max(1, n)),
+        "hier_short_valid_prob_mean": (hier_short_valid_prob_sum / max(1, n)),
+        "hier_long_bad_target_rate": (hier_long_bad_target_rate_sum / max(1, n)),
+        "hier_short_bad_target_rate": (hier_short_bad_target_rate_sum / max(1, n)),
+        "hier_countertrend_long_trap_rate": (hier_countertrend_long_trap_rate_sum / max(1, n)),
+        "hier_countertrend_short_trap_rate": (hier_countertrend_short_trap_rate_sum / max(1, n)),
+        "hier_side_rows": int(hier_side_rows_sum),
+        "hier_side_acc": (hier_side_correct_sum / hier_side_rows_sum if hier_side_rows_sum > 0 else 0.0),
+        "trendline_rail_loss_mean": (trendline_rail_loss_sum / max(1, n)),
+        "trendline_rail_rows": int(trendline_rail_rows_sum),
+        "trendline_rising_rows": int(trendline_rising_rows_sum),
+        "trendline_falling_rows": int(trendline_falling_rows_sum),
+        "trendline_wrong_side_prob_mean": (trendline_wrong_side_prob_sum / max(1, n)),
     }
     stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
     # V10-AUX-02: cross-head / AUC / realized-target diagnostics. Fail-soft, WARN-level,
@@ -3667,6 +4879,11 @@ def run_train(
     enable_timing_head: bool = False,
     enable_tail_risk_head: bool = False,
     enable_vol_forecast_head: bool = False,
+    enable_anchor_gate: bool = False,
+    anchor_gate_init: float = 1.0,
+    enable_hierarchical_entry_heads: bool = False,
+    enable_side_validity_head: bool = False,
+    enable_trendline_rail_head: bool = False,
     enable_specialist_fusion: bool = False,
     specialist_audit_json: Optional[Path] = None,
     specialist_contract_mode: str = "foundation_seq146",
@@ -3764,6 +4981,12 @@ def run_train(
     if _tapered:
         _per_tf_lens["M15"] = 64
         log.info("[GX1_MTF_TAPERED] per-TF seq-lens: %s (m5/h1=default %d)", _per_tf_lens, int(multi_tf_seq_len))
+    xau_direction_repair_mode = bool(
+        enable_anchor_gate
+        or enable_hierarchical_entry_heads
+        or enable_side_validity_head
+        or enable_trendline_rail_head
+    )
     train_ds = EntryV10CtxDataset(
         train_parquet,
         seq_len=seq_len,
@@ -3772,6 +4995,7 @@ def run_train(
         m5_prebuilt_path=m5_prebuilt_path,
         multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
+        multi_tf_closed_bar=True if xau_direction_repair_mode else None,
         smoke_date_from=smoke_date_from,
         smoke_date_to=smoke_date_to,
     )
@@ -3801,13 +5025,111 @@ def run_train(
         m5_prebuilt_path=m5_prebuilt_path,
         multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
+        multi_tf_closed_bar=True if xau_direction_repair_mode else None,
         smoke_date_from=smoke_date_from,
         smoke_date_to=smoke_date_to,
     )
+    if xau_direction_repair_mode:
+        contract_failures: list[str] = []
+        contract_failures.extend(
+            _xau_direction_repair_source_failures(
+                {
+                    "train_parquet": train_parquet,
+                    "val_parquet": val_parquet,
+                    "m5_prebuilt_path": m5_prebuilt_path,
+                }
+            )
+        )
+        contract_failures.extend(
+            _xau_direction_repair_manifest_failures(
+                {
+                    "train": train_parquet,
+                    "val": val_parquet,
+                }
+            )
+        )
+        for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+            if not bool(getattr(ds_obj, "neutral_xgb_bridge", False)):
+                contract_failures.append(
+                    f"{split_name} dataset manifest must declare neutral_xgb_bridge=true "
+                    "for XAU direction repair heads"
+                )
+            if str(getattr(ds_obj, "xgb_bridge_source", "") or "") != "neutral_uniform_proba":
+                contract_failures.append(
+                    f"{split_name} dataset manifest must declare xgb_bridge_source=neutral_uniform_proba "
+                    f"(got {getattr(ds_obj, 'xgb_bridge_source', '')!r})"
+                )
+            contract_failures.extend(_xau_direction_repair_target_failures(split_name, ds_obj.df))
+        if contract_failures:
+            raise RuntimeError(
+                "[ENTRY_XAU_DIRECTION_REPAIR_CONTRACT_INVALID] "
+                + "; ".join(contract_failures)
+            )
+    if enable_hierarchical_entry_heads:
+        required_hier_cols = [
+            "y_trade",
+            "y_side",
+            "y_side_mask",
+            "y_long_path_utility_bps",
+            "y_short_path_utility_bps",
+            "y_long_bad_path",
+            "y_short_bad_path",
+            "y_long_expected_mae_bps",
+            "y_short_expected_mae_bps",
+            "y_rising_channel_support_touch",
+            "y_falling_channel_resistance_touch",
+            "y_support_retest_continuation",
+            "y_resistance_retest_continuation",
+            "y_countertrend_short_trap",
+            "y_countertrend_long_trap",
+            "y_mtf_conflict_m5_vs_higher_side",
+            "y_long_high_mae_low_mfe_early_failure",
+            "y_short_high_mae_low_mfe_early_failure",
+        ]
+        for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+            missing = [c for c in required_hier_cols if c not in ds_obj.df.columns]
+            if missing:
+                raise RuntimeError(
+                    f"[ENTRY_HIER_LABEL_CONTRACT_MISSING] split={split_name} "
+                    f"missing={missing}. Rebuild the XAU path-utility dataset; "
+                    "hierarchical repair heads must not train on fallback labels."
+                )
     train_bad_path_rate = float(train_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in train_ds.df.columns else 0.0
     val_bad_path_rate = float(val_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in val_ds.df.columns else 0.0
     train_tradable_rate = float(train_ds.df["y_tradable"].astype(float).mean()) if "y_tradable" in train_ds.df.columns else 0.0
     val_tradable_rate = float(val_ds.df["y_tradable"].astype(float).mean()) if "y_tradable" in val_ds.df.columns else 0.0
+    train_trade_rate = float(train_ds.df["y_trade"].astype(float).mean()) if "y_trade" in train_ds.df.columns else train_tradable_rate
+    val_trade_rate = float(val_ds.df["y_trade"].astype(float).mean()) if "y_trade" in val_ds.df.columns else val_tradable_rate
+    if {"y_long_bad_path", "y_short_bad_path"}.issubset(train_ds.df.columns):
+        train_long_bad_path_rate = float(train_ds.df["y_long_bad_path"].astype(float).mean())
+        train_short_bad_path_rate = float(train_ds.df["y_short_bad_path"].astype(float).mean())
+        _train_side_bad_arr = pd.concat(
+            [
+                train_ds.df["y_long_bad_path"].astype(float),
+                train_ds.df["y_short_bad_path"].astype(float),
+            ],
+            ignore_index=True,
+        )
+        train_side_bad_path_rate = float(_train_side_bad_arr.mean())
+    else:
+        train_long_bad_path_rate = train_bad_path_rate
+        train_short_bad_path_rate = train_bad_path_rate
+        train_side_bad_path_rate = train_bad_path_rate
+    if {"y_long_bad_path", "y_short_bad_path"}.issubset(val_ds.df.columns):
+        val_long_bad_path_rate = float(val_ds.df["y_long_bad_path"].astype(float).mean())
+        val_short_bad_path_rate = float(val_ds.df["y_short_bad_path"].astype(float).mean())
+        _val_side_bad_arr = pd.concat(
+            [
+                val_ds.df["y_long_bad_path"].astype(float),
+                val_ds.df["y_short_bad_path"].astype(float),
+            ],
+            ignore_index=True,
+        )
+        val_side_bad_path_rate = float(_val_side_bad_arr.mean())
+    else:
+        val_long_bad_path_rate = val_bad_path_rate
+        val_short_bad_path_rate = val_bad_path_rate
+        val_side_bad_path_rate = val_bad_path_rate
     train_hard_neg_long_rate = float(train_ds.df["y_hard_negative_long"].astype(float).mean()) if "y_hard_negative_long" in train_ds.df.columns else 0.0
     val_hard_neg_long_rate = float(val_ds.df["y_hard_negative_long"].astype(float).mean()) if "y_hard_negative_long" in val_ds.df.columns else 0.0
     train_dead_neg_long_rate = float(train_ds.df["y_dead_negative_long"].astype(float).mean()) if "y_dead_negative_long" in train_ds.df.columns else 0.0
@@ -3836,12 +5158,31 @@ def run_train(
         raw_tradable_pos_weight = (1.0 - train_tradable_rate) / max(train_tradable_rate, 1e-9)
     else:
         raw_tradable_pos_weight = 1.0
+    if train_trade_rate > 0.0:
+        raw_hier_trade_pos_weight = (1.0 - train_trade_rate) / max(train_trade_rate, 1e-9)
+    else:
+        raw_hier_trade_pos_weight = 1.0
+    if train_long_bad_path_rate > 0.0:
+        raw_hier_long_bad_path_pos_weight = (1.0 - train_long_bad_path_rate) / max(train_long_bad_path_rate, 1e-9)
+    else:
+        raw_hier_long_bad_path_pos_weight = 1.0
+    if train_short_bad_path_rate > 0.0:
+        raw_hier_short_bad_path_pos_weight = (1.0 - train_short_bad_path_rate) / max(train_short_bad_path_rate, 1e-9)
+    else:
+        raw_hier_short_bad_path_pos_weight = 1.0
     bad_path_pos_weight = float(
         min(float(ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_bad_path_pos_weight))
     )
     tradable_pos_weight = float(
         min(float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP), max(1.0, raw_tradable_pos_weight))
     )
+    hier_trade_pos_weight = float(
+        min(float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP), max(1.0, raw_hier_trade_pos_weight))
+    )
+    hier_bad_path_pos_weight = [
+        float(min(float(ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_hier_long_bad_path_pos_weight))),
+        float(min(float(ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_hier_short_bad_path_pos_weight))),
+    ]
     raw_clean_edge_pos_weight = ((1.0 - train_clean_edge_rate) / max(train_clean_edge_rate, 1e-9)) if train_clean_edge_rate > 0.0 else 1.0
     clean_edge_pos_weight = float(
         min(float(ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP), max(1.0, raw_clean_edge_pos_weight))
@@ -3883,6 +5224,21 @@ def run_train(
         raw_tradable_pos_weight,
         tradable_pos_weight,
         float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
+    )
+    log.info(
+        "[ENTRY_HIER_BALANCE_PROOF] train_trade_rate=%.6f val_trade_rate=%.6f trade_pos_weight=%.6f "
+        "train_side_bad_path_rate=%.6f val_side_bad_path_rate=%.6f "
+        "train_long_bad_path_rate=%.6f train_short_bad_path_rate=%.6f "
+        "side_bad_path_pos_weight_long=%.6f side_bad_path_pos_weight_short=%.6f",
+        train_trade_rate,
+        val_trade_rate,
+        hier_trade_pos_weight,
+        train_side_bad_path_rate,
+        val_side_bad_path_rate,
+        train_long_bad_path_rate,
+        train_short_bad_path_rate,
+        hier_bad_path_pos_weight[0],
+        hier_bad_path_pos_weight[1],
     )
     log.info(
         "[ENTRY_DEAD_LONG_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f",
@@ -4085,6 +5441,12 @@ def run_train(
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        enable_anchor_gate=bool(enable_anchor_gate),
+        anchor_gate_init=float(anchor_gate_init),
+        enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_side_validity_head=bool(enable_side_validity_head),
+        enable_trendline_rail_head=bool(enable_trendline_rail_head),
+        trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
         enable_mtf_direction_head=enable_mtf_direction_head,
         mtf_dir_scale_init=mtf_dir_scale_init,
         enable_specialist_fusion=bool(enable_specialist_fusion),
@@ -4111,6 +5473,14 @@ def run_train(
             enable_tf_agreement_head, enable_path_quality_variance_head,
             enable_position_size_head, enable_hold_horizon_head,
         )
+    log.info(
+        "[ENTRY_DIRECTION_REPAIR_HEADS] anchor_gate=%s anchor_gate_init=%.4f hierarchy=%s side_validity=%s trendline_rail=%s",
+        bool(enable_anchor_gate),
+        float(anchor_gate_init),
+        bool(enable_hierarchical_entry_heads),
+        bool(enable_side_validity_head),
+        bool(enable_trendline_rail_head),
+    )
     if enable_multi_tf:
         _tfs = "M5+M15+H1+H4+D1 (V2)" if _mtf_v2 else "M15+H1+H4+D1 (V1)"
         log.info(
@@ -4183,9 +5553,40 @@ def run_train(
     _require_nonneg("ENTRY_ANCHOR_EPS", ENTRY_ANCHOR_EPS)
     _require_nonneg("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", ENTRY_RESIDUAL_SIDE_BIAS_ALPHA)
     _require_nonneg("ENTRY_TAIL_DIRECTION_CE_WEIGHT", ENTRY_TAIL_DIRECTION_CE_WEIGHT)
+    _require_nonneg("ENTRY_HIER_TRADE_WEIGHT", ENTRY_HIER_TRADE_WEIGHT)
+    _require_nonneg("ENTRY_HIER_SIDE_WEIGHT", ENTRY_HIER_SIDE_WEIGHT)
+    _require_nonneg("ENTRY_HIER_UTILITY_WEIGHT", ENTRY_HIER_UTILITY_WEIGHT)
+    _require_nonneg("ENTRY_HIER_BAD_PATH_WEIGHT", ENTRY_HIER_BAD_PATH_WEIGHT)
+    _require_nonneg("ENTRY_HIER_MAE_WEIGHT", ENTRY_HIER_MAE_WEIGHT)
+    _require_nonneg("ENTRY_HIER_LEGACY_CE_MULT", ENTRY_HIER_LEGACY_CE_MULT)
+    _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", ENTRY_HIER_SIDE_VALIDITY_WEIGHT)
+    _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS)
+    _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP)
+    _require_nonneg("ENTRY_HIER_POCKET_ABSTAIN_WEIGHT", ENTRY_HIER_POCKET_ABSTAIN_WEIGHT)
+    _require_nonneg("ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT", ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT)
+    _require_nonneg("ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS", ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", ENTRY_TRENDLINE_RAIL_AUX_WEIGHT)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT", ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT)
+    _require_nonneg(
+        "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT",
+        ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT,
+    )
+    _require_nonneg(
+        "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT",
+        ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT,
+    )
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT", ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT", ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT", ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT", ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_MARGIN", ENTRY_TRENDLINE_RAIL_MARGIN)
+    _require_nonneg("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS", ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS)
     _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT)
     _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL)
     _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE)
+    _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT)
+    _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION)
+    _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
         raise RuntimeError(
             "[ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL_INVALID] "
@@ -4196,6 +5597,153 @@ def run_train(
             "[ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE_INVALID] "
             f"ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE={ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE:.6f} expected <=1.0"
         )
+    if ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION_INVALID] "
+            f"ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION={ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR_INVALID] "
+            f"ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR={ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.6f} expected <=1.0"
+        )
+    if bool(enable_side_validity_head) and ENTRY_HIER_SIDE_VALIDITY_WEIGHT <= 0.0:
+        raise RuntimeError(
+            "[ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED] enable_side_validity_head=true requires "
+            f"ENTRY_HIER_SIDE_VALIDITY_WEIGHT>0, got {ENTRY_HIER_SIDE_VALIDITY_WEIGHT:.6f}"
+        )
+    if bool(enable_anchor_gate and enable_hierarchical_entry_heads):
+        repair_failures: list[str] = []
+        repair_failures.extend(
+            _xau_direction_repair_source_failures(
+                {
+                    "train_parquet": train_parquet,
+                    "val_parquet": val_parquet,
+                    "m5_prebuilt_path": m5_prebuilt_path,
+                }
+            )
+        )
+        for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+            if not bool(getattr(ds_obj, "neutral_xgb_bridge", False)):
+                repair_failures.append(
+                    f"{split_name} dataset manifest must declare neutral_xgb_bridge=true "
+                    "for XAU direction repair heads"
+                )
+            if str(getattr(ds_obj, "xgb_bridge_source", "") or "") != "neutral_uniform_proba":
+                repair_failures.append(
+                    f"{split_name} dataset manifest must declare xgb_bridge_source=neutral_uniform_proba "
+                    f"(got {getattr(ds_obj, 'xgb_bridge_source', '')!r})"
+                )
+        if list(getattr(train_ds, "signal_names", [])) != list(getattr(val_ds, "signal_names", [])):
+            repair_failures.append("train/val signal_names differ for XAU direction repair heads")
+        if int(getattr(train_ds, "seq_input_dim", -1)) != int(getattr(val_ds, "seq_input_dim", -2)):
+            repair_failures.append("train/val seq_input_dim differ for XAU direction repair heads")
+        if float(ENTRY_BAD_PATH_PROB_PENALTY) > 0.0:
+            repair_failures.append(
+                "ENTRY_BAD_PATH_PROB_PENALTY="
+                f"{ENTRY_BAD_PATH_PROB_PENALTY:.3f} expected 0.0 for side-specific XAU repair"
+            )
+        if float(anchor_gate_init) > 0.05:
+            repair_failures.append(f"anchor_gate_init={float(anchor_gate_init):.3f} expected <=0.05")
+        if ENTRY_PRED_BALANCE_ALPHA < 0.45:
+            repair_failures.append(f"ENTRY_PRED_BALANCE_ALPHA={ENTRY_PRED_BALANCE_ALPHA:.3f} expected >=0.45")
+        if [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS] != [1.0, 1.0, 4.0]:
+            repair_failures.append(
+                "ENTRY_PRED_BALANCE_CLASS_WEIGHTS="
+                + ",".join(str(float(value)) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS)
+                + " expected 1.0,1.0,4.0"
+            )
+        if ENTRY_DIRECTION_CE_SCALE < 2.0:
+            repair_failures.append(f"ENTRY_DIRECTION_CE_SCALE={ENTRY_DIRECTION_CE_SCALE:.3f} expected >=2.0")
+        if ENTRY_CKPT_MONITOR != "dir_acc":
+            repair_failures.append(f"GX1_V10_CKPT_MONITOR={ENTRY_CKPT_MONITOR!r} expected 'dir_acc'")
+        if ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT < 0.50:
+            repair_failures.append(
+                "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT="
+                f"{ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT:.3f} expected >=0.50"
+            )
+        if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL < 0.35:
+            repair_failures.append(
+                "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL="
+                f"{ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL:.3f} expected >=0.35"
+            )
+        if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE < 0.05:
+            repair_failures.append(
+                "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE="
+                f"{ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE:.3f} expected >=0.05"
+            )
+        if ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT < 2.50:
+            repair_failures.append(
+                "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="
+                f"{ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:.3f} expected >=2.50"
+            )
+        if ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION < 0.50:
+            repair_failures.append(
+                "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION="
+                f"{ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION:.3f} expected >=0.50"
+            )
+        if ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR < 0.05:
+            repair_failures.append(
+                "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR="
+                f"{ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.3f} expected >=0.05"
+            )
+        if ENTRY_HIER_LEGACY_CE_MULT < 1.0:
+            repair_failures.append(f"ENTRY_HIER_LEGACY_CE_MULT={ENTRY_HIER_LEGACY_CE_MULT:.3f} expected >=1.0")
+        if not bool(enable_side_validity_head):
+            repair_failures.append("enable_side_validity_head=false expected true for XAU direction repair")
+        if ENTRY_HIER_SIDE_VALIDITY_WEIGHT < 1.50:
+            repair_failures.append(
+                "ENTRY_HIER_SIDE_VALIDITY_WEIGHT="
+                f"{ENTRY_HIER_SIDE_VALIDITY_WEIGHT:.3f} expected >=1.50"
+            )
+        if ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS < 15.0:
+            repair_failures.append(
+                "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS="
+                f"{ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS:.3f} expected >=15.0"
+            )
+        if ENTRY_HIER_POCKET_ABSTAIN_WEIGHT < 5.0:
+            repair_failures.append(
+                "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT="
+                f"{ENTRY_HIER_POCKET_ABSTAIN_WEIGHT:.3f} expected >=5.0"
+            )
+        if ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT < 3.0:
+            repair_failures.append(
+                "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT="
+                f"{ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT:.3f} expected >=3.0"
+            )
+        if not bool(enable_trendline_rail_head):
+            repair_failures.append("enable_trendline_rail_head=false expected true for XAU direction repair")
+        if ENTRY_TRENDLINE_RAIL_AUX_WEIGHT < 1.0:
+            repair_failures.append(
+                f"ENTRY_TRENDLINE_RAIL_AUX_WEIGHT={ENTRY_TRENDLINE_RAIL_AUX_WEIGHT:.3f} expected >=1.0"
+            )
+        if ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT < 1.50:
+            repair_failures.append(
+                "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT="
+                f"{ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT:.3f} expected >=1.50"
+            )
+        if ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT < 5.0:
+            repair_failures.append(
+                "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT="
+                f"{ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT:.3f} expected >=5.0"
+            )
+        if ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT="
+                f"{ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT < 3.0:
+            repair_failures.append(
+                "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT="
+                f"{ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT:.3f} expected >=3.0"
+            )
+        if ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT < 5.0:
+            repair_failures.append(
+                "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT="
+                f"{ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT:.3f} expected >=5.0"
+            )
+        if repair_failures:
+            raise RuntimeError("[ENTRY_XAU_DIRECTION_REPAIR_RECIPE_INVALID] " + "; ".join(repair_failures))
     if ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE < 0.50 or ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE > 0.95:
         raise RuntimeError(
             "[ENTRY_TAIL_DIRECTION_QUANTILE_INVALID] "
@@ -4276,6 +5824,12 @@ def run_train(
         float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
     )
     log.info(
+        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f",
+        float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
+        float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
+        float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+    )
+    log.info(
         "[ENTRY_BAD_PATH_RANK_RECIPE] weight=%.3f margin=%.3f quantile=%.3f",
         float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT),
         float(ENTRY_BAD_PATH_QUALITY_RANK_MARGIN),
@@ -4286,6 +5840,26 @@ def run_train(
         float(ENTRY_PATH_QUALITY_RANK_WEIGHT),
         float(ENTRY_PATH_QUALITY_RANK_MARGIN),
         float(ENTRY_PATH_QUALITY_RANK_QUANTILE),
+    )
+    log.info(
+        "[ENTRY_HIER_RECIPE] enabled=%d legacy_ce_mult=%.3f trade_w=%.3f side_w=%.3f utility_w=%.3f bad_path_w=%.3f mae_w=%.3f "
+        "trade_pos_weight=%.3f bad_path_pos_weight_long=%.3f bad_path_pos_weight_short=%.3f "
+        "utility_scale_bps=%.3f mae_scale_bps=%.3f pocket_abstain_w=%.3f pocket_side_margin_w=%.3f pocket_utility_margin_bps=%.3f",
+        int(bool(enable_hierarchical_entry_heads)),
+        float(ENTRY_HIER_LEGACY_CE_MULT),
+        float(ENTRY_HIER_TRADE_WEIGHT),
+        float(ENTRY_HIER_SIDE_WEIGHT),
+        float(ENTRY_HIER_UTILITY_WEIGHT),
+        float(ENTRY_HIER_BAD_PATH_WEIGHT),
+        float(ENTRY_HIER_MAE_WEIGHT),
+        float(hier_trade_pos_weight),
+        float(hier_bad_path_pos_weight[0]),
+        float(hier_bad_path_pos_weight[1]),
+        max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS)),
+        max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS)),
+        float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT),
+        float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT),
+        float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS),
     )
     log.info(
         "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f",
@@ -4361,6 +5935,8 @@ def run_train(
             clean_edge_pos_weight=clean_edge_pos_weight,
             survival_pos_weight=survival_pos_weight,
             bad_path_pos_weight=bad_path_pos_weight,
+            hier_trade_pos_weight=hier_trade_pos_weight,
+            hier_bad_path_pos_weight=hier_bad_path_pos_weight,
             scheduler=_scheduler,
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
@@ -4381,6 +5957,8 @@ def run_train(
             clean_edge_pos_weight=clean_edge_pos_weight,
             survival_pos_weight=survival_pos_weight,
             bad_path_pos_weight=bad_path_pos_weight,
+            hier_trade_pos_weight=hier_trade_pos_weight,
+            hier_bad_path_pos_weight=hier_bad_path_pos_weight,
         )
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
@@ -4423,7 +6001,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("tail_direction_loss_mean", 0.0)),
@@ -4431,6 +6009,9 @@ def run_train(
                 float(val_stats.get("aux_path_loss_mean", 0.0)),
                 float(val_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
+                float(val_stats.get("hier_trade_loss_mean", 0.0)),
+                float(val_stats.get("hier_side_loss_mean", 0.0)),
+                float(val_stats.get("hier_side_acc", 0.0)),
                 float(va_loss),
             )
             log.info(
@@ -4465,7 +6046,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("tail_direction_loss_mean", 0.0)),
@@ -4473,6 +6054,9 @@ def run_train(
                 float(tr_stats.get("aux_path_loss_mean", 0.0)),
                 float(tr_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
+                float(tr_stats.get("hier_trade_loss_mean", 0.0)),
+                float(tr_stats.get("hier_side_loss_mean", 0.0)),
+                float(tr_stats.get("hier_side_acc", 0.0)),
                 float(tr_loss),
             )
             log.info(
@@ -4557,6 +6141,17 @@ def run_train(
     trained_signal_names = list(getattr(train_ds, "signal_names", _default_signal_names(seq_input_dim)))
     trained_neutral_xgb_bridge = bool(getattr(train_ds, "neutral_xgb_bridge", False))
     trained_xgb_bridge_source = str(getattr(train_ds, "xgb_bridge_source", "") or "")
+    trained_smart520_state_contract = _smart520_state_contract_for_parquet(Path(train_parquet))
+    if enable_xau_direction_repair_heads:
+        state_contract_failures = _smart520_state_contract_failures(
+            trained_smart520_state_contract,
+            split="train",
+        )
+        if state_contract_failures:
+            raise RuntimeError(
+                "[XAU_DIRECTION_REPAIR_STATE_CONTRACT_FAIL] "
+                + " | ".join(state_contract_failures)
+            )
 
     lock = {
         "version": "entry_v10_ctx_lock_v1",
@@ -4612,6 +6207,10 @@ def run_train(
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        enable_anchor_gate=bool(enable_anchor_gate),
+        enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_side_validity_head=bool(enable_side_validity_head),
+        enable_trendline_rail_head=bool(enable_trendline_rail_head),
     )
 
     meta = {
@@ -4653,6 +6252,13 @@ def run_train(
             "d1_seq_len": int(_d1_len),
             "multi_tf_scale": float(multi_tf_scale),
             "feature_contract": "MULTI_TF_PER_BAR_V2" if _mtf_v2 else "MULTI_TF_PER_BAR_V1",
+            "closed_bar_target_availability": bool(
+                getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)) > pd.Timedelta(0)
+            ),
+            "target_availability_shift_minutes": float(
+                getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)).total_seconds()
+                / 60.0
+            ),
         },
         # 2026-06-02: per-TF learnable input scaling marker. Inference must
         # init the model with `enable_tf_input_scale=True` and the same init
@@ -4687,6 +6293,7 @@ def run_train(
         "ordered_signal_names": trained_signal_names,
         "neutral_xgb_bridge": trained_neutral_xgb_bridge,
         "xgb_bridge_source": trained_xgb_bridge_source,
+        "smart520_state_contract": trained_smart520_state_contract,
         "seq_len": seq_len,
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
@@ -4715,6 +6322,96 @@ def run_train(
         "anchor_source": "signal7_p_long_short_flat",
         "residual_scale": float(ENTRY_RESIDUAL_SCALE),
         "anchor_eps": float(ENTRY_ANCHOR_EPS),
+        "anchor_gate": {
+            "enabled": bool(enable_anchor_gate),
+            "init": float(anchor_gate_init),
+            "purpose": "learned per-regime suppression of signal-bridge anchor logits",
+        },
+        "hierarchical_entry_heads": {
+            "enabled": bool(enable_hierarchical_entry_heads),
+            "selection_score": "expected_utility_side",
+            "side_utility_scale_bps": max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS)),
+            "side_mae_scale_bps": max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS)),
+            "heads": [
+                "trade_vs_flat",
+                "long_vs_short_given_trade",
+                "side_path_utility_bps",
+                "side_bad_path_probability",
+                "side_expected_mae_bps",
+                "side_valid_trade_probability",
+            ],
+            "side_validity": {
+                "enabled": bool(enable_side_validity_head),
+                "loss_weight": float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT),
+                "min_utility_bps": float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS),
+                "pos_weight_cap": float(ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP),
+                "targets": {
+                    "long_valid_trade": [
+                        "y_long_path_utility_bps >= min_utility_bps",
+                        "y_long_bad_path == 0",
+                        "y_long_high_mae_low_mfe_early_failure == 0",
+                    ],
+                    "short_valid_trade": [
+                        "y_short_path_utility_bps >= min_utility_bps",
+                        "y_short_bad_path == 0",
+                        "y_short_high_mae_low_mfe_early_failure == 0",
+                    ],
+                },
+                "runtime_rule_free": True,
+            },
+            "side_bad_path_target_augmentation": {
+                "enabled": True,
+                "short_bad_path_or_labels": [
+                    "y_short_bad_path",
+                    "y_support_retest_continuation",
+                    "y_countertrend_short_trap",
+                    "y_short_high_mae_low_mfe_early_failure",
+                ],
+                "long_bad_path_or_labels": [
+                    "y_long_bad_path",
+                    "y_resistance_retest_continuation",
+                    "y_countertrend_long_trap",
+                    "y_long_high_mae_low_mfe_early_failure",
+                ],
+                "runtime_rule_free": True,
+            },
+            "pocket_abstention": {
+                "enabled": float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT) > 0.0,
+                "abstain_weight": float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT),
+                "side_margin_weight": float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT),
+                "utility_margin_bps": float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS),
+                "no_trade_labels": [
+                    "rising_channel_support_touch_without_valid_long_continuation",
+                    "falling_channel_resistance_touch_without_valid_short_continuation",
+                    "long_high_mae_low_mfe_early_failure_without_valid_short_target",
+                    "short_high_mae_low_mfe_early_failure_without_valid_long_target",
+                ],
+                "runtime_rule_free": True,
+            },
+        },
+        "trendline_rail_head": {
+            "enabled": bool(enable_trendline_rail_head),
+            "output_dim": 6 if bool(enable_trendline_rail_head) else 4,
+            "labels": [
+                "y_rising_channel_support_touch",
+                "y_falling_channel_resistance_touch",
+                "y_countertrend_short_trap",
+                "y_countertrend_long_trap",
+                "y_short_high_mae_low_mfe_early_failure",
+                "y_long_high_mae_low_mfe_early_failure",
+            ],
+            "aux_weight": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
+            "wrong_side_weight": float(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
+            "rising_wrong_short_weight": float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT),
+            "falling_wrong_long_weight": float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT),
+            "final_margin_weight": float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT),
+            "hier_margin_weight": float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT),
+            "flat_trade_weight": float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT),
+            "utility_margin_weight": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT),
+            "margin": float(ENTRY_TRENDLINE_RAIL_MARGIN),
+            "utility_margin_bps": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS),
+            "runtime_rule_free": True,
+        },
         "class_weights": {
             "long": float(long_class_weight),
             "short": float(short_class_weight),
@@ -4738,6 +6435,9 @@ def run_train(
         "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
         "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
         "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+        "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
+        "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
+        "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
         "tail_direction_quality_quantile": float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
         "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
@@ -4768,7 +6468,42 @@ def run_train(
             "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
             "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
             "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+            "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
+            "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
+            "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
+            "anchor_gate_enabled": bool(enable_anchor_gate),
+            "anchor_gate_init": float(anchor_gate_init),
+            "hierarchical_entry_heads_enabled": bool(enable_hierarchical_entry_heads),
+            "side_validity_head_enabled": bool(enable_side_validity_head),
+            "trendline_rail_head_enabled": bool(enable_trendline_rail_head),
+            "trendline_rail_output_dim": 6 if bool(enable_trendline_rail_head) else 4,
+            "trendline_rail_aux_weight": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
+            "trendline_rail_wrong_side_weight": float(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
+            "trendline_rail_rising_wrong_short_weight": float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT),
+            "trendline_rail_falling_wrong_long_weight": float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT),
+            "trendline_rail_final_margin_weight": float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT),
+            "trendline_rail_hier_margin_weight": float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT),
+            "trendline_rail_flat_trade_weight": float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT),
+            "trendline_rail_utility_margin_weight": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT),
+            "trendline_rail_margin": float(ENTRY_TRENDLINE_RAIL_MARGIN),
+            "trendline_rail_utility_margin_bps": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS),
+            "hier_legacy_ce_mult": float(ENTRY_HIER_LEGACY_CE_MULT),
+            "hier_trade_weight": float(ENTRY_HIER_TRADE_WEIGHT),
+            "hier_side_weight": float(ENTRY_HIER_SIDE_WEIGHT),
+            "hier_utility_weight": float(ENTRY_HIER_UTILITY_WEIGHT),
+            "hier_bad_path_weight": float(ENTRY_HIER_BAD_PATH_WEIGHT),
+            "hier_mae_weight": float(ENTRY_HIER_MAE_WEIGHT),
+            "hier_side_validity_weight": float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT),
+            "hier_side_validity_min_utility_bps": float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS),
+            "hier_side_validity_pos_weight_cap": float(ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP),
+            "hier_pocket_abstain_weight": float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT),
+            "hier_pocket_side_margin_weight": float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT),
+            "hier_pocket_utility_margin_bps": float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS),
+            "hier_trade_pos_weight": float(hier_trade_pos_weight),
+            "hier_bad_path_pos_weight": [float(hier_bad_path_pos_weight[0]), float(hier_bad_path_pos_weight[1])],
+            "hier_side_utility_scale_bps": max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS)),
+            "hier_side_mae_scale_bps": max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS)),
             "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
             "tradable_pos_weight": float(tradable_pos_weight),
             "bad_path_weight": float(ENTRY_AUX_BAD_PATH_WEIGHT),
@@ -4798,7 +6533,11 @@ def run_train(
             "clean_edge_ranking_margin": float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
             "selector_masked_aux": True,
             "symmetric_negatives": bool(ENTRY_SYMMETRIC_NEGATIVES),  # A7 2026-06-06: long==short
-            "validation_objective_matches_train": True,
+            "validation_objective_matches_train": False,
+            "validation_objective_scope_note": (
+                "validation includes core direction/hierarchy/path losses; train-only aux terms "
+                "such as tf_agreement/position_size/hold_horizon/dip_forecast are reported separately"
+            ),
             "aux_selector_mode": "long_short_union" if ENTRY_SYMMETRIC_NEGATIVES else "long_only",
             "clean_edge_target_mode": "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
             "survival_target_mode": "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
@@ -4868,6 +6607,12 @@ def run_train(
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        enable_anchor_gate=bool(enable_anchor_gate),
+        anchor_gate_init=float(anchor_gate_init),
+        enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_side_validity_head=bool(enable_side_validity_head),
+        enable_trendline_rail_head=bool(enable_trendline_rail_head),
+        trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
         enable_mtf_direction_head=enable_mtf_direction_head,
         mtf_dir_scale_init=mtf_dir_scale_init,
         enable_specialist_fusion=bool(enable_specialist_fusion),
@@ -5033,6 +6778,7 @@ def run_eval(
             "enable_multi_tf": True,
             "m5_prebuilt_path": m5_path,
             "multi_tf_seq_len": mtf_seq_len,
+            "multi_tf_closed_bar": bool(float(mtf_meta.get("target_availability_shift_minutes", 0.0) or 0.0) > 0.0),
             "per_tf_seq_lens": {
                 "M5": int(mtf_meta.get("m5_seq_len", mtf_seq_len)),
                 "M15": int(mtf_meta.get("m15_seq_len", mtf_seq_len)),
@@ -5159,6 +6905,15 @@ def run_eval(
         "device": str(device),
         "seed": seed,
         "test_loss": test_loss,
+        "test_loss_scope": "direction_only_ce_plus_residual_side_bias",
+        "validation_objective_matches_train": False,
+        "train_objective_metrics_included": False,
+        "hierarchical_loss_metrics_included": False,
+        "eval_scope_note": (
+            "Standalone --eval uses the frozen direction-only evaluator for deterministic "
+            "bundle checks. Use train/val or selective-edge/replay artifacts for the full "
+            "hierarchical trade/side/utility objective."
+        ),
         "test_auc": test_auc,
         "test_auc_status": "DISABLED",
         "test_acc": test_acc,
@@ -5634,6 +7389,35 @@ def main() -> None:
         help="Volatility-forecast head (3: forward realized vol bps @ K{12,48,96}). Default ON.",
     )
     parser.add_argument(
+        "--enable-anchor-gate", action="store_true", default=False,
+        help="XAU direction repair: learn a per-regime gate on signal-bridge anchor logits "
+             "so geometry/MTF can suppress a wrong anchor instead of only adding residuals.",
+    )
+    parser.add_argument(
+        "--anchor-gate-init", type=float, default=1.0,
+        help="Initial anchor-gate value when --enable-anchor-gate is active. 1.0 starts "
+             "near legacy anchored behavior; lower values train a more anchor-light challenger.",
+    )
+    parser.add_argument(
+        "--enable-hierarchical-entry-heads", action="store_true", default=False,
+        help="XAU direction repair: add trade-vs-flat, conditional side, side utility, "
+             "side bad-path and side MAE heads.",
+    )
+    parser.add_argument(
+        "--enable-side-validity-head", action="store_true", default=False,
+        help="XAU direction repair: add learned long/short valid-trade logits so broad "
+             "touch/failure setups can be learned as no-trade instead of forced side flips.",
+    )
+    parser.add_argument(
+        "--enable-trendline-rail-head", action="store_true", default=False,
+        help="XAU direction repair: add supervised trendline/rail pocket head for rising support, "
+             "falling resistance and countertrend trap labels.",
+    )
+    parser.add_argument(
+        "--enable-xau-direction-repair-heads", action="store_true", default=False,
+        help="Convenience flag: enable anchor-gate, hierarchical entry heads and trendline rail head.",
+    )
+    parser.add_argument(
         "--enable-specialist-fusion", action=argparse.BooleanOptionalAction, default=False,
         help="Enable audited seq146 specialist feature-family encoders and gated fusion. "
              "Default OFF for legacy bundle compatibility.",
@@ -5827,6 +7611,10 @@ def main() -> None:
         _aux_pqv = args.enable_path_quality_variance_head or args.enable_v10_v3plus_all_heads
         _aux_ps = args.enable_position_size_head or args.enable_v10_v3plus_all_heads
         _aux_hh = args.enable_hold_horizon_head or args.enable_v10_v3plus_all_heads
+        _anchor_gate = bool(args.enable_anchor_gate or args.enable_xau_direction_repair_heads)
+        _hier_heads = bool(args.enable_hierarchical_entry_heads or args.enable_xau_direction_repair_heads)
+        _side_validity_head = bool(args.enable_side_validity_head or args.enable_xau_direction_repair_heads)
+        _trendline_head = bool(args.enable_trendline_rail_head or args.enable_xau_direction_repair_heads)
         if args.prelim_no_aux_heads:
             log.info("[PRELIM_NO_AUX_HEADS] disabling tf_agreement/path_var/pos_size/hold_horizon heads for prelim")
             _aux_tf = _aux_pqv = _aux_ps = _aux_hh = False
@@ -5863,6 +7651,11 @@ def main() -> None:
             enable_timing_head=bool(args.enable_timing_head),
             enable_tail_risk_head=bool(args.enable_tail_risk_head),
             enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
+            enable_anchor_gate=_anchor_gate,
+            anchor_gate_init=float(args.anchor_gate_init),
+            enable_hierarchical_entry_heads=_hier_heads,
+            enable_side_validity_head=_side_validity_head,
+            enable_trendline_rail_head=_trendline_head,
             enable_specialist_fusion=bool(args.enable_specialist_fusion),
             specialist_audit_json=args.specialist_audit_json,
             specialist_contract_mode=str(args.specialist_contract_mode),

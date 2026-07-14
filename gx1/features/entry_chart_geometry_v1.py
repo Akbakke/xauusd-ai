@@ -160,9 +160,17 @@ def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray,
 def build_entry_chart_geometry_layer(
     x: np.ndarray,
     feature_names: list[str],
+    *,
+    strict_sources: bool = False,
 ) -> tuple[np.ndarray, list[str]]:
     """Build deterministic chart-geometry challenger features."""
     x = np.asarray(x, dtype=np.float32)
+    missing_sources = missing_chart_geometry_source_fields(feature_names)
+    if strict_sources and missing_sources:
+        raise RuntimeError(
+            "CHART_GEOMETRY_SOURCE_FIELDS_MISSING: "
+            f"{missing_sources[:30]} total={len(missing_sources)}"
+        )
     idx = _name_index(feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
@@ -301,7 +309,9 @@ def build_entry_chart_geometry_layer(
     level_mean = ((support_sources.mean(axis=0) + resistance_sources.mean(axis=0)) * 0.5).astype(np.float32)
     level_max = np.maximum(support_stack, resistance_stack).astype(np.float32)
     support_minus_resistance = _clip(c("ctx_cont.sr_support_minus_resistance_prox") + support_stack - resistance_stack, -2.0, 2.0)
-    channel_position = _clip01(0.5 + 0.5 * support_minus_resistance)
+    # Low-to-high channel position: support/lower rail -> 0, resistance/upper rail -> 1.
+    # The stack balance is support-minus-resistance, so it must be inverted here.
+    channel_position = _clip01(0.5 - 0.5 * support_minus_resistance)
     channel_center = _clip01(1.0 - 2.0 * np.abs(channel_position - 0.5))
     channel_edge = _clip01(level_max * (1.0 - channel_center))
     sr_balance = _clip01(1.0 - np.abs(support_stack - resistance_stack))
@@ -542,6 +552,20 @@ def build_entry_chart_geometry_layer(
         (extension_up * trend_up * resistance_stack + extension_down * trend_down * support_stack)
         * (0.50 + d1_atr_pct + divergence_pressure)
     )
+    rising_support_rail_touch = _clip01(
+        support_stack
+        * trend_up
+        * (0.50 + channel_confluence)
+        * (0.50 + agreement_pressure)
+        * (1.0 - 0.35 * divergence_pressure)
+    )
+    falling_resistance_rail_touch = _clip01(
+        resistance_stack
+        * trend_down
+        * (0.50 + channel_confluence)
+        * (0.50 + agreement_pressure)
+        * (1.0 - 0.35 * divergence_pressure)
+    )
     _add(
         arrays,
         names,
@@ -555,6 +579,46 @@ def build_entry_chart_geometry_layer(
         names,
         "channel_edge_rejection_pressure",
         channel_edge_retest * (sweep_up + sweep_down + wick_level) * (0.50 + divergence_pressure + choch),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "rising_support_rail_long_pressure",
+        rising_support_rail_touch
+        * (0.75 + ema_bull_follow + fib_support_confluence + mtf_retest_long_quality)
+        * (1.0 - 0.35 * breakout_down_seed),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "rising_support_rail_short_trap_pressure",
+        rising_support_rail_touch
+        * (0.75 + ema_bull_confirmation + support_stack + fib_support_confluence)
+        * (1.0 - 0.50 * breakout_down_seed),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "falling_resistance_rail_short_pressure",
+        falling_resistance_rail_touch
+        * (0.75 + ema_bear_follow + fib_resistance_confluence + mtf_retest_short_quality)
+        * (1.0 - 0.35 * breakout_up_seed),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "falling_resistance_rail_long_trap_pressure",
+        falling_resistance_rail_touch
+        * (0.75 + ema_bear_confirmation + resistance_stack + fib_resistance_confluence)
+        * (1.0 - 0.50 * breakout_up_seed),
         lo=0.0,
         hi=3.0,
     )
@@ -606,4 +670,26 @@ def build_entry_chart_geometry_layer(
 
 CHART_GEOMETRY_FEATURE_NAMES = tuple(
     name for name in build_entry_chart_geometry_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
+)
+
+CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[41:]
+
+# Smart520 is served by a fixed 520-wide state contract. Keep the selected
+# smart2 geometry slice at 13 fields and swap in the explicit rail/trap fields
+# so the model can learn support/resistance side evidence without changing the
+# live tensor width.
+CHART_GEOMETRY_SMART520_FEATURE_NAMES = (
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}trendline_channel_confluence_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_edge_rejection_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}rising_support_rail_long_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}rising_support_rail_short_trap_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}falling_resistance_rail_short_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}falling_resistance_rail_long_trap_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}fib_support_confluence_long_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}fib_resistance_confluence_short_pressure",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}fib_extension_exhaustion_risk",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_breakout_up_quality",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_breakout_down_quality",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_retest_long_quality",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}mtf_channel_retest_short_quality",
 )

@@ -65,7 +65,7 @@ SMART_SEQ520_SMOKE_BUNDLE_AUDIT_LATEST = (
 )
 SMART_SEQ520_SMOKE_DATASET_DIR = (
     Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
-    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630"
+    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
 )
 SMART_SEQ520_SPECIALIST_AUDIT_LATEST = (
     REPORTS_ROOT
@@ -90,6 +90,14 @@ CLASS_NAMES = ("LONG", "SHORT", "FLAT")
 MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
 MIN_DIRECTION_CLASS_PRED_RATE = 0.05
 MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
+SMART_EXTRA_ACTIVE_HEADS = ("trade_side_hierarchy", "trendline_rail", "side_validity")
+
+
+def _expected_active_heads_for_mode(contract_mode: str) -> set[str]:
+    expected = set(EXPECTED_ACTIVE_TRAINING_HEADS)
+    if str(contract_mode).strip() == "smart_seq520_candidate":
+        expected.update(SMART_EXTRA_ACTIVE_HEADS)
+    return expected
 
 
 def _json_default(obj: Any) -> Any:
@@ -402,15 +410,16 @@ def _specialist_audit_contract_passes(
     )
 
 
-def _head_contract_passes(report: dict[str, Any]) -> bool:
+def _head_contract_passes(report: dict[str, Any], *, contract_mode: str = "foundation_seq146") -> bool:
     contract = report.get("head_contract") if isinstance(report.get("head_contract"), dict) else {}
     active = set(str(x) for x in contract.get("active_training_heads", []) if str(x))
     blocked = set(str(x) for x in contract.get("blocked_heads", []) if str(x))
+    expected_active = _expected_active_heads_for_mode(contract_mode)
     return (
         bool(report.get("require_head_contract"))
         and str(contract.get("decision")) == "PASS"
         and not contract.get("failures")
-        and active == set(EXPECTED_ACTIVE_TRAINING_HEADS)
+        and active == expected_active
         and blocked == set(EXPECTED_BLOCKED_HEADS)
     )
 
@@ -557,11 +566,20 @@ def _path_calibration_contract_passes(report: dict[str, Any]) -> bool:
     )
 
 
-SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
+SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.45
+SMART_DIRECTION_CE_SCALE_MIN = 2.00
 SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
 SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
 SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
 SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
+SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
+SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
+SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
+SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
+SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
+SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
+SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN = 1.00
+SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN = 1.50
 
 
 def _direction_balance_contract_passes(
@@ -594,12 +612,35 @@ def _direction_balance_contract_passes(
     return (
         alpha >= SMART_DIRECTION_BALANCE_MIN_ALPHA
         and parsed_weights == SMART_DIRECTION_BALANCE_CLASS_WEIGHTS
+        and _float_or_zero(contract.get("direction_ce_scale"))
+        >= SMART_DIRECTION_CE_SCALE_MIN
+        and contract.get("hierarchical_entry_heads_enabled") is True
+        and contract.get("side_validity_head_enabled") is True
+        and _float_or_zero(contract.get("hier_side_validity_weight"))
+        >= SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN
+        and contract.get("trendline_rail_head_enabled") is True
+        and _float_or_zero(contract.get("trendline_rail_aux_weight"))
+        >= SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN
+        and _float_or_zero(contract.get("trendline_rail_wrong_side_weight"))
+        >= SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN
+        and _float_or_zero(contract.get("hier_legacy_ce_mult"))
+        >= SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN
+        and contract.get("anchor_gate_enabled") is True
+        and _float_or_zero(contract.get("anchor_gate_init"))
+        <= SMART_DIRECTION_ANCHOR_GATE_INIT_MAX
         and _float_or_zero(contract.get("ckpt_class_balance_guard_weight"))
         >= SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT
         and _float_or_zero(contract.get("ckpt_class_balance_min_pred_to_label"))
         >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL
         and _float_or_zero(contract.get("ckpt_class_balance_min_pred_rate"))
         >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE
+        and _float_or_zero(contract.get("direction_min_pred_rate_loss_weight"))
+        >= SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT
+        and _float_or_zero(contract.get("direction_min_pred_rate_fraction"))
+        >= SMART_DIRECTION_MIN_PRED_RATE_FRACTION
+        and _float_or_zero(contract.get("direction_min_pred_rate_floor"))
+        >= SMART_DIRECTION_MIN_PRED_RATE_FLOOR
+        and contract.get("best_direction_balance_guard_ok") is True
     )
 
 
@@ -645,11 +686,15 @@ def _symmetric_validation_contract_passes(
     )
     if not base_ok:
         return False
-    if "bad_path" in active_heads and not (
-        bool(contract.get("bad_path_ce_in_direction_loss"))
-        and bool(contract.get("bad_path_prob_penalty_in_validation"))
-    ):
-        return False
+    if "bad_path" in active_heads:
+        if not bool(contract.get("bad_path_ce_in_direction_loss")):
+            return False
+        if "expected_bad_path_prob_penalty_in_validation" in contract:
+            expected_penalty = bool(contract.get("expected_bad_path_prob_penalty_in_validation"))
+        else:
+            expected_penalty = not bool(contract.get("xau_side_specific_repair"))
+        if bool(contract.get("bad_path_prob_penalty_in_validation")) != expected_penalty:
+            return False
     if "clean_edge" in active_heads and not bool(contract.get("symmetric_clean_edge_rank")):
         return False
     return True
@@ -778,10 +823,10 @@ def _smoke_edge_checks(
         ),
         _check(
             "smoke bundle head contract PASS",
-            _head_contract_passes(report),
+            _head_contract_passes(report, contract_mode=normalized_contract_mode),
             {
                 "head_contract": head_contract,
-                "expected_active_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+                "expected_active_heads": sorted(_expected_active_heads_for_mode(normalized_contract_mode)),
                 "actual_active_heads": sorted(active_heads),
                 "expected_blocked_heads": list(EXPECTED_BLOCKED_HEADS),
                 "actual_blocked_heads": sorted(blocked_heads),

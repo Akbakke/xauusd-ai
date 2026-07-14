@@ -138,6 +138,29 @@ def write_trade_alert(line: str) -> None:
     except Exception:
         pass   # alerts file is best-effort; never crash the runner over it
 
+
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _float_or_none(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _fmt_optional_float(value: Any, spec: str) -> str:
+    parsed = _float_or_none(value)
+    return "NA" if parsed is None else format(parsed, spec)
+
 # Pre-trade gates
 DEFAULT_MAX_SPREAD_BPS = 7.0           # 2026-05-20 tightening: was 10.0, but
                                         # news-spike spreads at 8-10 bps ate
@@ -437,6 +460,9 @@ def attempt_market_entry(client: OandaClient, side: str,
     LOG.info(f"FILLED side={side} units={signed_units}  price={fill.get('price')}  trade_id={trade_id}")
     return {"status": "filled",
              "fill_price": float(fill.get("price", 0)),
+             "fill_time": fill.get("time"),
+             "oanda_transaction_id": fill.get("id"),
+             "oanda_order_id": fill.get("orderID"),
              "trade_id": trade_id,
              "client_order_id": client_order_id,
              "raw": response}
@@ -499,7 +525,23 @@ def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
     vedtak = os.environ.get("GX1_SMART_LAUNCH_VEDTAK", "").strip()
     if vedtak:
         from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
+        from gx1_guards.artifacts import load_decision_entry
+
         rep = assert_smart_serving_gate()   # raises loud on any violation
+        entry = load_decision_entry("v10_entry")
+        op = entry.get("operating_point") or {}
+        if "max_trades" not in op:
+            raise SystemExit("[SMART_GATE] v10_entry.operating_point.max_trades missing")
+        expected_max_trades = int(op.get("max_trades"))
+        if os.environ.get("GX1_PURE_PHASE6", "0") != "1":
+            raise SystemExit(
+                "[SMART_GATE] GX1_PURE_PHASE6=1 required for replay-equivalent live runner"
+            )
+        if int(args.max_trades) != expected_max_trades:
+            raise SystemExit(
+                f"[SMART_GATE] --max-trades {args.max_trades} != contract v10_entry.operating_point.max_trades "
+                f"{expected_max_trades}"
+            )
         LOG.warning("[SMART_GATE] runner start authorized: vedtak=%s parity=%s (%s bars, %s)",
                     vedtak, rep.get("decision"), rep.get("n_bars"), rep.get("created_utc"))
         return
@@ -1219,9 +1261,20 @@ def main() -> int:
                             consecutive_errors = 0
                             time.sleep(args.poll_seconds)
                             continue
+                        fill_price = float(order_result.get("fill_price") or 0.0)
+                        spread_abs = max(float(ask) - float(bid), max(float(bid), 1.0) * 1e-6)
+                        state_entry_bid = float(bid)
+                        state_entry_ask = float(ask)
+                        if fill_price > 0.0:
+                            if side == "long":
+                                state_entry_ask = fill_price
+                                state_entry_bid = min(float(bid), fill_price - spread_abs)
+                            else:
+                                state_entry_bid = fill_price
+                                state_entry_ask = max(float(ask), fill_price + spread_abs)
                         new_trade = TradeState.open(
                             entry_ts=pd.Timestamp(current_minute),
-                            side=side, entry_bid=bid, entry_ask=ask,
+                            side=side, entry_bid=state_entry_bid, entry_ask=state_entry_ask,
                             v10_snapshot=decision.get("_v10_snapshot", {}),
                             trade_id=str(order_result.get("trade_id") or ""),
                             units=trade_units,
@@ -1244,6 +1297,7 @@ def main() -> int:
                         # ── TradeJournal: log entry lifecycle ──
                         if new_trade.trade_id:
                             v10 = decision.get("_v10_snapshot") or {}
+                            xgb_scores = decision.get("xgb") or {}
                             journal.log_order_submitted(
                                 trade_id=new_trade.trade_id,
                                 instrument=INSTRUMENT, side=side,
@@ -1254,31 +1308,102 @@ def main() -> int:
                             journal.log_order_filled(
                                 trade_id=new_trade.trade_id,
                                 oanda_trade_id=new_trade.trade_id,
-                                fill_price=order_result.get("fill_price"),
+                                oanda_order_id=order_result.get("oanda_order_id"),
+                                oanda_transaction_id=order_result.get("oanda_transaction_id"),
+                                fill_price=fill_price if fill_price > 0.0 else None,
                                 fill_units=trade_units,
+                                ts_oanda=order_result.get("fill_time"),
                             )
                             journal.log_entry_snapshot(
                                 trade_id=new_trade.trade_id,
                                 entry_time=current_minute.isoformat(),
                                 instrument=INSTRUMENT, side=side,
-                                entry_price=float(order_result.get("fill_price") or
-                                                  (ask if side == "long" else bid)),
-                                entry_bid=bid, entry_ask=ask,
-                                entry_spread_bps=spread_bps,
-                                entry_model_version="V12.4",
+                                entry_price=fill_price if fill_price > 0.0 else (ask if side == "long" else bid),
+                                entry_bid=state_entry_bid, entry_ask=state_entry_ask,
+                                entry_spread_bps=new_trade.entry_spread_bps,
+                                session=decision.get("session"),
+                                trend_regime=(str(decision.get("trend_regime") or "") or None),
+                                entry_model_version=str(decision.get("policy", "smart_seq520_candidate_v1")),
                                 entry_score={
-                                    "q_take_long": float(decision.get("q_take_long", 0.0)),
-                                    "q_take_short": float(decision.get("q_take_short", 0.0)),
-                                    "q_skip": float(decision.get("q_skip", 0.0)),
-                                    "advantage_over_skip": float(decision.get("advantage_over_skip", 0.0)),
-                                    "advantage_over_skip_long": float(decision.get("advantage_over_skip_long", 0.0)),
-                                    "advantage_over_skip_short": float(decision.get("advantage_over_skip_short", 0.0)),
-                                    "v10_p_long": float(decision.get("v10_p_long", 0.0)),
-                                    "v10_p_short": float(decision.get("v10_p_short", 0.0)),
-                                    "v10_path_quality_pred": float(decision.get("v10_path_quality_pred", 0.0)),
-                                    "v10_mfe_pred_at_entry": float(decision.get("v10_mfe_pred_at_entry", 0.0)),
-                                    "v10_tradable_prob": float(decision.get("v10_tradable_prob", 0.0)),
-                                    "v10_bad_path_prob": float(decision.get("v10_bad_path_prob", 0.0)),
+                                    "policy": str(decision.get("policy", "")),
+                                    "smart_p_long": _as_float(decision.get("p_long")),
+                                    "smart_p_short": _as_float(decision.get("p_short")),
+                                    "smart_p_flat": _as_float(decision.get("p_flat")),
+                                    "smart_edge_score": _as_float(decision.get("edge_score")),
+                                    "smart_edge_score_threshold": _as_float(decision.get("edge_score_threshold")),
+                                    "smart_selection_score_mode": str(decision.get("selection_score_mode", "")),
+                                    "smart_selection_score": _as_float(decision.get("selection_score")),
+                                    "smart_selection_score_threshold": _as_float(decision.get("selection_score_threshold")),
+                                    "smart_legacy_trade_side": _float_or_none(decision.get("legacy_trade_side")),
+                                    "smart_expected_utility_side": _float_or_none(decision.get("expected_utility_side")),
+                                    "smart_selected_side": _float_or_none(decision.get("selected_side")),
+                                    "smart_p_trade": _as_float(decision.get("p_trade")),
+                                    "smart_p_flat_hier": _as_float(decision.get("p_flat_hier")),
+                                    "smart_p_long_given_trade": _as_float(decision.get("p_long_given_trade")),
+                                    "smart_p_short_given_trade": _as_float(decision.get("p_short_given_trade")),
+                                    "smart_expected_utility_long_bps": _float_or_none(decision.get("expected_utility_long_bps")),
+                                    "smart_expected_utility_short_bps": _float_or_none(decision.get("expected_utility_short_bps")),
+                                    "smart_expected_utility_bad_path_penalty_bps": _float_or_none(decision.get("expected_utility_bad_path_penalty_bps")),
+                                    "smart_expected_utility_uncertainty_penalty_bps": _float_or_none(decision.get("expected_utility_uncertainty_penalty_bps")),
+                                    "smart_expected_utility_rail_penalty_bps": _float_or_none(decision.get("expected_utility_rail_penalty_bps")),
+                                    "smart_expected_utility_long_rail_penalty_bps": _float_or_none(decision.get("expected_utility_long_rail_penalty_bps")),
+                                    "smart_expected_utility_short_rail_penalty_bps": _float_or_none(decision.get("expected_utility_short_rail_penalty_bps")),
+                                    "smart_expected_utility_invalid_side_penalty_bps": _float_or_none(decision.get("expected_utility_invalid_side_penalty_bps")),
+                                    "smart_expected_utility_long_invalid_side_penalty_bps": _float_or_none(decision.get("expected_utility_long_invalid_side_penalty_bps")),
+                                    "smart_expected_utility_short_invalid_side_penalty_bps": _float_or_none(decision.get("expected_utility_short_invalid_side_penalty_bps")),
+                                    "smart_long_path_utility_pred_bps": _float_or_none(decision.get("long_path_utility_pred_bps")),
+                                    "smart_short_path_utility_pred_bps": _float_or_none(decision.get("short_path_utility_pred_bps")),
+                                    "smart_long_bad_path_prob": _float_or_none(decision.get("long_bad_path_prob")),
+                                    "smart_short_bad_path_prob": _float_or_none(decision.get("short_bad_path_prob")),
+                                    "smart_side_validity_logit": decision.get("side_validity_logit"),
+                                    "smart_long_validity_prob": _float_or_none(decision.get("long_validity_prob")),
+                                    "smart_short_validity_prob": _float_or_none(decision.get("short_validity_prob")),
+                                    "smart_long_expected_mae_bps": _float_or_none(decision.get("long_expected_mae_bps")),
+                                    "smart_short_expected_mae_bps": _float_or_none(decision.get("short_expected_mae_bps")),
+                                    "smart_anchor_logits": decision.get("anchor_logits"),
+                                    "smart_anchor_probs": decision.get("anchor_probs"),
+                                    "smart_delta_logits": decision.get("delta_logits"),
+                                    "smart_mtf_dir_logits": decision.get("mtf_dir_logits"),
+                                    "smart_mtf_dir_probs": decision.get("mtf_dir_probs"),
+                                    "smart_anchor_gate": decision.get("anchor_gate"),
+                                    "smart_geometry_support_evidence": _float_or_none(decision.get("geometry_support_evidence")),
+                                    "smart_geometry_resistance_evidence": _float_or_none(decision.get("geometry_resistance_evidence")),
+                                    "smart_geometry_channel_edge_pressure": _float_or_none(decision.get("geometry_channel_edge_pressure")),
+                                    "smart_geometry_rising_support_rail_long_pressure": _float_or_none(decision.get("geometry_rising_support_rail_long_pressure")),
+                                    "smart_geometry_rising_support_rail_short_trap_pressure": _float_or_none(decision.get("geometry_rising_support_rail_short_trap_pressure")),
+                                    "smart_geometry_falling_resistance_rail_short_pressure": _float_or_none(decision.get("geometry_falling_resistance_rail_short_pressure")),
+                                    "smart_geometry_falling_resistance_rail_long_trap_pressure": _float_or_none(decision.get("geometry_falling_resistance_rail_long_trap_pressure")),
+                                    "smart_trendline_rail_long_evidence": _float_or_none(decision.get("trendline_rail_long_evidence")),
+                                    "smart_trendline_rail_short_evidence": _float_or_none(decision.get("trendline_rail_short_evidence")),
+                                    "smart_trendline_rail_long_minus_short": _float_or_none(decision.get("trendline_rail_long_minus_short")),
+                                    "smart_mtf_trend_evidence": _float_or_none(decision.get("mtf_trend_evidence")),
+                                    "smart_calibration_version": str(decision.get("calibration_version", "")),
+                                    "smart_direction_calibration_enabled": decision.get("direction_calibration_enabled"),
+                                    "smart_direction_calibration_temperature": _float_or_none(decision.get("direction_calibration_temperature")),
+                                    "smart_direction_calibration_bias": decision.get("direction_calibration_bias"),
+                                    "smart_path_calibration_enabled": decision.get("path_calibration_enabled"),
+                                    "smart_path_calibration": decision.get("path_calibration"),
+                                    "smart_anchored_entry_enabled": decision.get("anchored_entry_enabled"),
+                                    "smart_anchor_source": decision.get("anchor_source"),
+                                    "entry_signal_latency_sec": _float_or_none(decision.get("entry_signal_latency_sec")),
+                                    "entry_signal_latency_min": _float_or_none(decision.get("entry_signal_latency_min")),
+                                    "entry_signal_latency_cap_sec": _float_or_none(decision.get("entry_signal_latency_cap_sec")),
+                                    "decision_available_ts": str(decision.get("decision_available_ts", "")),
+                                    "context_age_m5_bars": _float_or_none(decision.get("context_age_m5_bars")),
+                                    "context_cutoff_ts": str(decision.get("context_cutoff_ts", "")),
+                                    "xgb_p_long": _as_float(xgb_scores.get("p_long")),
+                                    "xgb_p_short": _as_float(xgb_scores.get("p_short")),
+                                    "xgb_p_flat": _as_float(xgb_scores.get("p_flat")),
+                                    "q_take_long": _as_float(decision.get("q_take_long")),
+                                    "q_take_short": _as_float(decision.get("q_take_short")),
+                                    "q_skip": _as_float(decision.get("q_skip")),
+                                    "advantage_over_skip": _as_float(decision.get("advantage_over_skip")),
+                                    "advantage_over_skip_long": _as_float(decision.get("advantage_over_skip_long")),
+                                    "advantage_over_skip_short": _as_float(decision.get("advantage_over_skip_short")),
+                                    "v10_path_quality_pred": _as_float(decision.get("v10_path_quality_pred")),
+                                    "v10_mfe_pred_at_entry": _as_float(decision.get("v10_mfe_pred_at_entry")),
+                                    "v10_tradable_prob": _as_float(decision.get("v10_tradable_prob")),
+                                    "v10_bad_path_prob": _as_float(decision.get("v10_bad_path_prob")),
                                     "decision_ts": str(decision.get("decision_ts", "")),
                                 },
                                 entry_filters_passed=["spread_ok", "v12_take"],
@@ -1304,14 +1429,30 @@ def main() -> int:
                             f"entry={ask if side=='long' else bid:.2f}  "
                             f"spread={spread_bps:.1f}bps  units={args.units}  "
                             f"open_count={len(open_trades)}/{args.max_trades}  "
-                            f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
-                            f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}  "
-                            f"adv={decision.get('advantage_over_skip', 0):+.1f}bps"
+                            f"p_long={_as_float(decision.get('p_long')):.3f}  "
+                            f"p_short={_as_float(decision.get('p_short')):.3f}  "
+                            f"edge={_as_float(decision.get('edge_score')):+.3f}  "
+                            f"mode={decision.get('selection_score_mode','edge_score')}  "
+                            f"score={_fmt_optional_float(decision.get('selection_score'), '+.2f')}  "
+                            f"p_trade={_as_float(decision.get('p_trade')):.3f}  "
+                            f"euL={_fmt_optional_float(decision.get('expected_utility_long_bps'), '+.1f')}  "
+                            f"euS={_fmt_optional_float(decision.get('expected_utility_short_bps'), '+.1f')}  "
+                            f"railLS={_fmt_optional_float(decision.get('trendline_rail_long_minus_short'), '+.2f')}  "
+                            f"lat={_fmt_optional_float(decision.get('entry_signal_latency_sec'), '.0f')}s"
                         )
                         LOG.info(f"opened trade  id={new_trade.trade_id}  side={side}  "
                                   f"entry={ask if side=='long' else bid}  "
                                   f"open_count={len(open_trades)}/{args.max_trades}  "
-                                  f"v10_p_long={decision.get('v10_p_long', 0):.3f}")
+                                  f"p_long={_as_float(decision.get('p_long')):.3f}  "
+                                  f"p_short={_as_float(decision.get('p_short')):.3f}  "
+                                  f"edge={_as_float(decision.get('edge_score')):+.3f}  "
+                                  f"mode={decision.get('selection_score_mode','edge_score')}  "
+                                  f"score={_fmt_optional_float(decision.get('selection_score'), '+.2f')}  "
+                                  f"p_trade={_as_float(decision.get('p_trade')):.3f}  "
+                                  f"euL={_fmt_optional_float(decision.get('expected_utility_long_bps'), '+.1f')}  "
+                                  f"euS={_fmt_optional_float(decision.get('expected_utility_short_bps'), '+.1f')}  "
+                                  f"railLS={_fmt_optional_float(decision.get('trendline_rail_long_minus_short'), '+.2f')}  "
+                                  f"entry_latency={_fmt_optional_float(decision.get('entry_signal_latency_sec'), '.0f')}s")
                     elif order_result.get("status") in ("rejected", "api_error"):
                         # Reject without a trade_id — log via run-level JSONL so reject stream
                         # is preserved for triage even if no per-trade journal exists.

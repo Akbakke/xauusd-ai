@@ -153,10 +153,52 @@ def _entry_rec_with_distilled_q(rec, v10_out, beta: float = 1.0):
 
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
+ENTRY_DECISION_AVAILABILITY_LAG = pd.Timedelta(minutes=5)
+DEFAULT_MAX_ENTRY_DECISION_LATENCY_SEC = 90.0
 
 
 # ── ID mapping (matches iql_core ACTION_*_ID) ─────────────────────────
 ACTION_LABEL_BY_ID = {0: "SKIP", 1: "TAKE_LONG_NOW", 2: "TAKE_SHORT_NOW"}
+
+
+def _utc_ts(ts: pd.Timestamp | Any) -> pd.Timestamp:
+    out = pd.Timestamp(ts)
+    if out.tzinfo is None:
+        return out.tz_localize("UTC")
+    return out.tz_convert("UTC")
+
+
+def _latest_closed_m5_start(now_minute: pd.Timestamp) -> pd.Timestamp:
+    """Return the latest M5 bar-start whose OHLC is closed at this wall-clock minute."""
+    return _utc_ts(now_minute).floor("5min") - ENTRY_DECISION_AVAILABILITY_LAG
+
+
+def _entry_decision_latency_fields(
+    now_minute: pd.Timestamp,
+    decision_m5: pd.Timestamp,
+    *,
+    latency_cap_sec: float | None = None,
+) -> dict[str, Any]:
+    """Live/replay parity fields for a smart entry decision.
+
+    Smart rows are labeled by the M5 bar start T. The earliest replay fill is
+    the M1 open at T+5, so a live decision made materially later is a different
+    trade and must not be silently executed as if it were the replay fill.
+    """
+    now_ts = _utc_ts(now_minute).floor("min")
+    decision_ts = _utc_ts(decision_m5)
+    available_ts = decision_ts + ENTRY_DECISION_AVAILABILITY_LAG
+    latency_sec = (now_ts - available_ts).total_seconds()
+    fields: dict[str, Any] = {
+        "decision_ts": str(decision_ts),
+        "decision_available_ts": str(available_ts),
+        "entry_signal_latency_sec": float(latency_sec),
+        "entry_signal_latency_min": float(latency_sec / 60.0),
+    }
+    if latency_cap_sec is not None:
+        fields["entry_signal_latency_cap_sec"] = float(latency_cap_sec)
+        fields["entry_signal_stale"] = bool(latency_sec > latency_cap_sec)
+    return fields
 
 
 @dataclass
@@ -175,7 +217,8 @@ class V12Pipeline:
     # operating point) — the ACTIVE entry policy since promotion d98bc61e.
     smart_entry: "object | None" = None
     _last_smart_bucket: pd.Timestamp | None = None
-    # Cache for the most recent augmented window + XGB bridge (refreshed per M5)
+    # Cache for the most recent augmented window + neutral entry bridge
+    # (refreshed per M5). XGB remains available to exit/V3 only.
     _last_augmented_bucket: pd.Timestamp | None = None
     _last_augmented: pd.DataFrame | None = None
     _last_bridge: np.ndarray | None = None
@@ -256,7 +299,8 @@ class V12Pipeline:
         loader = PrebuiltStateLoader()
         loader.load()
         xgb = XGBLiveInference.load_default()
-        from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference
+        from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference, assert_smart_serving_gate
+        assert_smart_serving_gate()
         smart_entry = SmartEntryLiveInference.load()
         exit_iql = ExitIQLLiveInference.load_default()
         v3 = V3LiveInference.load_default()   # V3 v8 exit transformer
@@ -289,7 +333,8 @@ class V12Pipeline:
         to avoid disk thrash. Returns None (keeps prior cache) if no bar available.
         """
         cur_min = now_minute.replace(second=0, microsecond=0)
-        if self._last_m1_atr_minute == cur_min and self._last_m1_bar is not None:
+        latest_closed_m1 = cur_min - pd.Timedelta(minutes=1)
+        if self._last_m1_atr_minute == latest_closed_m1 and self._last_m1_bar is not None:
             return self._last_m1_bar
         try:
             from pathlib import Path
@@ -299,10 +344,16 @@ class V12Pipeline:
                 return self._last_m1_bar
             df = pd.read_parquet(p, columns=[
                 "time", "bid_high", "bid_low", "ask_high", "ask_low", "ask_close", "bid_close",
-            ]).tail(2)
+            ])
+            if len(df) == 0:
+                return self._last_m1_bar
+            df["time"] = pd.to_datetime(df["time"], utc=True, errors="coerce")
+            df = df.dropna(subset=["time"]).sort_values("time")
+            df = df[df["time"] <= latest_closed_m1]
             if len(df) == 0:
                 return self._last_m1_bar
             row = df.iloc[-1]
+            row_time = pd.Timestamp(row["time"])
             ah = float(row["ask_high"]); bl = float(row["bid_low"])
             ac = float(row["ask_close"]); bc = float(row["bid_close"])
             mid = (ac + bc) / 2.0
@@ -314,7 +365,7 @@ class V12Pipeline:
             }
             self._last_m1_bar = bar
             self._last_m1_atr_bps = float(atr)
-            self._last_m1_atr_minute = cur_min
+            self._last_m1_atr_minute = row_time
             return bar
         except Exception as exc:
             LOG.warning(f"_refresh_m1_bar failed: {exc}; keeping prior bar")
@@ -364,8 +415,10 @@ class V12Pipeline:
                 LOG.error(f"[PREBUILT_STALE] cutoff {cutoff} is {_age_min:.0f} min behind now "
                           f"{now_minute} (> {_max_stale_min} cap) — SKIP (canonical daemon stalled?)")
                 return False
-        # Clip to latest available M5 if past cutoff (within staleness cap)
-        effective_ts = now_minute if now_minute <= cutoff else cutoff
+        # Clip to latest CLOSED M5 start. A wall-clock poll at 12:07 must not
+        # read the 12:05 row, which is unavailable until 12:10.
+        latest_closed_m5 = _latest_closed_m5_start(now_minute)
+        effective_ts = latest_closed_m5 if cutoff is None or latest_closed_m5 <= cutoff else cutoff
         cur_bucket = effective_ts.floor("5min")
         if self._last_augmented_bucket == cur_bucket and self._last_augmented is not None:
             return True
@@ -380,27 +433,31 @@ class V12Pipeline:
             LOG.warning(f"only {len(augmented)} bars (need {V10_SEQ_LEN}) — early-history bar")
             return False
 
-        # Run XGB on the entire 96-bar window (needed for V10 seq_x signal_bridge)
-        try:
-            xgb_out = self.xgb.predict(augmented)
-        except ValueError as exc:
-            # 2026-06-17: keep the FAIL-CLOSED guard (never trade on NaN inputs) but SKIP this
-            # bar CLEANLY instead of crash-looping the runner. The daily-break boundary M5 bar
-            # (~22:00 UTC) has incomplete M1 sub-bars → `_v1_int_*` intrabar feats are legitimately
-            # NaN; the model was never trained to decide such a bar, so we SKIP (never fill/
-            # fabricate — train==serve preserved). Transient: the next complete bar decides
-            # normally. A PERSISTENT NaN stays visible via this WARNING + the hourly self-check.
-            if "SANITIZER_NAN_FAIL" in str(exc):
-                LOG.warning(f"XGB sanitizer NaN on decision bar {effective_ts} — SKIP this bar "
-                            f"(incomplete/boundary bar, fail-closed): {str(exc)[:160]}")
-                return False
-            raise
+        # Smart520 entry serves a neutral bridge; the learned heads/geometry/MTF
+        # own direction. Do not run entry XGB here: XGB sanitizer/model failures
+        # must not suppress a Smart520 entry decision. Exit/V3 still receives the
+        # XGB inferer in manage_open_trade(), where that model is part of the
+        # exit stack rather than the entry side selector.
+        n = int(len(augmented))
+        neutral_prob = np.full(n, 1.0 / 3.0, dtype=np.float32)
+        neutral_margin = np.zeros(n, dtype=np.float32)
+        neutral_entropy = np.full(n, float(np.log(3.0)), dtype=np.float32)
         self._last_augmented_bucket = cur_bucket
         self._last_augmented = augmented
-        self._last_bridge = xgb_out["signal_bridge_v1"]
-        self._last_xgb_p_long = xgb_out["p_long"]
-        self._last_xgb_p_short = xgb_out["p_short"]
-        self._last_xgb_p_flat = xgb_out["p_flat"]
+        self._last_bridge = np.column_stack(
+            [
+                neutral_prob,
+                neutral_prob,
+                neutral_prob,
+                neutral_prob,
+                neutral_margin,
+                neutral_margin,
+                neutral_entropy,
+            ]
+        ).astype(np.float32, copy=False)
+        self._last_xgb_p_long = neutral_prob
+        self._last_xgb_p_short = neutral_prob
+        self._last_xgb_p_flat = neutral_prob
         return True
 
     # ── entry decision ────────────────────────────────────────────────
@@ -453,9 +510,38 @@ class V12Pipeline:
 
         # ── SMART entry: one decision per NEW closed M5 row ──────────────────
         decision_m5 = augmented.index[-1]
+        import os as _os
+        max_entry_latency_sec = float(
+            _os.environ.get(
+                "GX1_MAX_ENTRY_DECISION_LATENCY_SEC",
+                str(DEFAULT_MAX_ENTRY_DECISION_LATENCY_SEC),
+            )
+        )
+        latency_fields = _entry_decision_latency_fields(
+            now_minute,
+            decision_m5,
+            latency_cap_sec=max_entry_latency_sec if max_entry_latency_sec >= 0.0 else None,
+        )
         if self._last_smart_bucket is not None and decision_m5 <= self._last_smart_bucket:
             return {**_SKIP_BASE, "skip_reason": "awaiting_new_m5_bar",
-                    "decision_ts": str(decision_m5)}
+                    **latency_fields}
+        if max_entry_latency_sec >= 0.0 and latency_fields.get("entry_signal_stale", False):
+            self._last_smart_bucket = decision_m5
+            LOG.warning(
+                "[ENTRY_SIGNAL_STALE] decision_m5=%s available=%s now=%s "
+                "latency=%.0fs cap=%.0fs — SKIP (no backlog execution)",
+                decision_m5,
+                latency_fields["decision_available_ts"],
+                _utc_ts(now_minute),
+                latency_fields["entry_signal_latency_sec"],
+                max_entry_latency_sec,
+            )
+            return {
+                **_SKIP_BASE,
+                "skip_reason": "entry_signal_stale",
+                "blocked_reason": "ENTRY_SIGNAL_STALE",
+                **latency_fields,
+            }
         # Serving-wave gap 3: predict_live_bar NEVER blocks on the ~2-min smart-
         # context refresh (background thread + last-completed-snapshot, staleness
         # journaled as context_age_m5_bars) — the per-M1 exit loop is no longer
@@ -471,12 +557,12 @@ class V12Pipeline:
             return {**_SKIP_BASE, "skip_reason": "smart_ctx_stale_refresh_pending",
                     "context_age_m5_bars": exc.age,
                     "context_cutoff_ts": str(exc.ctx_cutoff),
-                    "decision_ts": str(decision_m5)}
+                    **latency_fields}
         except Exception as exc:  # noqa: BLE001 — fail-closed SKIP, keep exits alive
             LOG.error(f"[SMART_ENTRY] state/forward failed for {decision_m5}: {exc} — SKIP "
                       f"(fail-closed; exit management continues)")
             return {**_SKIP_BASE, "error": f"smart_entry_failed:{type(exc).__name__}",
-                    "decision_ts": str(decision_m5)}
+                    **latency_fields}
         self._last_smart_bucket = decision_m5
         # exit-bound snapshot atr_bps = RAW live cv3 row value at T — the
         # joint-replay-proven convention (RUN_MANIFEST snapshot_policy), NOT the
@@ -484,17 +570,20 @@ class V12Pipeline:
         _atr_raw = float(pd.to_numeric(augmented.iloc[-1].get("atr_bps", 0.0), errors="coerce") or 0.0)
         decision = self.smart_entry.decide(head, atr_bps=_atr_raw)
         decision.update({k: v for k, v in _SKIP_BASE.items() if k not in decision})
+        decision.update(latency_fields)
         # (Legacy V10->Entry-IQL forward, distilled-Q swap and the in-process
         # Entry-IQL shadow were REMOVED with the retired legacy chain — git
         # history holds the implementation; shadow_entry_iql stays None.)
 
-        # xgb probs for the decided bar (journal continuity; the smart entry
-        # itself runs a NEUTRAL bridge and never consumes these)
+        # Neutral bridge probabilities for journal continuity; Smart520 entry
+        # must not consume or depend on live XGB direction probabilities.
         end_idx = len(augmented) - 1
         decision["xgb"] = {
             "p_long": float(self._last_xgb_p_long[end_idx]),
             "p_short": float(self._last_xgb_p_short[end_idx]),
             "p_flat": float(self._last_xgb_p_flat[end_idx]),
+            "bridge_source": "neutral_uniform_proba",
+            "neutral_xgb_bridge": True,
         }
 
         # V12.2 CLUSTER-1 RATE-LIMIT: block repeat entries within same M5 bucket.
@@ -513,7 +602,6 @@ class V12Pipeline:
         # on the same M5 bar overnight 2026-06-02 (−1,348 USD on a 4500→4520
         # adverse move). CLUSTER1 is a sanity-floor for live, not a feature gate.
         # Override via GX1_CLUSTER1_DISABLE=1 only for explicit OOT-replay runs.
-        import os as _os
         _cluster1_disabled = bool(int(_os.environ.get("GX1_CLUSTER1_DISABLE", "0")))
         action_label = decision["action"]
         if (not _cluster1_disabled) and action_label in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):

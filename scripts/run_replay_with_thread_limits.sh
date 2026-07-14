@@ -16,6 +16,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
+PY="${GX1_PYTHON:-$PROJECT_ROOT/.venv/bin/python}"
+if [[ ! -x "$PY" ]]; then
+    echo "FATAL: repo Python venv missing: $PY" >&2
+    exit 2
+fi
 
 # Del 2: Set thread limits to reduce segfault risk
 export OMP_NUM_THREADS=1
@@ -52,5 +57,4 @@ REPLAY_SCRIPT="$1"
 shift
 
 # Run the replay script with remaining arguments
-exec python3 "$REPLAY_SCRIPT" "$@"
-
+exec "$PY" "$REPLAY_SCRIPT" "$@"

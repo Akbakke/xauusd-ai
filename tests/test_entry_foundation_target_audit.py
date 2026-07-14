@@ -5,9 +5,11 @@ from gx1.scripts.audit_entry_foundation_targets_v1 import (
     DEFAULT_OUT_DIR,
     EXPECTED_ACTIVE_OPTIONAL_HEADS,
     EXPECTED_BLOCKED_OPTIONAL_HEADS,
+    XAU_DIRECTION_REPAIR_TARGET_COLUMNS,
     _drift,
     _head_contract,
     _target_metrics,
+    _xau_direction_repair_liveness,
 )
 
 
@@ -86,3 +88,54 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
     for head in EXPECTED_BLOCKED_OPTIONAL_HEADS:
         assert head in contract["blocked_heads"]
         assert contract["head_target_liveness"][head]["live_all_splits"] is False
+
+
+def test_xau_direction_repair_liveness_rejects_dead_present_columns() -> None:
+    live_frames = []
+    dead_frames = []
+    for split in ("train", "val"):
+        live_frames.append(
+            pd.DataFrame(
+                {
+                    "split": [split, split, split],
+                    "y_rising_channel_support_touch": [0.0, 1.0, 0.0],
+                    "y_short_high_mae_low_mfe_early_failure": [0.0, 0.0, 1.0],
+                }
+            )
+        )
+        dead_frames.append(
+            pd.DataFrame(
+                {
+                    "split": [split, split, split],
+                    "y_rising_channel_support_touch": [0.0, 0.0, 0.0],
+                }
+            )
+        )
+
+    live = _xau_direction_repair_liveness(live_frames)
+    dead = _xau_direction_repair_liveness(dead_frames)
+
+    assert live["enabled"] is True
+    assert live["live_all_present_columns_all_splits"] is True
+    assert live["live_all_expected_columns_all_splits"] is False
+    assert "y_trade" in live["missing_columns_any_split"]
+    assert dead["enabled"] is True
+    assert dead["live_all_present_columns_all_splits"] is False
+
+
+def test_xau_direction_repair_liveness_requires_all_hierarchical_targets() -> None:
+    frames = []
+    for split in ("train", "val"):
+        data = {"split": [split, split, split]}
+        for idx, col in enumerate(XAU_DIRECTION_REPAIR_TARGET_COLUMNS):
+            data[col] = [float(idx), float(idx + 1), float(idx + 2)]
+        frames.append(pd.DataFrame(data))
+
+    live = _xau_direction_repair_liveness(frames)
+    del frames[0]["y_trade"]
+    missing = _xau_direction_repair_liveness(frames)
+
+    assert live["all_expected_columns_present_all_splits"] is True
+    assert live["live_all_expected_columns_all_splits"] is True
+    assert missing["all_expected_columns_present_all_splits"] is False
+    assert "y_trade" in missing["missing_columns_any_split"]

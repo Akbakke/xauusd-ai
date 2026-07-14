@@ -257,6 +257,7 @@ def _bundle_dataset_kwargs(meta: dict[str, Any], m5_prebuilt_path: Path) -> dict
         "enable_multi_tf": True,
         "m5_prebuilt_path": m5_prebuilt_path,
         "multi_tf_seq_len": seq_len,
+        "multi_tf_closed_bar": bool(float(mtf.get("target_availability_shift_minutes", 0.0) or 0.0) > 0.0),
         "per_tf_seq_lens": {
             "M5": int(mtf.get("m5_seq_len", seq_len)),
             "M15": int(mtf.get("m15_seq_len", seq_len)),

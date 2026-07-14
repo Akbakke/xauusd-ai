@@ -5,11 +5,12 @@ from pathlib import Path
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
 
 
-def _write_advanced_parquet(path: Path) -> None:
+def _write_advanced_parquet(path: Path, *, times: list[str] | None = None) -> None:
     rows = 3
     seq_len = 2
     signal_dim = 4
@@ -27,7 +28,7 @@ def _write_advanced_parquet(path: Path) -> None:
     table = pa.table(
         {
             "time": pa.array(
-                [f"2026-01-0{row + 1}T00:00:00Z" for row in range(rows)],
+                times or [f"2026-01-0{row + 1}T00:00:00Z" for row in range(rows)],
                 type=pa.string(),
             ),
             "seq": pa.array(seq, type=pa.list_(pa.list_(pa.float64()))),
@@ -83,3 +84,18 @@ def test_advanced_dataset_uses_memmap_when_nested_arrays_exceed_threshold(tmp_pa
     assert tuple(sample["ctx_cat"].shape) == (5,)
     assert int(sample["y"].item()) == 1
     assert memmap_root.exists()
+
+
+def test_advanced_dataset_rejects_unsorted_time_rows(tmp_path) -> None:
+    parquet_path = tmp_path / "advanced_train.parquet"
+    _write_advanced_parquet(
+        parquet_path,
+        times=[
+            "2026-01-02T00:00:00Z",
+            "2026-01-01T00:00:00Z",
+            "2026-01-03T00:00:00Z",
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="ENTRY_V10_CTX_ADVANCED_TIME_ORDER_FAIL"):
+        EntryV10CtxDataset(parquet_path, seq_len=2, allow_constant_labels=False)

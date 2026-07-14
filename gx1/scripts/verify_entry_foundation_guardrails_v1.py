@@ -76,12 +76,6 @@ def _source_contract_checks() -> list[dict[str, Any]]:
     control = (REPO / "scripts/entry_next_edge_control.sh").read_text(encoding="utf-8")
     handover = (REPO / "scripts/gx1_handover.sh").read_text(encoding="utf-8")
 
-    handover_gate = (
-        'if [[ "${GX1_ALLOW_LEGACY_HANDOVER:-}" != "20260627_ALLOW_LEGACY_HANDOVER" ]]; then'
-    )
-    active_block_start = handover.find(handover_gate)
-    active_block_exit = handover.find("  exit 0", active_block_start)
-    legacy_body_start = handover.find("OPEN-MORE WAVE ARMED")
     rows = [
         {
             "name": "control_verify_dispatches_to_foundation_state",
@@ -112,20 +106,18 @@ def _source_contract_checks() -> list[dict[str, Any]]:
             and "run_entry_foundation_activation_post_apply_v1" in control,
         },
         {
-            "name": "handover_legacy_requires_explicit_env_token",
-            "ok": active_block_start >= 0,
+            "name": "handover_viewer_points_to_current_xau_repair_truth",
+            "ok": "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md" in handover,
         },
         {
-            "name": "handover_default_exits_before_legacy_body",
-            "ok": active_block_start >= 0
-            and active_block_exit > active_block_start
-            and legacy_body_start > active_block_exit,
+            "name": "handover_viewer_has_no_legacy_branch",
+            "ok": "GX1_ALLOW_LEGACY_HANDOVER" not in handover
+            and "SMART JOINT POLICY PROMOTED" not in handover,
         },
         {
-            "name": "handover_default_announces_active_foundation",
-            "ok": "active Entry foundation seq146" in handover
-            and "docs/ENTRY_FOUNDATION_AUDIT_20260628.md" in handover
-            and "scripts/entry_next_edge_control.sh" in handover,
+            "name": "handover_default_announces_xau_direction_repair",
+            "ok": "XAUUSD Direction Repair Handover" in (REPO / "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md").read_text(encoding="utf-8")
+            and "Do not use non-XAU project artifacts" in (REPO / "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md").read_text(encoding="utf-8"),
         },
     ]
     failed = [row["name"] for row in rows if not row["ok"]]
@@ -653,15 +645,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             required_text="LEGACY_PLAN_CLOSED",
         ),
         CommandCase(
-            name="handover_points_at_foundation",
+            name="handover_points_at_xau_direction_repair",
             cmd=["bash", "scripts/gx1_handover.sh"],
             expected_returncode=0,
-            required_text="active Entry foundation seq146",
+            required_text="XAUUSD Direction Repair Handover",
             env={
                 "GX1_HANDOVER_SKIP_GUARDRAILS": "1",
                 "GX1_HANDOVER_SKIP_TRAIN_READINESS": "1",
             },
-            forbidden_texts=("OPEN-MORE WAVE ARMED",),
+            forbidden_texts=("OPEN-MORE WAVE ARMED", "SMART JOINT POLICY PROMOTED"),
         ),
         CommandCase(
             name="generic_train_blocked",

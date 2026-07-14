@@ -21,6 +21,7 @@ def _build_fixture(
     source_coverage: bool = True,
     feature_orchestration: bool = True,
     verify_large_input_hashes: bool = True,
+    xgb_bundle_exists: bool = True,
 ) -> argparse.Namespace:
     source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
     source.write_bytes(b"dummy parquet placeholder")
@@ -45,8 +46,9 @@ def _build_fixture(
     output_dir = tmp_path / "foundation_dataset"
     output_dir.mkdir(parents=True)
     xgb_bundle = tmp_path / "xgb_bundle"
-    xgb_bundle.mkdir(parents=True)
-    (xgb_bundle / "xgb_universal_multihead_v2.joblib").write_bytes(b"dummy model")
+    if xgb_bundle_exists:
+        xgb_bundle.mkdir(parents=True)
+        (xgb_bundle / "xgb_universal_multihead_v2.joblib").write_bytes(b"dummy model")
     source_sha = _sha256(source)
 
     for split in ("train", "val", "test"):
@@ -202,6 +204,7 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "22G", "--swap", "2G", "--"]
     assert "--source-parquet-override" in argv
     assert "--seq-structure-compute-inline" in argv
+    assert "--allow-missing-hold-map" in argv
     assert argv[argv.index("--train_start") + 1] == "2020-11-09 00:00:00+00:00"
     assert argv[argv.index("--train_end") + 1] == "2025-09-30 23:59:59+00:00"
     assert argv[argv.index("--val_start") + 1] == "2025-10-01 00:00:00+00:00"
@@ -215,16 +218,84 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert report["rebuild_command_contract"]["uses_legacy_guarded_builder"] is True
     assert report["rebuild_command_contract"]["required_environment"] == {
         "GX1_DATA": "/home/andre2/GX1_DATA",
+        "GX1_MTF_CACHE_ALLOW_STALE": "0",
+        "GX1_PERTF_CLOSED_BAR": "1",
         "GX1_V10_MULTI_TF_V2_CACHE_DIR": str(tmp_path / "MULTI_TF_V2_CACHE"),
         "GX1_ALLOW_LEGACY_ENTRY_V10_RESEARCH": "20260627_ALLOW_LEGACY_ENTRY_V10_RESEARCH"
     }
+    assert report["rebuild_command_contract"]["mtf_context_contract"] == {
+        "cache_env": "GX1_V10_MULTI_TF_V2_CACHE_DIR",
+        "closed_bar_env": "GX1_PERTF_CLOSED_BAR",
+        "closed_bar_required": True,
+        "stale_cache_allowed": False,
+        "stale_cache_env": "GX1_MTF_CACHE_ALLOW_STALE",
+    }
+    assert "GX1_PERTF_CLOSED_BAR=1" in argv
+    assert "GX1_MTF_CACHE_ALLOW_STALE=0" in argv
     assert report["inputs"]["multi_tf_cache"]["covers_test_end"] is True
     assert report["rebuild_command_contract"]["starts_trainer"] is False
     assert report["rebuild_command_contract"]["starts_replay"] is False
     assert report["rebuild_command_contract"]["starts_iql_distillation"] is False
     assert report["rebuild_command_contract"]["touches_shadow_or_live"] is False
+    assert report["rebuild_command_contract"]["hold_horizon_contract"] == {
+        "allow_missing_hold_map": True,
+        "head_can_be_inactive": True,
+        "reason": (
+            "historical train split predates current replay handoff coverage; "
+            "direction-repair build must mark hold_horizon inactive instead of "
+            "emitting a silent constant target"
+        ),
+    }
+    assert report["rebuild_command_contract"]["xgb_bridge_contract"] == {
+        "neutral_xgb_bridge_required": True,
+        "bridge_source": "neutral_uniform_proba",
+        "uses_xgb_model_predictions": False,
+        "xgb_model_loaded_by_builder": False,
+        "xgb_bundle_arg_role": "legacy_builder_contract_placeholder_only",
+        "xgb_bundle_source": "recorded_foundation_split_manifest_neutral_placeholder",
+        "recorded_split_xgb_bundle": str(tmp_path / "xgb_bundle"),
+        "command_xgb_bundle": str(tmp_path / "xgb_bundle"),
+    }
     assert Path(report["json_path"]).exists()
     assert _sha256(Path(report["inputs"]["smart_report"]["path"])) == report["inputs"]["smart_report"]["sha256"]
+
+
+def test_smart_rebuild_preflight_uses_active_xgb_only_as_neutral_placeholder(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    args = _build_fixture(tmp_path, xgb_bundle_exists=False)
+    active_xgb = tmp_path / "active_project_state_xgb"
+    active_xgb.mkdir(parents=True)
+    (active_xgb / "xgb_universal_multihead_v2.joblib").write_bytes(b"placeholder model")
+    project_state = tmp_path / "PROJECT_STATE_artifacts.json"
+    _write_json(
+        project_state,
+        {
+            "active": {
+                "xgb": {
+                    "path": str(active_xgb),
+                    "status": "ACTIVE",
+                    "note": "placeholder only; smart entry uses neutral_xgb_bridge=true",
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(preflight, "DEFAULT_PROJECT_STATE", project_state)
+
+    report = preflight.run(args)
+
+    assert report["decision"] == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
+    bridge = report["rebuild_command_contract"]["xgb_bridge_contract"]
+    assert bridge["uses_xgb_model_predictions"] is False
+    assert bridge["xgb_model_loaded_by_builder"] is False
+    assert bridge["bridge_source"] == "neutral_uniform_proba"
+    assert bridge["xgb_bundle_source"] == "project_state_active_xgb_placeholder_for_neutral_bridge"
+    assert bridge["recorded_split_xgb_bundle"] == str(tmp_path / "xgb_bundle")
+    assert bridge["command_xgb_bundle"] == str(active_xgb.resolve())
+    argv = report["rebuild_command_contract"]["argv"]
+    assert argv[argv.index("--xgb_bundle") + 1] == str(active_xgb.resolve())
+    assert "--neutral-xgb-bridge" in argv
 
 
 def test_smart_rebuild_preflight_fails_closed_on_missing_source_coverage(tmp_path: Path) -> None:

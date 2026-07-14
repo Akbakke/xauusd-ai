@@ -2,8 +2,13 @@ import argparse
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
-from gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 import run
+from gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 import (
+    _enforce_expected_utility_side_contract,
+    _resolve_score_surface,
+    run,
+)
 
 
 def test_candidate_replay_trade_log_materializes_iql_transition_columns(tmp_path: Path) -> None:
@@ -40,6 +45,8 @@ def test_candidate_replay_trade_log_materializes_iql_transition_columns(tmp_path
     source = pd.DataFrame(
         {
             "time": all_times,
+            "bid_open": [100.00, 100.20, 100.10, 100.30, 100.00, 100.30, 100.60, 100.40, 100.10, 100.50, 100.20],
+            "ask_open": [100.02, 100.22, 100.12, 100.32, 100.02, 100.32, 100.62, 100.42, 100.12, 100.52, 100.22],
             "bid_close": [100.00, 100.20, 100.10, 100.30, 100.00, 100.30, 100.60, 100.40, 100.10, 100.50, 100.20],
             "ask_close": [100.02, 100.22, 100.12, 100.32, 100.02, 100.32, 100.62, 100.42, 100.12, 100.52, 100.22],
             "bid_high": [100.05, 100.25, 100.15, 100.35, 100.05, 100.35, 100.65, 100.45, 100.15, 100.55, 100.25],
@@ -89,6 +96,141 @@ def test_candidate_replay_trade_log_materializes_iql_transition_columns(tmp_path
     assert report["promotion_shadow_live_allowed"] is False
 
 
+def test_candidate_replay_trade_log_uses_selection_score_surface(tmp_path: Path) -> None:
+    dataset_dir = tmp_path / "dataset"
+    dataset_dir.mkdir()
+    val_times = pd.date_range("2025-12-31T23:00:00Z", periods=2, freq="5min")
+    test_times = pd.date_range("2026-01-01T00:00:00Z", periods=2, freq="5min")
+    pd.DataFrame({"time": val_times, "label_horizon_bars": [1, 1]}).to_parquet(
+        dataset_dir / "tiny_val.parquet",
+        index=False,
+    )
+    pd.DataFrame({"time": test_times, "label_horizon_bars": [1, 1]}).to_parquet(
+        dataset_dir / "tiny_test.parquet",
+        index=False,
+    )
+    predictions = pd.DataFrame(
+        {
+            "split": ["val", "val", "test", "test"],
+            "model": ["candidate"] * 4,
+            "time": list(val_times) + list(test_times),
+            "y_direction": [0, 0, 1, 0],
+            "trade_side": [0, 0, 1, 0],
+            "session": ["EU"] * 4,
+            "vol_regime": ["1"] * 4,
+            "edge_score": [0.99, 0.98, 0.99, 0.10],
+            "selection_score_mode": ["expected_utility"] * 4,
+            "selection_score": [0.10, 0.90, 0.20, 1.00],
+            "selection_score_threshold": [0.90] * 4,
+            "expected_utility_long_bps": [7.0, 8.0, -5.0, 9.0],
+            "expected_utility_short_bps": [-2.0, -1.0, 6.0, -3.0],
+            "expected_utility_side": [0, 0, 1, 0],
+            "p_long": [0.80, 0.80, 0.10, 0.85],
+            "p_short": [0.10, 0.10, 0.85, 0.10],
+            "p_flat": [0.10, 0.10, 0.05, 0.05],
+            "path_quality_pred": [1.0] * 4,
+            "bad_path_prob": [0.2] * 4,
+        }
+    )
+    predictions_path = tmp_path / "predictions.parquet"
+    predictions.to_parquet(predictions_path, index=False)
+    source_times = list(val_times) + list(test_times) + [
+        test_times[-1] + pd.Timedelta(minutes=5),
+        test_times[-1] + pd.Timedelta(minutes=10),
+    ]
+    source = pd.DataFrame(
+        {
+            "time": source_times,
+            "bid_open": [100.0, 100.1, 100.0, 100.2, 100.4, 100.5],
+            "ask_open": [100.0, 100.1, 100.0, 100.2, 100.4, 100.5],
+            "bid_close": [100.0, 100.1, 100.0, 100.2, 100.4, 100.5],
+            "ask_close": [100.0, 100.1, 100.0, 100.2, 100.4, 100.5],
+            "bid_high": [100.1, 100.2, 100.1, 100.3, 100.5, 100.6],
+            "bid_low": [99.9, 100.0, 99.9, 100.1, 100.3, 100.4],
+            "ask_high": [100.1, 100.2, 100.1, 100.3, 100.5, 100.6],
+            "ask_low": [99.9, 100.0, 99.9, 100.1, 100.3, 100.4],
+        }
+    )
+    source_path = tmp_path / "source.parquet"
+    source.to_parquet(source_path, index=False)
+    out_dir = tmp_path / "out"
+
+    report = run(
+        argparse.Namespace(
+            selective_edge_predictions=str(predictions_path),
+            dataset_dir=str(dataset_dir),
+            source_parquet=str(source_path),
+            out_dir=str(out_dir),
+            model_name="candidate",
+            threshold_top_fracs="0.50",
+            cost_stress_bps="0.0",
+            policy_id="candidate_expected_utility",
+            exit_mode="horizon",
+            take_profit_bps=60.0,
+            stop_loss_bps=45.0,
+            same_bar_policy="stop_first",
+            cooldown_bars=0,
+            max_trades_per_day=0,
+            daily_loss_limit_bps=0.0,
+            min_direction_prob=0.0,
+            min_score_floor=0.0,
+            slippage_bps=0.0,
+            size_multiplier=1.0,
+            fail_on_audit_fail=True,
+            quiet=True,
+        )
+    )
+
+    trades = pd.read_csv(out_dir / "candidate_replay_trade_log.csv")
+    thresholds = pd.read_csv(out_dir / "candidate_replay_thresholds.csv")
+    assert report["decision"] == "PASS"
+    assert report["score_column"] == "selection_score"
+    assert report["selection_score_mode"] == "expected_utility"
+    assert thresholds["score_column"].tolist() == ["selection_score"]
+    assert thresholds["threshold_source"].tolist() == ["selection_score_threshold_column"]
+    assert thresholds["score_threshold"].tolist() == [0.9]
+    assert len(trades) == 1
+    assert pd.to_datetime(trades["decision_time"], utc=True).tolist() == [
+        pd.Timestamp(test_times[1])
+    ]
+    assert pd.to_datetime(trades["entry_time"], utc=True).tolist() == [
+        pd.Timestamp(test_times[1]) + pd.Timedelta(minutes=5)
+    ]
+    assert trades["score_column"].tolist() == ["selection_score"]
+    assert trades["threshold_source"].tolist() == ["selection_score_threshold_column"]
+    assert trades["score"].tolist() == [1.0]
+    assert trades["side"].tolist() == ["LONG"]
+
+
+def test_candidate_replay_trade_log_rejects_stale_expected_utility_trade_side() -> None:
+    predictions = pd.DataFrame(
+        {
+            "trade_side": [1],
+            "expected_utility_long_bps": [12.0],
+            "expected_utility_short_bps": [-3.0],
+            "expected_utility_side": [0],
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="trade_side mismatch"):
+        _enforce_expected_utility_side_contract(predictions)
+
+
+def test_candidate_replay_trade_log_resolves_expected_utility_mode_case_insensitive() -> None:
+    predictions = pd.DataFrame(
+        {
+            "selection_score_mode": ["Expected_Utility"],
+            "selection_score": [1.0],
+            "expected_utility_long_bps": [2.0],
+            "expected_utility_short_bps": [1.0],
+            "expected_utility_side": [0],
+            "trade_side": [0],
+        }
+    )
+
+    assert _resolve_score_surface(predictions) == ("selection_score", "expected_utility")
+
+
 def test_candidate_replay_trade_log_supports_mfe_protect_exit_policy(tmp_path: Path) -> None:
     dataset_dir = tmp_path / "dataset"
     dataset_dir.mkdir()
@@ -123,13 +265,22 @@ def test_candidate_replay_trade_log_supports_mfe_protect_exit_policy(tmp_path: P
     predictions.to_parquet(predictions_path, index=False)
     source = pd.DataFrame(
         {
-            "time": [val_times[0], test_times[0], test_times[0] + pd.Timedelta(minutes=5), test_times[0] + pd.Timedelta(minutes=10), test_times[0] + pd.Timedelta(minutes=15)],
-            "bid_close": [100.0, 100.0, 100.2, 100.1, 100.1],
-            "ask_close": [100.0, 100.0, 100.2, 100.1, 100.1],
-            "bid_high": [100.0, 100.3, 100.25, 100.15, 100.15],
-            "bid_low": [100.0, 99.8, 100.0, 100.0, 100.05],
-            "ask_high": [100.0, 100.2, 100.0, 100.05, 100.05],
-            "ask_low": [100.0, 99.7, 99.85, 99.95, 99.95],
+            "time": [
+                val_times[0],
+                test_times[0],
+                test_times[0] + pd.Timedelta(minutes=5),
+                test_times[0] + pd.Timedelta(minutes=10),
+                test_times[0] + pd.Timedelta(minutes=15),
+                test_times[0] + pd.Timedelta(minutes=20),
+            ],
+            "bid_open": [100.0, 100.0, 100.2, 100.1, 100.1, 100.1],
+            "ask_open": [100.0, 100.0, 100.2, 100.1, 100.1, 100.1],
+            "bid_close": [100.0, 100.0, 100.2, 100.1, 100.1, 100.1],
+            "ask_close": [100.0, 100.0, 100.2, 100.1, 100.1, 100.1],
+            "bid_high": [100.0, 100.3, 100.25, 100.50, 100.30, 100.15],
+            "bid_low": [100.0, 99.8, 100.0, 100.30, 100.10, 100.05],
+            "ask_high": [100.0, 100.2, 100.0, 100.05, 100.05, 100.05],
+            "ask_low": [100.0, 99.7, 99.85, 99.95, 99.95, 99.95],
         }
     )
     source_path = tmp_path / "source.parquet"

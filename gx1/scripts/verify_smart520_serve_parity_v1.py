@@ -8,8 +8,8 @@ TEST split:
 
   LEG 1 (STATE, hard tolerance 1e-5): the LIVE state builder
   (gx1.execution.v12_smart520_state_live.Smart520StateBuilder) run on the LIVE
-  cv3/BASE28 prebuilts reproduces the OFFLINE dataset rows
-  (v10_dataset_smart_candidate_julyext_20260705 test split) exactly:
+  cv3/BASE28 prebuilts reproduces the OFFLINE dataset rows named by
+  --dataset-dir and the active bundle's smart520_state_contract exactly:
   seq (96,520) + snap (520) + ctx_cont (142) + ctx_cat (5). FAIL-LOUD per
   column name on any deviation.
   EXCEPTION — the FRAME-END target (the live decision-bar situation): the
@@ -61,7 +61,7 @@ import pandas as pd
 
 DEFAULT_DATASET_DIR = Path(
     "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_julyext_20260705"
+    "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
 )
 DEFAULT_PINNED_PREDICTIONS = Path(
     "/home/andre2/GX1_DATA/reports/joint_smart_policy_replay_20260708/"
@@ -73,6 +73,13 @@ STATE_BLOCKS = ("seq", "snap", "ctx_cont", "ctx_cat")
 FORWARD_COLS = (
     "p_long", "p_short", "p_flat", "edge_score",
     "path_quality_pred", "tradable_prob", "mfe_first_n_pred", "bad_path_prob",
+)
+EXPECTED_UTILITY_PINNED_COLS = (
+    "selection_score_mode",
+    "selection_score",
+    "selection_score_threshold",
+    "expected_utility_long_bps",
+    "expected_utility_short_bps",
 )
 
 
@@ -147,16 +154,20 @@ def main() -> int:
 
     # ── contract-resolved adapter (fail-closed rule 8) ───────────────────────
     from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference
-    from gx1.execution.v12_smart520_state_live import (
-        SEQ_LEN_SMART520, SMART520_STATE_FRAME_ANCHOR_UTC,
-    )
+    from gx1.execution.v12_smart520_state_live import SEQ_LEN_SMART520
     from gx1.contracts.signal_bridge_v3 import (
         ORDERED_CTX_CONT_NAMES_V3, ORDERED_CTX_CAT_NAMES_V3,
     )
     adapter = SmartEntryLiveInference.load(device="cpu")
     report["bundle_dir"] = str(adapter.bundle_dir)
     report["operating_point"] = adapter.operating_point
-    report["frame_anchor_utc"] = str(SMART520_STATE_FRAME_ANCHOR_UTC)
+    selection_mode = str(adapter.operating_point.get("selection_score", "edge_score")).strip().lower()
+    expected_utility_mode = selection_mode == "expected_utility"
+    report["selection_score_mode"] = selection_mode
+    if adapter._state_contract is None:
+        raise RuntimeError("[parity] smart520 state contract missing from adapter")
+    report["smart520_state_contract"] = adapter._state_contract.as_report()
+    report["frame_anchor_utc"] = str(adapter._state_contract.frame_anchor_utc)
     signal_names = adapter._builder.ordered_signal_names
 
     # ── live prebuilts (frozen snapshot — deterministic) ─────────────────────
@@ -312,13 +323,25 @@ def main() -> int:
     pinned = pd.read_parquet(args.pinned_predictions)
     pinned["time"] = pd.to_datetime(pinned["time"], utc=True)
     pinned = pinned[pinned["model"] == "candidate"].set_index("time").sort_index()
+    if expected_utility_mode:
+        missing_expected_cols = [c for c in EXPECTED_UTILITY_PINNED_COLS if c not in pinned.columns]
+        if missing_expected_cols:
+            failures.append(
+                "expected-utility serve parity requires pinned prediction columns: "
+                + ",".join(missing_expected_cols)
+            )
+        elif set(pinned["selection_score_mode"].dropna().astype(str).str.lower()) != {"expected_utility"}:
+            failures.append("pinned predictions selection_score_mode is not exactly expected_utility")
     fwd_max: dict[str, float] = {c: 0.0 for c in FORWARD_COLS}
     fwd_worst: dict[str, str] = {}
     fwd_scale: dict[str, float] = {}
     n_fwd = 0
     side_mismatch = []
     take_mismatch = []
+    selected_side_mismatch = []
+    selection_score_mismatch = []
     thr = float(adapter.operating_point["edge_score_threshold"])
+    expected_utility_thr = float(adapter.operating_point.get("expected_utility_threshold_bps", 0.0))
     sessions = {str(s) for s in adapter.operating_point.get("sessions") or []}
     tail_fwd: dict = {}
     for h in heads:
@@ -330,9 +353,17 @@ def main() -> int:
         if ts == frame_end_ts:
             # decision-bar: forward delta follows the tail state delta — advisory
             tail_fwd = {c: abs(float(h[c]) - float(p[c])) for c in FORWARD_COLS if c in p}
-            tail_fwd["take_flip"] = bool(
-                ((h["edge_score"] >= thr) and ({0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}.get(h["session_id"]) in sessions))
-                != ((float(p["edge_score"]) >= thr) and (str(p["session"]) in sessions)))
+            if expected_utility_mode and all(c in p for c in EXPECTED_UTILITY_PINNED_COLS):
+                decision = adapter.decide(h, atr_bps=0.0)
+                tail_fwd["selection_score"] = abs(float(decision["selection_score"]) - float(p["selection_score"]))
+                tail_fwd["selected_side_flip"] = bool(int(decision["selected_side"]) != int(p["trade_side"]))
+                pin_thr = float(p.get("selection_score_threshold", expected_utility_thr))
+                pin_take = (float(p["selection_score"]) >= pin_thr) and (str(p["session"]) in sessions)
+                tail_fwd["take_flip"] = bool((decision["action"] != "SKIP") != pin_take)
+            else:
+                tail_fwd["take_flip"] = bool(
+                    ((h["edge_score"] >= thr) and ({0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}.get(h["session_id"]) in sessions))
+                    != ((float(p["edge_score"]) >= thr) and (str(p["session"]) in sessions)))
             continue
         n_fwd += 1
         for c in FORWARD_COLS:
@@ -345,11 +376,27 @@ def main() -> int:
             _scale = abs(float(p[c]))
             if _scale > fwd_scale.get(c, 0.0):
                 fwd_scale[c] = _scale
-        if int(h["trade_side"]) != int(p["trade_side"]):
-            side_mismatch.append(str(ts))
-        live_take = (h["edge_score"] >= thr) and (
-            {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}.get(h["session_id"]) in sessions)
-        pin_take = (float(p["edge_score"]) >= thr) and (str(p["session"]) in sessions)
+        if expected_utility_mode and all(c in p for c in EXPECTED_UTILITY_PINNED_COLS):
+            decision = adapter.decide(h, atr_bps=0.0)
+            if str(decision["selection_score_mode"]) != "expected_utility":
+                failures.append(f"{ts}: live decision selection_score_mode={decision['selection_score_mode']}")
+            if int(decision["selected_side"]) != int(p["trade_side"]):
+                selected_side_mismatch.append(str(ts))
+            score_delta = abs(float(decision["selection_score"]) - float(p["selection_score"]))
+            if score_delta > fwd_max.get("selection_score", 0.0):
+                fwd_max["selection_score"] = score_delta
+                fwd_worst["selection_score"] = str(ts)
+            if score_delta > args.forward_tol:
+                selection_score_mismatch.append(str(ts))
+            pin_thr = float(p.get("selection_score_threshold", expected_utility_thr))
+            live_take = decision["action"] != "SKIP"
+            pin_take = (float(p["selection_score"]) >= pin_thr) and (str(p["session"]) in sessions)
+        else:
+            if int(h["trade_side"]) != int(p["trade_side"]):
+                side_mismatch.append(str(ts))
+            live_take = (h["edge_score"] >= thr) and (
+                {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}.get(h["session_id"]) in sessions)
+            pin_take = (float(p["edge_score"]) >= thr) and (str(p["session"]) in sessions)
         if live_take != pin_take:
             take_mismatch.append(str(ts))
     # Per-head tolerance: args.forward_tol is ABSOLUTE and calibrated for
@@ -367,6 +414,10 @@ def main() -> int:
     report["forward_parity"] = {
         "n_compared": n_fwd, "max_abs_diff": fwd_max, "worst_ts": fwd_worst,
         "trade_side_mismatches": side_mismatch, "take_decision_mismatches": take_mismatch,
+        "selected_side_mismatches": selected_side_mismatch,
+        "selection_score_mismatches": selection_score_mismatch,
+        "selection_score_mode": selection_mode,
+        "expected_utility_threshold_bps": expected_utility_thr if expected_utility_mode else None,
         "tolerance": args.forward_tol,
         "per_head_tolerance": per_head_tol,
         "pinned_head_scale": fwd_scale,
@@ -379,6 +430,14 @@ def main() -> int:
                             f"(worst ts {fwd_worst.get(c)})")
     if side_mismatch:
         failures.append(f"FORWARD trade_side mismatches: {len(side_mismatch)} ({side_mismatch[:3]})")
+    if selected_side_mismatch:
+        failures.append(
+            f"FORWARD selected_side mismatches: {len(selected_side_mismatch)} ({selected_side_mismatch[:3]})"
+        )
+    if selection_score_mismatch:
+        failures.append(
+            f"FORWARD selection_score mismatches: {len(selection_score_mismatch)} ({selection_score_mismatch[:3]})"
+        )
     if take_mismatch:
         failures.append(f"FORWARD take/skip decision mismatches: {len(take_mismatch)} ({take_mismatch[:3]})")
     print(f"[parity] LEG2 forward: {json.dumps({k: round(v, 9) for k, v in fwd_max.items()})}", flush=True)

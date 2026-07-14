@@ -121,6 +121,64 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR:-0.0}"'
+        in text
+    )
+    assert 'CANDIDATE_HIER_LEGACY_CE_MULT="${ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT:-0.35}"' in text
+    assert (
+        'CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS:-10.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP:-20.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert 'CANDIDATE_ANCHOR_GATE_INIT="${ENTRY_FOUNDATION_CANDIDATE_ANCHOR_GATE_INIT:-1.0}"' in text
+    assert (
         'CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT:-0.25}"'
         in text
     )
@@ -141,6 +199,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in text
     assert "ENTRY_AUX_BAD_PATH_WEIGHT=" in text
     assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=" in text
+    assert "ENTRY_BAD_PATH_PROB_PENALTY=" in text
     assert "ENTRY_PRED_BALANCE_ALPHA=" in text
     assert "ENTRY_PRED_BALANCE_TARGET=" in text
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=" in text
@@ -149,6 +208,25 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=" in text
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=" in text
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=" in text
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=" in text
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=" in text
+    assert "ENTRY_HIER_LEGACY_CE_MULT=" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=" in text
+    assert "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT=" in text
+    assert "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT=" in text
+    assert "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS=" in text
+    assert "ENTRY_BAD_PATH_PROB_PENALTY" in text
+    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=" in text
+    assert "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=" in text
+    assert "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=" in text
+    assert "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=" in text
+    assert "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=" in text
+    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=" in text
+    assert "ENTRY_TRENDLINE_RAIL_MARGIN=" in text
+    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES=" in text
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=" in text
     assert "artifact_sha256" in text
@@ -179,6 +257,44 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "challenger_seq215_20260630_contract8" in text
     assert "entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630" in text
     assert "v10_dataset_challenger_seq215_neutral_20260630" in text
+    assert "v10_dataset_6yr_smartctx_xau_direction_repair" in text
+    assert "v10_6yr_dataset__HOLD_03B" in text
+    assert "refuses known stale dataset path" in text
+    assert "dataset path must be XAU-specific" in text
+    assert "CANDIDATE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
+    assert "GX1_PERTF_CLOSED_BAR=1" in text
+    assert "CANDIDATE_PRED_BALANCE_ALPHA=0.50" in text
+    assert "CANDIDATE_DIRECTION_CE_SCALE=2.00" in text
+    assert "CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0" in text
+    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in text
+    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
+    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
+    assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
+    assert "CANDIDATE_HIER_TRADE_WEIGHT=2.00" in text
+    assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text
+    assert "CANDIDATE_HIER_UTILITY_WEIGHT=1.00" in text
+    assert "CANDIDATE_HIER_BAD_PATH_WEIGHT=1.25" in text
+    assert "CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT=1.50" in text
+    assert "CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=15.0" in text
+    assert "CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=8.0" in text
+    assert "CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT=5.00" in text
+    assert "CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT=3.00" in text
+    assert "CANDIDATE_HIER_POCKET_UTILITY_MARGIN_BPS=30.0" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT=1.00" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=1.50" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT=1.50" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT=1.75" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=5.00" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=4.00" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=3.00" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_MARGIN=1.00" in text
+    assert "CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in text
+    assert "CANDIDATE_FLAT_CLASS_WEIGHT_FLOOR=2.00" in text
+    assert "CANDIDATE_ANCHOR_GATE_INIT=0.0" in text
+    assert "CANDIDATE_BAD_PATH_PROB_PENALTY=0.0" in text
+    assert "--enable-xau-direction-repair-heads" in text
+    assert '--anchor-gate-init "$CANDIDATE_ANCHOR_GATE_INIT"' in text
     assert 'contract_mode=sys.argv[15]' in text
     assert "expected_signal_dim=int(sys.argv[16])" in text
     assert "feature_objective_liveness_all_live" in text

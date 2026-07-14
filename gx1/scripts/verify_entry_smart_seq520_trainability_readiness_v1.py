@@ -50,24 +50,79 @@ PATH_CALIBRATION_ENV_TEMPLATE = {
 }
 PATH_CALIBRATION_ENV_KEYS = tuple(PATH_CALIBRATION_ENV_TEMPLATE)
 DIRECTION_BALANCE_RECIPE_CONTRACT = {
-    "pred_balance_alpha": 0.20,
+    "pred_balance_alpha": 0.50,
     "pred_balance_target": "label",
     "pred_balance_class_weights": [1.0, 1.0, 4.0],
-    "direction_ce_scale": 1.30,
+    "direction_ce_scale": 2.00,
     "ckpt_monitor": "dir_acc",
     "ckpt_class_balance_guard_weight": 0.50,
     "ckpt_class_balance_min_pred_to_label": 0.35,
     "ckpt_class_balance_min_pred_rate": 0.05,
+    "direction_min_pred_rate_loss_weight": 2.50,
+    "direction_min_pred_rate_fraction": 0.50,
+    "direction_min_pred_rate_floor": 0.05,
+    "hier_legacy_ce_mult": 1.00,
+    "hier_trade_weight": 2.00,
+    "hier_side_weight": 1.75,
+    "hier_utility_weight": 1.00,
+    "hier_bad_path_weight": 1.25,
+    "hier_mae_weight": 0.35,
+    "hierarchical_entry_heads_enabled": True,
+    "side_validity_head_enabled": True,
+    "hier_side_validity_weight": 1.50,
+    "hier_side_validity_min_utility_bps": 15.0,
+    "hier_side_validity_pos_weight_cap": 8.0,
+    "hier_pocket_abstain_weight": 5.00,
+    "hier_pocket_side_margin_weight": 3.00,
+    "hier_pocket_utility_margin_bps": 30.0,
+    "trendline_rail_head_enabled": True,
+    "trendline_rail_aux_weight": 1.00,
+    "trendline_rail_wrong_side_weight": 1.50,
+    "trendline_rail_rising_wrong_short_weight": 1.50,
+    "trendline_rail_falling_wrong_long_weight": 1.75,
+    "trendline_rail_final_margin_weight": 5.00,
+    "trendline_rail_hier_margin_weight": 4.00,
+    "trendline_rail_flat_trade_weight": 3.00,
+    "trendline_rail_utility_margin_weight": 5.00,
+    "trendline_rail_margin": 1.00,
+    "trendline_rail_utility_margin_bps": 30.0,
+    "anchor_gate_enabled": True,
+    "anchor_gate_init": 0.0,
 }
 DIRECTION_BALANCE_ENV_TEMPLATE = {
-    "ENTRY_PRED_BALANCE_ALPHA": "0.20",
+    "ENTRY_PRED_BALANCE_ALPHA": "0.50",
     "ENTRY_PRED_BALANCE_TARGET": "label",
     "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,4.0",
-    "ENTRY_DIRECTION_CE_SCALE": "1.30",
+    "ENTRY_DIRECTION_CE_SCALE": "2.00",
     "GX1_V10_CKPT_MONITOR": "dir_acc",
     "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.50",
     "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.35",
     "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.05",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "2.50",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.50",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.05",
+    "ENTRY_HIER_LEGACY_CE_MULT": "1.00",
+    "ENTRY_HIER_TRADE_WEIGHT": "2.00",
+    "ENTRY_HIER_SIDE_WEIGHT": "1.75",
+    "ENTRY_HIER_UTILITY_WEIGHT": "1.00",
+    "ENTRY_HIER_BAD_PATH_WEIGHT": "1.25",
+    "ENTRY_HIER_MAE_WEIGHT": "0.35",
+    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "1.50",
+    "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "15.0",
+    "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "8.0",
+    "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT": "5.00",
+    "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT": "3.00",
+    "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS": "30.0",
+    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": "1.00",
+    "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT": "1.50",
+    "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT": "1.50",
+    "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT": "1.75",
+    "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT": "5.00",
+    "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT": "4.00",
+    "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT": "3.00",
+    "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT": "5.00",
+    "ENTRY_TRENDLINE_RAIL_MARGIN": "1.00",
+    "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS": "30.0",
 }
 DIRECTION_BALANCE_ENV_KEYS = tuple(DIRECTION_BALANCE_ENV_TEMPLATE)
 TAIL_DIRECTION_RECIPE_CONTRACT = {
@@ -210,17 +265,23 @@ def _direction_balance_recipe_review(contract: dict[str, Any]) -> dict[str, Any]
     argv = contract.get("inner_train_argv_template")
     argv_text = " ".join(str(part) for part in argv) if isinstance(argv, list) else ""
     argv_declares_env = all(f"{key}=" in argv_text for key in DIRECTION_BALANCE_ENV_KEYS)
+    argv_declares_xau_repair_heads = (
+        "--enable-xau-direction-repair-heads" in argv_text
+        and "--anchor-gate-init 0.0" in argv_text
+    )
     return {
         "ok": bool(
             contract.get("requires_direction_balance_recipe_contract") is True
             and recipe_exact
             and env_exact
             and argv_declares_env
+            and argv_declares_xau_repair_heads
         ),
         "requires_direction_balance_recipe_contract": contract.get("requires_direction_balance_recipe_contract"),
         "recipe_exact": recipe_exact,
         "env_template_exact": env_exact,
         "inner_train_argv_declares_env": argv_declares_env,
+        "inner_train_argv_declares_xau_repair_heads": argv_declares_xau_repair_heads,
         "expected_recipe": DIRECTION_BALANCE_RECIPE_CONTRACT,
         "observed_recipe": recipe,
         "expected_env_template": DIRECTION_BALANCE_ENV_TEMPLATE,
@@ -310,13 +371,43 @@ def _wrapper_direction_balance_env_review(text: str) -> dict[str, Any]:
         for key in DIRECTION_BALANCE_ENV_KEYS
         if _direction_balance_foundation_env_name(key, "ENTRY_FOUNDATION_CANDIDATE_") not in text
     ]
+    expected_smart_fragments = [
+        "PRED_BALANCE_ALPHA=0.50",
+        "PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0",
+        "DIRECTION_CE_SCALE=2.00",
+        "CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50",
+        "CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35",
+        "CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05",
+        "DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50",
+        "DIRECTION_MIN_PRED_RATE_FRACTION=0.50",
+        "DIRECTION_MIN_PRED_RATE_FLOOR=0.05",
+        "HIER_LEGACY_CE_MULT=1.00",
+        "HIER_SIDE_VALIDITY_WEIGHT=1.50",
+        "HIER_POCKET_ABSTAIN_WEIGHT=5.00",
+        "HIER_POCKET_SIDE_MARGIN_WEIGHT=3.00",
+        "TRENDLINE_RAIL_AUX_WEIGHT=1.00",
+        "TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=1.50",
+        "TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=5.00",
+        "ANCHOR_GATE_INIT=0.0",
+        "--enable-xau-direction-repair-heads",
+        "anchor-gate-init",
+    ]
+    missing_expected_smart_fragments = [
+        fragment for fragment in expected_smart_fragments if fragment not in text
+    ]
     return {
         "entry_env_keys": list(DIRECTION_BALANCE_ENV_KEYS),
         "missing_entry_env_keys": missing_entry_env,
         "missing_foundation_smoke_env_keys": missing_foundation_env,
         "missing_foundation_candidate_env_keys": missing_candidate_env,
+        "expected_smart_fragments": expected_smart_fragments,
+        "missing_expected_smart_fragments": missing_expected_smart_fragments,
         "has_any_foundation_defaults": not missing_foundation_env or not missing_candidate_env,
-        "ok": not missing_entry_env and (not missing_foundation_env or not missing_candidate_env),
+        "ok": (
+            not missing_entry_env
+            and (not missing_foundation_env or not missing_candidate_env)
+            and not missing_expected_smart_fragments
+        ),
     }
 
 

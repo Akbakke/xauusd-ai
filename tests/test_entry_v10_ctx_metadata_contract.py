@@ -27,6 +27,7 @@ def test_v10_metadata_active_heads_include_enabled_smart_heads() -> None:
         enable_timing_head=True,
         enable_tail_risk_head=True,
         enable_vol_forecast_head=True,
+        enable_trendline_rail_head=True,
     )
 
     assert got == [
@@ -47,6 +48,7 @@ def test_v10_metadata_active_heads_include_enabled_smart_heads() -> None:
         "timing",
         "tail_risk",
         "vol_forecast",
+        "trendline_rail",
     ]
 
 
@@ -66,6 +68,7 @@ def test_v10_bundle_capabilities_accept_declared_smart_heads_from_state_dict() -
         "head_tail_risk",
         "head_vol_forecast",
         "head_mtf_direction",
+        "head_trendline_rail",
     ]:
         state_dict[f"{prefix}.weight"] = object()
         state_dict[f"{prefix}.bias"] = object()
@@ -81,6 +84,7 @@ def test_v10_bundle_capabilities_accept_declared_smart_heads_from_state_dict() -
                 "tail_risk",
                 "vol_forecast",
                 "mtf_direction",
+                "trendline_rail",
             ]
         },
     }
@@ -93,4 +97,5 @@ def test_v10_bundle_capabilities_accept_declared_smart_heads_from_state_dict() -
     assert "tail_risk" in got["supported_heads"]
     assert "vol_forecast" in got["supported_heads"]
     assert "mtf_direction" in got["supported_heads"]
+    assert "trendline_rail" in got["supported_heads"]
     assert got["supports_context_features"] is True

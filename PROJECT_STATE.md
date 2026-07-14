@@ -1,7 +1,8 @@
 > **SUPERSEDED 2026-06-11 — HISTORICAL LOG ONLY (frozen 2026-04-30).**
-> Current state lives in `PROJECT_STATE_artifacts.json` (the ONE selection truth)
-> + `bash scripts/gx1_handover.sh` (live overview). Nothing below reflects the
-> fase2b/CLEAN cement era; do not act on it.
+> Current XAU direction-repair state lives in
+> `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`; `bash scripts/gx1_handover.sh`
+> is only a viewer for that file. Nothing below reflects the active repair
+> status; do not act on it.
 >
 > **ACTIVE 2026-07-02 POINTER:** current Entry/Exit AI objective lives in
 > `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,

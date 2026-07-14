@@ -23,6 +23,7 @@ import json
 import shutil
 import sys
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 
 import numpy as np
@@ -31,6 +32,13 @@ from scipy.optimize import minimize
 
 CLASS_COLUMNS = ("p_long", "p_short", "p_flat")
 LABEL_TO_INDEX = {0: 0, 1: 1, 2: 2}
+
+
+def _parse_fit_splits(raw: str) -> list[str]:
+    splits = [str(part).strip() for part in str(raw).split(",") if str(part).strip()]
+    if not splits:
+        raise ValueError("empty --fit-split")
+    return splits
 
 
 def _sha256_file(path: Path) -> str:
@@ -61,9 +69,10 @@ def _fit_path_calibration(args, bundle_dir: Path, meta_path: Path, meta: dict) -
     pred_path = Path(args.predictions_parquet).expanduser().resolve()
     cols = ["split", "model", "path_quality_pred", "bad_path_prob", "path_quality_bps", "y_bad_path"]
     frame = pd.read_parquet(pred_path, columns=cols)
-    frame = frame[(frame["split"] == args.fit_split) & (frame["model"] == args.model_name)].dropna()
+    fit_splits = list(getattr(args, "fit_splits", [args.fit_split]))
+    frame = frame[(frame["split"].isin(fit_splits)) & (frame["model"] == args.model_name)].dropna()
     if len(frame) < 200:
-        print(f"FATAL: too few rows ({len(frame)}) for split={args.fit_split}", file=sys.stderr)
+        print(f"FATAL: too few rows ({len(frame)}) for splits={fit_splits}", file=sys.stderr)
         return 2
     x_pq = frame["path_quality_pred"].to_numpy(np.float64)
     y_pq = frame["path_quality_bps"].to_numpy(np.float64)
@@ -108,6 +117,7 @@ def _fit_path_calibration(args, bundle_dir: Path, meta_path: Path, meta: dict) -
         "bad_path_temperature": bp_t,
         "bad_path_bias": bp_b,
         "fitted_on_split": args.fit_split,
+        "fitted_on_splits": fit_splits,
         "fitted_rows": int(len(frame)),
         "path_quality_mse_before": mse_before,
         "path_quality_mse_after": mse_after,
@@ -139,9 +149,28 @@ def main() -> int:
     ap.add_argument("--bundle-dir", required=True)
     ap.add_argument("--predictions-parquet", required=True,
                     help="selective_edge_predictions.parquet produced from the SAME bundle, pre-calibration")
-    ap.add_argument("--fit-split", default="val", help="held-out split to fit on (never 'train')")
+    ap.add_argument(
+        "--fit-split",
+        default="val",
+        help="comma-separated held-out split(s) to fit on, e.g. 'val,test' (never 'train')",
+    )
     ap.add_argument("--model-name", default="candidate")
     ap.add_argument("--vedtak", required=True)
+    ap.add_argument(
+        "--min-direction-fit-rows",
+        type=int,
+        default=int(os.environ.get("GX1_DIRECTION_CAL_MIN_ROWS", "5000")),
+        help="minimum held-out rows required for direction calibration",
+    )
+    ap.add_argument(
+        "--max-equal-logit-long-short-odds",
+        type=float,
+        default=float(os.environ.get("GX1_DIRECTION_CAL_MAX_EQUAL_LOGIT_LS_ODDS", "1.20")),
+        help=(
+            "max allowed LONG/SHORT odds implied by calibration bias alone when raw logits are equal; "
+            "keeps calibration from becoming a directional prior"
+        ),
+    )
     ap.add_argument(
         "--heads",
         choices=("direction", "path"),
@@ -158,7 +187,12 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    if args.fit_split == "train":
+    try:
+        args.fit_splits = _parse_fit_splits(args.fit_split)
+    except ValueError as exc:
+        print(f"FATAL: {exc}", file=sys.stderr)
+        return 2
+    if "train" in args.fit_splits:
         print("FATAL: refusing to fit calibration on the train split", file=sys.stderr)
         return 2
 
@@ -177,9 +211,16 @@ def main() -> int:
 
     pred_path = Path(args.predictions_parquet).expanduser().resolve()
     frame = pd.read_parquet(pred_path, columns=["split", "model", "y_direction", *CLASS_COLUMNS])
-    frame = frame[(frame["split"] == args.fit_split) & (frame["model"] == args.model_name)]
+    frame = frame[(frame["split"].isin(args.fit_splits)) & (frame["model"] == args.model_name)]
     if frame.empty:
-        print(f"FATAL: no rows for split={args.fit_split} model={args.model_name} in {pred_path}", file=sys.stderr)
+        print(f"FATAL: no rows for splits={args.fit_splits} model={args.model_name} in {pred_path}", file=sys.stderr)
+        return 2
+    if len(frame) < int(args.min_direction_fit_rows):
+        print(
+            f"FATAL: only {len(frame)} rows for direction calibration; "
+            f"need >= {int(args.min_direction_fit_rows)}. Use a broader held-out calibration window.",
+            file=sys.stderr,
+        )
         return 2
 
     probs = frame[list(CLASS_COLUMNS)].to_numpy(dtype=np.float64)
@@ -201,6 +242,20 @@ def main() -> int:
     if nll_after > nll_before:
         print(f"FATAL: calibration did not improve NLL ({nll_before:.5f} -> {nll_after:.5f})", file=sys.stderr)
         return 2
+    equal_logit = np.exp(np.asarray(bias, dtype=np.float64))
+    equal_logit = equal_logit / np.clip(equal_logit.sum(), 1e-12, None)
+    long_short_odds = float(max(
+        equal_logit[LABEL_TO_INDEX[0]] / np.clip(equal_logit[LABEL_TO_INDEX[1]], 1e-12, None),
+        equal_logit[LABEL_TO_INDEX[1]] / np.clip(equal_logit[LABEL_TO_INDEX[0]], 1e-12, None),
+    ))
+    if long_short_odds > float(args.max_equal_logit_long_short_odds):
+        print(
+            "FATAL: direction calibration bias injects too much LONG/SHORT prior "
+            f"at equal logits (odds={long_short_odds:.3f}, cap={float(args.max_equal_logit_long_short_odds):.3f}). "
+            "Re-fit on a broader chronological held-out window or retrain; do not calibrate over direction skew.",
+            file=sys.stderr,
+        )
+        return 2
 
     payload = {
         "enabled": True,
@@ -208,9 +263,16 @@ def main() -> int:
         "bias": bias,
         "class_order": ["LONG", "SHORT", "FLAT"],
         "fitted_on_split": args.fit_split,
+        "fitted_on_splits": args.fit_splits,
         "fitted_rows": int(len(y)),
+        "min_direction_fit_rows": int(args.min_direction_fit_rows),
         "nll_before": nll_before,
         "nll_after": nll_after,
+        "equal_logit_long_prob_after": float(equal_logit[LABEL_TO_INDEX[0]]),
+        "equal_logit_short_prob_after": float(equal_logit[LABEL_TO_INDEX[1]]),
+        "equal_logit_flat_prob_after": float(equal_logit[LABEL_TO_INDEX[2]]),
+        "equal_logit_long_short_odds_after": long_short_odds,
+        "max_equal_logit_long_short_odds": float(args.max_equal_logit_long_short_odds),
         "predictions_parquet": str(pred_path),
         "predictions_sha256": _sha256_file(pred_path),
         "fitted_utc": datetime.now(timezone.utc).isoformat(),

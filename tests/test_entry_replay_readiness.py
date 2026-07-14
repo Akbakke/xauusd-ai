@@ -10,6 +10,7 @@ from gx1.scripts.verify_entry_replay_readiness_v1 import (
     CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST,
     CHALLENGER_SEQ215_REPLAY_DIR,
     CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR,
+    FOUNDATION_DATASET_DIR,
     SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT,
     SMART_SEQ520_CANDIDATE_READINESS_LATEST,
     SMART_SEQ520_DATASET_DIR,
@@ -18,6 +19,7 @@ from gx1.scripts.verify_entry_replay_readiness_v1 import (
     _candidate_bundle_audit_checks,
     _replay_checks,
     _selective_edge_checks,
+    _smart_xau_pretrain_audit_checks,
     build_parser,
     run,
 )
@@ -102,7 +104,7 @@ def _selective_summary() -> dict:
                 },
             },
         },
-        "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
+        "dataset_dir": str(FOUNDATION_DATASET_DIR),
         "bundle_seq_input_dim": 146,
         "bundle_snap_input_dim": 146,
         "bundle_specialist_contract": _specialist_snapshot("foundation_seq146"),
@@ -206,7 +208,7 @@ def _candidate_bundle_audit() -> dict:
         "decision": "PASS",
         "failures": [],
         "specialist_contract_mode": "foundation_seq146",
-        "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
+        "dataset_dir": str(FOUNDATION_DATASET_DIR),
         "require_edge": True,
         "require_specialist_fusion": True,
         "required_training_specialists": [
@@ -326,6 +328,12 @@ def _smart_candidate_bundle_audit() -> dict:
     report = _candidate_bundle_audit()
     specialists = list(required_training_specialists_for_mode("smart_seq520_candidate"))
     mean_weight = {name: 1.0 / float(len(specialists)) for name in specialists}
+    report["head_contract"]["active_training_heads"] = [
+        *list(EXPECTED_ACTIVE_TRAINING_HEADS),
+        "trade_side_hierarchy",
+        "trendline_rail",
+        "side_validity",
+    ]
     report["specialist_contract_mode"] = "smart_seq520_candidate"
     report["dataset_dir"] = str(SMART_SEQ520_DATASET_DIR)
     report["required_training_specialists"] = specialists
@@ -359,6 +367,8 @@ def test_selective_edge_checks_accept_smart_dataset_contract() -> None:
     summary["dataset_dir"] = str(SMART_SEQ520_DATASET_DIR)
     summary["bundle_seq_input_dim"] = 520
     summary["bundle_snap_input_dim"] = 520
+    summary["selection_score_mode"] = "expected_utility"
+    summary["selection_score_threshold"] = 0.0
     summary["bundle_specialist_contract"] = _specialist_snapshot("smart_seq520_candidate")
     summary["no_xgb_bundle_specialist_contract"] = _specialist_snapshot("smart_seq520_candidate")
 
@@ -375,6 +385,41 @@ def test_selective_edge_checks_accept_smart_dataset_contract() -> None:
     )
 
     assert all(check["ok"] for check in checks)
+
+
+def test_selective_edge_checks_reject_smart_edge_score_selection_mode() -> None:
+    summary = _selective_summary()
+    summary["contract_mode"] = "smart_seq520_candidate"
+    summary["dataset_dir"] = str(SMART_SEQ520_DATASET_DIR)
+    summary["bundle_seq_input_dim"] = 520
+    summary["bundle_snap_input_dim"] = 520
+    summary["bundle_specialist_contract"] = _specialist_snapshot("smart_seq520_candidate")
+    summary["no_xgb_bundle_specialist_contract"] = _specialist_snapshot("smart_seq520_candidate")
+
+    checks = _selective_edge_checks(
+        summary,
+        _selective_metrics(),
+        model_name="candidate",
+        min_top5_mean_pnl_bps=0.0,
+        min_top10_mean_pnl_bps=0.0,
+        require_no_xgb_ablation=True,
+        expected_bundle_dir="/tmp/candidate_bundle",
+        expected_dataset_dir=SMART_SEQ520_DATASET_DIR,
+        expected_contract_mode="smart_seq520_candidate",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smart selective-edge uses expected-utility selection mode" in failed
+
+
+def test_smart_xau_pretrain_audit_gate_fails_when_missing(tmp_path: Path) -> None:
+    checks = _smart_xau_pretrain_audit_checks(
+        tmp_path / "missing.json",
+        {},
+        expected_dataset_dir=SMART_SEQ520_DATASET_DIR,
+    )
+
+    assert any(check["name"] == "smart XAU pretrain audit artifact exists" and not check["ok"] for check in checks)
 
 
 def test_selective_edge_checks_reject_low_selected_tail_direction_precision() -> None:
@@ -737,11 +782,26 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
     report = _smart_candidate_bundle_audit()
     report["direction_balance_recipe_contract"].update(
         {
-            "pred_balance_alpha": 0.20,
+            "pred_balance_alpha": 0.50,
             "pred_balance_class_weights": [1.0, 1.0, 4.0],
+                "direction_ce_scale": 2.00,
+                "hierarchical_entry_heads_enabled": True,
+                "side_validity_head_enabled": True,
+                "hier_side_validity_weight": 1.50,
+                "hier_side_validity_min_utility_bps": 15.0,
+                "hier_side_validity_pos_weight_cap": 8.0,
+                "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
             "best_direction_balance_guard_ok": True,
         }
     )

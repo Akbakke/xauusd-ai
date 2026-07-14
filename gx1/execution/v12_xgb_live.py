@@ -56,7 +56,7 @@ def _resolve_default_xgb_bundle() -> Path:
     # FG-1 fix (2026-06-06, rule 8): resolve the ACTIVE xgb bundle via the ONE selection
     # contract — NEVER a hardcoded literal (else live keeps serving the OLD xgb after a cement
     # flips the contract → silent train/serve skew). Mirrors v12_v3_live._resolve_default_v3_bundle.
-    # Fail-closed: load_decision_artifact raises on missing/ambiguous/non-ACTIVE/EURUSD.
+    # Fail-closed: load_decision_artifact raises on missing/ambiguous/non-ACTIVE/non-XAU.
     from gx1_guards.artifacts import load_decision_artifact
     return Path(load_decision_artifact("xgb"))
 

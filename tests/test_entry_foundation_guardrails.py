@@ -29,12 +29,12 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
 
     case_names = {case["name"] for case in report["cases"]}
     assert "control_readiness_report_active_foundation" in case_names
-    assert "handover_points_at_foundation" in case_names
+    assert "handover_points_at_xau_direction_repair" in case_names
     assert "generic_train_blocked" in case_names
 
-    handover_case = next(case for case in report["cases"] if case["name"] == "handover_points_at_foundation")
+    handover_case = next(case for case in report["cases"] if case["name"] == "handover_points_at_xau_direction_repair")
     assert handover_case["observed_returncode"] == 0
-    assert handover_case["required_text"] == "active Entry foundation seq146"
+    assert handover_case["required_text"] == "XAUUSD Direction Repair Handover"
     assert "OPEN-MORE WAVE ARMED" in handover_case["forbidden_texts"]
 
     checks = {row["name"]: row["ok"] for row in report["source_checks"]}
@@ -44,9 +44,9 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert checks["control_exposes_foundation_activation_plan_report"] is True
     assert checks["control_exposes_vedtak_gated_foundation_activation_apply"] is True
     assert checks["control_exposes_vedtak_gated_foundation_activation_post_apply"] is True
-    assert checks["handover_legacy_requires_explicit_env_token"] is True
-    assert checks["handover_default_exits_before_legacy_body"] is True
-    assert checks["handover_default_announces_active_foundation"] is True
+    assert checks["handover_viewer_points_to_current_xau_repair_truth"] is True
+    assert checks["handover_viewer_has_no_legacy_branch"] is True
+    assert checks["handover_default_announces_xau_direction_repair"] is True
 
     policy_checks = {row["name"]: row["ok"] for row in report["readiness_policy_checks"]}
     assert policy_checks["readiness_policy_snapshot_json_parseable"] is True

@@ -10,10 +10,11 @@ It never trains, promotes, shadows, starts live, or writes adapter artifacts.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
-import hashlib
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -44,7 +45,7 @@ from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR,
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1"
 SMART_SEQ520_DATASET_DIR = (
     Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
-    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630"
+    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
 )
 SMART_SEQ520_OUT_DIR = DEFAULT_OUT_DIR / "smart_seq520_candidate"
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
@@ -75,6 +76,61 @@ SIGNAL_BRIDGE_NEUTRAL_VALUES = np.array(
     ],
     dtype=np.float32,
 )
+EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS = float(
+    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS", "15.0")
+)
+EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS = float(
+    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS", "5.0")
+)
+EXPECTED_UTILITY_RAIL_PENALTY_BPS = float(
+    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_RAIL_PENALTY_BPS", "25.0")
+)
+EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS = float(
+    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS", "35.0")
+)
+
+
+def _env_selection_score_mode_default() -> str:
+    raw = str(os.environ.get("GX1_SMART_SELECTION_SCORE", "edge_score") or "edge_score").strip().lower()
+    if raw in {"expected_utility", "edge_score"}:
+        return raw
+    return "edge_score"
+
+
+def _env_selection_score_threshold_default() -> float | None:
+    raw = str(
+        os.environ.get(
+            "GX1_SMART_SELECTION_SCORE_THRESHOLD",
+            os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS", ""),
+        )
+        or ""
+    ).strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _effective_selection_score_mode(args: argparse.Namespace) -> str:
+    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", "foundation_seq146"))
+    if contract_mode == "smart_seq520_candidate":
+        return "expected_utility"
+    raw = str(getattr(args, "selection_score_mode", "") or _env_selection_score_mode_default()).strip().lower()
+    return raw if raw in {"expected_utility", "edge_score"} else "edge_score"
+
+
+def _effective_selection_score_threshold(args: argparse.Namespace, mode: str) -> float | None:
+    raw = getattr(args, "selection_score_threshold", None)
+    if raw is not None:
+        return float(raw)
+    env_default = _env_selection_score_threshold_default()
+    if env_default is not None:
+        return float(env_default)
+    if str(mode) == "expected_utility":
+        return 0.0
+    return None
 
 
 def _json_default(obj: Any) -> Any:
@@ -94,6 +150,27 @@ def _safe_mean(series: pd.Series) -> float | None:
     if numeric.empty:
         return None
     return float(numeric.mean())
+
+
+def _sigmoid_np(values: np.ndarray) -> np.ndarray:
+    arr = np.asarray(values, dtype=np.float64)
+    arr = np.clip(arr, -80.0, 80.0)
+    return (1.0 / (1.0 + np.exp(-arr))).astype(np.float32)
+
+
+def _softmax_np(values: np.ndarray) -> np.ndarray:
+    arr = np.asarray(values, dtype=np.float64)
+    arr = arr - np.nanmax(arr, axis=1, keepdims=True)
+    exp = np.exp(arr)
+    denom = np.maximum(np.nansum(exp, axis=1, keepdims=True), 1e-12)
+    return (exp / denom).astype(np.float32)
+
+
+def _tensor_np(out: dict[str, torch.Tensor], key: str) -> np.ndarray | None:
+    value = out.get(key)
+    if value is None:
+        return None
+    return value.detach().cpu().float().numpy()
 
 
 def _normalize_contract_mode(value: Any) -> str:
@@ -219,6 +296,22 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
 def _pnl_proxy_for_side(frame: pd.DataFrame) -> np.ndarray:
     """Return a trade-side PnL proxy in bps for LONG/SHORT model decisions."""
     side = frame["trade_side"].astype(int).to_numpy()
+    if {"y_long_path_utility_bps", "y_short_path_utility_bps"}.issubset(frame.columns):
+        long_score = pd.to_numeric(frame["y_long_path_utility_bps"], errors="coerce").fillna(0.0).to_numpy(
+            dtype=np.float64
+        )
+        short_score = pd.to_numeric(frame["y_short_path_utility_bps"], errors="coerce").fillna(0.0).to_numpy(
+            dtype=np.float64
+        )
+        return np.where(side == 0, long_score, short_score)
+    if {"y_direction_long_score_bps", "y_direction_short_score_bps"}.issubset(frame.columns):
+        long_score = pd.to_numeric(frame["y_direction_long_score_bps"], errors="coerce").fillna(0.0).to_numpy(
+            dtype=np.float64
+        )
+        short_score = pd.to_numeric(frame["y_direction_short_score_bps"], errors="coerce").fillna(0.0).to_numpy(
+            dtype=np.float64
+        )
+        return np.where(side == 0, long_score, short_score)
     if "y_forecast_ret_K24" in frame.columns:
         ret = pd.to_numeric(frame["y_forecast_ret_K24"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64)
         return np.where(side == 0, ret, -ret)
@@ -279,11 +372,15 @@ def _metrics_for_group(
     }
 
 
+def _selection_sort_column(frame: pd.DataFrame) -> str:
+    return "selection_score" if "selection_score" in frame.columns else "edge_score"
+
+
 def _top_frame(frame: pd.DataFrame, top_frac: float) -> pd.DataFrame:
     if frame.empty:
         return frame.copy()
     n = max(1, int(math.ceil(len(frame) * float(top_frac))))
-    return frame.sort_values("edge_score", ascending=False, kind="mergesort").head(n).copy()
+    return frame.sort_values(_selection_sort_column(frame), ascending=False, kind="mergesort").head(n).copy()
 
 
 def _neutralize_signal_bridge(seq_x: torch.Tensor, snap_x: torch.Tensor) -> None:
@@ -417,7 +514,7 @@ def build_metric_rows(
         pool = sm[~sm["session"].astype(str).isin(exclude_sessions)] if exclude_sessions else sm
         for top_frac in top_fracs:
             n_budget = max(1, int(math.ceil(len(sm) * float(top_frac))))
-            top = pool.sort_values("edge_score", ascending=False, kind="mergesort").head(n_budget).copy()
+            top = pool.sort_values(_selection_sort_column(pool), ascending=False, kind="mergesort").head(n_budget).copy()
             rows.append(_metrics_for_group(top, split=str(split), model=str(model), scope="top_score", top_frac=top_frac, group="ALL"))
             for session, group in top.groupby("session", sort=True):
                 rows.append(
@@ -614,8 +711,17 @@ def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
         _pq.write_table(table, tmp.name)
         del table
         tmp_path = Path(tmp.name)
+        tmp_manifest = tmp_path.with_suffix(".manifest.json")
+        source_manifest = Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
+        if source_manifest.exists():
+            shutil.copy2(source_manifest, tmp_manifest)
         print(f"[STREAM_CHUNK] chunk ready: {tmp_path.name}", flush=True)
-        yield tmp_path, (lambda p=tmp_path: p.unlink(missing_ok=True))
+        yield tmp_path, (
+            lambda p=tmp_path, m=tmp_manifest: (
+                p.unlink(missing_ok=True),
+                m.unlink(missing_ok=True),
+            )
+        )
         start = end
 
 
@@ -658,6 +764,8 @@ def _predict_bundle(
     neutralize_signal_bridge: bool = False,
     feature_mask: dict[str, Any] | None = None,
     stream_chunk_rows: int = 0,
+    selection_score_mode: str = "edge_score",
+    selection_score_threshold: float | None = None,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
     bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
@@ -666,6 +774,9 @@ def _predict_bundle(
     meta = dict(bundle.metadata)
     seq_len = int(meta.get("seq_len") or 96)
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt_path)
+    hier_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
+    utility_scale_bps = float(hier_meta.get("side_utility_scale_bps", 1.0) or 1.0)
+    mae_scale_bps = float(hier_meta.get("side_mae_scale_bps", 1.0) or 1.0)
     rows: list[pd.DataFrame] = []
 
     for split in splits:
@@ -726,6 +837,22 @@ def _predict_bundle(
                         chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
                         chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
                         chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
+                        extra_chunks.setdefault("direction_logits", []).append(
+                            out["direction_logits"].detach().cpu().float().numpy()
+                        )
+                        for _vec_key in ("anchor_logits", "delta_logits", "anchor_gate"):
+                            _vec = _tensor_np(out, _vec_key)
+                            if _vec is not None:
+                                extra_chunks.setdefault(_vec_key, []).append(_vec)
+                                if _vec.shape[1] >= 2:
+                                    extra_chunks.setdefault(f"{_vec_key}_long_minus_short", []).append(
+                                        (_vec[:, 0] - _vec[:, 1]).astype(np.float32)
+                                    )
+                        if "anchor_logits" in out:
+                            _anchor_probs = _softmax_np(out["anchor_logits"].detach().cpu().float().numpy())
+                            extra_chunks.setdefault("anchor_p_long", []).append(_anchor_probs[:, 0])
+                            extra_chunks.setdefault("anchor_p_short", []).append(_anchor_probs[:, 1])
+                            extra_chunks.setdefault("anchor_p_flat", []).append(_anchor_probs[:, 2])
                         # Audit 2026-07-07 fix (finding #5): persist all extra head outputs.
                         for _out_key, _col in _EXTRA_SIGMOID_HEADS.items():
                             if _out_key in out:
@@ -743,10 +870,162 @@ def _predict_bundle(
                                 for _i in range(_vec.shape[1]):
                                     extra_chunks.setdefault(f"{_out_key}_{_i}", []).append(_vec[:, _i])
                         if "mtf_dir_logits" in out:
-                            _mtf = torch.softmax(out["mtf_dir_logits"], dim=-1).detach().cpu().float().numpy()
+                            _mtf_logits = out["mtf_dir_logits"].detach().cpu().float().numpy()
+                            extra_chunks.setdefault("mtf_dir_logits", []).append(_mtf_logits)
+                            extra_chunks.setdefault("mtf_long_minus_short", []).append(
+                                (_mtf_logits[:, 0] - _mtf_logits[:, 1]).astype(np.float32)
+                            )
+                            _mtf = _softmax_np(_mtf_logits)
                             extra_chunks.setdefault("mtf_p_long", []).append(_mtf[:, 0])
                             extra_chunks.setdefault("mtf_p_short", []).append(_mtf[:, 1])
                             extra_chunks.setdefault("mtf_p_flat", []).append(_mtf[:, 2])
+                        trendline_rail_logits = _tensor_np(out, "trendline_rail_logits")
+                        if trendline_rail_logits is not None and trendline_rail_logits.shape[1] >= 4:
+                            trendline_rail_probs = _sigmoid_np(trendline_rail_logits)
+                            rail_anti_short_parts = [trendline_rail_probs[:, 0], trendline_rail_probs[:, 2]]
+                            rail_anti_long_parts = [trendline_rail_probs[:, 1], trendline_rail_probs[:, 3]]
+                            if trendline_rail_probs.shape[1] >= 6:
+                                rail_anti_short_parts.append(trendline_rail_probs[:, 4])
+                                rail_anti_long_parts.append(trendline_rail_probs[:, 5])
+                            rail_anti_short = np.maximum.reduce(rail_anti_short_parts)
+                            rail_anti_long = np.maximum.reduce(rail_anti_long_parts)
+                            extra_chunks.setdefault("trendline_rail_logits", []).append(trendline_rail_logits)
+                            extra_chunks.setdefault("trendline_rail_rising_support_prob", []).append(
+                                trendline_rail_probs[:, 0]
+                            )
+                            extra_chunks.setdefault("trendline_rail_falling_resistance_prob", []).append(
+                                trendline_rail_probs[:, 1]
+                            )
+                            extra_chunks.setdefault("trendline_rail_countertrend_short_trap_prob", []).append(
+                                trendline_rail_probs[:, 2]
+                            )
+                            extra_chunks.setdefault("trendline_rail_countertrend_long_trap_prob", []).append(
+                                trendline_rail_probs[:, 3]
+                            )
+                            if trendline_rail_probs.shape[1] >= 6:
+                                extra_chunks.setdefault("trendline_rail_short_early_failure_prob", []).append(
+                                    trendline_rail_probs[:, 4]
+                                )
+                                extra_chunks.setdefault("trendline_rail_long_early_failure_prob", []).append(
+                                    trendline_rail_probs[:, 5]
+                                )
+                        else:
+                            rail_anti_short = np.zeros(probs.shape[0], dtype=np.float32)
+                            rail_anti_long = np.zeros(probs.shape[0], dtype=np.float32)
+                        trade_logit = _tensor_np(out, "trade_logit")
+                        side_logits = _tensor_np(out, "side_logits")
+                        side_utility = _tensor_np(out, "side_utility")
+                        side_bad_path_logit = _tensor_np(out, "side_bad_path_logit")
+                        side_mae = _tensor_np(out, "side_mae")
+                        side_validity_logit = _tensor_np(out, "side_validity_logit")
+                        if trade_logit is not None:
+                            p_trade = _sigmoid_np(trade_logit.reshape(-1))
+                            extra_chunks.setdefault("p_trade", []).append(p_trade)
+                            extra_chunks.setdefault("p_flat_hier", []).append((1.0 - p_trade).astype(np.float32))
+                        else:
+                            p_trade = np.clip(probs[:, 0] + probs[:, 1], 0.0, 1.0).astype(np.float32)
+                        if side_logits is not None and side_logits.shape[1] >= 2:
+                            side_probs = _softmax_np(side_logits)
+                            extra_chunks.setdefault("side_logits", []).append(side_logits)
+                            extra_chunks.setdefault("p_long_given_trade", []).append(side_probs[:, 0])
+                            extra_chunks.setdefault("p_short_given_trade", []).append(side_probs[:, 1])
+                            side_uncertainty = (1.0 - np.maximum(side_probs[:, 0], side_probs[:, 1])).astype(np.float32)
+                            extra_chunks.setdefault("side_uncertainty", []).append(side_uncertainty)
+                            p_long_given_trade = side_probs[:, 0]
+                            p_short_given_trade = side_probs[:, 1]
+                        else:
+                            denom = np.maximum(probs[:, 0] + probs[:, 1], 1e-9)
+                            p_long_given_trade = (probs[:, 0] / denom).astype(np.float32)
+                            p_short_given_trade = (probs[:, 1] / denom).astype(np.float32)
+                            side_uncertainty = (1.0 - np.maximum(p_long_given_trade, p_short_given_trade)).astype(np.float32)
+                        if side_bad_path_logit is not None and side_bad_path_logit.shape[1] >= 2:
+                            side_bad = _sigmoid_np(side_bad_path_logit)
+                            extra_chunks.setdefault("side_bad_path_logit", []).append(side_bad_path_logit)
+                            extra_chunks.setdefault("long_bad_path_prob", []).append(side_bad[:, 0])
+                            extra_chunks.setdefault("short_bad_path_prob", []).append(side_bad[:, 1])
+                            long_bad_path_prob = side_bad[:, 0]
+                            short_bad_path_prob = side_bad[:, 1]
+                        else:
+                            classic_bad = torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1)
+                            long_bad_path_prob = classic_bad
+                            short_bad_path_prob = classic_bad
+                        if side_validity_logit is not None and side_validity_logit.shape[1] >= 2:
+                            side_validity = _sigmoid_np(side_validity_logit)
+                            extra_chunks.setdefault("side_validity_logit", []).append(side_validity_logit)
+                            extra_chunks.setdefault("long_validity_prob", []).append(side_validity[:, 0])
+                            extra_chunks.setdefault("short_validity_prob", []).append(side_validity[:, 1])
+                            long_validity_prob = side_validity[:, 0]
+                            short_validity_prob = side_validity[:, 1]
+                        else:
+                            long_validity_prob = np.ones(probs.shape[0], dtype=np.float32)
+                            short_validity_prob = np.ones(probs.shape[0], dtype=np.float32)
+                        if side_utility is not None and side_utility.shape[1] >= 2:
+                            extra_chunks.setdefault("side_utility_raw", []).append(side_utility)
+                            long_util = (side_utility[:, 0] * utility_scale_bps).astype(np.float32)
+                            short_util = (side_utility[:, 1] * utility_scale_bps).astype(np.float32)
+                            rail_long_penalty = (rail_anti_long * EXPECTED_UTILITY_RAIL_PENALTY_BPS).astype(np.float32)
+                            rail_short_penalty = (rail_anti_short * EXPECTED_UTILITY_RAIL_PENALTY_BPS).astype(np.float32)
+                            invalid_long_penalty = (
+                                (1.0 - long_validity_prob) * EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS
+                            ).astype(np.float32)
+                            invalid_short_penalty = (
+                                (1.0 - short_validity_prob) * EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS
+                            ).astype(np.float32)
+                            extra_chunks.setdefault("expected_utility_rail_penalty_bps", []).append(
+                                np.full(
+                                    probs.shape[0],
+                                    EXPECTED_UTILITY_RAIL_PENALTY_BPS,
+                                    dtype=np.float32,
+                                )
+                            )
+                            extra_chunks.setdefault("expected_utility_invalid_side_penalty_bps", []).append(
+                                np.full(
+                                    probs.shape[0],
+                                    EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS,
+                                    dtype=np.float32,
+                                )
+                            )
+                            extra_chunks.setdefault("expected_utility_long_rail_penalty_bps", []).append(
+                                rail_long_penalty
+                            )
+                            extra_chunks.setdefault("expected_utility_short_rail_penalty_bps", []).append(
+                                rail_short_penalty
+                            )
+                            extra_chunks.setdefault("expected_utility_long_invalid_side_penalty_bps", []).append(
+                                invalid_long_penalty
+                            )
+                            extra_chunks.setdefault("expected_utility_short_invalid_side_penalty_bps", []).append(
+                                invalid_short_penalty
+                            )
+                            extra_chunks.setdefault("long_path_utility_pred_bps", []).append(long_util)
+                            extra_chunks.setdefault("short_path_utility_pred_bps", []).append(short_util)
+                            expected_long = (
+                                p_trade * p_long_given_trade * long_util
+                                - long_bad_path_prob * EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS
+                                - side_uncertainty * EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS
+                                - rail_long_penalty
+                                - invalid_long_penalty
+                            ).astype(np.float32)
+                            expected_short = (
+                                p_trade * p_short_given_trade * short_util
+                                - short_bad_path_prob * EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS
+                                - side_uncertainty * EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS
+                                - rail_short_penalty
+                                - invalid_short_penalty
+                            ).astype(np.float32)
+                            extra_chunks.setdefault("expected_utility_long_bps", []).append(expected_long)
+                            extra_chunks.setdefault("expected_utility_short_bps", []).append(expected_short)
+                            extra_chunks.setdefault("expected_utility_side", []).append(
+                                np.where(expected_long >= expected_short, 0, 1).astype(np.int64)
+                            )
+                        if side_mae is not None and side_mae.shape[1] >= 2:
+                            extra_chunks.setdefault("side_mae_raw", []).append(side_mae)
+                            extra_chunks.setdefault("long_expected_mae_bps", []).append(
+                                np.maximum(side_mae[:, 0] * mae_scale_bps, 0.0).astype(np.float32)
+                            )
+                            extra_chunks.setdefault("short_expected_mae_bps", []).append(
+                                np.maximum(side_mae[:, 1] * mae_scale_bps, 0.0).astype(np.float32)
+                            )
 
                 arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
                 extra_arrays = {col: np.concatenate(vals, axis=0) for col, vals in extra_chunks.items()}
@@ -767,7 +1046,39 @@ def _predict_bundle(
                 frame["bad_path_prob"] = arrays["bad_path_prob"]
                 # Audit 2026-07-07 fix (finding #5): all extra head outputs as columns.
                 for _col, _arr in extra_arrays.items():
-                    frame[_col] = _arr.astype(np.float32)
+                    if _arr.ndim == 2:
+                        frame[_col] = [row.astype(np.float32).tolist() for row in _arr]
+                    elif _col.endswith("_side"):
+                        frame[_col] = _arr.astype(np.int64)
+                    else:
+                        frame[_col] = _arr.astype(np.float32)
+                mode = str(selection_score_mode or "edge_score")
+                if mode == "expected_utility":
+                    required_utility_cols = {"expected_utility_long_bps", "expected_utility_short_bps"}
+                    if required_utility_cols.issubset(frame.columns):
+                        effective_selection_threshold = (
+                            float(selection_score_threshold) if selection_score_threshold is not None else 0.0
+                        )
+                        expected_long = pd.to_numeric(
+                            frame["expected_utility_long_bps"], errors="coerce"
+                        ).fillna(-np.inf).to_numpy(dtype=np.float64)
+                        expected_short = pd.to_numeric(
+                            frame["expected_utility_short_bps"], errors="coerce"
+                        ).fillna(-np.inf).to_numpy(dtype=np.float64)
+                        frame["selection_score"] = np.maximum(expected_long, expected_short).astype(np.float32)
+                        frame["trade_side"] = np.where(expected_long >= expected_short, 0, 1).astype(np.int64)
+                        frame["selection_score_mode"] = "expected_utility"
+                        frame["selection_score_threshold"] = effective_selection_threshold
+                    else:
+                        failures.append(
+                            f"{model_name}/{split}: selection_score_mode=expected_utility requires "
+                            "expected_utility_long_bps and expected_utility_short_bps outputs"
+                        )
+                        frame["selection_score_mode"] = "edge_score"
+                        frame["selection_score"] = frame["edge_score"].astype(np.float32)
+                else:
+                    frame["selection_score_mode"] = "edge_score"
+                    frame["selection_score"] = frame["edge_score"].astype(np.float32)
                 frame["session"] = [SESSION_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in ctx_cat[:, 0]]
                 frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]] if ctx_cat.shape[1] > 1 else "UNKNOWN"
                 frame["side"] = [SIDE_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in frame["trade_side"].to_numpy()]
@@ -786,6 +1097,8 @@ def _predict_bundle(
                     "p_long",
                     "p_short",
                     "p_flat",
+                    "selection_score_mode",
+                    "selection_score",
                     "path_quality_pred",
                     "bad_path_prob",
                     "path_quality_bps",
@@ -794,6 +1107,16 @@ def _predict_bundle(
                 ]
                 if "y_forecast_ret_K24" in frame.columns:
                     keep_cols.append("y_forecast_ret_K24")
+                for utility_col in (
+                    "y_long_path_utility_bps",
+                    "y_short_path_utility_bps",
+                    "y_direction_long_score_bps",
+                    "y_direction_short_score_bps",
+                ):
+                    if utility_col in frame.columns:
+                        keep_cols.append(utility_col)
+                if "selection_score_threshold" in frame.columns:
+                    keep_cols.append("selection_score_threshold")
                 # Audit 2026-07-07 fix (finding #5): keep every persisted extra
                 # head column (appended AFTER the legacy columns so existing
                 # consumers see an unchanged prefix schema).
@@ -847,6 +1170,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     splits = _parse_csv(args.splits)
     top_fracs = [float(x) for x in _parse_csv(args.top_fracs)]
     device = torch.device(_device_arg(args.device))
+    selection_score_mode = _effective_selection_score_mode(args)
+    selection_score_threshold = _effective_selection_score_threshold(args, selection_score_mode)
     no_xgb_ablation_mode = str(getattr(args, "no_xgb_ablation_mode", "bundle")).strip()
     if no_xgb_ablation_mode not in {"bundle", "neutralize_signal_bridge"}:
         raise RuntimeError(f"invalid no-XGB ablation mode: {no_xgb_ablation_mode}")
@@ -874,6 +1199,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         m5_prebuilt_path=m5_prebuilt,
         feature_mask=feature_mask,
         stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
+        selection_score_mode=selection_score_mode,
+        selection_score_threshold=selection_score_threshold,
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
@@ -902,6 +1229,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             neutralize_signal_bridge=no_xgb_neutralize,
             feature_mask=feature_mask,
             stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
+            selection_score_mode=selection_score_mode,
+            selection_score_threshold=selection_score_threshold,
         )
         all_predictions.append(ablation)
         failures.extend(ablation_failures)
@@ -964,6 +1293,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "summaries": summary_payload["summaries"],
         "no_xgb_ablation_diagnostics": no_xgb_ablation_diagnostics,
         "top_fracs": top_fracs,
+        "selection_score_mode": selection_score_mode,
+        "selection_score_threshold": selection_score_threshold,
         "selection_policy": {
             "exclude_sessions": list(exclude_sessions),
             "note": (
@@ -1000,6 +1331,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "feature_mask_ablation": report["feature_mask_ablation"],
             "dataset_dir": report["dataset_dir"],
             "input_bridge_contract": report["input_bridge_contract"],
+            "selection_score_mode": report["selection_score_mode"],
+            "selection_score_threshold": report["selection_score_threshold"],
+            "selection_policy": report["selection_policy"],
             "bundle_seq_len": report["bundle_seq_len"],
             "bundle_seq_input_dim": report["bundle_seq_input_dim"],
             "bundle_snap_input_dim": report["bundle_snap_input_dim"],
@@ -1055,6 +1389,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     ap.add_argument("--model-name", default="candidate")
+    ap.add_argument(
+        "--selection-score-mode",
+        choices=("edge_score", "expected_utility"),
+        default=_env_selection_score_mode_default(),
+        help=(
+            "Ranking/selected-side surface to materialize. edge_score preserves legacy "
+            "p_long/p_short/p_flat behavior. expected_utility uses learned hierarchical "
+            "utility heads and writes trade_side from max(expected_utility_long_bps, "
+            "expected_utility_short_bps)."
+        ),
+    )
+    ap.add_argument(
+        "--selection-score-threshold",
+        type=float,
+        default=_env_selection_score_threshold_default(),
+        help=(
+            "Optional per-row selection threshold written to predictions. Useful with "
+            "--selection-score-mode expected_utility so downstream pocket audits select "
+            "positive learned utility instead of legacy edge threshold."
+        ),
+    )
     ap.add_argument(
         "--contract-mode",
         choices=("foundation_seq146", "challenger_seq215", "smart_seq520_candidate"),

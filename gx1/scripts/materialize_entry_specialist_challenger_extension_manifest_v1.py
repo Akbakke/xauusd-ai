@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 
 from gx1.features.entry_chart_geometry_v1 import (
-    CHART_GEOMETRY_FEATURE_NAMES,
+    CHART_GEOMETRY_SMART520_FEATURE_NAMES,
     CHART_GEOMETRY_FEATURE_VERSION,
 )
 from gx1.features.entry_candlestick_patterns_v1 import (
@@ -67,6 +67,7 @@ DEFAULT_CANDLESTICK_MANIFEST = (
 ACTIVE_SPECIALIST_CONTRACT_MODE = "foundation_seq146"
 TARGET_CHALLENGER_CONTRACT_MODE = "challenger_seq215"
 SMART_CANDIDATE_CONTRACT_MODE = "smart_seq520_candidate"
+SMART_CANDIDATE_EXPECTED_SEQ_SNAP_WIDTH = 520
 DEFAULT_BASE_SIGNAL_FEATURE_COUNT = 41
 AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT = 41
 AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT = 28
@@ -74,9 +75,7 @@ SPECIALIST_CONTRACT_AUTHORITY = (
     "gx1.features.entry_specialist_feature_groups_v1:"
     "specialist_model_contract_for_mode()/required_training_specialists_for_mode()"
 )
-CHART_GEOMETRY_SMART_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[
-    AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT:
-]
+CHART_GEOMETRY_SMART_FEATURE_NAMES = CHART_GEOMETRY_SMART520_FEATURE_NAMES
 CANDLESTICK_SMART_FEATURE_NAMES = CANDLESTICK_PATTERN_FEATURE_NAMES[
     AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT:
 ]
@@ -395,6 +394,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append(f"candlestick manifest not rebuild-ready: {candle.get('decision')}")
     if foundation.get("foundation_structure_all_required_selected") is not True:
         failures.append("foundation sequence manifest does not prove all required foundation structure features selected")
+    if len(chart_features) != AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT:
+        failures.append(
+            "chart geometry challenger selected_feature_count must remain "
+            f"{AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT} for seq215/smart520 manifest compatibility; "
+            f"got {len(chart_features)}"
+        )
+    if len(candle_features) != AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT:
+        failures.append(
+            "candlestick challenger selected_feature_count must remain "
+            f"{AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT} for seq215/smart520 manifest compatibility; "
+            f"got {len(candle_features)}"
+        )
 
     combined, duplicates = _dedupe_preserve_order(
         foundation_features + chart_features + candle_features + smart_features
@@ -426,7 +437,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     expected_seq_snap_width = base_signal_feature_count + int(len(combined))
-    manifest_variant = f"smart_seq{expected_seq_snap_width}_candidate" if include_smart_layers else "seq215_challenger"
+    if include_smart_layers and expected_seq_snap_width != SMART_CANDIDATE_EXPECTED_SEQ_SNAP_WIDTH:
+        failures.append(
+            "smart_seq520_candidate manifest must remain width "
+            f"{SMART_CANDIDATE_EXPECTED_SEQ_SNAP_WIDTH}; got {expected_seq_snap_width}"
+        )
+    manifest_variant = SMART_CANDIDATE_CONTRACT_MODE if include_smart_layers else "seq215_challenger"
     decision = (
         "READY_FOR_SMART_CHALLENGER_DATASET_REBUILD_MANIFEST"
         if include_smart_layers and not failures
@@ -535,6 +551,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "builder_usage": {
             "argv_template": [
+                "env",
+                "GX1_ENTRY_DIRECTION_TARGET_MODE=path_utility_v2",
+                "GX1_ENTRY_DIRECTION_UTILITY_MFE_WEIGHT=0.35",
+                "GX1_ENTRY_DIRECTION_UTILITY_MAE_WEIGHT=1.15",
+                "GX1_ENTRY_DIRECTION_UTILITY_PATH_WEIGHT=0.25",
+                "GX1_ENTRY_DIRECTION_UTILITY_MIN_BPS=15.0",
+                "GX1_ENTRY_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS=4.0",
                 ".venv/bin/python",
                 "-m",
                 "gx1.scripts.build_entry_v10_ctx_training_dataset_v3",

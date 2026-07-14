@@ -353,7 +353,7 @@ def _challenger_extension_args(tmp_path: Path, *, include_smart_layers: bool) ->
     )
 
 
-def test_smart_challenger_manifest_preserves_seq215_latest_and_builds_dynamic_smart_candidate(
+def test_smart_challenger_manifest_preserves_seq215_latest_and_builds_fixed_smart520_candidate(
     tmp_path: Path,
 ) -> None:
     default_report = run_challenger_extension_manifest(
@@ -385,7 +385,6 @@ def test_smart_challenger_manifest_preserves_seq215_latest_and_builds_dynamic_sm
     }
     expected_smart_total = sum(expected_smart_counts.values())
     expected_combined_features = default_report["counts"]["combined_selected_features"] + expected_smart_total
-    expected_seq_snap_width = default_report["counts"]["base_signal_features"] + expected_combined_features
 
     assert smart_report["decision"] == "READY_FOR_SMART_CHALLENGER_DATASET_REBUILD_MANIFEST"
     assert smart_report["counts"]["foundation_sequence_extension_features"] == 105
@@ -394,8 +393,9 @@ def test_smart_challenger_manifest_preserves_seq215_latest_and_builds_dynamic_sm
     assert smart_report["counts"]["smart_candidate_features"] == expected_smart_total
     assert smart_report["counts"]["combined_selected_features"] == expected_combined_features
     assert smart_report["counts"]["base_signal_features"] == 41
-    assert smart_report["counts"]["expected_seq_snap_width"] == expected_seq_snap_width
-    assert smart_report["manifest"]["manifest_variant"] == f"smart_seq{expected_seq_snap_width}_candidate"
+    assert smart_report["counts"]["expected_seq_snap_width"] == 520
+    assert smart_report["manifest"]["expected_seq_snap_width"] == 520
+    assert smart_report["manifest"]["manifest_variant"] == "smart_seq520_candidate"
     assert smart_report["manifest"]["smart_layers_included"] is True
     assert smart_report["manifest"]["features_by_specialist"].get("unmapped", []) == []
     assert smart_report["training_allowed"] is False
@@ -403,6 +403,30 @@ def test_smart_challenger_manifest_preserves_seq215_latest_and_builds_dynamic_sm
 
     assert smart_report["manifest"]["smart_layer_feature_counts"] == expected_smart_counts
     assert expected_smart_total >= 104
+
+
+def test_smart_challenger_manifest_fails_closed_when_chart_manifest_drifts_past_seq215(
+    tmp_path: Path,
+) -> None:
+    drift_chart = json.loads(DEFAULT_CHART_GEOMETRY_MANIFEST.read_text(encoding="utf-8"))
+    drift_chart["selected_features"] = [
+        *drift_chart["selected_features"],
+        "chart.geometry_unapproved_extra_drift_feature",
+    ]
+    drift_chart_path = tmp_path / "drift_chart_manifest.json"
+    drift_chart_path.write_text(json.dumps(drift_chart), encoding="utf-8")
+
+    args = _challenger_extension_args(tmp_path, include_smart_layers=True)
+    args.chart_geometry_manifest = str(drift_chart_path)
+    args.fail_on_audit_fail = False
+
+    report = run_challenger_extension_manifest(args)
+
+    assert report["decision"] == "FAIL"
+    assert report["manifest"]["manifest_variant"] == "smart_seq520_candidate"
+    assert report["counts"]["expected_seq_snap_width"] == 521
+    assert any("chart geometry challenger selected_feature_count must remain 41" in failure for failure in report["failures"])
+    assert any("smart_seq520_candidate manifest must remain width 520" in failure for failure in report["failures"])
 
 
 def test_seq215_trainer_loader_requires_exact_challenger_contract_mode() -> None:

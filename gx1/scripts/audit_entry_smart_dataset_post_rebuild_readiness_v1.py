@@ -42,7 +42,10 @@ DEFAULT_SMART_REBUILD_PREFLIGHT = (
     / "entry_smart_seq_rebuild_preflight_20260630_v1"
     / "ENTRY_SMART_REBUILD_PREFLIGHT_latest.json"
 )
-DEFAULT_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_candidate_20260630"
+DEFAULT_DATASET_DIR = (
+    FOUNDATION_DATASET_DIR.parent.parent
+    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
+)
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_dataset_post_rebuild_readiness_20260630_v1"
 DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR = (
     REPORTS_ROOT / "entry_feature_foundation_audit_20260628_v1/smart_seq520_candidate_20260630"
@@ -53,7 +56,10 @@ DEFAULT_SMART_TARGET_AUDIT_OUT_DIR = (
 DEFAULT_SMART_SPECIALIST_AUDIT_OUT_DIR = (
     REPORTS_ROOT / "entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630"
 )
-DEFAULT_SMART_SMOKE_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_seq520_smoke_20260630"
+DEFAULT_SMART_SMOKE_DATASET_DIR = (
+    FOUNDATION_DATASET_DIR.parent.parent
+    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
+)
 DEFAULT_SMART_SMOKE_STEM = "v10_smart_seq520_smoke__HOLD_03B"
 DEFAULT_SMART_SMOKE_MEM_CAP = "8G"
 DEFAULT_SMART_SMOKE_SWAP_CAP = "1G"

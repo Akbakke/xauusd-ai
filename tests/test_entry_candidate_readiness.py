@@ -24,7 +24,7 @@ SEQ215_SMOKE_DATASET = (
 )
 SMART_SEQ520_SMOKE_DATASET = (
     "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630"
+    "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
 )
 SEQ146_SPECIALISTS = [
     "structure_swing_encoder",
@@ -62,6 +62,9 @@ def _passing_smoke_audit(
 ) -> dict:
     groups = list(specialists or SEQ146_SPECIALISTS)
     weight = round(1.0 / len(groups), 4)
+    active_heads = list(EXPECTED_ACTIVE_TRAINING_HEADS)
+    if contract_mode == "smart_seq520_candidate":
+        active_heads.extend(["trade_side_hierarchy", "trendline_rail", "side_validity"])
     split = {
         "rows": 128,
         "direction": {
@@ -132,7 +135,7 @@ def _passing_smoke_audit(
         "head_contract": {
             "decision": "PASS",
             "failures": [],
-            "active_training_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+            "active_training_heads": active_heads,
             "blocked_heads": list(EXPECTED_BLOCKED_HEADS),
         },
         "pretrain_manifest_contract": {
@@ -362,11 +365,27 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
         signal_dim=520,
         specialists=SEQ215_SPECIALISTS,
     )
-    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
+    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.50
     report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    report["direction_balance_recipe_contract"]["direction_ce_scale"] = 2.00
+    report["direction_balance_recipe_contract"]["hierarchical_entry_heads_enabled"] = True
+    report["direction_balance_recipe_contract"]["side_validity_head_enabled"] = True
+    report["direction_balance_recipe_contract"]["hier_side_validity_weight"] = 1.50
+    report["direction_balance_recipe_contract"]["hier_side_validity_min_utility_bps"] = 15.0
+    report["direction_balance_recipe_contract"]["hier_side_validity_pos_weight_cap"] = 8.0
+    report["direction_balance_recipe_contract"]["trendline_rail_head_enabled"] = True
+    report["direction_balance_recipe_contract"]["trendline_rail_aux_weight"] = 1.00
+    report["direction_balance_recipe_contract"]["trendline_rail_wrong_side_weight"] = 1.50
+    report["direction_balance_recipe_contract"]["hier_legacy_ce_mult"] = 1.00
+    report["direction_balance_recipe_contract"]["anchor_gate_enabled"] = True
+    report["direction_balance_recipe_contract"]["anchor_gate_init"] = 0.0
     report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
     report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
     report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
+    report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
 
     checks = _smoke_edge_checks(
         report,
@@ -385,11 +404,26 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
         signal_dim=520,
         specialists=SEQ215_SPECIALISTS,
     )
-    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
+    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.50
     report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    report["direction_balance_recipe_contract"]["direction_ce_scale"] = 2.00
+    report["direction_balance_recipe_contract"]["hierarchical_entry_heads_enabled"] = True
+    report["direction_balance_recipe_contract"]["side_validity_head_enabled"] = True
+    report["direction_balance_recipe_contract"]["hier_side_validity_weight"] = 1.50
+    report["direction_balance_recipe_contract"]["hier_side_validity_min_utility_bps"] = 15.0
+    report["direction_balance_recipe_contract"]["hier_side_validity_pos_weight_cap"] = 8.0
+    report["direction_balance_recipe_contract"]["trendline_rail_head_enabled"] = True
+    report["direction_balance_recipe_contract"]["trendline_rail_aux_weight"] = 1.00
+    report["direction_balance_recipe_contract"]["trendline_rail_wrong_side_weight"] = 1.50
+    report["direction_balance_recipe_contract"]["hier_legacy_ce_mult"] = 1.00
+    report["direction_balance_recipe_contract"]["anchor_gate_enabled"] = True
+    report["direction_balance_recipe_contract"]["anchor_gate_init"] = 0.0
     report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
     report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
     report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
     report["symmetric_validation_recipe_contract"] = {
         "decision": "FAIL",
         "active_heads": ["bad_path", "direction", "path_quality"],
@@ -791,11 +825,27 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
         signal_dim=520,
         specialists=SEQ215_SPECIALISTS,
     )
-    smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
+    smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.50
     smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_ce_scale"] = 2.00
+    smart_smoke_report["direction_balance_recipe_contract"]["hierarchical_entry_heads_enabled"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["side_validity_head_enabled"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_validity_weight"] = 1.50
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_validity_min_utility_bps"] = 15.0
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_validity_pos_weight_cap"] = 8.0
+    smart_smoke_report["direction_balance_recipe_contract"]["trendline_rail_head_enabled"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["trendline_rail_aux_weight"] = 1.00
+    smart_smoke_report["direction_balance_recipe_contract"]["trendline_rail_wrong_side_weight"] = 1.50
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_legacy_ce_mult"] = 1.00
+    smart_smoke_report["direction_balance_recipe_contract"]["anchor_gate_enabled"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["anchor_gate_init"] = 0.0
     smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
     smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
     smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
+    smart_smoke_report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
     smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
     foundation_smoke_path = tmp_path / "foundation_smoke_audit.json"
     foundation_smoke_path.write_text(json.dumps(_passing_smoke_audit()), encoding="utf-8")

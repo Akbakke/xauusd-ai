@@ -72,7 +72,7 @@ def _resolve_default_v3_bundle() -> Path:
     # propagate — never silently substitute the pre-COSTFIX EXIT_V9 bundle (it still
     # exists on disk and would load as a wrong V6/91-dim model, the same silent-broken
     # class as the V3-V6 hardcode that ran the whole COSTFIX period). load_decision_artifact
-    # raises ArtifactGuardError on any non-ACTIVE / missing / contract / EURUSD condition.
+    # raises ArtifactGuardError on any non-ACTIVE / missing / contract / non-XAU condition.
     from gx1_guards.artifacts import load_decision_artifact
     return Path(load_decision_artifact("v3_exit"))
 DEFAULT_BUNDLE_DIR = _resolve_default_v3_bundle()

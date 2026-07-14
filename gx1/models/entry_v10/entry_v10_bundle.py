@@ -66,6 +66,22 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
     "position_size": {"head_position_size.weight", "head_position_size.bias"},
     "hold_horizon": {"head_hold_horizon.weight", "head_hold_horizon.bias"},
     "mtf_direction": {"head_mtf_direction.weight", "head_mtf_direction.bias", "mtf_dir_scale"},
+    "anchor_gate": {"head_anchor_gate.weight", "head_anchor_gate.bias"},
+    "trendline_rail": {"head_trendline_rail.weight", "head_trendline_rail.bias"},
+    "q_per_action": {"q_head.weight", "q_head.bias"},
+    "trade_side_hierarchy": {
+        "head_trade.weight",
+        "head_trade.bias",
+        "head_side.weight",
+        "head_side.bias",
+        "head_side_utility.weight",
+        "head_side_utility.bias",
+        "head_side_bad_path.weight",
+        "head_side_bad_path.bias",
+        "head_side_mae.weight",
+        "head_side_mae.bias",
+    },
+    "side_validity": {"head_side_validity.weight", "head_side_validity.bias"},
     "dip": {"head_dip.weight", "head_dip.bias"},
     "forecast": {"head_forecast.weight", "head_forecast.bias"},
     "timing": {"head_timing.weight", "head_timing.bias"},
@@ -167,15 +183,19 @@ def load_entry_v10_ctx_bundle(
     # up as unexpected_keys in strict-load below).
     mtf_meta = (meta.get("multi_tf") or {}) if isinstance(meta, dict) else {}
     enable_mtf = bool(mtf_meta.get("enabled", False))
-    mtf_dim = int(mtf_meta.get("m15_seq_dim", 0)) if enable_mtf else 0
-    mtf_seq_len = int(mtf_meta.get("m15_seq_len", 96)) if enable_mtf else 96
+    _m15_seq_dim = int(mtf_meta.get("m15_seq_dim", 0)) if enable_mtf else 0
+    _h1_seq_dim = int(mtf_meta.get("h1_seq_dim", _m15_seq_dim)) if enable_mtf else 0
+    _h4_seq_dim = int(mtf_meta.get("h4_seq_dim", _m15_seq_dim)) if enable_mtf else 0
+    _d1_seq_dim = int(mtf_meta.get("d1_seq_dim", _m15_seq_dim)) if enable_mtf else 0
+    _m15_seq_len = int(mtf_meta.get("m15_seq_len", 96)) if enable_mtf else 96
+    _h1_seq_len = int(mtf_meta.get("h1_seq_len", _m15_seq_len)) if enable_mtf else _m15_seq_len
+    _h4_seq_len = int(mtf_meta.get("h4_seq_len", _m15_seq_len)) if enable_mtf else _m15_seq_len
+    _d1_seq_len = int(mtf_meta.get("d1_seq_len", _m15_seq_len)) if enable_mtf else _m15_seq_len
     mtf_scale = float(mtf_meta.get("multi_tf_scale", 0.5)) if enable_mtf else 0.5
     # V2 manifest fields (default 0/False = V1 bundles work unchanged).
     _v2_mode = bool(mtf_meta.get("v2_mode", False))
     _m5_seq_dim = int(mtf_meta.get("m5_seq_dim", 0)) if (enable_mtf and _v2_mode) else 0
-    _m5_seq_len = int(mtf_meta.get("m5_seq_len", mtf_seq_len)) if (enable_mtf and _v2_mode) else mtf_seq_len
-    _h4_seq_len = int(mtf_meta.get("h4_seq_len", mtf_seq_len)) if enable_mtf else mtf_seq_len
-    _d1_seq_len = int(mtf_meta.get("d1_seq_len", mtf_seq_len)) if enable_mtf else mtf_seq_len
+    _m5_seq_len = int(mtf_meta.get("m5_seq_len", _m15_seq_len)) if (enable_mtf and _v2_mode) else _m15_seq_len
     # V10 v3+ aux heads: detect by presence in state_dict keys.
     state_dict_preview = torch.load(state_path, map_location="cpu")
     _has_tf_agreement = "head_tf_agreement.weight" in state_dict_preview
@@ -193,6 +213,17 @@ def load_entry_v10_ctx_bundle(
     # Forceful MTF→direction head (2026-06-06): real params (head + scale) in
     # state_dict → detect by presence so the rebuilt model matches strict-load.
     _has_mtf_direction = "head_mtf_direction.weight" in state_dict_preview
+    _has_anchor_gate = "head_anchor_gate.weight" in state_dict_preview
+    _has_q_head = "q_head.weight" in state_dict_preview
+    _has_hierarchical_entry_heads = "head_trade.weight" in state_dict_preview and "head_side.weight" in state_dict_preview
+    _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
+    _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
+    _trendline_rail_output_dim = 4
+    if _has_trendline_rail:
+        _trendline_weight = state_dict_preview.get("head_trendline_rail.weight")
+        _shape = tuple(getattr(_trendline_weight, "shape", ()) or ())
+        if len(_shape) >= 1 and int(_shape[0]) >= 4:
+            _trendline_rail_output_dim = int(_shape[0])
     # Positional encoding uses a persistent=False buffer (NOT in state_dict),
     # so it cannot be probed from keys like the aux heads — it MUST be read
     # from bundle metadata. Default False keeps old (pos-enc-free) bundles
@@ -249,9 +280,15 @@ def load_entry_v10_ctx_bundle(
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
+        enable_anchor_gate=_has_anchor_gate,
+        anchor_gate_init=float((meta.get("anchor_gate") or {}).get("init", 1.0)) if isinstance(meta, dict) else 1.0,
+        enable_hierarchical_entry_heads=_has_hierarchical_entry_heads,
+        enable_side_validity_head=_has_side_validity_head,
+        enable_trendline_rail_head=_has_trendline_rail,
+        trendline_rail_output_dim=_trendline_rail_output_dim,
         enable_multi_tf=enable_mtf,
-        m15_seq_dim=mtf_dim, h1_seq_dim=mtf_dim, h4_seq_dim=mtf_dim, d1_seq_dim=mtf_dim,
-        m15_seq_len=mtf_seq_len, h1_seq_len=mtf_seq_len,
+        m15_seq_dim=_m15_seq_dim, h1_seq_dim=_h1_seq_dim, h4_seq_dim=_h4_seq_dim, d1_seq_dim=_d1_seq_dim,
+        m15_seq_len=_m15_seq_len, h1_seq_len=_h1_seq_len,
         h4_seq_len=_h4_seq_len, d1_seq_len=_d1_seq_len,
         # V2: enable M5 branch when manifest says so.
         enable_multi_tf_m5=_v2_mode,
@@ -270,6 +307,7 @@ def load_entry_v10_ctx_bundle(
         enable_vol_forecast_head=_has_vol_forecast,
         enable_cross_tf_attn=_has_cross_tf,
         enable_mtf_direction_head=_has_mtf_direction,
+        enable_q_head=_has_q_head,
         **_tf_scale_kwargs,
         **_specialist_kwargs,
     ).to(dev)
@@ -305,26 +343,26 @@ def load_entry_v10_ctx_bundle(
     if isinstance(_dir_cal, dict) and bool(_dir_cal.get("enabled", True)):
         _cal_bias = torch.tensor([float(x) for x in (_dir_cal.get("bias") or [])], dtype=torch.float32)
         model.set_direction_calibration(float(_dir_cal.get("temperature", 1.0)), _cal_bias)
-        _path_cal = meta.get("path_calibration") if isinstance(meta, dict) else None
-        if isinstance(_path_cal, dict):
-            model.set_path_calibration(
-                float(_path_cal.get("path_quality_scale", 1.0)),
-                float(_path_cal.get("path_quality_shift", 0.0)),
-                float(_path_cal.get("bad_path_temperature", 1.0)),
-                float(_path_cal.get("bad_path_bias", 0.0)),
-            )
-            logging.getLogger(__name__).info(
-                "[ENTRY_PATH_CAL] installed: pq=%.4f*x%+.4f bad_path=x/%.4f%+.4f",
-                float(_path_cal.get("path_quality_scale", 1.0)),
-                float(_path_cal.get("path_quality_shift", 0.0)),
-                float(_path_cal.get("bad_path_temperature", 1.0)),
-                float(_path_cal.get("bad_path_bias", 0.0)),
-            )
         logging.getLogger(__name__).info(
             "[ENTRY_DIRECTION_CAL] installed: temperature=%.4f bias=%s fitted_on=%s",
             float(_dir_cal.get("temperature", 1.0)),
             [round(float(x), 4) for x in (_dir_cal.get("bias") or [])],
             _dir_cal.get("fitted_on_split", "?"),
+        )
+    _path_cal = meta.get("path_calibration") if isinstance(meta, dict) else None
+    if isinstance(_path_cal, dict) and bool(_path_cal.get("enabled", True)):
+        model.set_path_calibration(
+            float(_path_cal.get("path_quality_scale", 1.0)),
+            float(_path_cal.get("path_quality_shift", 0.0)),
+            float(_path_cal.get("bad_path_temperature", 1.0)),
+            float(_path_cal.get("bad_path_bias", 0.0)),
+        )
+        logging.getLogger(__name__).info(
+            "[ENTRY_PATH_CAL] installed: pq=%.4f*x%+.4f bad_path=x/%.4f%+.4f",
+            float(_path_cal.get("path_quality_scale", 1.0)),
+            float(_path_cal.get("path_quality_shift", 0.0)),
+            float(_path_cal.get("bad_path_temperature", 1.0)),
+            float(_path_cal.get("bad_path_bias", 0.0)),
         )
     capabilities = _infer_entry_bundle_capabilities(meta, state_dict)
     logging.getLogger(__name__).info(

@@ -41,7 +41,7 @@ import hashlib
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -97,6 +97,45 @@ STRICT_TRADABLE_MFE_LEAD_MIN_BPS = 6.0
 # path_quality keep their own (10-bar) horizon — only the direction label changed.
 V11_TRADABLE_PNL_MIN_BPS = 15.0
 V11_DIRECTION_HORIZON_BARS = 24
+V12_DIRECTION_TARGET_MODE = os.environ.get(
+    "GX1_ENTRY_DIRECTION_TARGET_MODE",
+    "v11_final_pnl_h24",
+).strip().lower()
+V12_DIRECTION_UTILITY_MFE_WEIGHT = float(os.environ.get("GX1_ENTRY_DIRECTION_UTILITY_MFE_WEIGHT", "0.35"))
+V12_DIRECTION_UTILITY_MAE_WEIGHT = float(os.environ.get("GX1_ENTRY_DIRECTION_UTILITY_MAE_WEIGHT", "1.15"))
+V12_DIRECTION_UTILITY_PATH_WEIGHT = float(os.environ.get("GX1_ENTRY_DIRECTION_UTILITY_PATH_WEIGHT", "0.25"))
+V12_DIRECTION_UTILITY_MIN_BPS = float(
+    os.environ.get("GX1_ENTRY_DIRECTION_UTILITY_MIN_BPS", str(V11_TRADABLE_PNL_MIN_BPS))
+)
+V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS = float(
+    os.environ.get("GX1_ENTRY_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS", "4.0")
+)
+XAU_STRUCTURAL_UTILITY_REPAIR_MARGIN_BPS = float(
+    os.environ.get("GX1_XAU_STRUCTURAL_UTILITY_REPAIR_MARGIN_BPS", "25.0")
+)
+XAU_STRUCTURAL_UTILITY_REPAIR_MAE_MARGIN_BPS = float(
+    os.environ.get("GX1_XAU_STRUCTURAL_UTILITY_REPAIR_MAE_MARGIN_BPS", "6.0")
+)
+XAU_DIRECTION_REPAIR_REQUIRE_SMART_GEOMETRY = os.environ.get(
+    "GX1_XAU_DIRECTION_REPAIR_REQUIRE_SMART_GEOMETRY",
+    "1",
+).strip().lower() not in {"0", "false", "no", "off"}
+XAU_DIRECTION_REPAIR_REQUIRED_SIGNAL_FIELDS = (
+    "trend.mtf_confluence_trend_direction_score",
+    "trend.mtf_confluence_trend_tf_conflict",
+    "trend.mtf_confluence_long_trend_bias",
+    "trend.mtf_confluence_short_trend_bias",
+    "chart.structure_swing_mtf_confluence_structure_direction_score",
+    "chart.geometry_support_line_proximity_stack",
+    "chart.geometry_resistance_line_proximity_stack",
+    "chart.geometry_support_minus_resistance_stack",
+    "chart.geometry_channel_edge_pressure",
+    "chart.geometry_channel_position_low_to_high",
+    "chart.geometry_rising_support_rail_long_pressure",
+    "chart.geometry_rising_support_rail_short_trap_pressure",
+    "chart.geometry_falling_resistance_rail_short_pressure",
+    "chart.geometry_falling_resistance_rail_long_trap_pressure",
+)
 HARD_NEG_LONG_MIN_XGB_P_LONG = 0.30
 HARD_NEG_LONG_MIN_MFE_BPS = 10.0
 HARD_NEG_LONG_MIN_MAE_BPS = 6.0
@@ -144,11 +183,281 @@ def final_direction_label_horizon_array(n_rows: int) -> np.ndarray:
 
 
 def direction_label_contract() -> Dict[str, Any]:
-    return {
-        "direction_label_source": "v11_spread_aware_final_pnl_at_direction_horizon",
+    if V12_DIRECTION_TARGET_MODE not in {"v11_final_pnl_h24", "path_utility_v2"}:
+        raise RuntimeError(
+            "GX1_ENTRY_DIRECTION_TARGET_MODE must be one of "
+            f"v11_final_pnl_h24,path_utility_v2; got {V12_DIRECTION_TARGET_MODE!r}"
+        )
+    payload: Dict[str, Any] = {
+        "direction_target_mode": V12_DIRECTION_TARGET_MODE,
+        "direction_label_source": (
+            "v12_spread_aware_path_utility_h24_plus_first10"
+            if V12_DIRECTION_TARGET_MODE == "path_utility_v2"
+            else "v11_spread_aware_final_pnl_at_direction_horizon"
+        ),
         "direction_label_horizon_bars": final_direction_label_horizon_bars(),
         "direction_tradable_pnl_min_bps": float(V11_TRADABLE_PNL_MIN_BPS),
     }
+    if V12_DIRECTION_TARGET_MODE == "path_utility_v2":
+        payload.update(
+            {
+                "direction_utility_formula": (
+                    "pnl_at_h + mfe_weight*mfe_first_n - mae_weight*mae_first_n "
+                    "+ path_weight*(mfe_first_n-mae_first_n)"
+                ),
+                "direction_utility_path_horizon_bars": int(PATH_QUALITY_HORIZON_BARS),
+                "direction_utility_mfe_weight": float(V12_DIRECTION_UTILITY_MFE_WEIGHT),
+                "direction_utility_mae_weight": float(V12_DIRECTION_UTILITY_MAE_WEIGHT),
+                "direction_utility_path_weight": float(V12_DIRECTION_UTILITY_PATH_WEIGHT),
+                "direction_utility_min_bps": float(V12_DIRECTION_UTILITY_MIN_BPS),
+                "direction_utility_min_side_margin_bps": float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS),
+            }
+        )
+    return payload
+
+
+def hierarchical_direction_label_contract() -> Dict[str, Any]:
+    """Document learned direction-repair targets emitted by the XAU dataset.
+
+    These are supervised training/audit labels only. They deliberately do not
+    become live direction rules; live can only use them after a model has learned
+    the relationships and passed the promotion gates.
+    """
+    return {
+        "hierarchical_direction_targets": {
+            "enabled": True,
+            "primary_head": "trade_vs_flat",
+            "conditional_side_head": "long_vs_short_given_trade",
+            "derived_compat_label": "y_direction",
+            "side_order": ["long", "short"],
+            "target_columns": [
+                "y_trade",
+                "y_side",
+                "y_side_mask",
+                "y_long_path_utility_bps",
+                "y_short_path_utility_bps",
+                "y_long_bad_path",
+                "y_short_bad_path",
+                "y_long_expected_mae_bps",
+                "y_short_expected_mae_bps",
+                "y_rising_channel_support_touch",
+                "y_falling_channel_resistance_touch",
+                "y_support_retest_continuation",
+                "y_resistance_retest_continuation",
+                "y_countertrend_short_trap",
+                "y_countertrend_long_trap",
+                "y_mtf_conflict_m5_vs_higher_side",
+                "y_long_high_mae_low_mfe_early_failure",
+                "y_short_high_mae_low_mfe_early_failure",
+            ],
+            "geometry_features_are_asof_closed_bar": True,
+            "structural_utility_repair": {
+                "enabled": True,
+                "anti_short_pockets": [
+                    "y_rising_channel_support_touch",
+                    "y_support_retest_continuation",
+                    "y_countertrend_short_trap",
+                    "y_short_high_mae_low_mfe_early_failure",
+                ],
+                "anti_long_pockets": [
+                    "y_falling_channel_resistance_touch",
+                    "y_resistance_retest_continuation",
+                    "y_countertrend_long_trap",
+                    "y_long_high_mae_low_mfe_early_failure",
+                ],
+                "utility_margin_bps": float(XAU_STRUCTURAL_UTILITY_REPAIR_MARGIN_BPS),
+                "mae_margin_bps": float(XAU_STRUCTURAL_UTILITY_REPAIR_MAE_MARGIN_BPS),
+                "conflict_policy": "abstain_flat_both_sides_bad_negative_utility",
+            },
+            "runtime_rule_free": True,
+        }
+    }
+
+
+def _apply_structural_side_repair(
+    direction_side: np.ndarray,
+    harvest_side: np.ndarray,
+    rising_channel_support_touch: np.ndarray,
+    countertrend_short_trap: np.ndarray,
+    support_retest_continuation: np.ndarray,
+    falling_channel_resistance_touch: np.ndarray,
+    countertrend_long_trap: np.ndarray,
+    resistance_retest_continuation: np.ndarray,
+    short_high_mae_low_mfe_early_failure: Optional[np.ndarray] = None,
+    long_high_mae_low_mfe_early_failure: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, np.ndarray, Dict[str, np.ndarray]]:
+    """Repair supervised side targets in learned trend/channel trap pockets.
+
+    This is target materialization only. It does not create a live direction rule.
+    A rising-support pocket is LONG when support-continuation utility is
+    present, otherwise a SHORT target is repaired to FLAT. A falling-resistance
+    pocket is SHORT when resistance-continuation utility is present, otherwise
+    a LONG target is repaired to FLAT.
+    """
+    direction_side_repaired = np.asarray(direction_side).copy()
+    harvest_side_repaired = np.asarray(harvest_side).copy()
+    rising_support = np.asarray(rising_channel_support_touch, dtype=bool)
+    short_trap = np.asarray(countertrend_short_trap, dtype=bool)
+    support_continue = np.asarray(support_retest_continuation, dtype=bool)
+    falling_resistance = np.asarray(falling_channel_resistance_touch, dtype=bool)
+    long_trap = np.asarray(countertrend_long_trap, dtype=bool)
+    resistance_continue = np.asarray(resistance_retest_continuation, dtype=bool)
+    short_early_fail = (
+        np.zeros_like(rising_support, dtype=bool)
+        if short_high_mae_low_mfe_early_failure is None
+        else np.asarray(short_high_mae_low_mfe_early_failure, dtype=bool)
+    )
+    long_early_fail = (
+        np.zeros_like(falling_resistance, dtype=bool)
+        if long_high_mae_low_mfe_early_failure is None
+        else np.asarray(long_high_mae_low_mfe_early_failure, dtype=bool)
+    )
+
+    rising_support_pocket = rising_support | support_continue | short_trap | short_early_fail
+    falling_resistance_pocket = falling_resistance | resistance_continue | long_trap | long_early_fail
+    conflict = rising_support_pocket & falling_resistance_pocket
+    structural_short_to_long = rising_support_pocket & support_continue & (~conflict)
+    structural_short_to_flat = (
+        rising_support_pocket & (direction_side_repaired == 1) & (~support_continue) & (~conflict)
+    )
+    structural_long_to_short = falling_resistance_pocket & resistance_continue & (~conflict)
+    structural_long_to_flat = (
+        falling_resistance_pocket & (direction_side_repaired == 0) & (~resistance_continue) & (~conflict)
+    )
+
+    direction_side_repaired[structural_short_to_flat] = -1
+    harvest_side_repaired[structural_short_to_flat] = -1
+    direction_side_repaired[structural_short_to_long] = 0
+    harvest_side_repaired[structural_short_to_long] = 0
+    direction_side_repaired[structural_long_to_flat] = -1
+    harvest_side_repaired[structural_long_to_flat] = -1
+    direction_side_repaired[structural_long_to_short] = 1
+    harvest_side_repaired[structural_long_to_short] = 1
+    direction_side_repaired[conflict] = -1
+    harvest_side_repaired[conflict] = -1
+
+    masks = {
+        "short_to_long": structural_short_to_long,
+        "short_to_flat": structural_short_to_flat,
+        "long_to_short": structural_long_to_short,
+        "long_to_flat": structural_long_to_flat,
+        "conflict_to_flat": conflict,
+        "rising_support_pocket": rising_support_pocket,
+        "falling_resistance_pocket": falling_resistance_pocket,
+    }
+    return direction_side_repaired, harvest_side_repaired, masks
+
+
+def _apply_structural_utility_repair(
+    long_path_utility_bps: np.ndarray,
+    short_path_utility_bps: np.ndarray,
+    long_bad_path: np.ndarray,
+    short_bad_path: np.ndarray,
+    long_expected_mae_bps: np.ndarray,
+    short_expected_mae_bps: np.ndarray,
+    anti_short_pocket: np.ndarray,
+    anti_long_pocket: np.ndarray,
+    *,
+    utility_margin_bps: float = XAU_STRUCTURAL_UTILITY_REPAIR_MARGIN_BPS,
+    mae_margin_bps: float = XAU_STRUCTURAL_UTILITY_REPAIR_MAE_MARGIN_BPS,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, np.ndarray]]:
+    """Repair side-specific utility targets for structural wrong-side pockets.
+
+    Direction repair alone is not enough: if a rising-support row is relabeled
+    away from SHORT but the side-utility target still says SHORT is less bad,
+    the expected-utility selector will learn the wrong side. This remains a
+    supervised target repair, not a runtime side rule.
+    """
+    long_util = np.asarray(long_path_utility_bps, dtype=np.float32).copy()
+    short_util = np.asarray(short_path_utility_bps, dtype=np.float32).copy()
+    long_bad = np.asarray(long_bad_path, dtype=np.float32).copy()
+    short_bad = np.asarray(short_bad_path, dtype=np.float32).copy()
+    long_mae = np.asarray(long_expected_mae_bps, dtype=np.float32).copy()
+    short_mae = np.asarray(short_expected_mae_bps, dtype=np.float32).copy()
+
+    anti_short = np.asarray(anti_short_pocket, dtype=bool)
+    anti_long = np.asarray(anti_long_pocket, dtype=bool)
+    conflict = anti_short & anti_long
+    anti_short_only = anti_short & (~conflict)
+    anti_long_only = anti_long & (~conflict)
+    util_margin = max(0.0, float(utility_margin_bps))
+    mae_margin = max(0.0, float(mae_margin_bps))
+
+    if np.any(anti_short_only):
+        short_util[anti_short_only] = np.minimum(
+            short_util[anti_short_only],
+            long_util[anti_short_only] - util_margin,
+        )
+        short_bad[anti_short_only] = np.maximum(short_bad[anti_short_only], 1.0)
+        short_mae[anti_short_only] = np.maximum(
+            short_mae[anti_short_only],
+            long_mae[anti_short_only] + mae_margin,
+        )
+    if np.any(anti_long_only):
+        long_util[anti_long_only] = np.minimum(
+            long_util[anti_long_only],
+            short_util[anti_long_only] - util_margin,
+        )
+        long_bad[anti_long_only] = np.maximum(long_bad[anti_long_only], 1.0)
+        long_mae[anti_long_only] = np.maximum(
+            long_mae[anti_long_only],
+            short_mae[anti_long_only] + mae_margin,
+        )
+    if np.any(conflict):
+        conflict_floor = np.minimum(np.minimum(long_util[conflict], short_util[conflict]), 0.0) - util_margin
+        long_util[conflict] = np.minimum(long_util[conflict], conflict_floor)
+        short_util[conflict] = np.minimum(short_util[conflict], conflict_floor)
+        long_bad[conflict] = np.maximum(long_bad[conflict], 1.0)
+        short_bad[conflict] = np.maximum(short_bad[conflict], 1.0)
+        conflict_mae = np.maximum(long_mae[conflict], short_mae[conflict]) + mae_margin
+        long_mae[conflict] = np.maximum(long_mae[conflict], conflict_mae)
+        short_mae[conflict] = np.maximum(short_mae[conflict], conflict_mae)
+
+    masks = {
+        "anti_short_only": anti_short_only,
+        "anti_long_only": anti_long_only,
+        "conflict": conflict,
+        "short_utility_repaired": anti_short_only
+        & (short_util <= (np.asarray(short_path_utility_bps, dtype=np.float32) - 1e-6)),
+        "long_utility_repaired": anti_long_only
+        & (long_util <= (np.asarray(long_path_utility_bps, dtype=np.float32) - 1e-6)),
+        "conflict_utility_suppressed": conflict
+        & (long_bad >= 1.0)
+        & (short_bad >= 1.0)
+        & (long_util <= 0.0)
+        & (short_util <= 0.0),
+    }
+    return long_util, short_util, long_bad, short_bad, long_mae, short_mae, masks
+
+
+def _repaired_scalar_bad_path_target(
+    quality_side: np.ndarray,
+    long_bad_path: np.ndarray,
+    short_bad_path: np.ndarray,
+) -> np.ndarray:
+    side = np.asarray(quality_side)
+    long_bad = np.asarray(long_bad_path, dtype=np.float32)
+    short_bad = np.asarray(short_bad_path, dtype=np.float32)
+    out = np.zeros_like(long_bad, dtype=np.float32)
+    out[side == 0] = long_bad[side == 0]
+    out[side == 1] = short_bad[side == 1]
+    return np.clip(out, 0.0, 1.0).astype(np.float32)
+
+
+def _position_size_target_from_repaired_path(
+    mfe_first_n_bps: np.ndarray,
+    mae_first_n_bps: np.ndarray,
+    atr_bps: np.ndarray,
+    trade_mask: np.ndarray,
+) -> np.ndarray:
+    atr = np.maximum(np.asarray(atr_bps, dtype=np.float32), 1e-3)
+    signed_edge_atr = (
+        np.asarray(mfe_first_n_bps, dtype=np.float32) + np.asarray(mae_first_n_bps, dtype=np.float32)
+    ) / (atr * 2.0)
+    out = (1.0 / (1.0 + np.exp(-signed_edge_atr))).astype(np.float32)
+    out[np.asarray(trade_mask, dtype=np.float32) <= 0.5] = 0.5
+    return out
+
 
 # Active teacher runs used by the builder.
 ACTIVE_V12_STRONG_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_STRONG_20250512_20260408")
@@ -466,14 +775,23 @@ def _join_seq_structure_extension(
     if "time" not in ext.columns:
         raise RuntimeError(f"SEQ_STRUCTURE_TIME_COL_MISSING: {parquet_path}")
     ext = _normalize_time_utc(ext.reset_index(drop=True), "time")
-    ext = ext.drop_duplicates(subset=["time"], keep="last")
+    duplicate_times = int(ext["time"].duplicated().sum())
+    if duplicate_times:
+        raise RuntimeError(f"SEQ_STRUCTURE_DUPLICATE_TIME_ROWS: {duplicate_times} path={parquet_path}")
 
-    if requested_features:
-        features = list(requested_features)
-    else:
-        features = [c for c in ext.columns if c not in {"time", "session", "source_split"}]
+    if not requested_features:
+        raise RuntimeError("SEQ_STRUCTURE_EXPLICIT_SELECTED_FEATURES_REQUIRED")
+    features = list(requested_features)
     if not features:
         raise RuntimeError("SEQ_STRUCTURE_FEATURES_EMPTY")
+    forbidden_tokens = ("y_", "future", "target", "label", "pnl", "mfe", "mae", "reward")
+    forbidden = [
+        f
+        for f in features
+        if str(f).startswith("y_") or any(token in str(f).lower() for token in forbidden_tokens[1:])
+    ]
+    if forbidden:
+        raise RuntimeError(f"SEQ_STRUCTURE_FORBIDDEN_FEATURE_NAMES: {forbidden[:30]} total={len(forbidden)}")
     missing = [f for f in features if f not in ext.columns]
     if missing:
         raise RuntimeError(f"SEQ_STRUCTURE_FEATURES_MISSING_IN_PARQUET: {missing[:30]} total={len(missing)}")
@@ -650,6 +968,9 @@ def _build_inline_seq_structure_extension(
         candle_smart_x, candle_smart_names = build_entry_candlestick_pattern_layer(aligned)
         return candle_smart_x.astype(np.float32, copy=False), list(candle_smart_names)
 
+    def _build_chart_geometry_smart_layer_strict(all_x: np.ndarray, all_names: List[str]) -> Tuple[np.ndarray, List[str]]:
+        return build_entry_chart_geometry_layer(all_x, all_names, strict_sources=True)
+
     smart_builders = {
         "trend_ema_smart_layer": build_entry_trend_ema_layer,
         "smc_liquidity_quality_layer": build_entry_smc_liquidity_quality_layer,
@@ -657,7 +978,7 @@ def _build_inline_seq_structure_extension(
         "momentum_flow_smart_layer": build_entry_momentum_flow_layer,
         "session_regime_interaction_layer": build_entry_session_regime_interaction_layer,
         "vol_compression_smart_layer": build_entry_vol_compression_layer,
-        "chart_geometry_smart2_layer": build_entry_chart_geometry_layer,
+        "chart_geometry_smart2_layer": _build_chart_geometry_smart_layer_strict,
         "price_action_candle_smart3_layer": _build_candlestick_smart_layer_from_source,
         "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
         "mtf_confluence_layer": build_entry_mtf_confluence_layer,
@@ -1375,6 +1696,52 @@ def write_manifest(
 
     log.info(f"MANIFEST WRITTEN: {manifest_path}")
     return manifest_path
+
+
+def _smart520_state_contract(
+    *,
+    args: argparse.Namespace,
+    model_range_start: pd.Timestamp,
+    reference_split_start: pd.Timestamp,
+    reference_end: pd.Timestamp,
+) -> Dict[str, Any]:
+    raw_npz = str(getattr(args, "smart520_rank_reference_npz", "") or "").strip()
+    if not raw_npz:
+        return {}
+    npz_path = Path(raw_npz).expanduser().resolve()
+    if not npz_path.is_file():
+        raise RuntimeError(f"SMART520_RANK_REFERENCE_MISSING: {npz_path}")
+    sidecar_path = npz_path.with_suffix(npz_path.suffix + ".json")
+    sidecar: Dict[str, Any] = {}
+    if sidecar_path.is_file():
+        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    npz_sha = _sha256_file(npz_path)
+    if sidecar and str(sidecar.get("out_npz_sha256") or "").strip().lower() != npz_sha:
+        raise RuntimeError(
+            "SMART520_RANK_REFERENCE_SHA_MISMATCH: "
+            f"sidecar={sidecar.get('out_npz_sha256')!r} actual={npz_sha} path={npz_path}"
+        )
+    if reference_split_start > reference_end:
+        raise RuntimeError(
+            "SMART520_STATE_CONTRACT_INVALID: frame anchor must be within rank reference window "
+            f"({reference_split_start} > {reference_end})"
+        )
+    return {
+        "schema_version": "smart520_state_contract_v1",
+        "source": "entry_v10_ctx_dataset_manifest",
+        "frame_anchor_utc": str(reference_split_start),
+        "model_range_start_utc": str(model_range_start),
+        "rank_reference_end_utc": str(reference_end),
+        "rank_reference_npz": str(npz_path),
+        "rank_reference_npz_sha256": npz_sha,
+        "rank_reference_sidecar_json": str(sidecar_path),
+        "rank_reference_row_count": int(sidecar.get("row_count") or 0),
+        "rank_reference_time_min": str(sidecar.get("time_min") or ""),
+        "rank_reference_time_max": str(sidecar.get("time_max") or ""),
+        "rank_reference_source_parquet_sha256": str(sidecar.get("source_parquet_sha256") or ""),
+        "time_split_reference_split": "test",
+        "runtime_rule_free": True,
+    }
 
 
 # -----------------------------------------------------------------------------
@@ -2527,38 +2894,9 @@ def build_dataset_canonical(
                         float(np.percentile(y_hold_horizon, 50)),
                     )
 
-    # V10 v3+ TARGET 3: position-size target ∈ [0,1].
-    # Proxy: realized signed edge in ATR units, sigmoid-mapped.
-    # target = sigmoid((mfe + mae) / (atr * 2))
-    #   +2 ATR winner → ~0.88  (model should learn "bigger size here")
-    #   -2 ATR loser  → ~0.12  ("smaller size here")
-    #     0 (flat)    → 0.5    (neutral default)
-    # Non-tradable rows get neutral 0.5 so they don't pull head astray.
-    # Live runner maps prediction to {0.25, 0.5, 1.0, 2.0}× units.
-    # Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 3.
-    try:
-        atr_col = "atr_bps" if "atr_bps" in merged3.columns else None
-        if atr_col is None:
-            raise RuntimeError("atr_bps column missing — cannot compute position-size target")
-        atr_arr = np.maximum(merged3[atr_col].astype(np.float32).to_numpy(), 1e-3)
-        signed_edge_atr = (y_mfe_first_n + y_mae_first_n) / (atr_arr * 2.0)
-        y_position_size = (1.0 / (1.0 + np.exp(-signed_edge_atr))).astype(np.float32)
-        # Non-tradable rows → neutral 0.5
-        try:
-            non_tradable_mask = merged3["y_tradable"].astype(np.float32).to_numpy() <= 0.5
-            y_position_size[non_tradable_mask] = 0.5
-        except KeyError:
-            pass
-        log.info(
-            "[V3_POSITION_SIZE] computed n=%d  mean=%.3f  p10=%.3f  p50=%.3f  p90=%.3f",
-            len(y_position_size), float(y_position_size.mean()),
-            float(np.percentile(y_position_size, 10)),
-            float(np.percentile(y_position_size, 50)),
-            float(np.percentile(y_position_size, 90)),
-        )
-    except Exception as exc:
-        log.warning(f"[V3_POSITION_SIZE] compute failed ({exc}) — filling with neutral 0.5")
-        y_position_size = np.full(len(merged3), 0.5, dtype=np.float32)
+    # Position-size depends on final MFE/MAE and tradable side, so the real
+    # target is materialized after structural side repair below.
+    y_position_size = np.full(len(merged3), 0.5, dtype=np.float32)
 
     # ── Relabel rules REMOVED 2026-05-26 (one truth, smart-AI) ───────────────
     # The 4 hand-tuned FLAT-relabel patches (POISON_SHORT / GROUP_B /
@@ -2615,12 +2953,47 @@ def build_dataset_canonical(
     _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
     _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
 
-    _tradable_long = (_pnl_long_at_h >= V11_TRADABLE_PNL_MIN_BPS)
-    _tradable_short = (_pnl_short_at_h >= V11_TRADABLE_PNL_MIN_BPS)
+    _target_mode = V12_DIRECTION_TARGET_MODE
+    if _target_mode == "v11_final_pnl_h24":
+        _side_score_long = _pnl_long_at_h.astype(np.float32)
+        _side_score_short = _pnl_short_at_h.astype(np.float32)
+        _tradable_long = (_side_score_long >= V11_TRADABLE_PNL_MIN_BPS)
+        _tradable_short = (_side_score_short >= V11_TRADABLE_PNL_MIN_BPS)
+    elif _target_mode == "path_utility_v2":
+        # Learned target engineering, not a live rule: labels are chosen by future
+        # side utility so the model can learn to avoid directions with poor MFE/MAE
+        # path even when a fixed final-H24 mark would look acceptable.
+        _side_score_long = (
+            _pnl_long_at_h
+            + (float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * _mfe_long)
+            - (float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * _mae_long)
+            + (float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * _path_long)
+        ).astype(np.float32)
+        _side_score_short = (
+            _pnl_short_at_h
+            + (float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * _mfe_short)
+            - (float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * _mae_short)
+            + (float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * _path_short)
+        ).astype(np.float32)
+        _side_score_long = np.nan_to_num(_side_score_long, nan=-1e9, posinf=1e9, neginf=-1e9)
+        _side_score_short = np.nan_to_num(_side_score_short, nan=-1e9, posinf=1e9, neginf=-1e9)
+        _side_margin = (_side_score_long - _side_score_short).astype(np.float32)
+        _tradable_long = (
+            (_side_score_long >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+            & (_side_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+        )
+        _tradable_short = (
+            (_side_score_short >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+            & ((-_side_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+        )
+    else:
+        raise RuntimeError(f"unsupported direction target mode: {_target_mode!r}")
     if CANONICAL_PREMIUM_LONG_ONLY:
         _tradable_short = np.zeros_like(_tradable_short, dtype=bool)
 
-    # V11 side selection: pick whichever side ends MORE profitable.
+    # Side selection: pick whichever side has the better target score. In the
+    # legacy V11 mode score == final H24 PnL; in path_utility_v2 it is the
+    # path-aware utility above.
     _side = np.full(len(merged3), -1, dtype=np.int8)  # -1 none, 0 long, 1 short
     _only_long = _tradable_long & ~_tradable_short
     _only_short = _tradable_short & ~_tradable_long
@@ -2628,8 +3001,8 @@ def build_dataset_canonical(
     _side[_only_long] = 0
     _side[_only_short] = 1
     if _both.any():
-        _prefer_long = _pnl_long_at_h >= _pnl_short_at_h
-        _prefer_short = _pnl_short_at_h > _pnl_long_at_h
+        _prefer_long = _side_score_long >= _side_score_short
+        _prefer_short = _side_score_short > _side_score_long
         _side[_both & _prefer_long] = 0
         _side[_both & _prefer_short] = 1
 
@@ -2664,24 +3037,35 @@ def build_dataset_canonical(
     _harvest_side[_teacher_winner_long] = 0
 
     # Hard-negative longs:
-    # XGB points long, but forward path is too weak / too adverse to be premium.
-    # These rows are the important "say no" examples for the anchored residual model.
+    # In legacy bridge mode, this starts from XGB side-confidence. In smart neutral
+    # bridge mode, XGB is not a side teacher; every row is eligible and the path
+    # utility/MAE/MFE labels decide whether the side is a bad example.
     _p_long = merged3["p_long"].astype(np.float32).to_numpy()
     _p_short = merged3["p_short"].astype(np.float32).to_numpy()
     _p_flat = merged3["p_flat"].astype(np.float32).to_numpy()
-    _xgb_long_candidate = (
-        (_p_long >= float(HARD_NEG_LONG_MIN_XGB_P_LONG))
-        & (_p_long >= _p_short)
-        & (_p_long >= _p_flat)
-    )
+    _bridge_candidate_source = "neutral_bridge_all_rows" if neutral_xgb_bridge else "xgb_bridge_side_confidence"
+    if neutral_xgb_bridge:
+        _long_bridge_candidate = np.ones(len(merged3), dtype=bool)
+        _short_bridge_candidate = np.ones(len(merged3), dtype=bool)
+    else:
+        _long_bridge_candidate = (
+            (_p_long >= float(HARD_NEG_LONG_MIN_XGB_P_LONG))
+            & (_p_long >= _p_short)
+            & (_p_long >= _p_flat)
+        )
+        _short_bridge_candidate = (
+            (_p_short >= float(HARD_NEG_LONG_MIN_XGB_P_LONG))
+            & (_p_short >= _p_long)
+            & (_p_short >= _p_flat)
+        )
     _dead_negative_long = (
-        _xgb_long_candidate
+        _long_bridge_candidate
         & (_side != 0)
         & (_mfe_long <= float(DEAD_LONG_MAX_MFE_BPS))
         & (_mae_long >= float(DEAD_LONG_MIN_MAE_BPS))
     )
     _teaser_negative_long = (
-        _xgb_long_candidate
+        _long_bridge_candidate
         & (_side != 0)
         & (_mfe_long > float(TEASER_LONG_MIN_MFE_BPS))
         & (_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS))
@@ -2692,7 +3076,7 @@ def build_dataset_canonical(
         )
     )
     _hard_negative_long = (
-        _xgb_long_candidate
+        _long_bridge_candidate
         & (_side != 0)
         & ~_dead_negative_long
         & ~_teaser_negative_long
@@ -2733,7 +3117,7 @@ def build_dataset_canonical(
     y_teacher_bad_long = _teacher_bad_long.astype(np.float32)
     y_teacher_winner_long = _teacher_winner_long.astype(np.float32)
     y_selector_long_mask = (
-        _xgb_long_candidate
+        _long_bridge_candidate
         | (_direction_side == 0)
         | _teacher_known_long
     ).astype(np.float32)
@@ -2741,22 +3125,17 @@ def build_dataset_canonical(
     # ------------------------------------------------------------------------
     # V2: SHORT-side auxiliary labels (mirror of LONG-side for BIDIR symmetry)
     # ------------------------------------------------------------------------
-    # Same threshold-based logic as long-side, applied to mfe_short / mae_short / path_short.
+    # Same bridge-candidate logic as long-side, applied to mfe_short / mae_short / path_short.
     # These feed V10's auxiliary heads (head_bad_path / head_clean_edge / head_survival)
     # symmetrically — without these, short-side rows would only have direction-supervision.
-    _xgb_short_candidate = (
-        (_p_short >= float(HARD_NEG_LONG_MIN_XGB_P_LONG))  # same threshold (interpret as side-confidence)
-        & (_p_short >= _p_long)
-        & (_p_short >= _p_flat)
-    )
     _dead_negative_short = (
-        _xgb_short_candidate
+        _short_bridge_candidate
         & (_side != 1)
         & (_mfe_short <= float(DEAD_LONG_MAX_MFE_BPS))
         & (_mae_short >= float(DEAD_LONG_MIN_MAE_BPS))
     )
     _teaser_negative_short = (
-        _xgb_short_candidate
+        _short_bridge_candidate
         & (_side != 1)
         & (_mfe_short > float(TEASER_LONG_MIN_MFE_BPS))
         & (_mfe_short <= float(TEASER_LONG_MAX_MFE_BPS))
@@ -2767,7 +3146,7 @@ def build_dataset_canonical(
         )
     )
     _hard_negative_short = (
-        _xgb_short_candidate
+        _short_bridge_candidate
         & (_side != 1)
         & ~_dead_negative_short
         & ~_teaser_negative_short
@@ -2801,7 +3180,7 @@ def build_dataset_canonical(
     )
     y_survival_short = _survival_short_intrinsic.astype(np.float32)
     y_selector_short_mask = (
-        _xgb_short_candidate
+        _short_bridge_candidate
         | (_direction_side == 1)
     ).astype(np.float32)
 
@@ -2815,7 +3194,9 @@ def build_dataset_canonical(
     # y_bad_path is already direction-aware via merged3["y_bad_path"] (computed earlier from
     # bad_path_long when y_dir==0, bad_path_short when y_dir==1, else 0). No change needed.
 
-    # Final tradability / quality targets
+    # Provisional tradability / quality targets. Structural pocket labels below
+    # may repair countertrend trap rows to FLAT/LONG/SHORT and then recompute
+    # these targets before emission.
     y_tradable = (_harvest_side != -1).astype(np.int32)
     y_dir = np.full(len(merged3), 2, dtype=np.int32)
     y_dir[_direction_side == 0] = 0
@@ -2845,14 +3226,312 @@ def build_dataset_canonical(
     y_qual = np.zeros_like(y_qual)
     y_qual[_quality_side != -1] = np.maximum(0.0, y_path_quality[_quality_side != -1]).astype(np.float32)
 
+    if V12_DIRECTION_TARGET_MODE == "path_utility_v2" and XAU_DIRECTION_REPAIR_REQUIRE_SMART_GEOMETRY:
+        missing_xau_repair_fields = [
+            name for name in XAU_DIRECTION_REPAIR_REQUIRED_SIGNAL_FIELDS if name not in signal_fields_emitted
+        ]
+        seq_mode = str(seq_structure_meta.get("mode") or "")
+        if missing_xau_repair_fields:
+            raise RuntimeError(
+                "XAU_DIRECTION_REPAIR_SIGNAL_FIELDS_MISSING: "
+                f"{missing_xau_repair_fields}; rebuild with smart_seq520 manifest and "
+                "--seq-structure-compute-inline"
+            )
+        if seq_mode and seq_mode != "inline_from_merged3":
+            raise RuntimeError(
+                "XAU_DIRECTION_REPAIR_REQUIRES_INLINE_SEQ_STRUCTURE: "
+                f"got mode={seq_mode!r}; precomputed seq-structure parquet can carry stale geometry"
+            )
+
+    def _sig_col(names: Sequence[str], default: float = 0.0) -> np.ndarray:
+        for name in names:
+            if name in signal_fields_emitted:
+                idx = int(signal_fields_emitted.index(name))
+                return sig_mat[:, idx].astype(np.float32, copy=False)
+        return np.full(len(merged3), float(default), dtype=np.float32)
+
+    _trend_score = _sig_col(
+        [
+            "trend.mtf_confluence_trend_direction_score",
+            "trend.ema_stack_alignment_score",
+        ]
+    )
+    _trend_conflict = _sig_col(["trend.mtf_confluence_trend_tf_conflict"])
+    _long_trend_bias = _sig_col(["trend.mtf_confluence_long_trend_bias"])
+    _short_trend_bias = _sig_col(["trend.mtf_confluence_short_trend_bias"])
+    _structure_dir = _sig_col(["chart.structure_swing_mtf_confluence_structure_direction_score"])
+    _support_prox = np.maximum.reduce(
+        [
+            _sig_col(["chart.geometry_support_line_proximity_stack"]),
+            _sig_col(["chart.sr_memory_support_level_proximity_stack"]),
+            _sig_col(["chart.sr_memory_support_respect_pressure_long"]),
+            _sig_col(["chart.sr_memory_support_reclaim_pressure_long"]),
+        ]
+    )
+    _resistance_prox = np.maximum.reduce(
+        [
+            _sig_col(["chart.geometry_resistance_line_proximity_stack"]),
+            _sig_col(["chart.sr_memory_resistance_level_proximity_stack"]),
+            _sig_col(["chart.sr_memory_resistance_respect_pressure_short"]),
+            _sig_col(["chart.sr_memory_resistance_reclaim_pressure_short"]),
+        ]
+    )
+    _channel_edge = _sig_col(["chart.geometry_channel_edge_pressure"])
+    _channel_pos = _sig_col(["chart.geometry_channel_position_low_to_high"], default=0.5)
+    _support_respect = np.maximum(
+        _sig_col(["chart.sr_memory_support_respect_pressure_long"]),
+        _sig_col(["chart.sr_memory_liquidity_low_level_rejection_long"]),
+    )
+    _resistance_respect = np.maximum(
+        _sig_col(["chart.sr_memory_resistance_respect_pressure_short"]),
+        _sig_col(["chart.sr_memory_liquidity_high_level_rejection_short"]),
+    )
+    _geom_long_prox = _sig_col(["chart.geometry_mtf_confluence_fib_sr_long_proximity"])
+    _geom_short_prox = _sig_col(["chart.geometry_mtf_confluence_fib_sr_short_proximity"])
+
+    _intraday_up = (
+        (_trend_score >= 0.0)
+        & (_long_trend_bias >= _short_trend_bias)
+        & (_structure_dir >= -0.10)
+    )
+    _intraday_down = (
+        (_trend_score <= 0.0)
+        & (_short_trend_bias >= _long_trend_bias)
+        & (_structure_dir <= 0.10)
+    )
+    _rising_support = (
+        _intraday_up
+        & (_support_prox >= 0.35)
+        & (_support_prox >= _resistance_prox)
+        & ((_channel_edge >= 0.15) | (_channel_pos <= 0.42) | (_support_respect >= 0.35) | (_geom_long_prox >= 0.35))
+    )
+    _falling_resistance = (
+        _intraday_down
+        & (_resistance_prox >= 0.35)
+        & (_resistance_prox >= _support_prox)
+        & ((_channel_edge >= 0.15) | (_channel_pos >= 0.58) | (_resistance_respect >= 0.35) | (_geom_short_prox >= 0.35))
+    )
+
+    _side_margin_bps = np.maximum(1.0, float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+    _long_high_mae_low_mfe = (
+        (_mae_long >= float(HARD_NEG_LONG_MIN_MAE_BPS))
+        & ((_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS)) | (_path_long <= float(HARD_NEG_LONG_MAX_PATH_BPS)))
+    )
+    _short_high_mae_low_mfe = (
+        (_mae_short >= float(HARD_NEG_LONG_MIN_MAE_BPS))
+        & ((_mfe_short <= float(TEASER_LONG_MAX_MFE_BPS)) | (_path_short <= float(HARD_NEG_LONG_MAX_PATH_BPS)))
+    )
+    _support_retest_continuation = (
+        _rising_support
+        & (_side_score_long >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+        & ((_side_score_long - _side_score_short) >= _side_margin_bps)
+        & (~_bad_path_long)
+    )
+    _resistance_retest_continuation = (
+        _falling_resistance
+        & (_side_score_short >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+        & ((_side_score_short - _side_score_long) >= _side_margin_bps)
+        & (~_bad_path_short)
+    )
+    _countertrend_short_trap = (
+        _rising_support
+        & (
+            _bad_path_short
+            | _short_high_mae_low_mfe
+            | ((_side_score_long - _side_score_short) >= _side_margin_bps)
+            | (_direction_side == 0)
+        )
+    )
+    _countertrend_long_trap = (
+        _falling_resistance
+        & (
+            _bad_path_long
+            | _long_high_mae_low_mfe
+            | ((_side_score_short - _side_score_long) >= _side_margin_bps)
+            | (_direction_side == 1)
+        )
+    )
+    _mtf_conflict_m5_vs_higher = (
+        (_trend_conflict >= 0.45)
+        | ((_trend_score > 0.15) & (_short_trend_bias > _long_trend_bias))
+        | ((_trend_score < -0.15) & (_long_trend_bias > _short_trend_bias))
+    )
+
+    _direction_side, _harvest_side, _structural_repair_masks = _apply_structural_side_repair(
+        _direction_side,
+        _harvest_side,
+        _rising_support,
+        _countertrend_short_trap,
+        _support_retest_continuation,
+        _falling_resistance,
+        _countertrend_long_trap,
+        _resistance_retest_continuation,
+        _short_high_mae_low_mfe,
+        _long_high_mae_low_mfe,
+    )
+    _structural_short_to_long = _structural_repair_masks["short_to_long"]
+    _structural_short_to_flat = _structural_repair_masks["short_to_flat"]
+    _structural_long_to_short = _structural_repair_masks["long_to_short"]
+    _structural_long_to_flat = _structural_repair_masks["long_to_flat"]
+
+    # Recompute trade/side and quality targets after structural side repair. A
+    # rising-support pockets should train as LONG when continuation utility is
+    # strong, otherwise FLAT/no-trade for would-be shorts; never as SHORT.
+    y_tradable = (_harvest_side != -1).astype(np.int32)
+    y_dir = np.full(len(merged3), 2, dtype=np.int32)
+    y_dir[_direction_side == 0] = 0
+    y_dir[_direction_side == 1] = 1
+    _quality_side = _harvest_side.copy()
+    y_mfe_first_n = np.zeros_like(y_mfe_first_n)
+    y_mae_first_n = np.zeros_like(y_mae_first_n)
+    y_path_quality = np.zeros_like(y_path_quality)
+    y_mfe_first_n[_quality_side == 0] = _mfe_long[_quality_side == 0]
+    y_mfe_first_n[_quality_side == 1] = _mfe_short[_quality_side == 1]
+    y_mae_first_n[_quality_side == 0] = _mae_long[_quality_side == 0]
+    y_mae_first_n[_quality_side == 1] = _mae_short[_quality_side == 1]
+    y_path_quality[_quality_side == 0] = _path_long[_quality_side == 0]
+    y_path_quality[_quality_side == 1] = _path_short[_quality_side == 1]
+    y_early = np.zeros_like(y_early)
+    y_early[_quality_side != -1] = (
+        y_mfe_first_n[_quality_side != -1] >= float(early_move_threshold_bps)
+    ).astype(np.float32)
+    y_qual = np.zeros_like(y_qual)
+    y_qual[_quality_side != -1] = np.maximum(0.0, y_path_quality[_quality_side != -1]).astype(np.float32)
+
+    y_trade = y_tradable.astype(np.float32)
+    y_side = np.where(y_dir == 1, 1, 0).astype(np.int8)
+    y_side_mask = y_trade.astype(np.float32)
+    y_long_path_utility_bps = _side_score_long.astype(np.float32)
+    y_short_path_utility_bps = _side_score_short.astype(np.float32)
+    y_long_bad_path = _bad_path_long.astype(np.float32)
+    y_short_bad_path = _bad_path_short.astype(np.float32)
+    y_long_expected_mae_bps = _mae_long.astype(np.float32)
+    y_short_expected_mae_bps = _mae_short.astype(np.float32)
+    _anti_short_utility_pocket = (
+        _rising_support
+        | _support_retest_continuation
+        | _countertrend_short_trap
+        | _short_high_mae_low_mfe
+    )
+    _anti_long_utility_pocket = (
+        _falling_resistance
+        | _resistance_retest_continuation
+        | _countertrend_long_trap
+        | _long_high_mae_low_mfe
+    )
+    (
+        y_long_path_utility_bps,
+        y_short_path_utility_bps,
+        y_long_bad_path,
+        y_short_bad_path,
+        y_long_expected_mae_bps,
+        y_short_expected_mae_bps,
+        _structural_utility_repair_masks,
+    ) = _apply_structural_utility_repair(
+        y_long_path_utility_bps,
+        y_short_path_utility_bps,
+        y_long_bad_path,
+        y_short_bad_path,
+        y_long_expected_mae_bps,
+        y_short_expected_mae_bps,
+        _anti_short_utility_pocket,
+        _anti_long_utility_pocket,
+    )
+    _anti_short_only = _anti_short_utility_pocket & (~_anti_long_utility_pocket)
+    _anti_long_only = _anti_long_utility_pocket & (~_anti_short_utility_pocket)
+    _conflict_utility_pocket = _anti_short_utility_pocket & _anti_long_utility_pocket
+    if np.any(_anti_short_only | _conflict_utility_pocket):
+        _mask = _anti_short_only | _conflict_utility_pocket
+        y_clean_edge_short[_mask] = 0.0
+        y_survival_short[_mask] = 0.0
+        y_selector_short_mask[_mask] = 0.0
+    if np.any(_anti_long_only | _conflict_utility_pocket):
+        _mask = _anti_long_only | _conflict_utility_pocket
+        y_clean_edge_long[_mask] = 0.0
+        y_survival_long[_mask] = 0.0
+        y_selector_long_mask[_mask] = 0.0
+    y_clean_edge_bidir = np.maximum(y_clean_edge_long, y_clean_edge_short).astype(np.float32)
+    y_survival_bidir = np.maximum(y_survival_long, y_survival_short).astype(np.float32)
+    y_bad_path = _repaired_scalar_bad_path_target(_quality_side, y_long_bad_path, y_short_bad_path)
+    try:
+        atr_col = "atr_bps" if "atr_bps" in merged3.columns else None
+        if atr_col is None:
+            raise RuntimeError("atr_bps column missing — cannot compute position-size target")
+        y_position_size = _position_size_target_from_repaired_path(
+            y_mfe_first_n,
+            y_mae_first_n,
+            merged3[atr_col].astype(np.float32).to_numpy(),
+            y_trade,
+        )
+        log.info(
+            "[V3_POSITION_SIZE] source=post_structural_side_repair n=%d mean=%.3f p10=%.3f p50=%.3f p90=%.3f",
+            len(y_position_size),
+            float(y_position_size.mean()),
+            float(np.percentile(y_position_size, 10)),
+            float(np.percentile(y_position_size, 50)),
+            float(np.percentile(y_position_size, 90)),
+        )
+    except Exception as exc:
+        log.warning(f"[V3_POSITION_SIZE] post-repair compute failed ({exc}) — filling with neutral 0.5")
+        y_position_size = np.full(len(merged3), 0.5, dtype=np.float32)
+    y_rising_channel_support_touch = _rising_support.astype(np.float32)
+    y_falling_channel_resistance_touch = _falling_resistance.astype(np.float32)
+    y_support_retest_continuation = _support_retest_continuation.astype(np.float32)
+    y_resistance_retest_continuation = _resistance_retest_continuation.astype(np.float32)
+    y_countertrend_short_trap = _countertrend_short_trap.astype(np.float32)
+    y_countertrend_long_trap = _countertrend_long_trap.astype(np.float32)
+    y_mtf_conflict_m5_vs_higher_side = _mtf_conflict_m5_vs_higher.astype(np.float32)
+    y_long_high_mae_low_mfe_early_failure = _long_high_mae_low_mfe.astype(np.float32)
+    y_short_high_mae_low_mfe_early_failure = _short_high_mae_low_mfe.astype(np.float32)
+
+    log.info(
+        "[ENTRY_HIER_LABEL_PROOF] trade=%.4f side_mask=%.4f rising_support=%.4f falling_resistance=%.4f "
+        "countertrend_short_trap=%.4f countertrend_long_trap=%.4f mtf_conflict=%.4f",
+        float(np.mean(y_trade)),
+        float(np.mean(y_side_mask)),
+        float(np.mean(y_rising_channel_support_touch)),
+        float(np.mean(y_falling_channel_resistance_touch)),
+        float(np.mean(y_countertrend_short_trap)),
+        float(np.mean(y_countertrend_long_trap)),
+        float(np.mean(y_mtf_conflict_m5_vs_higher_side)),
+    )
+    log.info(
+        "[ENTRY_STRUCTURAL_SIDE_REPAIR] short_to_long=%.4f short_to_flat=%.4f "
+        "long_to_short=%.4f long_to_flat=%.4f",
+        float(np.mean(_structural_short_to_long)) if len(_structural_short_to_long) else 0.0,
+        float(np.mean(_structural_short_to_flat)) if len(_structural_short_to_flat) else 0.0,
+        float(np.mean(_structural_long_to_short)) if len(_structural_long_to_short) else 0.0,
+        float(np.mean(_structural_long_to_flat)) if len(_structural_long_to_flat) else 0.0,
+    )
+    log.info(
+        "[ENTRY_STRUCTURAL_UTILITY_REPAIR] anti_short=%.4f anti_long=%.4f conflict=%.4f "
+        "short_utility_repaired=%.4f long_utility_repaired=%.4f margin_bps=%.2f mae_margin_bps=%.2f",
+        float(np.mean(_structural_utility_repair_masks["anti_short_only"]))
+        if len(y_dir)
+        else 0.0,
+        float(np.mean(_structural_utility_repair_masks["anti_long_only"]))
+        if len(y_dir)
+        else 0.0,
+        float(np.mean(_structural_utility_repair_masks["conflict"])) if len(y_dir) else 0.0,
+        float(np.mean(_structural_utility_repair_masks["short_utility_repaired"]))
+        if len(y_dir)
+        else 0.0,
+        float(np.mean(_structural_utility_repair_masks["long_utility_repaired"]))
+        if len(y_dir)
+        else 0.0,
+        float(XAU_STRUCTURAL_UTILITY_REPAIR_MARGIN_BPS),
+        float(XAU_STRUCTURAL_UTILITY_REPAIR_MAE_MARGIN_BPS),
+    )
+
     _split_tag = split_name or "full"
     _directional_long_rate = float(np.mean(y_dir == 0)) if len(y_dir) else 0.0
     _directional_short_rate = float(np.mean(y_dir == 1)) if len(y_dir) else 0.0
     _directional_flat_rate = float(np.mean(y_dir == 2)) if len(y_dir) else 0.0
     log.info(
         "[ENTRY_DIRECTION_TARGET_SEMANTICS] split=%s source=post_relabel_directional "
-        "long_rate=%.6f short_rate=%.6f flat_rate=%.6f relabel_veto_rate=%.6f",
+        "target_mode=%s long_rate=%.6f short_rate=%.6f flat_rate=%.6f relabel_veto_rate=%.6f",
         _split_tag,
+        V12_DIRECTION_TARGET_MODE,
         _directional_long_rate,
         _directional_short_rate,
         _directional_flat_rate,
@@ -2889,8 +3568,10 @@ def build_dataset_canonical(
         float(np.mean(y_teaser_negative_long)) if len(y_teaser_negative_long) else 0.0,
     )
     log.info(
-        "[ENTRY_HARD_NEG_LONG_RULES] split=%s xgb_p_long_min=%.2f mfe_min=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
+        "[ENTRY_HARD_NEG_LONG_RULES] split=%s candidate_source=%s xgb_p_long_min=%.2f "
+        "mfe_min=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
         _split_tag,
+        _bridge_candidate_source,
         float(HARD_NEG_LONG_MIN_XGB_P_LONG),
         float(HARD_NEG_LONG_MIN_MFE_BPS),
         float(HARD_NEG_LONG_MIN_MAE_BPS),
@@ -3036,12 +3717,36 @@ def build_dataset_canonical(
                 "y_quality_score": y_qual[i],
                 "y_bad_path": y_bad_path[i],
                 "y_tradable": y_tradable[i],
+                "y_trade": y_trade[i],
+                "y_side": y_side[i],
+                "y_side_mask": y_side_mask[i],
                 "y_tf_agreement_score": y_tf_agreement[i],
                 "y_position_size_target": y_position_size[i],
                 "y_hold_horizon_target": y_hold_horizon[i],
                 "mae_first_n_bps": y_mae_first_n[i],
                 "mfe_first_n_bps": y_mfe_first_n[i],
                 "path_quality_bps": y_path_quality[i],
+                "mfe_long_first_n_bps": _mfe_long[i],
+                "mae_long_first_n_bps": _mae_long[i],
+                "mfe_short_first_n_bps": _mfe_short[i],
+                "mae_short_first_n_bps": _mae_short[i],
+                "y_direction_long_score_bps": y_long_path_utility_bps[i],
+                "y_direction_short_score_bps": y_short_path_utility_bps[i],
+                "y_long_path_utility_bps": y_long_path_utility_bps[i],
+                "y_short_path_utility_bps": y_short_path_utility_bps[i],
+                "y_long_bad_path": y_long_bad_path[i],
+                "y_short_bad_path": y_short_bad_path[i],
+                "y_long_expected_mae_bps": y_long_expected_mae_bps[i],
+                "y_short_expected_mae_bps": y_short_expected_mae_bps[i],
+                "y_rising_channel_support_touch": y_rising_channel_support_touch[i],
+                "y_falling_channel_resistance_touch": y_falling_channel_resistance_touch[i],
+                "y_support_retest_continuation": y_support_retest_continuation[i],
+                "y_resistance_retest_continuation": y_resistance_retest_continuation[i],
+                "y_countertrend_short_trap": y_countertrend_short_trap[i],
+                "y_countertrend_long_trap": y_countertrend_long_trap[i],
+                "y_mtf_conflict_m5_vs_higher_side": y_mtf_conflict_m5_vs_higher_side[i],
+                "y_long_high_mae_low_mfe_early_failure": y_long_high_mae_low_mfe_early_failure[i],
+                "y_short_high_mae_low_mfe_early_failure": y_short_high_mae_low_mfe_early_failure[i],
                 "y_dead_negative_long": y_dead_negative_long[i],
                 "y_teaser_negative_long": y_teaser_negative_long[i],
                 "y_hard_negative_long": y_hard_negative_long[i],
@@ -3104,6 +3809,7 @@ def build_dataset_canonical(
         "hold_bars": _hold_bars,
         "fixed_hold_bootstrap_bars": _hold_bars,
         **direction_label_contract(),
+        **hierarchical_direction_label_contract(),
         "early_move_threshold_bps": float(early_move_threshold_bps),
         "flat_threshold_bps": float(flat_threshold_bps),
         "base28_manifest": {
@@ -3168,6 +3874,7 @@ def build_dataset_canonical(
         },
         "strict_entry_labels": {
             **direction_label_contract(),
+            **hierarchical_direction_label_contract(),
             "fixed_hold_bootstrap_bars": _hold_bars,
             "tradable_mfe_min_bps": float(STRICT_TRADABLE_MFE_MIN_BPS),
             "tradable_mae_max_bps": float(STRICT_TRADABLE_MAE_MAX_BPS),
@@ -3176,6 +3883,18 @@ def build_dataset_canonical(
             "tradable_mfe_lead_min_bps": float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
             "direction_follows_tradable_side": True,
             "canonical_premium_long_only": bool(CANONICAL_PREMIUM_LONG_ONLY),
+            "hard_negative_bridge_candidate_source": _bridge_candidate_source,
+            "hard_negative_uses_xgb_predictions": bool(not neutral_xgb_bridge),
+            "structural_side_repair": {
+                "countertrend_short_trap_policy": "LONG_IF_SUPPORT_CONTINUATION_ELSE_FLAT",
+                "countertrend_long_trap_policy": "SHORT_IF_RESISTANCE_CONTINUATION_ELSE_FLAT",
+                "rising_support_touch_policy": "LONG_IF_SUPPORT_CONTINUATION_ELSE_NO_SHORT",
+                "falling_resistance_touch_policy": "SHORT_IF_RESISTANCE_CONTINUATION_ELSE_NO_LONG",
+                "short_to_long_rows": int(np.sum(_structural_short_to_long)),
+                "short_to_flat_rows": int(np.sum(_structural_short_to_flat)),
+                "long_to_short_rows": int(np.sum(_structural_long_to_short)),
+                "long_to_flat_rows": int(np.sum(_structural_long_to_flat)),
+            },
             "hard_negative_long_xgb_p_long_min": float(HARD_NEG_LONG_MIN_XGB_P_LONG),
             "hard_negative_long_mfe_min_bps": float(HARD_NEG_LONG_MIN_MFE_BPS),
             "hard_negative_long_mae_min_bps": float(HARD_NEG_LONG_MIN_MAE_BPS),
@@ -3381,6 +4100,15 @@ def main() -> None:
     parser.add_argument("--val_end", type=str, default="2025-11-30T23:59:59Z", help="Val split end (ISO).")
     parser.add_argument("--test_start", type=str, default="2025-12-01T00:00:00Z", help="Test split start (ISO).")
     parser.add_argument("--test_end", type=str, default="2025-12-31T23:59:59Z", help="Test split end (ISO).")
+    parser.add_argument(
+        "--smart520-rank-reference-npz",
+        type=str,
+        default="",
+        help=(
+            "Optional smart520 live-state rank reference produced from the same source frame. "
+            "Required by XAU direction-repair serving parity."
+        ),
+    )
 
     parser.add_argument("--dry_run", action="store_true", help="Dry run: validate inputs/ctx, then exit.")
 
@@ -3412,6 +4140,7 @@ def main() -> None:
         "hold_bars": hold_bars,
         "fixed_hold_bootstrap_bars": hold_bars,
         **direction_label_contract(),
+        **hierarchical_direction_label_contract(),
         "flat_threshold_bps": float(flat_threshold_bps),
         "neutral_xgb_bridge": bool(args.neutral_xgb_bridge),
         "seq_structure_extension_v1": {
@@ -3521,15 +4250,6 @@ def main() -> None:
         xgb_model_sha256,
         bool(args.neutral_xgb_bridge),
     )
-    # Write proof after all pre-build identity fields are populated.
-    try:
-        proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
-        with open(proof_path, "w") as f:
-            json.dump(proof_payload, f, indent=2)
-        log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
-    except Exception as e:
-        log.warning("[DATASET_BUILD_PROOF] failed to write proof file: %s", e)
-
     start = _parse_ts(args.start)
     end = _parse_ts(args.end)
 
@@ -3541,8 +4261,31 @@ def main() -> None:
     else:
         gx1_data = _resolve_gx1_data_root()
         tape_root = gx1_data / "data" / "oanda" / "canonical" / "xauusd_m5_bid_ask__CANONICAL"
+    proof_payload.update(
+        {
+            "xgb_bridge_source": "neutral_uniform_proba" if bool(args.neutral_xgb_bridge) else "xgb_bundle_inference",
+            "tape_root": str(tape_root),
+            "time_start_utc": str(start),
+            "time_end_utc": str(end),
+        }
+    )
+    try:
+        proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
+        with open(proof_path, "w") as f:
+            json.dump(proof_payload, f, indent=2)
+        log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
+    except Exception as e:
+        log.warning("[DATASET_BUILD_PROOF] failed to write proof file: %s", e)
 
     if args.dry_run:
+        dry_run_state_contract = {}
+        if args.time_split:
+            dry_run_state_contract = _smart520_state_contract(
+                args=args,
+                model_range_start=start,
+                reference_split_start=_parse_ts(args.test_start),
+                reference_end=_parse_ts(args.test_end),
+            )
         log.info("[DRY_RUN] Inputs exist and CTX contract is valid. Exiting.")
         write_manifest(
             output_path=output_path,
@@ -3560,6 +4303,7 @@ def main() -> None:
                 "hold_bars": int(hold_bars),
                 "fixed_hold_bootstrap_bars": int(hold_bars),
                 **direction_label_contract(),
+                **hierarchical_direction_label_contract(),
                 "early_move_threshold_bps": float(args.early_move_threshold_bps),
                 "allow_zero_ctx": bool(args.allow_zero_ctx),
                 "xgb_model_sha256": xgb_model_sha256,
@@ -3569,6 +4313,7 @@ def main() -> None:
                     "parquet_path": str(Path(args.seq_structure_features_parquet).expanduser().resolve()) if args.seq_structure_features_parquet else None,
                     "compute_inline": bool(args.seq_structure_compute_inline),
                 },
+                "smart520_state_contract": dry_run_state_contract,
             },
         )
         return
@@ -3586,6 +4331,12 @@ def main() -> None:
             "val": {"start": str(val_start), "end": str(val_end)},
             "test": {"start": str(test_start), "end": str(test_end)},
         }
+        state_contract = _smart520_state_contract(
+            args=args,
+            model_range_start=start,
+            reference_split_start=test_start,
+            reference_end=test_end,
+        )
 
         base = output_path
         out_dir = base.parent
@@ -3641,7 +4392,7 @@ def main() -> None:
                 splits=splits,
                 ts_min_max_by_split=ts_min_max_by_split,
                 notes=f"Canonical build completed for split={split_name}.",
-                extra=metas[split_name],
+                extra={**metas[split_name], "smart520_state_contract": state_contract},
             )
 
         log.info("[DATASET_BUILD] Time-split build complete!")

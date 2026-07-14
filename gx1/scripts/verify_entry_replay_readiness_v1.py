@@ -69,18 +69,39 @@ CHALLENGER_SEQ215_DATASET_DIR = (
 )
 SMART_SEQ520_DATASET_DIR = (
     Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
-    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630"
+    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
+)
+SMART_XAU_PRETRAIN_AUDIT_LATEST = (
+    REPORTS_ROOT
+    / "xau_direction_repair_pretrain_audit_20260713_v1/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_latest.json"
 )
 CONTRACT_INPUT_DIMS = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
     "smart_seq520_candidate": 520,
 }
-SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
+SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.45
+SMART_DIRECTION_CE_SCALE_MIN = 2.00
 SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
 SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
 SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
 SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
+SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
+SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
+SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
+SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
+SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
+SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
+SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN = 1.00
+SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN = 1.50
+SMART_EXTRA_ACTIVE_HEADS = ("trade_side_hierarchy", "trendline_rail", "side_validity")
+
+
+def _expected_active_heads_for_mode(contract_mode: str) -> set[str]:
+    expected = set(EXPECTED_ACTIVE_TRAINING_HEADS)
+    if str(contract_mode).strip() == "smart_seq520_candidate":
+        expected.update(SMART_EXTRA_ACTIVE_HEADS)
+    return expected
 
 
 def _json_default(obj: Any) -> Any:
@@ -109,6 +130,34 @@ def _read_csv_or_empty(path: Path) -> pd.DataFrame:
 
 def _all_ok(checks: list[dict[str, Any]]) -> bool:
     return all(bool(check.get("ok")) for check in checks)
+
+
+def _smart_xau_pretrain_audit_checks(path: Path, report: dict[str, Any], *, expected_dataset_dir: Path) -> list[dict[str, Any]]:
+    exists = path.exists()
+    checks = [
+        _check(
+            "smart XAU pretrain audit artifact exists",
+            exists,
+            {"path": str(path)},
+        )
+    ]
+    if not exists:
+        return checks
+    checks.extend(
+        [
+            _check(
+                "smart XAU pretrain audit PASS",
+                str(report.get("decision")) == "PASS",
+                {"decision": report.get("decision"), "failures": report.get("failures")},
+            ),
+            _check(
+                "smart XAU pretrain audit dataset_dir matches expected pin",
+                _same_resolved_path(report.get("dataset_dir"), expected_dataset_dir),
+                {"expected_dataset_dir": str(expected_dataset_dir), "audit_dataset_dir": report.get("dataset_dir")},
+            ),
+        ]
+    )
+    return checks
 
 
 def _same_resolved_path(actual: Any, expected: Path) -> bool:
@@ -162,12 +211,34 @@ def _direction_balance_contract_passes(
     return (
         alpha >= SMART_DIRECTION_BALANCE_MIN_ALPHA
         and parsed_weights == SMART_DIRECTION_BALANCE_CLASS_WEIGHTS
+        and _float_or_zero(contract.get("direction_ce_scale"))
+        >= SMART_DIRECTION_CE_SCALE_MIN
+        and contract.get("hierarchical_entry_heads_enabled") is True
+        and contract.get("side_validity_head_enabled") is True
+        and _float_or_zero(contract.get("hier_side_validity_weight"))
+        >= SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN
+        and contract.get("trendline_rail_head_enabled") is True
+        and _float_or_zero(contract.get("trendline_rail_aux_weight"))
+        >= SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN
+        and _float_or_zero(contract.get("trendline_rail_wrong_side_weight"))
+        >= SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN
+        and _float_or_zero(contract.get("hier_legacy_ce_mult"))
+        >= SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN
+        and contract.get("anchor_gate_enabled") is True
+        and _float_or_zero(contract.get("anchor_gate_init"))
+        <= SMART_DIRECTION_ANCHOR_GATE_INIT_MAX
         and _float_or_zero(contract.get("ckpt_class_balance_guard_weight"))
         >= SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT
         and _float_or_zero(contract.get("ckpt_class_balance_min_pred_to_label"))
         >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL
         and _float_or_zero(contract.get("ckpt_class_balance_min_pred_rate"))
         >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE
+        and _float_or_zero(contract.get("direction_min_pred_rate_loss_weight"))
+        >= SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT
+        and _float_or_zero(contract.get("direction_min_pred_rate_fraction"))
+        >= SMART_DIRECTION_MIN_PRED_RATE_FRACTION
+        and _float_or_zero(contract.get("direction_min_pred_rate_floor"))
+        >= SMART_DIRECTION_MIN_PRED_RATE_FLOOR
         and contract.get("best_direction_balance_guard_ok") is True
     )
 
@@ -324,6 +395,9 @@ def _selective_edge_checks(
     observed_seq_input_dim = int(summary.get("bundle_seq_input_dim") or 0)
     observed_snap_input_dim = int(summary.get("bundle_snap_input_dim") or 0)
     selective_specialist_contract = _selective_edge_specialist_contract(summary, expected_contract_mode)
+    selection_score_mode = str(summary.get("selection_score_mode") or "edge_score")
+    selection_score_threshold_present = "selection_score_threshold" in summary
+    expected_utility_selection_required = expected_contract_mode == "smart_seq520_candidate"
     input_bridge_splits = input_bridge_contract.get("splits") if isinstance(input_bridge_contract.get("splits"), dict) else {}
     required_no_xgb_splits = [split for split in ("val", "test") if split in splits or not splits]
     no_xgb_diagnostics_ok = True
@@ -405,6 +479,16 @@ def _selective_edge_checks(
             "selective-edge summary contract mode matches candidate bundle audit",
             contract_mode == expected_contract_mode,
             {"expected_contract_mode": expected_contract_mode, "selective_edge_contract_mode": contract_mode},
+        ),
+        _check(
+            "smart selective-edge uses expected-utility selection mode",
+            (not expected_utility_selection_required)
+            or (selection_score_mode == "expected_utility" and selection_score_threshold_present),
+            {
+                "required": expected_utility_selection_required,
+                "selection_score_mode": selection_score_mode,
+                "selection_score_threshold_present": selection_score_threshold_present,
+            },
         ),
         _check(
             "selective-edge summary input dimensions match contract mode",
@@ -590,6 +674,7 @@ def _candidate_bundle_audit_checks(
         split: ((splits.get(split) or {}).get("bad_path") or {}).get("prob_vs_path_quality_spearman")
         for split in split_names
     }
+    expected_active_heads = _expected_active_heads_for_mode(expected_contract_mode)
     return [
         _check("candidate bundle audit exists", exists, {"path": str(path)}),
         _check("candidate bundle audit PASS", exists and str(report.get("decision")) == "PASS", {"failures": report.get("failures")}),
@@ -674,11 +759,11 @@ def _candidate_bundle_audit_checks(
             exists
             and str(head_contract.get("decision")) == "PASS"
             and not head_contract.get("failures")
-            and active_heads == set(EXPECTED_ACTIVE_TRAINING_HEADS)
+            and active_heads == expected_active_heads
             and blocked_heads == set(EXPECTED_BLOCKED_HEADS),
             {
                 "head_contract": head_contract,
-                "expected_active_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+                "expected_active_heads": sorted(expected_active_heads),
                 "actual_active_heads": sorted(active_heads),
                 "expected_blocked_heads": list(EXPECTED_BLOCKED_HEADS),
                 "actual_blocked_heads": sorted(blocked_heads),
@@ -1013,6 +1098,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     replay_monthly = _read_csv_or_empty(replay_dir / "replay_policy_monthly.csv")
     replay_trades = _read_csv_or_empty(replay_dir / "replay_policy_trades.csv")
     replay_manifest = _read_json(replay_dir / "REPLAY_EVIDENCE_MANIFEST.json") if (replay_dir / "REPLAY_EVIDENCE_MANIFEST.json").exists() else {}
+    smart_xau_pretrain_audit = (
+        _read_json(SMART_XAU_PRETRAIN_AUDIT_LATEST)
+        if contract_mode == "smart_seq520_candidate" and SMART_XAU_PRETRAIN_AUDIT_LATEST.exists()
+        else {}
+    )
     replay_identity = replay_manifest.get("replay_identity_contract") if isinstance(replay_manifest.get("replay_identity_contract"), dict) else {}
     candidate_specialist_identity = (
         replay_identity.get("candidate_specialist_contract")
@@ -1028,6 +1118,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "candidate_bundle_audit_json": str(candidate_bundle_audit_path),
         "selective_edge_summary_json": str(selective_summary_path),
         "replay_evidence_manifest_json": str(replay_dir / "REPLAY_EVIDENCE_MANIFEST.json"),
+        "smart_xau_pretrain_audit_json": (
+            str(SMART_XAU_PRETRAIN_AUDIT_LATEST)
+            if contract_mode == "smart_seq520_candidate"
+            else ""
+        ),
         "candidate_bundle_dir": str(candidate_bundle_audit.get("bundle_dir") or ""),
         "selective_edge_bundle_dir": str(selective_summary.get("bundle_dir") or ""),
         "replay_identity_candidate_bundle_dir": str(replay_identity.get("candidate_bundle_dir") or ""),
@@ -1052,6 +1147,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "candidate_replay_monthly": str(replay_dir / "replay_policy_monthly.csv"),
         "candidate_replay_trades": str(replay_dir / "replay_policy_trades.csv"),
     }
+    if contract_mode == "smart_seq520_candidate":
+        artifacts["smart_xau_pretrain_audit"] = str(SMART_XAU_PRETRAIN_AUDIT_LATEST)
     artifact_fingerprints = _artifact_fingerprints(artifacts)
 
     gate_checks = {
@@ -1105,6 +1202,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ],
         "artifact_provenance": _artifact_fingerprint_checks(artifact_fingerprints),
     }
+    if contract_mode == "smart_seq520_candidate":
+        gate_checks["smart_xau_pretrain_audit"] = _smart_xau_pretrain_audit_checks(
+            SMART_XAU_PRETRAIN_AUDIT_LATEST,
+            smart_xau_pretrain_audit,
+            expected_dataset_dir=expected_dataset_dir,
+        )
     gates = []
     for name, checks in gate_checks.items():
         passed = sum(1 for check in checks if check["ok"])

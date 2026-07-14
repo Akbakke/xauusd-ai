@@ -46,6 +46,7 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=2.00" in result.stdout
     assert "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN=0.25" in result.stdout
     assert "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE=0.25" in result.stdout
+    assert "ENTRY_BAD_PATH_PROB_PENALTY=0.24" in result.stdout
     assert "ENTRY_PRED_BALANCE_ALPHA=0.05" in result.stdout
     assert "ENTRY_PRED_BALANCE_TARGET=label" in result.stdout
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0\\,1.0\\,1.0" in result.stdout
@@ -54,6 +55,22 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.0" in result.stdout
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.0" in result.stdout
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.0" in result.stdout
+    assert "ENTRY_HIER_LEGACY_CE_MULT=0.35" in result.stdout
+    assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=10.0" in result.stdout
+    assert "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=20.0" in result.stdout
+    assert "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS=10.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=0.0" in result.stdout
     assert "ENTRY_SYMMETRIC_NEGATIVES=1" in result.stdout
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=0.05" in result.stdout
     assert "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT=0.25" in result.stdout
@@ -71,6 +88,52 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "--require-head-contract" in result.stdout
     assert "--pretrain-manifest-json" in result.stdout
     assert "--require-edge" in result.stdout
+
+
+def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
+    result = _run_wrapper(
+        "--smart-seq520",
+        "--vedtak",
+        "SMART_SEQ520_XAU_DIRECTION_REPAIR_PYTEST",
+        "--dry-run",
+    )
+
+    assert "Smoke train command:" in result.stdout
+    assert "smart_seq520_candidate" in result.stdout
+    assert "ENTRY_PRED_BALANCE_ALPHA=0.50" in result.stdout
+    assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0\\,1.0\\,4.0" in result.stdout
+    assert "ENTRY_DIRECTION_CE_SCALE=2.00" in result.stdout
+    assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50" in result.stdout
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35" in result.stdout
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in result.stdout
+    assert "ENTRY_HIER_LEGACY_CE_MULT=1.00" in result.stdout
+    assert "ENTRY_BAD_PATH_PROB_PENALTY=0.0" in result.stdout
+    assert "ENTRY_HIER_TRADE_WEIGHT=2.00" in result.stdout
+    assert "ENTRY_HIER_SIDE_WEIGHT=1.75" in result.stdout
+    assert "ENTRY_HIER_UTILITY_WEIGHT=1.00" in result.stdout
+    assert "ENTRY_HIER_BAD_PATH_WEIGHT=1.25" in result.stdout
+    assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=1.50" in result.stdout
+    assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=15.0" in result.stdout
+    assert "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=8.0" in result.stdout
+    assert "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT=5.00" in result.stdout
+    assert "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT=3.00" in result.stdout
+    assert "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS=30.0" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=1.00" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=1.50" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT=1.50" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT=1.75" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=5.00" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=4.00" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=3.00" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_MARGIN=1.00" in result.stdout
+    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in result.stdout
+    assert "ENTRY_FLAT_CLASS_WEIGHT_FLOOR=2.00" in result.stdout
+    assert "--enable-xau-direction-repair-heads" in result.stdout
+    assert "--anchor-gate-init 0.0" in result.stdout
 
 
 def test_smoke_train_dry_run_can_explicitly_skip_post_smoke_audit() -> None:
@@ -164,6 +227,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT" in text
     assert "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN" in text
     assert "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE" in text
+    assert "ENTRY_BAD_PATH_PROB_PENALTY" in text
     assert "ENTRY_PRED_BALANCE_ALPHA" in text
     assert "ENTRY_PRED_BALANCE_TARGET" in text
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS" in text
@@ -172,6 +236,18 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT" in text
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL" in text
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE" in text
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT" in text
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION" in text
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR" in text
+    assert "ENTRY_HIER_LEGACY_CE_MULT" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP" in text
+    assert "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT" in text
+    assert "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT" in text
+    assert "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS" in text
+    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT" in text
+    assert "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES" in text
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT" in text
     assert "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT" in text
@@ -206,6 +282,37 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert 'contract_mode = os.environ.get("SPECIALIST_CONTRACT_MODE", "foundation_seq146")' in text
     assert "--challenger-seq215" in text
     assert "SPECIALIST_CONTRACT_MODE=challenger_seq215" in text
+    assert "--smart-seq520" in text
+    assert "SPECIALIST_CONTRACT_MODE=smart_seq520_candidate" in text
+    assert "SMOKE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
+    assert "GX1_PERTF_CLOSED_BAR=1" in text
+    assert "SMOKE_PRED_BALANCE_ALPHA=0.50" in text
+    assert "SMOKE_DIRECTION_CE_SCALE=2.00" in text
+    assert "SMOKE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in text
+    assert "SMOKE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
+    assert "SMOKE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
+    assert "SMOKE_HIER_LEGACY_CE_MULT=1.00" in text
+    assert "SMOKE_HIER_TRADE_WEIGHT=2.00" in text
+    assert "SMOKE_HIER_SIDE_WEIGHT=1.75" in text
+    assert "SMOKE_HIER_UTILITY_WEIGHT=1.00" in text
+    assert "SMOKE_HIER_BAD_PATH_WEIGHT=1.25" in text
+    assert "SMOKE_HIER_POCKET_ABSTAIN_WEIGHT=5.00" in text
+    assert "SMOKE_HIER_POCKET_SIDE_MARGIN_WEIGHT=3.00" in text
+    assert "SMOKE_HIER_POCKET_UTILITY_MARGIN_BPS=30.0" in text
+    assert "SMOKE_TRENDLINE_RAIL_AUX_WEIGHT=1.00" in text
+    assert "SMOKE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=1.50" in text
+    assert "SMOKE_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT=1.50" in text
+    assert "SMOKE_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT=1.75" in text
+    assert "SMOKE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=5.00" in text
+    assert "SMOKE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=4.00" in text
+    assert "SMOKE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=3.00" in text
+    assert "SMOKE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in text
+    assert "SMOKE_TRENDLINE_RAIL_MARGIN=1.00" in text
+    assert "SMOKE_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in text
+    assert "SMOKE_FLAT_CLASS_WEIGHT_FLOOR=2.00" in text
+    assert "SMOKE_ANCHOR_GATE_INIT=0.0" in text
+    assert "--enable-xau-direction-repair-heads" in text
+    assert '--anchor-gate-init "$SMOKE_ANCHOR_GATE_INIT"' in text
     assert "EXPECTED_SIGNAL_DIM=215" in text
     assert "entry_foundation_seq215_smoke_dataset_v1" in text
     assert "SMOKE_BUNDLE_AUDIT_OUT" in text
@@ -253,8 +360,10 @@ def test_control_surface_exposes_manifest_only_smoke_proof() -> None:
     assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit" in text
+    assert "scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit" in text
     assert "smoke-manifest)" in text
     assert "smoke-manifest-seq215)" in text
     assert "smoke-train-seq215)" in text
+    assert "smart-smoke-train)" in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text

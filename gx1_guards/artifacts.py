@@ -4,7 +4,7 @@ GX1 artifact loading — fail-closed.
 Enforces guardrails that are too important to leave to AGENTS.md text:
   - No implicit latest/glob selection for decisioning.
   - Only artifacts marked ACTIVE in the selection contract are decision-valid.
-  - No EURUSD artifacts in an XAUUSD run (project isolation).
+  - No cross-project artifacts in an XAUUSD run (project isolation).
   - No old/invalidated artifacts for decisioning.
 
 A rule in a markdown file is a hope. A function that raises is a guarantee.
@@ -22,7 +22,7 @@ from gx1_guards import REPO_ROOT
 SELECTION_CONTRACT = REPO_ROOT / "PROJECT_STATE_artifacts.json"
 
 THIS_PROJECT = "XAUUSD"
-FORBIDDEN_TOKENS = ("EURUSD", "eurusd", "eur_usd")
+FORBIDDEN_PATH_FRAGMENTS = ("/eur", "\\eur", "_eur", "eur_")
 
 
 class ArtifactGuardError(Exception):
@@ -39,10 +39,11 @@ def _load_contract() -> dict:
 
 
 def _check_isolation(path_str: str) -> None:
-    if any(tok in path_str for tok in FORBIDDEN_TOKENS):
+    low = path_str.lower()
+    if any(fragment in low for fragment in FORBIDDEN_PATH_FRAGMENTS):
         raise ArtifactGuardError(
-            f"Project isolation violation: '{path_str}' references EURUSD "
-            f"inside a {THIS_PROJECT} run. These are separate projects — never mix."
+            f"Project isolation violation: '{path_str}' references a non-XAU project "
+            f"inside a {THIS_PROJECT} run. Project artifacts must never mix."
         )
 
 

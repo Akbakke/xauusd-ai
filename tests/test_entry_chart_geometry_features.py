@@ -1,7 +1,10 @@
 import numpy as np
+import pytest
 
 from gx1.features.entry_chart_geometry_v1 import (
     CHART_GEOMETRY_FEATURE_NAMES,
+    CHART_GEOMETRY_SMART2_FEATURE_NAMES,
+    CHART_GEOMETRY_SMART520_FEATURE_NAMES,
     CHART_GEOMETRY_SOURCE_FIELDS,
     build_entry_chart_geometry_layer,
     missing_chart_geometry_source_fields,
@@ -10,10 +13,14 @@ from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_speci
 from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import _add_feature
 
 
-EXPECTED_CHART_GEOMETRY_FEATURE_COUNT = 54
+EXPECTED_CHART_GEOMETRY_FEATURE_COUNT = 58
 SMART2_CHART_GEOMETRY_FEATURE_NAMES = (
     "chart.geometry_trendline_channel_confluence_pressure",
     "chart.geometry_channel_edge_rejection_pressure",
+    "chart.geometry_rising_support_rail_long_pressure",
+    "chart.geometry_rising_support_rail_short_trap_pressure",
+    "chart.geometry_falling_resistance_rail_short_pressure",
+    "chart.geometry_falling_resistance_rail_long_trap_pressure",
     "chart.geometry_fib_support_confluence_long_pressure",
     "chart.geometry_fib_resistance_confluence_short_pressure",
     "chart.geometry_fib_extension_exhaustion_risk",
@@ -105,7 +112,12 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     assert len(CHART_GEOMETRY_FEATURE_NAMES) == EXPECTED_CHART_GEOMETRY_FEATURE_COUNT
     assert out.shape == (6, EXPECTED_CHART_GEOMETRY_FEATURE_COUNT)
     assert tuple(out_names) == CHART_GEOMETRY_FEATURE_NAMES
-    assert tuple(out_names[-len(SMART2_CHART_GEOMETRY_FEATURE_NAMES) :]) == SMART2_CHART_GEOMETRY_FEATURE_NAMES
+    assert CHART_GEOMETRY_SMART2_FEATURE_NAMES == SMART2_CHART_GEOMETRY_FEATURE_NAMES
+    assert tuple(out_names[-len(SMART2_CHART_GEOMETRY_FEATURE_NAMES) :]) == CHART_GEOMETRY_SMART2_FEATURE_NAMES
+    assert len(CHART_GEOMETRY_SMART520_FEATURE_NAMES) == 13
+    assert set(CHART_GEOMETRY_SMART520_FEATURE_NAMES).issubset(set(CHART_GEOMETRY_SMART2_FEATURE_NAMES))
+    assert "chart.geometry_rising_support_rail_short_trap_pressure" in CHART_GEOMETRY_SMART520_FEATURE_NAMES
+    assert "chart.geometry_falling_resistance_rail_long_trap_pressure" in CHART_GEOMETRY_SMART520_FEATURE_NAMES
     assert np.isfinite(out).all()
     assert out[1, idx["chart.geometry_ema_cross_up_pressure"]] > 0.0
     assert out[3, idx["chart.geometry_fib_retracement_618_proximity"]] > 0.99
@@ -116,10 +128,16 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     assert out[4, idx["chart.geometry_ema_cross_mtf_bear_confirmation"]] > 0.0
     assert out[3, idx["chart.geometry_mtf_channel_breakout_up_quality"]] > 0.0
     assert out[5, idx["chart.geometry_mtf_channel_retest_short_quality"]] > 0.0
+    assert out[3, idx["chart.geometry_rising_support_rail_long_pressure"]] > 0.0
+    assert out[3, idx["chart.geometry_rising_support_rail_short_trap_pressure"]] > 0.0
+    assert out[5, idx["chart.geometry_falling_resistance_rail_short_pressure"]] > 0.0
+    assert out[5, idx["chart.geometry_falling_resistance_rail_long_trap_pressure"]] > 0.0
     assert out[3, idx["chart.geometry_fib_support_confluence_long_pressure"]] > out[3, idx["chart.geometry_fib_resistance_confluence_short_pressure"]]
     assert out[5, idx["chart.geometry_fib_resistance_confluence_short_pressure"]] > out[5, idx["chart.geometry_fib_support_confluence_long_pressure"]]
     assert out[2, idx["chart.geometry_triangle_apex_compression_pressure"]] > out[0, idx["chart.geometry_triangle_apex_compression_pressure"]]
     assert out[3, idx["chart.geometry_flag_breakout_readiness_pressure"]] > 0.0
+    assert out[1, idx["chart.geometry_channel_position_low_to_high"]] < 0.42
+    assert out[5, idx["chart.geometry_channel_position_low_to_high"]] > 0.58
 
 
 def test_chart_geometry_source_contract_and_specialist_routing() -> None:
@@ -131,6 +149,15 @@ def test_chart_geometry_source_contract_and_specialist_routing() -> None:
     assert classify_entry_specialist_feature("chart.geometry_fib_golden_zone_proximity") == "chart_geometry_encoder"
     assert classify_entry_specialist_feature("chart.geometry_ascending_triangle_pressure") == "chart_geometry_encoder"
     assert classify_entry_specialist_feature("chart.geometry_mtf_channel_retest_long_quality") == "chart_geometry_encoder"
+    assert classify_entry_specialist_feature("chart.geometry_rising_support_rail_short_trap_pressure") == "chart_geometry_encoder"
+
+
+def test_chart_geometry_strict_mode_rejects_missing_source_fields() -> None:
+    names = [name for name in CHART_GEOMETRY_SOURCE_FIELDS if name != "ctx_cont.dist_to_R1_atr"]
+    x = np.zeros((3, len(names)), dtype=np.float32)
+
+    with pytest.raises(RuntimeError, match="CHART_GEOMETRY_SOURCE_FIELDS_MISSING"):
+        build_entry_chart_geometry_layer(x, names, strict_sources=True)
 
 
 def test_generated_chart_features_keep_constant_columns_for_manifest_contract() -> None:

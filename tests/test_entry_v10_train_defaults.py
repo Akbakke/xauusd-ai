@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
 
@@ -108,6 +109,43 @@ def test_entry_v10_train_and_validate_apply_pred_balance_loss_directly() -> None
     assert text.count("_direction_balance_term(probs, y, criterion)") >= 2
 
 
+def test_entry_v10_direction_min_pred_rate_term_penalizes_active_side_collapse(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", 2.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", 0.05)
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
+    collapsed = torch.tensor(
+        [
+            [0.01, 0.01, 0.98],
+            [0.01, 0.01, 0.98],
+            [0.01, 0.01, 0.98],
+            [0.01, 0.01, 0.98],
+            [0.01, 0.01, 0.98],
+            [0.01, 0.01, 0.98],
+        ],
+        dtype=torch.float32,
+    )
+    balanced_enough = torch.tensor(
+        [
+            [0.20, 0.20, 0.60],
+            [0.20, 0.20, 0.60],
+            [0.20, 0.20, 0.60],
+            [0.20, 0.20, 0.60],
+            [0.20, 0.20, 0.60],
+            [0.20, 0.20, 0.60],
+        ],
+        dtype=torch.float32,
+    )
+
+    assert float(trainer._direction_min_pred_rate_term(collapsed, targets).item()) > 0.0
+    assert float(trainer._direction_min_pred_rate_term(balanced_enough, targets).item()) == 0.0
+
+
 def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
     import torch
 
@@ -144,6 +182,146 @@ def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
 def test_entry_v10_train_and_validate_apply_mtf_aux_direction_repair() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
     assert text.count("_direction_aux_ce_loss(out[\"mtf_dir_logits\"], y, criterion, ce_sample_weight)") >= 2
+
+
+def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -> None:
+    import numpy as np
+    import pandas as pd
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    target = pd.Timestamp("2026-07-08T18:00:00Z")
+    ts = np.array(
+        [
+            (target - pd.Timedelta(minutes=5)).value,
+            target.value,
+        ],
+        dtype=np.int64,
+    )
+    feats = np.array([[1.0], [2.0]], dtype=np.float32)
+    frame = pd.DataFrame(index=pd.DatetimeIndex(ts.astype("datetime64[ns]"), tz="UTC"))
+    frame.attrs["ts_int64"] = ts
+    frame.attrs["feats_np"] = feats
+
+    dataset = trainer.EntryV10CtxDataset.__new__(trainer.EntryV10CtxDataset)
+    dataset._multi_tf_feats = {"M5": frame}
+    dataset._multi_tf_shift = {"M5": pd.Timedelta(minutes=5)}
+    dataset._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
+    dataset.multi_tf_seq_len = 1
+    dataset.per_tf_seq_lens = {"M5": 1}
+
+    out = dataset._get_multi_tf_window(target)
+
+    np.testing.assert_allclose(out["seq_m5"], [[2.0]])
+
+
+def test_entry_v10_metadata_records_multi_tf_target_availability_shift() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert '"target_availability_shift_minutes"' in text
+    assert '"closed_bar_target_availability"' in text
+
+
+def test_entry_v10_trainer_verifies_mtf_cache_source_sha() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "MULTI_TF_CACHE_SOURCE_SHA_MISMATCH" in text
+    assert "m5_prebuilt_source_sha256" in text
+    assert "MULTI_TF_CACHE_FEATURE_CONTRACT_MISMATCH" in text
+    assert "MULTI_TF_CACHE_SHIFT_CONTRACT_MISMATCH" in text
+
+
+def test_entry_v10_side_validity_head_cannot_be_enabled_untrained() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED" in text
+    assert "enable_side_validity_head=true requires" in text
+
+
+def test_entry_v10_xau_direction_repair_requires_xau_sources() -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    failures = trainer._xau_direction_repair_source_failures(
+        {
+            "train_parquet": "/data/foreign_fx/v10_dataset_20260710_train.parquet",
+            "val_parquet": "/data/generic/v10_dataset_val.parquet",
+            "m5_prebuilt_path": "",
+        }
+    )
+
+    text = "\n".join(failures)
+    assert "XAU-specific" in text
+    assert "stale pre-repair dataset marker" in text
+    assert "m5_prebuilt_path missing" in text
+
+
+def test_entry_v10_xau_direction_repair_requires_xau_manifest_provenance(tmp_path: Path) -> None:
+    import pandas as pd
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    parquet = tmp_path / "xau_train.parquet"
+    pd.DataFrame({"time": [pd.Timestamp("2026-07-08T12:00:00Z")]}).to_parquet(parquet, index=False)
+    parquet.with_suffix(".manifest.json").write_text(
+        json.dumps(
+            {
+                "neutral_xgb_bridge": True,
+                "xgb_bridge_source": "neutral_uniform_proba",
+                "tape_root": "/home/andre2/GX1_DATA/data/oanda/canonical/foreign_fx_m5_bid_ask__CANONICAL",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    failures = trainer._xau_direction_repair_manifest_failures({"train": parquet})
+
+    assert any("XAUUSD tape_root" in item for item in failures)
+
+
+def test_entry_v10_xau_direction_repair_target_contract_rejects_wrong_side_rows() -> None:
+    import pandas as pd
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    frame = pd.DataFrame(
+        {
+            "y_direction": [1],
+            "y_bad_path": [0.0],
+            "y_trade": [1.0],
+            "y_tradable": [1.0],
+            "y_side": [1],
+            "y_side_mask": [1.0],
+            "mae_first_n_bps": [1.0],
+            "mfe_first_n_bps": [0.0],
+            "path_quality_bps": [-1.0],
+            "y_position_size_target": [1.0],
+            "mfe_long_first_n_bps": [8.0],
+            "mae_long_first_n_bps": [2.0],
+            "mfe_short_first_n_bps": [0.0],
+            "mae_short_first_n_bps": [1.0],
+            "y_long_path_utility_bps": [5.0],
+            "y_short_path_utility_bps": [6.0],
+            "y_long_bad_path": [0.0],
+            "y_short_bad_path": [0.0],
+            "y_long_expected_mae_bps": [2.0],
+            "y_short_expected_mae_bps": [1.0],
+            "y_rising_channel_support_touch": [1.0],
+            "y_falling_channel_resistance_touch": [0.0],
+            "y_support_retest_continuation": [0.0],
+            "y_resistance_retest_continuation": [0.0],
+            "y_countertrend_short_trap": [0.0],
+            "y_countertrend_long_trap": [0.0],
+            "y_long_high_mae_low_mfe_early_failure": [0.0],
+            "y_short_high_mae_low_mfe_early_failure": [0.0],
+        }
+    )
+
+    failures = trainer._xau_direction_repair_target_failures("train", frame)
+    text = "\n".join(failures)
+
+    assert "still labeled SHORT" in text
+    assert "still teach SHORT" in text
+    assert "SHORT utility >= LONG utility" in text
 
 
 def test_entry_v10_train_and_validate_share_symmetric_aux_helpers() -> None:
@@ -300,3 +478,11 @@ def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> No
         assert "ENTRY_PATH_QUALITY_RANK_WEIGHT" in text
         assert "ENTRY_PATH_QUALITY_RANK_MARGIN" in text
         assert "ENTRY_PATH_QUALITY_RANK_QUANTILE" in text
+
+
+def test_entry_v10_standalone_eval_declares_direction_only_loss_scope() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert '"test_loss_scope": "direction_only_ce_plus_residual_side_bias"' in text
+    assert '"validation_objective_matches_train": False' in text
+    assert '"hierarchical_loss_metrics_included": False' in text

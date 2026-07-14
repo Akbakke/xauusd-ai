@@ -11,6 +11,11 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
+PY="${GX1_PYTHON:-$PROJECT_ROOT/.venv/bin/python}"
+if [[ ! -x "$PY" ]]; then
+    echo "FATAL: repo Python venv missing: $PY" >&2
+    exit 2
+fi
 export PYTHONPATH="$PROJECT_ROOT:${PYTHONPATH:-}"
 
 if [[ $# -lt 3 ]]; then
@@ -40,7 +45,7 @@ if [[ -n "${M5_DATA:-}" ]]; then
     echo "[DATA] Using M5_DATA from environment: $RESOLVED_M5_DATA"
 else
     TAPE_ROOT="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}"
-    TAPE_YEAR="$(python3 - <<'PY'
+    TAPE_YEAR="$("$PY" - <<'PY'
 import os
 from datetime import datetime, timezone
 
@@ -73,6 +78,14 @@ if [[ ! -f "$RESOLVED_M5_DATA" ]]; then
     echo "ERROR: M5_DATA file not found: $RESOLVED_M5_DATA"
     exit 1
 fi
+REPLAY_INSTRUMENT="${GX1_REPLAY_INSTRUMENT:-XAUUSD}"
+if [[ "${REPLAY_INSTRUMENT^^}" == "XAUUSD" ]]; then
+    _m5_lower="${RESOLVED_M5_DATA,,}"
+    if [[ "$_m5_lower" != *"xau"* ]]; then
+        echo "ERROR: XAUUSD replay requires XAU price data, got M5_DATA=$RESOLVED_M5_DATA" >&2
+        exit 1
+    fi
+fi
 
 LIMITED_DATA="$OUTPUT_DIR/price_data_filtered.parquet"
 DEFAULT_CANONICAL_TRUTH_FILE="$PROJECT_ROOT/gx1/configs/canonical_truth_signal_only.json"
@@ -80,7 +93,7 @@ if [[ -z "${GX1_CANONICAL_TRUTH_FILE:-}" && -f "$DEFAULT_CANONICAL_TRUTH_FILE" ]
     export GX1_CANONICAL_TRUTH_FILE="$DEFAULT_CANONICAL_TRUTH_FILE"
 fi
 if [[ -z "${GX1_CANONICAL_BUNDLE_DIR:-}" && -n "${GX1_CANONICAL_TRUTH_FILE:-}" && -f "$GX1_CANONICAL_TRUTH_FILE" ]]; then
-    export GX1_CANONICAL_BUNDLE_DIR="$(python3 - <<'PY'
+    export GX1_CANONICAL_BUNDLE_DIR="$("$PY" - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -96,7 +109,7 @@ PY
 )"
 fi
 if [[ -z "${GX1_BUNDLE_DIR:-}" && -n "${GX1_CANONICAL_TRUTH_FILE:-}" && -f "$GX1_CANONICAL_TRUTH_FILE" ]]; then
-    export GX1_BUNDLE_DIR="$(python3 - <<'PY'
+    export GX1_BUNDLE_DIR="$("$PY" - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -119,7 +132,7 @@ export GX1_REPLAY_INCREMENTAL_FEATURES="${GX1_REPLAY_INCREMENTAL_FEATURES:-1}"
 export GX1_REPLAY_NO_CSV="${GX1_REPLAY_NO_CSV:-1}"
 export GX1_FEATURE_USE_NP_ROLLING="${GX1_FEATURE_USE_NP_ROLLING:-1}"
 
-python3 - <<'PY'
+"$PY" - <<'PY'
 import pandas as pd
 from pathlib import Path
 import os
@@ -172,13 +185,13 @@ if [[ "$USE_TRUTH_REPLAY" == "1" ]]; then
     export GX1_CANONICAL_TRUTH_FILE="$TRUTH_FILE"
     export GX1_REPLAY_USE_PREBUILT_FEATURES=1
     export GX1_FEATURE_BUILD_DISABLED=1
-    python3 -m gx1.scripts.run_truth_e2e_sanity \
+    "$PY" -m gx1.scripts.run_truth_e2e_sanity \
       --truth-file "$TRUTH_FILE" \
       --start-ts "$START_DATE" \
       --end-ts "$END_DATE" \
       --run-dir "$OUTPUT_DIR" 2>&1 | tee "$LOG_DIR/replay.log"
 else
-    python3 scripts/active/replay_entry_exit_parallel.py \
+    "$PY" scripts/active/replay_entry_exit_parallel.py \
       --price-data "$LIMITED_DATA" \
       --base-policy "$POLICY_PATH" \
       --n-workers "$N_WORKERS" \

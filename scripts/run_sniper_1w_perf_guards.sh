@@ -16,6 +16,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
+PY="${GX1_PYTHON:-$PROJECT_ROOT/.venv/bin/python}"
+if [[ ! -x "$PY" ]]; then
+    echo "FATAL: repo Python venv missing: $PY" >&2
+    exit 2
+fi
 
 # Use V10 verification policy for replay
 POLICY="${1:-gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml}"
@@ -38,7 +43,7 @@ EVAL_END_TS="${4:-2025-01-08T00:00:00Z}"
 # CRITICAL: LOAD_START must be 4 hours BEFORE an H4 boundary, so first M5 bar is AFTER first H4 close_time
 # Example: If we want first H4 bar to close at 16:00:00, LOAD_START should be 12:00:00 (4h before 16:00:00)
 WARMUP_HOURS=72
-LOAD_START_TS=$(python3 -c "
+LOAD_START_TS=$("$PY" -c "
 from datetime import datetime, timedelta
 eval_start = datetime.fromisoformat('${EVAL_START_TS}'.replace('Z', '+00:00'))
 load_start = eval_start - timedelta(hours=${WARMUP_HOURS})
@@ -60,7 +65,7 @@ print(load_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
 ")
 
 # Verify EVAL_START is at least 4 hours after LOAD_START (for completed H4 bar)
-EVAL_START_VERIFY=$(python3 -c "
+EVAL_START_VERIFY=$("$PY" -c "
 from datetime import datetime
 load_start = datetime.fromisoformat('${LOAD_START_TS}'.replace('Z', '+00:00'))
 eval_start = datetime.fromisoformat('${EVAL_START_TS}'.replace('Z', '+00:00'))
@@ -143,7 +148,7 @@ echo "[1/3] Preparing test data (EU/OVERLAP/US only, with warmup buffer)..."
 TEMP_DATA_DIR="data/temp/sniper_1w_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$TEMP_DATA_DIR"
 
-python3 -c "
+"$PY" -c "
 import pandas as pd
 from pathlib import Path
 import sys
@@ -212,7 +217,7 @@ echo "  Eval window: $EVAL_START_TS to $EVAL_END_TS"
 # Run replay with LOAD_START as the actual start time
 # This ensures replay only evaluates bars from LOAD_START onwards
 # But df includes bars from (LOAD_START - 4h) for HTF warmup
-python3 scripts/run_mini_replay_perf.py \
+"$PY" scripts/run_mini_replay_perf.py \
     "$POLICY" \
     "$TEST_DATA" \
     "$OUTPUT_DIR" \
@@ -230,7 +235,7 @@ fi
 # Extract and verify GO/NO-GO tellers
 echo ""
 echo "[3/3] Extracting GO/NO-GO verification..."
-python3 << PYEOF
+"$PY" << PYEOF
 import json
 import sys
 import numpy as np

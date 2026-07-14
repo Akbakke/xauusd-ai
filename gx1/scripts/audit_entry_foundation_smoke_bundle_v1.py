@@ -48,11 +48,20 @@ MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
 MIN_DIRECTION_CLASS_PRED_RATE = 0.05
 MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
 MIN_DIRECTION_SLICE_ROWS = 64
-SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
+SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.45
+SMART_DIRECTION_CE_SCALE_MIN = 2.00
 SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
 SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
 SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
 SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
+SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
+SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
+SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
+SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
+SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
+SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
+SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN = 1.00
+SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN = 1.50
 HEAD_OUTPUT_KEYS = {
     "direction": "direction_logits",
     "tradable": "tradable_logit",
@@ -71,6 +80,15 @@ HEAD_OUTPUT_KEYS = {
     "vol_forecast": "vol_forecast_pred",
     "mtf_direction": "mtf_dir_logits",
     "hold_horizon": "hold_horizon_logit",
+    "trendline_rail": "trendline_rail_logits",
+    "side_validity": "side_validity_logit",
+    "trade_side_hierarchy": (
+        "trade_logit",
+        "side_logits",
+        "side_utility",
+        "side_bad_path_logit",
+        "side_mae",
+    ),
 }
 HEAD_OUTPUT_TRAILING_SHAPES = {
     "direction": (3,),
@@ -90,7 +108,28 @@ HEAD_OUTPUT_TRAILING_SHAPES = {
     "vol_forecast": (3,),
     "mtf_direction": (3,),
     "hold_horizon": (1,),
+    "trendline_rail": (6,),
+    "side_validity": (2,),
+    "trade_side_hierarchy": {
+        "trade_logit": (1,),
+        "side_logits": (2,),
+        "side_utility": (2,),
+        "side_bad_path_logit": (2,),
+        "side_mae": (2,),
+    },
 }
+SMART_EXTRA_ACTIVE_HEADS = ("trade_side_hierarchy", "trendline_rail", "side_validity")
+SMART_ALLOWED_INTERNAL_HEADS = ("anchor_gate",)
+
+
+def _head_output_specs(head: str) -> list[tuple[str, list[int]]]:
+    keys = HEAD_OUTPUT_KEYS[head]
+    shapes = HEAD_OUTPUT_TRAILING_SHAPES[head]
+    if isinstance(keys, str):
+        return [(keys, list(shapes))]
+    if not isinstance(shapes, dict):
+        raise RuntimeError(f"head {head} has grouped output keys but no grouped shape contract")
+    return [(str(key), list(shapes[str(key)])) for key in keys]
 
 
 def _json_default(obj: Any) -> Any:
@@ -515,6 +554,7 @@ def _bundle_dataset_kwargs(meta: dict[str, Any], m5_prebuilt_path: Path) -> dict
         "enable_multi_tf": True,
         "m5_prebuilt_path": m5_prebuilt_path,
         "multi_tf_seq_len": seq_len,
+        "multi_tf_closed_bar": bool(float(mtf.get("target_availability_shift_minutes", 0.0) or 0.0) > 0.0),
         "per_tf_seq_lens": {
             "M5": int(mtf.get("m5_seq_len", seq_len) or seq_len),
             "M15": int(mtf.get("m15_seq_len", seq_len) or seq_len),
@@ -600,13 +640,21 @@ def _head_contract_report(
     target_audit: dict[str, Any],
     capabilities: dict[str, Any],
     split_reports: dict[str, Any],
+    contract_mode: str = "foundation_seq146",
 ) -> dict[str, Any]:
     contract = target_audit.get("target_head_contract") if isinstance(target_audit.get("target_head_contract"), dict) else {}
-    active_heads = [str(head) for head in contract.get("active_training_heads", []) if str(head)]
+    base_active_heads = [str(head) for head in contract.get("active_training_heads", []) if str(head)]
     blocked_heads = [str(head) for head in contract.get("blocked_heads", []) if str(head)]
     supported_heads = set(str(head) for head in capabilities.get("supported_heads", []) if str(head))
     declared_heads = set(str(head) for head in capabilities.get("declared_active_heads", []) if str(head))
     state_dict_heads = set(str(head) for head in capabilities.get("state_dict_heads", []) if str(head))
+    smart_extra_heads = [
+        head
+        for head in SMART_EXTRA_ACTIVE_HEADS
+        if str(contract_mode) == "smart_seq520_candidate"
+        and (head in declared_heads or head in supported_heads or head in state_dict_heads)
+    ]
+    active_heads = list(dict.fromkeys([*base_active_heads, *smart_extra_heads]))
     output_keys_by_split = {
         str(split): [str(key) for key in (row.get("output_keys_seen") or [])]
         for split, row in split_reports.items()
@@ -620,15 +668,18 @@ def _head_contract_report(
         for split, row in split_reports.items()
         if isinstance(row, dict)
     }
-    expected_output_keys = {
-        head: HEAD_OUTPUT_KEYS[head]
+    expected_output_specs = {
+        head: _head_output_specs(head)
         for head in active_heads
-        if head in HEAD_OUTPUT_KEYS
+        if head in HEAD_OUTPUT_KEYS and head in HEAD_OUTPUT_TRAILING_SHAPES
+    }
+    expected_output_keys = {
+        head: [key for key, _ in specs]
+        for head, specs in expected_output_specs.items()
     }
     expected_output_shapes = {
-        head: list(HEAD_OUTPUT_TRAILING_SHAPES[head])
-        for head in active_heads
-        if head in HEAD_OUTPUT_TRAILING_SHAPES
+        head: {key: shape for key, shape in specs}
+        for head, specs in expected_output_specs.items()
     }
 
     failures: list[str] = []
@@ -655,11 +706,11 @@ def _head_contract_report(
     if missing_state:
         failures.append(f"bundle state_dict missing active heads: {missing_state}")
 
-    approved_heads = set(active_heads) | set(blocked_heads)
+    approved_heads = set(active_heads) | set(blocked_heads) | set(SMART_ALLOWED_INTERNAL_HEADS)
     extra_supported = sorted(supported_heads - approved_heads)
     if extra_supported:
         failures.append(f"bundle capabilities contain unapproved heads outside target contract: {extra_supported}")
-    extra_declared = sorted(declared_heads - set(active_heads))
+    extra_declared = sorted(declared_heads - approved_heads)
     if extra_declared:
         failures.append(f"bundle train_recipe.active_heads contains unapproved heads: {extra_declared}")
     extra_state = sorted(state_dict_heads - approved_heads)
@@ -677,33 +728,39 @@ def _head_contract_report(
         seen = set(keys)
         missing_keys = [
             f"{head}->{key}"
-            for head, key in expected_output_keys.items()
+            for head, specs in expected_output_specs.items()
+            for key, _ in specs
             if key not in seen
         ]
         if missing_keys:
             failures.append(f"{split}: missing forward outputs for active heads: {missing_keys}")
         split_shapes = output_shapes_by_split.get(split, {})
         shape_failures = []
-        for head, key in expected_output_keys.items():
-            expected_shape = expected_output_shapes.get(head)
-            if expected_shape is None or key not in seen:
-                continue
-            actual_shapes = split_shapes.get(key) or []
-            if expected_shape not in actual_shapes:
-                shape_failures.append(f"{head}->{key} expected_tail={expected_shape} actual_tails={actual_shapes}")
+        for head, specs in expected_output_specs.items():
+            for key, expected_shape in specs:
+                if key not in seen:
+                    continue
+                actual_shapes = split_shapes.get(key) or []
+                if expected_shape not in actual_shapes:
+                    shape_failures.append(f"{head}->{key} expected_tail={expected_shape} actual_tails={actual_shapes}")
         if shape_failures:
             failures.append(f"{split}: wrong forward output shapes for active heads: {shape_failures}")
-        blocked_keys = [
-            f"{head}->{HEAD_OUTPUT_KEYS[head]}"
-            for head in blocked_heads
-            if head in HEAD_OUTPUT_KEYS and HEAD_OUTPUT_KEYS[head] in seen
-        ]
+        blocked_keys = []
+        for head in blocked_heads:
+            if head not in HEAD_OUTPUT_KEYS or head not in HEAD_OUTPUT_TRAILING_SHAPES:
+                continue
+            for key, _ in _head_output_specs(head):
+                if key in seen:
+                    blocked_keys.append(f"{head}->{key}")
         if blocked_keys:
             failures.append(f"{split}: blocked heads emitted forward outputs: {blocked_keys}")
 
     return {
         "decision": "PASS" if not failures else "FAIL",
         "target_audit_decision": str(target_audit.get("decision")),
+        "contract_mode": str(contract_mode),
+        "target_active_training_heads": base_active_heads,
+        "smart_extra_active_heads": smart_extra_heads,
         "active_training_heads": active_heads,
         "blocked_heads": blocked_heads,
         "supported_heads": sorted(supported_heads),
@@ -849,6 +906,103 @@ def _direction_balance_recipe_contract(
         and mtf_dir_aux_weight > 0.0
     )
     direction_ce_scale = _safe_float(recipe.get("direction_ce_scale", meta.get("direction_ce_scale", 0.0)))
+    hierarchical_entry_heads_enabled = bool(
+        recipe.get(
+            "hierarchical_entry_heads_enabled",
+            meta.get("hierarchical_entry_heads_enabled", False),
+        )
+    )
+    side_validity_head_enabled = bool(
+        recipe.get(
+            "side_validity_head_enabled",
+            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
+                "enabled",
+                meta.get("side_validity_head_enabled", False),
+            )
+            if isinstance(meta.get("hierarchical_entry_heads"), dict)
+            else meta.get("side_validity_head_enabled", False),
+        )
+    )
+    hier_side_validity_weight = _safe_float(
+        recipe.get(
+            "hier_side_validity_weight",
+            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
+                "loss_weight",
+                meta.get("hier_side_validity_weight", 0.0),
+            )
+            if isinstance(meta.get("hierarchical_entry_heads"), dict)
+            else meta.get("hier_side_validity_weight", 0.0),
+        )
+    )
+    hier_side_validity_min_utility_bps = _safe_float(
+        recipe.get(
+            "hier_side_validity_min_utility_bps",
+            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
+                "min_utility_bps",
+                meta.get("hier_side_validity_min_utility_bps", 0.0),
+            )
+            if isinstance(meta.get("hierarchical_entry_heads"), dict)
+            else meta.get("hier_side_validity_min_utility_bps", 0.0),
+        )
+    )
+    hier_side_validity_pos_weight_cap = _safe_float(
+        recipe.get(
+            "hier_side_validity_pos_weight_cap",
+            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
+                "pos_weight_cap",
+                meta.get("hier_side_validity_pos_weight_cap", 0.0),
+            )
+            if isinstance(meta.get("hierarchical_entry_heads"), dict)
+            else meta.get("hier_side_validity_pos_weight_cap", 0.0),
+        )
+    )
+    trendline_rail_head_enabled = bool(
+        recipe.get(
+            "trendline_rail_head_enabled",
+            (meta.get("trendline_rail_head") or {}).get("enabled", meta.get("trendline_rail_head_enabled", False))
+            if isinstance(meta.get("trendline_rail_head"), dict)
+            else meta.get("trendline_rail_head_enabled", False),
+        )
+    )
+    trendline_rail_aux_weight = _safe_float(
+        recipe.get(
+            "trendline_rail_aux_weight",
+            (meta.get("trendline_rail_head") or {}).get("aux_weight", meta.get("trendline_rail_aux_weight", 0.0))
+            if isinstance(meta.get("trendline_rail_head"), dict)
+            else meta.get("trendline_rail_aux_weight", 0.0),
+        )
+    )
+    trendline_rail_wrong_side_weight = _safe_float(
+        recipe.get(
+            "trendline_rail_wrong_side_weight",
+            (meta.get("trendline_rail_head") or {}).get(
+                "wrong_side_weight",
+                meta.get("trendline_rail_wrong_side_weight", 0.0),
+            )
+            if isinstance(meta.get("trendline_rail_head"), dict)
+            else meta.get("trendline_rail_wrong_side_weight", 0.0),
+        )
+    )
+    hier_legacy_ce_mult = _safe_float(
+        recipe.get(
+            "hier_legacy_ce_mult",
+            meta.get("hier_legacy_ce_mult", 0.0),
+        )
+    )
+    anchor_gate_enabled = bool(
+        recipe.get(
+            "anchor_gate_enabled",
+            meta.get("anchor_gate_enabled", False),
+        )
+    )
+    anchor_gate_init = _safe_float(
+        recipe.get(
+            "anchor_gate_init",
+            (meta.get("anchor_gate") or {}).get("init", meta.get("anchor_gate_init", 1.0))
+            if isinstance(meta.get("anchor_gate"), dict)
+            else meta.get("anchor_gate_init", 1.0),
+        )
+    )
     ckpt_monitor = str(recipe.get("ckpt_monitor", meta.get("ckpt_monitor", ""))).strip().lower()
     ckpt_class_balance_guard_weight = _safe_float(
         recipe.get(
@@ -866,6 +1020,24 @@ def _direction_balance_recipe_contract(
         recipe.get(
             "ckpt_class_balance_min_pred_rate",
             meta.get("ckpt_class_balance_min_pred_rate", 0.0),
+        )
+    )
+    direction_min_pred_rate_loss_weight = _safe_float(
+        recipe.get(
+            "direction_min_pred_rate_loss_weight",
+            meta.get("direction_min_pred_rate_loss_weight", 0.0),
+        )
+    )
+    direction_min_pred_rate_fraction = _safe_float(
+        recipe.get(
+            "direction_min_pred_rate_fraction",
+            meta.get("direction_min_pred_rate_fraction", 0.0),
+        )
+    )
+    direction_min_pred_rate_floor = _safe_float(
+        recipe.get(
+            "direction_min_pred_rate_floor",
+            meta.get("direction_min_pred_rate_floor", 0.0),
         )
     )
     best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
@@ -894,10 +1066,48 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires pred_balance_alpha >= "
                     f"{SMART_DIRECTION_BALANCE_MIN_ALPHA:.2f}"
                 )
+            if direction_ce_scale < SMART_DIRECTION_CE_SCALE_MIN:
+                failures.append(
+                    "smart direction active head requires direction_ce_scale >= "
+                    f"{SMART_DIRECTION_CE_SCALE_MIN:.2f}"
+                )
             if pred_balance_class_weights != SMART_DIRECTION_BALANCE_CLASS_WEIGHTS:
                 failures.append(
                     "smart direction active head requires pred_balance_class_weights="
                     + ",".join(str(value) for value in SMART_DIRECTION_BALANCE_CLASS_WEIGHTS)
+            )
+            if not hierarchical_entry_heads_enabled:
+                failures.append("smart direction active head requires hierarchical_entry_heads_enabled=true")
+            if not side_validity_head_enabled:
+                failures.append("smart direction active head requires side_validity_head_enabled=true")
+            if hier_side_validity_weight < SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN:
+                failures.append(
+                    "smart direction active head requires hier_side_validity_weight >= "
+                    f"{SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN:.2f}"
+                )
+            if not trendline_rail_head_enabled:
+                failures.append("smart direction active head requires trendline_rail_head_enabled=true")
+            if trendline_rail_aux_weight < SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN:
+                failures.append(
+                    "smart direction active head requires trendline_rail_aux_weight >= "
+                    f"{SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN:.2f}"
+                )
+            if trendline_rail_wrong_side_weight < SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN:
+                failures.append(
+                    "smart direction active head requires trendline_rail_wrong_side_weight >= "
+                    f"{SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN:.2f}"
+                )
+            if hier_legacy_ce_mult < SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN:
+                failures.append(
+                    "smart direction active head requires hier_legacy_ce_mult >= "
+                    f"{SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN:.2f}"
+                )
+            if not anchor_gate_enabled:
+                failures.append("smart direction active head requires anchor_gate_enabled=true")
+            if anchor_gate_init > SMART_DIRECTION_ANCHOR_GATE_INIT_MAX:
+                failures.append(
+                    "smart direction active head requires anchor_gate_init <= "
+                    f"{SMART_DIRECTION_ANCHOR_GATE_INIT_MAX:.2f}"
                 )
             if ckpt_class_balance_guard_weight < SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT:
                 failures.append(
@@ -913,6 +1123,21 @@ def _direction_balance_recipe_contract(
                 failures.append(
                     "smart direction active head requires ckpt_class_balance_min_pred_rate >= "
                     f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:.2f}"
+                )
+            if direction_min_pred_rate_loss_weight < SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_min_pred_rate_loss_weight >= "
+                    f"{SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:.2f}"
+                )
+            if direction_min_pred_rate_fraction < SMART_DIRECTION_MIN_PRED_RATE_FRACTION:
+                failures.append(
+                    "smart direction active head requires direction_min_pred_rate_fraction >= "
+                    f"{SMART_DIRECTION_MIN_PRED_RATE_FRACTION:.2f}"
+                )
+            if direction_min_pred_rate_floor < SMART_DIRECTION_MIN_PRED_RATE_FLOOR:
+                failures.append(
+                    "smart direction active head requires direction_min_pred_rate_floor >= "
+                    f"{SMART_DIRECTION_MIN_PRED_RATE_FLOOR:.2f}"
                 )
             if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
                 failures.append(
@@ -940,10 +1165,24 @@ def _direction_balance_recipe_contract(
         "mtf_dir_aux_balance_repair_required": mtf_dir_aux_balance_repair_required,
         "mtf_dir_aux_uses_direction_balance_repair": mtf_dir_aux_uses_direction_balance_repair,
         "direction_ce_scale": direction_ce_scale,
+        "hierarchical_entry_heads_enabled": hierarchical_entry_heads_enabled,
+        "side_validity_head_enabled": side_validity_head_enabled,
+        "hier_side_validity_weight": hier_side_validity_weight,
+        "hier_side_validity_min_utility_bps": hier_side_validity_min_utility_bps,
+        "hier_side_validity_pos_weight_cap": hier_side_validity_pos_weight_cap,
+        "trendline_rail_head_enabled": trendline_rail_head_enabled,
+        "trendline_rail_aux_weight": trendline_rail_aux_weight,
+        "trendline_rail_wrong_side_weight": trendline_rail_wrong_side_weight,
+        "hier_legacy_ce_mult": hier_legacy_ce_mult,
+        "anchor_gate_enabled": anchor_gate_enabled,
+        "anchor_gate_init": anchor_gate_init,
         "ckpt_monitor": ckpt_monitor,
         "ckpt_class_balance_guard_weight": ckpt_class_balance_guard_weight,
         "ckpt_class_balance_min_pred_to_label": ckpt_class_balance_min_pred_to_label,
         "ckpt_class_balance_min_pred_rate": ckpt_class_balance_min_pred_rate,
+        "direction_min_pred_rate_loss_weight": direction_min_pred_rate_loss_weight,
+        "direction_min_pred_rate_fraction": direction_min_pred_rate_fraction,
+        "direction_min_pred_rate_floor": direction_min_pred_rate_floor,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "failures": failures,
@@ -1030,6 +1269,40 @@ def _symmetric_validation_recipe_contract(
     symmetric_clean_edge_rank = _bool_value(
         recipe.get("symmetric_clean_edge_rank", meta.get("symmetric_clean_edge_rank", False))
     )
+    hierarchical_entry_heads_enabled = _bool_value(
+        recipe.get("hierarchical_entry_heads_enabled", meta.get("hierarchical_entry_heads_enabled", False))
+    )
+    side_validity_head_enabled = _bool_value(
+        recipe.get(
+            "side_validity_head_enabled",
+            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
+                "enabled",
+                meta.get("side_validity_head_enabled", False),
+            )
+            if isinstance(meta.get("hierarchical_entry_heads"), dict)
+            else meta.get("side_validity_head_enabled", False),
+        )
+    )
+    trendline_rail_head_enabled = _bool_value(
+        recipe.get(
+            "trendline_rail_head_enabled",
+            (meta.get("trendline_rail_head") or {}).get("enabled", meta.get("trendline_rail_head_enabled", False))
+            if isinstance(meta.get("trendline_rail_head"), dict)
+            else meta.get("trendline_rail_head_enabled", False),
+        )
+    )
+    xau_side_specific_repair = bool(
+        contract_mode == "smart_seq520_candidate"
+        and (
+            hierarchical_entry_heads_enabled
+            or side_validity_head_enabled
+            or trendline_rail_head_enabled
+            or "side_validity" in active_heads
+            or "trendline_rail" in active_heads
+            or "trade_side_hierarchy" in active_heads
+        )
+    )
+    expected_bad_path_prob_penalty_in_validation = not xau_side_specific_repair
     failures: list[str] = []
     if contract_mode == "smart_seq520_candidate":
         if not symmetric_negatives:
@@ -1047,7 +1320,12 @@ def _symmetric_validation_recipe_contract(
         if "bad_path" in active_heads:
             if not bad_path_ce_in_direction_loss:
                 failures.append("smart bad_path active head requires bad_path_ce_in_direction_loss=true")
-            if not bad_path_prob_penalty_in_validation:
+            if xau_side_specific_repair and bad_path_prob_penalty_in_validation:
+                failures.append(
+                    "smart XAU side-specific bad_path repair requires "
+                    "bad_path_prob_penalty_in_validation=false"
+                )
+            if (not xau_side_specific_repair) and (not bad_path_prob_penalty_in_validation):
                 failures.append("smart bad_path active head requires bad_path_prob_penalty_in_validation=true")
         if not symmetric_short_prob_penalties:
             failures.append("smart symmetric validation requires symmetric_short_prob_penalties=true")
@@ -1065,6 +1343,11 @@ def _symmetric_validation_recipe_contract(
         "survival_target_mode": survival_target_mode,
         "bad_path_ce_in_direction_loss": bad_path_ce_in_direction_loss,
         "bad_path_prob_penalty_in_validation": bad_path_prob_penalty_in_validation,
+        "expected_bad_path_prob_penalty_in_validation": expected_bad_path_prob_penalty_in_validation,
+        "xau_side_specific_repair": xau_side_specific_repair,
+        "hierarchical_entry_heads_enabled": hierarchical_entry_heads_enabled,
+        "side_validity_head_enabled": side_validity_head_enabled,
+        "trendline_rail_head_enabled": trendline_rail_head_enabled,
         "symmetric_short_prob_penalties": symmetric_short_prob_penalties,
         "symmetric_clean_edge_rank": symmetric_clean_edge_rank,
         "failures": failures,
@@ -2035,6 +2318,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             target_audit=target_audit,
             capabilities=bundle.capabilities,
             split_reports=split_reports,
+            contract_mode=specialist_contract_mode,
         )
         failures.extend([f"head_contract: {failure}" for failure in head_contract["failures"]])
 

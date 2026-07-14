@@ -27,6 +27,7 @@ Notes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from datetime import datetime, timezone
@@ -140,7 +141,8 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"[canonical_v3] loading: {args.input}", flush=True)
-    df = pd.read_parquet(args.input)
+    input_path = Path(args.input).expanduser().resolve()
+    df = pd.read_parquet(input_path)
     if "time" in df.columns and not isinstance(df.index, pd.DatetimeIndex):
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df = df.set_index("time")
@@ -196,7 +198,15 @@ def main() -> None:
     df.to_parquet(out_parquet, index=False)
 
     # Manifest
-    import hashlib
+    input_h = hashlib.sha256()
+    with open(input_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            input_h.update(chunk)
+    input_sha = input_h.hexdigest()
+    source_summary_path = input_path.parent / "canonical_features_v2_summary.json"
+    source_summary: dict[str, object] = {}
+    if source_summary_path.exists():
+        source_summary = json.loads(source_summary_path.read_text(encoding="utf-8"))
     h = hashlib.sha256()
     with open(out_parquet, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -210,7 +220,20 @@ def main() -> None:
         "rows": len(df),
         "cols_total": n_out,
         "created_utc": datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
-        "source_v2_parquet": str(args.input),
+        "source_v2_parquet": str(input_path),
+        "source_v2_parquet_sha256": input_sha,
+        "source_v2_summary_path": str(source_summary_path),
+        "source_v2_no_lookahead": bool(
+            ((source_summary.get("htf_alignment_contract_v1") or {}) if isinstance(source_summary, dict) else {}).get(
+                "no_lookahead"
+            )
+        ),
+        "source_v2_builder_version": (
+            source_summary.get("canonical_v2_builder_version") if isinstance(source_summary, dict) else None
+        ),
+        "source_v2_htf_alignment_contract": (
+            source_summary.get("htf_alignment_contract_v1") if isinstance(source_summary, dict) else None
+        ),
         "diff_from_v2": {
             "dropped": to_drop,
             "added": [c for c in new_features if c in df.columns],

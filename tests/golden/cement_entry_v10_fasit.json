@@ -1,17 +1,17 @@
 {
-  "bundle_name": "v10_bundle_clean",
-  "state_dict_sha256": "87b56d2cd5acaa4fa01822b1b0aa7944c279137bac14049b65274c5ec8939837",
+  "bundle_name": "v10_entry_smart_seq520_candidate_20260706T152210Z",
+  "state_dict_sha256": "0007ffbf63916ca4adb9dd8e0c279298f0969bbf8ac7b8481aad04bb8979a2f4",
   "n": 64,
   "n_classes": 3,
-  "logits_sha256": "5263f144655a049396a293b54aab8d7c638caad51acf56c7bd743ee2cbdf7920",
+  "logits_sha256": "094d65a744975299db88b41fed760d1914c66c30d93f5082b377381ef2843eff",
   "per_class_logit_mean": [
-    -11.8809,
-    -8.275,
-    -3.4172
+    -2.6349,
+    -1.5427,
+    -1.4636
   ],
   "argmax_counts": [
-    10,
-    17,
-    37
+    9,
+    20,
+    35
   ]
 }

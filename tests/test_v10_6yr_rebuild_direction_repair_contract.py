@@ -1,0 +1,92 @@
+from pathlib import Path
+
+
+REPO = Path(__file__).resolve().parents[1]
+
+
+def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> None:
+    text = (REPO / "scripts" / "v10_6yr_rebuild_20260626.sh").read_text(encoding="utf-8")
+
+    assert "SMART_SEQ_STRUCTURE_MANIFEST" in text
+    assert "ENTRY_SPECIALIST_CHALLENGER_SMART_EXTENSION_MANIFEST_latest.json" in text
+    assert "--seq-structure-manifest" in text
+    assert "--seq-structure-compute-inline" in text
+    assert "--neutral-xgb-bridge" in text
+    assert "--allow-missing-hold-map" in text
+    assert "materialize_smart520_rank_reference_v1" in text
+    assert "--smart520-rank-reference-npz" in text
+    assert "smart520_state_contract" in text
+    assert "rank_reference_npz_sha256" in text
+
+
+def test_v10_6yr_rebuild_blocks_stale_mtf_and_runs_xau_pretrain_audit() -> None:
+    text = (REPO / "scripts" / "v10_6yr_rebuild_20260626.sh").read_text(encoding="utf-8")
+
+    assert "GX1_PERTF_CLOSED_BAR" in text
+    assert "GX1_MTF_CACHE_ALLOW_STALE must stay off" in text
+    assert "[MTF_CACHE_GATE_FAIL]" in text
+    assert "m5_prebuilt_source mismatch" in text
+    assert "m5_prebuilt_source_sha256 mismatch" in text
+    assert "feature_names mismatch" in text
+    assert "shift_contract mismatch" in text
+    assert "cache does not cover TEST_END" in text
+    assert "audit_xau_direction_repair_pretrain_v1" in text
+    assert "--require-rail-features" in text
+    assert "v10_6yr_dataset__HOLD_03B" in text
+    assert "xgb_bridge_source is not neutral_uniform_proba" in text
+    assert "tape_root is not XAUUSD-only" in text
+    assert "smart520 rank reference sha mismatch" in text
+    assert 'for split in ("train", "val", "test")' in text
+
+
+def test_v10_6yr_rebuild_blocks_stale_predataset_artifacts() -> None:
+    text = (REPO / "scripts" / "v10_6yr_rebuild_20260626.sh").read_text(encoding="utf-8")
+
+    assert "[CANONICAL_V2_GATE_FAIL]" in text
+    assert "canonical_features_v2_no_lookahead_close_time_20260713" in text
+    assert "[CANONICAL_V3_GATE_FAIL]" in text
+    assert "source_v2_parquet_sha256" in text
+    assert "source_v2_no_lookahead" in text
+    assert "FULL_PLUS_CTX_v3src.proof.json" in text
+    assert "[FULL_PLUS_CTX_GATE_FAIL]" in text
+
+
+def test_mtf_cache_manifest_records_source_sha() -> None:
+    text = (REPO / "gx1/scripts/prebuild_multi_tf_cache_v2.py").read_text(encoding="utf-8")
+
+    assert "m5_prebuilt_source_sha256" in text
+    assert "feature_names" in text
+    assert "shift_contract" in text
+    assert "hashlib.sha256" in text
+
+
+def test_run_replay_defaults_to_xau_price_data_guard() -> None:
+    text = (REPO / "scripts/run_replay.sh").read_text(encoding="utf-8")
+
+    assert 'GX1_REPLAY_INSTRUMENT:-XAUUSD' in text
+    assert "XAUUSD replay requires XAU price data" in text
+
+
+def test_xau_direction_repair_builder_requires_smart_geometry_fields() -> None:
+    text = (REPO / "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "XAU_DIRECTION_REPAIR_SIGNAL_FIELDS_MISSING" in text
+    assert "XAU_DIRECTION_REPAIR_REQUIRES_INLINE_SEQ_STRUCTURE" in text
+    assert "chart.geometry_rising_support_rail_short_trap_pressure" in text
+    assert "chart.geometry_falling_resistance_rail_long_trap_pressure" in text
+    assert "chart.geometry_channel_position_low_to_high" in text
+
+
+def test_seq_structure_external_join_is_fail_closed_against_leakage() -> None:
+    text = (REPO / "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "SEQ_STRUCTURE_EXPLICIT_SELECTED_FEATURES_REQUIRED" in text
+    assert "SEQ_STRUCTURE_DUPLICATE_TIME_ROWS" in text
+    assert "SEQ_STRUCTURE_FORBIDDEN_FEATURE_NAMES" in text
+    assert '"future"' in text
+    assert '"target"' in text
+    assert '"pnl"' in text

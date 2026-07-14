@@ -1,13 +1,20 @@
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 import torch
 
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     SIGNAL_BRIDGE_NEUTRAL_VALUES,
+    _effective_selection_score_mode,
+    _effective_selection_score_threshold,
+    _iter_split_chunks,
     _neutralize_signal_bridge,
+    _pnl_proxy_for_side,
     _specialist_contract_snapshot,
     build_parser,
     build_metric_rows,
@@ -98,6 +105,28 @@ def test_parser_has_challenger_seq215_alias() -> None:
     assert args.contract_mode == "challenger_seq215"
 
 
+def test_selection_score_defaults_follow_expected_utility_env(monkeypatch) -> None:
+    monkeypatch.setenv("GX1_SMART_SELECTION_SCORE", "expected_utility")
+    monkeypatch.setenv("GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS", "2.5")
+
+    args = build_parser().parse_args(["--bundle-dir", "/tmp/bundle"])
+
+    assert args.selection_score_mode == "expected_utility"
+    assert args.selection_score_threshold == 2.5
+    assert _effective_selection_score_mode(args) == "expected_utility"
+    assert _effective_selection_score_threshold(args, "expected_utility") == 2.5
+
+
+def test_smart_seq520_selection_score_defaults_to_expected_utility_without_env(monkeypatch) -> None:
+    monkeypatch.delenv("GX1_SMART_SELECTION_SCORE", raising=False)
+    monkeypatch.delenv("GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS", raising=False)
+
+    args = build_parser().parse_args(["--bundle-dir", "/tmp/bundle", "--smart-seq520"])
+
+    assert _effective_selection_score_mode(args) == "expected_utility"
+    assert _effective_selection_score_threshold(args, "expected_utility") == 0.0
+
+
 def test_metric_rows_include_required_replay_readiness_columns_and_session_slices() -> None:
     rows = build_metric_rows(_predictions(), top_fracs=[0.5])
     metrics = pd.DataFrame(rows)
@@ -120,6 +149,19 @@ def test_summary_uses_top5_and_top10_all_metrics() -> None:
     assert rows[("test", "candidate")]["top10_all_mean_pnl_bps"] == 14.0
 
 
+def test_pnl_proxy_prefers_side_utility_over_forecast_ret() -> None:
+    frame = pd.DataFrame(
+        {
+            "trade_side": [0, 1],
+            "y_forecast_ret_K24": [-99.0, -99.0],
+            "y_long_path_utility_bps": [12.0, -7.0],
+            "y_short_path_utility_bps": [-4.0, 15.0],
+        }
+    )
+
+    assert _pnl_proxy_for_side(frame).tolist() == [12.0, 15.0]
+
+
 def test_neutralize_signal_bridge_sets_only_bridge_slots() -> None:
     seq_x = torch.ones((2, 3, 10), dtype=torch.float32)
     snap_x = torch.full((2, 10), 2.0, dtype=torch.float32)
@@ -131,6 +173,39 @@ def test_neutralize_signal_bridge_sets_only_bridge_slots() -> None:
     assert torch.allclose(snap_x[..., : len(expected)], expected.view(1, -1))
     assert torch.equal(seq_x[..., len(expected) :], torch.ones((2, 3, 3), dtype=torch.float32))
     assert torch.equal(snap_x[..., len(expected) :], torch.full((2, 3), 2.0, dtype=torch.float32))
+
+
+def test_stream_chunks_copy_manifest_for_signal_contract(tmp_path: Path) -> None:
+    parquet_path = tmp_path / "sample_test.parquet"
+    table = pa.table({"row_id": list(range(5)), "value": [float(x) for x in range(5)]})
+    pq.write_table(table, parquet_path, row_group_size=2)
+    manifest = {
+        "extra": {
+            "neutral_xgb_bridge": True,
+            "xgb_bridge_source": "neutral_uniform_proba",
+            "signal_bridge": {
+                "fields": ["signal_bridge_long_proba", "signal_bridge_short_proba", "signal_bridge_flat_proba"],
+                "seq_input_dim": 3,
+                "snap_input_dim": 3,
+                "neutral_xgb_bridge": True,
+                "bridge_source": "neutral_uniform_proba",
+            },
+        },
+    }
+    parquet_path.with_suffix(".manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    chunks = _iter_split_chunks(parquet_path, stream_chunk_rows=2)
+    chunk_path, cleanup = next(chunks)
+    chunk_manifest = chunk_path.with_suffix(".manifest.json")
+    try:
+        assert chunk_manifest.exists()
+        assert json.loads(chunk_manifest.read_text(encoding="utf-8")) == manifest
+    finally:
+        cleanup()
+        chunks.close()
+
+    assert not chunk_path.exists()
+    assert not chunk_manifest.exists()
 
 
 def test_no_xgb_ablation_diagnostics_measure_prediction_delta() -> None:

@@ -33,7 +33,10 @@ from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR,
 
 DEFAULT_PREDICTIONS = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1/selective_edge_predictions.parquet"
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_replay_trade_log_20260628_v1"
-SIDE_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+SIDE_LONG = 0
+SIDE_SHORT = 1
+SIDE_FLAT = 2
+SIDE_NAMES = {SIDE_LONG: "LONG", SIDE_SHORT: "SHORT", SIDE_FLAT: "FLAT"}
 
 
 def _json_default(obj: Any) -> Any:
@@ -153,6 +156,80 @@ def _prepare_predictions(
     return merged.sort_values(["split", "time"], kind="mergesort").reset_index(drop=True)
 
 
+def _resolve_score_surface(predictions: pd.DataFrame) -> tuple[str, str]:
+    """Return the score column and policy mode used for replay selection.
+
+    Expected-utility evaluation rewrites `trade_side` from the hierarchical
+    utility surface. Replay must therefore threshold the same surface, not the
+    legacy edge score, or the replay certifies a hybrid policy live never serves.
+    """
+    if "selection_score_mode" in predictions.columns:
+        modes = sorted(
+            {
+                str(value).strip().lower()
+                for value in predictions["selection_score_mode"].dropna().astype(str).unique()
+                if str(value).strip()
+            }
+        )
+        non_edge_modes = [mode for mode in modes if mode != "edge_score"]
+        if non_edge_modes:
+            if "selection_score" not in predictions.columns:
+                raise RuntimeError(
+                    "selective-edge predictions declare selection_score_mode="
+                    f"{non_edge_modes} but lack selection_score"
+                )
+            if len(set(non_edge_modes)) > 1:
+                raise RuntimeError(f"mixed non-edge selection_score_mode values are not replayable: {modes}")
+            if non_edge_modes[0] != "expected_utility":
+                raise RuntimeError(f"unsupported selection_score_mode for replay: {non_edge_modes[0]}")
+            return "selection_score", non_edge_modes[0]
+    expected_utility_columns = {
+        "expected_utility_long_bps",
+        "expected_utility_short_bps",
+        "expected_utility_side",
+        "trade_side",
+    }
+    if "selection_score" in predictions.columns:
+        if expected_utility_columns.issubset(predictions.columns):
+            return "selection_score", "expected_utility"
+        return "selection_score", "selection_score"
+    return "edge_score", "edge_score"
+
+
+def _enforce_expected_utility_side_contract(predictions: pd.DataFrame) -> pd.DataFrame:
+    required = (
+        "expected_utility_long_bps",
+        "expected_utility_short_bps",
+        "expected_utility_side",
+        "trade_side",
+    )
+    missing = [name for name in required if name not in predictions.columns]
+    if missing:
+        raise RuntimeError(f"expected_utility replay missing prediction columns: {missing}")
+    out = predictions.copy()
+    expected_long = pd.to_numeric(out["expected_utility_long_bps"], errors="coerce").to_numpy(np.float64)
+    expected_short = pd.to_numeric(out["expected_utility_short_bps"], errors="coerce").to_numpy(np.float64)
+    if not (np.isfinite(expected_long).all() and np.isfinite(expected_short).all()):
+        raise RuntimeError("expected_utility replay side columns contain non-finite values")
+    utility_side = np.where(expected_long >= expected_short, SIDE_LONG, SIDE_SHORT).astype(np.int64)
+    supplied_expected_side = pd.to_numeric(out["expected_utility_side"], errors="coerce").fillna(SIDE_FLAT).to_numpy(np.int64)
+    expected_side_mismatches = int(np.sum(supplied_expected_side != utility_side))
+    if expected_side_mismatches:
+        raise RuntimeError(
+            "expected_utility replay expected_utility_side mismatch: "
+            f"mismatches={expected_side_mismatches}"
+        )
+    supplied_trade_side = pd.to_numeric(out["trade_side"], errors="coerce").fillna(SIDE_FLAT).to_numpy(np.int64)
+    trade_side_mismatches = int(np.sum(supplied_trade_side != utility_side))
+    if trade_side_mismatches:
+        raise RuntimeError(
+            "expected_utility replay trade_side mismatch: "
+            f"mismatches={trade_side_mismatches}"
+        )
+    out["trade_side"] = utility_side
+    return out
+
+
 def _frac_label(frac: float) -> str:
     pct = float(frac) * 100.0
     if abs(pct - round(pct)) < 1e-9:
@@ -171,21 +248,29 @@ def _run_fixed_horizon_policy(
     eval_df: pd.DataFrame,
     tape: SourceTape,
     score_threshold: float,
+    score_column: str,
+    selection_score_mode: str,
+    threshold_source: str,
     threshold_top_frac: float,
     cost_stress_bps: float,
     args: argparse.Namespace,
     policy_id: str,
     policy_config_hash: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    source_idx = tape.indices_for_times(eval_df["time"])
+    decision_times = pd.to_datetime(eval_df["time"], utc=True)
+    fill_times = decision_times + pd.Timedelta(minutes=5)
+    source_idx = tape.indices_for_times(fill_times)
     probs = eval_df[["p_long", "p_short", "p_flat"]].astype(float).to_numpy(np.float64)
     chosen_prob = np.maximum(probs[:, 0], probs[:, 1])
-    scores = pd.to_numeric(eval_df["edge_score"], errors="coerce").to_numpy(np.float64)
+    scores = pd.to_numeric(eval_df[score_column], errors="coerce").to_numpy(np.float64)
     sides = pd.to_numeric(eval_df["trade_side"], errors="coerce").to_numpy(np.int64)
     labels = pd.to_numeric(eval_df["y_direction"], errors="coerce").to_numpy(np.int64)
     counts: dict[str, Any] = {
         "policy_id": policy_id,
         "threshold_top_frac": float(threshold_top_frac),
+        "score_column": str(score_column),
+        "selection_score_mode": str(selection_score_mode),
+        "threshold_source": str(threshold_source),
         "score_threshold": float(score_threshold),
         "cost_stress_bps": float(cost_stress_bps),
         "exit_mode": str(args.exit_mode),
@@ -215,7 +300,8 @@ def _run_fixed_horizon_policy(
         if start_src_idx <= unavailable_until_src_idx:
             counts["skipped_open_or_cooldown"] += 1
             continue
-        entry_time = pd.Timestamp(row.time)
+        decision_time = pd.Timestamp(row.time)
+        entry_time = pd.Timestamp(fill_times.iloc[i])
         day = entry_time.date().isoformat()
         if int(args.max_trades_per_day) > 0 and daily_trade_count.get(day, 0) >= int(args.max_trades_per_day):
             counts["skipped_max_trades_day"] += 1
@@ -248,8 +334,10 @@ def _run_fixed_horizon_policy(
             "policy_config_hash": policy_config_hash,
             "exit_mode": str(args.exit_mode),
             "exit_policy_config_hash": _exit_policy_config_hash(_exit_policy_config_from_args(args)),
-            "threshold_source": "validation_top_fraction",
+            "threshold_source": str(threshold_source),
             "threshold_top_frac": float(threshold_top_frac),
+            "score_column": str(score_column),
+            "selection_score_mode": str(selection_score_mode),
             "score_threshold": float(score_threshold),
             "cost_stress_bps": float(cost_stress_bps),
             "slippage_bps": float(args.slippage_bps),
@@ -257,9 +345,11 @@ def _run_fixed_horizon_policy(
             "source_split": str(row.split),
             "session": str(row.session).upper(),
             "vol_regime": str(getattr(row, "vol_regime", "UNKNOWN")),
+            "decision_time": decision_time,
             "entry_day": day,
             "entry_month": entry_time.strftime("%Y-%m"),
             "entry_time": sim["entry_time"],
+            "fill_price_source": "m1_open_at_decision_plus_5m",
             "exit_time": sim["exit_time"],
             "side": SIDE_NAMES.get(int(sides[i]), str(int(sides[i]))),
             "label": SIDE_NAMES.get(int(labels[i]), str(int(labels[i]))),
@@ -309,6 +399,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     if "val" not in set(predictions["split"]) or "test" not in set(predictions["split"]):
         raise RuntimeError("candidate replay trade log requires val and test predictions")
+    score_column, selection_score_mode = _resolve_score_surface(predictions)
+    if score_column not in predictions.columns:
+        raise RuntimeError(f"resolved replay score column missing from predictions: {score_column}")
+    if selection_score_mode == "expected_utility":
+        predictions = _enforce_expected_utility_side_contract(predictions)
     val = predictions[predictions["split"].astype(str) == "val"].reset_index(drop=True)
     test = predictions[predictions["split"].astype(str) == "test"].sort_values("time", kind="mergesort").reset_index(drop=True)
     if not bool((test["time"].dt.year == 2026).all()):
@@ -326,7 +421,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     base_policy_config = {
         "model_name": str(args.model_name),
-        "threshold_source": "validation_top_fraction",
+        "score_column": str(score_column),
+        "selection_score_mode": str(selection_score_mode),
         "eval_split": "test",
         **_exit_policy_config_from_args(args),
         "cooldown_bars": int(args.cooldown_bars),
@@ -340,13 +436,47 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     threshold_rows: list[dict[str, Any]] = []
     all_counts: list[dict[str, Any]] = []
     all_trades: list[dict[str, Any]] = []
-    val_scores = pd.to_numeric(val["edge_score"], errors="coerce").to_numpy(np.float64)
+    val_scores = pd.to_numeric(val[score_column], errors="coerce").to_numpy(np.float64)
+    expected_utility_threshold: float | None = None
+    if selection_score_mode == "expected_utility":
+        if abs(float(args.min_direction_prob)) > 1e-12:
+            raise RuntimeError(
+                "expected_utility replay must use --min-direction-prob 0.0 to match live selection semantics"
+            )
+        if "selection_score_threshold" not in predictions.columns:
+            raise RuntimeError(
+                "expected_utility replay requires pinned selection_score_threshold in predictions"
+            )
+        threshold_values = pd.to_numeric(
+            predictions["selection_score_threshold"],
+            errors="coerce",
+        ).dropna().astype(float).unique()
+        threshold_values = sorted({round(float(value), 10) for value in threshold_values})
+        if len(threshold_values) != 1:
+            raise RuntimeError(
+                "expected_utility replay requires one unique selection_score_threshold, "
+                f"got {threshold_values}"
+            )
+        expected_utility_threshold = float(threshold_values[0])
+    threshold_source = (
+        "selection_score_threshold_column"
+        if selection_score_mode == "expected_utility"
+        else "validation_top_fraction"
+    )
+    base_policy_config["threshold_source"] = threshold_source
     for top_frac in top_fracs:
-        threshold = _threshold_from_scores(val_scores, float(top_frac), float(args.min_score_floor))
+        threshold = (
+            float(expected_utility_threshold)
+            if expected_utility_threshold is not None
+            else _threshold_from_scores(val_scores, float(top_frac), float(args.min_score_floor))
+        )
         threshold_rows.append(
             {
                 "model": str(args.model_name),
+                "threshold_source": str(threshold_source),
                 "threshold_top_frac": float(top_frac),
+                "score_column": str(score_column),
+                "selection_score_mode": str(selection_score_mode),
                 "score_threshold": float(threshold),
                 "val_rows": int(len(val)),
                 "test_rows": int(len(test)),
@@ -366,6 +496,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 eval_df=test,
                 tape=tape,
                 score_threshold=float(threshold),
+                score_column=str(score_column),
+                selection_score_mode=str(selection_score_mode),
+                threshold_source=str(threshold_source),
                 threshold_top_frac=float(top_frac),
                 cost_stress_bps=float(cost_bps),
                 args=args,
@@ -422,6 +555,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "dataset_dir": str(dataset_dir),
         "source_parquet": str(source_parquet),
         "out_dir": str(out_dir),
+        "score_column": str(score_column),
+        "selection_score_mode": str(selection_score_mode),
         "trades_path": str(trades_path),
         "thresholds_path": str(thresholds_path),
         "counts_path": str(counts_path),

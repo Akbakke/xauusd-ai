@@ -37,6 +37,9 @@ def _path_calibration_future_contract(wired: bool) -> dict:
             *[f"{key}={value}" for key, value in gate.DIRECTION_BALANCE_ENV_TEMPLATE.items()],
             *[f"{key}={value}" for key, value in gate.TAIL_DIRECTION_ENV_TEMPLATE.items()],
             ".venv/bin/python",
+            "--enable-xau-direction-repair-heads",
+            "--anchor-gate-init",
+            "0.0",
         ],
     }
 
@@ -55,7 +58,30 @@ def _direction_balance_wrapper_text(kind: str) -> str:
         for key in gate.DIRECTION_BALANCE_ENV_KEYS
     )
     downstream = "\n".join(gate.DIRECTION_BALANCE_ENV_KEYS)
-    return f"{upstream}\n{downstream}\n"
+    smart_recipe = "\n".join(
+        [
+            "PRED_BALANCE_ALPHA=0.50",
+            "PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0",
+            "DIRECTION_CE_SCALE=2.00",
+            "CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50",
+            "CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35",
+            "CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05",
+            "DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50",
+            "DIRECTION_MIN_PRED_RATE_FRACTION=0.50",
+            "DIRECTION_MIN_PRED_RATE_FLOOR=0.05",
+            "HIER_LEGACY_CE_MULT=1.00",
+            "HIER_SIDE_VALIDITY_WEIGHT=1.50",
+            "HIER_POCKET_ABSTAIN_WEIGHT=5.00",
+            "HIER_POCKET_SIDE_MARGIN_WEIGHT=3.00",
+            "TRENDLINE_RAIL_AUX_WEIGHT=1.00",
+            "TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=1.50",
+            "TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=5.00",
+            "ANCHOR_GATE_INIT=0.0",
+            "--enable-xau-direction-repair-heads",
+            "--anchor-gate-init",
+        ]
+    )
+    return f"{upstream}\n{downstream}\n{smart_recipe}\n"
 
 
 def _tail_direction_wrapper_text(kind: str) -> str:

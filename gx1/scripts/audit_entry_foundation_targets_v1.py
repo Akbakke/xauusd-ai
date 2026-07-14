@@ -66,7 +66,32 @@ DEEP_AUX_TARGET_COLUMNS = (
     + [f"y_dip_bottom_frac_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
     + [f"y_tail_mae_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
 )
-ALL_TARGET_COLUMNS = list(dict.fromkeys(BASE_TARGET_COLUMNS + SIDE_TARGET_COLUMNS + OPTIONAL_TARGET_COLUMNS + list(DEEP_AUX_TARGET_COLUMNS)))
+XAU_DIRECTION_REPAIR_TARGET_COLUMNS = [
+    "y_trade",
+    "y_side",
+    "y_side_mask",
+    "y_long_path_utility_bps",
+    "y_short_path_utility_bps",
+    "y_long_bad_path",
+    "y_short_bad_path",
+    "y_long_expected_mae_bps",
+    "y_short_expected_mae_bps",
+    "y_rising_channel_support_touch",
+    "y_falling_channel_resistance_touch",
+    "y_support_retest_continuation",
+    "y_resistance_retest_continuation",
+    "y_countertrend_short_trap",
+    "y_countertrend_long_trap",
+    "y_long_high_mae_low_mfe_early_failure",
+    "y_short_high_mae_low_mfe_early_failure",
+]
+ALL_TARGET_COLUMNS = list(dict.fromkeys(
+    BASE_TARGET_COLUMNS
+    + SIDE_TARGET_COLUMNS
+    + OPTIONAL_TARGET_COLUMNS
+    + list(DEEP_AUX_TARGET_COLUMNS)
+    + XAU_DIRECTION_REPAIR_TARGET_COLUMNS
+))
 
 BASE_ACTIVE_TRAINING_HEADS = (
     "direction",
@@ -286,6 +311,60 @@ def _head_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
     }
 
 
+def _xau_direction_repair_liveness(frames: list[pd.DataFrame]) -> dict[str, Any]:
+    present_columns = sorted(
+        {
+            col
+            for df in frames
+            for col in XAU_DIRECTION_REPAIR_TARGET_COLUMNS
+            if col in df.columns
+        }
+    )
+    split_rows: list[dict[str, Any]] = []
+    for df in frames:
+        split = str(df["split"].iloc[0]) if "split" in df and len(df) else "UNKNOWN"
+        column_rows = [_column_liveness(df, col) for col in present_columns]
+        split_rows.append(
+            {
+                "split": split,
+                "columns": column_rows,
+                "missing_columns": [col for col in XAU_DIRECTION_REPAIR_TARGET_COLUMNS if col not in df.columns],
+                "dead_columns": [row["column"] for row in column_rows if row["present"] and not row["live"]],
+                "live": all(bool(row["live"]) for row in column_rows) if column_rows else False,
+            }
+        )
+    missing_any = sorted(
+        {
+            col
+            for row in split_rows
+            for col in row["missing_columns"]
+        }
+    )
+    dead_any = sorted(
+        {
+            col
+            for row in split_rows
+            for col in row["dead_columns"]
+        }
+    )
+    return {
+        "expected_columns": list(XAU_DIRECTION_REPAIR_TARGET_COLUMNS),
+        "present_columns": present_columns,
+        "enabled": bool(present_columns),
+        "missing_columns_any_split": missing_any,
+        "dead_columns_any_split": dead_any,
+        "all_expected_columns_present_all_splits": bool(present_columns)
+        and not missing_any
+        and set(present_columns) == set(XAU_DIRECTION_REPAIR_TARGET_COLUMNS),
+        "live_all_present_columns_all_splits": bool(present_columns) and all(bool(row["live"]) for row in split_rows),
+        "live_all_expected_columns_all_splits": bool(present_columns)
+        and not missing_any
+        and not dead_any
+        and set(present_columns) == set(XAU_DIRECTION_REPAIR_TARGET_COLUMNS),
+        "splits": split_rows,
+    }
+
+
 def _target_metrics(df: pd.DataFrame, *, split: str, scope: str, value: str, side: str = "ALL") -> dict[str, Any]:
     if side == "LONG":
         clean_col, survival_col, tail48_col, tail96_col = (
@@ -480,6 +559,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     target_head_contract = _head_contract(frames)
     head_liveness = target_head_contract["head_target_liveness"]
+    xau_repair_liveness = _xau_direction_repair_liveness(frames)
+    if xau_repair_liveness["enabled"] and not xau_repair_liveness["all_expected_columns_present_all_splits"]:
+        failures.append(
+            "xau direction-repair target columns are present but missing expected columns in at least one split: "
+            f"{xau_repair_liveness.get('missing_columns_any_split')}"
+        )
+    if xau_repair_liveness["enabled"] and not xau_repair_liveness["live_all_expected_columns_all_splits"]:
+        failures.append("xau direction-repair target columns are present but not live in all splits")
     for head in EXPECTED_ACTIVE_OPTIONAL_HEADS:
         if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
             failures.append(f"expected active optional head target is not live in all splits: {head}")
@@ -511,6 +598,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "path_quality_horizons": path_quality_horizons,
         "target_contract": target_contract,
         "target_head_contract": target_head_contract,
+        "xau_direction_repair_target_liveness": xau_repair_liveness,
         "metrics": metrics,
         "drift": drift,
         "failures": failures,

@@ -436,7 +436,7 @@ SMART_SEQ520_SMART_FAMILY_CONTRACT = OrderedDict(
                 "expected_feature_count": 13,
                 "expected_specialist_counts": {"chart_geometry_encoder": 13},
                 "owned_specialists": ("chart_geometry_encoder",),
-                "purpose": "Smart2 trendline/channel/Fibonacci/EMA-cross/chart-pattern geometry fields.",
+                "purpose": "Curated Smart520 trendline/channel/Fibonacci geometry fields, including rising-support and falling-resistance rail trap evidence.",
             },
         ),
         (

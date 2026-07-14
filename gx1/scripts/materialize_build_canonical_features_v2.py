@@ -48,10 +48,10 @@ NOTE: features the v1 V10 ctx already has are NOT duplicated:
 
 Alignment
 ---------
-D1/M15 features are computed on resampled OHLC, then forward-aligned to each M5
-timestamp via pd.merge_asof(direction='backward'). This means each M5 bar gets
-the most recent D1/M15 value at-or-before its timestamp — same semantics as live
-runtime.
+D1/M15 features are computed on resampled OHLC, then shifted to the HTF bar
+close-time before pd.merge_asof(direction='backward'). This means each M5 bar
+gets the most recent fully closed D1/M15 value at-or-before its timestamp —
+same semantics as live runtime and no access to the still-forming HTF bar.
 
 Output
 ------
@@ -149,7 +149,7 @@ def compute_d1_features(m5: pd.DataFrame) -> pd.DataFrame:
     """Resample M5 → D1, compute D1 indicators, return DataFrame indexed by D1 close-time.
 
     Returns columns: [time, d1_atr14_canon_v2, d1_rsi14_canon_v2, ...]
-    Time = D1 bucket start (UTC midnight).
+    Time = D1 bucket close (next UTC midnight), not bucket start.
     """
     work = m5[["time", "open", "high", "low", "close"]].copy()
     work["time"] = pd.to_datetime(work["time"], utc=True)
@@ -177,6 +177,9 @@ def compute_d1_features(m5: pd.DataFrame) -> pd.DataFrame:
     out[f"d1_close_pct_in_20day_range{SUFFIX}"] = (d1["close"] - low20) / range20
     out[f"d1_pct_change_5{SUFFIX}"] = d1["close"].pct_change(5) * 10000.0  # bps
 
+    # Resample labels D1 bars by bucket start. Shift to close-time so intraday
+    # M5 rows cannot see the full day's high/low/close before that D1 bar closes.
+    out.index = out.index + pd.Timedelta(days=1)
     out = out.reset_index()
     out["time"] = pd.to_datetime(out["time"], utc=True)
     out["_time_ns"] = out["time"].astype("int64")
@@ -214,6 +217,9 @@ def compute_m15_features(m5: pd.DataFrame) -> pd.DataFrame:
     trend_diff = ema5 - ema20
     out[f"m15_trend_sign{SUFFIX}"] = np.sign(trend_diff).fillna(0.0)
 
+    # Resample labels M15 bars by bucket start. Shift to close-time so M5 rows
+    # inside the still-forming M15 bar do not see its final high/low/close.
+    out.index = out.index + pd.Timedelta(minutes=15)
     out = out.reset_index()
     out["time"] = pd.to_datetime(out["time"], utc=True)
     out["_time_ns"] = out["time"].astype("int64")
@@ -328,6 +334,7 @@ def write_artifacts(
     summary = {
         "layer_name": "CANONICAL_FEATURES_V2_SUMMARY",
         "action_v1": ACTION,
+        "canonical_v2_builder_version": "canonical_features_v2_no_lookahead_close_time_20260713",
         "out_path_v1": str(out_path),
         "built_at_utc_v1": _utc_now(),
         "m5_tape_root_v1": str(m5_tape_root),
@@ -343,6 +350,15 @@ def write_artifacts(
         "total_columns_v1": int(len(feats.columns)),
         "v2_d1_feature_names_v1": [f"{n}{SUFFIX}" for n in D1_FEATURE_NAMES],
         "v2_m15_feature_names_v1": [f"{n}{SUFFIX}" for n in M15_FEATURE_NAMES],
+        "htf_alignment_contract_v1": {
+            "no_lookahead": True,
+            "d1_feature_time": "bar_close_time",
+            "m15_feature_time": "bar_close_time",
+            "d1_bucket_start_shift": "1D",
+            "m15_bucket_start_shift": "15min",
+            "merge_asof_direction": "backward",
+            "semantics": "M5 rows receive only fully closed D1/M15 feature rows at-or-before M5 time",
+        },
         "research_only_v1": True,
     }
     summary_path = out_path.parent / "canonical_features_v2_summary.json"

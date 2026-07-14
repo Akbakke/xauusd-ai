@@ -99,6 +99,8 @@ def _validate_exit_policy_args(args: argparse.Namespace) -> None:
 class SourceTape:
     times: np.ndarray
     index: pd.Index
+    bid_open: np.ndarray
+    ask_open: np.ndarray
     bid_close: np.ndarray
     ask_close: np.ndarray
     bid_high: np.ndarray
@@ -108,13 +110,25 @@ class SourceTape:
 
     @classmethod
     def load(cls, path: Path) -> "SourceTape":
-        cols = ["time", "bid_close", "ask_close", "bid_high", "bid_low", "ask_high", "ask_low"]
+        cols = [
+            "time",
+            "bid_open",
+            "ask_open",
+            "bid_close",
+            "ask_close",
+            "bid_high",
+            "bid_low",
+            "ask_high",
+            "ask_low",
+        ]
         src = pd.read_parquet(path, columns=cols)
         src["time"] = pd.to_datetime(src["time"], utc=True)
         src = src.sort_values("time").reset_index(drop=True)
         return cls(
             times=src["time"].to_numpy(),
             index=pd.Index(src["time"]),
+            bid_open=src["bid_open"].to_numpy(np.float64),
+            ask_open=src["ask_open"].to_numpy(np.float64),
             bid_close=src["bid_close"].to_numpy(np.float64),
             ask_close=src["ask_close"].to_numpy(np.float64),
             bid_high=src["bid_high"].to_numpy(np.float64),
@@ -150,9 +164,9 @@ class SourceTape:
             return None
 
         if side == 0:
-            entry_price = float(self.ask_close[start])
+            entry_price = float(self.ask_open[start])
         elif side == 1:
-            entry_price = float(self.bid_close[start])
+            entry_price = float(self.bid_open[start])
         else:
             return None
         if not np.isfinite(entry_price) or entry_price <= 0:
@@ -268,7 +282,7 @@ class SourceTape:
         stop_loss_bps: float,
         same_bar_policy: str,
     ) -> dict[str, Any] | None:
-        for idx in range(start + 1, end + 1):
+        for idx in range(start, end + 1):
             if side == 0:
                 tp_price = entry_price * (1.0 + take_profit_bps / 1e4)
                 sl_price = entry_price * (1.0 - stop_loss_bps / 1e4)
@@ -331,7 +345,7 @@ class SourceTape:
         activated = False
         activation_bar: int | None = None
         peak_mfe_bps = 0.0
-        for idx in range(start + 1, end + 1):
+        for idx in range(start, end + 1):
             current_mfe = self._bar_mfe_bps(idx=idx, side=side, entry_price=entry_price)
             if np.isfinite(current_mfe):
                 peak_mfe_bps = max(peak_mfe_bps, float(current_mfe))
@@ -380,7 +394,7 @@ class SourceTape:
         peak_mfe_bps = 0.0
         floor_bps: float | None = None
 
-        for idx in range(start + 1, end + 1):
+        for idx in range(start, end + 1):
             if activated:
                 floor_bps = self._mfe_protect_floor_bps(
                     peak_mfe_bps=peak_mfe_bps,
@@ -444,9 +458,9 @@ class SourceTape:
         return None
 
     def _mfe_mae(self, *, start: int, end: int, side: int, entry_price: float) -> tuple[float | None, float | None]:
-        if end <= start:
+        if end < start:
             return None, None
-        fut = slice(start + 1, end + 1)
+        fut = slice(start, end + 1)
         if side == 0:
             mfe = (np.nanmax(self.bid_high[fut]) - entry_price) / entry_price * 1e4
             mae = (entry_price - np.nanmin(self.bid_low[fut])) / entry_price * 1e4
