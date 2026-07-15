@@ -91,6 +91,16 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - Broad XAU/replay/readiness pytest surface passed again after the prior-match repair, covering smart520 state/rank, XAU labels/pretrain, smoke/trainability readiness, wrappers, candidate replay, IQL replay contracts, live gate/parity, and sweep.
   - `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_PRIORMATCH_DRYRUN_20260715 --require-edge-audit --dry-run` printed a bounded smart-smoke package only; it did not start a trainer or write a run manifest. The package included 22G RAM cap, 2G swap cap, `num_workers=0`, `ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00`, tolerance `0.02`, `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3`, min epochs `6`, and post-smoke strict edge audit.
   - No actual transformer training, candidate training, replay, IQL, shadow, or live action was started in this verification pass.
+- Added and committed `smart-smoke-train-enablement`, a report-only XAU package gate that requires clean git, an explicit `SMART_SEQ520_XAU_SMOKE_` vedtak, green smart smoke/trainability readiness, capped wrapper dry-run proof, prior-match/hard-red-stop env, and strict edge-audit proof. It starts no trainer, replay, IQL, shadow, live, or promotion paths.
+- Materialized enablement package `SMART_SEQ520_XAU_SMOKE_PRIORMATCH_ENABLEMENT_20260715`:
+  `/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_train_enablement_20260715_v1/ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_latest.json`.
+  Decision was `ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION`, `smart_smoke_training_allowed_with_this_package=true`, while `training_allowed=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, and `promotion_shadow_live_allowed=false`.
+- Ran one bounded smart smoke train from that package:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_PRIORMATCH_ENABLEMENT_20260715`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T121148Z.json`
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T121148Z`
+  - Result: hard fail on `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]`, no bundle directory was written. Best/only epoch had `dir_acc=0.345052`, `balance_guard_ok=0`, `slice_contract_ok=0`, `direction_slice_ckpt_score=-1.807765`, 32 slice failures, 15 accuracy failures, and 17 pred-rate failures. This is hard failure evidence, not a candidate.
+- After that run, trainer failure evidence was hardened again: class-balance guard failures now write the same no-bundle sidecar path before raising, so future `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]` exits persist best/current direction stats, recipe, data hashes, git commit, and `bundle_written=false` just like slice-guard exits.
 
 ## What Was Done
 

@@ -7683,6 +7683,60 @@ def run_train(
     raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
     raw_best_direction_slice_contract_ok = best_direction_slice_contract_ok
     if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
+        intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
+        evidence_path = _write_direction_slice_failure_evidence(
+            intended_out_bundle_dir,
+            {
+                "schema_version": "entry_direction_slice_failure_evidence_v1",
+                "created_at_utc": _utc_now(),
+                "decision": "FAIL_DIRECTION_CLASS_BALANCE_GUARD",
+                "failure_code": "TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD",
+                "vedtak_id": str(vedtak_id or ""),
+                "git_commit": _git_commit(),
+                "intended_out_bundle_dir": str(intended_out_bundle_dir),
+                "train_data": str(train_parquet),
+                "val_data": str(val_parquet),
+                "train_data_sha256": _sha256_file(Path(train_parquet)),
+                "val_data_sha256": _sha256_file(Path(val_parquet)),
+                "best_epoch": int(best_epoch),
+                "last_epoch": int(last_epoch),
+                "epochs": int(epochs),
+                "early_stopped": bool(early_stopped),
+                "hard_red_stopped": bool(hard_red_stopped),
+                "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
+                "best_dir_ckpt_score": (
+                    float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
+                ),
+                "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+                "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
+                "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+                "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
+                "best_direction_slice_stats": best_direction_slice_stats,
+                "last_direction_slice_stats": last_direction_slice_stats,
+                "train_recipe": {
+                    "ckpt_monitor": str(_ckpt_monitor),
+                    "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
+                    "ckpt_class_balance_min_pred_to_label": float(
+                        ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL
+                    ),
+                    "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+                    "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
+                    "direction_slice_prior_match_weight": float(ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT),
+                    "direction_slice_prior_match_tolerance": float(
+                        ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE
+                    ),
+                    "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+                    "direction_slice_balanced_sampler": bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER),
+                    "direction_slice_hard_red_stop_patience": int(
+                        ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE
+                    ),
+                    "direction_slice_hard_red_stop_min_epochs": int(
+                        ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS
+                    ),
+                },
+            },
+        )
+        log.error("[ENTRY_DIR_CLASS_BALANCE_FAILURE_EVIDENCE] path=%s", evidence_path)
         raise RuntimeError(
             "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
             "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "

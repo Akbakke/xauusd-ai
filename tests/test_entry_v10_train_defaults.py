@@ -1082,6 +1082,8 @@ def test_entry_v10_train_refuses_to_write_bundle_when_best_class_balance_guard_f
 
     assert "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]" in text
     assert "_direction_ckpt_balance_guard_required()" in text
+    assert "FAIL_DIRECTION_CLASS_BALANCE_GUARD" in text
+    assert "[ENTRY_DIR_CLASS_BALANCE_FAILURE_EVIDENCE]" in text
     assert "refusing to write a collapsed direction bundle" in text
 
 
