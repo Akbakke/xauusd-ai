@@ -63,6 +63,7 @@ SWEEP_SPACES: tuple[Space, ...] = (
     ),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "choice", choices=(4.0, 8.0, 12.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "choice", choices=(0.0, 4.0, 8.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT", "choice", choices=(2.0, 3.0, 4.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_WEIGHT", "choice", choices=(2.00, 2.50)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_WEIGHT", "choice", choices=(1.75, 2.00, 2.25)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT", "choice", choices=(1.50, 2.00)),
@@ -90,6 +91,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
@@ -156,6 +159,30 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
     slice_recall_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "0"))
     if slice_recall_weight < 0.0:
         failures.append(f"DIRECTION_SLICE_RECALL_LOSS_WEIGHT must be non-negative, got {slice_recall_weight}")
+    slice_balanced_ce_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT", "0")
+    )
+    slice_balanced_ce_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE", "0")
+    )
+    slice_balanced_ce_min_rows = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS", "0"))
+    )
+    if slice_balanced_ce_weight < 2.0:
+        failures.append(
+            "DIRECTION_SLICE_BALANCED_CE_WEIGHT must be >= 2.0 for strict XAU repair, "
+            f"got {slice_balanced_ce_weight}"
+        )
+    if slice_balanced_ce_min_label_rate != 0.10:
+        failures.append(
+            "DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE must stay 0.10 for strict XAU repair, "
+            f"got {slice_balanced_ce_min_label_rate}"
+        )
+    if slice_balanced_ce_min_rows != 8:
+        failures.append(
+            "DIRECTION_SLICE_BALANCED_CE_MIN_ROWS must stay 8 for strict XAU repair, "
+            f"got {slice_balanced_ce_min_rows}"
+        )
     if env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION") != "mean":
         failures.append("DIRECTION_SLICE_LOSS_AGGREGATION must stay mean for strict XAU repair")
     if bad_path_penalty != 0.0:
