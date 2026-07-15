@@ -5537,6 +5537,21 @@ def _direction_slice_stats_snapshot(stats: Optional[Dict[str, Any]]) -> Dict[str
         "direction_label_rate_long",
         "direction_label_rate_short",
         "direction_label_rate_flat",
+        "hier_trade_target_rate",
+        "hier_trade_prob_mean",
+        "hier_flat_prob_mean",
+        "hier_trade_pred_rate",
+        "hier_flat_pred_rate",
+        "hier_trade_prob_label_edge_mean",
+        "hier_trade_prob_label_flat_mean",
+        "hier_flat_prob_label_flat_mean",
+        "hier_side_target_long_rate_on_edge",
+        "hier_side_pred_long_rate_on_edge",
+        "hier_side_pred_short_rate_on_edge",
+        "hier_side_acc_on_edge",
+        "hier_side_long_prob_mean_on_edge",
+        "hier_side_long_prob_label_long_mean",
+        "hier_side_long_prob_label_short_mean",
     )
     return {key: stats.get(key) for key in keys if key in stats}
 

@@ -418,8 +418,12 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
                 "ctx_cat_value": np.int64(4),
                 "rows": np.int64(64),
                 "accuracy": np.float64(0.25),
+                "hier_trade_pred_rate": np.float64(1.0),
             }
         ],
+        "hier_trade_pred_rate": np.float64(1.0),
+        "hier_trade_prob_label_flat_mean": np.float64(0.66),
+        "hier_side_acc_on_edge": np.float64(0.57),
         "unrelated": "not persisted",
     }
     snapshot = trainer._direction_slice_stats_snapshot(stats)
@@ -441,6 +445,10 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
     assert payload["promotion_shadow_live_allowed"] is False
     assert payload["best_direction_slice_stats"]["direction_slice_failure_count"] == 2
     assert payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]["ctx_cat_index"] == 0
+    assert payload["best_direction_slice_stats"]["hier_trade_pred_rate"] == 1.0
+    assert payload["best_direction_slice_stats"]["hier_trade_prob_label_flat_mean"] == 0.66
+    assert payload["best_direction_slice_stats"]["hier_side_acc_on_edge"] == 0.57
+    assert payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]["hier_trade_pred_rate"] == 1.0
     assert "unrelated" not in payload["best_direction_slice_stats"]
 
 

@@ -562,6 +562,19 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
   - Focused gate/wrapper/readiness/audit suite passed:
     `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+- Ran one bounded smoke after the trade-pos-weight repair:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_HIERBAL_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T152512Z.json`
+  - Evidence sidecar: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T152512Z__direction_slice_failure_evidence.json`
+  - Intended bundle dir absent: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T152512Z`
+  - Result: fail-closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle written.
+  - The repair was directionally correct: `[ENTRY_HIER_BALANCE_PROOF]` reported `raw_trade_pos_weight=0.519481` and `trade_pos_weight=0.519481`; epoch `6` had global balance guard OK, `best_dir_acc=0.392578`, pred LONG `0.292969`, pred SHORT `0.473307`, pred FLAT `0.233724`, and only `1` pred-rate failure.
+  - It still failed active context slice accuracy: `direction_slice_failure_count=9`, `accuracy_failures=8`, `pred_rate_failures=1`, `direction_slice_ckpt_score=-0.027847`.
+  - Hierarchy evidence: `hier_trade_pred` stayed `1.000000`, but `hier_trade_prob` dropped toward `0.663552` and public FLAT recovered materially versus the previous collapse. Remaining blocker is mostly slice-level side/accuracy behavior, not global class-balance.
+- Fixed evidence hygiene after the run:
+  - `_direction_slice_stats_snapshot` now includes global `hier_trade_*`, `hier_flat_*`, and `hier_side_*` fields in future fail-closed sidecars, not only per-slice details.
+  - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed.
+  - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
 
 ## Current Blockers
 
@@ -584,9 +597,9 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, or current hierarchical-composition recipe. They already hard-red-stopped or were manually stopped with no candidate bundle.
 
 2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke after the hierarchy trade-pos-weight repair:
-   - verify `[ENTRY_HIER_BALANCE_PROOF]` reports `raw_trade_pos_weight≈0.519` and `trade_pos_weight≈0.519`, not `1.0`.
-   - inspect `[ENTRY_HIER_OUTPUT]` and red-slice hierarchy fields to confirm whether `hier_trade_pred` moves below `1.0` and FLAT pred-rate recovers.
-   - if it still fails, change target/architecture based on that evidence. Do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
+   - the trade-pos-weight repair improved global balance and FLAT recovery, but the latest smoke still failed active slice accuracy.
+   - next repair should target side/accuracy inside red slices, especially slices where pred-rate coverage is now OK but accuracy remains below majority.
+   - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.
