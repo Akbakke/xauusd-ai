@@ -1077,8 +1077,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     dim=1,
                 ).to(dtype=raw_direction_logits.dtype)
                 _assert_finite("composed_direction_logits", composed_direction_logits)
-                direction_logits = composed_direction_logits
+                residual_direction_logits = self.residual_scale.to(delta_logits.dtype) * delta_logits
+                _assert_finite("hierarchical_residual_direction_logits", residual_direction_logits)
+                direction_logits = composed_direction_logits + residual_direction_logits.to(
+                    dtype=composed_direction_logits.dtype
+                )
                 out["direction_logits"] = direction_logits
+                out["hierarchical_direction_base_logits"] = composed_direction_logits
+                out["hierarchical_direction_residual_logits"] = residual_direction_logits
                 out["hierarchical_direction_composed"] = torch.ones(
                     (direction_logits.shape[0], 1),
                     device=direction_logits.device,

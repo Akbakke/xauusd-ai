@@ -605,6 +605,24 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Epoch `4`: confirmed the run was not worth extending: balance guard failed, `31` slice failures, pred LONG `0.426432`, pred SHORT `0.036458`, pred FLAT `0.537109`, `hier_side_acc=0.5089`, `hier_trade_pred=1.000000`, and red slices still showed side/accuracy failures.
   - Important observation: side-slice CE/margin pressure is active and changed class rates, but it did not stabilize the hard direction contract. `ENTRY_RESIDUAL_MAG_PROOF` still showed `delta_abs_mean=0.000000` while hierarchy trade prediction stayed all-trade, so the next step should be diagnosis of the residual/anchor and hierarchy-composition learning surface, not more blind scalar tuning.
   - Entry-IQL, replay, candidate, shadow, live, and promotion remain closed.
+- Ran the report-only red-slice separability audit against the latest completed fail-closed sidecar:
+  `/home/andre2/venvs/gx1/bin/python -m gx1.scripts.audit_xau_red_slice_separability_v1 --evidence-json /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T152512Z__direction_slice_failure_evidence.json --quiet --no-fail-on-audit-fail`
+  - Report: `/home/andre2/GX1_DATA/reports/xau_red_slice_separability_audit_20260715_v1/XAU_RED_SLICE_SEPARABILITY_AUDIT_latest.json`
+  - Decision: `XAU_RED_SLICE_SEPARABILITY_AUDIT_COMPLETE`
+  - Domain feature count: `247`; missing required XAU rail features: `0`.
+  - Red slices audited: `9`; weak required-rail-feature slice rate: `1/9`.
+  - Interpretation still holds after the hierarchy balance repair: do not add random new input and do not move to IQL. Existing XAU rail/SR/wick/regime inputs are present; the next repair is model/objective mechanics.
+- Implemented the next narrow source repair after confirming `delta_abs_mean=0.000000` is mechanical:
+  - In `EntryV10CtxHybridTransformer.forward`, hierarchical composition now emits public `direction_logits` as:
+    `logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), log P(flat)] + residual_scale*delta_logits`.
+  - This keeps the trade/side/flat decomposition as the base, but makes the 3-class residual `head_direction` trainable again through all public direction losses, slice losses, and class-balance gates.
+  - The model now exposes `hierarchical_direction_base_logits` and `hierarchical_direction_residual_logits` for audit/debug output.
+  - Bundle metadata formula now documents `+ residual_scale*delta_logits` and states that `head_direction` remains trainable through public `direction_logits`.
+  - Validation after this source repair:
+    - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py gx1/models/entry_v10/entry_v10_ctx_train_v3.py gx1/scripts/audit_xau_red_slice_separability_v1.py`
+    - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_v10_ctx_model_shapes.py tests/test_xau_red_slice_separability_audit.py -q` passed (`65 passed`).
+    - `scripts/pytest_repo.sh tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_xau_direction_repair_sweep.py -q` passed.
+  - No transformer smoke has been run yet after this residual-through-composition repair. Entry-IQL, replay, candidate, shadow, live, and promotion remain closed.
 
 ## Current Blockers
 
@@ -618,6 +636,7 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 2. Latest executed smart XAU smoke after the hierarchy side-slice repair still failed hard on direction-slice accuracy/class stability. No fallback path and no failed bundle should be used as evidence.
    - The repair changed predictions materially and briefly produced a better epoch `2`, but epoch `4` had `slice_contract_ok=0`, `31` slice failures, global balance guard failed, SHORT collapsed to `0.036458`, and the run was stopped deliberately.
    - The old trade-pos-weight repair remains directionally useful but insufficient: hierarchy trade prediction still stayed `1.000000`, and side-slice supervision did not stabilize red-slice side accuracy.
+   - A source repair now makes the direct 3-class residual trainable through hierarchical composition, but it has not yet been smoke-run.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
@@ -626,12 +645,12 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, or hierarchy side-slice recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
-2. Next action should be read-only/small diagnostic work before any more heavy transformer training:
-   - inspect the red epoch `2` versus epoch `4` slices from `SMART_SEQ520_XAU_SMOKE_HIERSLICE_E6_20260715` against smoke labels, `ctx_cat`, side labels, utility/bad-path labels, and signal7 anchor outputs.
-   - verify why `ENTRY_RESIDUAL_MAG_PROOF` reports `delta_abs_mean=0.000000` under smart repair, and whether the residual branch/anchor gate is effectively frozen or being dominated by hierarchical composition.
-   - diagnose why hierarchy `trade_pred` remains `1.000000` despite bounded trade `pos_weight`; decide from evidence whether the train target, threshold, loss weighting, or composition needs a structural change.
-   - only consider new input/features if this diagnostic proves the existing XAU seq/snap/ctx surface cannot separate the red slices. Do not add random new input.
-   - do not move to IQL; entry IQL stays closed until a transformer candidate bundle passes hard gates.
+2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke after the residual-through-composition repair:
+   - rerun `smart-smoke-readiness --quiet` and `smart-trainability-readiness --quiet` sequentially on clean git.
+   - materialize a fresh smoke train enablement package.
+   - run one bounded smart smoke with hard-red stop active.
+   - watch `ENTRY_RESIDUAL_MAG_PROOF`: `delta_abs_mean` should become nonzero after training starts. If it stays `0.000000` or slice/class gates hard-red again, stop/let fail closed and use evidence; do not burn more epochs.
+   - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

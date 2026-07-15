@@ -1657,7 +1657,7 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
     )
     model.eval()
     seq_x = torch.randn(3, 5, 4)
-    snap_x = torch.randn(3, 7)
+    snap_x = torch.full((3, 7), 1.0 / 3.0)
     ctx_cont = torch.randn(3, 3)
     ctx_cat = torch.zeros(3, 2, dtype=torch.long)
 
@@ -1677,8 +1677,25 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
     )
 
     assert out["hierarchical_direction_composed"].shape == (3, 1)
+    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
     assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
     assert torch.allclose(torch.softmax(out["direction_logits"], dim=1).sum(dim=1), torch.ones(3), atol=1e-6)
+
+    with torch.no_grad():
+        model.head_direction.bias.copy_(torch.tensor([0.40, -0.20, 0.10], dtype=torch.float32))
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+    expected_with_residual = out["hierarchical_direction_base_logits"] + (
+        float(model.residual_scale.item()) * out["delta_logits"]
+    )
+
+    assert torch.allclose(out["direction_logits"], expected_with_residual, atol=1e-6)
+    assert not torch.allclose(out["direction_logits"], out["hierarchical_direction_base_logits"], atol=1e-6)
+
+    model.zero_grad(set_to_none=True)
+    loss = torch.nn.functional.cross_entropy(out["direction_logits"], torch.tensor([0, 1, 2]))
+    loss.backward()
+    assert model.head_direction.bias.grad is not None
+    assert float(model.head_direction.bias.grad.abs().sum().item()) > 0.0
 
 
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:

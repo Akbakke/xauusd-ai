@@ -9396,8 +9396,12 @@ def run_train(
         },
         "hierarchical_direction_composition": {
             "enabled": bool(enable_hierarchical_direction_composition),
-            "formula": "P(long)=P(trade)*P(long|trade); P(short)=P(trade)*P(short|trade); P(flat)=P(flat)",
+            "formula": (
+                "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
+                "log P(flat)] + residual_scale*delta_logits"
+            ),
             "public_output": "direction_logits",
+            "residual_delta_logits": "head_direction remains trainable through public direction_logits",
             "runtime_rule_free": True,
         },
         "hierarchical_entry_heads": {
