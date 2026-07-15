@@ -483,7 +483,31 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
   - Focused pytest passed:
     `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
-- No candidate training, replay, IQL, shadow, live, or promotion path was started. Utility-triad-CE has not yet been smoke-trained.
+- No candidate training, replay, IQL, shadow, live, or promotion path was started by the implementation commit.
+
+## 2026-07-15 Utility-Triad-CE Smoke Failure And Strategy Pivot
+
+- Commit tested: `e0cf39cd Add XAU utility triad CE repair`.
+- Clean-git readiness and enablement were rerun before training:
+  - `smart-smoke-readiness --quiet`: passed.
+  - `smart-trainability-readiness --quiet`: passed.
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_TRIADCE_E8_20260715 --epochs 8 --batch-size 64 --quiet`: passed without starting trainer and kept candidate/replay/IQL/live flags false.
+- Ran one bounded smart XAU transformer smoke train:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_TRIADCE_E8_20260715 --require-edge-audit --epochs 8 --early-stop-patience 8`
+- Result: fail-closed on epoch `6` with `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]`; hard-red-stop refused to burn epochs `7-8`.
+  - Evidence sidecar: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T144900Z__direction_slice_failure_evidence.json`
+  - `decision=FAIL_DIRECTION_CLASS_BALANCE_GUARD`, `failure_code=TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD`, `bundle_written=false`, `hard_red_stopped=true`.
+  - Intended bundle dir was not created: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T144900Z`
+  - Best checkpoint was epoch `2`: `best_dir_acc=0.355469`, `best_direction_balance_guard_ok=false`, `best_direction_slice_contract_ok=false`, `direction_slice_ckpt_score=-1.581540`, `28` slice failures, `12` accuracy failures, `16` pred-rate failures.
+  - Best checkpoint prediction rates were LONG `0.039063`, SHORT `0.664714`, FLAT `0.296224` versus labels LONG `0.322917`, SHORT `0.332031`, FLAT `0.345052`; it preserved some FLAT but starved LONG in multiple slices.
+  - Last epoch `6` was still hard-red: pred LONG `0.116536`, pred SHORT `0.791016`, pred FLAT `0.092448`, `33` slice failures, `15` accuracy failures, `18` pred-rate failures.
+- Resource state after exit stayed safe: `/home/andre2/GX1_DATA` had about `838G` free, RAM had about `37GiB` available, and swap use was `0B`.
+- Conclusion: do not keep tuning the same single 3-class direction softmax/loss stack. The system has now failed closed across CE, slice true-margin, slice-balanced sampler, mean-max aggregation, argmax-temperature, slice-accuracy edge, prior-match, global-prior match, utility-margin, flat-starvation, side-utility conviction, utility-trade conviction, and utility-triad CE. The next repair should change the learning formulation, not add more scalar pressure.
+- Preferred next formulation: split learned direction into two coupled transformer heads:
+  - `edge_or_flat`: learned TRADE versus FLAT/abstain from utility/no-edge rows.
+  - `long_or_short_given_edge`: learned LONG versus SHORT only on clear tradable edge rows.
+  - Compose the public 3-class direction logits from these heads and keep the existing hard class-balance/slice gates. This is a model/training contract, not fallback and not a live hand-rule.
+- Do not start candidate training, replay, IQL, shadow, live, or promotion until that new transformer bundle passes hard direction slice and class-balance gates.
 
 ## Current Blockers
 
@@ -494,18 +518,18 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the utility-trade-conviction repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
-   - Best checkpoint was epoch `2` with global balance guard OK, but `best_direction_slice_contract_ok=false`, `17` slice failures.
-   - Last epoch `6` collapsed back toward SHORT dominance (`direction_pred_rate_short=0.789063`, `direction_pred_rate_flat=0.006510`) and hard-red-stop correctly refused to burn more compute.
-   - Utility-triad-CE is now implemented as the next repair but has not yet been smoke-trained. Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
+2. Latest executed smart XAU smoke after the utility-triad-CE repair still failed hard on class-balance and direction-slice gates. No fallback path and no failed bundle should be used as evidence.
+   - Best checkpoint was epoch `2` with `best_direction_balance_guard_ok=false`, `best_direction_slice_contract_ok=false`, and `28` slice failures.
+   - Last epoch `6` remained SHORT-dominant (`direction_pred_rate_short=0.791016`, `direction_pred_rate_flat=0.092448`) and hard-red-stop correctly refused to burn more compute.
+   - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction or utility-trade-conviction recipes. Both already hard-red-stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, or utility-triad-CE recipes. They already hard-red-stopped with no candidate bundle.
 
-2. After committing utility-triad-CE, rerun clean-git readiness and enablement, then run one bounded smart smoke train with hard-red monitoring. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+2. Implement the next repair as a formulation change, not another scalar loss-weight tweak: separate learned `edge_or_flat` from `long_or_short_given_edge`, then compose the exported 3-class direction probabilities/logits and keep all current hard gates fail-closed. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.
