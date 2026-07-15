@@ -102,6 +102,9 @@ SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
+SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
+SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
+SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX = 1.00
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
@@ -1443,6 +1446,33 @@ def _direction_balance_recipe_contract(
         )
     )
     _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
+    _hier_ctx_prior_meta = (
+        _hierarchical_direction_meta.get("ctx_prior_adapter")
+        if isinstance(_hierarchical_direction_meta.get("ctx_prior_adapter"), dict)
+        else (
+            _hier_entry_meta.get("ctx_prior_adapter")
+            if isinstance(_hier_entry_meta.get("ctx_prior_adapter"), dict)
+            else {}
+        )
+    )
+    hier_ctx_prior_adapter = _bool_value(
+        recipe.get(
+            "hier_ctx_prior_adapter",
+            _hier_ctx_prior_meta.get(
+                "enabled",
+                meta.get("hier_ctx_prior_adapter", False),
+            ),
+        )
+    )
+    hier_ctx_prior_adapter_scale = _safe_float(
+        recipe.get(
+            "hier_ctx_prior_adapter_scale",
+            _hier_ctx_prior_meta.get(
+                "scale",
+                meta.get("hier_ctx_prior_adapter_scale", 0.0),
+            ),
+        )
+    )
     _hier_trade_prior_meta = (
         _hier_entry_meta.get("trade_prior_supervision")
         if isinstance(_hier_entry_meta.get("trade_prior_supervision"), dict)
@@ -2188,6 +2218,18 @@ def _direction_balance_recipe_contract(
                 is not SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED
             ):
                 failures.append("smart direction active head requires hier_compose_public_flat_from_trade=true")
+            if hier_ctx_prior_adapter is not SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED:
+                failures.append("smart direction active head requires hier_ctx_prior_adapter=true")
+            if hier_ctx_prior_adapter_scale < SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN:
+                failures.append(
+                    "smart direction active head requires hier_ctx_prior_adapter_scale >= "
+                    f"{SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN:.2f}"
+                )
+            if hier_ctx_prior_adapter_scale > SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX:
+                failures.append(
+                    "smart direction active head requires hier_ctx_prior_adapter_scale <= "
+                    f"{SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX:.2f}"
+                )
             if hier_trade_global_prior_match_weight < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_trade_global_prior_match_weight >= "
@@ -2501,6 +2543,8 @@ def _direction_balance_recipe_contract(
         "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
         "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
         "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
+        "hier_ctx_prior_adapter": hier_ctx_prior_adapter,
+        "hier_ctx_prior_adapter_scale": hier_ctx_prior_adapter_scale,
         "hier_trade_global_prior_match_weight": hier_trade_global_prior_match_weight,
         "hier_trade_global_prior_match_tolerance": hier_trade_global_prior_match_tolerance,
         "hier_trade_global_prior_match_min_label_rate": hier_trade_global_prior_match_min_label_rate,

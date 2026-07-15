@@ -825,6 +825,8 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
             "hier_trade_global_prior_match_weight": 4.00,
             "hier_trade_global_prior_match_tolerance": 0.02,
             "hier_trade_global_prior_match_min_label_rate": 0.10,

@@ -1427,6 +1427,8 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "hier_compose_residual_logit_cap",
         "hier_compose_residual_side_neutral",
         "hier_compose_public_flat_from_trade",
+        "hier_ctx_prior_adapter",
+        "hier_ctx_prior_adapter_scale",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",
@@ -1855,6 +1857,8 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
         "hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)"
         in train_ctor
     )
+    assert "enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)" in train_ctor
+    assert "hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)" in train_ctor
 
 
 def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:
@@ -2005,6 +2009,67 @@ def test_entry_v10_hierarchical_direction_public_flat_from_trade_neutralizes_pub
     loss.backward()
     assert model.head_direction.bias.grad is not None
     assert float(model.head_direction.bias.grad.abs().max().item()) <= 1e-6
+
+
+def test_entry_v10_hierarchical_ctx_prior_adapter_adjusts_trade_and_side_logits() -> None:
+    import torch
+
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+
+    torch.manual_seed(19)
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=4,
+        snap_input_dim=7,
+        seq_len=5,
+        ctx_cont_dim=3,
+        ctx_cat_dim=2,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        enable_hierarchical_ctx_prior_adapter=True,
+        hierarchical_ctx_prior_adapter_scale=0.50,
+    )
+    model.eval()
+    seq_x = torch.randn(4, 5, 4)
+    snap_x = torch.full((4, 7), 1.0 / 3.0)
+    ctx_cont = torch.randn(4, 3)
+    ctx_cat = torch.tensor([[0, 1], [1, 2], [2, 3], [3, 4]], dtype=torch.long)
+
+    with torch.no_grad():
+        base = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+    assert torch.allclose(base["hierarchical_ctx_prior"], torch.zeros(4, 3), atol=1e-7)
+
+    with torch.no_grad():
+        model.hierarchical_ctx_prior_adapter.bias.copy_(
+            torch.tensor([2.0, -1.0, 1.0], dtype=torch.float32)
+        )
+    adjusted = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    assert torch.allclose(
+        adjusted["trade_logit"],
+        base["trade_logit"] + 1.0,
+        atol=1e-6,
+    )
+    assert torch.allclose(
+        adjusted["side_logits"][:, 0],
+        base["side_logits"][:, 0] - 0.5,
+        atol=1e-6,
+    )
+    assert torch.allclose(
+        adjusted["side_logits"][:, 1],
+        base["side_logits"][:, 1] + 0.5,
+        atol=1e-6,
+    )
+    assert not torch.allclose(
+        torch.softmax(adjusted["direction_logits"], dim=1),
+        torch.softmax(base["direction_logits"], dim=1),
+        atol=1e-6,
+    )
+
+    model.zero_grad(set_to_none=True)
+    loss = torch.nn.functional.cross_entropy(adjusted["direction_logits"], torch.tensor([0, 1, 2, 2]))
+    loss.backward()
+    assert model.hierarchical_ctx_prior_adapter.bias.grad is not None
+    assert float(model.hierarchical_ctx_prior_adapter.bias.grad.abs().sum().item()) > 0.0
 
 
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:

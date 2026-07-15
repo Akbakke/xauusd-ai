@@ -540,6 +540,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
             "hier_trade_global_prior_match_weight": 4.00,
             "hier_trade_global_prior_match_tolerance": 0.02,
             "hier_trade_global_prior_match_min_label_rate": 0.10,
@@ -639,6 +641,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["hier_compose_residual_logit_cap"] == 0.18
     assert report["hier_compose_residual_side_neutral"] is True
     assert report["hier_compose_public_flat_from_trade"] is True
+    assert report["hier_ctx_prior_adapter"] is True
+    assert report["hier_ctx_prior_adapter_scale"] == 0.50
     assert report["hier_trade_global_prior_match_weight"] == 4.00
     assert report["hier_trade_global_prior_match_tolerance"] == 0.02
     assert report["hier_trade_global_prior_match_min_label_rate"] == 0.10
@@ -770,6 +774,8 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
             "hier_trade_global_prior_match_weight": 4.00,
             "hier_trade_global_prior_match_tolerance": 0.02,
             "hier_trade_global_prior_match_min_label_rate": 0.10,
@@ -873,6 +879,8 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -936,6 +944,8 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("hier_compose_residual_logit_cap" in failure for failure in report["failures"])
     assert any("hier_compose_residual_side_neutral" in failure for failure in report["failures"])
     assert any("hier_compose_public_flat_from_trade" in failure for failure in report["failures"])
+    assert any("hier_ctx_prior_adapter" in failure for failure in report["failures"])
+    assert any("hier_ctx_prior_adapter_scale" in failure for failure in report["failures"])
     assert any("hier_public_flat_consistency_weight" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_weight" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_label_rate" in failure for failure in report["failures"])
@@ -1000,6 +1010,8 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -1068,6 +1080,8 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,

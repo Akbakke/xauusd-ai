@@ -145,6 +145,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.18",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -399,6 +401,20 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE must be 1 for strict XAU repair, "
             f"got {hier_compose_public_flat_from_trade}"
+        )
+    hier_ctx_prior_adapter = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER", "0")))
+    if hier_ctx_prior_adapter != 1:
+        failures.append(
+            "HIER_CTX_PRIOR_ADAPTER must be 1 for strict XAU repair, "
+            f"got {hier_ctx_prior_adapter}"
+        )
+    hier_ctx_prior_adapter_scale = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE", "0")
+    )
+    if hier_ctx_prior_adapter_scale < 0.25 or hier_ctx_prior_adapter_scale > 1.00:
+        failures.append(
+            "HIER_CTX_PRIOR_ADAPTER_SCALE must stay within [0.25, 1.00] for strict XAU repair, "
+            f"got {hier_ctx_prior_adapter_scale}"
         )
     hier_trade_global_prior_weight = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", "0")

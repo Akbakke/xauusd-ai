@@ -492,6 +492,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=" in text
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=" in text
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=" in text
+    assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=" in text
+    assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=" in text
@@ -502,6 +504,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_ANCHOR_EPS" in text
     assert 'ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="$CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP"' in text
     assert 'ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL="$CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL"' in text
@@ -509,6 +513,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         'ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="$CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"'
         in text
     )
+    assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER"' in text
+    assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE"' in text
     assert 'ENTRY_RESIDUAL_SCALE="$CANDIDATE_RESIDUAL_SCALE"' in text
     assert 'ENTRY_ANCHOR_EPS="$CANDIDATE_ANCHOR_EPS"' in text
     assert "ENTRY_RESIDUAL_SCALE" in text
@@ -649,6 +655,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text
     assert "CANDIDATE_HIER_UTILITY_WEIGHT=1.00" in text
     assert "CANDIDATE_HIER_BAD_PATH_WEIGHT=1.25" in text
+    assert "CANDIDATE_HIER_CTX_PRIOR_ADAPTER=1" in text
+    assert "CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50" in text
     assert "CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT=1.50" in text
     assert "CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=15.0" in text
     assert "CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=8.0" in text

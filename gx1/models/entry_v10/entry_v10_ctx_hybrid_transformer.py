@@ -101,6 +101,8 @@ class CtxModelConfig:
     hierarchical_composition_residual_logit_cap: float = 0.0
     hierarchical_composition_residual_side_neutral: bool = False
     hierarchical_composition_public_flat_from_trade: bool = False
+    enable_hierarchical_ctx_prior_adapter: bool = False
+    hierarchical_ctx_prior_adapter_scale: float = 0.0
     enable_side_validity_head: bool = False
     enable_trendline_rail_head: bool = False
     trendline_rail_output_dim: int = 4
@@ -285,6 +287,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         hierarchical_composition_residual_logit_cap: float = 0.0,
         hierarchical_composition_residual_side_neutral: bool = False,
         hierarchical_composition_public_flat_from_trade: bool = False,
+        enable_hierarchical_ctx_prior_adapter: bool = False,
+        hierarchical_ctx_prior_adapter_scale: float = 0.0,
         enable_side_validity_head: bool = False,
         enable_trendline_rail_head: bool = False,
         trendline_rail_output_dim: int = 4,
@@ -359,10 +363,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         if enable_side_validity_head and not enable_hierarchical_entry_heads:
             raise RuntimeError("SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
+        if enable_hierarchical_ctx_prior_adapter and not enable_hierarchical_entry_heads:
+            raise RuntimeError("HIERARCHICAL_CTX_PRIOR_ADAPTER_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
+        if enable_hierarchical_ctx_prior_adapter and int(ctx_cat_dim) <= 0:
+            raise RuntimeError(
+                "HIERARCHICAL_CTX_PRIOR_ADAPTER_REQUIRES_CTX_CAT: "
+                f"ctx_cat_dim={int(ctx_cat_dim)}"
+            )
         if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_COMPOSITION_PUBLIC_FLAT_FROM_TRADE_REQUIRES_COMPOSITION")
+        if float(hierarchical_ctx_prior_adapter_scale) < 0.0:
+            raise RuntimeError(
+                "HIERARCHICAL_CTX_PRIOR_ADAPTER_SCALE_INVALID: "
+                f"got {float(hierarchical_ctx_prior_adapter_scale)}"
+            )
         if float(hierarchical_composition_residual_logit_cap) < 0.0:
             raise RuntimeError(
                 "HIERARCHICAL_COMPOSITION_RESIDUAL_LOGIT_CAP_INVALID: "
@@ -388,6 +404,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             hierarchical_composition_public_flat_from_trade=bool(
                 hierarchical_composition_public_flat_from_trade
             ),
+            enable_hierarchical_ctx_prior_adapter=bool(enable_hierarchical_ctx_prior_adapter),
+            hierarchical_ctx_prior_adapter_scale=float(hierarchical_ctx_prior_adapter_scale),
             enable_side_validity_head=bool(enable_side_validity_head),
             enable_trendline_rail_head=bool(enable_trendline_rail_head),
             trendline_rail_output_dim=int(trendline_rail_output_dim),
@@ -572,6 +590,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self.head_side_utility = nn.Linear(d_model, 2)      # expected path utility, bps
             self.head_side_bad_path = nn.Linear(d_model, 2)     # side-specific bad-path logits
             self.head_side_mae = nn.Linear(d_model, 2)          # side-specific expected MAE, bps
+            if self.cfg.enable_hierarchical_ctx_prior_adapter:
+                self.hierarchical_ctx_prior_adapter = nn.Linear(ctx_cat_flat_dim, 3)
             if self.cfg.enable_side_validity_head:
                 self.head_side_validity = nn.Linear(d_model, 2)  # side-specific valid-trade logits
             nn.init.zeros_(self.head_trade.bias)
@@ -579,6 +599,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             nn.init.zeros_(self.head_side_utility.bias)
             nn.init.zeros_(self.head_side_bad_path.bias)
             nn.init.zeros_(self.head_side_mae.bias)
+            if self.cfg.enable_hierarchical_ctx_prior_adapter:
+                nn.init.zeros_(self.hierarchical_ctx_prior_adapter.weight)
+                nn.init.zeros_(self.hierarchical_ctx_prior_adapter.bias)
             if self.cfg.enable_side_validity_head:
                 nn.init.zeros_(self.head_side_validity.bias)
         if self.cfg.enable_trendline_rail_head:
@@ -1077,6 +1100,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if self.cfg.enable_hierarchical_entry_heads and hasattr(self, "head_trade"):
             trade_logit = self.head_trade(z)
             side_logits = self.head_side(z)
+            hierarchical_ctx_prior = None
+            if hasattr(self, "hierarchical_ctx_prior_adapter"):
+                hierarchical_ctx_prior = self.hierarchical_ctx_prior_adapter(cat_flat)
+                _assert_finite("hierarchical_ctx_prior", hierarchical_ctx_prior)
+                prior_scale = float(getattr(self.cfg, "hierarchical_ctx_prior_adapter_scale", 0.0))
+                trade_logit = trade_logit + prior_scale * hierarchical_ctx_prior[:, :1]
+                side_logits = side_logits + prior_scale * hierarchical_ctx_prior[:, 1:3]
             side_utility = self.head_side_utility(z)
             side_bad_path_logit = self.head_side_bad_path(z)
             side_mae = self.head_side_mae(z)
@@ -1166,6 +1196,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     "side_utility": side_utility,
                     "side_bad_path_logit": side_bad_path_logit,
                     "side_mae": side_mae,
+                    **(
+                        {"hierarchical_ctx_prior": hierarchical_ctx_prior}
+                        if hierarchical_ctx_prior is not None
+                        else {}
+                    ),
                     **({"side_validity_logit": side_validity_logit} if side_validity_logit is not None else {}),
                 }
             )

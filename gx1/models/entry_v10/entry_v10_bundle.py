@@ -236,6 +236,23 @@ def load_entry_v10_ctx_bundle(
             meta.get("hier_compose_public_flat_from_trade", False) if isinstance(meta, dict) else False,
         )
     )
+    _hierarchical_entry_cfg = (meta.get("hierarchical_entry_heads") or {}) if isinstance(meta, dict) else {}
+    _hierarchical_ctx_prior_cfg = (
+        _hierarchical_direction_cfg.get("ctx_prior_adapter")
+        if isinstance(_hierarchical_direction_cfg.get("ctx_prior_adapter"), dict)
+        else (_hierarchical_entry_cfg.get("ctx_prior_adapter") if isinstance(_hierarchical_entry_cfg.get("ctx_prior_adapter"), dict) else {})
+    )
+    _has_hierarchical_ctx_prior_adapter = "hierarchical_ctx_prior_adapter.weight" in state_dict_preview
+    if _has_hierarchical_ctx_prior_adapter:
+        _hierarchical_ctx_prior_scale_raw = _hierarchical_ctx_prior_cfg.get(
+            "scale",
+            meta.get("hier_ctx_prior_adapter_scale") if isinstance(meta, dict) else None,
+        )
+        if _hierarchical_ctx_prior_scale_raw is None:
+            raise RuntimeError("[ENTRY_BUNDLE_HIER_CTX_PRIOR_ADAPTER_SCALE_MISSING]")
+        _hierarchical_ctx_prior_adapter_scale = float(_hierarchical_ctx_prior_scale_raw)
+    else:
+        _hierarchical_ctx_prior_adapter_scale = 0.0
     _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
     _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
     _trendline_rail_output_dim = 4
@@ -307,6 +324,8 @@ def load_entry_v10_ctx_bundle(
         hierarchical_composition_residual_logit_cap=_hierarchical_composition_residual_logit_cap,
         hierarchical_composition_residual_side_neutral=_hierarchical_composition_residual_side_neutral,
         hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
+        enable_hierarchical_ctx_prior_adapter=_has_hierarchical_ctx_prior_adapter,
+        hierarchical_ctx_prior_adapter_scale=_hierarchical_ctx_prior_adapter_scale,
         enable_side_validity_head=_has_side_validity_head,
         enable_trendline_rail_head=_has_trendline_rail,
         trendline_rail_output_dim=_trendline_rail_output_dim,

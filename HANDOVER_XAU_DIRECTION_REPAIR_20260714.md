@@ -14,6 +14,36 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry repair commit is `0f5ed3b7 Require XAU hierarchy side accuracy edge`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
+## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
+
+- Latest executed smoke before this source update was `SMART_SEQ520_XAU_SMOKE_HIERSIDEACCEDGE_E6_20260715`.
+  - It failed closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was produced.
+  - Best epoch was `3`: `dir_acc=0.353516`, public pred LONG `0.470703`, SHORT `0.221354`, FLAT `0.307943`, `13` slice failures, `12` accuracy failures, `1` pred-rate failure.
+  - Hierarchy side edge was not zero (`side_acc=0.552684`), and hierarchy trade probability was near target (`trade_prob=0.670141` vs target `0.654948`), but public hard direction still failed active-slice gates.
+  - Conclusion: more epochs or more scalar pressure on the same hierarchy-side recipe is not justified.
+- Implemented the next source-level formulation repair, not a fallback:
+  - Added optional `hierarchical_ctx_prior_adapter` to `EntryV10CtxHybridTransformer`.
+  - The adapter uses `ctx_cat` embeddings to add a learned bias to `trade_logit` and `side_logits` before hierarchical public direction composition.
+  - Defaults remain OFF for legacy strict-load compatibility.
+  - Smart XAU repair now requires `ENTRY_HIER_CTX_PRIOR_ADAPTER=1` and `ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE` in `[0.25, 1.00]`; wrappers/readiness/manifest/sweep/rebuild default to scale `0.50`.
+  - Bundle loading fails closed if adapter weights exist but adapter scale metadata is missing.
+  - This is model-native learning/inference, not a live rule and not an advisory fallback.
+- Updated trainer preflight, metadata, failure evidence, bundle audit, candidate/replay readiness, smoke/trainability readiness, smart enablement, sweep lint, smoke/candidate wrappers, rebuild defaults, and tests for the new adapter contract.
+- Validation completed before any heavy training:
+  - `env PYTHONPATH=. pytest -q tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_xau_direction_repair_sweep.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py` passed.
+  - `git diff --check` passed.
+  - `env PYTHONPATH=. python3 -m py_compile ...` on all changed Python modules passed.
+- Real smart-smoke training has not been started after this source update because `scripts/run_entry_foundation_seq146_smoke_train.sh` correctly requires a clean git worktree for real training.
+- Resource state at this update:
+  - `/home/andre2/GX1_DATA`: about `838G` free.
+  - RAM: about `37GiB` available, swap `0B` used.
+  - No active transformer train/eval `python3` job was left running.
+- Next clean-git action:
+  1. Commit this source repair.
+  2. Rerun smart smoke readiness and smart trainability readiness.
+  3. Launch exactly one bounded smart smoke with hard-red-stop, e.g. `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_HIERCTXPRIOR_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`.
+  4. Stop/avoid continuation if epochs are hard-red; do not move to candidate/replay/IQL until a fresh XAU transformer bundle passes hard slice and class-balance gates.
+
 ## Always-Active Operating Rules
 
 - No fallback, no advisory pass, no soft continuation. If a required artifact, dataset, feature, dependency, audit, parity check, contract, or gate is missing/stale/invalid, the program must fail closed. Either it works under the declared contract, or it does not.

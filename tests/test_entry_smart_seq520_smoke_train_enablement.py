@@ -166,6 +166,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_hier_compose_residual_cap": True,
         "has_hier_compose_residual_side_neutral": True,
         "has_hier_compose_public_flat_from_trade": True,
+        "has_hier_ctx_prior_adapter": True,
         "has_hier_trade_prior": True,
         "has_hier_flat_logit_margin": True,
         "has_hier_public_flat_consistency": True,
@@ -197,6 +198,7 @@ def test_smart_smoke_train_enablement_passes_with_clean_package(monkeypatch, tmp
     assert report["wrapper_dry_run"]["has_hier_compose_residual_cap"] is True
     assert report["wrapper_dry_run"]["has_hier_compose_residual_side_neutral"] is True
     assert report["wrapper_dry_run"]["has_hier_compose_public_flat_from_trade"] is True
+    assert report["wrapper_dry_run"]["has_hier_ctx_prior_adapter"] is True
     assert report["wrapper_dry_run"]["has_hier_trade_prior"] is True
     assert report["wrapper_dry_run"]["has_hier_flat_logit_margin"] is True
     assert report["wrapper_dry_run"]["has_hier_public_flat_consistency"] is True
