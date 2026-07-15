@@ -419,6 +419,21 @@ ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS = float(
 ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN = float(
     _env_str("ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN", "0.10")
 )
+ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT = float(
+    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT", "0.0")
+)
+ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS = float(
+    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS", "15.0")
+)
+ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS = float(
+    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS", "0.0")
+)
+ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH = float(
+    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH", "0.50")
+)
+ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN = float(
+    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN", "0.10")
+)
 ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
     _env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0.10")
@@ -672,6 +687,11 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS": "15.0",
     "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH": "0.50",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -3375,6 +3395,69 @@ def _direction_side_utility_conviction_term(
     return weight * torch.stack(terms).mean()
 
 
+def _direction_utility_trade_conviction_term(
+    logits: torch.Tensor,
+    y_long_utility_bps: torch.Tensor,
+    y_short_utility_bps: torch.Tensor,
+    y_long_bad_path: torch.Tensor,
+    y_short_bad_path: torch.Tensor,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=logits.device, dtype=logits.dtype)
+    weight = float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if logits.ndim != 2 or logits.shape[1] < 3:
+        return zero
+    long_u = y_long_utility_bps.to(device=logits.device, dtype=logits.dtype).reshape(-1)
+    short_u = y_short_utility_bps.to(device=logits.device, dtype=logits.dtype).reshape(-1)
+    long_bad = y_long_bad_path.to(device=logits.device, dtype=logits.dtype).reshape(-1)
+    short_bad = y_short_bad_path.to(device=logits.device, dtype=logits.dtype).reshape(-1)
+    if (
+        long_u.shape[0] != logits.shape[0]
+        or short_u.shape[0] != logits.shape[0]
+        or long_bad.shape[0] != logits.shape[0]
+        or short_bad.shape[0] != logits.shape[0]
+    ):
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_SHAPE_MISMATCH] "
+            f"logits={tuple(logits.shape)} long={tuple(long_u.shape)} short={tuple(short_u.shape)} "
+            f"long_bad={tuple(long_bad.shape)} short_bad={tuple(short_bad.shape)}"
+        )
+    min_gap = float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS)
+    min_utility = float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS)
+    max_bad_path = float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH)
+    margin = float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN)
+    if min_gap < 0.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_INVALID] "
+            f"ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS={min_gap:.6f} expected >=0.0"
+        )
+    if max_bad_path < 0.0 or max_bad_path > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_INVALID] "
+            f"ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH={max_bad_path:.6f} expected [0.0, 1.0]"
+        )
+    if margin < 0.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN_INVALID] "
+            f"ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN={margin:.6f} expected >=0.0"
+        )
+
+    gap = long_u - short_u
+    long_mask = (gap >= min_gap) & (long_u >= min_utility) & (long_bad <= max_bad_path)
+    short_mask = (gap <= -min_gap) & (short_u >= min_utility) & (short_bad <= max_bad_path)
+    terms: list[torch.Tensor] = []
+    if bool(long_mask.any().detach().cpu().item()):
+        wrong = torch.maximum(logits[:, 1], logits[:, 2])
+        terms.append(nn.functional.softplus(wrong[long_mask] - logits[long_mask, 0] + margin).mean())
+    if bool(short_mask.any().detach().cpu().item()):
+        wrong = torch.maximum(logits[:, 0], logits[:, 2])
+        terms.append(nn.functional.softplus(wrong[short_mask] - logits[short_mask, 1] + margin).mean())
+    if not terms:
+        return zero
+    return weight * torch.stack(terms).mean()
+
+
 def _direction_flat_starvation_term(
     logits: torch.Tensor,
     targets: torch.Tensor,
@@ -4309,6 +4392,7 @@ def train_epoch(
     total_direction_flat_margin = 0.0
     total_direction_utility_margin = 0.0
     total_direction_side_utility_conviction = 0.0
+    total_direction_utility_trade_conviction = 0.0
     total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
     total_timing = 0.0
@@ -4463,6 +4547,13 @@ def train_epoch(
             batch["y_long_path_utility_bps"],
             batch["y_short_path_utility_bps"],
         )
+        direction_utility_trade_conviction_term = _direction_utility_trade_conviction_term(
+            logits,
+            batch["y_long_path_utility_bps"],
+            batch["y_short_path_utility_bps"],
+            batch["y_long_bad_path"],
+            batch["y_short_bad_path"],
+        )
         direction_flat_starvation_term = _direction_flat_starvation_term(logits, y, ctx_cat)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
@@ -4484,6 +4575,7 @@ def train_epoch(
             + direction_flat_margin_term
             + direction_utility_margin_term
             + direction_side_utility_conviction_term
+            + direction_utility_trade_conviction_term
             + direction_flat_starvation_term
         )
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
@@ -4740,6 +4832,9 @@ def train_epoch(
         total_direction_side_utility_conviction += float(
             direction_side_utility_conviction_term.detach().cpu().item()
         ) * bs
+        total_direction_utility_trade_conviction += float(
+            direction_utility_trade_conviction_term.detach().cpu().item()
+        ) * bs
         total_direction_flat_starvation += float(direction_flat_starvation_term.detach().cpu().item()) * bs
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
@@ -4803,6 +4898,9 @@ def train_epoch(
         "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
         "direction_side_utility_conviction_loss_mean": (
             total_direction_side_utility_conviction / max(1, n)
+        ),
+        "direction_utility_trade_conviction_loss_mean": (
+            total_direction_utility_trade_conviction / max(1, n)
         ),
         "direction_flat_starvation_loss_mean": (total_direction_flat_starvation / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
@@ -5316,6 +5414,7 @@ def validate(
     total_direction_flat_margin = 0.0
     total_direction_utility_margin = 0.0
     total_direction_side_utility_conviction = 0.0
+    total_direction_utility_trade_conviction = 0.0
     total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
@@ -5480,6 +5579,13 @@ def validate(
                 batch["y_long_path_utility_bps"],
                 batch["y_short_path_utility_bps"],
             )
+            direction_utility_trade_conviction_term = _direction_utility_trade_conviction_term(
+                logits,
+                batch["y_long_path_utility_bps"],
+                batch["y_short_path_utility_bps"],
+                batch["y_long_bad_path"],
+                batch["y_short_bad_path"],
+            )
             direction_flat_starvation_term = _direction_flat_starvation_term(logits, y, ctx_cat)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
@@ -5501,6 +5607,7 @@ def validate(
                 + direction_flat_margin_term
                 + direction_utility_margin_term
                 + direction_side_utility_conviction_term
+                + direction_utility_trade_conviction_term
                 + direction_flat_starvation_term
             )
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
@@ -5696,6 +5803,9 @@ def validate(
             total_direction_side_utility_conviction += float(
                 direction_side_utility_conviction_term.detach().cpu().item()
             ) * bs
+            total_direction_utility_trade_conviction += float(
+                direction_utility_trade_conviction_term.detach().cpu().item()
+            ) * bs
             total_direction_flat_starvation += float(direction_flat_starvation_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
@@ -5778,6 +5888,9 @@ def validate(
         "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
         "direction_side_utility_conviction_loss_mean": (
             total_direction_side_utility_conviction / max(1, n)
+        ),
+        "direction_utility_trade_conviction_loss_mean": (
+            total_direction_utility_trade_conviction / max(1, n)
         ),
         "direction_flat_starvation_loss_mean": (total_direction_flat_starvation / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
@@ -7543,6 +7656,31 @@ def run_train(
                 "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN="
                 f"{ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN:.3f} expected >=0.10"
             )
+        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT < 8.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT="
+                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:.3f} expected >=8.0"
+            )
+        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS > 15.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS="
+                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS:.3f} expected <=15.0"
+            )
+        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS > 0.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS="
+                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS:.3f} expected <=0.0"
+            )
+        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH > 0.50:
+            repair_failures.append(
+                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH="
+                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH:.3f} expected <=0.50"
+            )
+        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN < 0.10:
+            repair_failures.append(
+                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN="
+                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN:.3f} expected >=0.10"
+            )
         if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
@@ -7725,6 +7863,9 @@ def run_train(
         "utility_margin_w=%.3f utility_min_gap_bps=%.3f utility_logit_margin=%.3f "
         "side_utility_conviction_w=%.3f side_utility_conviction_min_gap_bps=%.3f "
         "side_utility_conviction_margin=%.3f "
+        "utility_trade_conviction_w=%.3f utility_trade_conviction_min_gap_bps=%.3f "
+        "utility_trade_conviction_min_utility_bps=%.3f utility_trade_conviction_max_bad_path=%.3f "
+        "utility_trade_conviction_margin=%.3f "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
         "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
@@ -7772,6 +7913,11 @@ def run_train(
         float(ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT),
         float(ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS),
         float(ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN),
+        float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT),
+        float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS),
+        float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS),
+        float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH),
+        float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN),
         float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -7958,7 +8104,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -7967,6 +8113,7 @@ def run_train(
                 float(val_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(val_stats.get("direction_utility_margin_loss_mean", 0.0)),
                 float(val_stats.get("direction_side_utility_conviction_loss_mean", 0.0)),
+                float(val_stats.get("direction_utility_trade_conviction_loss_mean", 0.0)),
                 float(val_stats.get("direction_flat_starvation_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_recall_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
@@ -8056,7 +8203,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -8065,6 +8212,7 @@ def run_train(
                 float(tr_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(tr_stats.get("direction_utility_margin_loss_mean", 0.0)),
                 float(tr_stats.get("direction_side_utility_conviction_loss_mean", 0.0)),
+                float(tr_stats.get("direction_utility_trade_conviction_loss_mean", 0.0)),
                 float(tr_stats.get("direction_flat_starvation_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_recall_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
@@ -8255,6 +8403,21 @@ def run_train(
                     "direction_side_utility_conviction_logit_margin": float(
                         ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
                     ),
+                    "direction_utility_trade_conviction_weight": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT
+                    ),
+                    "direction_utility_trade_conviction_min_gap_bps": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS
+                    ),
+                    "direction_utility_trade_conviction_min_utility_bps": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS
+                    ),
+                    "direction_utility_trade_conviction_max_bad_path": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH
+                    ),
+                    "direction_utility_trade_conviction_logit_margin": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
+                    ),
                     "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
                     "direction_flat_starvation_min_label_rate": float(
                         ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
@@ -8378,6 +8541,21 @@ def run_train(
                     ),
                     "direction_side_utility_conviction_logit_margin": float(
                         ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
+                    ),
+                    "direction_utility_trade_conviction_weight": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT
+                    ),
+                    "direction_utility_trade_conviction_min_gap_bps": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS
+                    ),
+                    "direction_utility_trade_conviction_min_utility_bps": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS
+                    ),
+                    "direction_utility_trade_conviction_max_bad_path": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH
+                    ),
+                    "direction_utility_trade_conviction_logit_margin": float(
+                        ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
                     ),
                     "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
                     "direction_flat_starvation_min_label_rate": float(
@@ -8764,6 +8942,19 @@ def run_train(
         "direction_side_utility_conviction_logit_margin": float(
             ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
         ),
+        "direction_utility_trade_conviction_weight": float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT),
+        "direction_utility_trade_conviction_min_gap_bps": float(
+            ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS
+        ),
+        "direction_utility_trade_conviction_min_utility_bps": float(
+            ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS
+        ),
+        "direction_utility_trade_conviction_max_bad_path": float(
+            ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH
+        ),
+        "direction_utility_trade_conviction_logit_margin": float(
+            ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
+        ),
         "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -8855,6 +9046,19 @@ def run_train(
             ),
             "direction_side_utility_conviction_logit_margin": float(
                 ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
+            ),
+            "direction_utility_trade_conviction_weight": float(ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT),
+            "direction_utility_trade_conviction_min_gap_bps": float(
+                ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS
+            ),
+            "direction_utility_trade_conviction_min_utility_bps": float(
+                ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS
+            ),
+            "direction_utility_trade_conviction_max_bad_path": float(
+                ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH
+            ),
+            "direction_utility_trade_conviction_logit_margin": float(
+                ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
             ),
             "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
             "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),

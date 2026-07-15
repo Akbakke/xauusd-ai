@@ -840,6 +840,88 @@ def test_entry_v10_direction_side_utility_conviction_penalizes_side_label_flat_o
         )
 
 
+def test_entry_v10_direction_utility_trade_conviction_requires_tradable_side_edge(monkeypatch) -> None:
+    import pytest
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS", 15.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN", 0.10)
+
+    long_utility = torch.tensor([40.0, -5.0, 0.0, 30.0], dtype=torch.float32)
+    short_utility = torch.tensor([0.0, -40.0, 40.0, 0.0], dtype=torch.float32)
+    long_bad = torch.tensor([0.20, 0.20, 0.90, 0.80], dtype=torch.float32)
+    short_bad = torch.tensor([0.90, 0.90, 0.20, 0.20], dtype=torch.float32)
+    flat_or_wrong = torch.tensor(
+        [
+            [-1.0, 0.0, 2.0],
+            [-1.0, 0.0, 2.0],
+            [0.0, -1.0, 2.0],
+            [-1.0, 0.0, 2.0],
+        ],
+        dtype=torch.float32,
+    )
+    side_ok = torch.tensor(
+        [
+            [4.0, 0.0, -2.0],
+            [-1.0, 0.0, 2.0],
+            [0.0, 4.0, -2.0],
+            [-1.0, 0.0, 2.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(
+        trainer._direction_utility_trade_conviction_term(
+            flat_or_wrong,
+            long_utility,
+            short_utility,
+            long_bad,
+            short_bad,
+        ).item()
+    )
+    good_loss = float(
+        trainer._direction_utility_trade_conviction_term(
+            side_ok,
+            long_utility,
+            short_utility,
+            long_bad,
+            short_bad,
+        ).item()
+    )
+
+    assert bad_loss > good_loss + 10.0
+    assert good_loss < 1.0
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT", 0.0)
+    assert (
+        float(
+            trainer._direction_utility_trade_conviction_term(
+                flat_or_wrong,
+                long_utility,
+                short_utility,
+                long_bad,
+                short_bad,
+            ).item()
+        )
+        == 0.0
+    )
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT", 8.0)
+    with pytest.raises(RuntimeError, match="ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_SHAPE_MISMATCH"):
+        trainer._direction_utility_trade_conviction_term(
+            flat_or_wrong,
+            long_utility[:2],
+            short_utility,
+            long_bad,
+            short_bad,
+        )
+
+
 def test_entry_v10_direction_flat_starvation_term_penalizes_zero_flat_predictions(monkeypatch) -> None:
     import torch
 
@@ -901,6 +983,10 @@ def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -
     assert "total_direction_side_utility_conviction += " in text[
         text.index("    with torch.no_grad():", validate_start):
     ]
+    assert "total_direction_utility_trade_conviction = 0.0" in validate_init
+    assert "total_direction_utility_trade_conviction += " in text[
+        text.index("    with torch.no_grad():", validate_start):
+    ]
     assert "total_direction_flat_starvation = 0.0" in validate_init
     assert "total_direction_flat_starvation += " in text[text.index("    with torch.no_grad():", validate_start):]
 
@@ -914,6 +1000,11 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "direction_side_utility_conviction_weight",
         "direction_side_utility_conviction_min_gap_bps",
         "direction_side_utility_conviction_logit_margin",
+        "direction_utility_trade_conviction_weight",
+        "direction_utility_trade_conviction_min_gap_bps",
+        "direction_utility_trade_conviction_min_utility_bps",
+        "direction_utility_trade_conviction_max_bad_path",
+        "direction_utility_trade_conviction_logit_margin",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",

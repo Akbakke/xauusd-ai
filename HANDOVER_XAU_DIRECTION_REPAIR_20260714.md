@@ -413,6 +413,39 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - The trainer failure-evidence blocks now record the active utility-margin, side-utility-conviction, and FLAT-starvation recipe fields for both class-balance and slice-guard failures.
   - Validation: `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed, and `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed (`49 passed`).
 
+### 2026-07-15 Direction Utility-Trade-Conviction Repair
+
+- Ran the report-only XAU red-slice separability audit against the latest sideutil failure sidecar:
+  `/home/andre2/GX1_DATA/reports/xau_red_slice_separability_audit_20260715_v1/XAU_RED_SLICE_SEPARABILITY_AUDIT_latest.json`
+  - Decision: `XAU_RED_SLICE_SEPARABILITY_AUDIT_COMPLETE`.
+  - Evidence source: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T135909Z__direction_slice_failure_evidence.json`.
+  - `domain_feature_count=247`, missing required XAU rail direction features `0`, weak required-rail-feature slice rate `1/15`.
+  - Key blocker shape: best checkpoint under-predicted LONG in positive-utility slices (`vol_regime_id=2` / `atr_bucket=2` had LONG label rate `0.463`, predicted LONG `0.057`, long-minus-short utility `+37.53 bps`). Later epochs collapsed back to SHORT dominance.
+- Added the next hard transformer objective:
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN`
+- Semantics:
+  - Applies independent of the hard `y_direction` class, but only when side utility is tradable enough: side utility must be at least the configured utility floor, side bad-path must be under the configured cap, and side utility must beat the opposite side by the configured gap.
+  - For clear tradable LONG rows, LONG logit must beat both SHORT and FLAT.
+  - For clear tradable SHORT rows, SHORT logit must beat both LONG and FLAT.
+  - Rows with only relative utility but no tradable side edge are ignored. This is a training objective, not a live hand-rule and not fallback.
+- Smart XAU repair preflight now rejects missing/weak utility-trade-conviction settings:
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT >= 8.00`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS <= 15.0`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS <= 0.0`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH <= 0.50`
+  - `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN >= 0.10`
+- Smart smoke/candidate wrappers, smoke/readiness/manifest contracts, train enablement, sweep lint, bundle audit, candidate readiness, replay readiness, failure evidence, metadata, and direct `v10_6yr_rebuild_20260626.sh` XAU train path now carry the same contract.
+- Validation before commit:
+  - `python3 -m py_compile` passed for the trainer, touched gate scripts, and touched tests.
+  - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+- No transformer training, candidate training, replay, IQL, shadow, live, or promotion path was started by this repair. Next heavy action still requires clean git, sequential readiness, enablement proof, and resource check.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -425,15 +458,15 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 2. Latest executed smart XAU smoke after the side-utility-conviction repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
    - Best checkpoint was epoch `2` with global balance guard OK, but `best_direction_slice_contract_ok=false`, `21` slice failures, `12` accuracy failures, and `9` pred-rate failures.
    - Last epoch `6` collapsed back toward SHORT dominance (`direction_pred_rate_short=0.818359`, `direction_pred_rate_flat=0.005208`) and hard-red-stop correctly refused to burn more compute.
-   - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
+   - Utility-trade-conviction is now implemented as the next repair but has not yet been smoke-trained. Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the same side-utility-conviction recipe. It already hard-red-stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction recipe. It already hard-red-stopped with no candidate bundle.
 
-2. Use the latest sideutil failure sidecar and `ENTRY_DIR_SLICE_FAILURE` rows for a targeted read-only diagnostic before the next code repair: decide whether the blocker is target/noise in specific ctx slices, architecture/input routing, or a missing feature interaction. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+2. After committing utility-trade-conviction, rerun clean-git readiness and enablement, then run one bounded smart smoke train with hard-red monitoring. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

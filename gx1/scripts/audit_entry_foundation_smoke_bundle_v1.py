@@ -87,6 +87,11 @@ SMART_DIRECTION_UTILITY_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT = 6.00
 SMART_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS_MAX = 15.0
 SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN = 0.10
+SMART_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT = 8.00
+SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX = 15.0
+SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX = 0.0
+SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX = 0.50
+SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
 SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
@@ -1296,6 +1301,36 @@ def _direction_balance_recipe_contract(
             meta.get("direction_side_utility_conviction_logit_margin", 0.0),
         )
     )
+    direction_utility_trade_conviction_weight = _safe_float(
+        recipe.get(
+            "direction_utility_trade_conviction_weight",
+            meta.get("direction_utility_trade_conviction_weight", 0.0),
+        )
+    )
+    direction_utility_trade_conviction_min_gap_bps = _safe_float(
+        recipe.get(
+            "direction_utility_trade_conviction_min_gap_bps",
+            meta.get("direction_utility_trade_conviction_min_gap_bps", 999.0),
+        )
+    )
+    direction_utility_trade_conviction_min_utility_bps = _safe_float(
+        recipe.get(
+            "direction_utility_trade_conviction_min_utility_bps",
+            meta.get("direction_utility_trade_conviction_min_utility_bps", 999.0),
+        )
+    )
+    direction_utility_trade_conviction_max_bad_path = _safe_float(
+        recipe.get(
+            "direction_utility_trade_conviction_max_bad_path",
+            meta.get("direction_utility_trade_conviction_max_bad_path", 999.0),
+        )
+    )
+    direction_utility_trade_conviction_logit_margin = _safe_float(
+        recipe.get(
+            "direction_utility_trade_conviction_logit_margin",
+            meta.get("direction_utility_trade_conviction_logit_margin", 0.0),
+        )
+    )
     direction_flat_starvation_weight = _safe_float(
         recipe.get(
             "direction_flat_starvation_weight",
@@ -1640,6 +1675,43 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_side_utility_conviction_logit_margin >= "
                     f"{SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN:.2f}"
                 )
+            if direction_utility_trade_conviction_weight < SMART_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_utility_trade_conviction_weight >= "
+                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:.2f}"
+                )
+            if (
+                direction_utility_trade_conviction_min_gap_bps
+                > SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires direction_utility_trade_conviction_min_gap_bps <= "
+                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX:.1f}"
+                )
+            if (
+                direction_utility_trade_conviction_min_utility_bps
+                > SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires direction_utility_trade_conviction_min_utility_bps <= "
+                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX:.1f}"
+                )
+            if (
+                direction_utility_trade_conviction_max_bad_path
+                > SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires direction_utility_trade_conviction_max_bad_path <= "
+                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX:.2f}"
+                )
+            if (
+                direction_utility_trade_conviction_logit_margin
+                < SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
+            ):
+                failures.append(
+                    "smart direction active head requires direction_utility_trade_conviction_logit_margin >= "
+                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN:.2f}"
+                )
             if direction_flat_starvation_weight < SMART_DIRECTION_FLAT_STARVATION_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_flat_starvation_weight >= "
@@ -1750,6 +1822,11 @@ def _direction_balance_recipe_contract(
         "direction_side_utility_conviction_weight": direction_side_utility_conviction_weight,
         "direction_side_utility_conviction_min_gap_bps": direction_side_utility_conviction_min_gap_bps,
         "direction_side_utility_conviction_logit_margin": direction_side_utility_conviction_logit_margin,
+        "direction_utility_trade_conviction_weight": direction_utility_trade_conviction_weight,
+        "direction_utility_trade_conviction_min_gap_bps": direction_utility_trade_conviction_min_gap_bps,
+        "direction_utility_trade_conviction_min_utility_bps": direction_utility_trade_conviction_min_utility_bps,
+        "direction_utility_trade_conviction_max_bad_path": direction_utility_trade_conviction_max_bad_path,
+        "direction_utility_trade_conviction_logit_margin": direction_utility_trade_conviction_logit_margin,
         "direction_flat_starvation_weight": direction_flat_starvation_weight,
         "direction_flat_starvation_min_label_rate": direction_flat_starvation_min_label_rate,
         "direction_flat_starvation_min_rows": direction_flat_starvation_min_rows,
