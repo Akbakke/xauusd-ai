@@ -5226,10 +5226,90 @@ def _direction_ckpt_balance_stats(
     }
 
 
+def _optional_float_1d(values: Optional[np.ndarray], expected_size: int) -> Optional[np.ndarray]:
+    if values is None:
+        return None
+    arr = np.asarray(values, dtype=np.float64).reshape(-1)
+    if arr.size != int(expected_size):
+        return None
+    return arr
+
+
+def _optional_int_1d(values: Optional[np.ndarray], expected_size: int) -> Optional[np.ndarray]:
+    if values is None:
+        return None
+    arr = np.asarray(values, dtype=np.int64).reshape(-1)
+    if arr.size != int(expected_size):
+        return None
+    return arr
+
+
+def _direction_hierarchy_output_stats(
+    targets_np: np.ndarray,
+    trade_prob_np: Optional[np.ndarray] = None,
+    side_pred_np: Optional[np.ndarray] = None,
+    side_long_prob_np: Optional[np.ndarray] = None,
+) -> Dict[str, Any]:
+    targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
+    n = int(targets_i.size)
+    if n <= 0:
+        return {}
+
+    stats: Dict[str, Any] = {}
+    edge_mask = targets_i != 2
+    flat_mask = targets_i == 2
+    if bool(np.any(edge_mask)):
+        stats["hier_side_target_long_rate_on_edge"] = float(np.mean(targets_i[edge_mask] == 0))
+    if bool(np.any(flat_mask)):
+        stats["hier_flat_label_rate"] = float(np.mean(flat_mask))
+    stats["hier_trade_target_rate"] = float(np.mean(edge_mask))
+
+    trade_prob = _optional_float_1d(trade_prob_np, n)
+    if trade_prob is not None:
+        finite = np.isfinite(trade_prob)
+        if bool(np.any(finite)):
+            trade_pred = trade_prob >= 0.5
+            stats["hier_trade_prob_mean"] = float(np.mean(trade_prob[finite]))
+            stats["hier_flat_prob_mean"] = float(np.mean(1.0 - trade_prob[finite]))
+            stats["hier_trade_pred_rate"] = float(np.mean(trade_pred[finite]))
+            stats["hier_flat_pred_rate"] = float(np.mean(~trade_pred[finite]))
+            if bool(np.any(edge_mask & finite)):
+                stats["hier_trade_prob_label_edge_mean"] = float(np.mean(trade_prob[edge_mask & finite]))
+            if bool(np.any(flat_mask & finite)):
+                stats["hier_trade_prob_label_flat_mean"] = float(np.mean(trade_prob[flat_mask & finite]))
+                stats["hier_flat_prob_label_flat_mean"] = float(np.mean(1.0 - trade_prob[flat_mask & finite]))
+
+    side_pred = _optional_int_1d(side_pred_np, n)
+    if side_pred is not None:
+        finite_side = np.isfinite(side_pred.astype(np.float64, copy=False))
+        if bool(np.any(edge_mask & finite_side)):
+            side_targets = targets_i[edge_mask & finite_side]
+            side_preds = side_pred[edge_mask & finite_side]
+            stats["hier_side_pred_long_rate_on_edge"] = float(np.mean(side_preds == 0))
+            stats["hier_side_pred_short_rate_on_edge"] = float(np.mean(side_preds == 1))
+            stats["hier_side_acc_on_edge"] = float(np.mean(side_preds == side_targets))
+
+    side_long_prob = _optional_float_1d(side_long_prob_np, n)
+    if side_long_prob is not None:
+        finite_long = np.isfinite(side_long_prob)
+        if bool(np.any(edge_mask & finite_long)):
+            stats["hier_side_long_prob_mean_on_edge"] = float(np.mean(side_long_prob[edge_mask & finite_long]))
+        long_edge = (targets_i == 0) & finite_long
+        short_edge = (targets_i == 1) & finite_long
+        if bool(np.any(long_edge)):
+            stats["hier_side_long_prob_label_long_mean"] = float(np.mean(side_long_prob[long_edge]))
+        if bool(np.any(short_edge)):
+            stats["hier_side_long_prob_label_short_mean"] = float(np.mean(side_long_prob[short_edge]))
+    return stats
+
+
 def _direction_slice_balance_stats(
     targets_np: np.ndarray,
     preds_np: np.ndarray,
     ctx_cat_np: Optional[np.ndarray],
+    trade_prob_np: Optional[np.ndarray] = None,
+    side_pred_np: Optional[np.ndarray] = None,
+    side_long_prob_np: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
     preds_i = np.asarray(preds_np, dtype=np.int64).reshape(-1)
@@ -5268,6 +5348,9 @@ def _direction_slice_balance_stats(
     indices = _direction_slice_ctx_cat_indices(int(cat.shape[1]))
     if not indices:
         indices = list(range(int(cat.shape[1])))
+    trade_prob = _optional_float_1d(trade_prob_np, targets_i.size)
+    side_pred = _optional_int_1d(side_pred_np, targets_i.size)
+    side_long_prob = _optional_float_1d(side_long_prob_np, targets_i.size)
 
     audited = 0
     accuracy_failures = 0
@@ -5314,6 +5397,12 @@ def _direction_slice_balance_stats(
                     for cls, failed in zip(active_classes.tolist(), pred_rate_failed.tolist())
                     if bool(failed)
                 ]
+                hierarchy_detail = _direction_hierarchy_output_stats(
+                    labels_s,
+                    trade_prob[mask] if trade_prob is not None else None,
+                    side_pred[mask] if side_pred is not None else None,
+                    side_long_prob[mask] if side_long_prob is not None else None,
+                )
                 failure_details.append(
                     {
                         "ctx_cat_index": int(idx),
@@ -5329,6 +5418,7 @@ def _direction_slice_balance_stats(
                         "pred_rate_failed_classes": pred_failed_classes,
                         "pred_rate_shortfalls": [float(v) for v in shortfalls.tolist()],
                         "pred_rate_shortfall": float(shortfalls.sum()),
+                        **hierarchy_detail,
                     }
                 )
 
@@ -5566,6 +5656,9 @@ def validate(
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
     _diag_lbl: "dict[str, list]" = {k: [] for k in ("tradable", "bad_path", "clean_edge", "survival")}
     _diag_real: "dict[str, list]" = {k: [] for k in ("mfe_first_n_bps", "path_quality_bps")}
+    hierarchy_trade_prob_chunks: List[np.ndarray] = []
+    hierarchy_side_pred_chunks: List[np.ndarray] = []
+    hierarchy_side_long_prob_chunks: List[np.ndarray] = []
 
     with torch.no_grad():
         for batch in loader:
@@ -5602,6 +5695,8 @@ def validate(
             bad_path_logit = out.get("bad_path_logit")
             clean_edge_logit = out.get("clean_edge_logit")
             survival_logit = out.get("survival_logit")
+            trade_logit = out.get("trade_logit")
+            side_logits = out.get("side_logits")
             anchor_logits = out.get("anchor_logits")
             delta_logits = out.get("delta_logits")
             specialist_gate_loss, _specialist_gate_stats = _specialist_gate_regularization(out, device)
@@ -5624,6 +5719,14 @@ def validate(
                 _diag_pred["path_quality"].append(_np1d(path_pred))
             if mfe_pred is not None:
                 _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
+            if trade_logit is not None:
+                hierarchy_trade_prob_chunks.append(_np1d(torch.sigmoid(trade_logit)))
+            if side_logits is not None and isinstance(side_logits, torch.Tensor) and side_logits.ndim == 2:
+                side_probs = torch.softmax(side_logits.float(), dim=1)
+                hierarchy_side_pred_chunks.append(
+                    torch.argmax(side_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
+                )
+                hierarchy_side_long_prob_chunks.append(side_probs[:, 0].detach().cpu().numpy().reshape(-1))
             _diag_lbl["tradable"].append(_np1d(y_tradable))
             _diag_lbl["bad_path"].append(_np1d(y_bad_path))
             _diag_lbl["clean_edge"].append(_np1d(_aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)))
@@ -5968,6 +6071,17 @@ def validate(
     preds_np = np.asarray(preds)
     targets_np = np.asarray(targets)
     ctx_cat_np = np.concatenate(ctx_cats, axis=0) if ctx_cats else None
+    hierarchy_trade_prob_np = (
+        np.concatenate(hierarchy_trade_prob_chunks, axis=0) if hierarchy_trade_prob_chunks else None
+    )
+    hierarchy_side_pred_np = (
+        np.concatenate(hierarchy_side_pred_chunks, axis=0) if hierarchy_side_pred_chunks else None
+    )
+    hierarchy_side_long_prob_np = (
+        np.concatenate(hierarchy_side_long_prob_chunks, axis=0)
+        if hierarchy_side_long_prob_chunks
+        else None
+    )
 
     acc = float(accuracy_score(targets_np.astype(int), preds_np.astype(int)))
     short_pred_long_rate = (short_pred_long / short_total if short_total > 0 else 0.0)
@@ -6032,7 +6146,22 @@ def validate(
         "trendline_wrong_side_prob_mean": (trendline_wrong_side_prob_sum / max(1, n)),
     }
     stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
-    slice_stats = _direction_slice_balance_stats(targets_np, preds_np, ctx_cat_np)
+    stats.update(
+        _direction_hierarchy_output_stats(
+            targets_np,
+            hierarchy_trade_prob_np,
+            hierarchy_side_pred_np,
+            hierarchy_side_long_prob_np,
+        )
+    )
+    slice_stats = _direction_slice_balance_stats(
+        targets_np,
+        preds_np,
+        ctx_cat_np,
+        trade_prob_np=hierarchy_trade_prob_np,
+        side_pred_np=hierarchy_side_pred_np,
+        side_long_prob_np=hierarchy_side_long_prob_np,
+    )
     stats.update(slice_stats)
     stats["direction_slice_ckpt_score"] = _direction_slice_ckpt_score(
         float(stats.get("direction_ckpt_score", acc)),
@@ -8310,6 +8439,20 @@ def run_train(
                 float(val_stats.get("direction_label_rate_flat", 0.0)),
                 float(val_stats.get("direction_min_pred_to_label", 0.0)),
             )
+            if "hier_trade_prob_mean" in val_stats:
+                log.info(
+                    "[ENTRY_HIER_OUTPUT] split=val epoch=%d trade_target=%.6f trade_pred=%.6f "
+                    "trade_prob=%.6f flat_prob=%.6f trade_prob_label_flat=%.6f "
+                    "side_pred_long_edge=%.6f side_acc_edge=%.6f",
+                    epoch + 1,
+                    float(val_stats.get("hier_trade_target_rate", 0.0)),
+                    float(val_stats.get("hier_trade_pred_rate", 0.0)),
+                    float(val_stats.get("hier_trade_prob_mean", 0.0)),
+                    float(val_stats.get("hier_flat_prob_mean", 0.0)),
+                    float(val_stats.get("hier_trade_prob_label_flat_mean", 0.0)),
+                    float(val_stats.get("hier_side_pred_long_rate_on_edge", 0.0)),
+                    float(val_stats.get("hier_side_acc_on_edge", 0.0)),
+                )
             log.info(
                 "[ENTRY_DIR_SLICE_CKPT] split=val epoch=%d score=%.6f failures=%d "
                 "acc_failures=%d pred_rate_failures=%d audited=%d acc_deficit=%.6f pred_shortfall=%.6f",
@@ -8330,7 +8473,10 @@ def run_train(
                     "[ENTRY_DIR_SLICE_FAILURE] split=val epoch=%d ctx_idx=%d ctx_value=%d rows=%d "
                     "acc=%.6f majority=%.6f acc_failed=%d acc_deficit=%.6f "
                     "label_rates=%.6f,%.6f,%.6f pred_rates=%.6f,%.6f,%.6f "
-                    "required=%.6f,%.6f,%.6f pred_rate_failed_classes=%s pred_shortfall=%.6f",
+                    "required=%.6f,%.6f,%.6f pred_rate_failed_classes=%s pred_shortfall=%.6f "
+                    "hier_trade_target=%.6f hier_trade_pred=%.6f hier_trade_prob=%.6f "
+                    "hier_trade_prob_label_flat=%.6f hier_side_pred_long_edge=%.6f "
+                    "hier_side_acc_edge=%.6f",
                     epoch + 1,
                     int(detail.get("ctx_cat_index", -1)),
                     int(detail.get("ctx_cat_value", -1)),
@@ -8350,6 +8496,12 @@ def run_train(
                     float(required_rates[2] if len(required_rates) > 2 else 0.0),
                     ",".join(str(int(cls)) for cls in detail.get("pred_rate_failed_classes", [])),
                     float(detail.get("pred_rate_shortfall", 0.0)),
+                    float(detail.get("hier_trade_target_rate", 0.0)),
+                    float(detail.get("hier_trade_pred_rate", 0.0)),
+                    float(detail.get("hier_trade_prob_mean", 0.0)),
+                    float(detail.get("hier_trade_prob_label_flat_mean", 0.0)),
+                    float(detail.get("hier_side_pred_long_rate_on_edge", 0.0)),
+                    float(detail.get("hier_side_acc_on_edge", 0.0)),
                 )
         log.info(
             "[SHORT_TO_LONG_TRAIN] rate=%.6f short_lead_count=%d short_lead_long_prob_mean=%.6f",

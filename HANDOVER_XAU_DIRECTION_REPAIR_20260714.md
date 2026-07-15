@@ -535,6 +535,16 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Epoch `2`: `dir_acc=0.369141`, `guard_ok=0`, `slice_contract_ok=0`, `31` slice failures, `pred_short=0.846354`, `pred_flat=0.041016`.
   - Epoch `3`: `dir_acc=0.341797`, `guard_ok=0`, `slice_contract_ok=0`, `31` slice failures, `14` accuracy failures, `17` pred-rate failures, `direction_slice_ckpt_score=-1.765918`, pred LONG `0.524089`, pred SHORT `0.458333`, pred FLAT `0.017578`.
 - Interpretation: the hierarchical public-logit composition is correct as an exported contract, but this smoke still drove the trade/flat side into FLAT starvation and failed active context slices. Do not start candidate training, replay, IQL, shadow, live, or promotion from this. The next step must diagnose why the learned `TRADE` versus `FLAT/no-edge` head is collapsing inside red slices, not add random data or continue the same recipe for more epochs.
+- Added post-stop hierarchy diagnostics for the next bounded smoke:
+  - validation now records global `hier_trade_*`, `hier_flat_*`, and `hier_side_*` output stats when hierarchy heads are present.
+  - `direction_slice_failure_details` now include the same hierarchy diagnostics per red context slice.
+  - live logs now include `[ENTRY_HIER_OUTPUT]` and extended `[ENTRY_DIR_SLICE_FAILURE]` fields.
+  - This is diagnostic only. It opens no gate, changes no loss, and is not fallback.
+- Validation after diagnostic change:
+  - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed.
+  - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
+  - Focused gate/wrapper/readiness/audit suite passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
 
 ## Current Blockers
 
@@ -556,8 +566,8 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, or current hierarchical-composition recipe. They already hard-red-stopped or were manually stopped with no candidate bundle.
 
-2. Next repair should be a targeted hierarchy/slice diagnostic before another train recipe:
-   - log/audit public composed direction rates versus the raw `TRADE`/`FLAT` head and `LONG|TRADE`/`SHORT|TRADE` head per active red slice.
+2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke that uses the new hierarchy diagnostics:
+   - inspect `[ENTRY_HIER_OUTPUT]` and red-slice hierarchy fields before changing recipe again.
    - prove whether the collapse comes from the trade-vs-flat target, utility pressure overpowering no-edge rows, calibration of composed log-prob logits, or missing/weak slice features.
    - only then change target/architecture or rebuild inputs. Do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
 

@@ -302,6 +302,50 @@ def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(
     assert trainer._direction_slice_ckpt_score(0.40, collapsed) < trainer._direction_slice_ckpt_score(0.40, covered)
 
 
+def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(monkeypatch) -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_ROWS", 4)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
+
+    labels = np.asarray([0, 0, 1, 1, 2, 2] * 12, dtype=np.int64)
+    collapsed_preds = np.asarray([0, 0, 0, 0, 0, 0] * 12, dtype=np.int64)
+    ctx_cat = np.asarray([[2]] * len(labels), dtype=np.int64)
+    trade_prob = np.asarray([0.80, 0.82, 0.84, 0.86, 0.94, 0.96] * 12, dtype=np.float64)
+    side_pred = np.asarray([0, 0, 1, 1, 0, 1] * 12, dtype=np.int64)
+    side_long_prob = np.asarray([0.80, 0.78, 0.20, 0.18, 0.70, 0.30] * 12, dtype=np.float64)
+
+    stats = trainer._direction_slice_balance_stats(
+        labels,
+        collapsed_preds,
+        ctx_cat,
+        trade_prob_np=trade_prob,
+        side_pred_np=side_pred,
+        side_long_prob_np=side_long_prob,
+    )
+    detail = stats["direction_slice_failure_details"][0]
+
+    assert detail["hier_trade_target_rate"] == 4 / 6
+    assert detail["hier_trade_pred_rate"] == 1.0
+    assert detail["hier_trade_prob_label_flat_mean"] > 0.90
+    assert detail["hier_side_pred_long_rate_on_edge"] == 0.5
+    assert detail["hier_side_acc_on_edge"] == 1.0
+
+    global_stats = trainer._direction_hierarchy_output_stats(
+        labels,
+        trade_prob_np=trade_prob,
+        side_pred_np=side_pred,
+        side_long_prob_np=side_long_prob,
+    )
+    assert global_stats["hier_trade_pred_rate"] == 1.0
+    assert global_stats["hier_flat_label_rate"] == 1 / 3
+
+
 def test_entry_v10_direction_slice_hard_red_stop_waits_for_no_progress(monkeypatch) -> None:
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
