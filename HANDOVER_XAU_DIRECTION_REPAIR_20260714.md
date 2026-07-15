@@ -35,6 +35,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Latest smart smoke readiness is `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`; latest smart trainability readiness is `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW`.
 - 2026-07-15 13:58 Oslo status check: no `python3` train/eval processes were running, GPU utilization was `0%`, `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free, RAM had about `37G` available, and swap use was `0B`.
 - 2026-07-15 17:14 Oslo status after manually stopping the hard-red hierarchical-composition smoke: no host `python3` train/eval processes were running, `/home/andre2/GX1_DATA` still had about `838G` free, RAM had about `36GiB` available, and swap use was `0B`.
+- 2026-07-15 17:54 Oslo status after manually stopping the hard-red hierarchy side-slice smoke: no transformer train/eval process was left running, GPU utilization was `0%`, `/home/andre2/GX1_DATA` still had about `838G` free, RAM had about `36GiB` available, and swap use was `0B`.
 - Latest trainability readiness still has `candidate_training_allowed=false`, `iql_allowed=false`, `replay_allowed=false`, `shadow_live_promotion_allowed=false`, and `execution_allowed_now=false`. Entry-IQL is therefore closed. Do not run IQL until a fresh XAU transformer candidate bundle first passes the hard direction slice contract and the required candidate/replay gates.
 - Broad XAU/replay/readiness test suite passed under canonical env after `lightgbm` validation and the no-fallback slice-balanced CE hardening.
 - Smart XAU repair train recipe now requires `ENTRY_DIRECTION_SLICE_BALANCED_CE_*`; smoke/candidate wrappers, manifest/readiness contracts, trainer metadata, and bundle audit fail closed if this recipe is missing or too weak.
@@ -588,7 +589,22 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Validation after this source repair:
     - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py gx1/scripts/verify_entry_smart_seq520_smoke_readiness_v1.py gx1/scripts/verify_entry_smart_seq520_trainability_readiness_v1.py gx1/scripts/materialize_entry_smart_seq520_smoke_manifest_v1.py gx1/scripts/materialize_entry_smart_seq520_smoke_train_enablement_package_v1.py gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py gx1/scripts/sweep_entry_smart_seq520_direction_repair_v1.py`
     - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_xau_direction_repair_sweep.py -q` passed.
-  - No transformer smoke has been run yet after this side-slice repair. Entry-IQL, replay, candidate, shadow, live, and promotion remain closed.
+  - Commit: `98d590ab Require XAU hierarchy slice-side repair`.
+- Readiness and enablement after commit `98d590ab`:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet` passed when rerun sequentially.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_HIERSLICE_ENABLEMENT_20260715 --quiet` passed and kept candidate/replay/IQL/live/promotion closed.
+- Ran one bounded smart smoke after the hierarchy side-slice repair and stopped it when it was clearly hard-red again:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_HIERSLICE_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T154741Z.json`
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T154741Z`
+  - Result: manually stopped with `KeyboardInterrupt` during epoch `5` train after epoch `4` validation made the failure mode clear. No bundle directory and no failure sidecar were written because the process was intentionally interrupted before the trainer's final fail-closed sidecar path.
+  - Epoch `1`: balance guard failed, `slice_contract_ok=0`, `27` slice failures, pred LONG `0.464193`, pred SHORT `0.474609`, pred FLAT `0.061198`.
+  - Epoch `2`: the new repair did move the model in the right direction temporarily: balance guard OK, `slice_contract_ok=0`, `20` slice failures, pred LONG `0.119141`, pred SHORT `0.505859`, pred FLAT `0.375000`, `hier_side_acc=0.5596`, `hier_slice_side_ce=6.002674`, `hier_slice_side_margin=1.306802`.
+  - Epoch `3`: it swung back into a LONG-dominant failure: balance guard failed, `23` slice failures, pred LONG `0.600260`, pred SHORT `0.087891`, pred FLAT `0.311849`.
+  - Epoch `4`: confirmed the run was not worth extending: balance guard failed, `31` slice failures, pred LONG `0.426432`, pred SHORT `0.036458`, pred FLAT `0.537109`, `hier_side_acc=0.5089`, `hier_trade_pred=1.000000`, and red slices still showed side/accuracy failures.
+  - Important observation: side-slice CE/margin pressure is active and changed class rates, but it did not stabilize the hard direction contract. `ENTRY_RESIDUAL_MAG_PROOF` still showed `delta_abs_mean=0.000000` while hierarchy trade prediction stayed all-trade, so the next step should be diagnosis of the residual/anchor and hierarchy-composition learning surface, not more blind scalar tuning.
+  - Entry-IQL, replay, candidate, shadow, live, and promotion remain closed.
 
 ## Current Blockers
 
@@ -599,23 +615,23 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the hierarchy trade-pos-weight repair still failed hard on direction-slice accuracy. No fallback path and no failed bundle should be used as evidence.
-   - The repair improved global balance and FLAT recovery, but the best checkpoint still had `direction_slice_failure_count=9`, `accuracy_failures=8`, and failed `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`.
-   - The new side-slice supervision source repair is implemented and tested, but not smoke-run yet.
+2. Latest executed smart XAU smoke after the hierarchy side-slice repair still failed hard on direction-slice accuracy/class stability. No fallback path and no failed bundle should be used as evidence.
+   - The repair changed predictions materially and briefly produced a better epoch `2`, but epoch `4` had `slice_contract_ok=0`, `31` slice failures, global balance guard failed, SHORT collapsed to `0.036458`, and the run was stopped deliberately.
+   - The old trade-pos-weight repair remains directionally useful but insufficient: hierarchy trade prediction still stayed `1.000000`, and side-slice supervision did not stabilize red-slice side accuracy.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, or current hierarchical-composition recipe. They already hard-red-stopped or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, or hierarchy side-slice recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
-2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke after the hierarchical slice-side supervision repair:
-   - regenerate smart smoke readiness and smart trainability readiness on clean git.
-   - materialize a fresh smoke train enablement package.
-   - run one bounded smart smoke with hard-red stop active.
-   - if it hard-reds, stop/let fail closed and use the sidecar evidence; do not continue burning CPU/GPU.
-   - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
+2. Next action should be read-only/small diagnostic work before any more heavy transformer training:
+   - inspect the red epoch `2` versus epoch `4` slices from `SMART_SEQ520_XAU_SMOKE_HIERSLICE_E6_20260715` against smoke labels, `ctx_cat`, side labels, utility/bad-path labels, and signal7 anchor outputs.
+   - verify why `ENTRY_RESIDUAL_MAG_PROOF` reports `delta_abs_mean=0.000000` under smart repair, and whether the residual branch/anchor gate is effectively frozen or being dominated by hierarchical composition.
+   - diagnose why hierarchy `trade_pred` remains `1.000000` despite bounded trade `pos_weight`; decide from evidence whether the train target, threshold, loss weighting, or composition needs a structural change.
+   - only consider new input/features if this diagnostic proves the existing XAU seq/snap/ctx surface cannot separate the red slices. Do not add random new input.
+   - do not move to IQL; entry IQL stays closed until a transformer candidate bundle passes hard gates.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.
