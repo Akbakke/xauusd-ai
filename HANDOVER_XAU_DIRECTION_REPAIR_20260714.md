@@ -62,6 +62,15 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Targeted validation passed after the true-margin repair:
   `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q`.
   After the slice-balanced sampler contract this targeted suite passed again with `124 passed`; after the `mean_max` hardening the same targeted suite passed again; after the `0.05` temperature hardening the same targeted suite passed again; after the `slice_accuracy_edge` repair the same targeted suite passed again; after the hard-red stop guard the same targeted suite passed again.
+- After the hard-red stop guard, smart smoke readiness and smart trainability readiness were rerun sequentially to avoid stale `latest` report races. Both passed with no training, replay, IQL, shadow, live, or promotion side effects.
+- The broad XAU/replay/readiness pytest surface was rerun under `/home/andre2/venvs/gx1` after the hard-red stop guard. It caught two non-training regressions and they were fixed fail-closed:
+  - `materialize_entry_iql_student_trade_log_v1.py` now passes an explicit IQL-student score contract (`edge_score`, `edge_score`, `iql_student_validation_top_fraction`) through all shared replay-policy calls, and fails if the score column is missing.
+  - IQL replay comparison current-artifact tests now accept the stricter replay/distillation evidence-identity failure names as valid red evidence; this does not open IQL or promotion.
+  - The IQL student trade-log fixture now supplies continuous bid/ask open/high/low/close tape rows, so missing fill/exit prices remain hard failures rather than implicit close-price fallback.
+- Validation after those fixes:
+  - `python3 -m py_compile gx1/scripts/materialize_entry_iql_student_trade_log_v1.py`
+  - `scripts/pytest_repo.sh tests/test_entry_iql_replay_comparison.py tests/test_entry_iql_student_trade_log.py -q` -> `17 passed`
+  - Broad XAU/replay/readiness suite covering smart520 state/rank, XAU pretrain/labels, smoke/trainability readiness, wrappers, candidate replay, IQL replay contracts, live gate, parity, and sweep passed.
 
 ## What Was Done
 
@@ -165,15 +174,14 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 ## Highest-Priority Next Steps
 
-1. Get to a clean, intentional source state.
-   - Commit the implemented `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_*` guard and stopped-run handover update intentionally.
-   - Do not revert unrelated user work.
+1. Do not relaunch the same `SLICEACCEDGE` transformer recipe just to burn more epochs. Use the `ENTRY_DIR_SLICE_FAILURE` rows from the stopped run to implement the next hard objective/data repair. Current leading evidence: global balance can pass while ctx slices still miss majority accuracy, and the model oscillates between missing FLAT/SHORT/LONG pred-rate across slices.
 
-2. With clean git, rerun smart smoke readiness and smart trainability readiness. Both must include the hard-red stop contract before another train run.
+2. Keep clean-git/readiness discipline before any heavy job:
+   - `git status --short` must be clean.
+   - `smart-smoke-readiness --quiet` and `smart-trainability-readiness --quiet` must pass sequentially.
+   - Disk/RAM must remain above the active safety thresholds.
 
-3. Do not relaunch the same `SLICEACCEDGE` transformer recipe just to burn more epochs. Use the `ENTRY_DIR_SLICE_FAILURE` rows from the stopped run to implement the next hard objective/data repair. Current leading evidence: global balance can pass while ctx slices still miss majority accuracy, and the model oscillates between missing FLAT/SHORT/LONG pred-rate across slices.
-
-4. After a candidate bundle passes hard audits:
+3. After a candidate bundle passes hard audits:
    - materialize expected-utility predictions
    - run live-like direction pocket audit
    - run serve parity

@@ -50,6 +50,9 @@ DEFAULT_DISTILL_CONTRACT_JSON = DISTILL_CONTRACT_OUT_DIR / "ENTRY_IQL_DISTILLATI
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_iql_student_trade_log_20260628_v1"
 REQUIRED_CONTRACT_DECISION = "ENTRY_IQL_DISTILLATION_CONTRACT_READY"
 VEDTAK_PREFIX = "ENTRY_FOUNDATION_IQL_DISTILL_"
+IQL_STUDENT_SCORE_COLUMN = "edge_score"
+IQL_STUDENT_SELECTION_SCORE_MODE = "edge_score"
+IQL_STUDENT_THRESHOLD_SOURCE = "iql_student_validation_top_fraction"
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -299,6 +302,9 @@ def _run_test_grid_diagnostics(
             eval_df=filtered_test,
             tape=tape,
             score_threshold=float(row["score_threshold"]),
+            score_column=IQL_STUDENT_SCORE_COLUMN,
+            selection_score_mode=IQL_STUDENT_SELECTION_SCORE_MODE,
+            threshold_source=IQL_STUDENT_THRESHOLD_SOURCE,
             threshold_top_frac=float(row["threshold_top_frac"]),
             cost_stress_bps=float(row["cost_stress_bps"]),
             args=run_args,
@@ -428,7 +434,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     cost_values = _parse_float_list(str(args.cost_stress_bps))
     max_bad_path_values = _parse_optional_float_grid(str(args.max_bad_path_prob_grid))
     min_path_quality_values = _parse_optional_float_grid(str(args.min_path_quality_pred_grid))
-    base_val_scores = pd.to_numeric(val["edge_score"], errors="coerce").to_numpy(np.float64)
+    if IQL_STUDENT_SCORE_COLUMN not in predictions.columns:
+        raise RuntimeError(f"IQL student predictions missing score column: {IQL_STUDENT_SCORE_COLUMN}")
+    base_val_scores = pd.to_numeric(val[IQL_STUDENT_SCORE_COLUMN], errors="coerce").to_numpy(np.float64)
 
     validation_rows: list[dict[str, Any]] = []
     selected_row: dict[str, Any] | None = None
@@ -458,6 +466,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                             policy_config = {
                                 "student_policy_source": "entry_iql_val_reward_selection_v1",
                                 "model_name": str(args.model_name),
+                                "score_column": IQL_STUDENT_SCORE_COLUMN,
+                                "selection_score_mode": IQL_STUDENT_SELECTION_SCORE_MODE,
+                                "threshold_source": IQL_STUDENT_THRESHOLD_SOURCE,
                                 "threshold_top_frac": float(top_frac),
                                 "score_threshold": float(threshold),
                                 **exit_policy_config,
@@ -483,6 +494,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                 eval_df=filtered_val,
                                 tape=tape,
                                 score_threshold=float(threshold),
+                                score_column=IQL_STUDENT_SCORE_COLUMN,
+                                selection_score_mode=IQL_STUDENT_SELECTION_SCORE_MODE,
+                                threshold_source=IQL_STUDENT_THRESHOLD_SOURCE,
                                 threshold_top_frac=float(top_frac),
                                 cost_stress_bps=float(cost_bps),
                                 args=run_args,
@@ -546,6 +560,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             eval_df=filtered_selected_val,
             tape=tape,
             score_threshold=float(selected_row["score_threshold"]),
+            score_column=IQL_STUDENT_SCORE_COLUMN,
+            selection_score_mode=IQL_STUDENT_SELECTION_SCORE_MODE,
+            threshold_source=IQL_STUDENT_THRESHOLD_SOURCE,
             threshold_top_frac=float(selected_row["threshold_top_frac"]),
             cost_stress_bps=float(selected_row["cost_stress_bps"]),
             args=selected_run_args,
@@ -556,6 +573,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             eval_df=filtered_test,
             tape=tape,
             score_threshold=float(selected_row["score_threshold"]),
+            score_column=IQL_STUDENT_SCORE_COLUMN,
+            selection_score_mode=IQL_STUDENT_SELECTION_SCORE_MODE,
+            threshold_source=IQL_STUDENT_THRESHOLD_SOURCE,
             threshold_top_frac=float(selected_row["threshold_top_frac"]),
             cost_stress_bps=float(selected_row["cost_stress_bps"]),
             args=selected_run_args,

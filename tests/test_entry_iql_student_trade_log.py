@@ -72,16 +72,21 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
     )
     predictions_path = tmp_path / "predictions.parquet"
     predictions.to_parquet(predictions_path, index=False)
-    source_times = list(val_times) + list(test_times) + [test_times[-1] + pd.Timedelta(minutes=5)]
+    source_times = list(pd.date_range(val_times[0], test_times[-1] + pd.Timedelta(minutes=5), freq="5min"))
+    bid_close = [100.0 + ((idx % 6) - 2) * 0.05 for idx in range(len(source_times))]
+    bid_close[4] = 99.95
+    ask_close = [value + 0.02 for value in bid_close]
     source = pd.DataFrame(
         {
             "time": source_times,
-            "bid_close": [100.00, 99.90, 100.20, 100.00, 100.10, 99.90, 100.00, 100.30, 100.60, 100.40, 100.70, 100.90, 100.60, 100.30, 100.10],
-            "ask_close": [100.02, 99.92, 100.22, 100.02, 100.12, 99.92, 100.02, 100.32, 100.62, 100.42, 100.72, 100.92, 100.62, 100.32, 100.12],
-            "bid_high": [100.05, 99.95, 100.25, 100.05, 100.15, 99.95, 100.05, 100.35, 100.65, 100.45, 100.75, 100.95, 100.65, 100.35, 100.15],
-            "bid_low": [99.95, 99.85, 100.15, 99.95, 100.05, 99.85, 99.95, 100.25, 100.55, 100.35, 100.65, 100.85, 100.55, 100.25, 100.05],
-            "ask_high": [100.07, 99.97, 100.27, 100.07, 100.17, 99.97, 100.07, 100.37, 100.67, 100.47, 100.77, 100.97, 100.67, 100.37, 100.17],
-            "ask_low": [99.97, 99.87, 100.17, 99.97, 100.07, 99.87, 99.97, 100.27, 100.57, 100.37, 100.67, 100.87, 100.57, 100.27, 100.07],
+            "bid_open": bid_close,
+            "ask_open": ask_close,
+            "bid_close": bid_close,
+            "ask_close": ask_close,
+            "bid_high": [value + 0.05 for value in bid_close],
+            "bid_low": [value - 0.05 for value in bid_close],
+            "ask_high": [value + 0.05 for value in ask_close],
+            "ask_low": [value - 0.05 for value in ask_close],
         }
     )
     source_path = tmp_path / "source.parquet"

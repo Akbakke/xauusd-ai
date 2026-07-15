@@ -593,6 +593,11 @@ def test_iql_replay_comparison_current_artifacts_not_ready(tmp_path: Path) -> No
             "IQL distillation contract preserved replay specialist identity",
             "candidate replay manifest preserves specialist identity",
             "IQL replay manifest preserves replay specialist identity",
+            "candidate replay manifest evidence identity matches distillation contract",
+            "candidate replay manifest path matches distillation evidence identity",
+            "IQL replay manifest evidence identity matches distillation contract",
+            "IQL replay manifest distillation contract matches comparison input",
+            "IQL replay manifest references candidate replay evidence from distillation contract",
         } & failed
     else:
         assert report["failures"] == []
