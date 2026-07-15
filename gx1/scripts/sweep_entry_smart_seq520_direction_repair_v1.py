@@ -118,6 +118,9 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": "6.00",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS": "15.0",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -217,6 +220,30 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_UTILITY_LOGIT_MARGIN must be >= 0.10 for strict XAU repair, "
             f"got {utility_logit_margin}"
+        )
+    side_utility_conviction_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT", "0")
+    )
+    side_utility_conviction_min_gap = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS", "999")
+    )
+    side_utility_conviction_logit_margin = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN", "0")
+    )
+    if side_utility_conviction_weight < 6.0:
+        failures.append(
+            "DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT must be >= 6.0 for strict XAU repair, "
+            f"got {side_utility_conviction_weight}"
+        )
+    if side_utility_conviction_min_gap > 15.0:
+        failures.append(
+            "DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS must be <= 15.0 for strict XAU repair, "
+            f"got {side_utility_conviction_min_gap}"
+        )
+    if side_utility_conviction_logit_margin < 0.10:
+        failures.append(
+            "DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN must be >= 0.10 for strict XAU repair, "
+            f"got {side_utility_conviction_logit_margin}"
         )
     flat_starvation_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT", "0"))
     flat_starvation_min_label_rate = float(

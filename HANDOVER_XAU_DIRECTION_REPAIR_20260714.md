@@ -363,6 +363,36 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Last epoch `6`: `26` slice failures, `8` accuracy failures, `18` pred-rate failures; FLAT collapsed again to `direction_pred_rate_flat=0.002604` while SHORT rose to `0.788411`.
   - Interpretation: FLAT-starvation repair changed the failure mode and briefly restored global balance at epoch 2, but did not solve the hard per-slice direction contract. Training longer on this recipe is not justified.
 
+### 2026-07-15 Direction Side-Utility-Conviction Repair
+
+- Follow-up report-only red-slice analysis on the FLAT-starvation sidecar showed no obvious global label/utility contradiction:
+  - side-label rows did not show opposite clear utility in the audited red slices (`LONG label + clear SHORT utility = 0`, `SHORT label + clear LONG utility = 0` in the weighted slice check).
+  - Some FLAT-labeled rows have clear side utility, but the existing utility-margin objective deliberately allowed FLAT/abstain and therefore did not force row-level side assignment.
+  - The blocker is row-level side/FLAT discrimination inside active context slices, not IQL and not more epochs on the same recipe.
+- Implemented a new hard transformer objective/contract:
+  - `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT`
+  - `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS`
+  - `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN`
+- Semantics:
+  - Only applies when `y_direction` is LONG or SHORT and `y_long_path_utility_bps - y_short_path_utility_bps` supports that same side by the configured gap.
+  - For clear LONG rows, the LONG logit must beat both SHORT and FLAT by the margin.
+  - For clear SHORT rows, the SHORT logit must beat both LONG and FLAT by the margin.
+  - FLAT-labeled rows and unclear utility-gap rows are not forced. This is a learned transformer loss, not a live hand-rule and not fallback.
+- Smart XAU repair preflight now rejects missing/weak side-utility-conviction settings:
+  - `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT >= 6.00`
+  - `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS <= 15.0`
+  - `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN >= 0.10`
+- Smart smoke/candidate wrappers, smoke/readiness/manifest contracts, train enablement, sweep lint, bundle audit, candidate readiness, replay readiness, and the direct `v10_6yr_rebuild_20260626.sh` XAU train path now carry the same contract.
+- Validation before commit:
+  - `python3 -m py_compile` passed for the trainer and all touched Python gates/scripts.
+  - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_xau_red_slice_separability_audit.py -q`
+- 2026-07-15 15:57 Oslo resource check during implementation:
+  - `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free.
+  - RAM had about `35GiB` available, swap use was `0B`, and no `python3` training/eval jobs were running.
+  - No transformer training, candidate training, replay, IQL, shadow, live, or promotion path was started by this repair.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -375,20 +405,26 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 2. Latest executed smart XAU smoke after the FLAT-starvation repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
    - FLAT-starvation changed the failure mode and produced one globally balanced best checkpoint at epoch `2`, but the best checkpoint still had `18` slice failures and `best_direction_slice_contract_ok=false`.
    - Later epochs collapsed FLAT again (`direction_pred_rate_flat=0.002604` at epoch `6`) and hard-red-stop correctly refused to burn more compute.
-   - The next move should not be more epochs on the same transformer recipe and not IQL. Use the sidecar to decide whether the blocker is target/noise, slice sampling/objective conflict, or architecture/input routing.
+   - Side-utility-conviction is now implemented as the next transformer repair, but it has not yet been tested in a clean-git bounded smoke run. Until that run passes hard direction-slice and class-balance gates, there is still no candidate bundle.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not relaunch the old transformer recipe, the utility-margin recipe, or the just-failed FLAT-starvation recipe just to burn more epochs. The next work should analyze the FLAT-starvation sidecar and red slices to decide whether to repair targets/noisy FLAT labels, resolve objective conflicts between side utility and FLAT abstention, or change architecture/input routing. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+1. Commit the side-utility-conviction repair, then rerun clean-git readiness and enablement before any heavy job:
+   - `smart-smoke-readiness --quiet`
+   - `smart-trainability-readiness --quiet`
+   - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_SIDEUTIL_<id> --epochs <bounded> --batch-size 64 --quiet`
+   - Only then run one bounded smart smoke train with hard-red monitoring. Do not run IQL, replay, candidate training, shadow, live, or promotion.
 
-2. Keep clean-git/readiness discipline before any heavy job:
+2. If the side-utility-conviction smoke still fails hard, do not extend epochs on the same recipe. Use the new failure sidecar to decide whether the next blocker is target/noise, architecture/input routing, or a missing feature interaction. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+
+3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.
    - `smart-smoke-readiness --quiet` and `smart-trainability-readiness --quiet` must pass sequentially.
    - Disk/RAM must remain above the active safety thresholds.
 
-3. After a candidate bundle passes hard audits:
+4. After a candidate bundle passes hard audits:
    - materialize expected-utility predictions
    - run live-like direction pocket audit
    - run serve parity

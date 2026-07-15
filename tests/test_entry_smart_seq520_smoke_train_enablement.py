@@ -90,6 +90,9 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00 "
             "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0 "
             "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10 "
+            "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=6.00 "
+            "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=15.0 "
+            "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=0.10 "
             "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00 "
             "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10 "
             "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8 "
@@ -109,6 +112,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_prior_match": True,
         "has_hard_red_stop": True,
         "has_utility_margin": True,
+        "has_side_utility_conviction": True,
         "has_flat_starvation": True,
         "has_xau_repair_heads": True,
         "has_strict_edge_audit": True,

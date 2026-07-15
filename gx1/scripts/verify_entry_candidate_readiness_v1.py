@@ -580,6 +580,9 @@ SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_UTILITY_MARGIN_WEIGHT = 4.00
 SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX = 15.0
 SMART_DIRECTION_UTILITY_LOGIT_MARGIN = 0.10
+SMART_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT = 6.00
+SMART_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS_MAX = 15.0
+SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
 SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
@@ -664,6 +667,12 @@ def _direction_balance_contract_passes(
         <= SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX
         and _float_or_zero(contract.get("direction_utility_logit_margin"))
         >= SMART_DIRECTION_UTILITY_LOGIT_MARGIN
+        and _float_or_zero(contract.get("direction_side_utility_conviction_weight"))
+        >= SMART_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT
+        and _float_or_zero(contract.get("direction_side_utility_conviction_min_gap_bps", 999.0))
+        <= SMART_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS_MAX
+        and _float_or_zero(contract.get("direction_side_utility_conviction_logit_margin"))
+        >= SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
         and _float_or_zero(contract.get("direction_flat_starvation_weight"))
         >= SMART_DIRECTION_FLAT_STARVATION_WEIGHT
         and _float_or_zero(contract.get("direction_flat_starvation_min_label_rate"))

@@ -90,6 +90,9 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=15.0" in result.stdout
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=0.10" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in result.stdout
@@ -195,6 +198,9 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=6.00" in result.stdout
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=15.0" in result.stdout
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=0.10" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in result.stdout
@@ -363,6 +369,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT" in text
     assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS" in text
     assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN" in text
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT" in text
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS" in text
+    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS" in text
@@ -372,6 +381,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_UTILITY_MARGIN_WEIGHT" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_UTILITY_MIN_GAP_BPS" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_UTILITY_LOGIT_MARGIN" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_WEIGHT" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_MIN_ROWS" in text
@@ -475,6 +487,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in text
     assert "SMOKE_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in text
     assert "SMOKE_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in text
+    assert "SMOKE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=6.00" in text
+    assert "SMOKE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=15.0" in text
+    assert "SMOKE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=0.10" in text
     assert "SMOKE_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in text
     assert "SMOKE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in text
     assert "SMOKE_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in text
