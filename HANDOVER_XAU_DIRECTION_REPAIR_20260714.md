@@ -676,6 +676,52 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Interpretation: current XAU inputs are still present. The blocker is not IQL-readiness and not missing required XAU rail features. The model now needs a different transformer objective/topology repair focused on slice-level side accuracy and stable conditional side separation; another scalar cap/epoch extension is not enough.
   - Entry-IQL, replay, candidate, shadow, live, and promotion remain closed.
 
+### 2026-07-15 Update: Side-neutral hierarchy residual repair
+
+- Implemented and committed a side-neutral residual topology for hierarchical direction composition:
+  - Commit: `69db69b1 Require XAU side-neutral hierarchy residual`.
+  - New env: `ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL`.
+  - Default is `0` for historical/non-smart parity.
+  - Smart XAU recipe now requires `ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1` in trainer preflight, smoke/candidate wrappers, direct XAU train path, readiness/manifest/enablement contracts, sweep lint, bundle audit, candidate readiness, and replay readiness.
+  - When enabled, the hierarchical residual is projected to `[trade_residual, trade_residual, flat_residual]` before the residual cap. This lets the residual calibrate TRADE-vs-FLAT but prevents it from owning an independent LONG-vs-SHORT decision. The hierarchy side head must own side separation.
+- Validation after source repair:
+  - `python3 -m py_compile` passed for the touched model/trainer/bundle/readiness/audit/sweep scripts.
+  - `bash -n` passed for smoke/candidate/rebuild shell wrappers.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_v10_ctx_model_shapes.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_xau_direction_repair_sweep.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py -q`.
+  - Pre-commit guardrails passed during commit.
+  - Broad XAU/replay/readiness pytest surface passed after the commit with expected skips.
+- Clean-git readiness and enablement after commit `69db69b1`:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_SIDENEUTRAL_ENABLEMENT_20260715 --epochs 6 --batch-size 64 --quiet` passed with `trainer_started=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, and dry-run proof `ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1`.
+- Ran one bounded smart smoke after the side-neutral residual repair:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_SIDENEUTRAL_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T164634Z.json`
+  - Evidence sidecar: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T164634Z__direction_slice_failure_evidence.json`
+  - Intended bundle dir absent: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T164634Z`
+  - Result: fail-closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle written.
+  - Sidecar confirms `bundle_written=false`, `promotion_shadow_live_allowed=false`, `hier_compose_residual_side_neutral=true`, and cap `0.18`.
+  - Best/last epoch was epoch `6`: global balance guard OK, pred LONG `0.218750`, SHORT `0.518880`, FLAT `0.262370`, `best_dir_acc=0.384766`, `direction_slice_failure_count=7`, `accuracy_failures=6`, `pred_rate_failures=1`, `direction_slice_ckpt_score=-0.038300`.
+  - Hierarchy evidence at best epoch: `hier_trade_pred_rate=0.996745`, `hier_trade_prob_mean=0.589720`, `hier_trade_prob_label_flat_mean=0.588493`, `hier_side_acc_on_edge=0.574553`.
+  - Interpretation: side-neutral residual improved the final slice count versus the previous residual-cap smoke, but did not pass. The remaining blocker is now primarily hierarchy side-head LONG/SHORT discrimination and slice-level side accuracy, not residual side fighting and not missing XAU rail input.
+- Report-only red-slice separability audit on the side-neutral sidecar completed:
+  - Report: `/home/andre2/GX1_DATA/reports/xau_red_slice_separability_audit_20260715_v1/XAU_RED_SLICE_SEPARABILITY_AUDIT_latest.json`
+  - Decision `XAU_RED_SLICE_SEPARABILITY_AUDIT_COMPLETE`.
+  - Domain feature count `247`; missing required XAU direction features `0`.
+  - Red slices audited `7`; weak required-feature slice rate `1/7`.
+  - Training, candidate training, replay, IQL, shadow, live, and promotion remain closed.
+- 2026-07-15 post-run resource state:
+  - No `python3` train/eval jobs were running.
+  - GPU idle (`0%`, 296 MiB used).
+  - `/home/andre2` and `/home/andre2/GX1_DATA` still had about `838G` free.
+  - RAM had about `36GiB` available and swap use was `0B`.
+- Next source repair should target hierarchy side-head priors/contrast directly:
+  - Do not rerun the same side-neutral recipe with more epochs.
+  - Candidate direction: add a hard smart XAU side-head global/slice prior-match or supervised contrast/ranking objective on trade rows so `long_or_short_given_edge` cannot stay SHORT-biased inside active red slices.
+  - Keep residual cap and side-neutral residual enabled.
+  - Do not move to IQL, replay, candidate, shadow, live, or promotion until a fresh XAU transformer bundle passes hard direction slice/class-balance gates.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -685,23 +731,23 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the residual-cap repair still failed hard on direction-slice accuracy/stability. No fallback path and no failed bundle should be used as evidence.
-   - The cap source repair made best-epoch selection safer: best epoch `2` kept global balance OK with pred LONG `0.325521`, SHORT `0.446615`, FLAT `0.227865`.
-   - It still failed the active slice contract at best epoch `2` with `9` slice failures (`8` accuracy, `1` pred-rate), and later epochs continued to oscillate.
-   - Epoch `5` proved a cap alone is not enough: FLAT still collapsed to `0.016276`.
-   - The blocker is now slice-level side accuracy and conditional side separation under the transformer objective/topology, not missing required XAU rail input and not IQL-readiness.
+2. Latest executed smart XAU smoke after the side-neutral residual repair still failed hard on direction-slice accuracy/stability. No fallback path and no failed bundle should be used as evidence.
+   - The side-neutral repair made the residual unable to own a separate LONG-vs-SHORT vote and improved the final active slice failure count to `7`, with global balance guard OK.
+   - It still failed the active slice contract at best/last epoch `6` with `7` slice failures (`6` accuracy, `1` pred-rate), pred LONG `0.218750`, SHORT `0.518880`, FLAT `0.262370`.
+   - Hierarchy side evidence remains weak: `hier_side_acc_on_edge=0.574553`, while the public output stayed SHORT-heavy. The next blocker is hierarchy side-head priors/contrast inside active red slices.
+   - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247` and missing required XAU direction features `0`.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, or residual-through-composition recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, or side-neutral residual recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
-   - keep residual-through-composition and the hard residual cap; they are useful guardrails.
-   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows cap alone cannot solve slice side accuracy.
-   - target conditional side separation directly: consider side-head supervised contrast/ranking inside red slices, per-slice conditional side margin, or a topology that lets hierarchy side logits, side validity, and public direction logits share a consistent side decision without residual fighting the base.
+   - keep residual-through-composition, the hard residual cap, and side-neutral residual; they are useful guardrails.
+   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows side-neutral residual alone cannot solve slice side accuracy.
+   - target conditional side separation directly in the hierarchy side head: add hard smart XAU side-head global/slice prior-match or supervised contrast/ranking on trade rows so `long_or_short_given_edge` cannot remain SHORT-biased inside active red slices.
    - continue targeting remaining slice-level side accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
