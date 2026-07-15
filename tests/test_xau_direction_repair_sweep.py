@@ -46,6 +46,9 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
         assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS"] == "8"
         assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE"] == "3"
         assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS"] == "6"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT"] == "4.00"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS"] == "15.0"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN"] == "0.10"
         assert lint_trial_env(env) == []
         assert not any("EUR" in key.upper() for key in env)
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS"] == "1.0,1.0,4.0"
@@ -63,6 +66,9 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS"] == "8"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE"] == "3"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS"] == "6"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT"] == "4.00"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS"] == "15.0"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN"] == "0.10"
 
 
 def test_xau_direction_repair_sweep_command_uses_smart_wrapper_and_dry_run() -> None:
@@ -110,6 +116,9 @@ def test_xau_direction_repair_sweep_command_uses_smart_wrapper_and_dry_run() -> 
     assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER=1" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS=8" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in text
     assert "FOREIGN_FX" not in text.upper()
 
 
@@ -140,6 +149,9 @@ def test_xau_direction_repair_sweep_lints_invalid_contract_values() -> None:
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION"] = "sqrt"
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER"] = "0"
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS"] = "4"
+    env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT"] = "1.0"
+    env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS"] = "30.0"
+    env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN"] = "0.01"
 
     failures = lint_trial_env(env)
 
@@ -168,3 +180,6 @@ def test_xau_direction_repair_sweep_lints_invalid_contract_values() -> None:
     assert any("DIRECTION_SLICE_LOSS_AGGREGATION" in item for item in failures)
     assert any("DIRECTION_SLICE_BALANCED_SAMPLER" in item for item in failures)
     assert any("DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS" in item for item in failures)
+    assert any("DIRECTION_UTILITY_MARGIN_WEIGHT" in item for item in failures)
+    assert any("DIRECTION_UTILITY_MIN_GAP_BPS" in item for item in failures)
+    assert any("DIRECTION_UTILITY_LOGIT_MARGIN" in item for item in failures)

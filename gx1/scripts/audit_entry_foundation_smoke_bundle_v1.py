@@ -81,6 +81,9 @@ SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE = 3
 SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS = 6
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
+SMART_DIRECTION_UTILITY_MARGIN_WEIGHT = 4.00
+SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX = 15.0
+SMART_DIRECTION_UTILITY_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
 SMART_DIRECTION_RESIDUAL_SCALE = 0.35
 SMART_DIRECTION_ANCHOR_EPS = 1e-6
@@ -1248,6 +1251,24 @@ def _direction_balance_recipe_contract(
             meta.get("direction_vs_flat_margin", 0.0),
         )
     )
+    direction_utility_margin_weight = _safe_float(
+        recipe.get(
+            "direction_utility_margin_weight",
+            meta.get("direction_utility_margin_weight", 0.0),
+        )
+    )
+    direction_utility_min_gap_bps = _safe_float(
+        recipe.get(
+            "direction_utility_min_gap_bps",
+            meta.get("direction_utility_min_gap_bps", 999.0),
+        )
+    )
+    direction_utility_logit_margin = _safe_float(
+        recipe.get(
+            "direction_utility_logit_margin",
+            meta.get("direction_utility_logit_margin", 0.0),
+        )
+    )
     best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
     best_direction_slice_contract_ok = meta.get("best_direction_slice_contract_ok")
     ckpt_balance_guard_required = (
@@ -1518,6 +1539,21 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_vs_flat_margin >= "
                     f"{SMART_DIRECTION_VS_FLAT_MARGIN:.2f}"
                 )
+            if direction_utility_margin_weight < SMART_DIRECTION_UTILITY_MARGIN_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_utility_margin_weight >= "
+                    f"{SMART_DIRECTION_UTILITY_MARGIN_WEIGHT:.2f}"
+                )
+            if direction_utility_min_gap_bps > SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX:
+                failures.append(
+                    "smart direction active head requires direction_utility_min_gap_bps <= "
+                    f"{SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX:.1f}"
+                )
+            if direction_utility_logit_margin < SMART_DIRECTION_UTILITY_LOGIT_MARGIN:
+                failures.append(
+                    "smart direction active head requires direction_utility_logit_margin >= "
+                    f"{SMART_DIRECTION_UTILITY_LOGIT_MARGIN:.2f}"
+                )
             if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
                 failures.append(
                     "smart direction active head with MTF aux head enabled requires "
@@ -1592,6 +1628,9 @@ def _direction_balance_recipe_contract(
         "direction_slice_hard_red_stop_min_epochs": direction_slice_hard_red_stop_min_epochs,
         "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
         "direction_vs_flat_margin": direction_vs_flat_margin,
+        "direction_utility_margin_weight": direction_utility_margin_weight,
+        "direction_utility_min_gap_bps": direction_utility_min_gap_bps,
+        "direction_utility_logit_margin": direction_utility_logit_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "best_direction_slice_contract_ok": best_direction_slice_contract_ok,

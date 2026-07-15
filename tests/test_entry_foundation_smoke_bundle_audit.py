@@ -520,6 +520,9 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "direction_slice_hard_red_stop_min_epochs": 6,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
+            "direction_utility_margin_weight": 4.00,
+            "direction_utility_min_gap_bps": 15.0,
+            "direction_utility_logit_margin": 0.10,
         }
     }
 
@@ -560,6 +563,9 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["direction_slice_hard_red_stop_min_epochs"] == 6
     assert report["direction_vs_flat_margin_weight"] == 4.00
     assert report["direction_vs_flat_margin"] == 0.10
+    assert report["direction_utility_margin_weight"] == 4.00
+    assert report["direction_utility_min_gap_bps"] == 15.0
+    assert report["direction_utility_logit_margin"] == 0.10
     assert report["hierarchical_entry_heads_enabled"] is True
     assert report["side_validity_head_enabled"] is True
     assert report["hier_side_validity_weight"] == 1.50
@@ -632,6 +638,9 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "direction_slice_hard_red_stop_min_epochs": 6,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
+            "direction_utility_margin_weight": 4.00,
+            "direction_utility_min_gap_bps": 15.0,
+            "direction_utility_logit_margin": 0.10,
         },
     }
 
@@ -676,6 +685,9 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "direction_min_pred_rate_softmax_temperature": 0.05,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
+            "direction_utility_margin_weight": 4.00,
+            "direction_utility_min_gap_bps": 15.0,
+            "direction_utility_logit_margin": 0.10,
         },
     }
 
@@ -713,6 +725,9 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("direction_slice_balanced_sampler" in failure for failure in report["failures"])
     assert any("direction_slice_hard_red_stop_patience" in failure for failure in report["failures"])
     assert any("direction_vs_flat_margin_weight" in failure for failure in report["failures"])
+    assert any("direction_utility_margin_weight" in failure for failure in report["failures"])
+    assert any("direction_utility_min_gap_bps" in failure for failure in report["failures"])
+    assert any("direction_utility_logit_margin" in failure for failure in report["failures"])
     assert any("trendline_rail_head_enabled" in failure for failure in report["failures"])
     assert any("residual_scale" in failure for failure in report["failures"])
     assert any("anchor_eps" in failure for failure in report["failures"])
@@ -750,6 +765,9 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "direction_min_pred_rate_softmax_temperature": 0.05,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
+            "direction_utility_margin_weight": 4.00,
+            "direction_utility_min_gap_bps": 15.0,
+            "direction_utility_logit_margin": 0.10,
         },
     }
 
@@ -792,6 +810,9 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
             "direction_min_pred_rate_softmax_temperature": 0.05,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
+            "direction_utility_margin_weight": 4.00,
+            "direction_utility_min_gap_bps": 15.0,
+            "direction_utility_logit_margin": 0.10,
         },
     }
 

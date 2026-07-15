@@ -17,6 +17,9 @@ def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> 
     assert "--smart520-rank-reference-npz" in text
     assert "smart520_state_contract" in text
     assert "rank_reference_npz_sha256" in text
+    assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=${ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT:-4.00}" in text
+    assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=${ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS:-15.0}" in text
+    assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=${ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN:-0.10}" in text
 
 
 def test_v10_6yr_rebuild_blocks_stale_mtf_and_runs_xau_pretrain_audit() -> None:

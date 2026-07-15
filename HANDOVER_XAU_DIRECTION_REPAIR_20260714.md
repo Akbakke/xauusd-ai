@@ -281,6 +281,24 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
     - `session_id=1`: `FLAT` majority `0.435`, but mean long-minus-short utility is still `+6.09 bps`; the failed transformer was over-SHORT in this slice.
   - Interpretation: the next repair should not start with random new data or IQL. Existing XAU rail/SR/wick/regime features are present and usually separable in the red slices. The likely next code repair is transformer objective/cap hardening that forces the direction/hierarchy heads to respect these per-slice utility/rail signals, while separately inspecting the one weak required-rail slice (`session_id=2`).
 
+### 2026-07-15 Direction Utility-Margin Repair
+
+- Implemented the next transformer objective repair from the red-slice separability audit:
+  - `ENTRY_DIRECTION_UTILITY_MARGIN_*` now adds a direct direction-head utility-margin loss against row-level `y_long_path_utility_bps - y_short_path_utility_bps`.
+  - If LONG utility is ahead by at least `15 bps`, the loss penalizes SHORT logits above LONG-or-FLAT. If SHORT utility is ahead by at least `15 bps`, it penalizes LONG logits above SHORT-or-FLAT.
+  - This still allows FLAT/abstain and is not a live hand-rule or fallback.
+- Smart XAU repair preflight now rejects missing/weak utility-margin settings:
+  - `ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT >= 4.00`
+  - `ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS <= 15.0`
+  - `ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN >= 0.10`
+- Smart smoke/candidate wrappers, smoke/readiness/manifest contracts, train enablement, sweep lint, bundle audit, candidate readiness, replay readiness, and the direct `v10_6yr_rebuild_20260626.sh` XAU train path now carry the same utility-margin contract.
+- Validation before commit:
+  - `python3 -m py_compile` passed for the trainer and all touched Python gates/scripts.
+  - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+  - No transformer training, candidate training, replay, IQL, shadow, live, or promotion action was started for this repair yet.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -292,13 +310,13 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 2. Latest smart XAU smoke training with global prior-match passed global class-balance guard but failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
    - `best_direction_balance_guard_ok=True`, `best_direction_slice_contract_ok=False`.
-   - The red-slice separability audit shows existing XAU domain features are present and mostly label/utility-separable inside the failed slices. The next repair should target transformer objective/cap behavior over these signals, not IQL and not longer epochs on the same recipe.
+   - The red-slice separability audit shows existing XAU domain features are present and mostly label/utility-separable inside the failed slices. The current code repair targets that directly with direction utility-margin loss; it still needs clean-git readiness/enablement and one bounded smoke run before any candidate/replay/IQL path can open.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not relaunch the old transformer recipe just to burn more epochs. The next bounded smoke train must first pass clean-git readiness/enablement with global prior-match enabled. If the first epochs are hard red with no improvement, stop instead of burning CPU/GPU.
+1. Do not relaunch the old transformer recipe just to burn more epochs. The next bounded smoke train must first pass clean-git readiness/enablement with the new utility-margin contract enabled. If the first epochs are hard red with no improvement, stop instead of burning CPU/GPU.
 
 2. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

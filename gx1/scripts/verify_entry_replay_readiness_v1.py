@@ -92,6 +92,9 @@ SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.50
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
+SMART_DIRECTION_UTILITY_MARGIN_WEIGHT = 4.00
+SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX = 15.0
+SMART_DIRECTION_UTILITY_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
 SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
 SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
@@ -249,6 +252,12 @@ def _direction_balance_contract_passes(
         >= SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT
         and _float_or_zero(contract.get("direction_vs_flat_margin"))
         >= SMART_DIRECTION_VS_FLAT_MARGIN
+        and _float_or_zero(contract.get("direction_utility_margin_weight"))
+        >= SMART_DIRECTION_UTILITY_MARGIN_WEIGHT
+        and _float_or_zero(contract.get("direction_utility_min_gap_bps"))
+        <= SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX
+        and _float_or_zero(contract.get("direction_utility_logit_margin"))
+        >= SMART_DIRECTION_UTILITY_LOGIT_MARGIN
         and contract.get("best_direction_balance_guard_ok") is True
     )
 

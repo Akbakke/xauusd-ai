@@ -248,6 +248,18 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         'CANDIDATE_DIRECTION_VS_FLAT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN:-0.0}"'
         in text
     )
+    assert (
+        'CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS:-15.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN:-0.10}"'
+        in text
+    )
     assert 'CANDIDATE_HIER_LEGACY_CE_MULT="${ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT:-0.35}"' in text
     assert (
         'CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT:-0.0}"'
@@ -356,6 +368,9 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
+    assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=" in text
+    assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_RESIDUAL_SCALE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_ANCHOR_EPS" in text
     assert 'ENTRY_RESIDUAL_SCALE="$CANDIDATE_RESIDUAL_SCALE"' in text
@@ -453,6 +468,9 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
+    assert "CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in text
+    assert "CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in text
+    assert "CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in text
     assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
     assert "CANDIDATE_HIER_TRADE_WEIGHT=2.00" in text
     assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text

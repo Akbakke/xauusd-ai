@@ -805,6 +805,9 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "direction_min_pred_rate_softmax_temperature": 0.20,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
+            "direction_utility_margin_weight": 4.00,
+            "direction_utility_min_gap_bps": 15.0,
+            "direction_utility_logit_margin": 0.10,
             "best_direction_balance_guard_ok": True,
         }
     )

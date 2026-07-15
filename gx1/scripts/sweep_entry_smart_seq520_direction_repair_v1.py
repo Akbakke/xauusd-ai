@@ -115,6 +115,9 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_UTILITY_WEIGHT": "1.00",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_BAD_PATH_WEIGHT": "1.25",
@@ -191,6 +194,24 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         )
     if flat_margin < 0.05:
         failures.append(f"DIRECTION_VS_FLAT_MARGIN must be >= 0.05 for strict XAU repair, got {flat_margin}")
+    utility_margin_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT", "0"))
+    utility_min_gap = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS", "999"))
+    utility_logit_margin = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN", "0"))
+    if utility_margin_weight < 4.0:
+        failures.append(
+            "DIRECTION_UTILITY_MARGIN_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {utility_margin_weight}"
+        )
+    if utility_min_gap > 15.0:
+        failures.append(
+            "DIRECTION_UTILITY_MIN_GAP_BPS must be <= 15.0 for strict XAU repair, "
+            f"got {utility_min_gap}"
+        )
+    if utility_logit_margin < 0.10:
+        failures.append(
+            "DIRECTION_UTILITY_LOGIT_MARGIN must be >= 0.10 for strict XAU repair, "
+            f"got {utility_logit_margin}"
+        )
     slice_min_pred_rate_weight = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "0")
     )

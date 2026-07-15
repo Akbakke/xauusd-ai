@@ -87,6 +87,9 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02 "
             "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3 "
             "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6 "
+            "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00 "
+            "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0 "
+            "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10 "
             "python -m gx1.models.entry_v10.entry_v10_ctx_train_v3 --num-workers 0 "
             "--enable-xau-direction-repair-heads"
         ),
@@ -99,6 +102,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_global_prior_match": True,
         "has_prior_match": True,
         "has_hard_red_stop": True,
+        "has_utility_margin": True,
         "has_xau_repair_heads": True,
         "has_strict_edge_audit": True,
         "trainer_started": False,

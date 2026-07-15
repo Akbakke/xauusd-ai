@@ -720,6 +720,49 @@ def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argm
     assert float(trainer._direction_vs_flat_margin_term(side_above_flat, targets).item()) < 1.0
 
 
+def test_entry_v10_direction_utility_margin_term_penalizes_wrong_utility_side(monkeypatch) -> None:
+    import pytest
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", 15.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", 0.10)
+
+    long_utility = torch.tensor([40.0, 0.0, 10.0], dtype=torch.float32)
+    short_utility = torch.tensor([0.0, 40.0, 0.0], dtype=torch.float32)
+    wrong_side = torch.tensor(
+        [
+            [-1.0, 2.0, 0.0],
+            [2.0, -1.0, 0.0],
+            [-1.0, 2.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+    side_or_flat_ok = torch.tensor(
+        [
+            [2.0, -1.0, 0.0],
+            [-1.0, 2.0, 0.0],
+            [-1.0, 2.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(trainer._direction_utility_margin_term(wrong_side, long_utility, short_utility).item())
+    good_loss = float(trainer._direction_utility_margin_term(side_or_flat_ok, long_utility, short_utility).item())
+
+    assert bad_loss > good_loss + 5.0
+    assert good_loss < 1.0
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", 0.0)
+    assert float(trainer._direction_utility_margin_term(wrong_side, long_utility, short_utility).item()) == 0.0
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", 4.0)
+    with pytest.raises(RuntimeError, match="ENTRY_DIRECTION_UTILITY_MARGIN_SHAPE_MISMATCH"):
+        trainer._direction_utility_margin_term(wrong_side, long_utility[:2], short_utility)
+
+
 def test_entry_v10_direction_repair_fails_closed_without_calibration_fallback() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 

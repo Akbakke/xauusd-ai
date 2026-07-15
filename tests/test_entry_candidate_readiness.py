@@ -390,6 +390,9 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
+    report["direction_balance_recipe_contract"]["direction_utility_margin_weight"] = 4.00
+    report["direction_balance_recipe_contract"]["direction_utility_min_gap_bps"] = 15.0
+    report["direction_balance_recipe_contract"]["direction_utility_logit_margin"] = 0.10
     report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
 
     checks = _smoke_edge_checks(
@@ -432,6 +435,9 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
+    report["direction_balance_recipe_contract"]["direction_utility_margin_weight"] = 4.00
+    report["direction_balance_recipe_contract"]["direction_utility_min_gap_bps"] = 15.0
+    report["direction_balance_recipe_contract"]["direction_utility_logit_margin"] = 0.10
     report["symmetric_validation_recipe_contract"] = {
         "decision": "FAIL",
         "active_heads": ["bad_path", "direction", "path_quality"],
@@ -887,6 +893,9 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
     smart_smoke_report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
     smart_smoke_report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_margin_weight"] = 4.00
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_min_gap_bps"] = 15.0
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_logit_margin"] = 0.10
     smart_smoke_report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
     smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
     foundation_smoke_path = tmp_path / "foundation_smoke_audit.json"

@@ -48,6 +48,9 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
     "ENTRY_CKPT_DIRECTION_SLICE_GUARD": "1",
     "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean_max",
+    "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
+    "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
 }
 
 
@@ -166,6 +169,9 @@ def _dry_run_wrapper(
         and "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02" in capped_line,
         "has_hard_red_stop": "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3" in capped_line
         and "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6" in capped_line,
+        "has_utility_margin": "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in capped_line
+        and "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in capped_line
+        and "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in capped_line,
         "has_xau_repair_heads": "--enable-xau-direction-repair-heads" in capped_line,
         "has_strict_edge_audit": "--require-edge" in audit_line and "--edge-test-scope strict" in audit_line,
         "trainer_started": False,
@@ -291,6 +297,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run["has_global_prior_match"]
             and dry_run["has_prior_match"]
             and dry_run["has_hard_red_stop"]
+            and dry_run["has_utility_margin"]
             and dry_run["has_xau_repair_heads"]
             and dry_run["has_strict_edge_audit"]
             and dry_run["trainer_started"] is False,
