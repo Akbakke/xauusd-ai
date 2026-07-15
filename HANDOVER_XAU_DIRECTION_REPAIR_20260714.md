@@ -34,6 +34,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   `/home/andre2/GX1_DATA/reports/xau_direction_repair_pretrain_audit_20260713_v1/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_latest.json`.
 - Latest smart smoke readiness is `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`; latest smart trainability readiness is `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW`.
 - 2026-07-15 13:58 Oslo status check: no `python3` train/eval processes were running, GPU utilization was `0%`, `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free, RAM had about `37G` available, and swap use was `0B`.
+- 2026-07-15 17:14 Oslo status after manually stopping the hard-red hierarchical-composition smoke: no host `python3` train/eval processes were running, `/home/andre2/GX1_DATA` still had about `838G` free, RAM had about `36GiB` available, and swap use was `0B`.
 - Latest trainability readiness still has `candidate_training_allowed=false`, `iql_allowed=false`, `replay_allowed=false`, `shadow_live_promotion_allowed=false`, and `execution_allowed_now=false`. Entry-IQL is therefore closed. Do not run IQL until a fresh XAU transformer candidate bundle first passes the hard direction slice contract and the required candidate/replay gates.
 - Broad XAU/replay/readiness test suite passed under canonical env after `lightgbm` validation and the no-fallback slice-balanced CE hardening.
 - Smart XAU repair train recipe now requires `ENTRY_DIRECTION_SLICE_BALANCED_CE_*`; smoke/candidate wrappers, manifest/readiness contracts, trainer metadata, and bundle audit fail closed if this recipe is missing or too weak.
@@ -509,6 +510,32 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Compose the public 3-class direction logits from these heads and keep the existing hard class-balance/slice gates. This is a model/training contract, not fallback and not a live hand-rule.
 - Do not start candidate training, replay, IQL, shadow, live, or promotion until that new transformer bundle passes hard direction slice and class-balance gates.
 
+## 2026-07-15 Hierarchical Direction Composition Smoke Stop
+
+- Implemented the formulation pivot as commit `9bf89003 Add XAU hierarchical direction composition`.
+- New smart XAU contract:
+  - `ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=1` is required by smart repair preflight, smoke/candidate wrappers, readiness/manifest contracts, enablement, sweep lint, bundle audit, candidate readiness, replay readiness, and the direct XAU train path.
+  - The model composes public `direction_logits` from hierarchy heads:
+    `P(LONG)=P(TRADE)*P(LONG|TRADE)`, `P(SHORT)=P(TRADE)*P(SHORT|TRADE)`, `P(FLAT)=P(FLAT)`.
+  - This is a learned model/training contract, not fallback and not a live hand-rule.
+- Validation before training:
+  - `python3 -m py_compile` passed for touched model/trainer/gate scripts.
+  - `bash -n` passed for touched smoke/candidate/rebuild shell scripts.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+  - `smart-smoke-readiness --quiet`, `smart-trainability-readiness --quiet`, and `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_HIERCOMPOSE_E8_20260715 --epochs 8 --batch-size 64 --quiet` passed with no candidate/replay/IQL/live side effects.
+- Ran one bounded smart XAU transformer smoke train:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_HIERCOMPOSE_E8_20260715 --require-edge-audit --epochs 8 --early-stop-patience 8`
+- Pre-train manifest:
+  `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T150722Z.json`
+- Intended bundle:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T150722Z`
+- Result: manually stopped at epoch `3` because it was clearly hard-red and not worth burning more compute. No bundle directory was created, and no failure sidecar was written because the operator interrupt happened before the trainer final fail-closed write path.
+  - Epoch `1`: `dir_acc=0.367188`, `guard_ok=0`, `slice_contract_ok=0`, `28` slice failures, `pred_flat=0.007812`.
+  - Epoch `2`: `dir_acc=0.369141`, `guard_ok=0`, `slice_contract_ok=0`, `31` slice failures, `pred_short=0.846354`, `pred_flat=0.041016`.
+  - Epoch `3`: `dir_acc=0.341797`, `guard_ok=0`, `slice_contract_ok=0`, `31` slice failures, `14` accuracy failures, `17` pred-rate failures, `direction_slice_ckpt_score=-1.765918`, pred LONG `0.524089`, pred SHORT `0.458333`, pred FLAT `0.017578`.
+- Interpretation: the hierarchical public-logit composition is correct as an exported contract, but this smoke still drove the trade/flat side into FLAT starvation and failed active context slices. Do not start candidate training, replay, IQL, shadow, live, or promotion from this. The next step must diagnose why the learned `TRADE` versus `FLAT/no-edge` head is collapsing inside red slices, not add random data or continue the same recipe for more epochs.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -518,18 +545,21 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the utility-triad-CE repair still failed hard on class-balance and direction-slice gates. No fallback path and no failed bundle should be used as evidence.
-   - Best checkpoint was epoch `2` with `best_direction_balance_guard_ok=false`, `best_direction_slice_contract_ok=false`, and `28` slice failures.
-   - Last epoch `6` remained SHORT-dominant (`direction_pred_rate_short=0.791016`, `direction_pred_rate_flat=0.092448`) and hard-red-stop correctly refused to burn more compute.
+2. Latest executed smart XAU smoke after the hierarchical-composition repair still failed hard on class-balance and direction-slice gates. No fallback path and no failed bundle should be used as evidence.
+   - It was manually stopped at epoch `3` after three hard-red validation epochs.
+   - Epoch `3` had `direction_balance_guard_ok=false`, `direction_slice_contract_ok=false`, `31` slice failures, and FLAT starvation (`direction_pred_rate_flat=0.017578` versus `label_flat=0.345052`).
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, or utility-triad-CE recipes. They already hard-red-stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, or current hierarchical-composition recipe. They already hard-red-stopped or were manually stopped with no candidate bundle.
 
-2. Implement the next repair as a formulation change, not another scalar loss-weight tweak: separate learned `edge_or_flat` from `long_or_short_given_edge`, then compose the exported 3-class direction probabilities/logits and keep all current hard gates fail-closed. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+2. Next repair should be a targeted hierarchy/slice diagnostic before another train recipe:
+   - log/audit public composed direction rates versus the raw `TRADE`/`FLAT` head and `LONG|TRADE`/`SHORT|TRADE` head per active red slice.
+   - prove whether the collapse comes from the trade-vs-flat target, utility pressure overpowering no-edge rows, calibration of composed log-prob logits, or missing/weak slice features.
+   - only then change target/architecture or rebuild inputs. Do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.
