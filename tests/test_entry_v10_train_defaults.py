@@ -784,6 +784,105 @@ def test_entry_v10_hier_flat_logit_margin_terms_penalize_flat_as_trade(monkeypat
     assert float(trainer._hier_slice_flat_logit_margin_term(bad_trade, y_trade, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_hier_public_flat_consistency_terms_penalize_head_conflict(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    trade_logit = torch.tensor([[4.0], [4.0], [4.0], [-4.0], [-4.0], [-4.0]], dtype=torch.float32)
+    conflicting_direction = torch.tensor(
+        [
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+        ],
+        dtype=torch.float32,
+    )
+    matched_direction = torch.tensor(
+        [
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [-4.0, 0.0, 4.0],
+            [-4.0, 0.0, 4.0],
+            [-4.0, 0.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_global = float(
+        trainer._hier_public_flat_consistency_term(
+            conflicting_direction,
+            trade_logit,
+            y_trade,
+        ).item()
+    )
+    good_global = float(
+        trainer._hier_public_flat_consistency_term(
+            matched_direction,
+            trade_logit,
+            y_trade,
+        ).item()
+    )
+    bad_slice = float(
+        trainer._hier_slice_public_flat_consistency_term(
+            conflicting_direction,
+            trade_logit,
+            y_trade,
+            ctx_cat,
+        ).item()
+    )
+    good_slice = float(
+        trainer._hier_slice_public_flat_consistency_term(
+            matched_direction,
+            trade_logit,
+            y_trade,
+            ctx_cat,
+        ).item()
+    )
+
+    assert bad_global > good_global + 1.0
+    assert bad_slice > good_slice + 1.0
+    assert good_global < 0.01
+    assert good_slice < 0.01
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 0.0)
+    assert (
+        float(
+            trainer._hier_public_flat_consistency_term(
+                conflicting_direction,
+                trade_logit,
+                y_trade,
+            ).item()
+        )
+        == 0.0
+    )
+    assert (
+        float(
+            trainer._hier_slice_public_flat_consistency_term(
+                conflicting_direction,
+                trade_logit,
+                y_trade,
+                ctx_cat,
+            ).item()
+        )
+        == 0.0
+    )
+
+
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
     import torch
 

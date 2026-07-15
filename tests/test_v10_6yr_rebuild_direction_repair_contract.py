@@ -88,6 +88,26 @@ def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> 
         "${ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS:-8}" in text
     )
     assert (
+        "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT="
+        "${ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT:-4.00}" in text
+    )
+    assert (
+        "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
+        "${ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:-0.10}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT="
+        "${ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT:-4.00}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
+        "${ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:-0.10}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS="
+        "${ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS:-8}" in text
+    )
+    assert (
         "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT="
         "${ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:-4.00}" in text
     )

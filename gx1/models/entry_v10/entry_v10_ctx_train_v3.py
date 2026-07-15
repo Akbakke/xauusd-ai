@@ -575,6 +575,21 @@ ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = float(
 ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS = int(
     float(_env_str("ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
+ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT = float(
+    _env_str("ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", "0.0")
+)
+ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+)
+ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT = float(
+    _env_str("ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", "0.0")
+)
+ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+)
+ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS = int(
+    float(_env_str("ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
+)
 ENTRY_HIER_SLICE_SIDE_CE_WEIGHT = float(_env_str("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", "0.0"))
 ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = float(
     _env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0.0")
@@ -855,6 +870,11 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN": "0.10",
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS": "8",
+    "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "0.0",
+    "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "0.0",
+    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS": "8",
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
@@ -3619,6 +3639,96 @@ def _hier_slice_flat_logit_margin_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _hier_public_flat_consistency_term(
+    direction_logits: Optional[torch.Tensor],
+    trade_logit: torch.Tensor,
+    y_trade: torch.Tensor,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
+    weight = float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if direction_logits is None or direction_logits.ndim != 2 or direction_logits.shape[1] < 3:
+        return zero
+    logits = trade_logit.reshape(-1)
+    if direction_logits.shape[0] != logits.shape[0]:
+        return zero
+    flat_mask = y_trade.reshape(-1).float() <= 0.5
+    if flat_mask.numel() != logits.shape[0]:
+        return zero
+    min_label_rate = float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE)
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    flat_rate = float(flat_mask.float().mean().detach().cpu().item())
+    if flat_rate < min_label_rate:
+        return zero
+    public_flat_prob = torch.softmax(direction_logits.float(), dim=1)[:, 2]
+    hier_flat_prob = 1.0 - torch.sigmoid(logits.float())
+    return weight * nn.functional.mse_loss(public_flat_prob, hier_flat_prob)
+
+
+def _hier_slice_public_flat_consistency_term(
+    direction_logits: Optional[torch.Tensor],
+    trade_logit: torch.Tensor,
+    y_trade: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
+    weight = float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if direction_logits is None or direction_logits.ndim != 2 or direction_logits.shape[1] < 3:
+        return zero
+    if ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    logits = trade_logit.reshape(-1)
+    if direction_logits.shape[0] != logits.shape[0] or ctx_cat.shape[0] != logits.shape[0]:
+        return zero
+    flat_mask = y_trade.reshape(-1).float() <= 0.5
+    if flat_mask.numel() != logits.shape[0]:
+        return zero
+
+    min_rows = int(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS)
+    min_label_rate = float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE)
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    public_flat_prob = torch.softmax(direction_logits.float(), dim=1)[:, 2]
+    hier_flat_prob = 1.0 - torch.sigmoid(logits.float())
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = ctx_cat[:, idx].long() == value
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_flat = flat_mask & mask
+            flat_rows = int(slice_flat.sum().detach().cpu().item())
+            if flat_rows < 1:
+                continue
+            if (float(flat_rows) / float(max(1, rows))) < min_label_rate:
+                continue
+            values.append(nn.functional.mse_loss(public_flat_prob[mask], hier_flat_prob[mask]))
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _hier_side_global_prior_match_term(
     side_logits: torch.Tensor,
     side_targets: torch.Tensor,
@@ -4435,6 +4545,8 @@ def _hierarchical_entry_loss(
         "hier_slice_trade_prior_loss": 0.0,
         "hier_flat_logit_margin_loss": 0.0,
         "hier_slice_flat_logit_margin_loss": 0.0,
+        "hier_public_flat_consistency_loss": 0.0,
+        "hier_slice_public_flat_consistency_loss": 0.0,
         "hier_side_loss": 0.0,
         "hier_slice_side_ce_loss": 0.0,
         "hier_slice_side_margin_loss": 0.0,
@@ -4461,6 +4573,7 @@ def _hierarchical_entry_loss(
         "hier_countertrend_short_trap_rate": 0.0,
     }
     trade_logit = out.get("trade_logit")
+    direction_logits = out.get("direction_logits")
     side_logits = out.get("side_logits")
     side_utility = out.get("side_utility")
     side_bad_path_logit = out.get("side_bad_path_logit")
@@ -4603,6 +4716,27 @@ def _hierarchical_entry_loss(
             total = total + hier_slice_flat_logit_margin
             stats["hier_slice_flat_logit_margin_loss"] = float(
                 hier_slice_flat_logit_margin.detach().cpu().item()
+            )
+        hier_public_flat_consistency = _hier_public_flat_consistency_term(
+            direction_logits if isinstance(direction_logits, torch.Tensor) else None,
+            trade_logit,
+            y_trade,
+        )
+        if hier_public_flat_consistency.numel() == 1:
+            total = total + hier_public_flat_consistency
+            stats["hier_public_flat_consistency_loss"] = float(
+                hier_public_flat_consistency.detach().cpu().item()
+            )
+        hier_slice_public_flat_consistency = _hier_slice_public_flat_consistency_term(
+            direction_logits if isinstance(direction_logits, torch.Tensor) else None,
+            trade_logit,
+            y_trade,
+            ctx_cat,
+        )
+        if hier_slice_public_flat_consistency.numel() == 1:
+            total = total + hier_slice_public_flat_consistency
+            stats["hier_slice_public_flat_consistency_loss"] = float(
+                hier_slice_public_flat_consistency.detach().cpu().item()
             )
 
     if (
@@ -5135,6 +5269,8 @@ def train_epoch(
     hier_slice_trade_prior_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
+    hier_public_flat_consistency_loss_sum = 0.0
+    hier_slice_public_flat_consistency_loss_sum = 0.0
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
@@ -5567,6 +5703,12 @@ def train_epoch(
         hier_slice_flat_logit_margin_loss_sum += (
             float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
         )
+        hier_public_flat_consistency_loss_sum += (
+            float(hier_stats.get("hier_public_flat_consistency_loss", 0.0)) * bs
+        )
+        hier_slice_public_flat_consistency_loss_sum += (
+            float(hier_stats.get("hier_slice_public_flat_consistency_loss", 0.0)) * bs
+        )
         hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
         hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
         hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
@@ -5663,6 +5805,12 @@ def train_epoch(
         "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_flat_consistency_loss_mean": (
+            hier_public_flat_consistency_loss_sum / max(1, n)
+        ),
+        "hier_slice_public_flat_consistency_loss_mean": (
+            hier_slice_public_flat_consistency_loss_sum / max(1, n)
         ),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
@@ -6295,6 +6443,8 @@ def validate(
     hier_slice_trade_prior_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
+    hier_public_flat_consistency_loss_sum = 0.0
+    hier_slice_public_flat_consistency_loss_sum = 0.0
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
@@ -6701,6 +6851,12 @@ def validate(
             hier_slice_flat_logit_margin_loss_sum += (
                 float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
             )
+            hier_public_flat_consistency_loss_sum += (
+                float(hier_stats.get("hier_public_flat_consistency_loss", 0.0)) * bs
+            )
+            hier_slice_public_flat_consistency_loss_sum += (
+                float(hier_stats.get("hier_slice_public_flat_consistency_loss", 0.0)) * bs
+            )
             hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
             hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
             hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
@@ -6807,6 +6963,12 @@ def validate(
         "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_flat_consistency_loss_mean": (
+            hier_public_flat_consistency_loss_sum / max(1, n)
+        ),
+        "hier_slice_public_flat_consistency_loss_mean": (
+            hier_slice_public_flat_consistency_loss_sum / max(1, n)
         ),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
@@ -8229,6 +8391,23 @@ def run_train(
         "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS",
         ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS,
     )
+    _require_nonneg("ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
+    _require_nonneg(
+        "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE",
+        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT",
+        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE",
+        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS",
+        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS,
+    )
     _require_nonneg(
         "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
         ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT,
@@ -8347,6 +8526,24 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS_INVALID] "
             f"ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS={ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS} expected >=2"
+        )
+    if ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
+            "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
+            f"{ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
+            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
+            f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS_INVALID] "
+            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS="
+            f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS} expected >=2"
         )
     if ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE > 1.0:
         raise RuntimeError(
@@ -8777,6 +8974,31 @@ def run_train(
             repair_failures.append(
                 "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS="
                 f"{ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS} expected >=8"
+            )
+        if ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT="
+                f"{ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
+                f"{ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT="
+                f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
+                f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS < 8:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS="
+                f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS} expected >=8"
             )
         if ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT < 3.0:
             repair_failures.append(
@@ -9216,6 +9438,8 @@ def run_train(
         "slice_trade_prior_w=%.3f slice_trade_prior_tol=%.3f slice_trade_prior_min_rows=%d slice_trade_prior_min_label_rate=%.3f "
         "flat_logit_margin_w=%.3f flat_logit_margin=%.3f flat_logit_margin_min_label_rate=%.3f "
         "slice_flat_logit_margin_w=%.3f slice_flat_logit_margin=%.3f slice_flat_logit_margin_min_rows=%d slice_flat_logit_margin_min_label_rate=%.3f "
+        "public_flat_consistency_w=%.3f public_flat_consistency_min_label_rate=%.3f "
+        "slice_public_flat_consistency_w=%.3f slice_public_flat_consistency_min_rows=%d slice_public_flat_consistency_min_label_rate=%.3f "
         "slice_side_ce_w=%.3f slice_side_margin_w=%.3f slice_side_margin=%.3f slice_side_min_rows=%d slice_side_min_label_rate=%.3f "
         "side_global_prior_w=%.3f side_global_prior_tol=%.3f side_global_prior_min_label_rate=%.3f "
         "slice_side_prior_w=%.3f slice_side_prior_tol=%.3f slice_side_prior_min_rows=%d slice_side_prior_min_label_rate=%.3f "
@@ -9242,6 +9466,11 @@ def run_train(
         float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN),
         int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
         float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE),
+        float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
+        float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE),
+        float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
+        int(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS),
+        float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE),
         float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -9410,7 +9639,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -9437,6 +9666,8 @@ def run_train(
                 float(val_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_flat_logit_margin_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_flat_logit_margin_loss_mean", 0.0)),
+                float(val_stats.get("hier_public_flat_consistency_loss_mean", 0.0)),
+                float(val_stats.get("hier_slice_public_flat_consistency_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
@@ -9541,7 +9772,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -9568,6 +9799,8 @@ def run_train(
                 float(tr_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_flat_logit_margin_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_flat_logit_margin_loss_mean", 0.0)),
+                float(tr_stats.get("hier_public_flat_consistency_loss_mean", 0.0)),
+                float(tr_stats.get("hier_slice_public_flat_consistency_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
@@ -9817,6 +10050,21 @@ def run_train(
                     "hier_slice_flat_logit_margin_min_rows": int(
                         ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS
                     ),
+                    "hier_public_flat_consistency_weight": float(
+                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+                    ),
+                    "hier_public_flat_consistency_min_label_rate": float(
+                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_public_flat_consistency_weight": float(
+                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+                    ),
+                    "hier_slice_public_flat_consistency_min_label_rate": float(
+                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_public_flat_consistency_min_rows": int(
+                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
+                    ),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
@@ -10035,6 +10283,21 @@ def run_train(
                     ),
                     "hier_slice_flat_logit_margin_min_rows": int(
                         ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS
+                    ),
+                    "hier_public_flat_consistency_weight": float(
+                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+                    ),
+                    "hier_public_flat_consistency_min_label_rate": float(
+                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_public_flat_consistency_weight": float(
+                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+                    ),
+                    "hier_slice_public_flat_consistency_min_label_rate": float(
+                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_public_flat_consistency_min_rows": int(
+                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
                     ),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
@@ -10346,6 +10609,8 @@ def run_train(
                     or float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT) > 0.0
                     or float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT) > 0.0
+                    or float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT) > 0.0
+                    or float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT) > 0.0
                 ),
                 "global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
                 "global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
@@ -10365,6 +10630,19 @@ def run_train(
                     ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
                 ),
                 "slice_flat_logit_margin_min_rows": int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
+                "public_flat_consistency_weight": float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
+                "public_flat_consistency_min_label_rate": float(
+                    ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+                ),
+                "slice_public_flat_consistency_weight": float(
+                    ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+                ),
+                "slice_public_flat_consistency_min_label_rate": float(
+                    ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+                ),
+                "slice_public_flat_consistency_min_rows": int(
+                    ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
+                ),
                 "ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
                 "loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
                 "target_classes": ["trade", "flat"],
@@ -10568,6 +10846,19 @@ def run_train(
             ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
         ),
         "hier_slice_flat_logit_margin_min_rows": int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
+        "hier_public_flat_consistency_weight": float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
+        "hier_public_flat_consistency_min_label_rate": float(
+            ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+        ),
+        "hier_slice_public_flat_consistency_weight": float(
+            ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+        ),
+        "hier_slice_public_flat_consistency_min_label_rate": float(
+            ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+        ),
+        "hier_slice_public_flat_consistency_min_rows": int(
+            ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
+        ),
         "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -10721,6 +11012,19 @@ def run_train(
                 ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
             ),
             "hier_slice_flat_logit_margin_min_rows": int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
+            "hier_public_flat_consistency_weight": float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
+            "hier_public_flat_consistency_min_label_rate": float(
+                ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+            ),
+            "hier_slice_public_flat_consistency_weight": float(
+                ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
+            ),
+            "hier_slice_public_flat_consistency_min_label_rate": float(
+                ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
+            ),
+            "hier_slice_public_flat_consistency_min_rows": int(
+                ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
+            ),
             "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
             "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
             "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),

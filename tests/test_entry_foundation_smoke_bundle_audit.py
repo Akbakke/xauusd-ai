@@ -553,6 +553,11 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "hier_slice_flat_logit_margin": 0.10,
             "hier_slice_flat_logit_margin_min_label_rate": 0.10,
             "hier_slice_flat_logit_margin_min_rows": 8,
+            "hier_public_flat_consistency_weight": 4.00,
+            "hier_public_flat_consistency_min_label_rate": 0.10,
+            "hier_slice_public_flat_consistency_weight": 4.00,
+            "hier_slice_public_flat_consistency_min_label_rate": 0.10,
+            "hier_slice_public_flat_consistency_min_rows": 8,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,
@@ -644,6 +649,11 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["hier_slice_flat_logit_margin"] == 0.10
     assert report["hier_slice_flat_logit_margin_min_label_rate"] == 0.10
     assert report["hier_slice_flat_logit_margin_min_rows"] == 8
+    assert report["hier_public_flat_consistency_weight"] == 4.00
+    assert report["hier_public_flat_consistency_min_label_rate"] == 0.10
+    assert report["hier_slice_public_flat_consistency_weight"] == 4.00
+    assert report["hier_slice_public_flat_consistency_min_label_rate"] == 0.10
+    assert report["hier_slice_public_flat_consistency_min_rows"] == 8
     assert report["hier_slice_side_ce_weight"] == 4.00
     assert report["hier_slice_side_true_margin_weight"] == 3.00
     assert report["hier_slice_side_true_margin"] == 0.10
@@ -767,6 +777,11 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "hier_slice_flat_logit_margin": 0.10,
             "hier_slice_flat_logit_margin_min_label_rate": 0.10,
             "hier_slice_flat_logit_margin_min_rows": 8,
+            "hier_public_flat_consistency_weight": 4.00,
+            "hier_public_flat_consistency_min_label_rate": 0.10,
+            "hier_slice_public_flat_consistency_weight": 4.00,
+            "hier_slice_public_flat_consistency_min_label_rate": 0.10,
+            "hier_slice_public_flat_consistency_min_rows": 8,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,
@@ -910,6 +925,7 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("direction_hierarchical_composition" in failure for failure in report["failures"])
     assert any("hier_compose_residual_logit_cap" in failure for failure in report["failures"])
     assert any("hier_compose_residual_side_neutral" in failure for failure in report["failures"])
+    assert any("hier_public_flat_consistency_weight" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_weight" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_label_rate" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_rows" in failure for failure in report["failures"])

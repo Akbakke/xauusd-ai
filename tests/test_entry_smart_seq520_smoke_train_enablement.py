@@ -120,6 +120,11 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN=0.10 "
             "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=0.10 "
             "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS=8 "
+            "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT=4.00 "
+            "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE=0.10 "
+            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT=4.00 "
+            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE=0.10 "
+            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS=8 "
             "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=4.00 "
             "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00 "
             "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10 "
@@ -159,6 +164,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_hier_compose_residual_side_neutral": True,
         "has_hier_trade_prior": True,
         "has_hier_flat_logit_margin": True,
+        "has_hier_public_flat_consistency": True,
         "has_hier_slice_side": True,
         "has_hier_side_prior": True,
         "has_flat_starvation": True,
@@ -188,6 +194,7 @@ def test_smart_smoke_train_enablement_passes_with_clean_package(monkeypatch, tmp
     assert report["wrapper_dry_run"]["has_hier_compose_residual_side_neutral"] is True
     assert report["wrapper_dry_run"]["has_hier_trade_prior"] is True
     assert report["wrapper_dry_run"]["has_hier_flat_logit_margin"] is True
+    assert report["wrapper_dry_run"]["has_hier_public_flat_consistency"] is True
     assert report["wrapper_dry_run"]["has_hier_side_prior"] is True
 
 

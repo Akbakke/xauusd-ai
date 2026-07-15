@@ -81,6 +81,11 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN": "0.10",
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS": "8",
+    "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "4.00",
+    "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS": "8",
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "4.00",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "3.00",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
@@ -250,6 +255,12 @@ def _dry_run_wrapper(
         and "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN=0.10" in capped_line
         and "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=0.10" in capped_line
         and "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS=8" in capped_line,
+        "has_hier_public_flat_consistency": "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT=4.00"
+        in capped_line
+        and "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE=0.10" in capped_line
+        and "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT=4.00" in capped_line
+        and "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE=0.10" in capped_line
+        and "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS=8" in capped_line,
         "has_hier_slice_side": "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=4.00" in capped_line
         and "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00" in capped_line
         and "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10" in capped_line
@@ -402,6 +413,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run.get("has_hier_compose_residual_side_neutral") is True
             and dry_run.get("has_hier_trade_prior") is True
             and dry_run.get("has_hier_flat_logit_margin") is True
+            and dry_run.get("has_hier_public_flat_consistency") is True
             and dry_run.get("has_hier_slice_side") is True
             and dry_run.get("has_hier_side_prior") is True
             and dry_run["has_flat_starvation"]
