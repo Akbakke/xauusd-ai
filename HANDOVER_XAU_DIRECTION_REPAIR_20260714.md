@@ -9,7 +9,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no `python3` training/eval jobs were running after the latest 2026-07-15 smart smoke failure.
+- Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 hard-red smart smoke stop.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
 - Worktree: verify clean with `git status --short` before clean-git gates; current smart XAU slice-loss repairs are intended source changes, not ad hoc run overrides.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
@@ -76,6 +76,8 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` -> `42 passed`
   - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q` passed.
   - Broad XAU/replay/readiness suite passed again after this trainer change.
+- Follow-up smoke training after failure-evidence sidecar hardening was manually stopped at epoch 6 because the transformer was clearly hard-red again and not worth burning more compute:
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_FAILUREEVID_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T113601Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T113601Z`; stopped with `KeyboardInterrupt` during epoch 7 train after epoch 6 validation showed global balance `guard_ok=0`, `slice_contract_ok=0`, slice score `-1.937594`, 34 slice failures, 10 accuracy failures, and 24 pred-rate failures. No bundle directory and no failure sidecar were written because the process was intentionally interrupted before the trainer's final fail-closed sidecar write path.
 
 ## What Was Done
 
