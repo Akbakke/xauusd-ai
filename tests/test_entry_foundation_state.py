@@ -49,6 +49,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_exit_transformer_train_execution_review_20260630_v1" in verifier
     assert "entry_exit_transformer_post_train_contract_20260630_v1" in verifier
     assert "entry_exit_transformer_train_enablement_20260701_v1" in verifier
+    assert "entry_smart_seq520_smoke_train_enablement_20260715_v1" in verifier
     assert "entry_smart_ablation_replay_matrix_20260701_v1" in verifier
     assert "entry_smart_ablation_replay_matrix_gate_20260701_v1" in verifier
     assert "entry_smart_feature_mask_specs_20260701_v1" in verifier

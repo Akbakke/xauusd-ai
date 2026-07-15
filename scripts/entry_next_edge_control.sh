@@ -44,6 +44,7 @@ Usage:
   scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>
   scripts/entry_next_edge_control.sh smart-smoke-readiness
   scripts/entry_next_edge_control.sh smart-trainability-readiness
+  scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak <id>
   scripts/entry_next_edge_control.sh smart-ablation-replay-plan
   scripts/entry_next_edge_control.sh smart-ablation-replay-matrix
   scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit
@@ -406,6 +407,7 @@ paths = {
     "smart-smoke-manifest": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_manifest_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_MANIFEST_READINESS_latest.json"),
     "smart-smoke-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_readiness_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_READINESS_latest.json"),
     "smart-trainability-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_trainability_readiness_20260630_v1/ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"),
+    "smart-smoke-train-enablement": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_train_enablement_20260715_v1/ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_latest.json"),
     "smart-ablation-replay-plan": Path("/home/andre2/GX1_DATA/reports/entry_smart_ablation_replay_plan_gate_20260630_v1/ENTRY_SMART_ABLATION_REPLAY_PLAN_GATE_latest.json"),
     "smart-ablation-replay-matrix": Path("/home/andre2/GX1_DATA/reports/entry_smart_ablation_replay_matrix_gate_20260701_v1/ENTRY_SMART_ABLATION_REPLAY_MATRIX_GATE_latest.json"),
 }
@@ -592,6 +594,7 @@ if hygiene.get("foundation_cleanup_stage_ready"):
 optional_proof_commands = []
 if train.get("foundation_contract_ready_for_smoke"):
     optional_proof_commands.append("scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start")
+optional_proof_commands.append("scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_<id> --quiet --no-fail-on-not-ready  # package proof only, no trainer start")
 optional_proof_commands.append("scripts/entry_next_edge_control.sh entry-exit-transformer-train-enablement --vedtak <id> --quiet --no-fail-on-not-ready  # package proof only, no trainer start")
 blocked_now = [
     "scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit  # needs clean git + explicit vedtak",
@@ -933,6 +936,7 @@ smart_post_rebuild = reports.get("smart-post-rebuild-readiness") or {}
 smart_smoke_manifest = reports.get("smart-smoke-manifest") or {}
 smart_smoke_readiness = reports.get("smart-smoke-readiness") or {}
 smart_trainability_readiness = reports.get("smart-trainability-readiness") or {}
+smart_smoke_train_enablement = reports.get("smart-smoke-train-enablement") or {}
 smart_ablation_replay_plan = reports.get("smart-ablation-replay-plan") or {}
 smart_ablation_replay_matrix = reports.get("smart-ablation-replay-matrix") or {}
 smart_replay_default = reports.get("replay-readiness-smart") or {}
@@ -988,6 +992,11 @@ smart_smoke_readiness_ready = (
 )
 smart_trainability_readiness_ready = (
     str(smart_trainability_readiness.get("decision") or "") == "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW"
+)
+smart_smoke_train_enablement_decision = str(smart_smoke_train_enablement.get("decision") or "")
+smart_smoke_train_enablement_ready = (
+    smart_smoke_train_enablement_decision
+    == "ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION"
 )
 smart_ablation_replay_plan_ready = (
     str(smart_ablation_replay_plan.get("decision") or "") == "READY_FOR_SMART_ABLATION_REPLAY_PLAN_REVIEW"
@@ -1083,10 +1092,19 @@ if not smart_entry_market_state_harmony_ready:
     )
 candidate_smart = reports.get("candidate-readiness-smart") or {}
 candidate_training_smart_allowed = bool(candidate_smart.get("candidate_training_allowed_with_explicit_vedtak"))
-real_smoke_train_smart_allowed = bool(smart_smoke_readiness_ready and smart_trainability_readiness_ready)
+smart_smoke_train_enablement_allowed = bool(smart_smoke_readiness_ready and smart_trainability_readiness_ready)
+if smart_smoke_train_enablement_allowed and not smart_smoke_train_enablement_ready:
+    current_blockers.append(
+        "explicit smart XAU smoke-train enablement package required; trainer remains closed"
+    )
+real_smoke_train_smart_allowed = bool(
+    smart_smoke_readiness_ready and smart_trainability_readiness_ready and smart_smoke_train_enablement_ready
+)
 smart_smoke_train_blocked_reason = (
-    "requires clean git worktree and explicit SMART/SEQ520 smoke-train vedtak"
+    "requires clean git worktree, explicit SMART/SEQ520 smoke-train vedtak and exact enablement package"
     if real_smoke_train_smart_allowed
+    else "requires explicit smart XAU smoke-train enablement package before trainer start"
+    if smart_smoke_train_enablement_allowed
     else "requires smart smoke-readiness and smart trainability PASS before explicit SMART/SEQ520 smoke-train vedtak"
 )
 blocked_now.append(
@@ -1828,6 +1846,35 @@ commands.update(
                 "plumbing before any future smart training vedtak can be reviewed."
             ),
         },
+        "smart_smoke_train_enablement": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-smoke-train-enablement",
+                "--vedtak",
+                "SMART_SEQ520_XAU_SMOKE_<id>",
+            ],
+            "allowed": False,
+            "mode": "smart_smoke_train_enablement",
+            "requires_vedtak": True,
+            "requires_clean_git": True,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "training_allowed": False,
+            "candidate_training_allowed": False,
+            "replay_allowed": False,
+            "iql_allowed": False,
+            "requires_exact_smart_smoke_train_package": True,
+            "description": (
+                "Materialize explicit smart XAU smoke-train enablement package; wrapper dry-run only, "
+                "no trainer start."
+            ),
+        },
         "smart_ablation_replay_plan": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -2361,6 +2408,7 @@ execution_allowed_now = {
     "smart_smoke_manifest": False,
     "smart_smoke_readiness": True,
     "smart_trainability_readiness": True,
+    "smart_smoke_train_enablement": False,
     "smart_ablation_replay_plan": True,
     "smart_ablation_replay_matrix": True,
     "stage_foundation_cleanup_dry_run": True,
@@ -2433,6 +2481,7 @@ allowed_after_explicit_vedtak = {
     "smart_smoke_manifest": smart_post_rebuild_ready,
     "smart_smoke_readiness": True,
     "smart_trainability_readiness": True,
+    "smart_smoke_train_enablement": smart_smoke_train_enablement_allowed,
     "smart_ablation_replay_plan": True,
     "smart_ablation_replay_matrix": True,
     "stage_foundation_cleanup_dry_run": True,
@@ -2499,6 +2548,11 @@ not_executable_now_reason = {
         "requires smart post-rebuild dataset readiness PASS and explicit smart post-rebuild refresh vedtak"
         if not smart_post_rebuild_ready
         else "requires explicit smart post-rebuild refresh vedtak; materializes smoke dataset only"
+    ),
+    "smart_smoke_train_enablement": (
+        "requires smart smoke-readiness and trainability PASS before explicit SMART_SEQ520_XAU_SMOKE_ package vedtak"
+        if not smart_smoke_train_enablement_allowed
+        else "requires clean git and explicit SMART_SEQ520_XAU_SMOKE_ vedtak; dry-run package only"
     ),
     "smoke_train": (
         "requires clean git worktree and explicit smoke-train vedtak"
@@ -2628,6 +2682,12 @@ payload = {
         "smart_smoke_readiness_ready": smart_smoke_readiness_ready,
         "smart_trainability_readiness_decision": smart_trainability_readiness.get("decision"),
         "smart_trainability_readiness_ready": smart_trainability_readiness_ready,
+        "smart_smoke_train_enablement_decision": smart_smoke_train_enablement_decision,
+        "smart_smoke_train_enablement_ready": smart_smoke_train_enablement_ready,
+        "smart_smoke_train_enablement_report": summaries.get("smart-smoke-train-enablement", {}).get("path"),
+        "smart_smoke_train_enablement_allows_package_only": bool(
+            smart_smoke_train_enablement.get("smart_smoke_training_allowed_with_this_package")
+        ),
         "smart_ablation_replay_plan_decision": smart_ablation_replay_plan.get("decision"),
         "smart_ablation_replay_plan_ready": smart_ablation_replay_plan_ready,
         "smart_ablation_replay_matrix_decision": smart_ablation_replay_matrix.get("decision"),
@@ -3128,6 +3188,10 @@ PY
 
   smart-trainability-readiness)
     exec "$PY" -m gx1.scripts.verify_entry_smart_seq520_trainability_readiness_v1 "$@"
+    ;;
+
+  smart-smoke-train-enablement)
+    exec "$PY" -m gx1.scripts.materialize_entry_smart_seq520_smoke_train_enablement_package_v1 "$@"
     ;;
 
   smart-ablation-replay-plan)
