@@ -149,6 +149,18 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE:-0.10}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS:-8}"'
+        in text
+    )
+    assert (
         'CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION:-mean}"'
         in text
     )
@@ -243,6 +255,9 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=" in text
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=" in text
     assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE=" in text
+    assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS=" in text
     assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
@@ -320,6 +335,9 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text
     assert "CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in text
+    assert "CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT=2.00" in text
+    assert "CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE=0.10" in text
+    assert "CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS=8" in text
     assert "CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text

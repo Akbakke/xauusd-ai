@@ -6,6 +6,19 @@ direction repair. The 2026-07-08 smart-chain promotion notes below are historica
 context only and are not launch-valid until the fresh XAU direction-repair
 dataset, parity, live-like replay, calibration, and pocket audits pass.
 
+Always-active user rules for this repair:
+- **NO FALLBACK, ever:** if a required dataset, artifact, parity proof, audit,
+  gate, feature, contract, or dependency is missing/stale/invalid, fail closed.
+  Do not add advisory/fallback/soft-pass paths, do not silently continue with
+  degraded inputs, and do not hide slice/gate failures behind report-only logic.
+  Either the program works under the declared contract, or it does not.
+- **Disk cleanup is mandatory:** monitor `/home/andre2` and
+  `/home/andre2/GX1_DATA` during long rebuild/train/sweep work. When available
+  space approaches or drops below 700 GB, stop and do an explicit cleanup round
+  of obsolete failed/superseded runs, tmp dirs, and stale reports before starting
+  more heavy jobs. Never delete ACTIVE contract artifacts or evidence still
+  needed to diagnose the current gate failure.
+
 Historical pre-repair state (do not use as launch authority):
 - v10_entry = smart_seq520 cand#4 ACTIVE (vedtak
   SMART_JOINT_POLICY_PROMOTION_20260708, commit d98bc61e): pin-aligned bundle

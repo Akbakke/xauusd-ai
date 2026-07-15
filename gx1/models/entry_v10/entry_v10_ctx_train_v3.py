@@ -341,6 +341,13 @@ ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE = float(
 ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS = int(
     float(_env_str("ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
+ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT = float(_env_str("ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT", "0.0"))
+ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+)
+ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS = int(
+    float(_env_str("ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
+)
 ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION = _env_str("ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean").strip().lower()
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
@@ -552,6 +559,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
     "ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS": "8",
     "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
@@ -2661,6 +2671,66 @@ def _direction_slice_recall_prob_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _direction_slice_balanced_ce_term(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=logits.device, dtype=logits.dtype)
+    weight = float(ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if logits.ndim != 2 or logits.shape[1] < 3 or ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(targets) != logits.shape[0] or ctx_cat.shape[0] != logits.shape[0]:
+        return zero
+
+    min_rows = int(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS)
+    min_label_rate = float(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE)
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    log_probs = torch.log_softmax(logits, dim=1)
+    target_i = targets.long()
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = ctx_cat[:, idx].long() == value
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = target_i[mask]
+            counts = torch.bincount(slice_targets, minlength=logits.shape[1]).to(
+                device=logits.device,
+                dtype=logits.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active_classes = torch.nonzero(label_rates >= min_label_rate, as_tuple=False).flatten()
+            if active_classes.numel() <= 0:
+                continue
+            slice_log_probs = log_probs[mask]
+            for cls in active_classes.tolist():
+                class_mask = slice_targets == int(cls)
+                if not bool(class_mask.any().detach().cpu().item()):
+                    continue
+                values.append(-slice_log_probs[class_mask, int(cls)].mean())
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _direction_vs_flat_margin_term(
     logits: torch.Tensor,
     targets: torch.Tensor,
@@ -3522,6 +3592,7 @@ def train_epoch(
     total_direction_min_pred = 0.0
     total_direction_slice_min_pred = 0.0
     total_direction_slice_recall = 0.0
+    total_direction_slice_balanced_ce = 0.0
     total_direction_flat_margin = 0.0
     total_tail_direction = 0.0
     total_timing = 0.0
@@ -3659,6 +3730,7 @@ def train_epoch(
         min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
         slice_min_pred_rate_term = _direction_slice_min_pred_rate_term(probs, y, ctx_cat)
         slice_recall_term = _direction_slice_recall_prob_term(probs, y, ctx_cat)
+        slice_balanced_ce_term = _direction_slice_balanced_ce_term(logits, y, ctx_cat)
         direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
@@ -3672,6 +3744,7 @@ def train_epoch(
             + min_pred_rate_term
             + slice_min_pred_rate_term
             + slice_recall_term
+            + slice_balanced_ce_term
             + direction_flat_margin_term
         )
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
@@ -3918,6 +3991,7 @@ def train_epoch(
         total_direction_min_pred += float(min_pred_rate_term.detach().cpu().item()) * bs
         total_direction_slice_min_pred += float(slice_min_pred_rate_term.detach().cpu().item()) * bs
         total_direction_slice_recall += float(slice_recall_term.detach().cpu().item()) * bs
+        total_direction_slice_balanced_ce += float(slice_balanced_ce_term.detach().cpu().item()) * bs
         total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
@@ -3972,6 +4046,7 @@ def train_epoch(
         "direction_min_pred_rate_loss_mean": (total_direction_min_pred / max(1, n)),
         "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
         "direction_slice_recall_loss_mean": (total_direction_slice_recall / max(1, n)),
+        "direction_slice_balanced_ce_loss_mean": (total_direction_slice_balanced_ce / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
@@ -4342,6 +4417,7 @@ def validate(
     total_direction_min_pred = 0.0
     total_direction_slice_min_pred = 0.0
     total_direction_slice_recall = 0.0
+    total_direction_slice_balanced_ce = 0.0
     total_direction_flat_margin = 0.0
     total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
@@ -4489,6 +4565,7 @@ def validate(
             min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
             slice_min_pred_rate_term = _direction_slice_min_pred_rate_term(probs, y, ctx_cat)
             slice_recall_term = _direction_slice_recall_prob_term(probs, y, ctx_cat)
+            slice_balanced_ce_term = _direction_slice_balanced_ce_term(logits, y, ctx_cat)
             direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
@@ -4502,6 +4579,7 @@ def validate(
                 + min_pred_rate_term
                 + slice_min_pred_rate_term
                 + slice_recall_term
+                + slice_balanced_ce_term
                 + direction_flat_margin_term
             )
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
@@ -4687,6 +4765,7 @@ def validate(
             total_direction_min_pred += float(min_pred_rate_term.detach().cpu().item()) * bs
             total_direction_slice_min_pred += float(slice_min_pred_rate_term.detach().cpu().item()) * bs
             total_direction_slice_recall += float(slice_recall_term.detach().cpu().item()) * bs
+            total_direction_slice_balanced_ce += float(slice_balanced_ce_term.detach().cpu().item()) * bs
             total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
@@ -4760,6 +4839,7 @@ def validate(
         "direction_min_pred_rate_loss_mean": (total_direction_min_pred / max(1, n)),
         "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
         "direction_slice_recall_loss_mean": (total_direction_slice_recall / max(1, n)),
+        "direction_slice_balanced_ce_loss_mean": (total_direction_slice_balanced_ce / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
@@ -6028,6 +6108,12 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR", ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR)
     _require_nonneg("ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE", ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE)
+    _require_nonneg("ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT", ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT)
+    _require_nonneg(
+        "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE",
+        ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE,
+    )
+    _require_nonneg("ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS", ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS)
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN", ENTRY_DIRECTION_VS_FLAT_MARGIN)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
@@ -6083,6 +6169,17 @@ def run_train(
             "[ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE_INVALID] "
             f"ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE={ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE:.6f} "
             "expected <=1.0"
+        )
+    if ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE_INVALID] "
+            "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE="
+            f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS < 2:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS={ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS} expected >=2"
         )
     if ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION not in _DIRECTION_SLICE_LOSS_AGGREGATIONS:
         raise RuntimeError(
@@ -6171,6 +6268,21 @@ def run_train(
             repair_failures.append(
                 "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR="
                 f"{ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.3f} expected >=0.05"
+            )
+        if ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT < 2.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT="
+                f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT:.3f} expected >=2.0"
+            )
+        if ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE="
+                f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS < 8:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS="
+                f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS} expected >=8"
             )
         if ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT < 3.0:
             repair_failures.append(
@@ -6322,7 +6434,8 @@ def run_train(
         "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f temp=%.3f "
         "slice_w=%.3f slice_fraction=%.3f slice_floor=%.3f slice_min_rows=%d slice_min_label_rate=%.3f "
         "slice_ctx_cat=%s slice_recall_w=%.3f slice_recall_floor=%.3f slice_recall_min_rows=%d "
-        "slice_recall_min_label_rate=%.3f slice_agg=%s flat_margin_w=%.3f flat_margin=%.3f",
+        "slice_recall_min_label_rate=%.3f slice_balanced_ce_w=%.3f slice_balanced_ce_min_rows=%d "
+        "slice_balanced_ce_min_label_rate=%.3f slice_agg=%s flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -6337,6 +6450,9 @@ def run_train(
         float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
         int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
         float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
+        float(ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT),
+        int(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS),
+        float(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE),
         str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
@@ -6516,13 +6632,14 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f slice_min_pred=%.6f flat_margin=%.6f slice_recall=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f slice_min_pred=%.6f flat_margin=%.6f slice_recall=%.6f slice_bal_ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_min_pred_rate_loss_mean", 0.0)),
                 float(val_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_recall_loss_mean", 0.0)),
+                float(val_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
                 float(val_stats.get("tail_direction_loss_mean", 0.0)),
                 int(val_stats.get("tail_direction_rows", 0)),
                 float(val_stats.get("aux_path_loss_mean", 0.0)),
@@ -6577,13 +6694,14 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f slice_min_pred=%.6f flat_margin=%.6f slice_recall=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f slice_min_pred=%.6f flat_margin=%.6f slice_recall=%.6f slice_bal_ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_min_pred_rate_loss_mean", 0.0)),
                 float(tr_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_recall_loss_mean", 0.0)),
+                float(tr_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
                 float(tr_stats.get("tail_direction_loss_mean", 0.0)),
                 int(tr_stats.get("tail_direction_rows", 0)),
                 float(tr_stats.get("aux_path_loss_mean", 0.0)),
@@ -7013,6 +7131,9 @@ def run_train(
         "direction_slice_recall_prob_floor": float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
         "direction_slice_recall_min_label_rate": float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
         "direction_slice_recall_min_rows": int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
+        "direction_slice_balanced_ce_weight": float(ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT),
+        "direction_slice_balanced_ce_min_label_rate": float(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE),
+        "direction_slice_balanced_ce_min_rows": int(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS),
         "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
         "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
@@ -7063,6 +7184,9 @@ def run_train(
             "direction_slice_recall_prob_floor": float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
             "direction_slice_recall_min_label_rate": float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
             "direction_slice_recall_min_rows": int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
+            "direction_slice_balanced_ce_weight": float(ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT),
+            "direction_slice_balanced_ce_min_label_rate": float(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE),
+            "direction_slice_balanced_ce_min_rows": int(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS),
             "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
             "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
             "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),

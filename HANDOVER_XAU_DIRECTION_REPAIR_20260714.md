@@ -8,12 +8,33 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
-- Disk: `/dev/sdd` has about `829G` free.
-- Runtime: no `python3` training/eval jobs were running at handover.
+- Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
+- Runtime: no `python3` training/eval jobs were running at the 2026-07-15 update.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: dirty with many XAU/entry/live/replay changes and new tests/scripts. Do not assume clean-git gates can run until this is committed/stashed intentionally.
-- Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`.
-- Canonical Python currently lacks `lightgbm`. Broad tests that import replay/readiness modules fail on `ModuleNotFoundError: No module named 'lightgbm'`.
+- Worktree: dirty with the 2026-07-15 no-fallback/disk-rule and smart XAU slice-balanced CE contract changes. Do not assume clean-git gates can run until this is committed/stashed intentionally.
+- Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
+
+## Always-Active Operating Rules
+
+- No fallback, no advisory pass, no soft continuation. If a required artifact, dataset, feature, dependency, audit, parity check, contract, or gate is missing/stale/invalid, the program must fail closed. Either it works under the declared contract, or it does not.
+- Slice and pocket failures may be logged as hard failure evidence only. They must never be converted into fallback/advisory paths that let training, candidate readiness, replay, parity, or launch continue.
+- Monitor disk before/during heavy rebuild, train, sweep, replay, and prediction materialization. Current cleanup threshold: when available space on `/home/andre2` or `/home/andre2/GX1_DATA` approaches or drops below 700 GB, run an explicit cleanup round for obsolete failed/superseded runs, tmp dirs, and stale reports before launching more heavy jobs.
+- Cleanup must preserve ACTIVE contract artifacts and evidence still needed for the current failing gate. Delete only artifacts that are clearly obsolete, failed, superseded, or reproducible.
+
+## 2026-07-15 State Update
+
+- Cleaned obsolete/superseded runs immediately when available space was near `800G`; `/home/andre2` and `/home/andre2/GX1_DATA` now show about `838G` available.
+- Fresh XAU direction-repair dataset exists:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair`
+  with train/val/test parquets and manifests for stem `v10_6yr_dataset__HOLD_03B`.
+- Fresh XAU smoke dataset exists:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke`
+  with train/val/test parquets and manifests for stem `v10_smart_seq520_smoke__HOLD_03B`.
+- Latest XAU pretrain audit is `PASS`:
+  `/home/andre2/GX1_DATA/reports/xau_direction_repair_pretrain_audit_20260713_v1/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_latest.json`.
+- Latest smart smoke readiness is `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`; latest smart trainability readiness is `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW`.
+- Broad XAU/replay/readiness test suite passed under canonical env after `lightgbm` validation and the no-fallback slice-balanced CE hardening.
+- Smart XAU repair train recipe now requires `ENTRY_DIRECTION_SLICE_BALANCED_CE_*`; smoke/candidate wrappers, manifest/readiness contracts, trainer metadata, and bundle audit fail closed if this recipe is missing or too weak.
 
 ## What Was Done
 
@@ -98,103 +119,35 @@ scripts/pytest_repo.sh \
 
 Result at handover: `58 passed`.
 
-Broad XAU/replay/readiness suite currently fails during collection because canonical env lacks `lightgbm`.
+Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 ## Current Blockers
 
-1. Fresh XAU direction-repair dataset is missing.
-   - Expected dataset dir:
-     `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair`
-   - Missing:
-     - `v10_6yr_dataset__HOLD_03B_train.parquet`
-     - `v10_6yr_dataset__HOLD_03B_val.parquet`
-     - `v10_6yr_dataset__HOLD_03B_test.parquet`
-   - Latest pretrain audit: `FAIL`.
-
-2. Sweep is blocked until the fresh dataset passes pretrain audit.
-   - Latest sweep plan: `BLOCKED_PLAN_ONLY`
-   - Reason: missing fresh XAU parquets.
-
-3. Current direction pocket audit is red and stale.
+1. Current direction pocket audit is red/stale and must not be used as promotion proof.
    - Latest old audit has:
      - `intraday_bull selected SHORT rate 0.885`
      - `intraday_bull__htf_bull selected SHORT rate 0.948`
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-4. Smoke/trainability readiness are blocked.
-   - Smoke readiness points at old smart candidate dataset/audits and reports dirty git.
-   - Trainability readiness is blocked by smoke readiness.
-
-5. Canonical env needs `lightgbm` installed once.
-   - Do this in `/home/andre2/venvs/gx1`, not repo `.venv`.
-
-6. Worktree is dirty.
+2. Worktree is dirty.
    - Rebuild/training wrappers enforce clean git.
    - Commit or otherwise intentionally preserve current changes before running clean-git gates.
 
+3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
+
 ## Highest-Priority Next Steps
 
-1. Install missing dependency once in the canonical env:
-
-```bash
-/home/andre2/venvs/gx1/bin/python -m pip install lightgbm
-```
-
-2. Rerun broad relevant tests:
-
-```bash
-scripts/pytest_repo.sh \
-  tests/test_repair_entry_xau_structural_utility_labels.py \
-  tests/test_entry_v10_train_defaults.py \
-  tests/test_xau_direction_repair_pretrain_audit.py \
-  tests/test_entry_replay_mfe_protect.py \
-  tests/test_entry_candidate_replay_trade_log.py \
-  tests/test_v12_smart_entry_live_gate.py \
-  tests/test_xau_direction_repair_sweep.py \
-  tests/test_entry_candidate_readiness.py \
-  tests/test_entry_replay_readiness.py \
-  tests/test_entry_foundation_smoke_bundle_audit.py \
-  tests/test_entry_smart_seq520_smoke_readiness.py \
-  tests/test_entry_smart_seq520_trainability_readiness.py \
-  tests/test_entry_smart_seq520_smoke_manifest.py \
-  tests/test_entry_candidate_train_wrapper.py \
-  tests/test_entry_foundation_smoke_train_wrapper.py \
-  tests/test_entry_smart_dataset_post_rebuild_readiness.py \
-  tests/test_v10_6yr_rebuild_direction_repair_contract.py \
-  tests/test_smart520_rank_reference.py \
-  tests/test_smart520_state_contract.py -q
-```
-
-3. Get to a clean, intentional source state.
+1. Get to a clean, intentional source state.
    - Review diff.
    - Commit/stash intentionally.
    - Do not revert unrelated user work.
 
-4. Rebuild the fresh XAU dataset with training off.
-   - Use `scripts/v10_6yr_rebuild_20260626.sh` only after clean-git requirements are satisfied.
-   - Ensure it produces:
-     - fresh rank-reference `.npz` + sidecar
-     - train/val/test parquets
-     - split manifests with `smart520_state_contract.rank_reference_npz_sha256`
-     - `DATASET_BUILD_PROOF.json` with neutral bridge and XAU tape root.
+2. With clean git, rerun fail-closed smoke/readiness gates against the updated source recipe contract.
 
-5. Run XAU pretrain audit:
+3. Run bounded XAU sweep dry-run, then execute a limited XAU sweep or candidate train with explicit vedtak only if gates remain green.
 
-```bash
-/home/andre2/venvs/gx1/bin/python -m gx1.scripts.audit_xau_direction_repair_pretrain_v1 \
-  --dataset-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair \
-  --stem v10_6yr_dataset__HOLD_03B \
-  --out-dir /home/andre2/GX1_DATA/reports/xau_direction_repair_pretrain_audit_20260713_v1 \
-  --data-splits train,val,test \
-  --require-rail-features \
-  --fail-on-audit-fail
-```
-
-6. Only after pretrain audit passes:
-   - run smoke/readiness gates
-   - run bounded XAU sweep dry-run
-   - execute limited XAU sweep or candidate train
+4. After a candidate bundle passes hard audits:
    - materialize expected-utility predictions
    - run live-like direction pocket audit
    - run serve parity
