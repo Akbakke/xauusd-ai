@@ -11,7 +11,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
 - Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 public-FLAT-from-hierarchy smoke failed closed and its failed-run artifacts were deleted.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source repair commit is `12f5ae00 Require XAU public flat from hierarchy`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry repair commit is `0f5ed3b7 Require XAU hierarchy side accuracy edge`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Always-Active Operating Rules
@@ -131,7 +131,26 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - The failure moved back to genuine slice-level side/coverage accuracy: best smoke had fewer failures (`9`) than the latest flat-consistency run's epoch-3 `35`, but still no candidate bundle.
   - Do not run Entry-IQL, replay, candidate, shadow, live, or promotion. Entry-IQL remains closed until a fresh XAU transformer bundle passes hard slice/class-balance gates.
   - Next repair should not restore public FLAT residual or add fallback. Focus on hierarchy side/slice accuracy and FLAT coverage staging/calibration, because public composition is now constrained correctly.
-- Latest resource state after cleanup: `/home/andre2/GX1_DATA` about `838G` free, RAM about `38GiB` available, swap `0B`, and no `python3` training/eval process running.
+- Implemented and committed the next hard hierarchy-side repair as `0f5ed3b7 Require XAU hierarchy side accuracy edge`:
+  - New strict smart-XAU knobs: `ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT` and `ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN`.
+  - The trainer now adds a hierarchy conditional side slice accuracy-edge loss against majority-plus-margin per active ctx slice, using the same slice set as the existing hierarchy side supervision. This is a hard optimization target, not fallback.
+  - Smoke/candidate wrappers, rebuild defaults, smart readiness, smoke manifest, enablement package, sweep lint, candidate/replay readiness, bundle audit, trainer metadata, and tests all require/pass through the recipe (`weight >= 4.00`, `margin >= 0.02` for strict smart XAU).
+  - Validation passed: `py_compile` on changed Python files, `bash -n` on changed wrappers, `git diff --check`, and focused pytest (`222 passed`, 2 torch warnings).
+  - Clean-git gates passed after commit: `smart-smoke-readiness --quiet`, `smart-trainability-readiness --quiet`, and `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_HIERSIDEACCEDGE_E6_20260715 --epochs 6 --batch-size 64 --quiet`.
+- Follow-up bounded smoke after hierarchy-side accuracy-edge:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_HIERSIDEACCEDGE_E6_20260715`
+  - Pre-train manifest was `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T202455Z.json`.
+  - Intended bundle was `v10_entry_smart_seq520_smoke_20260715T202455Z`.
+  - Result: hard fail on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was written.
+  - Hard-red stop triggered at epoch 6 with best epoch 3 and no slice-contract pass.
+  - Best epoch 3: balance guard OK, `dir_acc=0.353516`, public pred LONG `0.470703`, SHORT `0.221354`, FLAT `0.307943`, `13` slice failures, `12` accuracy failures, `1` pred-rate failure, hierarchy `trade_pred=0.985026`, `trade_prob=0.670141` vs target `0.654948`, hierarchy side edge acc `0.552684`.
+  - Last epoch 6: balance guard OK, public pred LONG `0.164714`, SHORT `0.623047`, FLAT `0.212240`, `16` slice failures, `13` accuracy failures, `3` pred-rate failures, hierarchy `trade_pred=0.994792`, `trade_prob=0.679593`, hierarchy side edge acc `0.545726`.
+  - The failed-run manifest and failure evidence sidecar were deleted after extracting the status above; no stale bundle dir existed.
+- Updated interpretation after the hierarchy-side smoke:
+  - This commit made the hierarchy side repair explicit and fail-closed, but it did not improve the final public slice gate versus the previous public-FLAT-from-trade best (`9` slice failures). Best observed in this run was `13` slice failures.
+  - More epochs are not the answer; hard-red stop did its job. More scalar loss stacking on the same inputs is now weak evidence unless it changes the optimization surface materially.
+  - Next direction should be a formulation/input change: staged hierarchy training, better slice-conditioned calibration, or additional slice-relevant input/label structure for FLAT/trade coverage. Do not open IQL/replay/candidate/live.
+- Latest resource state after cleanup: `/home/andre2/GX1_DATA` about `838G` free, RAM about `37GiB` available, swap `0B`, and no Python training/eval process running.
 
 ## What Was Done
 
