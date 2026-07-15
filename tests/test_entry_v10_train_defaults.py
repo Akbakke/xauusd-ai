@@ -346,6 +346,16 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     assert global_stats["hier_flat_label_rate"] == 1 / 3
 
 
+def test_entry_v10_hier_trade_pos_weight_can_downweight_majority_trade_labels() -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    raw_majority_trade = (1.0 - 0.658120) / 0.658120
+
+    assert trainer._bounded_pos_weight(raw_majority_trade, 12.0) == 1.0
+    assert trainer._bounded_pos_weight(raw_majority_trade, 12.0, allow_below_one=True) == raw_majority_trade
+    assert trainer._bounded_pos_weight(0.0, 12.0, allow_below_one=True) == 1.0 / 12.0
+
+
 def test_entry_v10_direction_slice_hard_red_stop_waits_for_no_progress(monkeypatch) -> None:
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 

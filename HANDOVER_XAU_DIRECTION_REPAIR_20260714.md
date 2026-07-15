@@ -545,6 +545,23 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
   - Focused gate/wrapper/readiness/audit suite passed:
     `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+- Ran one diagnostic-only bounded smoke after the hierarchy diagnostics:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_HIERDIAG_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T151842Z.json`
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T151842Z`
+  - Manually stopped after epoch `1` because the new diagnostics already proved the failure mode and further epochs would just burn compute. No bundle directory and no failure sidecar were written.
+  - Epoch `1`: `dir_acc=0.367188`, `guard_ok=0`, `slice_contract_ok=0`, `28` slice failures, pred LONG `0.457031`, pred SHORT `0.535156`, pred FLAT `0.007812`.
+  - New hierarchy evidence: global `hier_trade_target=0.654948` but `hier_trade_pred=1.000000`; `hier_trade_prob=0.723131`, `hier_flat_prob=0.276869`, and `hier_trade_prob_label_flat=0.722968`. Red slices showed the same pattern: `hier_trade_pred=1.000000` and `hier_trade_prob_label_flat≈0.70-0.73`.
+  - Interpretation: side-head is only moderate (`side_acc_edge≈0.56`), but the immediate FLAT starvation comes from the `TRADE`/`FLAT` head. With train trade-rate `0.658120`, unweighted BCE has a constant optimum above the `0.5` threshold, so a weakly separated model predicts TRADE on every row.
+- Implemented the next hard transformer repair:
+  - `hier_trade_pos_weight` now uses bounded inverse-frequency with below-one weights allowed for the hierarchy `TRADE` target. For the current smoke dataset this changes the hierarchy trade BCE from forced `pos_weight=1.0` to approximately `neg/pos=0.519`.
+  - Other existing positive-class heads keep their previous floor/cap behavior.
+  - This is not fallback and not a live rule; it fixes the learned trade/no-trade objective so majority-positive trade labels do not make a constant TRADE prediction optimal.
+- Validation after the trade-pos-weight repair:
+  - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed.
+  - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
+  - Focused gate/wrapper/readiness/audit suite passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
 
 ## Current Blockers
 
@@ -566,10 +583,10 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, or current hierarchical-composition recipe. They already hard-red-stopped or were manually stopped with no candidate bundle.
 
-2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke that uses the new hierarchy diagnostics:
-   - inspect `[ENTRY_HIER_OUTPUT]` and red-slice hierarchy fields before changing recipe again.
-   - prove whether the collapse comes from the trade-vs-flat target, utility pressure overpowering no-edge rows, calibration of composed log-prob logits, or missing/weak slice features.
-   - only then change target/architecture or rebuild inputs. Do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
+2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke after the hierarchy trade-pos-weight repair:
+   - verify `[ENTRY_HIER_BALANCE_PROOF]` reports `raw_trade_pos_weight≈0.519` and `trade_pos_weight≈0.519`, not `1.0`.
+   - inspect `[ENTRY_HIER_OUTPUT]` and red-slice hierarchy fields to confirm whether `hier_trade_pred` moves below `1.0` and FLAT pred-rate recovers.
+   - if it still fails, change target/architecture based on that evidence. Do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

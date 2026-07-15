@@ -5226,6 +5226,15 @@ def _direction_ckpt_balance_stats(
     }
 
 
+def _bounded_pos_weight(raw_pos_weight: float, cap: float, *, allow_below_one: bool = False) -> float:
+    cap_f = max(1.0, float(cap))
+    floor = (1.0 / cap_f) if bool(allow_below_one) else 1.0
+    raw = float(raw_pos_weight)
+    if not np.isfinite(raw) or raw <= 0.0:
+        raw = floor
+    return float(min(cap_f, max(floor, raw)))
+
+
 def _optional_float_1d(values: Optional[np.ndarray], expected_size: int) -> Optional[np.ndarray]:
     if values is None:
         return None
@@ -6965,14 +6974,18 @@ def run_train(
         raw_hier_short_bad_path_pos_weight = (1.0 - train_short_bad_path_rate) / max(train_short_bad_path_rate, 1e-9)
     else:
         raw_hier_short_bad_path_pos_weight = 1.0
-    bad_path_pos_weight = float(
-        min(float(ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_bad_path_pos_weight))
+    bad_path_pos_weight = _bounded_pos_weight(
+        raw_bad_path_pos_weight,
+        ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP,
     )
-    tradable_pos_weight = float(
-        min(float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP), max(1.0, raw_tradable_pos_weight))
+    tradable_pos_weight = _bounded_pos_weight(
+        raw_tradable_pos_weight,
+        ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP,
     )
-    hier_trade_pos_weight = float(
-        min(float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP), max(1.0, raw_hier_trade_pos_weight))
+    hier_trade_pos_weight = _bounded_pos_weight(
+        raw_hier_trade_pos_weight,
+        ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP,
+        allow_below_one=True,
     )
     hier_bad_path_pos_weight = [
         float(min(float(ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_hier_long_bad_path_pos_weight))),
@@ -7021,12 +7034,14 @@ def run_train(
         float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
     )
     log.info(
-        "[ENTRY_HIER_BALANCE_PROOF] train_trade_rate=%.6f val_trade_rate=%.6f trade_pos_weight=%.6f "
+        "[ENTRY_HIER_BALANCE_PROOF] train_trade_rate=%.6f val_trade_rate=%.6f "
+        "raw_trade_pos_weight=%.6f trade_pos_weight=%.6f "
         "train_side_bad_path_rate=%.6f val_side_bad_path_rate=%.6f "
         "train_long_bad_path_rate=%.6f train_short_bad_path_rate=%.6f "
         "side_bad_path_pos_weight_long=%.6f side_bad_path_pos_weight_short=%.6f",
         train_trade_rate,
         val_trade_rate,
+        raw_hier_trade_pos_weight,
         hier_trade_pos_weight,
         train_side_bad_path_rate,
         val_side_bad_path_rate,
