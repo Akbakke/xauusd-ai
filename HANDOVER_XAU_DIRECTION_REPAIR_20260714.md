@@ -346,6 +346,22 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free.
   - RAM had about `37GiB` available, swap use was `0B`, no `python3` training/eval jobs were running, and GPU use was idle/low (`2%`, 307 MiB used).
   - Entry-IQL, replay, candidate training, shadow, live, and promotion remain closed.
+- Clean-git gates after commit `c5a03cc4 Add XAU flat-starvation repair`:
+  - `smart-smoke-readiness --quiet`: passed.
+  - `smart-trainability-readiness --quiet`: passed when rerun sequentially. A parallel smoke/trainability readiness attempt raced on the `latest` smoke-readiness artifact and returned exit `2`; the sequential rerun had `blockers=[]`.
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_FLATSTARVE_E8_20260715 --epochs 8 --batch-size 64 --quiet`: passed with `trainer_started=false`, `iql_allowed=false`, `replay_allowed=false`, and `promotion_shadow_live_allowed=false`.
+- Bounded FLAT-starvation smoke result:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_FLATSTARVE_E8_20260715`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T133510Z.json`
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T133510Z`
+  - Result: hard-red-stopped at epoch `6`, then failed closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was written.
+  - Failure evidence sidecar:
+    `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T133510Z__direction_slice_failure_evidence.json`
+  - Sidecar confirms `decision=FAIL_DIRECTION_SLICE_GUARD`, `failure_code=TRAIN_FAIL_DIRECTION_SLICE_GUARD`, `bundle_written=false`, `promotion_shadow_live_allowed=false`, `hard_red_stopped=true`, `git_commit=c5a03cc4f81faef2fa9bee66f2d81106e08867a2`.
+  - Best checkpoint: epoch `2`, `best_dir_acc=0.347005`, `best_dir_ckpt_score=-0.433291`, `best_direction_balance_guard_ok=true`, `best_direction_slice_contract_ok=false`.
+  - Best slice stats: `18` slice failures over `17` audited slices, `15` accuracy failures, `3` pred-rate failures. Prediction rates were LONG `0.197917`, SHORT `0.516927`, FLAT `0.285156` versus label rates LONG `0.322917`, SHORT `0.332031`, FLAT `0.345052`.
+  - Last epoch `6`: `26` slice failures, `8` accuracy failures, `18` pred-rate failures; FLAT collapsed again to `direction_pred_rate_flat=0.002604` while SHORT rose to `0.788411`.
+  - Interpretation: FLAT-starvation repair changed the failure mode and briefly restored global balance at epoch 2, but did not solve the hard per-slice direction contract. Training longer on this recipe is not justified.
 
 ## Current Blockers
 
@@ -356,16 +372,16 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the utility-margin repair failed hard with FLAT starvation. No fallback path and no failed bundle should be used as evidence.
-   - The utility-margin smoke repair improved best direction accuracy to `0.393229`, but class-balance and slice gates remained red because the model starved FLAT predictions (`direction_pred_rate_flat=0.000000`).
-   - The FLAT-starvation objective/contract has now been implemented and validated locally, but no post-FLAT-starvation smoke result should be assumed until clean-git readiness, trainability, and enablement pass and a bounded smoke run is explicitly launched.
-   - If the post-FLAT-starvation transformer smoke remains hard red, stop it under the hard-red discipline and use the failure sidecar to decide whether the next move is target/noise repair, feature routing, or architecture/input weighting. Do not move to IQL first.
+2. Latest executed smart XAU smoke after the FLAT-starvation repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
+   - FLAT-starvation changed the failure mode and produced one globally balanced best checkpoint at epoch `2`, but the best checkpoint still had `18` slice failures and `best_direction_slice_contract_ok=false`.
+   - Later epochs collapsed FLAT again (`direction_pred_rate_flat=0.002604` at epoch `6`) and hard-red-stop correctly refused to burn more compute.
+   - The next move should not be more epochs on the same transformer recipe and not IQL. Use the sidecar to decide whether the blocker is target/noise, slice sampling/objective conflict, or architecture/input routing.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not relaunch the old transformer recipe or the just-failed utility-margin recipe just to burn more epochs. The next execution step is clean-git smart smoke readiness, smart trainability readiness, and smoke-train enablement for the FLAT-starvation recipe. Only after those are green should one bounded transformer smoke run be started, and it must stop/fail closed if class-balance or slice gates stay hard red.
+1. Do not relaunch the old transformer recipe, the utility-margin recipe, or the just-failed FLAT-starvation recipe just to burn more epochs. The next work should analyze the FLAT-starvation sidecar and red slices to decide whether to repair targets/noisy FLAT labels, resolve objective conflicts between side utility and FLAT abstention, or change architecture/input routing. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
 
 2. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.
