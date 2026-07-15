@@ -323,6 +323,30 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Last epoch: epoch `8`, still red with `31` slice failures (`14` accuracy failures, `17` pred-rate failures).
   - Important observation: the model repeatedly drove `direction_pred_rate_flat` to `0.000000` on validation. Utility-margin improved some side accuracy but did not solve abstention/FLAT collapse. Next repair should directly prevent FLAT starvation in the direction head while preserving utility side pressure; do not move to IQL.
 
+### 2026-07-15 Direction FLAT-Starvation Repair
+
+- Implemented the next transformer objective repair after the utility-margin smoke failure:
+  - `ENTRY_DIRECTION_FLAT_STARVATION_*` now penalizes global and active-slice FLAT prediction starvation when FLAT labels are materially present.
+  - The loss also adds a direct FLAT logit-margin term on FLAT-labeled rows, so a model that drives `direction_pred_rate_flat` to zero pays a hard training/validation loss.
+  - This is not fallback, not a live hand-rule, and not an IQL path. It is a transformer training objective that must pass the existing hard class-balance and direction-slice gates.
+- Smart XAU repair preflight now rejects missing/weak FLAT-starvation settings:
+  - `ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT >= 8.00`
+  - `ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE >= 0.10`
+  - `ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS >= 8`
+  - `ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION >= 0.50`
+  - `ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR >= 0.10`
+  - `ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN >= 0.10`
+- Smart smoke/candidate wrappers, smoke/readiness/manifest contracts, train enablement, sweep lint, bundle audit, candidate readiness, replay readiness, and the direct `v10_6yr_rebuild_20260626.sh` XAU train path now carry the same FLAT-starvation contract.
+- Validation before commit:
+  - `python3 -m py_compile` passed for the trainer and all touched Python gates/scripts.
+  - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+- 2026-07-15 15:33 Oslo resource check before commit:
+  - `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free.
+  - RAM had about `37GiB` available, swap use was `0B`, no `python3` training/eval jobs were running, and GPU use was idle/low (`2%`, 307 MiB used).
+  - Entry-IQL, replay, candidate training, shadow, live, and promotion remain closed.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -332,16 +356,16 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest smart XAU smoke training with global prior-match passed global class-balance guard but failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
-   - `best_direction_balance_guard_ok=True`, `best_direction_slice_contract_ok=False`.
-   - The red-slice separability audit shows existing XAU domain features are present and mostly label/utility-separable inside the failed slices.
-   - The utility-margin smoke repair was tried and still failed hard. It improved best direction accuracy to `0.393229`, but class-balance and slice gates remained red because the model starved FLAT predictions (`direction_pred_rate_flat=0.000000`). Next repair should target FLAT starvation in the direction head, not IQL and not more epochs on the same utility-margin recipe.
+2. Latest executed smart XAU smoke after the utility-margin repair failed hard with FLAT starvation. No fallback path and no failed bundle should be used as evidence.
+   - The utility-margin smoke repair improved best direction accuracy to `0.393229`, but class-balance and slice gates remained red because the model starved FLAT predictions (`direction_pred_rate_flat=0.000000`).
+   - The FLAT-starvation objective/contract has now been implemented and validated locally, but no post-FLAT-starvation smoke result should be assumed until clean-git readiness, trainability, and enablement pass and a bounded smoke run is explicitly launched.
+   - If the post-FLAT-starvation transformer smoke remains hard red, stop it under the hard-red discipline and use the failure sidecar to decide whether the next move is target/noise repair, feature routing, or architecture/input weighting. Do not move to IQL first.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not relaunch the old transformer recipe or the just-failed utility-margin recipe just to burn more epochs. The next code repair should directly prevent FLAT starvation while preserving LONG/SHORT utility pressure. Any next bounded smoke train must first pass clean-git readiness/enablement and must stop/fail closed if class-balance or slice gates stay hard red.
+1. Do not relaunch the old transformer recipe or the just-failed utility-margin recipe just to burn more epochs. The next execution step is clean-git smart smoke readiness, smart trainability readiness, and smoke-train enablement for the FLAT-starvation recipe. Only after those are green should one bounded transformer smoke run be started, and it must stop/fail closed if class-balance or slice gates stay hard red.
 
 2. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

@@ -763,6 +763,56 @@ def test_entry_v10_direction_utility_margin_term_penalizes_wrong_utility_side(mo
         trainer._direction_utility_margin_term(wrong_side, long_utility[:2], short_utility)
 
 
+def test_entry_v10_direction_flat_starvation_term_penalizes_zero_flat_predictions(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS", 2)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    targets = torch.tensor([2, 2, 2, 0, 1, 0], dtype=torch.long)
+    ctx_cat = torch.tensor([[1], [1], [2], [1], [2], [2]], dtype=torch.long)
+    no_flat = torch.tensor(
+        [
+            [2.0, 1.0, -1.0],
+            [1.0, 2.0, -1.0],
+            [2.0, 1.0, -1.0],
+            [2.0, 1.0, -1.0],
+            [1.0, 2.0, -1.0],
+            [2.0, 1.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    flat_ok = torch.tensor(
+        [
+            [0.0, -1.0, 3.0],
+            [-1.0, 0.0, 3.0],
+            [0.0, -1.0, 3.0],
+            [2.0, 0.0, -1.0],
+            [0.0, 2.0, -1.0],
+            [2.0, 0.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(trainer._direction_flat_starvation_term(no_flat, targets, ctx_cat).item())
+    good_loss = float(trainer._direction_flat_starvation_term(flat_ok, targets, ctx_cat).item())
+
+    assert bad_loss > good_loss + 5.0
+    assert good_loss < 1.0
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", 0.0)
+    assert float(trainer._direction_flat_starvation_term(no_flat, targets, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
     validate_start = text.index("def validate(")
@@ -770,6 +820,8 @@ def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -
 
     assert "total_direction_utility_margin = 0.0" in validate_init
     assert "total_direction_utility_margin += " in text[text.index("    with torch.no_grad():", validate_start):]
+    assert "total_direction_flat_starvation = 0.0" in validate_init
+    assert "total_direction_flat_starvation += " in text[text.index("    with torch.no_grad():", validate_start):]
 
 
 def test_entry_v10_direction_repair_fails_closed_without_calibration_fallback() -> None:

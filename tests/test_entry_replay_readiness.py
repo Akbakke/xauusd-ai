@@ -808,6 +808,12 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "direction_utility_margin_weight": 4.00,
             "direction_utility_min_gap_bps": 15.0,
             "direction_utility_logit_margin": 0.10,
+            "direction_flat_starvation_weight": 8.00,
+            "direction_flat_starvation_min_label_rate": 0.10,
+            "direction_flat_starvation_min_rows": 8,
+            "direction_flat_starvation_pred_fraction": 0.50,
+            "direction_flat_starvation_pred_floor": 0.10,
+            "direction_flat_starvation_logit_margin": 0.10,
             "best_direction_balance_guard_ok": True,
         }
     )

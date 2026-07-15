@@ -118,6 +118,12 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FRACTION": "0.50",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FLOOR": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_UTILITY_WEIGHT": "1.00",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_BAD_PATH_WEIGHT": "1.25",
@@ -211,6 +217,52 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_UTILITY_LOGIT_MARGIN must be >= 0.10 for strict XAU repair, "
             f"got {utility_logit_margin}"
+        )
+    flat_starvation_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT", "0"))
+    flat_starvation_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0")
+    )
+    flat_starvation_min_rows = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS", "0"))
+    )
+    flat_starvation_pred_fraction = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FRACTION", "0")
+    )
+    flat_starvation_pred_floor = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FLOOR", "0")
+    )
+    flat_starvation_logit_margin = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN", "0")
+    )
+    if flat_starvation_weight < 8.0:
+        failures.append(
+            "DIRECTION_FLAT_STARVATION_WEIGHT must be >= 8.0 for strict XAU repair, "
+            f"got {flat_starvation_weight}"
+        )
+    if flat_starvation_min_label_rate < 0.10:
+        failures.append(
+            "DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE must be >= 0.10 for strict XAU repair, "
+            f"got {flat_starvation_min_label_rate}"
+        )
+    if flat_starvation_min_rows < 8:
+        failures.append(
+            "DIRECTION_FLAT_STARVATION_MIN_ROWS must be >= 8 for strict XAU repair, "
+            f"got {flat_starvation_min_rows}"
+        )
+    if flat_starvation_pred_fraction < 0.50:
+        failures.append(
+            "DIRECTION_FLAT_STARVATION_PRED_FRACTION must be >= 0.50 for strict XAU repair, "
+            f"got {flat_starvation_pred_fraction}"
+        )
+    if flat_starvation_pred_floor < 0.10:
+        failures.append(
+            "DIRECTION_FLAT_STARVATION_PRED_FLOOR must be >= 0.10 for strict XAU repair, "
+            f"got {flat_starvation_pred_floor}"
+        )
+    if flat_starvation_logit_margin < 0.10:
+        failures.append(
+            "DIRECTION_FLAT_STARVATION_LOGIT_MARGIN must be >= 0.10 for strict XAU repair, "
+            f"got {flat_starvation_logit_margin}"
         )
     slice_min_pred_rate_weight = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "0")

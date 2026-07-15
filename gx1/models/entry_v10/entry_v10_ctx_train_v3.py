@@ -410,6 +410,20 @@ ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN"
 ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS = float(_env_str("ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", "15.0"))
 ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN = float(_env_str("ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", "0.10"))
+ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
+ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0.10")
+)
+ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS = int(float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS", "8")))
+ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION = float(
+    _env_str("ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION", "0.50")
+)
+ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR = float(
+    _env_str("ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR", "0.10")
+)
+ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN = float(
+    _env_str("ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN", "0.10")
+)
 
 _DIRECTION_AUDIT_MIN_LABEL_RATE = 0.10
 _DIRECTION_AUDIT_MIN_PRED_RATE = 0.05
@@ -646,6 +660,12 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
     "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION": "0.50",
+    "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR": "0.10",
+    "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN": "0.10",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
@@ -3294,6 +3314,95 @@ def _direction_utility_margin_term(
     return weight * torch.stack(terms).mean()
 
 
+def _direction_flat_starvation_term(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=logits.device, dtype=logits.dtype)
+    weight = float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if logits.ndim != 2 or logits.shape[1] < 3 or len(targets) != logits.shape[0]:
+        return zero
+
+    min_label_rate = float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE)
+    min_rows = int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS)
+    pred_fraction = float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION)
+    pred_floor = float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR)
+    margin = float(ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN)
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS_INVALID] "
+            f"ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS={min_rows} expected >=2"
+        )
+    if pred_fraction < 0.0 or pred_fraction > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION_INVALID] "
+            f"ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION={pred_fraction:.6f} expected [0.0, 1.0]"
+        )
+    if pred_floor < 0.0 or pred_floor > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR_INVALID] "
+            f"ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR={pred_floor:.6f} expected [0.0, 1.0]"
+        )
+    if margin < 0.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN_INVALID] "
+            f"ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN={margin:.6f} expected >=0.0"
+        )
+
+    target_i = targets.long().to(device=logits.device)
+    flat_mask = target_i == 2
+    flat_rows = int(flat_mask.sum().detach().cpu().item())
+    if flat_rows <= 0:
+        return zero
+    flat_label_rate = torch.as_tensor(flat_rows / max(1, logits.shape[0]), device=logits.device, dtype=logits.dtype)
+    if float(flat_label_rate.detach().cpu().item()) < min_label_rate:
+        return zero
+
+    probs = torch.softmax(logits, dim=1)
+    hardish_probs = _direction_pred_rate_probs(probs)
+    required_global = torch.maximum(
+        flat_label_rate * torch.as_tensor(pred_fraction, device=logits.device, dtype=logits.dtype),
+        torch.as_tensor(pred_floor, device=logits.device, dtype=logits.dtype),
+    )
+    values: list[torch.Tensor] = [torch.relu(required_global - hardish_probs[:, 2].mean())]
+
+    flat_logits = logits[flat_mask]
+    wrong_side = torch.maximum(flat_logits[:, 0], flat_logits[:, 1])
+    values.append(nn.functional.softplus(wrong_side - flat_logits[:, 2] + margin).mean())
+
+    if ctx_cat is not None and ctx_cat.ndim == 2 and ctx_cat.shape[0] == logits.shape[0]:
+        indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+        for idx in indices:
+            slice_values = torch.unique(ctx_cat[:, idx].long())
+            for value in slice_values:
+                mask = ctx_cat[:, idx].long().to(device=logits.device) == value.to(device=logits.device)
+                rows = int(mask.sum().detach().cpu().item())
+                if rows < min_rows:
+                    continue
+                slice_targets = target_i[mask]
+                flat_count = int((slice_targets == 2).sum().detach().cpu().item())
+                if flat_count <= 0:
+                    continue
+                flat_rate = torch.as_tensor(flat_count / rows, device=logits.device, dtype=logits.dtype)
+                if float(flat_rate.detach().cpu().item()) < min_label_rate:
+                    continue
+                required = torch.maximum(
+                    flat_rate * torch.as_tensor(pred_fraction, device=logits.device, dtype=logits.dtype),
+                    torch.as_tensor(pred_floor, device=logits.device, dtype=logits.dtype),
+                )
+                values.append(torch.relu(required - hardish_probs[mask, 2].mean()))
+
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _build_cost_sensitive_criterion(
     *,
     device: torch.device,
@@ -4138,6 +4247,7 @@ def train_epoch(
     total_direction_slice_prior_match = 0.0
     total_direction_flat_margin = 0.0
     total_direction_utility_margin = 0.0
+    total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
     total_timing = 0.0
     total_aux_early = 0.0
@@ -4285,6 +4395,7 @@ def train_epoch(
             batch["y_long_path_utility_bps"],
             batch["y_short_path_utility_bps"],
         )
+        direction_flat_starvation_term = _direction_flat_starvation_term(logits, y, ctx_cat)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
             expected_cost = (cost * probs).sum(dim=1)
@@ -4304,6 +4415,7 @@ def train_epoch(
             + slice_prior_match_term
             + direction_flat_margin_term
             + direction_utility_margin_term
+            + direction_flat_starvation_term
         )
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
             loss = loss + tail_direction_loss
@@ -4556,6 +4668,7 @@ def train_epoch(
         total_direction_slice_prior_match += float(slice_prior_match_term.detach().cpu().item()) * bs
         total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
         total_direction_utility_margin += float(direction_utility_margin_term.detach().cpu().item()) * bs
+        total_direction_flat_starvation += float(direction_flat_starvation_term.detach().cpu().item()) * bs
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
         specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
@@ -4616,6 +4729,7 @@ def train_epoch(
         "direction_slice_prior_match_loss_mean": (total_direction_slice_prior_match / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
+        "direction_flat_starvation_loss_mean": (total_direction_flat_starvation / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
         "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
@@ -5126,6 +5240,7 @@ def validate(
     total_direction_slice_prior_match = 0.0
     total_direction_flat_margin = 0.0
     total_direction_utility_margin = 0.0
+    total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
@@ -5283,6 +5398,7 @@ def validate(
                 batch["y_long_path_utility_bps"],
                 batch["y_short_path_utility_bps"],
             )
+            direction_flat_starvation_term = _direction_flat_starvation_term(logits, y, ctx_cat)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
                 expected_cost = (cost * probs).sum(dim=1)
@@ -5302,6 +5418,7 @@ def validate(
                 + slice_prior_match_term
                 + direction_flat_margin_term
                 + direction_utility_margin_term
+                + direction_flat_starvation_term
             )
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
                 loss = loss + tail_direction_loss
@@ -5493,6 +5610,7 @@ def validate(
             total_direction_slice_prior_match += float(slice_prior_match_term.detach().cpu().item()) * bs
             total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
             total_direction_utility_margin += float(direction_utility_margin_term.detach().cpu().item()) * bs
+            total_direction_flat_starvation += float(direction_flat_starvation_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
@@ -5572,6 +5690,7 @@ def validate(
         "direction_slice_prior_match_loss_mean": (total_direction_slice_prior_match / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
+        "direction_flat_starvation_loss_mean": (total_direction_flat_starvation / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
         "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
@@ -6912,6 +7031,18 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN)
+    _require_nonneg("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT)
+    _require_nonneg(
+        "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE",
+        ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE,
+    )
+    _require_nonneg("ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS", ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS)
+    _require_nonneg(
+        "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION",
+        ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION,
+    )
+    _require_nonneg("ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR", ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR)
+    _require_nonneg("ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN", ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
         raise RuntimeError(
             "[ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL_INVALID] "
@@ -6949,6 +7080,29 @@ def run_train(
             "[ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
             "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
             f"{ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE_INVALID] "
+            "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE="
+            f"{ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS < 2:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS_INVALID] "
+            f"ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS={ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS} expected >=2"
+        )
+    if ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION_INVALID] "
+            "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION="
+            f"{ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR_INVALID] "
+            "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR="
+            f"{ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR:.6f} expected <=1.0"
         )
     if ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION > 1.0:
         raise RuntimeError(
@@ -7273,6 +7427,36 @@ def run_train(
                 "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN="
                 f"{ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN:.3f} expected >=0.10"
             )
+        if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
+                f"{ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT:.3f} expected >=8.0"
+            )
+        if ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE="
+                f"{ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS < 8:
+            repair_failures.append(
+                "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS="
+                f"{ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS} expected >=8"
+            )
+        if ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION < 0.50:
+            repair_failures.append(
+                "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION="
+                f"{ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION:.3f} expected >=0.50"
+            )
+        if ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR < 0.10:
+            repair_failures.append(
+                "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR="
+                f"{ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR:.3f} expected >=0.10"
+            )
+        if ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN < 0.10:
+            repair_failures.append(
+                "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN="
+                f"{ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:.3f} expected >=0.10"
+            )
         if ENTRY_HIER_LEGACY_CE_MULT < 1.0:
             repair_failures.append(f"ENTRY_HIER_LEGACY_CE_MULT={ENTRY_HIER_LEGACY_CE_MULT:.3f} expected >=1.0")
         if not bool(enable_side_validity_head):
@@ -7422,7 +7606,9 @@ def run_train(
         "slice_prior_min_label_rate=%.3f slice_agg=%s "
         "slice_balanced_sampler=%d slice_balanced_sampler_min_rows=%d hard_red_stop_patience=%d "
         "hard_red_stop_min_epochs=%d flat_margin_w=%.3f flat_margin=%.3f "
-        "utility_margin_w=%.3f utility_min_gap_bps=%.3f utility_logit_margin=%.3f",
+        "utility_margin_w=%.3f utility_min_gap_bps=%.3f utility_logit_margin=%.3f "
+        "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
+        "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -7465,6 +7651,12 @@ def run_train(
         float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
         float(ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS),
         float(ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN),
+        float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
+        float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
+        int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
+        float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION),
+        float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR),
+        float(ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN),
     )
     log.info(
         "[ENTRY_BAD_PATH_RANK_RECIPE] weight=%.3f margin=%.3f quantile=%.3f",
@@ -7645,7 +7837,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -7653,6 +7845,7 @@ def run_train(
                 float(val_stats.get("direction_slice_min_pred_rate_loss_mean", 0.0)),
                 float(val_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(val_stats.get("direction_utility_margin_loss_mean", 0.0)),
+                float(val_stats.get("direction_flat_starvation_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_recall_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_true_margin_loss_mean", 0.0)),
@@ -7741,7 +7934,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -7749,6 +7942,7 @@ def run_train(
                 float(tr_stats.get("direction_slice_min_pred_rate_loss_mean", 0.0)),
                 float(tr_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(tr_stats.get("direction_utility_margin_loss_mean", 0.0)),
+                float(tr_stats.get("direction_flat_starvation_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_recall_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_true_margin_loss_mean", 0.0)),
@@ -8384,6 +8578,12 @@ def run_train(
         "direction_utility_margin_weight": float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
         "direction_utility_min_gap_bps": float(ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS),
         "direction_utility_logit_margin": float(ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN),
+        "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
+        "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
+        "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
+        "direction_flat_starvation_pred_fraction": float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION),
+        "direction_flat_starvation_pred_floor": float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR),
+        "direction_flat_starvation_logit_margin": float(ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
         "tail_direction_quality_quantile": float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
         "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
@@ -8463,6 +8663,12 @@ def run_train(
             "direction_utility_margin_weight": float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
             "direction_utility_min_gap_bps": float(ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS),
             "direction_utility_logit_margin": float(ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN),
+            "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
+            "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
+            "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
+            "direction_flat_starvation_pred_fraction": float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION),
+            "direction_flat_starvation_pred_floor": float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR),
+            "direction_flat_starvation_logit_margin": float(ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "anchor_gate_enabled": bool(enable_anchor_gate),
             "anchor_gate_init": float(anchor_gate_init),

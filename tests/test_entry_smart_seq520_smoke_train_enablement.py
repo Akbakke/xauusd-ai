@@ -90,6 +90,12 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00 "
             "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0 "
             "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10 "
+            "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00 "
+            "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10 "
+            "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8 "
+            "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION=0.50 "
+            "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR=0.10 "
+            "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10 "
             "python -m gx1.models.entry_v10.entry_v10_ctx_train_v3 --num-workers 0 "
             "--enable-xau-direction-repair-heads"
         ),
@@ -103,6 +109,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_prior_match": True,
         "has_hard_red_stop": True,
         "has_utility_margin": True,
+        "has_flat_starvation": True,
         "has_xau_repair_heads": True,
         "has_strict_edge_audit": True,
         "trainer_started": False,

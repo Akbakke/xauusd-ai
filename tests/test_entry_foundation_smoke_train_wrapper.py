@@ -90,6 +90,12 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION=0.50" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10" in result.stdout
     assert "ENTRY_HIER_LEGACY_CE_MULT=0.35" in result.stdout
     assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=0.0" in result.stdout
     assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=10.0" in result.stdout
@@ -189,6 +195,12 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION=0.50" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR=0.10" in result.stdout
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10" in result.stdout
     assert "ENTRY_HIER_LEGACY_CE_MULT=1.00" in result.stdout
     assert "ENTRY_BAD_PATH_PROB_PENALTY=0.0" in result.stdout
     assert "ENTRY_HIER_TRADE_WEIGHT=2.00" in result.stdout
@@ -351,9 +363,21 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT" in text
     assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS" in text
     assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN" in text
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT" in text
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE" in text
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS" in text
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION" in text
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR" in text
+    assert "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_UTILITY_MARGIN_WEIGHT" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_UTILITY_MIN_GAP_BPS" in text
     assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_UTILITY_LOGIT_MARGIN" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_WEIGHT" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_MIN_ROWS" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_PRED_FRACTION" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_PRED_FLOOR" in text
+    assert "ENTRY_FOUNDATION_SMOKE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN" in text
     assert "ENTRY_FOUNDATION_SMOKE_RESIDUAL_SCALE" in text
     assert "ENTRY_FOUNDATION_SMOKE_ANCHOR_EPS" in text
     assert 'ENTRY_RESIDUAL_SCALE="$SMOKE_RESIDUAL_SCALE"' in text
@@ -451,6 +475,12 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in text
     assert "SMOKE_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in text
     assert "SMOKE_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in text
+    assert "SMOKE_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in text
+    assert "SMOKE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in text
+    assert "SMOKE_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in text
+    assert "SMOKE_DIRECTION_FLAT_STARVATION_PRED_FRACTION=0.50" in text
+    assert "SMOKE_DIRECTION_FLAT_STARVATION_PRED_FLOOR=0.10" in text
+    assert "SMOKE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10" in text
     assert "SMOKE_HIER_LEGACY_CE_MULT=1.00" in text
     assert "SMOKE_HIER_TRADE_WEIGHT=2.00" in text
     assert "SMOKE_HIER_SIDE_WEIGHT=1.75" in text

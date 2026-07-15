@@ -84,6 +84,12 @@ SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_UTILITY_MARGIN_WEIGHT = 4.00
 SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX = 15.0
 SMART_DIRECTION_UTILITY_LOGIT_MARGIN = 0.10
+SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
+SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
+SMART_DIRECTION_FLAT_STARVATION_PRED_FRACTION = 0.50
+SMART_DIRECTION_FLAT_STARVATION_PRED_FLOOR = 0.10
+SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
 SMART_DIRECTION_RESIDUAL_SCALE = 0.35
 SMART_DIRECTION_ANCHOR_EPS = 1e-6
@@ -1269,6 +1275,44 @@ def _direction_balance_recipe_contract(
             meta.get("direction_utility_logit_margin", 0.0),
         )
     )
+    direction_flat_starvation_weight = _safe_float(
+        recipe.get(
+            "direction_flat_starvation_weight",
+            meta.get("direction_flat_starvation_weight", 0.0),
+        )
+    )
+    direction_flat_starvation_min_label_rate = _safe_float(
+        recipe.get(
+            "direction_flat_starvation_min_label_rate",
+            meta.get("direction_flat_starvation_min_label_rate", 0.0),
+        )
+    )
+    direction_flat_starvation_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "direction_flat_starvation_min_rows",
+                meta.get("direction_flat_starvation_min_rows", -1.0),
+            )
+        )
+    )
+    direction_flat_starvation_pred_fraction = _safe_float(
+        recipe.get(
+            "direction_flat_starvation_pred_fraction",
+            meta.get("direction_flat_starvation_pred_fraction", 0.0),
+        )
+    )
+    direction_flat_starvation_pred_floor = _safe_float(
+        recipe.get(
+            "direction_flat_starvation_pred_floor",
+            meta.get("direction_flat_starvation_pred_floor", 0.0),
+        )
+    )
+    direction_flat_starvation_logit_margin = _safe_float(
+        recipe.get(
+            "direction_flat_starvation_logit_margin",
+            meta.get("direction_flat_starvation_logit_margin", 0.0),
+        )
+    )
     best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
     best_direction_slice_contract_ok = meta.get("best_direction_slice_contract_ok")
     ckpt_balance_guard_required = (
@@ -1554,6 +1598,36 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_utility_logit_margin >= "
                     f"{SMART_DIRECTION_UTILITY_LOGIT_MARGIN:.2f}"
                 )
+            if direction_flat_starvation_weight < SMART_DIRECTION_FLAT_STARVATION_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_flat_starvation_weight >= "
+                    f"{SMART_DIRECTION_FLAT_STARVATION_WEIGHT:.2f}"
+                )
+            if direction_flat_starvation_min_label_rate < SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:
+                failures.append(
+                    "smart direction active head requires direction_flat_starvation_min_label_rate >= "
+                    f"{SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:.2f}"
+                )
+            if direction_flat_starvation_min_rows < SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires direction_flat_starvation_min_rows >= "
+                    f"{SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS}"
+                )
+            if direction_flat_starvation_pred_fraction < SMART_DIRECTION_FLAT_STARVATION_PRED_FRACTION:
+                failures.append(
+                    "smart direction active head requires direction_flat_starvation_pred_fraction >= "
+                    f"{SMART_DIRECTION_FLAT_STARVATION_PRED_FRACTION:.2f}"
+                )
+            if direction_flat_starvation_pred_floor < SMART_DIRECTION_FLAT_STARVATION_PRED_FLOOR:
+                failures.append(
+                    "smart direction active head requires direction_flat_starvation_pred_floor >= "
+                    f"{SMART_DIRECTION_FLAT_STARVATION_PRED_FLOOR:.2f}"
+                )
+            if direction_flat_starvation_logit_margin < SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:
+                failures.append(
+                    "smart direction active head requires direction_flat_starvation_logit_margin >= "
+                    f"{SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:.2f}"
+                )
             if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
                 failures.append(
                     "smart direction active head with MTF aux head enabled requires "
@@ -1631,6 +1705,12 @@ def _direction_balance_recipe_contract(
         "direction_utility_margin_weight": direction_utility_margin_weight,
         "direction_utility_min_gap_bps": direction_utility_min_gap_bps,
         "direction_utility_logit_margin": direction_utility_logit_margin,
+        "direction_flat_starvation_weight": direction_flat_starvation_weight,
+        "direction_flat_starvation_min_label_rate": direction_flat_starvation_min_label_rate,
+        "direction_flat_starvation_min_rows": direction_flat_starvation_min_rows,
+        "direction_flat_starvation_pred_fraction": direction_flat_starvation_pred_fraction,
+        "direction_flat_starvation_pred_floor": direction_flat_starvation_pred_floor,
+        "direction_flat_starvation_logit_margin": direction_flat_starvation_logit_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
