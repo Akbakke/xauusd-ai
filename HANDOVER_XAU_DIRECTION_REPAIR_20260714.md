@@ -235,6 +235,27 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - The blocker moved back to per-slice direction behavior: too many audited context slices still fail majority accuracy and/or active-class pred-rate coverage.
   - Do not continue by extending epochs on the same recipe. Next repair should target slice-level objective/data composition, using the recorded `ENTRY_DIR_SLICE_FAILURE` rows.
 
+### 2026-07-15 XAU Source Preflight Repair And Current Direction
+
+- 2026-07-15 14:46 CEST status:
+  - No `python3` transformer/IQL training was running.
+  - GPU was idle (`0%`, 307 MiB used).
+  - `/home/andre2` and `/home/andre2/GX1_DATA` still had about `838G` free.
+  - RAM stayed safe during checks and swap stayed at `0B` used.
+- Fixed smart rebuild preflight after cleanup removed the old legacy foundation source:
+  - `materialize_entry_smart_seq520_rebuild_preflight_v1.py` now defaults the source dataset to the XAU smart direction-repair dataset:
+    `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair`
+  - Missing/deleted split manifests now become explicit failed checks in a blocked preflight report, not a traceback and not a fallback.
+  - The live preflight report is green on the XAU smart520 source with `source_dataset_mode=xau_smart_seq520_built_source`, `source_active_seq_snap_width=520`, `training_allowed=false`, and no failures:
+    `/home/andre2/GX1_DATA/reports/entry_smart_seq_rebuild_preflight_20260630_v1/ENTRY_SMART_REBUILD_PREFLIGHT_latest.json`
+- Guardrail policy was updated so `smart_smoke_train_enablement` is part of the exact readiness command contract and remains blocked without explicit vedtak/clean git. It starts no trainer, replay, IQL, shadow, or live path.
+- Read-only feature metadata check on the XAU smart520 train manifest showed the dataset already contains many relevant XAU structure inputs:
+  - wick/rejection, SMC sweep/BOS/CHOCH, support/resistance proximity, SR memory, MTF confluence, H1/H4/D1 regime, rising-support rail pressure, falling-resistance rail pressure, and trap-pressure features.
+  - Therefore the next serious repair is not random new data or IQL. It is a targeted slice/input/target diagnostic: prove whether the red slices ignore existing rail/SR/wick/regime fields, whether labels are noisy/non-separable in those slices, or whether anti-short/anti-long hierarchy/utility caps must be made explicit.
+- Validation after the preflight/guardrail change:
+  - `py_compile` passed for `materialize_entry_smart_seq520_rebuild_preflight_v1.py` and `verify_entry_foundation_guardrails_v1.py`.
+  - `scripts/pytest_repo.sh tests/test_entry_smart_rebuild_preflight.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_dataset_post_rebuild_readiness.py tests/test_entry_foundation_guardrails.py -q` passed (`26 passed`).
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -246,7 +267,7 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 2. Latest smart XAU smoke training with global prior-match passed global class-balance guard but failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
    - `best_direction_balance_guard_ok=True`, `best_direction_slice_contract_ok=False`.
-   - The next repair must target slice-level direction behavior, not IQL and not longer epochs on the same recipe.
+   - The next repair must target slice-level direction behavior and slice/input/target separability, not IQL and not longer epochs on the same recipe.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 

@@ -95,6 +95,7 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_blocks_foundation_activation_apply"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_post_apply"] is True
     assert policy_checks["readiness_policy_blocks_smart_smoke_manifest"] is True
+    assert policy_checks["readiness_policy_blocks_smart_smoke_train_enablement"] is True
     assert policy_checks["readiness_policy_blocks_smart_smoke_train"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train_seq215"] is True

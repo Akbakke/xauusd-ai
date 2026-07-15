@@ -207,6 +207,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "foundation_activation_apply",
         "foundation_activation_post_apply",
         "smart_smoke_manifest",
+        "smart_smoke_train_enablement",
         "smart_smoke_train",
         "candidate_train",
         "candidate_train_seq215",
@@ -260,6 +261,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "smart_post_rebuild_refresh",
         "smart_smoke_manifest",
         "smart_smoke_readiness",
+        "smart_smoke_train_enablement",
         "smart_smoke_train",
         "smart_trainability_readiness",
         "smart_ablation_replay_plan",
@@ -428,6 +430,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                     for name in (
                         "smart_post_rebuild_readiness",
                         "smart_post_rebuild_refresh",
+                        "smart_smoke_train_enablement",
                         "smart_smoke_manifest",
                         "smart_smoke_readiness",
                         "smart_trainability_readiness",
@@ -441,6 +444,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                     for name in (
                         "smart_post_rebuild_readiness",
                         "smart_post_rebuild_refresh",
+                        "smart_smoke_train_enablement",
                         "smart_smoke_manifest",
                         "smart_smoke_readiness",
                         "smart_trainability_readiness",

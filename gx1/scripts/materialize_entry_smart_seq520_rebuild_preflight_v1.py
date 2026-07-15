@@ -31,6 +31,7 @@ DEFAULT_PLANNED_DATASET_DIR = (
     FOUNDATION_DATASET_DIR.parent.parent
     / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
 )
+DEFAULT_SOURCE_DATASET_DIR = DEFAULT_PLANNED_DATASET_DIR
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROJECT_STATE = REPO_ROOT / "PROJECT_STATE_artifacts.json"
 REQUIRED_GX1_DATA_ROOT = "/home/andre2/GX1_DATA"
@@ -80,14 +81,34 @@ def _is_sha256(value: Any) -> bool:
     return len(text) == 64 and all(ch in "0123456789abcdef" for ch in text.lower())
 
 
-def _split_manifest_paths(dataset_dir: Path) -> dict[str, Path]:
+def _split_manifest_paths(dataset_dir: Path, *, fail_on_missing: bool = True) -> dict[str, Path]:
     out: dict[str, Path] = {}
     for split in ("train", "val", "test"):
         matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
         if len(matches) != 1:
+            if not fail_on_missing:
+                continue
             raise RuntimeError(f"expected exactly one {split} manifest under {dataset_dir}, got {matches}")
         out[split] = matches[0]
     return out
+
+
+def _split_manifest_presence_checks(dataset_dir: Path) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for split in ("train", "val", "test"):
+        matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
+        checks.append(
+            {
+                "name": f"source {split} split manifest exists exactly once",
+                "ok": len(matches) == 1,
+                "details": {
+                    "dataset_dir": str(dataset_dir),
+                    "match_count": len(matches),
+                    "matches": [str(path) for path in matches],
+                },
+            }
+        )
+    return checks
 
 
 def _artifact_meta(path: Path, *, verify_hash: bool = True) -> dict[str, Any]:
@@ -414,12 +435,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         smart_manifest_path = smart_manifest_path.resolve()
     smart_manifest = _read_json(smart_manifest_path) if smart_manifest_path.exists() else {}
 
+    checks: list[dict[str, Any]] = _split_manifest_presence_checks(foundation_dataset_dir)
     split_contracts = {
         split: _split_contract(path, verify_large_hashes=bool(args.verify_large_input_hashes))
-        for split, path in _split_manifest_paths(foundation_dataset_dir).items()
+        for split, path in _split_manifest_paths(foundation_dataset_dir, fail_on_missing=False).items()
     }
 
-    checks: list[dict[str, Any]] = []
     counts = smart_report.get("counts") if isinstance(smart_report.get("counts"), dict) else {}
     smart_candidate = inventory.get("smart_candidate") if isinstance(inventory.get("smart_candidate"), dict) else {}
     feature_harmony = (
@@ -759,6 +780,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart_report": _artifact_meta(smart_report_path),
             "smart_manifest": _artifact_meta(smart_manifest_path),
             "inventory_report": _artifact_meta(inventory_path),
+            "source_dataset_dir": str(foundation_dataset_dir),
             "foundation_dataset_dir": str(foundation_dataset_dir),
             "multi_tf_cache": mtf_cache,
             "active_xgb_placeholder": active_xgb_placeholder,
@@ -806,7 +828,12 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Report-only smart sequence rebuild preflight.")
     ap.add_argument("--smart-report", default=str(DEFAULT_SMART_REPORT))
     ap.add_argument("--inventory-report", default=str(DEFAULT_INVENTORY_REPORT))
-    ap.add_argument("--foundation-dataset-dir", default=str(FOUNDATION_DATASET_DIR))
+    ap.add_argument(
+        "--foundation-dataset-dir",
+        "--source-dataset-dir",
+        dest="foundation_dataset_dir",
+        default=str(DEFAULT_SOURCE_DATASET_DIR),
+    )
     ap.add_argument("--planned-dataset-dir", default=str(DEFAULT_PLANNED_DATASET_DIR))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--verify-large-input-hashes", action="store_true")

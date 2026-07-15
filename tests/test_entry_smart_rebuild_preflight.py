@@ -274,6 +274,29 @@ def test_smart_rebuild_preflight_accepts_xau_smart520_built_source(tmp_path: Pat
     assert not report["failures"]
 
 
+def test_smart_rebuild_preflight_defaults_to_xau_direction_repair_source() -> None:
+    assert preflight.DEFAULT_SOURCE_DATASET_DIR == preflight.DEFAULT_PLANNED_DATASET_DIR
+    assert "v10_dataset_6yr_smartctx_xau_direction_repair" in str(preflight.DEFAULT_SOURCE_DATASET_DIR)
+
+
+def test_smart_rebuild_preflight_fails_closed_on_missing_source_dataset(tmp_path: Path) -> None:
+    args = _build_fixture(tmp_path)
+    missing_source = tmp_path / "deleted_legacy_source_dataset"
+    args.foundation_dataset_dir = str(missing_source)
+
+    report = preflight.run(args)
+
+    assert report["decision"] == "BLOCKED_SMART_REBUILD_PREFLIGHT"
+    assert report["training_allowed"] is False
+    assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False
+    assert report["inputs"]["source_dataset_dir"] == str(missing_source.resolve())
+    failure_names = {row["name"] for row in report["failures"]}
+    assert "source train split manifest exists exactly once" in failure_names
+    assert "source val split manifest exists exactly once" in failure_names
+    assert "source test split manifest exists exactly once" in failure_names
+    assert not any(report["side_effects_started"].values())
+
+
 def test_smart_rebuild_preflight_uses_active_xgb_only_as_neutral_placeholder(
     tmp_path: Path,
     monkeypatch,
