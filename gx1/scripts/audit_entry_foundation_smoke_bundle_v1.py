@@ -106,6 +106,13 @@ SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN = 0.10
 SMART_DIRECTION_HIER_SLICE_SIDE_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_HIER_SLICE_SIDE_MIN_ROWS = 8
+SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
+SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
+SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT = 4.00
+SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
+SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS = 8
 SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
 SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
@@ -1457,6 +1464,71 @@ def _direction_balance_recipe_contract(
             )
         )
     )
+    hier_side_global_prior_match_weight = _safe_float(
+        recipe.get(
+            "hier_side_global_prior_match_weight",
+            _hier_slice_side_meta.get(
+                "global_prior_match_weight",
+                meta.get("hier_side_global_prior_match_weight", 0.0),
+            ),
+        )
+    )
+    hier_side_global_prior_match_tolerance = _safe_float(
+        recipe.get(
+            "hier_side_global_prior_match_tolerance",
+            _hier_slice_side_meta.get(
+                "global_prior_match_tolerance",
+                meta.get("hier_side_global_prior_match_tolerance", 1.0),
+            ),
+        )
+    )
+    hier_side_global_prior_match_min_label_rate = _safe_float(
+        recipe.get(
+            "hier_side_global_prior_match_min_label_rate",
+            _hier_slice_side_meta.get(
+                "global_prior_match_min_label_rate",
+                meta.get("hier_side_global_prior_match_min_label_rate", 0.0),
+            ),
+        )
+    )
+    hier_slice_side_prior_match_weight = _safe_float(
+        recipe.get(
+            "hier_slice_side_prior_match_weight",
+            _hier_slice_side_meta.get(
+                "prior_match_weight",
+                meta.get("hier_slice_side_prior_match_weight", 0.0),
+            ),
+        )
+    )
+    hier_slice_side_prior_match_tolerance = _safe_float(
+        recipe.get(
+            "hier_slice_side_prior_match_tolerance",
+            _hier_slice_side_meta.get(
+                "prior_match_tolerance",
+                meta.get("hier_slice_side_prior_match_tolerance", 1.0),
+            ),
+        )
+    )
+    hier_slice_side_prior_match_min_label_rate = _safe_float(
+        recipe.get(
+            "hier_slice_side_prior_match_min_label_rate",
+            _hier_slice_side_meta.get(
+                "prior_match_min_label_rate",
+                meta.get("hier_slice_side_prior_match_min_label_rate", 0.0),
+            ),
+        )
+    )
+    hier_slice_side_prior_match_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "hier_slice_side_prior_match_min_rows",
+                _hier_slice_side_meta.get(
+                    "prior_match_min_rows",
+                    meta.get("hier_slice_side_prior_match_min_rows", -1.0),
+                ),
+            )
+        )
+    )
     direction_flat_starvation_weight = _safe_float(
         recipe.get(
             "direction_flat_starvation_weight",
@@ -1905,6 +1977,41 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires hier_slice_side_min_rows >= "
                     f"{SMART_DIRECTION_HIER_SLICE_SIDE_MIN_ROWS}"
                 )
+            if hier_side_global_prior_match_weight < SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:
+                failures.append(
+                    "smart direction active head requires hier_side_global_prior_match_weight >= "
+                    f"{SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:.2f}"
+                )
+            if hier_side_global_prior_match_tolerance > SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:
+                failures.append(
+                    "smart direction active head requires hier_side_global_prior_match_tolerance <= "
+                    f"{SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
+                )
+            if hier_side_global_prior_match_min_label_rate < SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:
+                failures.append(
+                    "smart direction active head requires hier_side_global_prior_match_min_label_rate >= "
+                    f"{SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
+                )
+            if hier_slice_side_prior_match_weight < SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:
+                failures.append(
+                    "smart direction active head requires hier_slice_side_prior_match_weight >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:.2f}"
+                )
+            if hier_slice_side_prior_match_tolerance > SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE_MAX:
+                failures.append(
+                    "smart direction active head requires hier_slice_side_prior_match_tolerance <= "
+                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
+                )
+            if hier_slice_side_prior_match_min_label_rate < SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE:
+                failures.append(
+                    "smart direction active head requires hier_slice_side_prior_match_min_label_rate >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
+                )
+            if hier_slice_side_prior_match_min_rows < SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires hier_slice_side_prior_match_min_rows >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS}"
+                )
             if direction_flat_starvation_weight < SMART_DIRECTION_FLAT_STARVATION_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_flat_starvation_weight >= "
@@ -2033,6 +2140,13 @@ def _direction_balance_recipe_contract(
         "hier_slice_side_true_margin": hier_slice_side_true_margin,
         "hier_slice_side_min_label_rate": hier_slice_side_min_label_rate,
         "hier_slice_side_min_rows": hier_slice_side_min_rows,
+        "hier_side_global_prior_match_weight": hier_side_global_prior_match_weight,
+        "hier_side_global_prior_match_tolerance": hier_side_global_prior_match_tolerance,
+        "hier_side_global_prior_match_min_label_rate": hier_side_global_prior_match_min_label_rate,
+        "hier_slice_side_prior_match_weight": hier_slice_side_prior_match_weight,
+        "hier_slice_side_prior_match_tolerance": hier_slice_side_prior_match_tolerance,
+        "hier_slice_side_prior_match_min_label_rate": hier_slice_side_prior_match_min_label_rate,
+        "hier_slice_side_prior_match_min_rows": hier_slice_side_prior_match_min_rows,
         "direction_flat_starvation_weight": direction_flat_starvation_weight,
         "direction_flat_starvation_min_label_rate": direction_flat_starvation_min_label_rate,
         "direction_flat_starvation_min_rows": direction_flat_starvation_min_rows,

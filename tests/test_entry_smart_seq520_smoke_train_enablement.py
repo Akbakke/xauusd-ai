@@ -111,6 +111,13 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10 "
             "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=0.10 "
             "ENTRY_HIER_SLICE_SIDE_MIN_ROWS=8 "
+            "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=4.00 "
+            "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02 "
+            "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10 "
+            "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT=4.00 "
+            "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE=0.02 "
+            "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE=0.10 "
+            "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS=8 "
             "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00 "
             "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10 "
             "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8 "
@@ -137,6 +144,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_hier_compose_residual_cap": True,
         "has_hier_compose_residual_side_neutral": True,
         "has_hier_slice_side": True,
+        "has_hier_side_prior": True,
         "has_flat_starvation": True,
         "has_xau_repair_heads": True,
         "has_strict_edge_audit": True,
@@ -162,6 +170,7 @@ def test_smart_smoke_train_enablement_passes_with_clean_package(monkeypatch, tmp
     assert report["wrapper_dry_run"]["has_capped_run"] is True
     assert report["wrapper_dry_run"]["has_hier_compose_residual_cap"] is True
     assert report["wrapper_dry_run"]["has_hier_compose_residual_side_neutral"] is True
+    assert report["wrapper_dry_run"]["has_hier_side_prior"] is True
 
 
 def test_smart_smoke_train_enablement_blocks_missing_vedtak(monkeypatch, tmp_path: Path) -> None:

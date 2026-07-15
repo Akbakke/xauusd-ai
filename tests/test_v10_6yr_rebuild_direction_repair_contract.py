@@ -53,6 +53,22 @@ def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> 
         "${ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN:-0.10}" in text
     )
     assert (
+        "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT="
+        "${ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:-4.00}" in text
+    )
+    assert (
+        "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE="
+        "${ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE:-0.02}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT="
+        "${ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:-4.00}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS="
+        "${ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS:-8}" in text
+    )
+    assert (
         "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT="
         "${ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT:-8.00}" in text
     )

@@ -72,6 +72,8 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_WEIGHT", "choice", choices=(1.75, 2.00, 2.25)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_CE_WEIGHT", "choice", choices=(4.0, 5.0, 6.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "choice", choices=(3.0, 4.0, 5.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", "choice", choices=(4.0, 6.0, 8.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT", "choice", choices=(4.0, 6.0, 8.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT", "choice", choices=(1.50, 2.00)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT", "choice", choices=(5.0, 7.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT", "choice", choices=(3.0, 4.0)),
@@ -151,6 +153,11 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_UTILITY_MARGIN_BPS": "30.0",
     "ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT": "1.00",
     "ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT": "1.50",
@@ -396,6 +403,62 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_SLICE_SIDE_MIN_ROWS must stay 8 for strict XAU repair, "
             f"got {hier_slice_side_min_rows}"
+        )
+    hier_side_global_prior_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", "0")
+    )
+    hier_side_global_prior_tolerance = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE", "1")
+    )
+    hier_side_global_prior_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", "0")
+    )
+    hier_slice_side_prior_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT", "0")
+    )
+    hier_slice_side_prior_tolerance = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE", "1")
+    )
+    hier_slice_side_prior_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE", "0")
+    )
+    hier_slice_side_prior_min_rows = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS", "0"))
+    )
+    if hier_side_global_prior_weight < 4.0:
+        failures.append(
+            "HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_side_global_prior_weight}"
+        )
+    if hier_side_global_prior_tolerance > 0.02:
+        failures.append(
+            "HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE must be <= 0.02 for strict XAU repair, "
+            f"got {hier_side_global_prior_tolerance}"
+        )
+    if hier_side_global_prior_min_label_rate < 0.10:
+        failures.append(
+            "HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE must be >= 0.10 for strict XAU repair, "
+            f"got {hier_side_global_prior_min_label_rate}"
+        )
+    if hier_slice_side_prior_weight < 4.0:
+        failures.append(
+            "HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_slice_side_prior_weight}"
+        )
+    if hier_slice_side_prior_tolerance > 0.02:
+        failures.append(
+            "HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE must be <= 0.02 for strict XAU repair, "
+            f"got {hier_slice_side_prior_tolerance}"
+        )
+    if hier_slice_side_prior_min_label_rate < 0.10:
+        failures.append(
+            "HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE must be >= 0.10 for strict XAU repair, "
+            f"got {hier_slice_side_prior_min_label_rate}"
+        )
+    if hier_slice_side_prior_min_rows < 8:
+        failures.append(
+            "HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS must be >= 8 for strict XAU repair, "
+            f"got {hier_slice_side_prior_min_rows}"
         )
     flat_starvation_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT", "0"))
     flat_starvation_min_label_rate = float(

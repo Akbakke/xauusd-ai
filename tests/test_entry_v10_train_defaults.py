@@ -639,6 +639,13 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", 0.10)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", 0.10)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS", 3)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
 
@@ -678,14 +685,32 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     good_margin = float(
         trainer._hier_slice_side_true_margin_term(good_logits, side_targets, side_mask, ctx_cat).item()
     )
+    bad_global_prior = float(
+        trainer._hier_side_global_prior_match_term(collapsed_logits, side_targets, side_mask).item()
+    )
+    good_global_prior = float(trainer._hier_side_global_prior_match_term(good_logits, side_targets, side_mask).item())
+    bad_slice_prior = float(
+        trainer._hier_slice_side_prior_match_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()
+    )
+    good_slice_prior = float(
+        trainer._hier_slice_side_prior_match_term(good_logits, side_targets, side_mask, ctx_cat).item()
+    )
 
     assert bad_ce > good_ce
     assert bad_margin > good_margin
     assert good_margin == 0.0
+    assert bad_global_prior > good_global_prior
+    assert bad_slice_prior > good_slice_prior
+    assert good_global_prior == 0.0
+    assert good_slice_prior == 0.0
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", 0.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT", 0.0)
     assert float(trainer._hier_slice_side_balanced_ce_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
     assert float(trainer._hier_slice_side_true_margin_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
+    assert float(trainer._hier_side_global_prior_match_term(collapsed_logits, side_targets, side_mask).item()) == 0.0
+    assert float(trainer._hier_slice_side_prior_match_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
 
 
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:

@@ -72,6 +72,13 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
     "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_SIDE_MIN_ROWS": "8",
+    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT": "4.00",
+    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS": "8",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -220,6 +227,13 @@ def _dry_run_wrapper(
         and "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10" in capped_line
         and "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=0.10" in capped_line
         and "ENTRY_HIER_SLICE_SIDE_MIN_ROWS=8" in capped_line,
+        "has_hier_side_prior": "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=4.00" in capped_line
+        and "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02" in capped_line
+        and "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in capped_line
+        and "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT=4.00" in capped_line
+        and "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE=0.02" in capped_line
+        and "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in capped_line
+        and "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS=8" in capped_line,
         "has_flat_starvation": "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in capped_line
         and "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in capped_line
         and "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in capped_line
@@ -359,6 +373,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run.get("has_hier_compose_residual_cap") is True
             and dry_run.get("has_hier_compose_residual_side_neutral") is True
             and dry_run.get("has_hier_slice_side") is True
+            and dry_run.get("has_hier_side_prior") is True
             and dry_run["has_flat_starvation"]
             and dry_run["has_xau_repair_heads"]
             and dry_run["has_strict_edge_audit"]
