@@ -294,7 +294,11 @@ def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(
     assert collapsed["direction_slice_audited_count"] == 1
     assert collapsed["direction_slice_failure_count"] > 0
     assert collapsed["direction_slice_pred_rate_shortfall"] > 0.0
+    assert collapsed["direction_slice_failure_details"]
+    assert collapsed["direction_slice_failure_details"][0]["ctx_cat_index"] == 0
+    assert collapsed["direction_slice_failure_details"][0]["accuracy_failed"] is True
     assert covered["direction_slice_failure_count"] == 0
+    assert covered["direction_slice_failure_details"] == []
     assert trainer._direction_slice_ckpt_score(0.40, collapsed) < trainer._direction_slice_ckpt_score(0.40, covered)
 
 
@@ -473,6 +477,61 @@ def test_entry_v10_direction_slice_true_margin_term_penalizes_wrong_argmax(monke
     assert good_loss == 0.0
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT", 0.0)
     assert float(trainer._direction_slice_true_margin_term(bad_logits, targets, ctx_cat).item()) == 0.0
+
+
+def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS", 6)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 0.05)
+
+    targets = torch.tensor([0, 0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=torch.long)
+    ctx_cat = torch.tensor([[2]] * len(targets), dtype=torch.long)
+    below_majority = torch.tensor(
+        [
+            [-1.0, 2.0, 0.0],
+            [-1.0, 2.0, 0.0],
+            [-1.0, 2.0, 0.0],
+            [-1.0, 2.0, 0.0],
+            [2.0, -1.0, 0.0],
+            [2.0, -1.0, 0.0],
+            [2.0, -1.0, 0.0],
+            [2.0, 0.0, -1.0],
+            [2.0, 0.0, -1.0],
+            [2.0, 0.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    above_majority = torch.tensor(
+        [
+            [3.0, -1.0, -1.0],
+            [3.0, -1.0, -1.0],
+            [3.0, -1.0, -1.0],
+            [3.0, -1.0, -1.0],
+            [-1.0, 3.0, -1.0],
+            [-1.0, 3.0, -1.0],
+            [-1.0, 3.0, -1.0],
+            [-1.0, -1.0, 3.0],
+            [-1.0, -1.0, 3.0],
+            [-1.0, -1.0, 3.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(trainer._direction_slice_accuracy_edge_term(below_majority, targets, ctx_cat).item())
+    good_loss = float(trainer._direction_slice_accuracy_edge_term(above_majority, targets, ctx_cat).item())
+
+    assert bad_loss > 0.0
+    assert good_loss == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT", 0.0)
+    assert float(trainer._direction_slice_accuracy_edge_term(below_majority, targets, ctx_cat).item()) == 0.0
 
 
 def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:

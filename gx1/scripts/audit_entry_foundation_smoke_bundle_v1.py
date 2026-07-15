@@ -57,7 +57,7 @@ SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
 SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
 SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
-SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.50
+SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.05
 SMART_DIRECTION_SLICE_BALANCED_CE_WEIGHT = 2.00
 SMART_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS = 8
@@ -65,6 +65,10 @@ SMART_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT = 2.00
 SMART_DIRECTION_SLICE_TRUE_MARGIN = 0.10
 SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS = 8
+SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT = 4.00
+SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN = 0.02
+SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS = 8
 SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = 8
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
@@ -1123,6 +1127,32 @@ def _direction_balance_recipe_contract(
             )
         )
     )
+    direction_slice_accuracy_edge_weight = _safe_float(
+        recipe.get(
+            "direction_slice_accuracy_edge_weight",
+            meta.get("direction_slice_accuracy_edge_weight", -1.0),
+        )
+    )
+    direction_slice_accuracy_edge_margin = _safe_float(
+        recipe.get(
+            "direction_slice_accuracy_edge_margin",
+            meta.get("direction_slice_accuracy_edge_margin", -1.0),
+        )
+    )
+    direction_slice_accuracy_edge_min_label_rate = _safe_float(
+        recipe.get(
+            "direction_slice_accuracy_edge_min_label_rate",
+            meta.get("direction_slice_accuracy_edge_min_label_rate", -1.0),
+        )
+    )
+    direction_slice_accuracy_edge_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "direction_slice_accuracy_edge_min_rows",
+                meta.get("direction_slice_accuracy_edge_min_rows", -1.0),
+            )
+        )
+    )
     direction_slice_balanced_sampler = _bool_value(
         recipe.get(
             "direction_slice_balanced_sampler",
@@ -1317,6 +1347,32 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_slice_true_margin_min_rows="
                     f"{SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS}"
                 )
+            if direction_slice_accuracy_edge_weight < SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_slice_accuracy_edge_weight >= "
+                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT:.2f}"
+                )
+            if direction_slice_accuracy_edge_margin < SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:
+                failures.append(
+                    "smart direction active head requires direction_slice_accuracy_edge_margin >= "
+                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:.2f}"
+                )
+            if (
+                abs(
+                    direction_slice_accuracy_edge_min_label_rate
+                    - SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE
+                )
+                > 1e-12
+            ):
+                failures.append(
+                    "smart direction active head requires direction_slice_accuracy_edge_min_label_rate="
+                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE:.2f}"
+                )
+            if direction_slice_accuracy_edge_min_rows != SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires direction_slice_accuracy_edge_min_rows="
+                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS}"
+                )
             if not bool(direction_slice_balanced_sampler):
                 failures.append(
                     "smart direction active head requires direction_slice_balanced_sampler=true"
@@ -1393,6 +1449,10 @@ def _direction_balance_recipe_contract(
         "direction_slice_true_margin": direction_slice_true_margin,
         "direction_slice_true_margin_min_label_rate": direction_slice_true_margin_min_label_rate,
         "direction_slice_true_margin_min_rows": direction_slice_true_margin_min_rows,
+        "direction_slice_accuracy_edge_weight": direction_slice_accuracy_edge_weight,
+        "direction_slice_accuracy_edge_margin": direction_slice_accuracy_edge_margin,
+        "direction_slice_accuracy_edge_min_label_rate": direction_slice_accuracy_edge_min_label_rate,
+        "direction_slice_accuracy_edge_min_rows": direction_slice_accuracy_edge_min_rows,
         "direction_slice_balanced_sampler": direction_slice_balanced_sampler,
         "direction_slice_balanced_sampler_min_rows": direction_slice_balanced_sampler_min_rows,
         "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
