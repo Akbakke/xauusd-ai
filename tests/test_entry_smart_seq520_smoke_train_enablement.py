@@ -80,7 +80,10 @@ def _dry_run_stub(**kwargs) -> dict:
         "stderr_tail": "",
         "capped_smoke_train_command": (
             "Capped smoke train command: scripts/gx1_capped_run.sh --mem 22G --swap 2G -- "
-            "env ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00 "
+            "env ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00 "
+            "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02 "
+            "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10 "
+            "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00 "
             "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02 "
             "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3 "
             "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6 "
@@ -93,6 +96,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_mem_cap": True,
         "has_swap_cap": True,
         "has_num_workers_zero": True,
+        "has_global_prior_match": True,
         "has_prior_match": True,
         "has_hard_red_stop": True,
         "has_xau_repair_heads": True,

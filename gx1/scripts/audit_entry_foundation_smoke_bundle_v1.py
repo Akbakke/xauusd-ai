@@ -58,6 +58,9 @@ SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
 SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
 SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.05
+SMART_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT = 8.00
+SMART_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE = 0.02
+SMART_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_BALANCED_CE_WEIGHT = 2.00
 SMART_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS = 8
@@ -1087,6 +1090,24 @@ def _direction_balance_recipe_contract(
             meta.get("direction_min_pred_rate_softmax_temperature", 0.0),
         )
     )
+    direction_global_prior_match_weight = _safe_float(
+        recipe.get(
+            "direction_global_prior_match_weight",
+            meta.get("direction_global_prior_match_weight", -1.0),
+        )
+    )
+    direction_global_prior_match_tolerance = _safe_float(
+        recipe.get(
+            "direction_global_prior_match_tolerance",
+            meta.get("direction_global_prior_match_tolerance", -1.0),
+        )
+    )
+    direction_global_prior_match_min_label_rate = _safe_float(
+        recipe.get(
+            "direction_global_prior_match_min_label_rate",
+            meta.get("direction_global_prior_match_min_label_rate", -1.0),
+        )
+    )
     direction_slice_balanced_ce_weight = _safe_float(
         recipe.get(
             "direction_slice_balanced_ce_weight",
@@ -1348,6 +1369,27 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_min_pred_rate_softmax_temperature "
                     f"in (0.0, {SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX:.2f}]"
                 )
+            if direction_global_prior_match_weight < SMART_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_global_prior_match_weight >= "
+                    f"{SMART_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT:.2f}"
+                )
+            if direction_global_prior_match_tolerance > SMART_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE:
+                failures.append(
+                    "smart direction active head requires direction_global_prior_match_tolerance <= "
+                    f"{SMART_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE:.2f}"
+                )
+            if (
+                abs(
+                    direction_global_prior_match_min_label_rate
+                    - SMART_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+                )
+                > 1e-12
+            ):
+                failures.append(
+                    "smart direction active head requires direction_global_prior_match_min_label_rate="
+                    f"{SMART_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
+                )
             if direction_slice_balanced_ce_weight < SMART_DIRECTION_SLICE_BALANCED_CE_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_slice_balanced_ce_weight >= "
@@ -1526,6 +1568,9 @@ def _direction_balance_recipe_contract(
         "direction_min_pred_rate_fraction": direction_min_pred_rate_fraction,
         "direction_min_pred_rate_floor": direction_min_pred_rate_floor,
         "direction_min_pred_rate_softmax_temperature": direction_min_pred_rate_softmax_temperature,
+        "direction_global_prior_match_weight": direction_global_prior_match_weight,
+        "direction_global_prior_match_tolerance": direction_global_prior_match_tolerance,
+        "direction_global_prior_match_min_label_rate": direction_global_prior_match_min_label_rate,
         "direction_slice_balanced_ce_weight": direction_slice_balanced_ce_weight,
         "direction_slice_balanced_ce_min_label_rate": direction_slice_balanced_ce_min_label_rate,
         "direction_slice_balanced_ce_min_rows": direction_slice_balanced_ce_min_rows,

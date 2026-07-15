@@ -191,6 +191,25 @@ Result at handover: `58 passed`.
 
 Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
+### 2026-07-15 Global Prior-Match Repair
+
+- Latest bounded smart smoke train after the prior-match enablement package failed hard before writing a bundle:
+  - failure: `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]`
+  - key symptom: global FLAT prediction collapse (`pred_flat=0.005859` vs `label_flat=0.345052`)
+  - LONG/SHORT were over-predicted (`pred_long=0.417969`, `pred_short=0.576172`)
+  - IQL, replay, shadow, and live remain closed.
+- Implemented a new fail-closed transformer objective/contract:
+  - `ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT`
+  - `ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE`
+  - `ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE`
+- Smart XAU smoke/candidate auto-recipes now set global prior-match to `8.00 / 0.02 / 0.10`.
+- Trainer metadata, class-balance/slice failure evidence, bundle audit, smoke manifest, smoke/trainability readiness, enablement package, and sweep lint now require/report the global prior-match contract.
+- Validation completed after the change:
+  - `py_compile` for trainer/readiness/audit/sweep scripts: passed.
+  - Focused pytest for trainer/wrappers/readiness/enablement/bundle-audit/sweep: passed.
+  - Broad XAU/replay/IQL contract suite: passed with expected skips.
+- No transformer training has been launched after this repair yet. Before any new smoke train, clean git and regenerate the readiness/enablement proof.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -200,15 +219,15 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest smart XAU smoke training attempts failed hard on direction slice guard. No fallback path and no slice-failed bundle should be used as evidence.
-   - True-margin standard, stronger W8/CE4, batch-size 256, slice-balanced sampler, `mean_max` aggregation, `0.05` argmax-aligned pred-rate temperature, and slice accuracy-edge all failed/stopped hard without writing a bundle.
-   - Current evidence says the objective can now see hard argmax collapse and log exact slice failures, but it still cannot keep all active direction slices above the hard gate. The next repair should change the objective/data contract, not rerun the same transformer recipe longer.
+2. Latest smart XAU smoke training failed hard on global direction class balance after prior-match enablement. No fallback path and no failed bundle should be used as evidence.
+   - The immediate failure was FLAT prediction collapse (`pred_flat=0.005859` vs `label_flat=0.345052`), not a valid candidate.
+   - The next transformer attempt must use the new global prior-match contract; do not rerun the old recipe.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not relaunch the same `SLICEACCEDGE` transformer recipe just to burn more epochs. Use the `ENTRY_DIR_SLICE_FAILURE` rows from the stopped run to implement the next hard objective/data repair. Current leading evidence: global balance can pass while ctx slices still miss majority accuracy, and the model oscillates between missing FLAT/SHORT/LONG pred-rate across slices.
+1. Do not relaunch the old transformer recipe just to burn more epochs. The next bounded smoke train must first pass clean-git readiness/enablement with global prior-match enabled. If the first epochs are hard red with no improvement, stop instead of burning CPU/GPU.
 
 2. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

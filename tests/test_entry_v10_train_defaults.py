@@ -649,6 +649,29 @@ def test_entry_v10_direction_slice_prior_match_penalizes_slice_distribution_drif
     assert float(trainer._direction_slice_prior_match_term(collapsed, targets, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_direction_global_prior_match_penalizes_global_distribution_drift(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
+
+    targets = torch.tensor([0, 0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=torch.long)
+    collapsed = torch.tensor([[0.10, 0.89, 0.01]] * len(targets), dtype=torch.float32)
+    matched = torch.tensor([[0.40, 0.30, 0.30]] * len(targets), dtype=torch.float32)
+
+    bad_loss = float(trainer._direction_global_prior_match_term(collapsed, targets).item())
+    good_loss = float(trainer._direction_global_prior_match_term(matched, targets).item())
+
+    assert bad_loss > 0.0
+    assert good_loss == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT", 0.0)
+    assert float(trainer._direction_global_prior_match_term(collapsed, targets).item()) == 0.0
+
+
 def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:
     import torch
 

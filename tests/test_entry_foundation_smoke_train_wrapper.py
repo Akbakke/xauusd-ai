@@ -60,6 +60,9 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.0" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.0" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=1.0" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT=0.0" in result.stdout
@@ -151,6 +154,9 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.05" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in result.stdout
@@ -311,6 +317,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE" in text
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT" in text
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE" in text
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE" in text
     assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT" in text
     assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE" in text
     assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS" in text
@@ -398,6 +407,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "SMOKE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
     assert "SMOKE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.05" in text
+    assert "SMOKE_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in text
+    assert "SMOKE_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02" in text
+    assert "SMOKE_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in text
     assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00" in text
     assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text

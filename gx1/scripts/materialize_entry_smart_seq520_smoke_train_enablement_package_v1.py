@@ -37,6 +37,9 @@ READY_DECISION = "ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_E
 BLOCKED_DECISION = "BLOCKED_BY_ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_PACKAGE"
 VEDTAK_PREFIX = "SMART_SEQ520_XAU_SMOKE_"
 REQUIRED_DIRECTION_ENV = {
+    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT": "3.00",
     "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE": "0.02",
     "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
@@ -156,6 +159,9 @@ def _dry_run_wrapper(
         "has_mem_cap": f"--mem {mem_cap}" in capped_line,
         "has_swap_cap": f"--swap {swap_cap}" in capped_line,
         "has_num_workers_zero": "--num-workers 0" in capped_line,
+        "has_global_prior_match": "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in capped_line
+        and "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02" in capped_line
+        and "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in capped_line,
         "has_prior_match": "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00" in capped_line
         and "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02" in capped_line,
         "has_hard_red_stop": "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3" in capped_line
@@ -282,6 +288,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run["has_mem_cap"]
             and dry_run["has_swap_cap"]
             and dry_run["has_num_workers_zero"]
+            and dry_run["has_global_prior_match"]
             and dry_run["has_prior_match"]
             and dry_run["has_hard_red_stop"]
             and dry_run["has_xau_repair_heads"]

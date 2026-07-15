@@ -61,6 +61,7 @@ SWEEP_SPACES: tuple[Space, ...] = (
         "choice",
         choices=(0.03, 0.05),
     ),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT", "choice", choices=(8.0, 12.0, 16.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "choice", choices=(4.0, 8.0, 12.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "choice", choices=(0.0, 4.0, 8.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT", "choice", choices=(2.0, 3.0, 4.0)),
@@ -86,6 +87,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_PROB_PENALTY": "0.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR": "0.05",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR": "0.05",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_LABEL_RATE": "0.10",
@@ -154,6 +157,30 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE must be in (0.0, 0.05] for strict XAU repair, "
             f"got {min_pred_rate_temp}"
+        )
+    global_prior_match_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT", "0")
+    )
+    global_prior_match_tolerance = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE", "1")
+    )
+    global_prior_match_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", "0")
+    )
+    if global_prior_match_weight < 8.0:
+        failures.append(
+            "DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT must be >= 8.0 for strict XAU repair, "
+            f"got {global_prior_match_weight}"
+        )
+    if global_prior_match_tolerance > 0.02:
+        failures.append(
+            "DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE must be <= 0.02 for strict XAU repair, "
+            f"got {global_prior_match_tolerance}"
+        )
+    if global_prior_match_min_label_rate != 0.10:
+        failures.append(
+            "DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE must stay 0.10 for strict XAU repair, "
+            f"got {global_prior_match_min_label_rate}"
         )
     flat_margin_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0"))
     flat_margin = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN", "0"))
