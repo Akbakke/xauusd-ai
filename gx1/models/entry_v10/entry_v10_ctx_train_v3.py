@@ -8241,6 +8241,34 @@ def run_train(
                     "direction_slice_hard_red_stop_min_epochs": int(
                         ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS
                     ),
+                    "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
+                    "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
+                    "direction_utility_margin_weight": float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
+                    "direction_utility_min_gap_bps": float(ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS),
+                    "direction_utility_logit_margin": float(ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN),
+                    "direction_side_utility_conviction_weight": float(
+                        ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT
+                    ),
+                    "direction_side_utility_conviction_min_gap_bps": float(
+                        ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS
+                    ),
+                    "direction_side_utility_conviction_logit_margin": float(
+                        ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
+                    ),
+                    "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
+                    "direction_flat_starvation_min_label_rate": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
+                    ),
+                    "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
+                    "direction_flat_starvation_pred_fraction": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION
+                    ),
+                    "direction_flat_starvation_pred_floor": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR
+                    ),
+                    "direction_flat_starvation_logit_margin": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN
+                    ),
                 },
             },
         )
@@ -8336,6 +8364,34 @@ def run_train(
                     ),
                     "direction_slice_hard_red_stop_min_epochs": int(
                         ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS
+                    ),
+                    "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
+                    "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
+                    "direction_utility_margin_weight": float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
+                    "direction_utility_min_gap_bps": float(ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS),
+                    "direction_utility_logit_margin": float(ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN),
+                    "direction_side_utility_conviction_weight": float(
+                        ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT
+                    ),
+                    "direction_side_utility_conviction_min_gap_bps": float(
+                        ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS
+                    ),
+                    "direction_side_utility_conviction_logit_margin": float(
+                        ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
+                    ),
+                    "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
+                    "direction_flat_starvation_min_label_rate": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
+                    ),
+                    "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
+                    "direction_flat_starvation_pred_fraction": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION
+                    ),
+                    "direction_flat_starvation_pred_floor": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR
+                    ),
+                    "direction_flat_starvation_logit_margin": float(
+                        ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN
                     ),
                 },
             },

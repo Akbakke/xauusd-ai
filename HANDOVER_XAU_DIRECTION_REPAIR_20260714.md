@@ -392,6 +392,26 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free.
   - RAM had about `35GiB` available, swap use was `0B`, and no `python3` training/eval jobs were running.
   - No transformer training, candidate training, replay, IQL, shadow, live, or promotion path was started by this repair.
+- Clean-git gates after commit `800cb7cb Add XAU side utility conviction repair`:
+  - `smart-smoke-readiness --quiet`: passed.
+  - `smart-trainability-readiness --quiet`: passed.
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_SIDEUTIL_E8_20260715 --epochs 8 --batch-size 64 --quiet`: passed with no trainer start and no replay/IQL/live/promotion side effects.
+- Bounded side-utility-conviction smoke result:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_SIDEUTIL_E8_20260715`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T135909Z.json`
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T135909Z`
+  - Result: hard-red-stopped at epoch `6`, then failed closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was written.
+  - Failure evidence sidecar:
+    `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T135909Z__direction_slice_failure_evidence.json`
+  - Sidecar confirms `decision=FAIL_DIRECTION_SLICE_GUARD`, `failure_code=TRAIN_FAIL_DIRECTION_SLICE_GUARD`, `bundle_written=false`, `promotion_shadow_live_allowed=false`, `hard_red_stopped=true`, `git_commit=800cb7cb7e498e21dde57078fe269df44eea0121`.
+  - Best checkpoint: epoch `2`, `best_dir_acc=0.367839`, `best_dir_ckpt_score=-0.484030`, `best_direction_balance_guard_ok=true`, `best_direction_slice_contract_ok=false`.
+  - Best slice stats: `21` slice failures, `12` accuracy failures, `9` pred-rate failures. Prediction rates were LONG `0.147786`, SHORT `0.441406`, FLAT `0.410807` versus label rates LONG `0.322917`, SHORT `0.332031`, FLAT `0.345052`.
+  - Last epoch `6`: `27` slice failures, `8` accuracy failures, `19` pred-rate failures; SHORT rose to `0.818359` and FLAT fell to `0.005208`.
+  - Interpretation: side-utility-conviction did not solve the hard slice direction contract. It briefly restored FLAT coverage at the best checkpoint but still under-predicted LONG and failed too many active context slices. Extending epochs on this same recipe is not justified.
+- Post-run evidence traceability fix:
+  - The sideutil smoke logs confirm `side_utility_conviction` was active, but that pre-fix failure sidecar did not include the side-utility/FLAT-starvation/utility-margin fields inside its `train_recipe` block.
+  - The trainer failure-evidence blocks now record the active utility-margin, side-utility-conviction, and FLAT-starvation recipe fields for both class-balance and slice-guard failures.
+  - Validation: `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed, and `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed (`49 passed`).
 
 ## Current Blockers
 
@@ -402,22 +422,18 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the FLAT-starvation repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
-   - FLAT-starvation changed the failure mode and produced one globally balanced best checkpoint at epoch `2`, but the best checkpoint still had `18` slice failures and `best_direction_slice_contract_ok=false`.
-   - Later epochs collapsed FLAT again (`direction_pred_rate_flat=0.002604` at epoch `6`) and hard-red-stop correctly refused to burn more compute.
-   - Side-utility-conviction is now implemented as the next transformer repair, but it has not yet been tested in a clean-git bounded smoke run. Until that run passes hard direction-slice and class-balance gates, there is still no candidate bundle.
+2. Latest executed smart XAU smoke after the side-utility-conviction repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
+   - Best checkpoint was epoch `2` with global balance guard OK, but `best_direction_slice_contract_ok=false`, `21` slice failures, `12` accuracy failures, and `9` pred-rate failures.
+   - Last epoch `6` collapsed back toward SHORT dominance (`direction_pred_rate_short=0.818359`, `direction_pred_rate_flat=0.005208`) and hard-red-stop correctly refused to burn more compute.
+   - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Commit the side-utility-conviction repair, then rerun clean-git readiness and enablement before any heavy job:
-   - `smart-smoke-readiness --quiet`
-   - `smart-trainability-readiness --quiet`
-   - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_SIDEUTIL_<id> --epochs <bounded> --batch-size 64 --quiet`
-   - Only then run one bounded smart smoke train with hard-red monitoring. Do not run IQL, replay, candidate training, shadow, live, or promotion.
+1. Do not extend epochs on the same side-utility-conviction recipe. It already hard-red-stopped with no candidate bundle.
 
-2. If the side-utility-conviction smoke still fails hard, do not extend epochs on the same recipe. Use the new failure sidecar to decide whether the next blocker is target/noise, architecture/input routing, or a missing feature interaction. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+2. Use the latest sideutil failure sidecar and `ENTRY_DIR_SLICE_FAILURE` rows for a targeted read-only diagnostic before the next code repair: decide whether the blocker is target/noise in specific ctx slices, architecture/input routing, or a missing feature interaction. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

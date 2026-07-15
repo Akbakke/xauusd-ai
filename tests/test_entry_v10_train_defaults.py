@@ -905,6 +905,33 @@ def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -
     assert "total_direction_flat_starvation += " in text[text.index("    with torch.no_grad():", validate_start):]
 
 
+def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    required_fields = (
+        "direction_utility_margin_weight",
+        "direction_utility_min_gap_bps",
+        "direction_utility_logit_margin",
+        "direction_side_utility_conviction_weight",
+        "direction_side_utility_conviction_min_gap_bps",
+        "direction_side_utility_conviction_logit_margin",
+        "direction_flat_starvation_weight",
+        "direction_flat_starvation_min_label_rate",
+        "direction_flat_starvation_min_rows",
+        "direction_flat_starvation_pred_fraction",
+        "direction_flat_starvation_pred_floor",
+        "direction_flat_starvation_logit_margin",
+    )
+
+    for marker in (
+        '"decision": "FAIL_DIRECTION_CLASS_BALANCE_GUARD"',
+        '"decision": "FAIL_DIRECTION_SLICE_GUARD"',
+    ):
+        start = text.index(marker)
+        block = text[start:text.index("raise RuntimeError", start)]
+        for field in required_fields:
+            assert f'"{field}"' in block
+
+
 def test_entry_v10_direction_repair_fails_closed_without_calibration_fallback() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
