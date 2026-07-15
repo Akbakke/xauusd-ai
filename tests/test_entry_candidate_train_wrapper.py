@@ -441,6 +441,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=" in text
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=" in text
     assert "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=" in text
+    assert "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=" in text
@@ -448,7 +449,9 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_RESIDUAL_SCALE" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_ANCHOR_EPS" in text
+    assert 'ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="$CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP"' in text
     assert 'ENTRY_RESIDUAL_SCALE="$CANDIDATE_RESIDUAL_SCALE"' in text
     assert 'ENTRY_ANCHOR_EPS="$CANDIDATE_ANCHOR_EPS"' in text
     assert "ENTRY_RESIDUAL_SCALE" in text

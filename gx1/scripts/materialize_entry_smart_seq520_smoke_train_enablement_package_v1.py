@@ -65,6 +65,7 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
     "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION": "1",
+    "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.18",
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "4.00",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "3.00",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
@@ -211,6 +212,7 @@ def _dry_run_wrapper(
         and "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=0.50" in capped_line
         and "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0" in capped_line,
         "has_hierarchical_composition": "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=1" in capped_line,
+        "has_hier_compose_residual_cap": "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.18" in capped_line,
         "has_hier_slice_side": "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=4.00" in capped_line
         and "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00" in capped_line
         and "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10" in capped_line
@@ -352,6 +354,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run["has_utility_trade_conviction"]
             and dry_run["has_utility_triad_ce"]
             and dry_run.get("has_hierarchical_composition") is True
+            and dry_run.get("has_hier_compose_residual_cap") is True
             and dry_run.get("has_hier_slice_side") is True
             and dry_run["has_flat_starvation"]
             and dry_run["has_xau_repair_heads"]

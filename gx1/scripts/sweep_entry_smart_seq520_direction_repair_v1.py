@@ -134,6 +134,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_HIERARCHICAL_COMPOSITION": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.18",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -344,6 +345,14 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_HIERARCHICAL_COMPOSITION must be 1 for strict XAU repair, "
             f"got {hierarchical_composition}"
+        )
+    hier_compose_residual_logit_cap = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", "0")
+    )
+    if hier_compose_residual_logit_cap < 0.10 or hier_compose_residual_logit_cap > 0.20:
+        failures.append(
+            "HIER_COMPOSE_RESIDUAL_LOGIT_CAP must stay within [0.10, 0.20] for strict XAU repair, "
+            f"got {hier_compose_residual_logit_cap}"
         )
     hier_slice_side_ce_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_CE_WEIGHT", "0"))
     hier_slice_side_true_margin_weight = float(

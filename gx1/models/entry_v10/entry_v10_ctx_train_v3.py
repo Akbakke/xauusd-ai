@@ -450,6 +450,7 @@ ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP = float(
 ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION = int(
     float(_env_str("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", "0"))
 )
+ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP = float(_env_str("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
     _env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0.10")
@@ -725,6 +726,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
     "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION": "0",
+    "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -6712,6 +6714,7 @@ def run_sanity_check(
         ctx_cat_dim=ctx_cat_dim,
         residual_scale=float(ENTRY_RESIDUAL_SCALE),
         anchor_eps=float(ENTRY_ANCHOR_EPS),
+        hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         enable_specialist_fusion=bool(enable_specialist_fusion),
         specialist_input_indices=specialist_indices,
         specialist_num_layers=int(specialist_num_layers),
@@ -7476,6 +7479,7 @@ def run_train(
         anchor_gate_init=float(anchor_gate_init),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
         enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
+        hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
@@ -7692,6 +7696,7 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN)
     _require_nonneg("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION)
+    _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)
     _require_nonneg(
         "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
         ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT,
@@ -8182,6 +8187,16 @@ def run_train(
             )
         if not bool(enable_hierarchical_direction_composition):
             repair_failures.append("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=0 expected 1")
+        if ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="
+                f"{ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP > 0.20:
+            repair_failures.append(
+                "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="
+                f"{ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP:.3f} expected <=0.20"
+            )
         if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
@@ -8394,7 +8409,7 @@ def run_train(
         "utility_trade_conviction_margin=%.3f "
         "utility_triad_ce_w=%.3f utility_triad_ce_min_gap_bps=%.3f "
         "utility_triad_ce_min_utility_bps=%.3f utility_triad_ce_max_bad_path=%.3f "
-        "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
+        "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d hier_compose_residual_cap=%.3f "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
         "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
@@ -8453,6 +8468,7 @@ def run_train(
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH),
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP),
         int(bool(enable_hierarchical_direction_composition)),
+        float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -9002,6 +9018,7 @@ def run_train(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+                    "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
@@ -9162,6 +9179,7 @@ def run_train(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+                    "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
@@ -9396,9 +9414,10 @@ def run_train(
         },
         "hierarchical_direction_composition": {
             "enabled": bool(enable_hierarchical_direction_composition),
+            "residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "formula": (
                 "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
-                "log P(flat)] + residual_scale*delta_logits"
+                "log P(flat)] + capped(residual_scale*delta_logits)"
             ),
             "public_output": "direction_logits",
             "residual_delta_logits": "head_direction remains trainable through public direction_logits",
@@ -9601,6 +9620,7 @@ def run_train(
             ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
         ),
         "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+        "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -9721,6 +9741,7 @@ def run_train(
                 ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
             ),
             "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+            "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
             "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
             "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -9873,6 +9894,7 @@ def run_train(
         anchor_gate_init=float(anchor_gate_init),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
         enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
+        hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,

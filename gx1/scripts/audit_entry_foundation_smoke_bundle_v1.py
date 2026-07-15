@@ -98,6 +98,8 @@ SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX = 0.0
 SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX = 0.50
 SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN = 2.0
 SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
+SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
+SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN = 0.10
@@ -1383,6 +1385,15 @@ def _direction_balance_recipe_contract(
             _hierarchical_direction_meta.get("enabled", False),
         )
     )
+    hier_compose_residual_logit_cap = _safe_float(
+        recipe.get(
+            "hier_compose_residual_logit_cap",
+            _hierarchical_direction_meta.get(
+                "residual_logit_cap",
+                meta.get("hier_compose_residual_logit_cap", 0.0),
+            ),
+        )
+    )
     _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
     _hier_slice_side_meta = (
         _hier_entry_meta.get("slice_side_supervision")
@@ -1847,6 +1858,16 @@ def _direction_balance_recipe_contract(
                 )
             if direction_hierarchical_composition is not SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED:
                 failures.append("smart direction active head requires direction_hierarchical_composition=true")
+            if hier_compose_residual_logit_cap < SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN:
+                failures.append(
+                    "smart direction active head requires hier_compose_residual_logit_cap >= "
+                    f"{SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN:.2f}"
+                )
+            if hier_compose_residual_logit_cap > SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX:
+                failures.append(
+                    "smart direction active head requires hier_compose_residual_logit_cap <= "
+                    f"{SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX:.2f}"
+                )
             if hier_slice_side_ce_weight < SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_slice_side_ce_weight >= "
@@ -1993,6 +2014,7 @@ def _direction_balance_recipe_contract(
         "direction_utility_triad_ce_max_bad_path": direction_utility_triad_ce_max_bad_path,
         "direction_utility_triad_ce_class_weight_cap": direction_utility_triad_ce_class_weight_cap,
         "direction_hierarchical_composition": direction_hierarchical_composition,
+        "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
         "hier_slice_side_ce_weight": hier_slice_side_ce_weight,
         "hier_slice_side_true_margin_weight": hier_slice_side_true_margin_weight,
         "hier_slice_side_true_margin": hier_slice_side_true_margin,

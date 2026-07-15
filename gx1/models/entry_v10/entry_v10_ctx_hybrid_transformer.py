@@ -98,6 +98,7 @@ class CtxModelConfig:
     anchor_gate_init: float = 1.0
     enable_hierarchical_entry_heads: bool = False
     enable_hierarchical_direction_composition: bool = False
+    hierarchical_composition_residual_logit_cap: float = 0.0
     enable_side_validity_head: bool = False
     enable_trendline_rail_head: bool = False
     trendline_rail_output_dim: int = 4
@@ -279,6 +280,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         anchor_gate_init: float = 1.0,
         enable_hierarchical_entry_heads: bool = False,
         enable_hierarchical_direction_composition: bool = False,
+        hierarchical_composition_residual_logit_cap: float = 0.0,
         enable_side_validity_head: bool = False,
         enable_trendline_rail_head: bool = False,
         trendline_rail_output_dim: int = 4,
@@ -355,6 +357,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError("SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
+        if float(hierarchical_composition_residual_logit_cap) < 0.0:
+            raise RuntimeError(
+                "HIERARCHICAL_COMPOSITION_RESIDUAL_LOGIT_CAP_INVALID: "
+                f"got {float(hierarchical_composition_residual_logit_cap)}"
+            )
 
         self.cfg = CtxModelConfig(
             seq_input_dim=seq_input_dim,
@@ -368,6 +375,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             anchor_gate_init=float(anchor_gate_init),
             enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
             enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
+            hierarchical_composition_residual_logit_cap=float(hierarchical_composition_residual_logit_cap),
             enable_side_validity_head=bool(enable_side_validity_head),
             enable_trendline_rail_head=bool(enable_trendline_rail_head),
             trendline_rail_output_dim=int(trendline_rail_output_dim),
@@ -723,6 +731,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Anchored residual scale stored in state_dict for replay parity
         self.register_buffer("residual_scale", torch.tensor(float(self.cfg.residual_scale)))
         self.register_buffer("anchor_eps", torch.tensor(float(self.cfg.anchor_eps)))
+        self.register_buffer(
+            "hierarchical_composition_residual_logit_cap",
+            torch.tensor(float(self.cfg.hierarchical_composition_residual_logit_cap)),
+        )
 
         # ── Positional encoding buffers (persistent=False → not in state_dict) ──
         self.enable_pos_enc = bool(self.cfg.enable_pos_enc)
@@ -1078,6 +1090,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 ).to(dtype=raw_direction_logits.dtype)
                 _assert_finite("composed_direction_logits", composed_direction_logits)
                 residual_direction_logits = self.residual_scale.to(delta_logits.dtype) * delta_logits
+                residual_cap = self.hierarchical_composition_residual_logit_cap.to(
+                    device=residual_direction_logits.device,
+                    dtype=residual_direction_logits.dtype,
+                )
+                if bool((residual_cap > 0.0).item()):
+                    residual_direction_logits = residual_cap * torch.tanh(
+                        residual_direction_logits / residual_cap
+                    )
                 _assert_finite("hierarchical_residual_direction_logits", residual_direction_logits)
                 direction_logits = composed_direction_logits + residual_direction_logits.to(
                     dtype=composed_direction_logits.dtype

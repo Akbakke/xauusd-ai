@@ -218,6 +218,12 @@ def load_entry_v10_ctx_bundle(
     _has_hierarchical_entry_heads = "head_trade.weight" in state_dict_preview and "head_side.weight" in state_dict_preview
     _hierarchical_direction_cfg = (meta.get("hierarchical_direction_composition") or {}) if isinstance(meta, dict) else {}
     _enable_hierarchical_direction_composition = bool(_hierarchical_direction_cfg.get("enabled", False))
+    _hierarchical_composition_residual_logit_cap = float(
+        _hierarchical_direction_cfg.get(
+            "residual_logit_cap",
+            meta.get("hier_compose_residual_logit_cap", 0.0) if isinstance(meta, dict) else 0.0,
+        )
+    )
     _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
     _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
     _trendline_rail_output_dim = 4
@@ -286,6 +292,7 @@ def load_entry_v10_ctx_bundle(
         anchor_gate_init=float((meta.get("anchor_gate") or {}).get("init", 1.0)) if isinstance(meta, dict) else 1.0,
         enable_hierarchical_entry_heads=_has_hierarchical_entry_heads,
         enable_hierarchical_direction_composition=_enable_hierarchical_direction_composition,
+        hierarchical_composition_residual_logit_cap=_hierarchical_composition_residual_logit_cap,
         enable_side_validity_head=_has_side_validity_head,
         enable_trendline_rail_head=_has_trendline_rail,
         trendline_rail_output_dim=_trendline_rail_output_dim,
@@ -332,9 +339,7 @@ def load_entry_v10_ctx_bundle(
     unexpected_active = unexpected - parked_head_keys
     if unexpected_active:
         raise RuntimeError(f"[ENTRY_V10_CTX_UNEXPECTED_KEYS] {sorted(unexpected_active)}")
-    allowed_missing = set()
-    if missing and missing.issubset(parked_head_keys):
-        allowed_missing = parked_head_keys
+    allowed_missing = parked_head_keys | {"hierarchical_composition_residual_logit_cap"}
     if missing - allowed_missing:
         raise RuntimeError(f"[ENTRY_V10_CTX_MISSING_KEYS] {sorted(missing - allowed_missing)}")
     model.eval()

@@ -1216,6 +1216,7 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "direction_utility_triad_ce_max_bad_path",
         "direction_utility_triad_ce_class_weight_cap",
         "direction_hierarchical_composition",
+        "hier_compose_residual_logit_cap",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",
@@ -1638,6 +1639,7 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
     train_ctor = text.split("model = EntryV10CtxHybridTransformer(", 2)[2].split(").to(device)", 1)[0]
     assert "residual_scale=float(ENTRY_RESIDUAL_SCALE)" in train_ctor
     assert "anchor_eps=float(ENTRY_ANCHOR_EPS)" in train_ctor
+    assert "hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)" in train_ctor
 
 
 def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:
@@ -1684,9 +1686,9 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
     with torch.no_grad():
         model.head_direction.bias.copy_(torch.tensor([0.40, -0.20, 0.10], dtype=torch.float32))
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-    expected_with_residual = out["hierarchical_direction_base_logits"] + (
-        float(model.residual_scale.item()) * out["delta_logits"]
-    )
+    expected_with_residual = out["hierarchical_direction_base_logits"] + out[
+        "hierarchical_direction_residual_logits"
+    ]
 
     assert torch.allclose(out["direction_logits"], expected_with_residual, atol=1e-6)
     assert not torch.allclose(out["direction_logits"], out["hierarchical_direction_base_logits"], atol=1e-6)
@@ -1696,6 +1698,39 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
     loss.backward()
     assert model.head_direction.bias.grad is not None
     assert float(model.head_direction.bias.grad.abs().sum().item()) > 0.0
+
+    capped_model = EntryV10CtxHybridTransformer(
+        seq_input_dim=4,
+        snap_input_dim=7,
+        seq_len=5,
+        ctx_cont_dim=3,
+        ctx_cat_dim=2,
+        residual_scale=0.35,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_residual_logit_cap=0.18,
+    )
+    capped_model.eval()
+    with torch.no_grad():
+        capped_model.head_direction.bias.copy_(torch.tensor([0.05, -0.05, 0.00], dtype=torch.float32))
+    capped_out = capped_model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    assert float(capped_out["hierarchical_direction_residual_logits"].abs().max().item()) <= 0.180001
+    assert torch.allclose(
+        capped_out["direction_logits"],
+        capped_out["hierarchical_direction_base_logits"] + capped_out["hierarchical_direction_residual_logits"],
+        atol=1e-6,
+    )
+    assert torch.any(
+        (0.35 * capped_out["delta_logits"]).abs()
+        > capped_out["hierarchical_direction_residual_logits"].abs() + 1e-5
+    )
+
+    capped_model.zero_grad(set_to_none=True)
+    capped_loss = torch.nn.functional.cross_entropy(capped_out["direction_logits"], torch.tensor([0, 1, 2]))
+    capped_loss.backward()
+    assert capped_model.head_direction.bias.grad is not None
+    assert float(capped_model.head_direction.bias.grad.abs().sum().item()) > 0.0
 
 
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:
