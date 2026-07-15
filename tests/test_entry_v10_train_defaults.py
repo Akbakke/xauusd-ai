@@ -382,6 +382,52 @@ def test_entry_v10_direction_slice_balanced_ce_term_penalizes_low_true_class_log
     assert float(trainer._direction_slice_balanced_ce_term(bad_logits, targets, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_direction_slice_true_margin_term_penalizes_wrong_argmax(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT", 2.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_TRUE_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    bad_logits = torch.tensor(
+        [
+            [-2.0, 3.0, 3.0],
+            [-2.0, 3.0, 3.0],
+            [3.0, -2.0, 3.0],
+            [3.0, -2.0, 3.0],
+            [3.0, 3.0, -2.0],
+            [3.0, 3.0, -2.0],
+        ],
+        dtype=torch.float32,
+    )
+    good_logits = torch.tensor(
+        [
+            [5.0, -1.0, -1.0],
+            [5.0, -1.0, -1.0],
+            [-1.0, 5.0, -1.0],
+            [-1.0, 5.0, -1.0],
+            [-1.0, -1.0, 5.0],
+            [-1.0, -1.0, 5.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(trainer._direction_slice_true_margin_term(bad_logits, targets, ctx_cat).item())
+    good_loss = float(trainer._direction_slice_true_margin_term(good_logits, targets, ctx_cat).item())
+
+    assert bad_loss > good_loss
+    assert good_loss == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT", 0.0)
+    assert float(trainer._direction_slice_true_margin_term(bad_logits, targets, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:
     import torch
 
