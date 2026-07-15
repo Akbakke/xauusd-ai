@@ -9,7 +9,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no `python3` training/eval jobs were running at the 2026-07-15 update.
+- Runtime: no `python3` training/eval jobs were running after the latest 2026-07-15 smart smoke failure.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
 - Worktree: verify clean with `git status --short` before clean-git gates; current smart XAU slice-loss repairs are intended source changes, not ad hoc run overrides.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
@@ -48,9 +48,12 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Follow-up smoke training with `mean_max` also failed closed:
   - `SMART_SEQ520_XAU_SMOKE_TRAIN_MEANMAX_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T102342Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T102342Z`; failed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle directory was written. Best checkpoint was epoch 9 with balance guard OK, `slice_contract_ok=0`, 10 slice failures, 7 accuracy failures, 3 pred-rate failures. Later epochs still failed hard.
 - Added the next hard smart XAU objective repair: `ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE` is now `0.05` in smart smoke/candidate wrappers, manifest/readiness contracts, and sweep lint, and trainer preflight rejects smart XAU repair runs above `0.05`. This makes min-pred-rate losses track the hard argmax gate more closely; it is not fallback.
+- Follow-up smoke training with `mean_max` plus `0.05` argmax-aligned pred-rate temperature also failed closed:
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_ARGMAXTEMP005_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T103750Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T103750Z`; failed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle directory was written. Best checkpoint was epoch 9 with balance guard OK, `slice_contract_ok=0`, 8 slice failures, 6 accuracy failures, and 2 pred-rate failures. Later epochs collapsed back toward hard SHORT and still failed closed.
+- Post-run resource state stayed safe: `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free, RAM had about `38G` available after the process exited, and swap stayed at `0B` used throughout monitoring.
 - Targeted validation passed after the true-margin repair:
   `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q`.
-  After the slice-balanced sampler contract this targeted suite passed again with `124 passed`; after the `mean_max` hardening the same targeted suite passed again.
+  After the slice-balanced sampler contract this targeted suite passed again with `124 passed`; after the `mean_max` hardening the same targeted suite passed again; after the `0.05` temperature hardening the same targeted suite passed again.
 
 ## What Was Done
 
@@ -147,8 +150,8 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
    - It also points at stale July/pathutil artifacts.
 
 2. Latest smart XAU smoke training attempts failed hard on direction slice guard. No fallback path and no slice-failed bundle should be used as evidence.
-   - True-margin standard, stronger W8/CE4, batch-size 256, slice-balanced sampler, and `mean_max` aggregation all failed closed without writing a bundle.
-   - The current next repair is the hard `0.05` min-pred-rate softmax-temperature contract. If that fails, change the objective/data contract again; do not add fallback, advisory pass, or soft continuation.
+   - True-margin standard, stronger W8/CE4, batch-size 256, slice-balanced sampler, `mean_max` aggregation, and `0.05` argmax-aligned pred-rate temperature all failed closed without writing a bundle.
+   - Current evidence says the objective can now see hard argmax collapse, but it still cannot keep all active direction slices above the hard gate. Next repair must change the objective/data contract again; do not add fallback, advisory pass, or soft continuation.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
@@ -159,9 +162,9 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
    - Commit/stash intentionally.
    - Do not revert unrelated user work.
 
-2. With clean git, rerun fail-closed smoke/readiness gates against the updated true-margin plus slice-balanced sampler source recipe contract.
+2. With clean git, preserve the `ARGMAXTEMP005` hard failure evidence and inspect the best epoch 9 slice failure pattern from the manifest/log evidence.
 
-3. With clean git, rerun smoke/trainability readiness and then rerun smart XAU smoke train under the new `mean_max` plus `0.05` min-pred-rate softmax-temperature contract. Preserve hard failure evidence and do not add fallback.
+3. Implement the next hard objective/data-contract repair for the remaining active direction slice failures. The current likely target is direct hard-argmax/slice decision stability, because global balance can pass while per-slice accuracy still fails. Preserve fail-closed gates and do not add fallback.
 
 4. After a candidate bundle passes hard audits:
    - materialize expected-utility predictions
