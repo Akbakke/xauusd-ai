@@ -208,7 +208,32 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `py_compile` for trainer/readiness/audit/sweep scripts: passed.
   - Focused pytest for trainer/wrappers/readiness/enablement/bundle-audit/sweep: passed.
   - Broad XAU/replay/IQL contract suite: passed with expected skips.
-- No transformer training has been launched after this repair yet. Before any new smoke train, clean git and regenerate the readiness/enablement proof.
+- The first bounded transformer smoke after this repair is recorded below. Before any further smoke train, clean git and regenerate the readiness/enablement proof.
+
+### 2026-07-15 Bounded Global-Prior Smoke Result
+
+- Commit tested: `c3dc51e8 Require XAU global prior match`.
+- Readiness/enablement:
+  - `smart-smoke-readiness --quiet`: passed.
+  - `smart-trainability-readiness --quiet`: passed.
+  - enablement vedtak: `SMART_SEQ520_XAU_SMOKE_GLOBAL_PRIOR_ENABLEMENT_20260715`, passed without starting trainer.
+- Bounded smoke train launched with the same vedtak, `--require-edge-audit`, 1 epoch, `MemoryMax=22G`, `MemorySwapMax=2G`, `num_workers=0`.
+- Result: hard fail closed, no bundle directory written.
+  - failure: `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`
+  - evidence: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T122916Z__direction_slice_failure_evidence.json`
+  - intended bundle dir absent: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T122916Z`
+  - `best_epoch=1`, `last_epoch=1`, `best_dir_acc=0.338542`
+  - `best_direction_balance_guard_ok=True`
+  - `best_direction_slice_contract_ok=False`
+  - `direction_slice_failure_count=29`
+  - `direction_slice_accuracy_failure_count=15`
+  - `direction_slice_pred_rate_failure_count=14`
+  - `direction_slice_pred_rate_shortfall=0.392463`
+  - `direction_slice_ckpt_score=-0.997118`
+- Interpretation:
+  - Global prior-match repaired the immediate global FLAT-collapse failure enough for class-balance guard to pass.
+  - The blocker moved back to per-slice direction behavior: too many audited context slices still fail majority accuracy and/or active-class pred-rate coverage.
+  - Do not continue by extending epochs on the same recipe. Next repair should target slice-level objective/data composition, using the recorded `ENTRY_DIR_SLICE_FAILURE` rows.
 
 ## Current Blockers
 
@@ -219,9 +244,9 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest smart XAU smoke training failed hard on global direction class balance after prior-match enablement. No fallback path and no failed bundle should be used as evidence.
-   - The immediate failure was FLAT prediction collapse (`pred_flat=0.005859` vs `label_flat=0.345052`), not a valid candidate.
-   - The next transformer attempt must use the new global prior-match contract; do not rerun the old recipe.
+2. Latest smart XAU smoke training with global prior-match passed global class-balance guard but failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
+   - `best_direction_balance_guard_ok=True`, `best_direction_slice_contract_ok=False`.
+   - The next repair must target slice-level direction behavior, not IQL and not longer epochs on the same recipe.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
