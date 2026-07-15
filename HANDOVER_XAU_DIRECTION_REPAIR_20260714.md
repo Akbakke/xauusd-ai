@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 hard-red smart smoke stop.
+- Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 public/hierarchy flat-consistency smoke was manually stopped.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source repair commit is `34a6342e Require XAU hierarchy trade prior match`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source repair commit is `dcdcde91 Require XAU public hierarchy flat consistency`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Always-Active Operating Rules
@@ -847,6 +847,52 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - Do not continue this exact recipe for more epochs. It already showed the mechanism and then went hard red.
   - Next repair should decouple or stage the public 3-class direction head from hierarchy trade/flat calibration, or add an explicit consistency term between public FLAT and hierarchy flat so the two heads do not fight.
 
+## 2026-07-15 Public/Hierarchy Flat-Consistency Repair Status
+
+- Implemented and committed the explicit consistency repair between the public 3-class direction head and hierarchy trade/flat head:
+  - Commit: `dcdcde91 Require XAU public hierarchy flat consistency`
+  - Added global and active-slice loss/contract terms:
+    - `ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT`
+    - `ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE`
+    - `ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT`
+    - `ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE`
+    - `ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS`
+  - Smart-XAU preflight now requires global/slice consistency weights `>=4.0`, min label rate `>=0.10`, and slice rows `>=8`.
+  - Trainer metadata, loss summaries, failure evidence, wrappers, rebuild script, smoke/readiness/manifest contracts, enablement, bundle audit, candidate readiness, replay readiness, and sweep lint now require/report the same contract.
+- Validation before commit:
+  - `python3 -m py_compile` passed for the trainer and touched Python gate scripts.
+  - `bash -n` passed for touched smoke/candidate/rebuild wrappers.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_xau_direction_repair_sweep.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py -q`
+  - Pre-commit guardrails passed during commit.
+- Clean-git readiness/enablement after commit:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet` passed. A first parallel quiet trainability call returned exit `2`, then the non-quiet call returned `blockers=[]` and the repeated quiet call returned exit `0`; avoid parallel readiness calls that race on `latest` artifacts.
+  - Enablement vedtak `SMART_SEQ520_XAU_SMOKE_FLATCONSIST_ENABLEMENT_20260715` passed without starting trainer:
+    `/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_train_enablement_20260715_v1/ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_20260715T195001Z.json`
+- Ran one bounded smart smoke after the consistency repair:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_FLATCONSIST_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - Pre-train manifest was written, then deleted after manual stop because the run was aborted and stale:
+    `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T195017Z.json`
+  - Intended bundle dir was not created:
+    `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T195017Z`
+  - The run was manually stopped during epoch `4` train after epoch `3` validation was still hard-red. No bundle and no failure sidecar were written because the operator interrupted before final trainer failure handling.
+- Smoke evidence summary:
+  - Epoch `1`: global balance guard OK, `14` slice failures, public pred LONG `0.380859`, SHORT `0.352865`, FLAT `0.266276`; hierarchy `trade_pred=0.936849`, `trade_prob=0.582468`; consistency losses were active but small (`hier_public_flat_consistency=0.024263`, slice `0.049824`).
+  - Epoch `2`: hierarchy trade improved to `trade_pred=0.830729`, but public direction collapsed LONG to `0.005859`; global balance guard failed and slice failures rose to `32`.
+  - Epoch `3`: hierarchy trade improved further to `trade_pred=0.750651`, closer to target `0.654948`, but public direction collapsed FLAT-heavy with pred LONG `0.130208`, SHORT `0.096354`, FLAT `0.773438`; global balance guard still failed and slice failures rose to `35`.
+  - This was stopped immediately after epoch `3` evidence because continuing to epoch `6` would burn compute without a plausible bundle path.
+- Interpretation:
+  - The new consistency surface is wired and active, and it helps the hierarchy trade/flat hard argmax move toward target.
+  - It is still not sufficient. The public 3-class head still oscillates between LONG/SHORT/FLAT collapse while the hierarchy trade/flat head improves.
+  - The next repair should not add another scalar pressure or run more epochs. It should change the public direction formulation/staging so public FLAT is not independently fighting hierarchy no-trade.
+  - Candidate training, replay, IQL, shadow, live, and promotion remain closed.
+- Post-stop resource state:
+  - No relevant `python`/`python3` training/eval process running.
+  - `/home/andre2/GX1_DATA` still about `838G` free.
+  - RAM about `38GiB` available, swap `0B`.
+  - The aborted run manifest was deleted; no stale bundle directory existed.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -856,10 +902,10 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the hierarchy flat-logit repair was manually stopped after hard-red epoch `5`. No candidate bundle was produced and no failed bundle should be used as evidence.
-   - The flat-logit repair moved hard hierarchy trade/flat in the right direction in early epochs (`trade_pred=0.773438` at epoch `2`), proving the repair surface is active.
-   - It did not stabilize the full direction system. Epoch `3` was best observed with `13` slice failures and public FLAT overprediction (`0.606120`), while epoch `5` regressed to `42` slice failures and hierarchy all-trade (`trade_pred=1.000000`).
-   - The active blocker is now head conflict/consistency: hierarchy trade/flat calibration and public LONG/SHORT/FLAT direction can move in opposite unstable regimes.
+2. Latest executed smart XAU smoke after public/hierarchy flat-consistency repair was manually stopped after hard-red epoch `3`. No candidate bundle was produced and no failed bundle should be used as evidence.
+   - The consistency repair is wired and active: hierarchy `trade_pred` improved from `0.936849` at epoch `1` to `0.750651` at epoch `3`, closer to target `0.654948`.
+   - It did not stabilize the public 3-class head. Epoch `2` starved LONG (`pred_long=0.005859`), while epoch `3` collapsed FLAT-heavy (`pred_flat=0.773438`); global balance guard stayed failed and slice failures worsened to `35`.
+   - The active blocker is now formulation/staging: public LONG/SHORT/FLAT is still learned independently enough to fight the hierarchy trade/flat head.
    - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/16` weak required-feature red slices.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
@@ -872,11 +918,11 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
    - keep residual-through-composition, the hard residual cap, side-neutral residual, side-prior contract, and trade-prior contract; they are useful guardrails.
    - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows trade-prior improved soft calibration but did not solve the hard trade/flat argmax.
-   - the hard flat-logit surface works enough to move hierarchy trade/flat, so the next repair should address conflict between the public 3-class direction head and hierarchy trade/flat.
+   - the hard flat-logit and public/hierarchy consistency surfaces work enough to move hierarchy trade/flat, so the next repair should change how the public 3-class direction head is composed or staged.
    - likely next source-level options:
-     - add explicit consistency loss between public FLAT probability and hierarchy flat probability.
-     - stage/anneal public direction class-balance losses versus hierarchy flat-logit loss instead of applying all pressures at full strength from epoch 1.
-     - evaluate whether public FLAT should be composed from hierarchy no-trade rather than learned independently.
+     - compose public FLAT directly from hierarchy no-trade instead of learning public FLAT independently.
+     - stage/anneal public direction class-balance/slice losses versus hierarchy trade/flat losses instead of applying all pressures at full strength from epoch 1.
+     - split public-side logits from public-FLAT/no-trade logits so side learning cannot starve abstain.
    - keep side-prior enabled while targeting remaining slice-level accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
