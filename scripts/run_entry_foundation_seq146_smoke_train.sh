@@ -1066,10 +1066,10 @@ artifact_paths = {
     "smoke_dataset_manifest": sys.argv[6],
     "worktree_hygiene": worktree_hygiene_path,
 }
+artifact_paths = {key: path for key, path in artifact_paths.items() if path}
 artifact_sha256 = {
     key: sha256_file(path)
     for key, path in artifact_paths.items()
-    if path
 }
 readiness_artifact_fingerprints = readiness.get("artifact_fingerprints") or {}
 if run_flavor != "foundation_seq146":
