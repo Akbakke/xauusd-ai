@@ -6612,6 +6612,11 @@ def run_train(
                 "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR="
                 f"{ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.3f} expected >=0.05"
             )
+        if ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE > 0.05:
+            repair_failures.append(
+                "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE="
+                f"{ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE:.3f} expected <=0.05"
+            )
         if ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT < 2.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT="

@@ -45,6 +45,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Follow-up smoke training with the slice-balanced sampler also failed closed:
   - `SMART_SEQ520_XAU_SMOKE_TRAIN_SLICEBAL_SAMPLER_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T100649Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T100649Z`; failed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle directory was written. Best observed slice state was epoch 2 with balance guard OK, `slice_contract_ok=0`, 6 slice failures, 0 pred-rate failures; later epochs remained hard-red.
 - Added the next hard smart XAU repair: slice-loss aggregation is now `mean_max` for smart smoke/candidate wrappers, manifest/readiness contracts, sweep lint, and trainer preflight. This makes the worst active slice part of the optimized objective instead of allowing the mean slice loss to hide remaining hard-red slices. This is not fallback; smart XAU training now fails preflight unless `ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max`.
+- Follow-up smoke training with `mean_max` also failed closed:
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_MEANMAX_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T102342Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T102342Z`; failed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle directory was written. Best checkpoint was epoch 9 with balance guard OK, `slice_contract_ok=0`, 10 slice failures, 7 accuracy failures, 3 pred-rate failures. Later epochs still failed hard.
+- Added the next hard smart XAU objective repair: `ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE` is now `0.05` in smart smoke/candidate wrappers, manifest/readiness contracts, and sweep lint, and trainer preflight rejects smart XAU repair runs above `0.05`. This makes min-pred-rate losses track the hard argmax gate more closely; it is not fallback.
 - Targeted validation passed after the true-margin repair:
   `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q`.
   After the slice-balanced sampler contract this targeted suite passed again with `124 passed`; after the `mean_max` hardening the same targeted suite passed again.
@@ -144,8 +147,8 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
    - It also points at stale July/pathutil artifacts.
 
 2. Latest smart XAU smoke training attempts failed hard on direction slice guard. No fallback path and no slice-failed bundle should be used as evidence.
-   - True-margin standard, stronger W8/CE4, batch-size 256, and slice-balanced sampler all failed closed without writing a bundle.
-   - The current next repair is the hard `mean_max` slice-loss aggregation contract. If that fails, change the objective/data contract again; do not add fallback, advisory pass, or soft continuation.
+   - True-margin standard, stronger W8/CE4, batch-size 256, slice-balanced sampler, and `mean_max` aggregation all failed closed without writing a bundle.
+   - The current next repair is the hard `0.05` min-pred-rate softmax-temperature contract. If that fails, change the objective/data contract again; do not add fallback, advisory pass, or soft continuation.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
@@ -158,7 +161,7 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 2. With clean git, rerun fail-closed smoke/readiness gates against the updated true-margin plus slice-balanced sampler source recipe contract.
 
-3. With clean git, rerun smoke/trainability readiness and then rerun smart XAU smoke train under the new `mean_max` slice-loss contract. Preserve hard failure evidence and do not add fallback.
+3. With clean git, rerun smoke/trainability readiness and then rerun smart XAU smoke train under the new `mean_max` plus `0.05` min-pred-rate softmax-temperature contract. Preserve hard failure evidence and do not add fallback.
 
 4. After a candidate bundle passes hard audits:
    - materialize expected-utility predictions

@@ -59,7 +59,7 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space(
         "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE",
         "choice",
-        choices=(0.12, 0.15, 0.20),
+        choices=(0.03, 0.05),
     ),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "choice", choices=(4.0, 8.0, 12.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "choice", choices=(0.0, 4.0, 8.0)),
@@ -140,9 +140,9 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
     min_pred_rate_temp = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", "1.0")
     )
-    if min_pred_rate_temp <= 0.0 or min_pred_rate_temp > 0.50:
+    if min_pred_rate_temp <= 0.0 or min_pred_rate_temp > 0.05:
         failures.append(
-            "DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE must be in (0.0, 0.50] for strict XAU repair, "
+            "DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE must be in (0.0, 0.05] for strict XAU repair, "
             f"got {min_pred_rate_temp}"
         )
     flat_margin_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0"))
