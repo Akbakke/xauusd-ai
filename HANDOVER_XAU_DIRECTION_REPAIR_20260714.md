@@ -297,7 +297,20 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
   - Focused pytest passed:
     `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
-  - No transformer training, candidate training, replay, IQL, shadow, live, or promotion action was started for this repair yet.
+- Clean-git readiness after commit `9b054f74 Add XAU direction utility-margin repair`:
+  - `smart-smoke-readiness --quiet` passed.
+  - `smart-trainability-readiness --quiet` passed.
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_UTILITYMARGIN_E8_20260715 --epochs 8 --batch-size 64 --quiet` passed with `trainer_started=false`, `iql_allowed=false`, and `ENTRY_DIRECTION_UTILITY_MARGIN_*` present in the capped dry-run command.
+- First bounded utility-margin smoke attempt:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_UTILITYMARGIN_E8_20260715`
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T130609Z.json`
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T130609Z`
+  - Result: failed before a real epoch result because `validate()` was missing the new `total_direction_utility_margin` accumulator initialization. No bundle directory and no failure sidecar were written. This is a code bug, not model evidence.
+- Immediate fix after that failed attempt:
+  - `validate()` now initializes `total_direction_utility_margin = 0.0`.
+  - `tests/test_entry_v10_train_defaults.py` now has a static guard for this accumulator.
+  - Validation: `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` and `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
+  - Candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 ## Current Blockers
 

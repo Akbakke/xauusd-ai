@@ -5125,6 +5125,7 @@ def validate(
     total_direction_slice_accuracy_edge = 0.0
     total_direction_slice_prior_match = 0.0
     total_direction_flat_margin = 0.0
+    total_direction_utility_margin = 0.0
     total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0

@@ -763,6 +763,15 @@ def test_entry_v10_direction_utility_margin_term_penalizes_wrong_utility_side(mo
         trainer._direction_utility_margin_term(wrong_side, long_utility[:2], short_utility)
 
 
+def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    validate_start = text.index("def validate(")
+    validate_init = text[validate_start:text.index("    with torch.no_grad():", validate_start)]
+
+    assert "total_direction_utility_margin = 0.0" in validate_init
+    assert "total_direction_utility_margin += " in text[text.index("    with torch.no_grad():", validate_start):]
+
+
 def test_entry_v10_direction_repair_fails_closed_without_calibration_fallback() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
