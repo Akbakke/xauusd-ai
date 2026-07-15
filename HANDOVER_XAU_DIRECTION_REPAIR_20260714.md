@@ -85,6 +85,12 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Validation after the prior-match repair:
   - `python -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py gx1/scripts/verify_entry_smart_seq520_smoke_readiness_v1.py gx1/scripts/verify_entry_smart_seq520_trainability_readiness_v1.py gx1/scripts/materialize_entry_smart_seq520_smoke_manifest_v1.py gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py gx1/scripts/sweep_entry_smart_seq520_direction_repair_v1.py`
   - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q` passed.
+- 2026-07-15 14:02 CEST post-prior-match verification:
+  - `smart-smoke-readiness --quiet` and `smart-trainability-readiness --quiet` passed on clean git.
+  - Latest readiness remains report-only: `training_allowed=false`, `execution_allowed_now=false`, `candidate_training_allowed=false`, `iql_allowed=false`, `replay_allowed=false`, `shadow_live_promotion_allowed=false`.
+  - Broad XAU/replay/readiness pytest surface passed again after the prior-match repair, covering smart520 state/rank, XAU labels/pretrain, smoke/trainability readiness, wrappers, candidate replay, IQL replay contracts, live gate/parity, and sweep.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_PRIORMATCH_DRYRUN_20260715 --require-edge-audit --dry-run` printed a bounded smart-smoke package only; it did not start a trainer or write a run manifest. The package included 22G RAM cap, 2G swap cap, `num_workers=0`, `ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00`, tolerance `0.02`, `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3`, min epochs `6`, and post-smoke strict edge audit.
+  - No actual transformer training, candidate training, replay, IQL, shadow, or live action was started in this verification pass.
 
 ## What Was Done
 
