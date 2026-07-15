@@ -101,6 +101,10 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T121148Z`
   - Result: hard fail on `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]`, no bundle directory was written. Best/only epoch had `dir_acc=0.345052`, `balance_guard_ok=0`, `slice_contract_ok=0`, `direction_slice_ckpt_score=-1.807765`, 32 slice failures, 15 accuracy failures, and 17 pred-rate failures. This is hard failure evidence, not a candidate.
 - After that run, trainer failure evidence was hardened again: class-balance guard failures now write the same no-bundle sidecar path before raising, so future `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]` exits persist best/current direction stats, recipe, data hashes, git commit, and `bundle_written=false` just like slice-guard exits.
+- Post-commit validation after class-balance evidence hardening:
+  - `smart-smoke-readiness --quiet` and `smart-trainability-readiness --quiet` passed on clean git.
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_PRIORMATCH_ENABLEMENT_20260715 --quiet` passed again on clean git; latest enablement report has `smart_smoke_training_allowed_with_this_package=true` and still keeps training/candidate/replay/IQL/live fields false.
+  - Broad XAU/replay/readiness pytest surface passed again, including smart520 state/rank, XAU labels/pretrain, smoke/trainability/enablement readiness, wrappers, candidate replay, IQL replay contracts, live gate/parity, and sweep.
 
 ## What Was Done
 
