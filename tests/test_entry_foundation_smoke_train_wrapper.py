@@ -139,6 +139,8 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=0.0" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=0.0" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10" in result.stdout
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN=0.02" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_MIN_ROWS=8" in result.stdout
     assert "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=0.0" in result.stdout
@@ -300,6 +302,8 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=4.00" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10" in result.stdout
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT=4.00" in result.stdout
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN=0.02" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_HIER_SLICE_SIDE_MIN_ROWS=8" in result.stdout
     assert "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=4.00" in result.stdout
@@ -520,6 +524,8 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT" in text
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT" in text
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN" in text
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT" in text
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN" in text
     assert "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE" in text
     assert "ENTRY_HIER_SLICE_SIDE_MIN_ROWS" in text
     assert "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT" in text

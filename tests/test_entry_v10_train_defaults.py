@@ -637,6 +637,8 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", 4.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", 3.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN", 0.02)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", 0.10)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_MIN_ROWS", 3)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", 4.0)
@@ -648,6 +650,7 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS", 3)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
 
     side_targets = torch.tensor([0, 0, 0, 1, 1, 1], dtype=torch.long)
     side_mask = torch.ones(6, dtype=torch.bool)
@@ -685,6 +688,12 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     good_margin = float(
         trainer._hier_slice_side_true_margin_term(good_logits, side_targets, side_mask, ctx_cat).item()
     )
+    bad_accuracy_edge = float(
+        trainer._hier_slice_side_accuracy_edge_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()
+    )
+    good_accuracy_edge = float(
+        trainer._hier_slice_side_accuracy_edge_term(good_logits, side_targets, side_mask, ctx_cat).item()
+    )
     bad_global_prior = float(
         trainer._hier_side_global_prior_match_term(collapsed_logits, side_targets, side_mask).item()
     )
@@ -699,16 +708,20 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     assert bad_ce > good_ce
     assert bad_margin > good_margin
     assert good_margin == 0.0
+    assert bad_accuracy_edge > good_accuracy_edge
+    assert good_accuracy_edge == 0.0
     assert bad_global_prior > good_global_prior
     assert bad_slice_prior > good_slice_prior
     assert good_global_prior == 0.0
     assert good_slice_prior == 0.0
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", 0.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT", 0.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", 0.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT", 0.0)
     assert float(trainer._hier_slice_side_balanced_ce_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
     assert float(trainer._hier_slice_side_true_margin_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
+    assert float(trainer._hier_slice_side_accuracy_edge_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
     assert float(trainer._hier_side_global_prior_match_term(collapsed_logits, side_targets, side_mask).item()) == 0.0
     assert float(trainer._hier_slice_side_prior_match_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
 

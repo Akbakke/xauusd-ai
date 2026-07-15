@@ -116,6 +116,14 @@ def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> 
         "${ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE:-0.02}" in text
     )
     assert (
+        "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT="
+        "${ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT:-4.00}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN="
+        "${ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN:-0.02}" in text
+    )
+    assert (
         "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT="
         "${ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:-4.00}" in text
     )

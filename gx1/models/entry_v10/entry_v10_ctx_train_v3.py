@@ -598,6 +598,12 @@ ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = float(
     _env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0.0")
 )
 ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN = float(_env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", "0.10"))
+ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT = float(
+    _env_str("ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT", "0.0")
+)
+ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN = float(
+    _env_str("ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN", "0.02")
+)
 ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE = float(
     _env_str("ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
 )
@@ -882,6 +888,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT": "0.0",
+    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN": "0.02",
     "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_SIDE_MIN_ROWS": "8",
     "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT": "0.0",
@@ -3435,6 +3443,79 @@ def _hier_slice_side_true_margin_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _hier_slice_side_accuracy_edge_term(
+    side_logits: torch.Tensor,
+    side_targets: torch.Tensor,
+    side_mask: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=side_logits.device, dtype=side_logits.dtype)
+    weight = float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if side_logits.ndim != 2 or side_logits.shape[1] < 2 or ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(side_targets) != side_logits.shape[0] or ctx_cat.shape[0] != side_logits.shape[0]:
+        return zero
+
+    margin = float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN)
+    min_rows = int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
+    min_label_rate = float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE)
+    if margin < 0.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN={margin:.6f} expected >=0.0"
+        )
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    target_i = side_targets.long().clamp(0, side_logits.shape[1] - 1)
+    valid_side = side_mask.bool()
+    probs = torch.softmax(side_logits, dim=1)
+    hardish_probs = _direction_pred_rate_probs(probs)
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = valid_side & (ctx_cat[:, idx].long() == value)
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = target_i[mask]
+            counts = torch.bincount(slice_targets, minlength=side_logits.shape[1]).to(
+                device=side_logits.device,
+                dtype=side_logits.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active = label_rates >= min_label_rate
+            if int(active.sum().detach().cpu().item()) < 2:
+                continue
+            majority = label_rates[:2].max()
+            true_prob = hardish_probs[mask][
+                torch.arange(rows, device=side_logits.device),
+                slice_targets.clamp(min=0, max=hardish_probs.shape[1] - 1),
+            ].mean()
+            required = torch.clamp(
+                majority + torch.as_tensor(margin, device=side_logits.device, dtype=side_logits.dtype),
+                max=1.0,
+            )
+            values.append(torch.relu(required - true_prob))
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _hier_trade_prior_probs(trade_logit: torch.Tensor) -> torch.Tensor:
     trade_prob = torch.sigmoid(trade_logit.reshape(-1))
     flat_prob = 1.0 - trade_prob
@@ -4554,6 +4635,7 @@ def _hierarchical_entry_loss(
         "hier_side_loss": 0.0,
         "hier_slice_side_ce_loss": 0.0,
         "hier_slice_side_margin_loss": 0.0,
+        "hier_slice_side_accuracy_edge_loss": 0.0,
         "hier_side_global_prior_loss": 0.0,
         "hier_slice_side_prior_loss": 0.0,
         "hier_utility_loss": 0.0,
@@ -4773,6 +4855,17 @@ def _hierarchical_entry_loss(
         if hier_slice_side_margin.numel() == 1:
             total = total + hier_slice_side_margin
             stats["hier_slice_side_margin_loss"] = float(hier_slice_side_margin.detach().cpu().item())
+        hier_slice_side_accuracy_edge = _hier_slice_side_accuracy_edge_term(
+            side_logits,
+            y_side,
+            y_side_mask,
+            ctx_cat,
+        )
+        if hier_slice_side_accuracy_edge.numel() == 1:
+            total = total + hier_slice_side_accuracy_edge
+            stats["hier_slice_side_accuracy_edge_loss"] = float(
+                hier_slice_side_accuracy_edge.detach().cpu().item()
+            )
         hier_side_global_prior = _hier_side_global_prior_match_term(side_logits, y_side, y_side_mask)
         if hier_side_global_prior.numel() == 1:
             total = total + hier_side_global_prior
@@ -5278,6 +5371,7 @@ def train_epoch(
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
+    hier_slice_side_accuracy_edge_loss_sum = 0.0
     hier_side_global_prior_loss_sum = 0.0
     hier_slice_side_prior_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
@@ -5716,6 +5810,9 @@ def train_epoch(
         hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
         hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
         hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
+        hier_slice_side_accuracy_edge_loss_sum += float(
+            hier_stats.get("hier_slice_side_accuracy_edge_loss", 0.0)
+        ) * bs
         hier_side_global_prior_loss_sum += float(hier_stats.get("hier_side_global_prior_loss", 0.0)) * bs
         hier_slice_side_prior_loss_sum += float(hier_stats.get("hier_slice_side_prior_loss", 0.0)) * bs
         hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
@@ -5819,6 +5916,9 @@ def train_epoch(
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
         "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
+        "hier_slice_side_accuracy_edge_loss_mean": (
+            hier_slice_side_accuracy_edge_loss_sum / max(1, n)
+        ),
         "hier_side_global_prior_loss_mean": (hier_side_global_prior_loss_sum / max(1, n)),
         "hier_slice_side_prior_loss_mean": (hier_slice_side_prior_loss_sum / max(1, n)),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
@@ -6452,6 +6552,7 @@ def validate(
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
+    hier_slice_side_accuracy_edge_loss_sum = 0.0
     hier_side_global_prior_loss_sum = 0.0
     hier_slice_side_prior_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
@@ -6864,6 +6965,9 @@ def validate(
             hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
             hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
             hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
+            hier_slice_side_accuracy_edge_loss_sum += float(
+                hier_stats.get("hier_slice_side_accuracy_edge_loss", 0.0)
+            ) * bs
             hier_side_global_prior_loss_sum += float(hier_stats.get("hier_side_global_prior_loss", 0.0)) * bs
             hier_slice_side_prior_loss_sum += float(hier_stats.get("hier_slice_side_prior_loss", 0.0)) * bs
             hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
@@ -6977,6 +7081,9 @@ def validate(
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
         "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
+        "hier_slice_side_accuracy_edge_loss_mean": (
+            hier_slice_side_accuracy_edge_loss_sum / max(1, n)
+        ),
         "hier_side_global_prior_loss_mean": (hier_side_global_prior_loss_sum / max(1, n)),
         "hier_slice_side_prior_loss_mean": (hier_slice_side_prior_loss_sum / max(1, n)),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
@@ -8251,6 +8358,8 @@ def run_train(
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", ENTRY_HIER_SLICE_SIDE_CE_WEIGHT)
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT", ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN", ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN)
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE)
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_MIN_ROWS", ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
     _require_nonneg("ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT)
@@ -8667,6 +8776,12 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_SLICE_SIDE_MIN_ROWS_INVALID] "
             f"ENTRY_HIER_SLICE_SIDE_MIN_ROWS={ENTRY_HIER_SLICE_SIDE_MIN_ROWS} expected >=2"
+        )
+    if ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN_INVALID] "
+            "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN="
+            f"{ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN:.6f} expected <=1.0"
         )
     if ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE > 1.0:
         raise RuntimeError(
@@ -9177,6 +9292,16 @@ def run_train(
                 "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN="
                 f"{ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN:.3f} expected >=0.10"
             )
+        if ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT="
+                f"{ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN < 0.02:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN="
+                f"{ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN:.3f} expected >=0.02"
+            )
         if ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE < 0.10:
             repair_failures.append(
                 "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE="
@@ -9456,7 +9581,9 @@ def run_train(
         "slice_flat_logit_margin_w=%.3f slice_flat_logit_margin=%.3f slice_flat_logit_margin_min_rows=%d slice_flat_logit_margin_min_label_rate=%.3f "
         "public_flat_consistency_w=%.3f public_flat_consistency_min_label_rate=%.3f "
         "slice_public_flat_consistency_w=%.3f slice_public_flat_consistency_min_rows=%d slice_public_flat_consistency_min_label_rate=%.3f "
-        "slice_side_ce_w=%.3f slice_side_margin_w=%.3f slice_side_margin=%.3f slice_side_min_rows=%d slice_side_min_label_rate=%.3f "
+        "slice_side_ce_w=%.3f slice_side_margin_w=%.3f slice_side_margin=%.3f "
+        "slice_side_acc_edge_w=%.3f slice_side_acc_edge_margin=%.3f "
+        "slice_side_min_rows=%d slice_side_min_label_rate=%.3f "
         "side_global_prior_w=%.3f side_global_prior_tol=%.3f side_global_prior_min_label_rate=%.3f "
         "slice_side_prior_w=%.3f slice_side_prior_tol=%.3f slice_side_prior_min_rows=%d slice_side_prior_min_label_rate=%.3f "
         "trade_pos_weight=%.3f bad_path_pos_weight_long=%.3f bad_path_pos_weight_short=%.3f "
@@ -9490,6 +9617,8 @@ def run_train(
         float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+        float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT),
+        float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN),
         int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
         float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
         float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT),
@@ -9655,7 +9784,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -9687,6 +9816,7 @@ def run_train(
                 float(val_stats.get("hier_side_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
+                float(val_stats.get("hier_slice_side_accuracy_edge_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_global_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_acc", 0.0)),
@@ -9788,7 +9918,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -9820,6 +9950,7 @@ def run_train(
                 float(tr_stats.get("hier_side_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
+                float(tr_stats.get("hier_slice_side_accuracy_edge_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_global_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_acc", 0.0)),
@@ -10087,6 +10218,12 @@ def run_train(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
                     ),
                     "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+                    "hier_slice_side_accuracy_edge_weight": float(
+                        ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT
+                    ),
+                    "hier_slice_side_accuracy_edge_margin": float(
+                        ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN
+                    ),
                     "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
                     "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
                     "hier_side_global_prior_match_weight": float(
@@ -10322,6 +10459,12 @@ def run_train(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
                     ),
                     "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+                    "hier_slice_side_accuracy_edge_weight": float(
+                        ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT
+                    ),
+                    "hier_slice_side_accuracy_edge_margin": float(
+                        ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN
+                    ),
                     "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
                     "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
                     "hier_side_global_prior_match_weight": float(
@@ -10682,12 +10825,15 @@ def run_train(
                 "enabled": (
                     float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT) > 0.0
+                    or float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT) > 0.0
                 ),
                 "balanced_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                 "true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
                 "true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+                "accuracy_edge_weight": float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT),
+                "accuracy_edge_margin": float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN),
                 "min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
                 "min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
                 "global_prior_match_weight": float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT),
@@ -10893,6 +11039,8 @@ def run_train(
         "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+        "hier_slice_side_accuracy_edge_weight": float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT),
+        "hier_slice_side_accuracy_edge_margin": float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN),
         "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
         "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
         "hier_side_global_prior_match_weight": float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT),
@@ -11060,6 +11208,8 @@ def run_train(
             "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
             "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
             "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+            "hier_slice_side_accuracy_edge_weight": float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT),
+            "hier_slice_side_accuracy_edge_margin": float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN),
             "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
             "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
             "hier_side_global_prior_match_weight": float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT),

@@ -534,6 +534,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=" in text
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=" in text
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=" in text
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT=" in text
+    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN=" in text
     assert "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=" in text
     assert "ENTRY_HIER_SLICE_SIDE_MIN_ROWS=" in text
     assert "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=" in text

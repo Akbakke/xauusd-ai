@@ -171,6 +171,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT": "4.00",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN": "0.02",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
@@ -551,6 +553,12 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0")
     )
     hier_slice_side_true_margin = float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN", "0"))
+    hier_slice_side_accuracy_edge_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT", "0")
+    )
+    hier_slice_side_accuracy_edge_margin = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN", "0")
+    )
     hier_slice_side_min_label_rate = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_LABEL_RATE", "0")
     )
@@ -569,6 +577,16 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_SLICE_SIDE_TRUE_MARGIN must stay 0.10 for strict XAU repair, "
             f"got {hier_slice_side_true_margin}"
+        )
+    if hier_slice_side_accuracy_edge_weight < 4.0:
+        failures.append(
+            "HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_slice_side_accuracy_edge_weight}"
+        )
+    if hier_slice_side_accuracy_edge_margin < 0.02:
+        failures.append(
+            "HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN must be >= 0.02 for strict XAU repair, "
+            f"got {hier_slice_side_accuracy_edge_margin}"
         )
     if hier_slice_side_min_label_rate != 0.10:
         failures.append(

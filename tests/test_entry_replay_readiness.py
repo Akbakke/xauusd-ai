@@ -847,6 +847,8 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "hier_side_global_prior_match_weight": 4.00,
             "hier_side_global_prior_match_tolerance": 0.02,
             "hier_side_global_prior_match_min_label_rate": 0.10,
+            "hier_slice_side_accuracy_edge_weight": 4.00,
+            "hier_slice_side_accuracy_edge_margin": 0.02,
             "hier_slice_side_prior_match_weight": 4.00,
             "hier_slice_side_prior_match_tolerance": 0.02,
             "hier_slice_side_prior_match_min_label_rate": 0.10,

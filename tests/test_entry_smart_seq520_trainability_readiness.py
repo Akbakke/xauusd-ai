@@ -120,6 +120,8 @@ def _direction_balance_wrapper_text(kind: str) -> str:
             "HIER_SLICE_SIDE_CE_WEIGHT=4.00",
             "HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00",
             "HIER_SLICE_SIDE_TRUE_MARGIN=0.10",
+            "HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT=4.00",
+            "HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN=0.02",
             "HIER_SLICE_SIDE_MIN_LABEL_RATE=0.10",
             "HIER_SLICE_SIDE_MIN_ROWS=8",
             "HIER_POCKET_ABSTAIN_WEIGHT=5.00",
