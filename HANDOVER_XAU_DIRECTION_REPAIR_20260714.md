@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 public/hierarchy flat-consistency smoke was manually stopped.
+- Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 public-FLAT-from-hierarchy smoke failed closed and its failed-run artifacts were deleted.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source repair commit is `dcdcde91 Require XAU public hierarchy flat consistency`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source repair commit is `12f5ae00 Require XAU public flat from hierarchy`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Always-Active Operating Rules
@@ -107,6 +107,31 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - `smart-smoke-readiness --quiet` and `smart-trainability-readiness --quiet` passed on clean git.
   - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_PRIORMATCH_ENABLEMENT_20260715 --quiet` passed again on clean git; latest enablement report has `smart_smoke_training_allowed_with_this_package=true` and still keeps training/candidate/replay/IQL/live fields false.
   - Broad XAU/replay/readiness pytest surface passed again, including smart520 state/rank, XAU labels/pretrain, smoke/trainability/enablement readiness, wrappers, candidate replay, IQL replay contracts, live gate/parity, and sweep.
+- Implemented and committed the next formulation repair as `12f5ae00 Require XAU public flat from hierarchy`:
+  - New strict smart-XAU flag: `ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1`.
+  - When enabled, public `direction_logits` are composed from hierarchy `trade_logit` and `side_logits`, and the direction residual is made common to LONG/SHORT/FLAT so it is softmax-invariant. Public FLAT therefore comes from hierarchy no-trade instead of an independent learned FLAT residual channel.
+  - Bundle loader, trainer preflight/metadata, smoke/candidate wrappers, rebuild defaults, smoke/trainability readiness, smoke manifest, enablement, sweep lint, candidate/replay readiness, and smoke bundle audit all fail closed if the strict smart-XAU contract is missing.
+  - Focused validation passed: `py_compile` for changed model/trainer/readiness/audit scripts, `bash -n` for changed wrappers, and targeted pytest (`144 passed`).
+- Post-commit gates on clean git passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_PUBLICFLATFROMTRADE_E6_20260715 --epochs 6 --batch-size 64 --quiet`
+  - Enablement decision was `ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION`; `smart_smoke_training_allowed_with_this_package=true`, while `training_allowed=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, `promotion_shadow_live_allowed=false`, and `trainer_started=false`.
+- Ran one bounded smoke after the repair:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_PUBLICFLATFROMTRADE_E6_20260715`
+  - Pre-train manifest was `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T200725Z.json`.
+  - Intended bundle was `v10_entry_smart_seq520_smoke_20260715T200725Z`.
+  - Result: fail-closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was written.
+  - Epoch 1: balance guard OK, public pred LONG `0.468099`, SHORT `0.170573`, FLAT `0.361328`, `21` slice failures, hierarchy `trade_pred=0.930990`, `trade_prob=0.635537`.
+  - Epoch 2 was the best checkpoint: balance guard OK, public pred LONG `0.229818`, SHORT `0.504557`, FLAT `0.265625`, `9` slice failures, `dir_acc=0.379557`, hierarchy `trade_pred=0.963542`, `trade_prob=0.662345` vs target `0.654948`.
+  - Epoch 3 degraded: public FLAT-heavy (`pred_flat=0.558594`), `18` slice failures, `dir_acc=0.345703`; early stop selected epoch 2 but slice contract stayed red, so trainer refused bundle creation.
+  - The failed-run manifest and failure evidence sidecar were deleted after extracting the above status; no stale bundle dir existed.
+- Current interpretation:
+  - The public-FLAT independent-residual fight is fixed and logged as active (`hier_compose_public_flat_from_trade=1`).
+  - The failure moved back to genuine slice-level side/coverage accuracy: best smoke had fewer failures (`9`) than the latest flat-consistency run's epoch-3 `35`, but still no candidate bundle.
+  - Do not run Entry-IQL, replay, candidate, shadow, live, or promotion. Entry-IQL remains closed until a fresh XAU transformer bundle passes hard slice/class-balance gates.
+  - Next repair should not restore public FLAT residual or add fallback. Focus on hierarchy side/slice accuracy and FLAT coverage staging/calibration, because public composition is now constrained correctly.
+- Latest resource state after cleanup: `/home/andre2/GX1_DATA` about `838G` free, RAM about `38GiB` available, swap `0B`, and no `python3` training/eval process running.
 
 ## What Was Done
 
@@ -902,10 +927,11 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after public/hierarchy flat-consistency repair was manually stopped after hard-red epoch `3`. No candidate bundle was produced and no failed bundle should be used as evidence.
-   - The consistency repair is wired and active: hierarchy `trade_pred` improved from `0.936849` at epoch `1` to `0.750651` at epoch `3`, closer to target `0.654948`.
-   - It did not stabilize the public 3-class head. Epoch `2` starved LONG (`pred_long=0.005859`), while epoch `3` collapsed FLAT-heavy (`pred_flat=0.773438`); global balance guard stayed failed and slice failures worsened to `35`.
-   - The active blocker is now formulation/staging: public LONG/SHORT/FLAT is still learned independently enough to fight the hierarchy trade/flat head.
+2. Latest executed smart XAU smoke after public-FLAT-from-hierarchy repair failed closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`. No candidate bundle was produced and no failed bundle should be used as evidence.
+   - The public-FLAT independent-residual fight is fixed and active: `ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1` was present in the trainer recipe, and public residual is now softmax-invariant when strict smart-XAU composition is enabled.
+   - Best checkpoint was epoch `2`: balance guard OK, `dir_acc=0.379557`, public pred LONG `0.229818`, SHORT `0.504557`, FLAT `0.265625`, and `9` slice failures.
+   - Epoch `3` degraded to FLAT-heavy public predictions (`pred_flat=0.558594`) and `18` slice failures. Trainer early-stopped and refused bundle creation because the slice contract stayed red.
+   - The active blocker is now genuine slice-level side/coverage accuracy under the hierarchy-composed public direction output, not missing public-FLAT composition.
    - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/16` weak required-feature red slices.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
@@ -916,13 +942,13 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, or flat-logit-margin recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
-   - keep residual-through-composition, the hard residual cap, side-neutral residual, side-prior contract, and trade-prior contract; they are useful guardrails.
-   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows trade-prior improved soft calibration but did not solve the hard trade/flat argmax.
-   - the hard flat-logit and public/hierarchy consistency surfaces work enough to move hierarchy trade/flat, so the next repair should change how the public 3-class direction head is composed or staged.
+   - keep residual-through-composition, the hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, side-prior contract, and trade-prior contract; they are useful guardrails.
+   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows public composition fixed the independent FLAT fight but did not solve active-slice side/coverage accuracy.
+   - the next repair should target hierarchy side/slice accuracy and FLAT coverage staging/calibration under the composed public output.
    - likely next source-level options:
-     - compose public FLAT directly from hierarchy no-trade instead of learning public FLAT independently.
      - stage/anneal public direction class-balance/slice losses versus hierarchy trade/flat losses instead of applying all pressures at full strength from epoch 1.
      - split public-side logits from public-FLAT/no-trade logits so side learning cannot starve abstain.
+     - add direct hierarchy side active-slice accuracy/coverage pressure tied to public LONG/SHORT slice failures.
    - keep side-prior enabled while targeting remaining slice-level accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
