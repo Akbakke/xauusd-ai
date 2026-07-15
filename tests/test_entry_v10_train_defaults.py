@@ -922,6 +922,86 @@ def test_entry_v10_direction_utility_trade_conviction_requires_tradable_side_edg
         )
 
 
+def test_entry_v10_direction_utility_triad_ce_teaches_no_edge_flat(monkeypatch) -> None:
+    import pytest
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS", 15.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP", 4.0)
+
+    long_utility = torch.tensor([40.0, 0.0, 0.0], dtype=torch.float32)
+    short_utility = torch.tensor([0.0, 40.0, 0.0], dtype=torch.float32)
+    long_bad = torch.tensor([0.20, 0.90, 0.90], dtype=torch.float32)
+    short_bad = torch.tensor([0.90, 0.20, 0.90], dtype=torch.float32)
+    wrong_logits = torch.tensor(
+        [
+            [-1.0, 0.0, 3.0],
+            [0.0, -1.0, 3.0],
+            [3.0, 0.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    correct_logits = torch.tensor(
+        [
+            [4.0, -1.0, -2.0],
+            [-1.0, 4.0, -2.0],
+            [-1.0, -2.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(
+        trainer._direction_utility_triad_ce_term(
+            wrong_logits,
+            long_utility,
+            short_utility,
+            long_bad,
+            short_bad,
+        ).item()
+    )
+    good_loss = float(
+        trainer._direction_utility_triad_ce_term(
+            correct_logits,
+            long_utility,
+            short_utility,
+            long_bad,
+            short_bad,
+        ).item()
+    )
+
+    assert bad_loss > good_loss + 20.0
+    assert good_loss < 0.25
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT", 0.0)
+    assert (
+        float(
+            trainer._direction_utility_triad_ce_term(
+                wrong_logits,
+                long_utility,
+                short_utility,
+                long_bad,
+                short_bad,
+            ).item()
+        )
+        == 0.0
+    )
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT", 8.0)
+    with pytest.raises(RuntimeError, match="ENTRY_DIRECTION_UTILITY_TRIAD_CE_SHAPE_MISMATCH"):
+        trainer._direction_utility_triad_ce_term(
+            wrong_logits,
+            long_utility[:2],
+            short_utility,
+            long_bad,
+            short_bad,
+        )
+
+
 def test_entry_v10_direction_flat_starvation_term_penalizes_zero_flat_predictions(monkeypatch) -> None:
     import torch
 
@@ -987,6 +1067,10 @@ def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -
     assert "total_direction_utility_trade_conviction += " in text[
         text.index("    with torch.no_grad():", validate_start):
     ]
+    assert "total_direction_utility_triad_ce = 0.0" in validate_init
+    assert "total_direction_utility_triad_ce += " in text[
+        text.index("    with torch.no_grad():", validate_start):
+    ]
     assert "total_direction_flat_starvation = 0.0" in validate_init
     assert "total_direction_flat_starvation += " in text[text.index("    with torch.no_grad():", validate_start):]
 
@@ -1005,6 +1089,11 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "direction_utility_trade_conviction_min_utility_bps",
         "direction_utility_trade_conviction_max_bad_path",
         "direction_utility_trade_conviction_logit_margin",
+        "direction_utility_triad_ce_weight",
+        "direction_utility_triad_ce_min_gap_bps",
+        "direction_utility_triad_ce_min_utility_bps",
+        "direction_utility_triad_ce_max_bad_path",
+        "direction_utility_triad_ce_class_weight_cap",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",

@@ -59,6 +59,11 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS": "0.0",
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH": "0.50",
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -194,6 +199,11 @@ def _dry_run_wrapper(
         and "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS=0.0" in capped_line
         and "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH=0.50" in capped_line
         and "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN=0.10" in capped_line,
+        "has_utility_triad_ce": "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT=8.00" in capped_line
+        and "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS=15.0" in capped_line
+        and "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=0.0" in capped_line
+        and "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=0.50" in capped_line
+        and "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0" in capped_line,
         "has_flat_starvation": "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in capped_line
         and "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in capped_line
         and "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in capped_line
@@ -328,6 +338,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run["has_utility_margin"]
             and dry_run["has_side_utility_conviction"]
             and dry_run["has_utility_trade_conviction"]
+            and dry_run["has_utility_triad_ce"]
             and dry_run["has_flat_starvation"]
             and dry_run["has_xau_repair_heads"]
             and dry_run["has_strict_edge_audit"]

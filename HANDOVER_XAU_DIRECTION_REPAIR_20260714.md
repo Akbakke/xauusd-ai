@@ -446,6 +446,45 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
     `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
 - No transformer training, candidate training, replay, IQL, shadow, live, or promotion path was started by this repair. Next heavy action still requires clean git, sequential readiness, enablement proof, and resource check.
 
+## 2026-07-15 Utility-Trade Smoke Failure And Utility-Triad-CE Repair
+
+- Ran one bounded smart XAU transformer smoke train after the utility-trade-conviction repair:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_UTILITYTRADE_E8_20260715 --require-edge-audit --epochs 8 --early-stop-patience 8`
+- Result: fail-closed on epoch `6` with `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; hard-red-stop refused to burn epochs `7-8`.
+  - Evidence sidecar: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T142650Z__direction_slice_failure_evidence.json`
+  - `decision=FAIL_DIRECTION_SLICE_GUARD`, `failure_code=TRAIN_FAIL_DIRECTION_SLICE_GUARD`, `bundle_written=false`, `hard_red_stopped=true`.
+  - Intended bundle dir was not created: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T142650Z`
+  - Best checkpoint was still epoch `2`: `best_dir_acc=0.364583`, global balance OK, but `best_direction_slice_contract_ok=false`, `17` slice failures.
+  - Last epoch `6` remained SHORT/FLAT-starved: pred LONG `0.204427`, pred SHORT `0.789063`, pred FLAT `0.006510`, `24` slice failures.
+- Read-only parquet diagnostic after the failure showed the input labels are not the immediate blocker:
+  - train utility masks at gap `15 bps`, utility `>=0`, bad-path `<=0.5`: LONG `1469`, SHORT `1437`, NONE `1189`.
+  - val utility masks: LONG `508`, SHORT `532`, NONE `496`.
+  - Mask purity is high: val LONG-mask label LONG `0.935`, val SHORT-mask label SHORT `0.929`, val NONE-mask label FLAT `0.925`.
+- Conclusion: do not add random new input or move to IQL yet. The failure is still in transformer direction learning, especially row-level NONE/FLAT retention under utility pressure.
+- Added the next hard transformer objective:
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP`
+- Semantics:
+  - Builds a training-only target from the same XAU utility labels: clear tradable long-edge -> LONG, clear tradable short-edge -> SHORT, all remaining no-edge rows -> FLAT.
+  - Uses class-balanced CE inside the batch with a capped class weight.
+  - This is not fallback and not a live hand-rule; it is a fail-closed training contract.
+- Smart XAU repair preflight now rejects missing/weak triad-CE settings:
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT >= 8.00`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS <= 15.0`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS <= 0.0`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH <= 0.50`
+  - `ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP >= 2.0`
+- Updated surfaces: trainer env/preflight/loss logging/failure evidence/metadata, smoke and candidate wrappers, rebuild script, smoke readiness, trainability readiness, smoke manifest, train enablement, sweep lint, smoke bundle audit, candidate readiness, replay readiness, and focused tests.
+- Validation after triad-CE implementation:
+  - `python3 -m py_compile` passed for the trainer and touched gate scripts.
+  - `bash -n` passed for `run_entry_foundation_seq146_smoke_train.sh`, `run_entry_foundation_seq146_candidate_train.sh`, and `v10_6yr_rebuild_20260626.sh`.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_v10_6yr_rebuild_direction_repair_contract.py -q`
+- No candidate training, replay, IQL, shadow, live, or promotion path was started. Utility-triad-CE has not yet been smoke-trained.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -455,18 +494,18 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the side-utility-conviction repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
-   - Best checkpoint was epoch `2` with global balance guard OK, but `best_direction_slice_contract_ok=false`, `21` slice failures, `12` accuracy failures, and `9` pred-rate failures.
-   - Last epoch `6` collapsed back toward SHORT dominance (`direction_pred_rate_short=0.818359`, `direction_pred_rate_flat=0.005208`) and hard-red-stop correctly refused to burn more compute.
-   - Utility-trade-conviction is now implemented as the next repair but has not yet been smoke-trained. Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
+2. Latest executed smart XAU smoke after the utility-trade-conviction repair still failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
+   - Best checkpoint was epoch `2` with global balance guard OK, but `best_direction_slice_contract_ok=false`, `17` slice failures.
+   - Last epoch `6` collapsed back toward SHORT dominance (`direction_pred_rate_short=0.789063`, `direction_pred_rate_flat=0.006510`) and hard-red-stop correctly refused to burn more compute.
+   - Utility-triad-CE is now implemented as the next repair but has not yet been smoke-trained. Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction recipe. It already hard-red-stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction or utility-trade-conviction recipes. Both already hard-red-stopped with no candidate bundle.
 
-2. After committing utility-trade-conviction, rerun clean-git readiness and enablement, then run one bounded smart smoke train with hard-red monitoring. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
+2. After committing utility-triad-CE, rerun clean-git readiness and enablement, then run one bounded smart smoke train with hard-red monitoring. IQL remains closed until a transformer candidate first passes the hard direction slice contract.
 
 3. Keep clean-git/readiness discipline before any heavy job:
    - `git status --short` must be clean.

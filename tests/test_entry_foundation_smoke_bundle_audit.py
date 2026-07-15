@@ -531,6 +531,11 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "direction_utility_trade_conviction_min_utility_bps": 0.0,
             "direction_utility_trade_conviction_max_bad_path": 0.50,
             "direction_utility_trade_conviction_logit_margin": 0.10,
+            "direction_utility_triad_ce_weight": 8.00,
+            "direction_utility_triad_ce_min_gap_bps": 15.0,
+            "direction_utility_triad_ce_min_utility_bps": 0.0,
+            "direction_utility_triad_ce_max_bad_path": 0.50,
+            "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -588,6 +593,11 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["direction_utility_trade_conviction_min_utility_bps"] == 0.0
     assert report["direction_utility_trade_conviction_max_bad_path"] == 0.50
     assert report["direction_utility_trade_conviction_logit_margin"] == 0.10
+    assert report["direction_utility_triad_ce_weight"] == 8.00
+    assert report["direction_utility_triad_ce_min_gap_bps"] == 15.0
+    assert report["direction_utility_triad_ce_min_utility_bps"] == 0.0
+    assert report["direction_utility_triad_ce_max_bad_path"] == 0.50
+    assert report["direction_utility_triad_ce_class_weight_cap"] == 4.0
     assert report["direction_flat_starvation_weight"] == 8.00
     assert report["direction_flat_starvation_min_label_rate"] == 0.10
     assert report["direction_flat_starvation_min_rows"] == 8
@@ -677,6 +687,11 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "direction_utility_trade_conviction_min_utility_bps": 0.0,
             "direction_utility_trade_conviction_max_bad_path": 0.50,
             "direction_utility_trade_conviction_logit_margin": 0.10,
+            "direction_utility_triad_ce_weight": 8.00,
+            "direction_utility_triad_ce_min_gap_bps": 15.0,
+            "direction_utility_triad_ce_min_utility_bps": 0.0,
+            "direction_utility_triad_ce_max_bad_path": 0.50,
+            "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -738,6 +753,11 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "direction_utility_trade_conviction_min_utility_bps": 0.0,
             "direction_utility_trade_conviction_max_bad_path": 0.50,
             "direction_utility_trade_conviction_logit_margin": 0.10,
+            "direction_utility_triad_ce_weight": 8.00,
+            "direction_utility_triad_ce_min_gap_bps": 15.0,
+            "direction_utility_triad_ce_min_utility_bps": 0.0,
+            "direction_utility_triad_ce_max_bad_path": 0.50,
+            "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -792,6 +812,11 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("direction_utility_trade_conviction_min_utility_bps" in failure for failure in report["failures"])
     assert any("direction_utility_trade_conviction_max_bad_path" in failure for failure in report["failures"])
     assert any("direction_utility_trade_conviction_logit_margin" in failure for failure in report["failures"])
+    assert any("direction_utility_triad_ce_weight" in failure for failure in report["failures"])
+    assert any("direction_utility_triad_ce_min_gap_bps" in failure for failure in report["failures"])
+    assert any("direction_utility_triad_ce_min_utility_bps" in failure for failure in report["failures"])
+    assert any("direction_utility_triad_ce_max_bad_path" in failure for failure in report["failures"])
+    assert any("direction_utility_triad_ce_class_weight_cap" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_weight" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_label_rate" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_rows" in failure for failure in report["failures"])
@@ -846,6 +871,11 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "direction_utility_trade_conviction_min_utility_bps": 0.0,
             "direction_utility_trade_conviction_max_bad_path": 0.50,
             "direction_utility_trade_conviction_logit_margin": 0.10,
+            "direction_utility_triad_ce_weight": 8.00,
+            "direction_utility_triad_ce_min_gap_bps": 15.0,
+            "direction_utility_triad_ce_min_utility_bps": 0.0,
+            "direction_utility_triad_ce_max_bad_path": 0.50,
+            "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -905,6 +935,11 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
             "direction_utility_trade_conviction_min_utility_bps": 0.0,
             "direction_utility_trade_conviction_max_bad_path": 0.50,
             "direction_utility_trade_conviction_logit_margin": 0.10,
+            "direction_utility_triad_ce_weight": 8.00,
+            "direction_utility_triad_ce_min_gap_bps": 15.0,
+            "direction_utility_triad_ce_min_utility_bps": 0.0,
+            "direction_utility_triad_ce_max_bad_path": 0.50,
+            "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,

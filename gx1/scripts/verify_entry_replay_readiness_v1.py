@@ -103,6 +103,11 @@ SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX = 15.0
 SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX = 0.0
 SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX = 0.50
 SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN = 0.10
+SMART_DIRECTION_UTILITY_TRIAD_CE_WEIGHT = 8.00
+SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX = 15.0
+SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX = 0.0
+SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX = 0.50
+SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN = 2.0
 SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
 SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
@@ -288,6 +293,16 @@ def _direction_balance_contract_passes(
         <= SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX
         and _float_or_zero(contract.get("direction_utility_trade_conviction_logit_margin"))
         >= SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
+        and _float_or_zero(contract.get("direction_utility_triad_ce_weight"))
+        >= SMART_DIRECTION_UTILITY_TRIAD_CE_WEIGHT
+        and _float_or_zero(contract.get("direction_utility_triad_ce_min_gap_bps", 999.0))
+        <= SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX
+        and _float_or_zero(contract.get("direction_utility_triad_ce_min_utility_bps", 999.0))
+        <= SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX
+        and _float_or_zero(contract.get("direction_utility_triad_ce_max_bad_path", 999.0))
+        <= SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX
+        and _float_or_zero(contract.get("direction_utility_triad_ce_class_weight_cap"))
+        >= SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN
         and _float_or_zero(contract.get("direction_flat_starvation_weight"))
         >= SMART_DIRECTION_FLAT_STARVATION_WEIGHT
         and _float_or_zero(contract.get("direction_flat_starvation_min_label_rate"))
