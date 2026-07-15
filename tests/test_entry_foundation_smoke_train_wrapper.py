@@ -110,6 +110,20 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
 
     assert "Smoke train command:" in result.stdout
     assert "smart_seq520_candidate" in result.stdout
+    assert "Real-train preflight command: scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet" in result.stdout
+    assert (
+        "Real-train preflight command: scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet"
+        in result.stdout
+    )
+    assert "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet" not in result.stdout
+    assert (
+        "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"
+        not in result.stdout
+    )
+    assert (
+        "Real-train preflight command: scripts/entry_next_edge_control.sh train-readiness --quiet"
+        not in result.stdout
+    )
     assert "ENTRY_PRED_BALANCE_ALPHA=0.50" in result.stdout
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0\\,1.0\\,4.0" in result.stdout
     assert "ENTRY_DIRECTION_CE_SCALE=4.00" in result.stdout
@@ -295,7 +309,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "artifact_fingerprints" in text
     assert "def artifact_fingerprint" in text
     assert "def run_artifact_fingerprints" in text
-    assert 'if os.environ.get("RUN_FLAVOR", "foundation_seq146") != "foundation_seq146"' in text
+    assert 'if run_flavor != "foundation_seq146"' in text
     assert "FATAL: non-foundation manifest artifact fingerprint missing" in text
     assert "FATAL: non-foundation manifest artifact fingerprint hash mismatch" in text
     assert '"artifact_fingerprints": readiness_artifact_fingerprints' in text
@@ -322,6 +336,12 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SPECIALIST_CONTRACT_MODE=challenger_seq215" in text
     assert "--smart-seq520" in text
     assert "SPECIALIST_CONTRACT_MODE=smart_seq520_candidate" in text
+    assert "smart-smoke-readiness --quiet" in text
+    assert "smart-trainability-readiness --quiet" in text
+    assert 'PREFLIGHT_GUARDRAILS_JSON="$DATA/reports/entry_smart_seq520_smoke_readiness_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_READINESS_latest.json"' in text
+    assert 'PREFLIGHT_READINESS_JSON="$DATA/reports/entry_smart_seq520_trainability_readiness_20260630_v1/ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"' in text
+    assert 'readiness_artifact_key = "smart_trainability_readiness" if run_flavor == "smart_seq520" else "training_readiness"' in text
+    assert 'guardrails_artifact_key = "smart_smoke_readiness" if run_flavor == "smart_seq520" else "foundation_guardrails"' in text
     assert "SMOKE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
     assert "GX1_PERTF_CLOSED_BAR=1" in text
     assert "SMOKE_PRED_BALANCE_ALPHA=0.50" in text
@@ -388,7 +408,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert 'if [[ "$DRY_RUN" != "1" ]]' in text
     preflight_block = text[text.index('if [[ "$DRY_RUN" != "1" ]]') : text.index("STAMP=")]
     real_train_branch = preflight_block.split("else", 1)[1]
-    assert real_train_branch.index("require_clean_git_for_real_train") < real_train_branch.index(
+    assert real_train_branch.rindex("require_clean_git_for_real_train") < real_train_branch.rindex(
         "entry_next_edge_control.sh train-readiness --quiet"
     )
     assert "REQUIRE_EDGE_AUDIT=1" in text

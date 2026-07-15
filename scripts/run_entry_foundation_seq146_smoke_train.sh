@@ -549,19 +549,30 @@ if [[ "$MATERIALIZE_ONLY" = "1" ]]; then
   exit 0
 fi
 
+PREFLIGHT_GUARDRAILS_JSON="$DATA/reports/entry_foundation_guardrails_20260628_v1/ENTRY_FOUNDATION_GUARDRAILS_latest.json"
+PREFLIGHT_READINESS_JSON="$DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json"
+if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
+  PREFLIGHT_GUARDRAILS_JSON="$DATA/reports/entry_smart_seq520_smoke_readiness_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_READINESS_latest.json"
+  PREFLIGHT_READINESS_JSON="$DATA/reports/entry_smart_seq520_trainability_readiness_20260630_v1/ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"
+fi
+
 if [[ "$DRY_RUN" != "1" ]]; then
-  scripts/entry_next_edge_control.sh verify --quiet
-  scripts/entry_next_edge_control.sh foundation-guardrails --quiet
   if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
     scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet
     scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet
-  fi
-  if [[ "$MANIFEST_ONLY" = "1" ]]; then
-    scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready
-    require_foundation_contract_ready_for_manifest_only
+    if [[ "$MANIFEST_ONLY" != "1" ]]; then
+      require_clean_git_for_real_train
+    fi
   else
-    require_clean_git_for_real_train
-    scripts/entry_next_edge_control.sh train-readiness --quiet
+    scripts/entry_next_edge_control.sh verify --quiet
+    scripts/entry_next_edge_control.sh foundation-guardrails --quiet
+    if [[ "$MANIFEST_ONLY" = "1" ]]; then
+      scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready
+      require_foundation_contract_ready_for_manifest_only
+    else
+      require_clean_git_for_real_train
+      scripts/entry_next_edge_control.sh train-readiness --quiet
+    fi
   fi
 fi
 
@@ -710,9 +721,14 @@ if [[ "$REQUIRE_EDGE_AUDIT" = "1" ]]; then
 fi
 
 if [[ "$DRY_RUN" = "1" ]]; then
-  echo "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet"
-  echo "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"
-  echo "Real-train preflight command: scripts/entry_next_edge_control.sh train-readiness --quiet"
+  if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet"
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet"
+  else
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet"
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh train-readiness --quiet"
+  fi
   echo "Pre-train run manifest path: $PRETRAIN_MANIFEST"
   echo "Smoke resource cap: mem=$SMOKE_RUN_MEM swap=$SMOKE_RUN_SWAP runner=$SMOKE_CAPPED_RUNNER num_workers=0"
   printf 'Capped smoke train command:'
@@ -741,8 +757,8 @@ SMOKE_RUN_MEM="$SMOKE_RUN_MEM" \
 SMOKE_RUN_SWAP="$SMOKE_RUN_SWAP" \
 "$PY" - "$PRETRAIN_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$SOURCE_DATASET" "$SMOKE_DATASET" \
   "$SMOKE_DATASET/SMOKE_DATASET_MANIFEST.json" "$M5_PREBUILT" "$SPECIALIST_AUDIT" \
-  "$DATA/reports/entry_foundation_guardrails_20260628_v1/ENTRY_FOUNDATION_GUARDRAILS_latest.json" \
-  "$DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json" \
+  "$PREFLIGHT_GUARDRAILS_JSON" \
+  "$PREFLIGHT_READINESS_JSON" \
   "$AUDIT_AFTER" "$REQUIRE_EDGE_AUDIT" "$DEVICE" "$EPOCHS" "$BATCH_SIZE" "$TRAIN_ROWS" "$VAL_ROWS" "$TEST_ROWS" \
   "$RUN_MODE" "${CMD[@]}" __AUDIT_CMD__ "${AUDIT_CMD[@]}" <<'PY'
 import json
@@ -1027,6 +1043,7 @@ def gate_decision(report: dict, name: str) -> str:
     return ""
 
 
+run_flavor = os.environ.get("RUN_FLAVOR", "foundation_seq146")
 readiness = read_json(sys.argv[10])
 artifacts = readiness.get("artifacts") if isinstance(readiness.get("artifacts"), dict) else {}
 feature_audit_path = os.environ.get("FEATURE_AUDIT_JSON") or artifacts.get("feature_audit")
@@ -1038,12 +1055,14 @@ target_audit = read_json(target_audit_path) if target_audit_path else {}
 specialist_audit = read_json(specialist_audit_path)
 worktree_hygiene = read_json(worktree_hygiene_path) if worktree_hygiene_path else {}
 smoke_dataset_manifest = read_json(sys.argv[6])
+readiness_artifact_key = "smart_trainability_readiness" if run_flavor == "smart_seq520" else "training_readiness"
+guardrails_artifact_key = "smart_smoke_readiness" if run_flavor == "smart_seq520" else "foundation_guardrails"
 artifact_paths = {
-    "training_readiness": sys.argv[10],
+    readiness_artifact_key: sys.argv[10],
     "feature_audit": feature_audit_path,
     "target_audit": target_audit_path,
     "specialist_audit": specialist_audit_path,
-    "foundation_guardrails": sys.argv[9],
+    guardrails_artifact_key: sys.argv[9],
     "smoke_dataset_manifest": sys.argv[6],
     "worktree_hygiene": worktree_hygiene_path,
 }
@@ -1053,7 +1072,7 @@ artifact_sha256 = {
     if path
 }
 readiness_artifact_fingerprints = readiness.get("artifact_fingerprints") or {}
-if os.environ.get("RUN_FLAVOR", "foundation_seq146") != "foundation_seq146":
+if run_flavor != "foundation_seq146":
     readiness_artifact_fingerprints = run_artifact_fingerprints(artifact_paths)
     for key, fingerprint in readiness_artifact_fingerprints.items():
         if not fingerprint.get("exists"):
@@ -1067,18 +1086,25 @@ if os.environ.get("RUN_FLAVOR", "foundation_seq146") != "foundation_seq146":
 payload = {
     "schema_version": "entry_foundation_smoke_train_run_manifest_v1",
     "created_utc": datetime.now(timezone.utc).isoformat(),
-    "run_kind": f"vedtak_gated_{os.environ.get('RUN_FLAVOR', 'foundation_seq146')}_smoke_train",
+    "run_kind": f"vedtak_gated_{run_flavor}_smoke_train",
     "run_mode": sys.argv[19],
     "vedtak": sys.argv[2],
     "specialist_contract_mode": os.environ.get("SPECIALIST_CONTRACT_MODE", "foundation_seq146"),
     "out_bundle_dir": sys.argv[3],
     "promotion_shadow_live_allowed": False,
     "trainer_started_by_manifest_writer": False,
-    "preflight_gates": {
-        "foundation_verify": "PASS_BEFORE_MANIFEST",
-        "foundation_guardrails": "PASS_BEFORE_MANIFEST",
-        "train_readiness": "PASS_BEFORE_MANIFEST",
-    },
+    "preflight_gates": (
+        {
+            "smart_smoke_readiness": "PASS_BEFORE_MANIFEST",
+            "smart_trainability_readiness": "PASS_BEFORE_MANIFEST",
+        }
+        if run_flavor == "smart_seq520"
+        else {
+            "foundation_verify": "PASS_BEFORE_MANIFEST",
+            "foundation_guardrails": "PASS_BEFORE_MANIFEST",
+            "train_readiness": "PASS_BEFORE_MANIFEST",
+        }
+    ),
     "inputs": {
         "source_dataset_dir": sys.argv[4],
         "smoke_dataset_dir": sys.argv[5],
@@ -1087,8 +1113,8 @@ payload = {
         "feature_audit_json": feature_audit_path,
         "target_audit_json": target_audit_path,
         "specialist_audit_json": sys.argv[8],
-        "foundation_guardrails_json": sys.argv[9],
-        "training_readiness_json": sys.argv[10],
+        guardrails_artifact_key + "_json": sys.argv[9],
+        readiness_artifact_key + "_json": sys.argv[10],
         "worktree_hygiene_json": worktree_hygiene_path,
     },
     "artifact_sha256": {
@@ -1096,11 +1122,14 @@ payload = {
         for key, value in artifact_sha256.items()
     },
     "preflight_contracts": {
-        "training_readiness": {
+        readiness_artifact_key: {
             "decision": readiness.get("decision"),
             "foundation_contract_ready_for_smoke": readiness.get("foundation_contract_ready_for_smoke"),
             "smoke_training_allowed_with_explicit_vedtak": readiness.get(
                 "smoke_training_allowed_with_explicit_vedtak"
+            ),
+            "smart_smoke_train_allowed_with_explicit_vedtak": readiness.get(
+                "smart_smoke_train_allowed_with_explicit_vedtak"
             ),
             "artifact_provenance_decision": gate_decision(readiness, "artifact_provenance"),
             "artifact_fingerprints": readiness_artifact_fingerprints,
