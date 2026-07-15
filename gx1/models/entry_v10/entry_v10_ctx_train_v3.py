@@ -30,7 +30,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
 from sklearn.metrics import accuracy_score
 
 # V2: switched from signal_bridge_v1 (7-dim seq) to signal_bridge_v3 (37-dim seq with SMC).
@@ -357,6 +357,15 @@ ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS = int(
     float(_env_str("ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
 ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION = _env_str("ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean").strip().lower()
+ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER = _env_str("ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = int(
+    float(_env_str("ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
+)
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
 
@@ -575,6 +584,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS": "8",
     "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
+    "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER": "0",
+    "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
@@ -2553,6 +2564,182 @@ def _direction_slice_ctx_cat_indices(ctx_cat_dim: int) -> list[int]:
         if 0 <= idx < int(ctx_cat_dim):
             out.append(idx)
     return sorted(set(out))
+
+
+class _DirectionSliceBalancedSampler(Sampler[int]):
+    """Orders training samples so slice-loss batches contain audited ctx_cat slices."""
+
+    def __init__(
+        self,
+        *,
+        labels: np.ndarray,
+        ctx_cat: np.ndarray,
+        ctx_cat_indices: list[int],
+        batch_size: int,
+        min_rows: int,
+        min_label_rate: float,
+        seed: int,
+    ) -> None:
+        labels_arr = np.asarray(labels, dtype=np.int64).reshape(-1)
+        ctx_arr = np.asarray(ctx_cat, dtype=np.int64)
+        if ctx_arr.ndim != 2:
+            raise RuntimeError(
+                f"[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_CTX_INVALID] ctx_cat_shape={ctx_arr.shape}"
+            )
+        if labels_arr.shape[0] != ctx_arr.shape[0]:
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_SHAPE_MISMATCH] "
+                f"labels={labels_arr.shape[0]} ctx_cat={ctx_arr.shape[0]}"
+            )
+        if labels_arr.shape[0] <= 0:
+            raise RuntimeError("[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_EMPTY_DATASET]")
+        if int(batch_size) < 2:
+            raise RuntimeError(
+                f"[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_BATCH_INVALID] batch_size={batch_size} expected >=2"
+            )
+        if int(min_rows) < 2:
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS_INVALID] "
+                f"ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS={min_rows} expected >=2"
+            )
+        if int(batch_size) < int(min_rows):
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_BATCH_TOO_SMALL] "
+                f"batch_size={batch_size} min_rows={min_rows}"
+            )
+        if float(min_label_rate) < 0.0 or float(min_label_rate) > 1.0:
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_LABEL_RATE_INVALID] "
+                f"min_label_rate={float(min_label_rate):.6f} expected [0.0, 1.0]"
+            )
+        indices = [int(idx) for idx in ctx_cat_indices if 0 <= int(idx) < int(ctx_arr.shape[1])]
+        if not indices:
+            raise RuntimeError("[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_NO_CTX_CAT_INDICES]")
+
+        self.labels = labels_arr
+        self.ctx_cat = ctx_arr
+        self.batch_size = int(batch_size)
+        self.min_rows = int(min_rows)
+        self.seed = int(seed)
+        self._iteration = 0
+        self.num_samples = int(np.ceil(labels_arr.shape[0] / self.batch_size) * self.batch_size)
+        self._all_positions = np.arange(labels_arr.shape[0], dtype=np.int64)
+        self._slice_rows: dict[tuple[int, int], np.ndarray] = {}
+        self._slice_class_rows: dict[tuple[tuple[int, int], int], np.ndarray] = {}
+        self._active_classes: dict[tuple[int, int], list[int]] = {}
+
+        for idx in indices:
+            for raw_value in np.unique(ctx_arr[:, idx]):
+                value = int(raw_value)
+                mask = ctx_arr[:, idx] == value
+                rows = np.flatnonzero(mask).astype(np.int64)
+                if int(rows.size) < self.min_rows:
+                    continue
+                slice_labels = labels_arr[rows]
+                counts = np.bincount(slice_labels, minlength=3).astype(np.float64)
+                label_rates = counts / max(1.0, float(counts.sum()))
+                active = [
+                    int(cls)
+                    for cls in range(min(3, len(label_rates)))
+                    if label_rates[cls] >= float(min_label_rate) and int(counts[cls]) > 0
+                ]
+                if not active:
+                    continue
+                key = (int(idx), int(value))
+                self._slice_rows[key] = rows
+                self._active_classes[key] = active
+                for cls in active:
+                    cls_rows = rows[slice_labels == int(cls)].astype(np.int64)
+                    if cls_rows.size <= 0:
+                        raise RuntimeError(
+                            "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_CLASS_EMPTY] "
+                            f"slice={key} class={cls}"
+                        )
+                    self._slice_class_rows[(key, int(cls))] = cls_rows
+
+        self._slice_keys = sorted(self._slice_rows)
+        if not self._slice_keys:
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_NO_ACTIVE_SLICES] "
+                f"indices={indices} min_rows={self.min_rows} min_label_rate={float(min_label_rate):.3f}"
+            )
+
+    @property
+    def audited_slice_count(self) -> int:
+        return len(self._slice_keys)
+
+    def __len__(self) -> int:
+        return self.num_samples
+
+    def _sample_slice_rows(
+        self,
+        rng: np.random.Generator,
+        key: tuple[int, int],
+    ) -> list[int]:
+        active_classes = list(self._active_classes[key])
+        out: list[int] = []
+        shuffled_classes = list(rng.permutation(active_classes).tolist())
+        for cls in shuffled_classes:
+            cls_rows = self._slice_class_rows[(key, int(cls))]
+            out.append(int(rng.choice(cls_rows)))
+        all_rows = self._slice_rows[key]
+        while len(out) < self.min_rows:
+            out.append(int(rng.choice(all_rows)))
+        rng.shuffle(out)
+        return out[: self.min_rows]
+
+    def __iter__(self):
+        rng = np.random.default_rng(self.seed + self._iteration)
+        self._iteration += 1
+        batches = max(1, self.num_samples // self.batch_size)
+        slice_keys = [self._slice_keys[int(i)] for i in rng.permutation(len(self._slice_keys))]
+        slice_pos = 0
+        emitted = 0
+        for _ in range(batches):
+            batch: list[int] = []
+            while len(batch) + self.min_rows <= self.batch_size:
+                key = slice_keys[slice_pos]
+                slice_pos += 1
+                if slice_pos >= len(slice_keys):
+                    slice_keys = [self._slice_keys[int(i)] for i in rng.permutation(len(self._slice_keys))]
+                    slice_pos = 0
+                batch.extend(self._sample_slice_rows(rng, key))
+            while len(batch) < self.batch_size:
+                batch.append(int(rng.choice(self._all_positions)))
+            rng.shuffle(batch)
+            for sample_idx in batch:
+                emitted += 1
+                yield int(sample_idx)
+        if emitted != self.num_samples:
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_EMIT_MISMATCH] "
+                f"emitted={emitted} expected={self.num_samples}"
+            )
+
+
+def _direction_slice_sampler_arrays(dataset: EntryV10CtxDataset) -> tuple[np.ndarray, np.ndarray]:
+    row_indices = np.asarray(getattr(dataset, "indices", []), dtype=np.int64)
+    if row_indices.size <= 0:
+        raise RuntimeError("[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_DATASET_EMPTY]")
+    if "y_direction" not in dataset.df.columns:
+        raise RuntimeError("[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_LABEL_MISSING] y_direction")
+    labels_all = dataset.df["y_direction"].to_numpy(dtype=np.int64)
+    labels = labels_all[row_indices]
+    if hasattr(dataset, "_np_ctx_cat"):
+        ctx_all = np.asarray(getattr(dataset, "_np_ctx_cat"), dtype=np.int64)
+        ctx_cat = ctx_all[row_indices]
+    elif hasattr(dataset, "ctx_cat_cols"):
+        ctx_cols = list(getattr(dataset, "ctx_cat_cols"))
+        missing = [col for col in ctx_cols if col not in dataset.df.columns]
+        if missing:
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_CTX_MISSING] "
+                + ",".join(str(col) for col in missing)
+            )
+        ctx_cat = dataset.df[ctx_cols].to_numpy(dtype=np.int64)[row_indices]
+    else:
+        raise RuntimeError("[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_CTX_UNAVAILABLE]")
+    return labels, ctx_cat
 
 
 def _direction_slice_loss_aggregate(values: list[torch.Tensor]) -> torch.Tensor:
@@ -5911,10 +6098,33 @@ def run_train(
         num_workers, pin_memory, persistent_workers, str(prefetch_factor),
     )
 
+    train_sampler: Optional[Sampler[int]] = None
+    if bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER):
+        sampler_labels, sampler_ctx_cat = _direction_slice_sampler_arrays(train_ds)
+        train_sampler = _DirectionSliceBalancedSampler(
+            labels=sampler_labels,
+            ctx_cat=sampler_ctx_cat,
+            ctx_cat_indices=_direction_slice_ctx_cat_indices(int(sampler_ctx_cat.shape[1])),
+            batch_size=int(batch_size),
+            min_rows=int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
+            min_label_rate=float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+            seed=int(seed),
+        )
+        log.info(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER] enabled=1 audited_train_slices=%d "
+            "batch_size=%d min_rows=%d min_label_rate=%.3f num_samples=%d",
+            int(getattr(train_sampler, "audited_slice_count", 0)),
+            int(batch_size),
+            int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
+            float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+            int(len(train_sampler)),
+        )
+
     train_loader = DataLoader(
         train_ds,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
         persistent_workers=persistent_workers,
@@ -6215,6 +6425,10 @@ def run_train(
         ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE,
     )
     _require_nonneg("ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS", ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS)
+    _require_nonneg(
+        "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS",
+        ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS,
+    )
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN", ENTRY_DIRECTION_VS_FLAT_MARGIN)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
@@ -6299,6 +6513,16 @@ def run_train(
             f"ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION={ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION!r} "
             f"expected one of {sorted(_DIRECTION_SLICE_LOSS_AGGREGATIONS)}"
         )
+    if ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS < 2:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS={ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS} expected >=2"
+        )
+    if bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER) and int(batch_size) < int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS):
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_BATCH_TOO_SMALL] "
+            f"batch_size={batch_size} min_rows={ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS}"
+        )
     if bool(enable_side_validity_head) and ENTRY_HIER_SIDE_VALIDITY_WEIGHT <= 0.0:
         raise RuntimeError(
             "[ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED] enable_side_validity_head=true requires "
@@ -6366,6 +6590,13 @@ def run_train(
             )
         if not bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD):
             repair_failures.append("ENTRY_CKPT_DIRECTION_SLICE_GUARD=0 expected 1")
+        if not bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER):
+            repair_failures.append("ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=0 expected 1")
+        if ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS < 8:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS="
+                f"{ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS} expected >=8"
+            )
         if ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT < 2.50:
             repair_failures.append(
                 "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="
@@ -6569,7 +6800,7 @@ def run_train(
         "slice_recall_min_label_rate=%.3f slice_balanced_ce_w=%.3f slice_balanced_ce_min_rows=%d "
         "slice_balanced_ce_min_label_rate=%.3f slice_true_margin_w=%.3f slice_true_margin=%.3f "
         "slice_true_margin_min_rows=%d slice_true_margin_min_label_rate=%.3f slice_agg=%s "
-        "flat_margin_w=%.3f flat_margin=%.3f",
+        "slice_balanced_sampler=%d slice_balanced_sampler_min_rows=%d flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -6592,6 +6823,8 @@ def run_train(
         int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
         float(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE),
         str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+        int(bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER)),
+        int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
     )
@@ -7279,6 +7512,8 @@ def run_train(
         "direction_slice_true_margin_min_label_rate": float(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE),
         "direction_slice_true_margin_min_rows": int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
         "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+        "direction_slice_balanced_sampler": bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER),
+        "direction_slice_balanced_sampler_min_rows": int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
         "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
@@ -7336,6 +7571,8 @@ def run_train(
             "direction_slice_true_margin_min_label_rate": float(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE),
             "direction_slice_true_margin_min_rows": int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
             "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+            "direction_slice_balanced_sampler": bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER),
+            "direction_slice_balanced_sampler_min_rows": int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
             "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
             "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),

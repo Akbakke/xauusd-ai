@@ -65,6 +65,7 @@ SMART_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT = 2.00
 SMART_DIRECTION_SLICE_TRUE_MARGIN = 0.10
 SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS = 8
+SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = 8
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
@@ -1122,6 +1123,20 @@ def _direction_balance_recipe_contract(
             )
         )
     )
+    direction_slice_balanced_sampler = _bool_value(
+        recipe.get(
+            "direction_slice_balanced_sampler",
+            meta.get("direction_slice_balanced_sampler", False),
+        )
+    )
+    direction_slice_balanced_sampler_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "direction_slice_balanced_sampler_min_rows",
+                meta.get("direction_slice_balanced_sampler_min_rows", -1.0),
+            )
+        )
+    )
     direction_vs_flat_margin_weight = _safe_float(
         recipe.get(
             "direction_vs_flat_margin_weight",
@@ -1302,6 +1317,15 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_slice_true_margin_min_rows="
                     f"{SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS}"
                 )
+            if not bool(direction_slice_balanced_sampler):
+                failures.append(
+                    "smart direction active head requires direction_slice_balanced_sampler=true"
+                )
+            if direction_slice_balanced_sampler_min_rows != SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires direction_slice_balanced_sampler_min_rows="
+                    f"{SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS}"
+                )
             if direction_vs_flat_margin_weight < SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_vs_flat_margin_weight >= "
@@ -1369,6 +1393,8 @@ def _direction_balance_recipe_contract(
         "direction_slice_true_margin": direction_slice_true_margin,
         "direction_slice_true_margin_min_label_rate": direction_slice_true_margin_min_label_rate,
         "direction_slice_true_margin_min_rows": direction_slice_true_margin_min_rows,
+        "direction_slice_balanced_sampler": direction_slice_balanced_sampler,
+        "direction_slice_balanced_sampler_min_rows": direction_slice_balanced_sampler_min_rows,
         "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
         "direction_vs_flat_margin": direction_vs_flat_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,

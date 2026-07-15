@@ -181,6 +181,14 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER:-0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS:-8}"'
+        in text
+    )
+    assert (
         'CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT:-0.0}"'
         in text
     )
@@ -279,6 +287,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE=" in text
     assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=" in text
     assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=" in text
+    assert "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=" in text
+    assert "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_RESIDUAL_SCALE" in text

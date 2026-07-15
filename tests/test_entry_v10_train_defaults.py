@@ -298,6 +298,53 @@ def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(
     assert trainer._direction_slice_ckpt_score(0.40, collapsed) < trainer._direction_slice_ckpt_score(0.40, covered)
 
 
+def test_entry_v10_direction_slice_balanced_sampler_builds_hard_slice_batches() -> None:
+    import itertools
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    labels = np.asarray([0, 1, 2] * 8 + [0, 1, 2] * 8, dtype=np.int64)
+    ctx_cat = np.asarray([[0]] * 24 + [[1]] * 24, dtype=np.int64)
+    sampler = trainer._DirectionSliceBalancedSampler(
+        labels=labels,
+        ctx_cat=ctx_cat,
+        ctx_cat_indices=[0],
+        batch_size=12,
+        min_rows=6,
+        min_label_rate=0.10,
+        seed=20260715,
+    )
+
+    first_batch = list(itertools.islice(iter(sampler), 12))
+    batch_slices = set(ctx_cat[first_batch, 0].tolist())
+
+    assert len(sampler) == 48
+    assert sampler.audited_slice_count == 2
+    assert batch_slices == {0, 1}
+
+
+def test_entry_v10_direction_slice_balanced_sampler_fails_without_active_slice() -> None:
+    import numpy as np
+    import pytest
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    labels = np.asarray([0, 1, 2], dtype=np.int64)
+    ctx_cat = np.asarray([[0], [0], [0]], dtype=np.int64)
+
+    with pytest.raises(RuntimeError, match="ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_NO_ACTIVE_SLICES"):
+        trainer._DirectionSliceBalancedSampler(
+            labels=labels,
+            ctx_cat=ctx_cat,
+            ctx_cat_indices=[0],
+            batch_size=8,
+            min_rows=8,
+            min_label_rate=0.10,
+            seed=1,
+        )
+
+
 def test_entry_v10_direction_slice_recall_term_penalizes_low_true_class_prob(monkeypatch) -> None:
     import torch
 

@@ -37,8 +37,14 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Smart XAU repair train recipe now requires `ENTRY_DIRECTION_SLICE_BALANCED_CE_*`; smoke/candidate wrappers, manifest/readiness contracts, trainer metadata, and bundle audit fail closed if this recipe is missing or too weak.
 - Smart XAU smoke training with slice-balanced CE ran fail-closed and refused to write a bundle because the best checkpoint still failed active direction slice accuracy (`[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`).
 - Added a stricter smart XAU slice true-class margin repair: `ENTRY_DIRECTION_SLICE_TRUE_MARGIN_*` now contributes to train/val loss and is required by trainer preflight, wrappers, readiness contracts, manifests, sweep lint, metadata, and bundle audit.
+- Follow-up smoke training evidence after true-margin repair remained hard-red:
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_SLICEMARGIN_20260715`: fail-closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle written.
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_SLICEMARGIN_W8_CE4_20260715`: stronger slice true-margin/balanced-CE weights destabilized and still failed slice guard, no bundle written.
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_SLICEMARGIN_BS256_20260715`: larger batch reduced neither the hard slice failure enough nor wrote a bundle; best checkpoint was epoch 12 with `slice_contract_ok=0` and 21 slice failures.
+- Added a hard smart XAU slice-balanced sampler contract: `ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=1` with min rows 8 is now required by smart repair preflight, wrapper recipes, readiness contracts, manifest contracts, sweep lint, trainer metadata, and smoke bundle audit. This is not fallback; if active train slices cannot be built, training fails before epoch 1.
 - Targeted validation passed after the true-margin repair:
   `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q`.
+  After the slice-balanced sampler contract this targeted suite passed again with `124 passed`.
 
 ## What Was Done
 
@@ -134,7 +140,9 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest smart XAU smoke training failed hard on direction slice guard. No fallback path and no slice-failed bundle should be used as evidence.
+2. Latest smart XAU smoke training attempts failed hard on direction slice guard. No fallback path and no slice-failed bundle should be used as evidence.
+   - True-margin standard, stronger W8/CE4, and batch-size 256 all failed closed without writing a bundle.
+   - Next repair is the hard slice-balanced sampler contract; if it fails, preserve the failure evidence and repair the objective/data contract again.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
@@ -145,7 +153,7 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
    - Commit/stash intentionally.
    - Do not revert unrelated user work.
 
-2. With clean git, rerun fail-closed smoke/readiness gates against the updated true-margin source recipe contract.
+2. With clean git, rerun fail-closed smoke/readiness gates against the updated true-margin plus slice-balanced sampler source recipe contract.
 
 3. Rerun smart XAU smoke train with explicit vedtak. If the slice guard fails again, preserve the hard failure evidence and repair the objective or data contract; do not add fallback.
 

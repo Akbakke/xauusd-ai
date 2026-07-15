@@ -98,6 +98,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
@@ -219,6 +221,16 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         )
     if env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION") != "mean":
         failures.append("DIRECTION_SLICE_LOSS_AGGREGATION must stay mean for strict XAU repair")
+    if env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER") != "1":
+        failures.append("DIRECTION_SLICE_BALANCED_SAMPLER must stay 1 for strict XAU repair")
+    slice_sampler_min_rows = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS", "0"))
+    )
+    if slice_sampler_min_rows != 8:
+        failures.append(
+            "DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS must stay 8 for strict XAU repair, "
+            f"got {slice_sampler_min_rows}"
+        )
     if bad_path_penalty != 0.0:
         failures.append(f"BAD_PATH_PROB_PENALTY must stay 0.0, got {bad_path_penalty}")
     if anchor_gate != 0.0:
