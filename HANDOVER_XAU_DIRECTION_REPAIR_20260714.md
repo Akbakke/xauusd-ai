@@ -804,6 +804,49 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - RAM had about `39GiB` available and swap use was `0B`.
   - No cleanup was required under the active disk threshold.
 
+## 2026-07-15 Flat-Logit Repair Status
+
+- Implemented and committed hard hierarchy trade/flat logit-margin repair:
+  - Commit: `2a5fe00e Require XAU hierarchy flat logit margin`
+  - Added fail-closed trainer env/metadata/loss terms:
+    - `ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT`
+    - `ENTRY_HIER_FLAT_LOGIT_MARGIN`
+    - `ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE`
+    - `ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT`
+    - `ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN`
+    - `ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE`
+    - `ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS`
+  - Smart-XAU preflight now requires global and slice flat-logit-margin weights `>=8.0`, margin `>=0.10`, min label rate `>=0.10`, and slice rows `>=8`.
+  - Wrapper/readiness/manifest/enablement/audit/sweep contracts now require the same proof. Old soft trade-prior-only runs cannot pass as current smart-XAU proof.
+  - Focused validation passed:
+    - `python3 -m py_compile ...`
+    - `bash -n scripts/run_entry_foundation_seq146_smoke_train.sh scripts/run_entry_foundation_seq146_candidate_train.sh scripts/v10_6yr_rebuild_20260626.sh`
+    - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_xau_direction_repair_sweep.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py -q`
+- Clean-git smart readiness/enablement passed after the commit:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`
+  - Enablement report: `/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_train_enablement_20260715_v1/ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_20260715T191602Z.json`
+  - Enablement decision: `ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION`
+  - Proof: `has_hier_flat_logit_margin=true`, `iql_allowed=false`, `replay_allowed=false`, `trainer_started=false`.
+- Ran one bounded smart smoke with the new flat-logit repair:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_FLATLOGIT_E6_20260715`
+  - Command: `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_FLATLOGIT_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - It was manually stopped after epoch `5` because epoch `5` was hard red and regressed to `hier_trade_pred=1.000000`. No candidate bundle was produced.
+  - The only generated pre-train manifest for the aborted run was deleted:
+    - `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T191642Z.json`
+  - Resource state after stop: `/home/andre2/GX1_DATA` about `838G` free, RAM about `38GiB` available, swap `0B`, GPU back near idle.
+- Smoke evidence summary:
+  - Epoch `1`: balance guard OK, `18` slice failures, public pred LONG `0.238281`, SHORT `0.502604`, FLAT `0.259115`; hierarchy `trade_pred=0.927083`, `trade_prob=0.586075`.
+  - Epoch `2`: hierarchy trade/flat improved toward target with `trade_pred=0.773438`, `trade_prob=0.546685`, but public direction collapsed LONG to `0.002604`; `31` slice failures and balance guard failed.
+  - Epoch `3` was the best checkpoint observed: `dir_acc=0.361328`, balance guard OK, `13` slice failures, public pred LONG `0.222005`, SHORT `0.171875`, FLAT `0.606120`; hierarchy `trade_pred=0.862630`, `trade_prob=0.543640`.
+  - Epoch `4` regressed to `27` slice failures, balance guard failed, `trade_pred=0.899089`.
+  - Epoch `5` was hard red: `42` slice failures, balance guard failed, public pred LONG `0.792318`, SHORT `0.112630`, FLAT `0.095052`; hierarchy `trade_pred=1.000000`, `trade_prob=0.605607`.
+- Interpretation:
+  - This is real progress versus the trade-prior-only smoke: hard hierarchy trade/flat can now move away from all-trade for some epochs (`0.773438` at epoch `2` versus previous `0.998698` at failed epoch `6`).
+  - It is still not solved. The new pressure competes with the public 3-class direction head and the model oscillates between FLAT-heavy and LONG-heavy collapse.
+  - Do not continue this exact recipe for more epochs. It already showed the mechanism and then went hard red.
+  - Next repair should decouple or stage the public 3-class direction head from hierarchy trade/flat calibration, or add an explicit consistency term between public FLAT and hierarchy flat so the two heads do not fight.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -813,11 +856,10 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the hierarchy trade-prior repair still failed hard on direction-slice accuracy/stability. No failed bundle should be used as evidence.
-   - The trade-prior repair moved soft trade probability toward the target (`hier_trade_prob_mean=0.632771` versus `hier_trade_target_rate=0.654948` at epoch 6), but it did not fix hard argmax (`hier_trade_pred_rate=0.998698`, `hier_flat_pred_rate=0.001302`).
-   - It failed closed with `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, `bundle_written=false`, and hard-red-stop at epoch `6`.
-   - Best checkpoint was epoch `1` with balance guard OK but `18` slice failures; last epoch `6` had `32` slice failures and public FLAT pred-rate only `0.045573` versus label FLAT `0.345052`.
-   - The active blocker is now hierarchy trade-vs-flat hard decision/calibration: soft FLAT probability exists, but the trade logit remains above the `0.5` argmax threshold on almost all rows.
+2. Latest executed smart XAU smoke after the hierarchy flat-logit repair was manually stopped after hard-red epoch `5`. No candidate bundle was produced and no failed bundle should be used as evidence.
+   - The flat-logit repair moved hard hierarchy trade/flat in the right direction in early epochs (`trade_pred=0.773438` at epoch `2`), proving the repair surface is active.
+   - It did not stabilize the full direction system. Epoch `3` was best observed with `13` slice failures and public FLAT overprediction (`0.606120`), while epoch `5` regressed to `42` slice failures and hierarchy all-trade (`trade_pred=1.000000`).
+   - The active blocker is now head conflict/consistency: hierarchy trade/flat calibration and public LONG/SHORT/FLAT direction can move in opposite unstable regimes.
    - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/16` weak required-feature red slices.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
@@ -825,12 +867,16 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, or trade-prior recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, or flat-logit-margin recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
    - keep residual-through-composition, the hard residual cap, side-neutral residual, side-prior contract, and trade-prior contract; they are useful guardrails.
    - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows trade-prior improved soft calibration but did not solve the hard trade/flat argmax.
-   - target hierarchy trade-vs-flat directly at the decision/logit level: add hard FLAT margin/threshold pressure or a two-logit calibrated trade/flat head so flat-labelled rows can cross below the hard trade threshold.
+   - the hard flat-logit surface works enough to move hierarchy trade/flat, so the next repair should address conflict between the public 3-class direction head and hierarchy trade/flat.
+   - likely next source-level options:
+     - add explicit consistency loss between public FLAT probability and hierarchy flat probability.
+     - stage/anneal public direction class-balance losses versus hierarchy flat-logit loss instead of applying all pressures at full strength from epoch 1.
+     - evaluate whether public FLAT should be composed from hierarchy no-trade rather than learned independently.
    - keep side-prior enabled while targeting remaining slice-level accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
