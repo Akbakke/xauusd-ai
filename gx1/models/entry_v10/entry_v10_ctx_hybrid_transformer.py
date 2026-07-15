@@ -100,6 +100,7 @@ class CtxModelConfig:
     enable_hierarchical_direction_composition: bool = False
     hierarchical_composition_residual_logit_cap: float = 0.0
     hierarchical_composition_residual_side_neutral: bool = False
+    hierarchical_composition_public_flat_from_trade: bool = False
     enable_side_validity_head: bool = False
     enable_trendline_rail_head: bool = False
     trendline_rail_output_dim: int = 4
@@ -283,6 +284,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         enable_hierarchical_direction_composition: bool = False,
         hierarchical_composition_residual_logit_cap: float = 0.0,
         hierarchical_composition_residual_side_neutral: bool = False,
+        hierarchical_composition_public_flat_from_trade: bool = False,
         enable_side_validity_head: bool = False,
         enable_trendline_rail_head: bool = False,
         trendline_rail_output_dim: int = 4,
@@ -359,6 +361,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError("SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
+        if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
+            raise RuntimeError("HIERARCHICAL_COMPOSITION_PUBLIC_FLAT_FROM_TRADE_REQUIRES_COMPOSITION")
         if float(hierarchical_composition_residual_logit_cap) < 0.0:
             raise RuntimeError(
                 "HIERARCHICAL_COMPOSITION_RESIDUAL_LOGIT_CAP_INVALID: "
@@ -380,6 +384,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             hierarchical_composition_residual_logit_cap=float(hierarchical_composition_residual_logit_cap),
             hierarchical_composition_residual_side_neutral=bool(
                 hierarchical_composition_residual_side_neutral
+            ),
+            hierarchical_composition_public_flat_from_trade=bool(
+                hierarchical_composition_public_flat_from_trade
             ),
             enable_side_validity_head=bool(enable_side_validity_head),
             enable_trendline_rail_head=bool(enable_trendline_rail_head),
@@ -1095,7 +1102,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 ).to(dtype=raw_direction_logits.dtype)
                 _assert_finite("composed_direction_logits", composed_direction_logits)
                 residual_direction_logits = self.residual_scale.to(delta_logits.dtype) * delta_logits
-                if bool(getattr(self.cfg, "hierarchical_composition_residual_side_neutral", False)):
+                if bool(getattr(self.cfg, "hierarchical_composition_public_flat_from_trade", False)):
+                    neutral_residual = residual_direction_logits.mean(dim=1)
+                    residual_direction_logits = torch.stack(
+                        (
+                            neutral_residual,
+                            neutral_residual,
+                            neutral_residual,
+                        ),
+                        dim=1,
+                    )
+                elif bool(getattr(self.cfg, "hierarchical_composition_residual_side_neutral", False)):
                     trade_residual = residual_direction_logits[:, :2].mean(dim=1)
                     residual_direction_logits = torch.stack(
                         (
@@ -1122,7 +1139,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 out["hierarchical_direction_residual_logits"] = residual_direction_logits
                 out["hierarchical_direction_residual_side_neutral"] = torch.full(
                     (direction_logits.shape[0], 1),
-                    1.0 if bool(getattr(self.cfg, "hierarchical_composition_residual_side_neutral", False)) else 0.0,
+                    1.0
+                    if (
+                        bool(getattr(self.cfg, "hierarchical_composition_residual_side_neutral", False))
+                        or bool(getattr(self.cfg, "hierarchical_composition_public_flat_from_trade", False))
+                    )
+                    else 0.0,
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
+                out["hierarchical_direction_public_flat_from_trade"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    1.0 if bool(getattr(self.cfg, "hierarchical_composition_public_flat_from_trade", False)) else 0.0,
                     device=direction_logits.device,
                     dtype=direction_logits.dtype,
                 )

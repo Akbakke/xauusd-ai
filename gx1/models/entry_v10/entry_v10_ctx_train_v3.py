@@ -454,6 +454,9 @@ ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP = float(_env_str("ENTRY_HIER_COMPOSE_RESID
 ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL = int(
     float(_env_str("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", "0"))
 )
+ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE = int(
+    float(_env_str("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", "0"))
+)
 ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
     _env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0.10")
@@ -803,6 +806,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION": "0",
     "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.0",
     "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "0",
+    "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "0",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -8125,6 +8129,7 @@ def run_train(
         enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
         hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+        hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
@@ -8356,6 +8361,7 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION)
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
+    _require_nonneg("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
     _require_nonneg("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT)
     _require_nonneg(
         "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE",
@@ -8468,6 +8474,12 @@ def run_train(
             "[ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_INVALID] "
             "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL="
             f"{ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_INVALID] "
+            "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="
+            f"{ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE} expected 0 or 1"
         )
     if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE > 1.0:
         raise RuntimeError(
@@ -9104,6 +9116,8 @@ def run_train(
             )
         if not bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL):
             repair_failures.append("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0 expected 1")
+        if not bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE):
+            repair_failures.append("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0 expected 1")
         if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
@@ -9353,6 +9367,7 @@ def run_train(
         "utility_triad_ce_min_utility_bps=%.3f utility_triad_ce_max_bad_path=%.3f "
         "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
         "hier_compose_residual_cap=%.3f hier_compose_residual_side_neutral=%d "
+        "hier_compose_public_flat_from_trade=%d "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
         "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
@@ -9413,6 +9428,7 @@ def run_train(
         int(bool(enable_hierarchical_direction_composition)),
         float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         int(bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)),
+        int(bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)),
         float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -10014,6 +10030,7 @@ def run_train(
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+                    "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
                     "hier_trade_global_prior_match_weight": float(
                         ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
                     ),
@@ -10248,6 +10265,7 @@ def run_train(
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+                    "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
                     "hier_trade_global_prior_match_weight": float(
                         ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
                     ),
@@ -10556,7 +10574,15 @@ def run_train(
             "enabled": bool(enable_hierarchical_direction_composition),
             "residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+            "public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
             "formula": (
+                (
+                    "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
+                    "log P(flat)] + common(capped(residual_scale*delta_logits)); "
+                    "common residual is softmax-invariant, so public FLAT comes from hierarchy no-trade"
+                )
+                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
+                else
                 (
                     "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
                     "log P(flat)] + capped(side_neutral(residual_scale*delta_logits))"
@@ -10568,7 +10594,11 @@ def run_train(
                 )
             ),
             "public_output": "direction_logits",
-            "residual_delta_logits": "head_direction remains trainable through public direction_logits",
+            "residual_delta_logits": (
+                "head_direction residual is retained for diagnostics but is public-softmax invariant"
+                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
+                else "head_direction remains trainable through public direction_logits"
+            ),
             "runtime_rule_free": True,
         },
         "hierarchical_entry_heads": {
@@ -10826,6 +10856,7 @@ def run_train(
         "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
         "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+        "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
         "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
         "hier_trade_global_prior_match_min_label_rate": float(
@@ -10992,6 +11023,7 @@ def run_train(
             "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
             "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+            "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
             "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
             "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
             "hier_trade_global_prior_match_min_label_rate": float(
@@ -11190,6 +11222,7 @@ def run_train(
         enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
         hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+        hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,

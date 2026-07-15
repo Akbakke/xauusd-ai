@@ -230,6 +230,12 @@ def load_entry_v10_ctx_bundle(
             meta.get("hier_compose_residual_side_neutral", False) if isinstance(meta, dict) else False,
         )
     )
+    _hierarchical_composition_public_flat_from_trade = bool(
+        _hierarchical_direction_cfg.get(
+            "public_flat_from_trade",
+            meta.get("hier_compose_public_flat_from_trade", False) if isinstance(meta, dict) else False,
+        )
+    )
     _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
     _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
     _trendline_rail_output_dim = 4
@@ -300,6 +306,7 @@ def load_entry_v10_ctx_bundle(
         enable_hierarchical_direction_composition=_enable_hierarchical_direction_composition,
         hierarchical_composition_residual_logit_cap=_hierarchical_composition_residual_logit_cap,
         hierarchical_composition_residual_side_neutral=_hierarchical_composition_residual_side_neutral,
+        hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
         enable_side_validity_head=_has_side_validity_head,
         enable_trendline_rail_head=_has_trendline_rail,
         trendline_rail_output_dim=_trendline_rail_output_dim,

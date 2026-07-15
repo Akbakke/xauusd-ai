@@ -1413,6 +1413,7 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "direction_hierarchical_composition",
         "hier_compose_residual_logit_cap",
         "hier_compose_residual_side_neutral",
+        "hier_compose_public_flat_from_trade",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",
@@ -1837,6 +1838,10 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
     assert "anchor_eps=float(ENTRY_ANCHOR_EPS)" in train_ctor
     assert "hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)" in train_ctor
     assert "hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)" in train_ctor
+    assert (
+        "hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)"
+        in train_ctor
+    )
 
 
 def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:
@@ -1935,6 +1940,58 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
     capped_loss.backward()
     assert capped_model.head_direction.bias.grad is not None
     assert float(capped_model.head_direction.bias.grad.abs().sum().item()) > 0.0
+
+
+def test_entry_v10_hierarchical_direction_public_flat_from_trade_neutralizes_public_residual() -> None:
+    import torch
+
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+
+    torch.manual_seed(17)
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=4,
+        snap_input_dim=7,
+        seq_len=5,
+        ctx_cont_dim=3,
+        ctx_cat_dim=2,
+        residual_scale=0.35,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_residual_logit_cap=0.18,
+        hierarchical_composition_residual_side_neutral=True,
+        hierarchical_composition_public_flat_from_trade=True,
+    )
+    model.eval()
+    seq_x = torch.randn(4, 5, 4)
+    snap_x = torch.full((4, 7), 1.0 / 3.0)
+    ctx_cont = torch.randn(4, 3)
+    ctx_cat = torch.zeros(4, 2, dtype=torch.long)
+
+    with torch.no_grad():
+        model.head_direction.bias.copy_(torch.tensor([2.00, -1.25, 3.00], dtype=torch.float32))
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    residual = out["hierarchical_direction_residual_logits"]
+    assert torch.allclose(residual[:, 0], residual[:, 1], atol=1e-7)
+    assert torch.allclose(residual[:, 1], residual[:, 2], atol=1e-7)
+    assert torch.all(out["hierarchical_direction_public_flat_from_trade"] == 1.0)
+    assert torch.all(out["hierarchical_direction_residual_side_neutral"] == 1.0)
+    assert torch.allclose(
+        torch.softmax(out["direction_logits"], dim=1),
+        torch.softmax(out["hierarchical_direction_base_logits"], dim=1),
+        atol=1e-6,
+    )
+    assert torch.allclose(
+        torch.softmax(out["direction_logits"], dim=1)[:, 2],
+        torch.sigmoid(-out["trade_logit"].reshape(-1)),
+        atol=1e-6,
+    )
+
+    model.zero_grad(set_to_none=True)
+    loss = torch.nn.functional.cross_entropy(out["direction_logits"], torch.tensor([0, 1, 2, 2]))
+    loss.backward()
+    assert model.head_direction.bias.grad is not None
+    assert float(model.head_direction.bias.grad.abs().max().item()) <= 1e-6
 
 
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:

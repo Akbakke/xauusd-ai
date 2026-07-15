@@ -101,6 +101,7 @@ SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
+SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
@@ -1430,6 +1431,15 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    hier_compose_public_flat_from_trade = _bool_value(
+        recipe.get(
+            "hier_compose_public_flat_from_trade",
+            _hierarchical_direction_meta.get(
+                "public_flat_from_trade",
+                meta.get("hier_compose_public_flat_from_trade", False),
+            ),
+        )
+    )
     _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
     _hier_trade_prior_meta = (
         _hier_entry_meta.get("trade_prior_supervision")
@@ -2153,6 +2163,11 @@ def _direction_balance_recipe_contract(
                 )
             if hier_compose_residual_side_neutral is not SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED:
                 failures.append("smart direction active head requires hier_compose_residual_side_neutral=true")
+            if (
+                hier_compose_public_flat_from_trade
+                is not SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED
+            ):
+                failures.append("smart direction active head requires hier_compose_public_flat_from_trade=true")
             if hier_trade_global_prior_match_weight < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_trade_global_prior_match_weight >= "
@@ -2447,6 +2462,7 @@ def _direction_balance_recipe_contract(
         "direction_hierarchical_composition": direction_hierarchical_composition,
         "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
         "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
+        "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
         "hier_trade_global_prior_match_weight": hier_trade_global_prior_match_weight,
         "hier_trade_global_prior_match_tolerance": hier_trade_global_prior_match_tolerance,
         "hier_trade_global_prior_match_min_label_rate": hier_trade_global_prior_match_min_label_rate,

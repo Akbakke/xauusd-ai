@@ -409,6 +409,7 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
     report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
     report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
+    report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
     report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_weight"] = 4.00
     report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_tolerance"] = 0.02
     report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_min_label_rate"] = 0.10
@@ -502,6 +503,7 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
     report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
     report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
+    report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
     report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_weight"] = 4.00
     report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_tolerance"] = 0.02
     report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_min_label_rate"] = 0.10
@@ -1008,6 +1010,7 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
     smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_weight"] = 4.00
     smart_smoke_report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_tolerance"] = 0.02
     smart_smoke_report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_min_label_rate"] = 0.10
