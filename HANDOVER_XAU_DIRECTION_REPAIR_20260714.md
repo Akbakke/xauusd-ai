@@ -256,6 +256,31 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `py_compile` passed for `materialize_entry_smart_seq520_rebuild_preflight_v1.py` and `verify_entry_foundation_guardrails_v1.py`.
   - `scripts/pytest_repo.sh tests/test_entry_smart_rebuild_preflight.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_dataset_post_rebuild_readiness.py tests/test_entry_foundation_guardrails.py -q` passed (`26 passed`).
 
+### 2026-07-15 Red-Slice Separability Audit
+
+- 2026-07-15 14:52 CEST status:
+  - Broad XAU/replay/readiness suite passed on the current commit with expected skips:
+    `scripts/pytest_repo.sh tests/test_smart520_state_contract.py tests/test_smart520_rank_reference.py tests/test_v12_smart_entry_live_gate.py tests/test_xau_direction_repair_pretrain_audit.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_repair_entry_xau_structural_utility_labels.py tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_dataset.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_smart_dataset_post_rebuild_readiness.py tests/test_entry_candidate_readiness.py tests/test_entry_candidate_replay_trade_log.py tests/test_entry_candidate_replay_evidence.py tests/test_entry_candidate_selective_edge.py tests/test_entry_replay_readiness.py tests/test_entry_iql_replay_comparison.py tests/test_entry_iql_student_trade_log.py tests/test_entry_iql_replay_evidence.py tests/test_entry_iql_replay_slice_audit.py tests/test_entry_iql_distillation_contract.py tests/test_entry_iql_distill_wrapper.py tests/test_build_entry_iql_v1.py tests/test_iql_adapter_emitter_parity.py tests/test_circuit_breaker_parity.py tests/test_xau_direction_repair_sweep.py tests/test_entry_smart_rebuild_preflight.py tests/test_entry_foundation_guardrails.py -q`
+  - No training/IQL process was running; disk stayed about `838G` free and swap stayed `0B` used.
+- Added read-only red-slice separability audit:
+  - `gx1/scripts/audit_xau_red_slice_separability_v1.py`
+  - Test: `tests/test_xau_red_slice_separability_audit.py`
+  - The audit reads fail-closed slice evidence and matching XAU `val_data`, rejects non-XAU `val_data`, excludes the first seven XGB anchor snap fields, and measures LONG-vs-SHORT separability in existing XAU domain features.
+  - It is report-only and keeps `training_allowed=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, and `shadow_live_promotion_allowed=false`.
+- Live audit command:
+  - `/home/andre2/venvs/gx1/bin/python -m gx1.scripts.audit_xau_red_slice_separability_v1 --quiet --no-fail-on-audit-fail`
+  - Report: `/home/andre2/GX1_DATA/reports/xau_red_slice_separability_audit_20260715_v1/XAU_RED_SLICE_SEPARABILITY_AUDIT_latest.json`
+  - Decision: `XAU_RED_SLICE_SEPARABILITY_AUDIT_COMPLETE`
+  - Evidence source: latest `TRAIN_FAIL_DIRECTION_SLICE_GUARD` sidecar from `v10_entry_smart_seq520_smoke_20260715T122916Z`.
+  - XAU val data: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke/v10_smart_seq520_smoke__HOLD_03B_val.parquet`
+  - Existing domain feature count: `247`; missing required rail features: `0`.
+  - Red slice detail count audited: `15`; weak required-rail-feature slice count: `1` (`6.7%`).
+  - Several red slices have clear utility/feature evidence despite the failed transformer prediction-rate behavior:
+    - `vol_regime_id=2` / `atr_bucket=2`: `LONG` label rate `0.463`, `SHORT` label rate `0.171`, mean long-minus-short utility `+37.53 bps`, required rail feature separation `0.597` std.
+    - `vol_regime_id=3` / `atr_bucket=3`: `LONG` label rate `0.369`, `SHORT` label rate `0.234`, mean utility delta `+23.31 bps`, required rail separation `0.256` std.
+    - `session_id=1`: `FLAT` majority `0.435`, but mean long-minus-short utility is still `+6.09 bps`; the failed transformer was over-SHORT in this slice.
+  - Interpretation: the next repair should not start with random new data or IQL. Existing XAU rail/SR/wick/regime features are present and usually separable in the red slices. The likely next code repair is transformer objective/cap hardening that forces the direction/hierarchy heads to respect these per-slice utility/rail signals, while separately inspecting the one weak required-rail slice (`session_id=2`).
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -267,7 +292,7 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 2. Latest smart XAU smoke training with global prior-match passed global class-balance guard but failed hard on direction slice guard. No fallback path and no failed bundle should be used as evidence.
    - `best_direction_balance_guard_ok=True`, `best_direction_slice_contract_ok=False`.
-   - The next repair must target slice-level direction behavior and slice/input/target separability, not IQL and not longer epochs on the same recipe.
+   - The red-slice separability audit shows existing XAU domain features are present and mostly label/utility-separable inside the failed slices. The next repair should target transformer objective/cap behavior over these signals, not IQL and not longer epochs on the same recipe.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
