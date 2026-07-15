@@ -537,6 +537,11 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "direction_utility_triad_ce_max_bad_path": 0.50,
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
+            "hier_slice_side_ce_weight": 4.00,
+            "hier_slice_side_true_margin_weight": 3.00,
+            "hier_slice_side_true_margin": 0.10,
+            "hier_slice_side_min_label_rate": 0.10,
+            "hier_slice_side_min_rows": 8,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -600,6 +605,11 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["direction_utility_triad_ce_max_bad_path"] == 0.50
     assert report["direction_utility_triad_ce_class_weight_cap"] == 4.0
     assert report["direction_hierarchical_composition"] is True
+    assert report["hier_slice_side_ce_weight"] == 4.00
+    assert report["hier_slice_side_true_margin_weight"] == 3.00
+    assert report["hier_slice_side_true_margin"] == 0.10
+    assert report["hier_slice_side_min_label_rate"] == 0.10
+    assert report["hier_slice_side_min_rows"] == 8
     assert report["direction_flat_starvation_weight"] == 8.00
     assert report["direction_flat_starvation_min_label_rate"] == 0.10
     assert report["direction_flat_starvation_min_rows"] == 8
@@ -695,6 +705,11 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "direction_utility_triad_ce_max_bad_path": 0.50,
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
+            "hier_slice_side_ce_weight": 4.00,
+            "hier_slice_side_true_margin_weight": 3.00,
+            "hier_slice_side_true_margin": 0.10,
+            "hier_slice_side_min_label_rate": 0.10,
+            "hier_slice_side_min_rows": 8,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,

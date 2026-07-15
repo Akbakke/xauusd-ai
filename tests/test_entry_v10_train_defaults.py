@@ -629,6 +629,65 @@ def test_entry_v10_direction_slice_true_margin_term_penalizes_wrong_argmax(monke
     assert float(trainer._direction_slice_true_margin_term(bad_logits, targets, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", 3.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    side_targets = torch.tensor([0, 0, 0, 1, 1, 1], dtype=torch.long)
+    side_mask = torch.ones(6, dtype=torch.bool)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    collapsed_logits = torch.tensor(
+        [
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+    good_logits = torch.tensor(
+        [
+            [4.0, -2.0],
+            [4.0, -2.0],
+            [4.0, -2.0],
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+            [-2.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_ce = float(
+        trainer._hier_slice_side_balanced_ce_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()
+    )
+    good_ce = float(trainer._hier_slice_side_balanced_ce_term(good_logits, side_targets, side_mask, ctx_cat).item())
+    bad_margin = float(
+        trainer._hier_slice_side_true_margin_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()
+    )
+    good_margin = float(
+        trainer._hier_slice_side_true_margin_term(good_logits, side_targets, side_mask, ctx_cat).item()
+    )
+
+    assert bad_ce > good_ce
+    assert bad_margin > good_margin
+    assert good_margin == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", 0.0)
+    assert float(trainer._hier_slice_side_balanced_ce_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
+    assert float(trainer._hier_slice_side_true_margin_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
     import torch
 

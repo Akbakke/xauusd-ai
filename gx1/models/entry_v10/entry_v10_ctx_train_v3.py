@@ -535,6 +535,17 @@ ENTRY_HIER_LEGACY_CE_MULT = float(_env_str("ENTRY_HIER_LEGACY_CE_MULT", "0.35"))
 ENTRY_HIER_SIDE_VALIDITY_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", "0.0"))
 ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", "10.0"))
 ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", "20.0"))
+ENTRY_HIER_SLICE_SIDE_CE_WEIGHT = float(_env_str("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", "0.0"))
+ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = float(
+    _env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0.0")
+)
+ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN = float(_env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", "0.10"))
+ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+)
+ENTRY_HIER_SLICE_SIDE_MIN_ROWS = int(
+    float(_env_str("ENTRY_HIER_SLICE_SIDE_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
+)
 ENTRY_HIER_POCKET_ABSTAIN_WEIGHT = float(_env_str("ENTRY_HIER_POCKET_ABSTAIN_WEIGHT", "0.0"))
 ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT = float(_env_str("ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT", "0.0"))
 ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS = float(_env_str("ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS", "10.0"))
@@ -767,6 +778,11 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "0.0",
     "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "10.0",
     "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "0.0",
+    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "0.0",
+    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_MIN_ROWS": "8",
     "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT": "0.0",
     "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT": "0.0",
     "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS": "10.0",
@@ -3174,6 +3190,143 @@ def _direction_slice_true_margin_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _hier_slice_side_balanced_ce_term(
+    side_logits: torch.Tensor,
+    side_targets: torch.Tensor,
+    side_mask: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=side_logits.device, dtype=side_logits.dtype)
+    weight = float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if side_logits.ndim != 2 or side_logits.shape[1] < 2 or ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(side_targets) != side_logits.shape[0] or ctx_cat.shape[0] != side_logits.shape[0]:
+        return zero
+
+    min_rows = int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
+    min_label_rate = float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE)
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    target_i = side_targets.long().clamp(0, side_logits.shape[1] - 1)
+    valid_side = side_mask.bool()
+    log_probs = torch.log_softmax(side_logits, dim=1)
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = valid_side & (ctx_cat[:, idx].long() == value)
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = target_i[mask]
+            counts = torch.bincount(slice_targets, minlength=side_logits.shape[1]).to(
+                device=side_logits.device,
+                dtype=side_logits.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active_classes = torch.nonzero(label_rates >= min_label_rate, as_tuple=False).flatten()
+            if active_classes.numel() < 2:
+                continue
+            slice_log_probs = log_probs[mask]
+            for cls in active_classes.tolist():
+                cls_i = int(cls)
+                class_mask = slice_targets == cls_i
+                if not bool(class_mask.any().detach().cpu().item()):
+                    continue
+                values.append(-slice_log_probs[class_mask, cls_i].mean())
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
+def _hier_slice_side_true_margin_term(
+    side_logits: torch.Tensor,
+    side_targets: torch.Tensor,
+    side_mask: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=side_logits.device, dtype=side_logits.dtype)
+    weight = float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if side_logits.ndim != 2 or side_logits.shape[1] < 2 or ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(side_targets) != side_logits.shape[0] or ctx_cat.shape[0] != side_logits.shape[0]:
+        return zero
+
+    margin = float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN)
+    min_rows = int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
+    min_label_rate = float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE)
+    if margin < 0.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN={margin:.6f} expected >=0.0"
+        )
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    target_i = side_targets.long().clamp(0, side_logits.shape[1] - 1)
+    valid_side = side_mask.bool()
+    margin_t = torch.as_tensor(margin, device=side_logits.device, dtype=side_logits.dtype)
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = valid_side & (ctx_cat[:, idx].long() == value)
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = target_i[mask]
+            counts = torch.bincount(slice_targets, minlength=side_logits.shape[1]).to(
+                device=side_logits.device,
+                dtype=side_logits.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active_classes = torch.nonzero(label_rates >= min_label_rate, as_tuple=False).flatten()
+            if active_classes.numel() < 2:
+                continue
+            slice_logits = side_logits[mask]
+            for cls in active_classes.tolist():
+                cls_i = int(cls)
+                class_mask = slice_targets == cls_i
+                if not bool(class_mask.any().detach().cpu().item()):
+                    continue
+                class_logits = slice_logits[class_mask]
+                true_logit = class_logits[:, cls_i]
+                wrong_logits = class_logits.clone()
+                wrong_logits[:, cls_i] = torch.finfo(wrong_logits.dtype).min
+                wrong_max = wrong_logits.max(dim=1).values
+                values.append(torch.relu(margin_t - (true_logit - wrong_max)).mean())
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _direction_slice_accuracy_edge_term(
     logits: torch.Tensor,
     targets: torch.Tensor,
@@ -3874,6 +4027,8 @@ def _hierarchical_entry_loss(
     stats: Dict[str, float] = {
         "hier_trade_loss": 0.0,
         "hier_side_loss": 0.0,
+        "hier_slice_side_ce_loss": 0.0,
+        "hier_slice_side_margin_loss": 0.0,
         "hier_utility_loss": 0.0,
         "hier_bad_path_loss": 0.0,
         "hier_mae_loss": 0.0,
@@ -3914,6 +4069,12 @@ def _hierarchical_entry_loss(
     y_trade = batch["y_trade"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     y_side = batch["y_side"].to(device, non_blocking=non_blocking).long().clamp(0, 1)
     y_side_mask = batch["y_side_mask"].to(device, non_blocking=non_blocking).float() > 0.5
+    ctx_cat_value = batch.get("ctx_cat")
+    ctx_cat = (
+        ctx_cat_value.to(device, non_blocking=non_blocking)
+        if isinstance(ctx_cat_value, torch.Tensor)
+        else None
+    )
     y_long_util = batch["y_long_path_utility_bps"].to(device, non_blocking=non_blocking).float()
     y_short_util = batch["y_short_path_utility_bps"].to(device, non_blocking=non_blocking).float()
     y_long_bad = batch["y_long_bad_path"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
@@ -4026,8 +4187,8 @@ def _hierarchical_entry_loss(
         total = total + weighted
         stats["hier_pocket_abstain_loss"] = float(weighted.detach().cpu().item())
 
-    if side_logits is not None and float(ENTRY_HIER_SIDE_WEIGHT) > 0.0:
-        if y_side_mask.any():
+    if side_logits is not None:
+        if float(ENTRY_HIER_SIDE_WEIGHT) > 0.0 and y_side_mask.any():
             raw = nn.functional.cross_entropy(side_logits[y_side_mask], y_side[y_side_mask])
             weighted = float(ENTRY_HIER_SIDE_WEIGHT) * raw
             total = total + weighted
@@ -4035,6 +4196,14 @@ def _hierarchical_entry_loss(
             stats["hier_side_rows"] = float(int(y_side_mask.sum().detach().cpu().item()))
             stats["hier_side_acc"] = float((pred_side == y_side[y_side_mask]).float().mean().detach().cpu().item())
             stats["hier_side_loss"] = float(weighted.detach().cpu().item())
+        hier_slice_side_ce = _hier_slice_side_balanced_ce_term(side_logits, y_side, y_side_mask, ctx_cat)
+        if hier_slice_side_ce.numel() == 1:
+            total = total + hier_slice_side_ce
+            stats["hier_slice_side_ce_loss"] = float(hier_slice_side_ce.detach().cpu().item())
+        hier_slice_side_margin = _hier_slice_side_true_margin_term(side_logits, y_side, y_side_mask, ctx_cat)
+        if hier_slice_side_margin.numel() == 1:
+            total = total + hier_slice_side_margin
+            stats["hier_slice_side_margin_loss"] = float(hier_slice_side_margin.detach().cpu().item())
 
     if side_utility is not None and float(ENTRY_HIER_UTILITY_WEIGHT) > 0.0:
         util_target = (torch.stack([y_long_util, y_short_util], dim=1) / util_scale).to(dtype=side_utility.dtype)
@@ -4524,6 +4693,8 @@ def train_epoch(
     tail_direction_rows = 0
     hier_trade_loss_sum = 0.0
     hier_side_loss_sum = 0.0
+    hier_slice_side_ce_loss_sum = 0.0
+    hier_slice_side_margin_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -4946,6 +5117,8 @@ def train_epoch(
         bad_path_loss_sum += float(bad_path_prob_loss) * bs
         hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
         hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
+        hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
+        hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
         hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
         hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
         hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -5033,6 +5206,8 @@ def train_epoch(
         "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
+        "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
+        "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
         "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
@@ -5656,6 +5831,8 @@ def validate(
     tail_direction_rows = 0
     hier_trade_loss_sum = 0.0
     hier_side_loss_sum = 0.0
+    hier_slice_side_ce_loss_sum = 0.0
+    hier_slice_side_margin_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -6052,6 +6229,8 @@ def validate(
             bad_path_loss_sum += float(bad_path_prob_loss) * bs
             hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
             hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
+            hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
+            hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
             hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
             hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
             hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -6149,6 +6328,8 @@ def validate(
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
+        "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
+        "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
         "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
@@ -7413,6 +7594,11 @@ def run_train(
     _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", ENTRY_HIER_SIDE_VALIDITY_WEIGHT)
     _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS)
     _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", ENTRY_HIER_SLICE_SIDE_CE_WEIGHT)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE", ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE)
+    _require_nonneg("ENTRY_HIER_SLICE_SIDE_MIN_ROWS", ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
     _require_nonneg("ENTRY_HIER_POCKET_ABSTAIN_WEIGHT", ENTRY_HIER_POCKET_ABSTAIN_WEIGHT)
     _require_nonneg("ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT", ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS", ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS)
@@ -7673,6 +7859,16 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS_INVALID] "
             f"ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS={ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS} expected >=2"
+        )
+    if ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE={ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_SLICE_SIDE_MIN_ROWS < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_SIDE_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_SIDE_MIN_ROWS={ENTRY_HIER_SLICE_SIDE_MIN_ROWS} expected >=2"
         )
     if ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION not in _DIRECTION_SLICE_LOSS_AGGREGATIONS:
         raise RuntimeError(
@@ -8030,6 +8226,31 @@ def run_train(
                 "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS="
                 f"{ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS:.3f} expected >=15.0"
             )
+        if ENTRY_HIER_SLICE_SIDE_CE_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT="
+                f"{ENTRY_HIER_SLICE_SIDE_CE_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT < 3.0:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT="
+                f"{ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT:.3f} expected >=3.0"
+            )
+        if ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN="
+                f"{ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE="
+                f"{ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_SLICE_SIDE_MIN_ROWS < 8:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_SIDE_MIN_ROWS="
+                f"{ENTRY_HIER_SLICE_SIDE_MIN_ROWS} expected >=8"
+            )
         if ENTRY_HIER_POCKET_ABSTAIN_WEIGHT < 5.0:
             repair_failures.append(
                 "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT="
@@ -8253,6 +8474,7 @@ def run_train(
     )
     log.info(
         "[ENTRY_HIER_RECIPE] enabled=%d legacy_ce_mult=%.3f trade_w=%.3f side_w=%.3f utility_w=%.3f bad_path_w=%.3f mae_w=%.3f "
+        "slice_side_ce_w=%.3f slice_side_margin_w=%.3f slice_side_margin=%.3f slice_side_min_rows=%d slice_side_min_label_rate=%.3f "
         "trade_pos_weight=%.3f bad_path_pos_weight_long=%.3f bad_path_pos_weight_short=%.3f "
         "utility_scale_bps=%.3f mae_scale_bps=%.3f pocket_abstain_w=%.3f pocket_side_margin_w=%.3f pocket_utility_margin_bps=%.3f",
         int(bool(enable_hierarchical_entry_heads)),
@@ -8262,6 +8484,11 @@ def run_train(
         float(ENTRY_HIER_UTILITY_WEIGHT),
         float(ENTRY_HIER_BAD_PATH_WEIGHT),
         float(ENTRY_HIER_MAE_WEIGHT),
+        float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
+        float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
+        float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+        int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
+        float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
         float(hier_trade_pos_weight),
         float(hier_bad_path_pos_weight[0]),
         float(hier_bad_path_pos_weight[1]),
@@ -8418,7 +8645,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -8442,6 +8669,8 @@ def run_train(
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(val_stats.get("hier_trade_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_loss_mean", 0.0)),
+                float(val_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
+                float(val_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_acc", 0.0)),
                 float(va_loss),
             )
@@ -8541,7 +8770,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -8565,6 +8794,8 @@ def run_train(
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(tr_stats.get("hier_trade_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_loss_mean", 0.0)),
+                float(tr_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
+                float(tr_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_acc", 0.0)),
                 float(tr_loss),
             )
@@ -8771,6 +9002,13 @@ def run_train(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+                    "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
+                    "hier_slice_side_true_margin_weight": float(
+                        ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
+                    ),
+                    "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+                    "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
+                    "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
                     "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
                     "direction_flat_starvation_min_label_rate": float(
                         ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
@@ -8924,6 +9162,13 @@ def run_train(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+                    "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
+                    "hier_slice_side_true_margin_weight": float(
+                        ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
+                    ),
+                    "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+                    "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
+                    "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
                     "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
                     "direction_flat_starvation_min_label_rate": float(
                         ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
@@ -9187,6 +9432,20 @@ def run_train(
                 },
                 "runtime_rule_free": True,
             },
+            "slice_side_supervision": {
+                "enabled": (
+                    float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT) > 0.0
+                    or float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT) > 0.0
+                ),
+                "balanced_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
+                "true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
+                "true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+                "min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
+                "min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
+                "ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
+                "loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+                "runtime_rule_free": True,
+            },
             "side_bad_path_target_augmentation": {
                 "enabled": True,
                 "short_bad_path_or_labels": [
@@ -9338,6 +9597,11 @@ def run_train(
             ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
         ),
         "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+        "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
+        "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
+        "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+        "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
+        "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
         "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -9453,6 +9717,11 @@ def run_train(
                 ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
             ),
             "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
+            "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
+            "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
+            "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
+            "hier_slice_side_min_label_rate": float(ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE),
+            "hier_slice_side_min_rows": int(ENTRY_HIER_SLICE_SIDE_MIN_ROWS),
             "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
             "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
             "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),

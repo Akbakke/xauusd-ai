@@ -575,6 +575,20 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - `_direction_slice_stats_snapshot` now includes global `hier_trade_*`, `hier_flat_*`, and `hier_side_*` fields in future fail-closed sidecars, not only per-slice details.
   - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed.
   - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` passed.
+- Implemented the next hard transformer repair after the remaining red slices proved to be side/accuracy failures rather than a pure global-balance problem:
+  - New trainer knobs:
+    - `ENTRY_HIER_SLICE_SIDE_CE_WEIGHT`
+    - `ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT`
+    - `ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN`
+    - `ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE`
+    - `ENTRY_HIER_SLICE_SIDE_MIN_ROWS`
+  - The new losses apply only to hierarchy side-head trade rows and only to active ctx slices with at least two side classes above min label-rate. They use the existing direction slice ctx indices and slice-loss aggregation, so smart repair keeps worst active slices in the optimized objective.
+  - Smart XAU repair preflight now fails before epoch 1 unless side-slice CE is at least `4.00`, side-slice true-margin weight at least `3.00`, margin at least `0.10`, min label-rate at least `0.10`, and min rows at least `8`.
+  - Smoke/candidate wrappers, direct rebuild env, smart smoke/trainability readiness, smoke manifest, smoke train enablement, bundle audit, sweep lint, metadata, and failure-evidence recipes now carry/report the same contract.
+  - Validation after this source repair:
+    - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py gx1/scripts/verify_entry_smart_seq520_smoke_readiness_v1.py gx1/scripts/verify_entry_smart_seq520_trainability_readiness_v1.py gx1/scripts/materialize_entry_smart_seq520_smoke_manifest_v1.py gx1/scripts/materialize_entry_smart_seq520_smoke_train_enablement_package_v1.py gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py gx1/scripts/sweep_entry_smart_seq520_direction_repair_v1.py`
+    - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_xau_direction_repair_sweep.py -q` passed.
+  - No transformer smoke has been run yet after this side-slice repair. Entry-IQL, replay, candidate, shadow, live, and promotion remain closed.
 
 ## Current Blockers
 
@@ -585,9 +599,9 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after the hierarchical-composition repair still failed hard on class-balance and direction-slice gates. No fallback path and no failed bundle should be used as evidence.
-   - It was manually stopped at epoch `3` after three hard-red validation epochs.
-   - Epoch `3` had `direction_balance_guard_ok=false`, `direction_slice_contract_ok=false`, `31` slice failures, and FLAT starvation (`direction_pred_rate_flat=0.017578` versus `label_flat=0.345052`).
+2. Latest executed smart XAU smoke after the hierarchy trade-pos-weight repair still failed hard on direction-slice accuracy. No fallback path and no failed bundle should be used as evidence.
+   - The repair improved global balance and FLAT recovery, but the best checkpoint still had `direction_slice_failure_count=9`, `accuracy_failures=8`, and failed `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`.
+   - The new side-slice supervision source repair is implemented and tested, but not smoke-run yet.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
@@ -596,9 +610,11 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, or current hierarchical-composition recipe. They already hard-red-stopped or were manually stopped with no candidate bundle.
 
-2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke after the hierarchy trade-pos-weight repair:
-   - the trade-pos-weight repair improved global balance and FLAT recovery, but the latest smoke still failed active slice accuracy.
-   - next repair should target side/accuracy inside red slices, especially slices where pred-rate coverage is now OK but accuracy remains below majority.
+2. Next heavy action should be one clean-git, readiness-gated, bounded smart smoke after the hierarchical slice-side supervision repair:
+   - regenerate smart smoke readiness and smart trainability readiness on clean git.
+   - materialize a fresh smoke train enablement package.
+   - run one bounded smart smoke with hard-red stop active.
+   - if it hard-reds, stop/let fail closed and use the sidecar evidence; do not continue burning CPU/GPU.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
 
 3. Keep clean-git/readiness discipline before any heavy job:

@@ -70,6 +70,8 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT", "choice", choices=(3.0, 4.0, 5.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_WEIGHT", "choice", choices=(2.00, 2.50)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_WEIGHT", "choice", choices=(1.75, 2.00, 2.25)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_CE_WEIGHT", "choice", choices=(4.0, 5.0, 6.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "choice", choices=(3.0, 4.0, 5.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT", "choice", choices=(1.50, 2.00)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT", "choice", choices=(5.0, 7.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT", "choice", choices=(3.0, 4.0)),
@@ -144,6 +146,9 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_MAE_WEIGHT": "0.35",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "15.0",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "8.0",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_UTILITY_MARGIN_BPS": "30.0",
     "ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT": "1.00",
     "ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT": "1.50",
@@ -339,6 +344,40 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_HIERARCHICAL_COMPOSITION must be 1 for strict XAU repair, "
             f"got {hierarchical_composition}"
+        )
+    hier_slice_side_ce_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_CE_WEIGHT", "0"))
+    hier_slice_side_true_margin_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0")
+    )
+    hier_slice_side_true_margin = float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN", "0"))
+    hier_slice_side_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_LABEL_RATE", "0")
+    )
+    hier_slice_side_min_rows = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_ROWS", "0")))
+    if hier_slice_side_ce_weight < 4.0:
+        failures.append(
+            "HIER_SLICE_SIDE_CE_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_slice_side_ce_weight}"
+        )
+    if hier_slice_side_true_margin_weight < 3.0:
+        failures.append(
+            "HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT must be >= 3.0 for strict XAU repair, "
+            f"got {hier_slice_side_true_margin_weight}"
+        )
+    if hier_slice_side_true_margin != 0.10:
+        failures.append(
+            "HIER_SLICE_SIDE_TRUE_MARGIN must stay 0.10 for strict XAU repair, "
+            f"got {hier_slice_side_true_margin}"
+        )
+    if hier_slice_side_min_label_rate != 0.10:
+        failures.append(
+            "HIER_SLICE_SIDE_MIN_LABEL_RATE must stay 0.10 for strict XAU repair, "
+            f"got {hier_slice_side_min_label_rate}"
+        )
+    if hier_slice_side_min_rows != 8:
+        failures.append(
+            "HIER_SLICE_SIDE_MIN_ROWS must stay 8 for strict XAU repair, "
+            f"got {hier_slice_side_min_rows}"
         )
     flat_starvation_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT", "0"))
     flat_starvation_min_label_rate = float(
