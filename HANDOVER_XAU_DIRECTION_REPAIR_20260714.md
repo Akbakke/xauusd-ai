@@ -33,6 +33,8 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Latest XAU pretrain audit is `PASS`:
   `/home/andre2/GX1_DATA/reports/xau_direction_repair_pretrain_audit_20260713_v1/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_latest.json`.
 - Latest smart smoke readiness is `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`; latest smart trainability readiness is `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW`.
+- 2026-07-15 13:58 Oslo status check: no `python3` train/eval processes were running, GPU utilization was `0%`, `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free, RAM had about `37G` available, and swap use was `0B`.
+- Latest trainability readiness still has `candidate_training_allowed=false`, `iql_allowed=false`, `replay_allowed=false`, `shadow_live_promotion_allowed=false`, and `execution_allowed_now=false`. Entry-IQL is therefore closed. Do not run IQL until a fresh XAU transformer candidate bundle first passes the hard direction slice contract and the required candidate/replay gates.
 - Broad XAU/replay/readiness test suite passed under canonical env after `lightgbm` validation and the no-fallback slice-balanced CE hardening.
 - Smart XAU repair train recipe now requires `ENTRY_DIRECTION_SLICE_BALANCED_CE_*`; smoke/candidate wrappers, manifest/readiness contracts, trainer metadata, and bundle audit fail closed if this recipe is missing or too weak.
 - Smart XAU smoke training with slice-balanced CE ran fail-closed and refused to write a bundle because the best checkpoint still failed active direction slice accuracy (`[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`).
