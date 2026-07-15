@@ -71,6 +71,11 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - `python3 -m py_compile gx1/scripts/materialize_entry_iql_student_trade_log_v1.py`
   - `scripts/pytest_repo.sh tests/test_entry_iql_replay_comparison.py tests/test_entry_iql_student_trade_log.py -q` -> `17 passed`
   - Broad XAU/replay/readiness suite covering smart520 state/rank, XAU pretrain/labels, smoke/trainability readiness, wrappers, candidate replay, IQL replay contracts, live gate, parity, and sweep passed.
+- Since the stopped `SLICEACCEDGE` run did not persist stdout logs, the trainer now writes a hard failure-evidence sidecar before raising `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`: `<intended_bundle_dir>__direction_slice_failure_evidence.json`. This sidecar is written next to the intended bundle directory, does not create a candidate bundle, sets `bundle_written=false` and `promotion_shadow_live_allowed=false`, and contains best/current direction slice stats, failure details, recipe knobs, train/val hashes, git commit, and hard-red-stop state. Validation:
+  - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py`
+  - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py -q` -> `42 passed`
+  - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q` passed.
+  - Broad XAU/replay/readiness suite passed again after this trainer change.
 
 ## What Was Done
 

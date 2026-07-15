@@ -349,6 +349,47 @@ def test_entry_v10_direction_slice_hard_red_stop_waits_for_no_progress(monkeypat
     )
 
 
+def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_path: Path) -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    intended_bundle = tmp_path / "runs" / "slice_failed_bundle"
+    stats = {
+        "direction_slice_failure_count": np.int64(2),
+        "direction_slice_contract_ok": False,
+        "direction_slice_failure_details": [
+            {
+                "ctx_cat_index": np.int64(0),
+                "ctx_cat_value": np.int64(4),
+                "rows": np.int64(64),
+                "accuracy": np.float64(0.25),
+            }
+        ],
+        "unrelated": "not persisted",
+    }
+    snapshot = trainer._direction_slice_stats_snapshot(stats)
+    evidence_path = trainer._write_direction_slice_failure_evidence(
+        intended_bundle,
+        {
+            "schema_version": "entry_direction_slice_failure_evidence_v1",
+            "decision": "FAIL_DIRECTION_SLICE_GUARD",
+            "best_direction_slice_stats": snapshot,
+        },
+    )
+
+    assert evidence_path == tmp_path / "runs" / "slice_failed_bundle__direction_slice_failure_evidence.json"
+    assert evidence_path.is_file()
+    assert not intended_bundle.exists()
+    payload = json.loads(evidence_path.read_text(encoding="utf-8"))
+    assert payload["decision"] == "FAIL_DIRECTION_SLICE_GUARD"
+    assert payload["bundle_written"] is False
+    assert payload["promotion_shadow_live_allowed"] is False
+    assert payload["best_direction_slice_stats"]["direction_slice_failure_count"] == 2
+    assert payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]["ctx_cat_index"] == 0
+    assert "unrelated" not in payload["best_direction_slice_stats"]
+
+
 def test_entry_v10_direction_slice_balanced_sampler_builds_hard_slice_batches() -> None:
     import itertools
     import numpy as np

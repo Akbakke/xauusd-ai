@@ -4812,6 +4812,78 @@ def _direction_slice_hard_red_stop_ready(
     return int(val_stats.get("direction_slice_failure_count", 0) or 0) > 0
 
 
+def _train_json_default(obj: Any) -> Any:
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        value = float(obj)
+        return value if np.isfinite(value) else None
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (pd.Timestamp, datetime)):
+        return obj.isoformat()
+    return str(obj)
+
+
+def _resolve_train_out_bundle_dir(out_bundle_dir: Path, gx1_data_override: str) -> Path:
+    path = Path(out_bundle_dir).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (_resolve_gx1_data(gx1_data_override) / path).resolve()
+
+
+def _direction_slice_stats_snapshot(stats: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not isinstance(stats, dict):
+        return {}
+    keys = (
+        "direction_slice_audited_count",
+        "direction_slice_failure_count",
+        "direction_slice_accuracy_failure_count",
+        "direction_slice_pred_rate_failure_count",
+        "direction_slice_accuracy_deficit",
+        "direction_slice_pred_rate_shortfall",
+        "direction_slice_contract_ok",
+        "direction_slice_min_rows",
+        "direction_slice_min_label_rate",
+        "direction_slice_min_pred_rate",
+        "direction_slice_min_pred_to_label",
+        "direction_slice_failure_details",
+        "direction_ckpt_score",
+        "direction_slice_ckpt_score",
+        "direction_class_balance_guard_ok",
+        "direction_pred_rate_long",
+        "direction_pred_rate_short",
+        "direction_pred_rate_flat",
+        "direction_label_rate_long",
+        "direction_label_rate_short",
+        "direction_label_rate_flat",
+    )
+    return {key: stats.get(key) for key in keys if key in stats}
+
+
+def _direction_slice_failure_evidence_path(out_bundle_dir: Path) -> Path:
+    resolved = Path(out_bundle_dir).expanduser().resolve()
+    return resolved.parent / f"{resolved.name}__direction_slice_failure_evidence.json"
+
+
+def _write_direction_slice_failure_evidence(out_bundle_dir: Path, payload: Dict[str, Any]) -> Path:
+    path = _direction_slice_failure_evidence_path(out_bundle_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    enriched = {
+        **payload,
+        "evidence_json": str(path),
+        "bundle_written": False,
+        "promotion_shadow_live_allowed": False,
+    }
+    path.write_text(
+        json.dumps(enriched, indent=2, sort_keys=True, default=_train_json_default) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def _direction_ckpt_balance_guard_required() -> bool:
     return (
         float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT) > 0.0
@@ -7145,6 +7217,8 @@ def run_train(
     best_direction_slice_contract_ok: Optional[bool] = None
     raw_best_direction_balance_guard_ok: Optional[bool] = None
     raw_best_direction_slice_contract_ok: Optional[bool] = None
+    best_direction_slice_stats: Dict[str, Any] = {}
+    last_direction_slice_stats: Dict[str, Any] = {}
     best_epoch = -1
     epochs_since_improve = 0
     last_epoch = 0
@@ -7209,6 +7283,7 @@ def run_train(
             hier_trade_pos_weight=hier_trade_pos_weight,
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
         )
+        last_direction_slice_stats = _direction_slice_stats_snapshot(val_stats)
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
             f"[EPOCH {epoch+1}/{epochs}] "
@@ -7409,6 +7484,7 @@ def run_train(
             best_direction_slice_contract_ok = (
                 bool(val_stats.get("direction_slice_contract_ok", False)) if val_stats else False
             )
+            best_direction_slice_stats = _direction_slice_stats_snapshot(val_stats)
             _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
             best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
             best_epoch = epoch + 1
@@ -7471,6 +7547,85 @@ def run_train(
             "refusing to write a collapsed direction bundle"
         )
     if _direction_ckpt_slice_guard_required() and not bool(best_direction_slice_contract_ok):
+        intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
+        evidence_path = _write_direction_slice_failure_evidence(
+            intended_out_bundle_dir,
+            {
+                "schema_version": "entry_direction_slice_failure_evidence_v1",
+                "created_at_utc": _utc_now(),
+                "decision": "FAIL_DIRECTION_SLICE_GUARD",
+                "failure_code": "TRAIN_FAIL_DIRECTION_SLICE_GUARD",
+                "vedtak_id": str(vedtak_id or ""),
+                "git_commit": _git_commit(),
+                "intended_out_bundle_dir": str(intended_out_bundle_dir),
+                "train_data": str(train_parquet),
+                "val_data": str(val_parquet),
+                "train_data_sha256": _sha256_file(Path(train_parquet)),
+                "val_data_sha256": _sha256_file(Path(val_parquet)),
+                "best_epoch": int(best_epoch),
+                "last_epoch": int(last_epoch),
+                "epochs": int(epochs),
+                "early_stopped": bool(early_stopped),
+                "hard_red_stopped": bool(hard_red_stopped),
+                "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
+                "best_dir_ckpt_score": (
+                    float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
+                ),
+                "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+                "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
+                "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+                "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
+                "best_direction_slice_stats": best_direction_slice_stats,
+                "last_direction_slice_stats": last_direction_slice_stats,
+                "train_recipe": {
+                    "ckpt_monitor": str(_ckpt_monitor),
+                    "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
+                    "direction_slice_min_pred_rate_loss_weight": float(
+                        ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT
+                    ),
+                    "direction_slice_min_pred_rate_fraction": float(
+                        ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION
+                    ),
+                    "direction_slice_min_pred_rate_floor": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),
+                    "direction_slice_min_label_rate": float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+                    "direction_slice_min_rows": int(ENTRY_DIRECTION_SLICE_MIN_ROWS),
+                    "direction_slice_ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
+                    "direction_slice_recall_loss_weight": float(ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT),
+                    "direction_slice_recall_prob_floor": float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
+                    "direction_slice_recall_min_label_rate": float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
+                    "direction_slice_recall_min_rows": int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
+                    "direction_slice_balanced_ce_weight": float(ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT),
+                    "direction_slice_balanced_ce_min_label_rate": float(
+                        ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE
+                    ),
+                    "direction_slice_balanced_ce_min_rows": int(ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS),
+                    "direction_slice_true_margin_weight": float(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT),
+                    "direction_slice_true_margin": float(ENTRY_DIRECTION_SLICE_TRUE_MARGIN),
+                    "direction_slice_true_margin_min_label_rate": float(
+                        ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE
+                    ),
+                    "direction_slice_true_margin_min_rows": int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
+                    "direction_slice_accuracy_edge_weight": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT),
+                    "direction_slice_accuracy_edge_margin": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN),
+                    "direction_slice_accuracy_edge_min_label_rate": float(
+                        ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE
+                    ),
+                    "direction_slice_accuracy_edge_min_rows": int(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS),
+                    "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+                    "direction_slice_balanced_sampler": bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER),
+                    "direction_slice_balanced_sampler_min_rows": int(
+                        ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS
+                    ),
+                    "direction_slice_hard_red_stop_patience": int(
+                        ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE
+                    ),
+                    "direction_slice_hard_red_stop_min_epochs": int(
+                        ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS
+                    ),
+                },
+            },
+        )
+        log.error("[ENTRY_DIR_SLICE_FAILURE_EVIDENCE] path=%s", evidence_path)
         raise RuntimeError(
             "[TRAIN_FAIL_DIRECTION_SLICE_GUARD] "
             "best checkpoint failed active direction slice contract; "
@@ -7478,10 +7633,7 @@ def run_train(
         )
 
     # Resolve output bundle dir (under GX1_DATA if relative)
-    out_bundle_dir = Path(out_bundle_dir).expanduser().resolve()
-    if not out_bundle_dir.is_absolute():
-        gx1_data = _resolve_gx1_data(gx1_data_override)
-        out_bundle_dir = gx1_data / out_bundle_dir
+    out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
     out_bundle_dir.mkdir(parents=True, exist_ok=True)
 
     model_path = out_bundle_dir / "model_state_dict.pt"
