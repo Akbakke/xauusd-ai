@@ -69,6 +69,10 @@ SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT = 4.00
 SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN = 0.02
 SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS = 8
+SMART_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT = 3.00
+SMART_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE = 0.02
+SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS = 8
 SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = 8
 SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE = 3
 SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS = 6
@@ -1155,6 +1159,32 @@ def _direction_balance_recipe_contract(
             )
         )
     )
+    direction_slice_prior_match_weight = _safe_float(
+        recipe.get(
+            "direction_slice_prior_match_weight",
+            meta.get("direction_slice_prior_match_weight", -1.0),
+        )
+    )
+    direction_slice_prior_match_tolerance = _safe_float(
+        recipe.get(
+            "direction_slice_prior_match_tolerance",
+            meta.get("direction_slice_prior_match_tolerance", -1.0),
+        )
+    )
+    direction_slice_prior_match_min_label_rate = _safe_float(
+        recipe.get(
+            "direction_slice_prior_match_min_label_rate",
+            meta.get("direction_slice_prior_match_min_label_rate", -1.0),
+        )
+    )
+    direction_slice_prior_match_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "direction_slice_prior_match_min_rows",
+                meta.get("direction_slice_prior_match_min_rows", -1.0),
+            )
+        )
+    )
     direction_slice_balanced_sampler = _bool_value(
         recipe.get(
             "direction_slice_balanced_sampler",
@@ -1391,6 +1421,32 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_slice_accuracy_edge_min_rows="
                     f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS}"
                 )
+            if direction_slice_prior_match_weight < SMART_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_slice_prior_match_weight >= "
+                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT:.2f}"
+                )
+            if direction_slice_prior_match_tolerance > SMART_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE:
+                failures.append(
+                    "smart direction active head requires direction_slice_prior_match_tolerance <= "
+                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE:.2f}"
+                )
+            if (
+                abs(
+                    direction_slice_prior_match_min_label_rate
+                    - SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE
+                )
+                > 1e-12
+            ):
+                failures.append(
+                    "smart direction active head requires direction_slice_prior_match_min_label_rate="
+                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
+                )
+            if direction_slice_prior_match_min_rows != SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires direction_slice_prior_match_min_rows="
+                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS}"
+                )
             if not bool(direction_slice_balanced_sampler):
                 failures.append(
                     "smart direction active head requires direction_slice_balanced_sampler=true"
@@ -1481,6 +1537,10 @@ def _direction_balance_recipe_contract(
         "direction_slice_accuracy_edge_margin": direction_slice_accuracy_edge_margin,
         "direction_slice_accuracy_edge_min_label_rate": direction_slice_accuracy_edge_min_label_rate,
         "direction_slice_accuracy_edge_min_rows": direction_slice_accuracy_edge_min_rows,
+        "direction_slice_prior_match_weight": direction_slice_prior_match_weight,
+        "direction_slice_prior_match_tolerance": direction_slice_prior_match_tolerance,
+        "direction_slice_prior_match_min_label_rate": direction_slice_prior_match_min_label_rate,
+        "direction_slice_prior_match_min_rows": direction_slice_prior_match_min_rows,
         "direction_slice_balanced_sampler": direction_slice_balanced_sampler,
         "direction_slice_balanced_sampler_min_rows": direction_slice_balanced_sampler_min_rows,
         "direction_slice_hard_red_stop_patience": direction_slice_hard_red_stop_patience,

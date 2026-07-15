@@ -66,6 +66,7 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT", "choice", choices=(2.0, 3.0, 4.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT", "choice", choices=(2.0, 3.0, 4.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT", "choice", choices=(4.0, 6.0, 8.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT", "choice", choices=(3.0, 4.0, 5.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_WEIGHT", "choice", choices=(2.00, 2.50)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_WEIGHT", "choice", choices=(1.75, 2.00, 2.25)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT", "choice", choices=(1.50, 2.00)),
@@ -101,6 +102,9 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN": "0.02",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION": "mean_max",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER": "1",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
@@ -256,6 +260,38 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS must stay 8 for strict XAU repair, "
             f"got {slice_accuracy_edge_min_rows}"
+        )
+    slice_prior_match_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT", "0")
+    )
+    slice_prior_match_tolerance = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE", "1")
+    )
+    slice_prior_match_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE", "0")
+    )
+    slice_prior_match_min_rows = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS", "0"))
+    )
+    if slice_prior_match_weight < 3.0:
+        failures.append(
+            "DIRECTION_SLICE_PRIOR_MATCH_WEIGHT must be >= 3.0 for strict XAU repair, "
+            f"got {slice_prior_match_weight}"
+        )
+    if slice_prior_match_tolerance > 0.02:
+        failures.append(
+            "DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE must be <= 0.02 for strict XAU repair, "
+            f"got {slice_prior_match_tolerance}"
+        )
+    if slice_prior_match_min_label_rate != 0.10:
+        failures.append(
+            "DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE must stay 0.10 for strict XAU repair, "
+            f"got {slice_prior_match_min_label_rate}"
+        )
+    if slice_prior_match_min_rows != 8:
+        failures.append(
+            "DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS must stay 8 for strict XAU repair, "
+            f"got {slice_prior_match_min_rows}"
         )
     if env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION") != "mean_max":
         failures.append("DIRECTION_SLICE_LOSS_AGGREGATION must stay mean_max for strict XAU repair")
