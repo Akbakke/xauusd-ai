@@ -713,6 +713,42 @@ def test_entry_v10_hier_slice_side_terms_penalize_collapsed_side_head(monkeypatc
     assert float(trainer._hier_slice_side_prior_match_term(collapsed_logits, side_targets, side_mask, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_hier_trade_prior_terms_penalize_all_trade_head(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 0.05)
+
+    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    collapsed_trade = torch.full((6, 1), 4.0, dtype=torch.float32)
+    matched_trade = torch.tensor([[4.0], [4.0], [4.0], [-4.0], [-4.0], [-4.0]], dtype=torch.float32)
+
+    bad_global_prior = float(trainer._hier_trade_global_prior_match_term(collapsed_trade, y_trade).item())
+    good_global_prior = float(trainer._hier_trade_global_prior_match_term(matched_trade, y_trade).item())
+    bad_slice_prior = float(trainer._hier_slice_trade_prior_match_term(collapsed_trade, y_trade, ctx_cat).item())
+    good_slice_prior = float(trainer._hier_slice_trade_prior_match_term(matched_trade, y_trade, ctx_cat).item())
+
+    assert bad_global_prior > good_global_prior
+    assert bad_slice_prior > good_slice_prior
+    assert good_global_prior == 0.0
+    assert good_slice_prior == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", 0.0)
+    assert float(trainer._hier_trade_global_prior_match_term(collapsed_trade, y_trade).item()) == 0.0
+    assert float(trainer._hier_slice_trade_prior_match_term(collapsed_trade, y_trade, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
     import torch
 

@@ -101,6 +101,13 @@ SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
+SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
+SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
+SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT = 4.00
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = 8
 SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN = 0.10
@@ -1412,10 +1419,80 @@ def _direction_balance_recipe_contract(
         )
     )
     _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
+    _hier_trade_prior_meta = (
+        _hier_entry_meta.get("trade_prior_supervision")
+        if isinstance(_hier_entry_meta.get("trade_prior_supervision"), dict)
+        else {}
+    )
     _hier_slice_side_meta = (
         _hier_entry_meta.get("slice_side_supervision")
         if isinstance(_hier_entry_meta.get("slice_side_supervision"), dict)
         else {}
+    )
+    hier_trade_global_prior_match_weight = _safe_float(
+        recipe.get(
+            "hier_trade_global_prior_match_weight",
+            _hier_trade_prior_meta.get(
+                "global_prior_match_weight",
+                meta.get("hier_trade_global_prior_match_weight", 0.0),
+            ),
+        )
+    )
+    hier_trade_global_prior_match_tolerance = _safe_float(
+        recipe.get(
+            "hier_trade_global_prior_match_tolerance",
+            _hier_trade_prior_meta.get(
+                "global_prior_match_tolerance",
+                meta.get("hier_trade_global_prior_match_tolerance", 1.0),
+            ),
+        )
+    )
+    hier_trade_global_prior_match_min_label_rate = _safe_float(
+        recipe.get(
+            "hier_trade_global_prior_match_min_label_rate",
+            _hier_trade_prior_meta.get(
+                "global_prior_match_min_label_rate",
+                meta.get("hier_trade_global_prior_match_min_label_rate", 0.0),
+            ),
+        )
+    )
+    hier_slice_trade_prior_match_weight = _safe_float(
+        recipe.get(
+            "hier_slice_trade_prior_match_weight",
+            _hier_trade_prior_meta.get(
+                "prior_match_weight",
+                meta.get("hier_slice_trade_prior_match_weight", 0.0),
+            ),
+        )
+    )
+    hier_slice_trade_prior_match_tolerance = _safe_float(
+        recipe.get(
+            "hier_slice_trade_prior_match_tolerance",
+            _hier_trade_prior_meta.get(
+                "prior_match_tolerance",
+                meta.get("hier_slice_trade_prior_match_tolerance", 1.0),
+            ),
+        )
+    )
+    hier_slice_trade_prior_match_min_label_rate = _safe_float(
+        recipe.get(
+            "hier_slice_trade_prior_match_min_label_rate",
+            _hier_trade_prior_meta.get(
+                "prior_match_min_label_rate",
+                meta.get("hier_slice_trade_prior_match_min_label_rate", 0.0),
+            ),
+        )
+    )
+    hier_slice_trade_prior_match_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "hier_slice_trade_prior_match_min_rows",
+                _hier_trade_prior_meta.get(
+                    "prior_match_min_rows",
+                    meta.get("hier_slice_trade_prior_match_min_rows", -1.0),
+                ),
+            )
+        )
     )
     hier_slice_side_ce_weight = _safe_float(
         recipe.get(
@@ -1952,6 +2029,41 @@ def _direction_balance_recipe_contract(
                 )
             if hier_compose_residual_side_neutral is not SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED:
                 failures.append("smart direction active head requires hier_compose_residual_side_neutral=true")
+            if hier_trade_global_prior_match_weight < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:
+                failures.append(
+                    "smart direction active head requires hier_trade_global_prior_match_weight >= "
+                    f"{SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:.2f}"
+                )
+            if hier_trade_global_prior_match_tolerance > SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:
+                failures.append(
+                    "smart direction active head requires hier_trade_global_prior_match_tolerance <= "
+                    f"{SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
+                )
+            if hier_trade_global_prior_match_min_label_rate < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:
+                failures.append(
+                    "smart direction active head requires hier_trade_global_prior_match_min_label_rate >= "
+                    f"{SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
+                )
+            if hier_slice_trade_prior_match_weight < SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT:
+                failures.append(
+                    "smart direction active head requires hier_slice_trade_prior_match_weight >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT:.2f}"
+                )
+            if hier_slice_trade_prior_match_tolerance > SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX:
+                failures.append(
+                    "smart direction active head requires hier_slice_trade_prior_match_tolerance <= "
+                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
+                )
+            if hier_slice_trade_prior_match_min_label_rate < SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:
+                failures.append(
+                    "smart direction active head requires hier_slice_trade_prior_match_min_label_rate >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
+                )
+            if hier_slice_trade_prior_match_min_rows < SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires hier_slice_trade_prior_match_min_rows >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS}"
+                )
             if hier_slice_side_ce_weight < SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_slice_side_ce_weight >= "
@@ -2135,6 +2247,13 @@ def _direction_balance_recipe_contract(
         "direction_hierarchical_composition": direction_hierarchical_composition,
         "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
         "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
+        "hier_trade_global_prior_match_weight": hier_trade_global_prior_match_weight,
+        "hier_trade_global_prior_match_tolerance": hier_trade_global_prior_match_tolerance,
+        "hier_trade_global_prior_match_min_label_rate": hier_trade_global_prior_match_min_label_rate,
+        "hier_slice_trade_prior_match_weight": hier_slice_trade_prior_match_weight,
+        "hier_slice_trade_prior_match_tolerance": hier_slice_trade_prior_match_tolerance,
+        "hier_slice_trade_prior_match_min_label_rate": hier_slice_trade_prior_match_min_label_rate,
+        "hier_slice_trade_prior_match_min_rows": hier_slice_trade_prior_match_min_rows,
         "hier_slice_side_ce_weight": hier_slice_side_ce_weight,
         "hier_slice_side_true_margin_weight": hier_slice_side_true_margin_weight,
         "hier_slice_side_true_margin": hier_slice_side_true_margin,

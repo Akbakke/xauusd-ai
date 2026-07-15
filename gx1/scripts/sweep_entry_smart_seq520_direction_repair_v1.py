@@ -69,6 +69,8 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT", "choice", choices=(4.0, 6.0, 8.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT", "choice", choices=(3.0, 4.0, 5.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_WEIGHT", "choice", choices=(2.00, 2.50)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", "choice", choices=(4.0, 6.0, 8.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", "choice", choices=(4.0, 6.0, 8.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_WEIGHT", "choice", choices=(1.75, 2.00, 2.25)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_CE_WEIGHT", "choice", choices=(4.0, 5.0, 6.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "choice", choices=(3.0, 4.0, 5.0)),
@@ -150,6 +152,11 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_MAE_WEIGHT": "0.35",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "15.0",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "8.0",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_MIN_ROWS": "8",
@@ -369,6 +376,62 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL must be 1 for strict XAU repair, "
             f"got {hier_compose_residual_side_neutral}"
+        )
+    hier_trade_global_prior_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", "0")
+    )
+    hier_trade_global_prior_tolerance = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE", "1")
+    )
+    hier_trade_global_prior_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", "0")
+    )
+    hier_slice_trade_prior_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", "0")
+    )
+    hier_slice_trade_prior_tolerance = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE", "1")
+    )
+    hier_slice_trade_prior_min_label_rate = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE", "0")
+    )
+    hier_slice_trade_prior_min_rows = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", "0"))
+    )
+    if hier_trade_global_prior_weight < 4.0:
+        failures.append(
+            "HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_trade_global_prior_weight}"
+        )
+    if hier_trade_global_prior_tolerance > 0.02:
+        failures.append(
+            "HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE must be <= 0.02 for strict XAU repair, "
+            f"got {hier_trade_global_prior_tolerance}"
+        )
+    if hier_trade_global_prior_min_label_rate < 0.10:
+        failures.append(
+            "HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE must be >= 0.10 for strict XAU repair, "
+            f"got {hier_trade_global_prior_min_label_rate}"
+        )
+    if hier_slice_trade_prior_weight < 4.0:
+        failures.append(
+            "HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_slice_trade_prior_weight}"
+        )
+    if hier_slice_trade_prior_tolerance > 0.02:
+        failures.append(
+            "HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE must be <= 0.02 for strict XAU repair, "
+            f"got {hier_slice_trade_prior_tolerance}"
+        )
+    if hier_slice_trade_prior_min_label_rate < 0.10:
+        failures.append(
+            "HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE must be >= 0.10 for strict XAU repair, "
+            f"got {hier_slice_trade_prior_min_label_rate}"
+        )
+    if hier_slice_trade_prior_min_rows < 8:
+        failures.append(
+            "HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS must be >= 8 for strict XAU repair, "
+            f"got {hier_slice_trade_prior_min_rows}"
         )
     hier_slice_side_ce_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_SIDE_CE_WEIGHT", "0"))
     hier_slice_side_true_margin_weight = float(

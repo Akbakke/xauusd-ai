@@ -112,6 +112,13 @@ SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
+SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
+SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
+SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT = 4.00
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = 8
 SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
@@ -321,6 +328,20 @@ def _direction_balance_contract_passes(
         <= SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX
         and contract.get("hier_compose_residual_side_neutral")
         is SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED
+        and _float_or_zero(contract.get("hier_trade_global_prior_match_weight"))
+        >= SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
+        and _float_or_zero(contract.get("hier_trade_global_prior_match_tolerance", 999.0))
+        <= SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX
+        and _float_or_zero(contract.get("hier_trade_global_prior_match_min_label_rate"))
+        >= SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+        and _float_or_zero(contract.get("hier_slice_trade_prior_match_weight"))
+        >= SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT
+        and _float_or_zero(contract.get("hier_slice_trade_prior_match_tolerance", 999.0))
+        <= SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX
+        and _float_or_zero(contract.get("hier_slice_trade_prior_match_min_label_rate"))
+        >= SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
+        and _float_or_zero(contract.get("hier_slice_trade_prior_match_min_rows"))
+        >= SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS
         and _float_or_zero(contract.get("hier_side_global_prior_match_weight"))
         >= SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT
         and _float_or_zero(contract.get("hier_side_global_prior_match_tolerance", 999.0))

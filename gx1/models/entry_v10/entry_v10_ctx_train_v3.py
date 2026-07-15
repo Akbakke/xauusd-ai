@@ -539,6 +539,27 @@ ENTRY_HIER_LEGACY_CE_MULT = float(_env_str("ENTRY_HIER_LEGACY_CE_MULT", "0.35"))
 ENTRY_HIER_SIDE_VALIDITY_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", "0.0"))
 ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", "10.0"))
 ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", "20.0"))
+ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = float(
+    _env_str("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", "0.0")
+)
+ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE = float(
+    _env_str("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE", "0.02")
+)
+ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+)
+ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT = float(
+    _env_str("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", "0.0")
+)
+ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE = float(
+    _env_str("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE", "0.02")
+)
+ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = float(
+    _env_str("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+)
+ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = int(
+    float(_env_str("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
+)
 ENTRY_HIER_SLICE_SIDE_CE_WEIGHT = float(_env_str("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", "0.0"))
 ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = float(
     _env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0.0")
@@ -805,6 +826,13 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "0.0",
     "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "10.0",
     "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT": "0.0",
+    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT": "0.0",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS": "8",
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
@@ -3361,6 +3389,121 @@ def _hier_slice_side_true_margin_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _hier_trade_prior_probs(trade_logit: torch.Tensor) -> torch.Tensor:
+    trade_prob = torch.sigmoid(trade_logit.reshape(-1))
+    flat_prob = 1.0 - trade_prob
+    return _direction_pred_rate_probs(torch.stack([trade_prob, flat_prob], dim=1))
+
+
+def _hier_trade_prior_targets(y_trade: torch.Tensor) -> torch.Tensor:
+    trade = y_trade.reshape(-1).float() > 0.5
+    return torch.where(
+        trade,
+        torch.zeros_like(trade, dtype=torch.long),
+        torch.ones_like(trade, dtype=torch.long),
+    )
+
+
+def _hier_trade_global_prior_match_term(
+    trade_logit: torch.Tensor,
+    y_trade: torch.Tensor,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
+    weight = float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if trade_logit.numel() <= 1 or len(y_trade) != trade_logit.reshape(-1).shape[0]:
+        return zero
+
+    tolerance = float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE)
+    min_label_rate = float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE)
+    if tolerance < 0.0 or tolerance > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_INVALID] "
+            f"ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE={tolerance:.6f} expected [0.0, 1.0]"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+
+    targets = _hier_trade_prior_targets(y_trade).to(device=trade_logit.device)
+    counts = torch.bincount(targets, minlength=2).to(device=trade_logit.device, dtype=trade_logit.dtype)
+    label_rates = counts / counts.sum().clamp(min=1.0)
+    active = label_rates >= min_label_rate
+    if int(active.sum().detach().cpu().item()) < 2:
+        return zero
+    pred_rates = _hier_trade_prior_probs(trade_logit).mean(dim=0)
+    drift = torch.abs(pred_rates[active] - label_rates[active])
+    tol = torch.as_tensor(tolerance, device=trade_logit.device, dtype=trade_logit.dtype)
+    return weight * torch.relu(drift - tol).sum()
+
+
+def _hier_slice_trade_prior_match_term(
+    trade_logit: torch.Tensor,
+    y_trade: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
+    weight = float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(y_trade) != trade_logit.reshape(-1).shape[0] or ctx_cat.shape[0] != trade_logit.reshape(-1).shape[0]:
+        return zero
+
+    tolerance = float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE)
+    min_rows = int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS)
+    min_label_rate = float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE)
+    if tolerance < 0.0 or tolerance > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE={tolerance:.6f} expected [0.0, 1.0]"
+        )
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    pred_rate_probs = _hier_trade_prior_probs(trade_logit)
+    targets = _hier_trade_prior_targets(y_trade).to(device=trade_logit.device)
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = ctx_cat[:, idx].long() == value
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = targets[mask]
+            counts = torch.bincount(slice_targets, minlength=2).to(
+                device=trade_logit.device,
+                dtype=trade_logit.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active = label_rates >= min_label_rate
+            if int(active.sum().detach().cpu().item()) < 2:
+                continue
+            pred_rates = pred_rate_probs[mask].mean(dim=0)
+            drift = torch.abs(pred_rates[active] - label_rates[active])
+            tol = torch.as_tensor(tolerance, device=trade_logit.device, dtype=trade_logit.dtype)
+            values.append(torch.relu(drift - tol).sum())
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _hier_side_global_prior_match_term(
     side_logits: torch.Tensor,
     side_targets: torch.Tensor,
@@ -4173,6 +4316,8 @@ def _hierarchical_entry_loss(
     total = torch.tensor(0.0, device=device)
     stats: Dict[str, float] = {
         "hier_trade_loss": 0.0,
+        "hier_trade_global_prior_loss": 0.0,
+        "hier_slice_trade_prior_loss": 0.0,
         "hier_side_loss": 0.0,
         "hier_slice_side_ce_loss": 0.0,
         "hier_slice_side_margin_loss": 0.0,
@@ -4322,6 +4467,16 @@ def _hierarchical_entry_loss(
         weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
         total = total + weighted
         stats["hier_trade_loss"] = float(weighted.detach().cpu().item())
+
+    if trade_logit is not None:
+        hier_trade_global_prior = _hier_trade_global_prior_match_term(trade_logit, y_trade)
+        if hier_trade_global_prior.numel() == 1:
+            total = total + hier_trade_global_prior
+            stats["hier_trade_global_prior_loss"] = float(hier_trade_global_prior.detach().cpu().item())
+        hier_slice_trade_prior = _hier_slice_trade_prior_match_term(trade_logit, y_trade, ctx_cat)
+        if hier_slice_trade_prior.numel() == 1:
+            total = total + hier_slice_trade_prior
+            stats["hier_slice_trade_prior_loss"] = float(hier_slice_trade_prior.detach().cpu().item())
 
     if (
         trade_logit is not None
@@ -4849,6 +5004,8 @@ def train_epoch(
     hard_neg_prob_loss_sum = 0.0
     tail_direction_rows = 0
     hier_trade_loss_sum = 0.0
+    hier_trade_global_prior_loss_sum = 0.0
+    hier_slice_trade_prior_loss_sum = 0.0
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
@@ -5275,6 +5432,8 @@ def train_epoch(
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
         bad_path_loss_sum += float(bad_path_prob_loss) * bs
         hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
+        hier_trade_global_prior_loss_sum += float(hier_stats.get("hier_trade_global_prior_loss", 0.0)) * bs
+        hier_slice_trade_prior_loss_sum += float(hier_stats.get("hier_slice_trade_prior_loss", 0.0)) * bs
         hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
         hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
         hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
@@ -5366,6 +5525,8 @@ def train_epoch(
         "aux_survival_loss_mean": (survival_loss_sum / max(1, n)),
         "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
+        "hier_trade_global_prior_loss_mean": (hier_trade_global_prior_loss_sum / max(1, n)),
+        "hier_slice_trade_prior_loss_mean": (hier_slice_trade_prior_loss_sum / max(1, n)),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
         "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
@@ -5993,6 +6154,8 @@ def validate(
     hard_neg_prob_loss_sum = 0.0
     tail_direction_rows = 0
     hier_trade_loss_sum = 0.0
+    hier_trade_global_prior_loss_sum = 0.0
+    hier_slice_trade_prior_loss_sum = 0.0
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
@@ -6393,6 +6556,8 @@ def validate(
             hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
             bad_path_loss_sum += float(bad_path_prob_loss) * bs
             hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
+            hier_trade_global_prior_loss_sum += float(hier_stats.get("hier_trade_global_prior_loss", 0.0)) * bs
+            hier_slice_trade_prior_loss_sum += float(hier_stats.get("hier_slice_trade_prior_loss", 0.0)) * bs
             hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
             hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
             hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
@@ -6494,6 +6659,8 @@ def validate(
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
+        "hier_trade_global_prior_loss_mean": (hier_trade_global_prior_loss_sum / max(1, n)),
+        "hier_slice_trade_prior_loss_mean": (hier_slice_trade_prior_loss_sum / max(1, n)),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
         "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
@@ -7880,6 +8047,25 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION)
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
+    _require_nonneg("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT)
+    _require_nonneg(
+        "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE",
+        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE",
+        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE,
+    )
+    _require_nonneg("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT)
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE",
+        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE",
+        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE,
+    )
+    _require_nonneg("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS)
     _require_nonneg(
         "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
         ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT,
@@ -7952,6 +8138,35 @@ def run_train(
             "[ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
             "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
             f"{ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_INVALID] "
+            "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE="
+            f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
+            "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
+            f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_INVALID] "
+            "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE="
+            f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
+            "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE="
+            f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:.6f} expected <=1.0"
+        )
+    if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS={ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS} expected >=2"
         )
     if ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE > 1.0:
         raise RuntimeError(
@@ -8312,6 +8527,41 @@ def run_train(
             repair_failures.append(
                 "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS="
                 f"{ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS} expected >=8"
+            )
+        if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT="
+                f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE > 0.02:
+            repair_failures.append(
+                "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE="
+                f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
+            )
+        if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
+                f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT="
+                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE > 0.02:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE="
+                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
+            )
+        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE="
+                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS < 8:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS="
+                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS} expected >=8"
             )
         if ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT < 3.0:
             repair_failures.append(
@@ -8747,6 +8997,8 @@ def run_train(
     )
     log.info(
         "[ENTRY_HIER_RECIPE] enabled=%d legacy_ce_mult=%.3f trade_w=%.3f side_w=%.3f utility_w=%.3f bad_path_w=%.3f mae_w=%.3f "
+        "trade_global_prior_w=%.3f trade_global_prior_tol=%.3f trade_global_prior_min_label_rate=%.3f "
+        "slice_trade_prior_w=%.3f slice_trade_prior_tol=%.3f slice_trade_prior_min_rows=%d slice_trade_prior_min_label_rate=%.3f "
         "slice_side_ce_w=%.3f slice_side_margin_w=%.3f slice_side_margin=%.3f slice_side_min_rows=%d slice_side_min_label_rate=%.3f "
         "side_global_prior_w=%.3f side_global_prior_tol=%.3f side_global_prior_min_label_rate=%.3f "
         "slice_side_prior_w=%.3f slice_side_prior_tol=%.3f slice_side_prior_min_rows=%d slice_side_prior_min_label_rate=%.3f "
@@ -8759,6 +9011,13 @@ def run_train(
         float(ENTRY_HIER_UTILITY_WEIGHT),
         float(ENTRY_HIER_BAD_PATH_WEIGHT),
         float(ENTRY_HIER_MAE_WEIGHT),
+        float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
+        float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
+        float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE),
+        float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT),
+        float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE),
+        int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
+        float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE),
         float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -8927,7 +9186,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -8950,6 +9209,8 @@ def run_train(
                 float(val_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(val_stats.get("hier_trade_loss_mean", 0.0)),
+                float(val_stats.get("hier_trade_global_prior_loss_mean", 0.0)),
+                float(val_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
@@ -9054,7 +9315,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -9077,6 +9338,8 @@ def run_train(
                 float(tr_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(tr_stats.get("hier_trade_loss_mean", 0.0)),
+                float(tr_stats.get("hier_trade_global_prior_loss_mean", 0.0)),
+                float(tr_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
@@ -9290,6 +9553,27 @@ def run_train(
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+                    "hier_trade_global_prior_match_weight": float(
+                        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
+                    ),
+                    "hier_trade_global_prior_match_tolerance": float(
+                        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE
+                    ),
+                    "hier_trade_global_prior_match_min_label_rate": float(
+                        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_trade_prior_match_weight": float(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT
+                    ),
+                    "hier_slice_trade_prior_match_tolerance": float(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE
+                    ),
+                    "hier_slice_trade_prior_match_min_label_rate": float(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_trade_prior_match_min_rows": int(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS
+                    ),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
@@ -9473,6 +9757,27 @@ def run_train(
                     "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+                    "hier_trade_global_prior_match_weight": float(
+                        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
+                    ),
+                    "hier_trade_global_prior_match_tolerance": float(
+                        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE
+                    ),
+                    "hier_trade_global_prior_match_min_label_rate": float(
+                        ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_trade_prior_match_weight": float(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT
+                    ),
+                    "hier_slice_trade_prior_match_tolerance": float(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE
+                    ),
+                    "hier_slice_trade_prior_match_min_label_rate": float(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_trade_prior_match_min_rows": int(
+                        ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS
+                    ),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
                         ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT
@@ -9777,6 +10082,25 @@ def run_train(
                 },
                 "runtime_rule_free": True,
             },
+            "trade_prior_supervision": {
+                "enabled": (
+                    float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT) > 0.0
+                    or float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT) > 0.0
+                ),
+                "global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
+                "global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
+                "global_prior_match_min_label_rate": float(
+                    ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+                ),
+                "prior_match_weight": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT),
+                "prior_match_tolerance": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE),
+                "prior_match_min_label_rate": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE),
+                "prior_match_min_rows": int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
+                "ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
+                "loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
+                "target_classes": ["trade", "flat"],
+                "runtime_rule_free": True,
+            },
             "slice_side_supervision": {
                 "enabled": (
                     float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT) > 0.0
@@ -9955,6 +10279,17 @@ def run_train(
         "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
         "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+        "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
+        "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
+        "hier_trade_global_prior_match_min_label_rate": float(
+            ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+        ),
+        "hier_slice_trade_prior_match_weight": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT),
+        "hier_slice_trade_prior_match_tolerance": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE),
+        "hier_slice_trade_prior_match_min_label_rate": float(
+            ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
+        ),
+        "hier_slice_trade_prior_match_min_rows": int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
         "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -10088,6 +10423,17 @@ def run_train(
             "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
             "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
+            "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
+            "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
+            "hier_trade_global_prior_match_min_label_rate": float(
+                ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
+            ),
+            "hier_slice_trade_prior_match_weight": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT),
+            "hier_slice_trade_prior_match_tolerance": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE),
+            "hier_slice_trade_prior_match_min_label_rate": float(
+                ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
+            ),
+            "hier_slice_trade_prior_match_min_rows": int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
             "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
             "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
             "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
