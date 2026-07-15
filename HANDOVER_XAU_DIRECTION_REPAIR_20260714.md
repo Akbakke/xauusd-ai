@@ -52,14 +52,16 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - `SMART_SEQ520_XAU_SMOKE_TRAIN_ARGMAXTEMP005_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T103750Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T103750Z`; failed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`, no bundle directory was written. Best checkpoint was epoch 9 with balance guard OK, `slice_contract_ok=0`, 8 slice failures, 6 accuracy failures, and 2 pred-rate failures. Later epochs collapsed back toward hard SHORT and still failed closed.
 - Implemented the next hard smart XAU objective repair: `ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_*` now adds a direct active-slice accuracy-edge loss against the same majority-plus-margin condition that blocks bundle creation. Smart XAU smoke/candidate wrappers, manifest/readiness contracts, sweep lint, trainer preflight, metadata, and smoke bundle audit now require the recipe (`weight >= 4.0`, `margin >= 0.02`, `min_label_rate >= 0.10`, `min_rows >= 8`). This is not fallback; weak or missing config fails before a smart XAU repair run can be used.
 - Added hard slice failure diagnostics for the next run: `_direction_slice_balance_stats` now returns `direction_slice_failure_details`, and training logs `ENTRY_DIR_SLICE_FAILURE` rows with ctx slice, rows, accuracy, majority, label rates, prediction rates, required rates, and pred-rate shortfall. These rows are failure evidence only.
-- Current readiness while this source repair is uncommitted is intentionally blocked by clean-git hygiene:
-  - smoke readiness: `BLOCKED_SMART_SEQ520_SMOKE_READINESS` with blocker `execution_hygiene: clean git required before smart smoke train`.
-  - trainability readiness: `BLOCKED_SMART_SEQ520_TRAINABILITY_READINESS` because smoke readiness is blocked.
-  - No data/artifact blocker was observed in the latest readiness reports beyond the dirty worktree.
+- Committed the slice accuracy-edge repair as `19ae5d9c Require XAU slice accuracy-edge repair`, then reran smart smoke readiness and smart trainability readiness on clean git. Both passed:
+  - smoke readiness: `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`.
+  - trainability readiness: `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW`.
+- Follow-up smoke training with slice accuracy-edge was manually stopped once it was clearly still hard-red:
+  - `SMART_SEQ520_XAU_SMOKE_TRAIN_SLICEACCEDGE_20260715`: manifest `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T110209Z.json`, intended bundle `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T110209Z`; stopped at epoch 10 by operator with no bundle directory written. Best observed checkpoint was epoch 4 with global balance guard OK but `slice_contract_ok=0` and 12 slice failures; epoch 10 still had `slice_contract_ok=0` and 15 slice failures. This remains hard failure evidence, not a candidate.
+- Added the next hard execution guard after the stopped run: `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_*` now stops smart XAU transformer training when the best checkpoint and current validation remain slice-red after no slice-score progress. Smart smoke/candidate wrappers, manifest/readiness contracts, sweep lint, trainer preflight, metadata, and smoke bundle audit now require `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3` and `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6`. This is not fallback; it saves compute and still lets `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]` refuse bundle creation.
 - Post-run resource state stayed safe: `/home/andre2` and `/home/andre2/GX1_DATA` had about `838G` free, RAM had about `38G` available after the process exited, and swap stayed at `0B` used throughout monitoring.
 - Targeted validation passed after the true-margin repair:
   `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_xau_direction_repair_sweep.py -q`.
-  After the slice-balanced sampler contract this targeted suite passed again with `124 passed`; after the `mean_max` hardening the same targeted suite passed again; after the `0.05` temperature hardening the same targeted suite passed again; after the `slice_accuracy_edge` repair the same targeted suite passed again.
+  After the slice-balanced sampler contract this targeted suite passed again with `124 passed`; after the `mean_max` hardening the same targeted suite passed again; after the `0.05` temperature hardening the same targeted suite passed again; after the `slice_accuracy_edge` repair the same targeted suite passed again; after the hard-red stop guard the same targeted suite passed again.
 
 ## What Was Done
 
@@ -156,22 +158,20 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
    - It also points at stale July/pathutil artifacts.
 
 2. Latest smart XAU smoke training attempts failed hard on direction slice guard. No fallback path and no slice-failed bundle should be used as evidence.
-   - True-margin standard, stronger W8/CE4, batch-size 256, slice-balanced sampler, `mean_max` aggregation, and `0.05` argmax-aligned pred-rate temperature all failed closed without writing a bundle.
-   - Current evidence says the objective can now see hard argmax collapse, but it still cannot keep all active direction slices above the hard gate. The next direct slice accuracy-edge repair is implemented in source and must now be committed, readiness-checked on clean git, and tested by a new fail-closed smoke run.
+   - True-margin standard, stronger W8/CE4, batch-size 256, slice-balanced sampler, `mean_max` aggregation, `0.05` argmax-aligned pred-rate temperature, and slice accuracy-edge all failed/stopped hard without writing a bundle.
+   - Current evidence says the objective can now see hard argmax collapse and log exact slice failures, but it still cannot keep all active direction slices above the hard gate. The next repair should change the objective/data contract, not rerun the same transformer recipe longer.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
 1. Get to a clean, intentional source state.
-   - Commit the implemented `ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_*` repair and diagnostics intentionally.
+   - Commit the implemented `ENTRY_DIRECTION_SLICE_HARD_RED_STOP_*` guard and stopped-run handover update intentionally.
    - Do not revert unrelated user work.
 
-2. With clean git, rerun smart smoke readiness and smart trainability readiness. Both must pass before another train run.
+2. With clean git, rerun smart smoke readiness and smart trainability readiness. Both must include the hard-red stop contract before another train run.
 
-3. Launch the next fail-closed smart smoke train with the new slice accuracy-edge recipe:
-   `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_TRAIN_SLICEACCEDGE_20260715 --require-edge-audit --epochs 12 --early-stop-patience 12`.
-   If it fails, use the new `ENTRY_DIR_SLICE_FAILURE` rows as evidence. If it passes, verify the required smoke bundle audit and continue to candidate promotion gates.
+3. Do not relaunch the same `SLICEACCEDGE` transformer recipe just to burn more epochs. Use the `ENTRY_DIR_SLICE_FAILURE` rows from the stopped run to implement the next hard objective/data repair. Current leading evidence: global balance can pass while ctx slices still miss majority accuracy, and the model oscillates between missing FLAT/SHORT/LONG pred-rate across slices.
 
 4. After a candidate bundle passes hard audits:
    - materialize expected-utility predictions

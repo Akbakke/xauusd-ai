@@ -302,6 +302,53 @@ def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(
     assert trainer._direction_slice_ckpt_score(0.40, collapsed) < trainer._direction_slice_ckpt_score(0.40, covered)
 
 
+def test_entry_v10_direction_slice_hard_red_stop_waits_for_no_progress(monkeypatch) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS", 6)
+    red_stats = {
+        "direction_slice_contract_ok": False,
+        "direction_slice_failure_count": 4,
+    }
+    green_stats = {
+        "direction_slice_contract_ok": True,
+        "direction_slice_failure_count": 0,
+    }
+
+    assert not trainer._direction_slice_hard_red_stop_ready(
+        epoch=5,
+        epochs_since_improve=3,
+        best_slice_contract_ok=False,
+        val_stats=red_stats,
+    )
+    assert not trainer._direction_slice_hard_red_stop_ready(
+        epoch=6,
+        epochs_since_improve=2,
+        best_slice_contract_ok=False,
+        val_stats=red_stats,
+    )
+    assert not trainer._direction_slice_hard_red_stop_ready(
+        epoch=6,
+        epochs_since_improve=3,
+        best_slice_contract_ok=False,
+        val_stats=green_stats,
+    )
+    assert trainer._direction_slice_hard_red_stop_ready(
+        epoch=6,
+        epochs_since_improve=3,
+        best_slice_contract_ok=False,
+        val_stats=red_stats,
+    )
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE", 0)
+    assert not trainer._direction_slice_hard_red_stop_ready(
+        epoch=6,
+        epochs_since_improve=3,
+        best_slice_contract_ok=False,
+        val_stats=red_stats,
+    )
+
+
 def test_entry_v10_direction_slice_balanced_sampler_builds_hard_slice_batches() -> None:
     import itertools
     import numpy as np

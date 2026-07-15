@@ -37,6 +37,8 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
         assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION"] == "mean_max"
         assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER"] == "1"
         assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS"] == "8"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE"] == "3"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS"] == "6"
         assert lint_trial_env(env) == []
         assert not any("EUR" in key.upper() for key in env)
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS"] == "1.0,1.0,4.0"
@@ -47,6 +49,8 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS"] == "8"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER"] == "1"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS"] == "8"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE"] == "3"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS"] == "6"
 
 
 def test_xau_direction_repair_sweep_command_uses_smart_wrapper_and_dry_run() -> None:

@@ -70,6 +70,8 @@ SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN = 0.02
 SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS = 8
 SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = 8
+SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE = 3
+SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS = 6
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
@@ -1167,6 +1169,22 @@ def _direction_balance_recipe_contract(
             )
         )
     )
+    direction_slice_hard_red_stop_patience = int(
+        _safe_float(
+            recipe.get(
+                "direction_slice_hard_red_stop_patience",
+                meta.get("direction_slice_hard_red_stop_patience", -1.0),
+            )
+        )
+    )
+    direction_slice_hard_red_stop_min_epochs = int(
+        _safe_float(
+            recipe.get(
+                "direction_slice_hard_red_stop_min_epochs",
+                meta.get("direction_slice_hard_red_stop_min_epochs", -1.0),
+            )
+        )
+    )
     direction_vs_flat_margin_weight = _safe_float(
         recipe.get(
             "direction_vs_flat_margin_weight",
@@ -1382,6 +1400,16 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_slice_balanced_sampler_min_rows="
                     f"{SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS}"
                 )
+            if direction_slice_hard_red_stop_patience != SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE:
+                failures.append(
+                    "smart direction active head requires direction_slice_hard_red_stop_patience="
+                    f"{SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE}"
+                )
+            if direction_slice_hard_red_stop_min_epochs != SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS:
+                failures.append(
+                    "smart direction active head requires direction_slice_hard_red_stop_min_epochs="
+                    f"{SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS}"
+                )
             if direction_vs_flat_margin_weight < SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_vs_flat_margin_weight >= "
@@ -1455,6 +1483,8 @@ def _direction_balance_recipe_contract(
         "direction_slice_accuracy_edge_min_rows": direction_slice_accuracy_edge_min_rows,
         "direction_slice_balanced_sampler": direction_slice_balanced_sampler,
         "direction_slice_balanced_sampler_min_rows": direction_slice_balanced_sampler_min_rows,
+        "direction_slice_hard_red_stop_patience": direction_slice_hard_red_stop_patience,
+        "direction_slice_hard_red_stop_min_epochs": direction_slice_hard_red_stop_min_epochs,
         "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
         "direction_vs_flat_margin": direction_vs_flat_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,

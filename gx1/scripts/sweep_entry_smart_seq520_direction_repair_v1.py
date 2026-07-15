@@ -104,6 +104,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION": "mean_max",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER": "1",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE": "3",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
@@ -266,6 +268,22 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS must stay 8 for strict XAU repair, "
             f"got {slice_sampler_min_rows}"
+        )
+    hard_red_stop_patience = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE", "0"))
+    )
+    hard_red_stop_min_epochs = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS", "0"))
+    )
+    if hard_red_stop_patience != 3:
+        failures.append(
+            "DIRECTION_SLICE_HARD_RED_STOP_PATIENCE must stay 3 for strict XAU repair, "
+            f"got {hard_red_stop_patience}"
+        )
+    if hard_red_stop_min_epochs != 6:
+        failures.append(
+            "DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS must stay 6 for strict XAU repair, "
+            f"got {hard_red_stop_min_epochs}"
         )
     if bad_path_penalty != 0.0:
         failures.append(f"BAD_PATH_PROB_PENALTY must stay 0.0, got {bad_path_penalty}")

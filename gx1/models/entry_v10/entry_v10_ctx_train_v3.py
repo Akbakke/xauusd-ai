@@ -378,6 +378,12 @@ ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER = _env_str("ENTRY_DIRECTION_SLICE_BALANCE
 ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = int(
     float(_env_str("ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
+ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE = int(
+    float(_env_str("ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE", "0"))
+)
+ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS = int(
+    float(_env_str("ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS", "6"))
+)
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
 
@@ -602,6 +608,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
     "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER": "0",
     "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE": "0",
+    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
@@ -4781,6 +4789,29 @@ def _direction_slice_ckpt_score(base_score: float, slice_stats: Dict[str, Any]) 
     )
 
 
+def _direction_slice_hard_red_stop_ready(
+    *,
+    epoch: int,
+    epochs_since_improve: int,
+    best_slice_contract_ok: Optional[bool],
+    val_stats: Optional[Dict[str, Any]],
+) -> bool:
+    patience = int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE)
+    if patience <= 0:
+        return False
+    if int(epoch) < int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS):
+        return False
+    if int(epochs_since_improve) < patience:
+        return False
+    if bool(best_slice_contract_ok):
+        return False
+    if not val_stats:
+        return False
+    if bool(val_stats.get("direction_slice_contract_ok", False)):
+        return False
+    return int(val_stats.get("direction_slice_failure_count", 0) or 0) > 0
+
+
 def _direction_ckpt_balance_guard_required() -> bool:
     return (
         float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT) > 0.0
@@ -6572,6 +6603,14 @@ def run_train(
         "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS",
         ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS,
     )
+    _require_nonneg(
+        "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE",
+        ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE,
+    )
+    _require_nonneg(
+        "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS",
+        ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS,
+    )
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN", ENTRY_DIRECTION_VS_FLAT_MARGIN)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
@@ -6671,6 +6710,11 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS_INVALID] "
             f"ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS={ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS} expected >=2"
+        )
+    if ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS < 1:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS={ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS} expected >=1"
         )
     if bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER) and int(batch_size) < int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS):
         raise RuntimeError(
@@ -6810,6 +6854,16 @@ def run_train(
             repair_failures.append(
                 "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION="
                 f"{ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION!r} expected 'mean_max'"
+            )
+        if ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE < 1:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE="
+                f"{ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE} expected >=1"
+            )
+        if ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS < 1:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS="
+                f"{ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS} expected >=1"
             )
         if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT < 4.0:
             repair_failures.append(
@@ -6985,7 +7039,8 @@ def run_train(
         "slice_balanced_ce_min_label_rate=%.3f slice_true_margin_w=%.3f slice_true_margin=%.3f "
         "slice_true_margin_min_rows=%d slice_true_margin_min_label_rate=%.3f slice_acc_edge_w=%.3f "
         "slice_acc_edge_margin=%.3f slice_acc_edge_min_rows=%d slice_acc_edge_min_label_rate=%.3f slice_agg=%s "
-        "slice_balanced_sampler=%d slice_balanced_sampler_min_rows=%d flat_margin_w=%.3f flat_margin=%.3f",
+        "slice_balanced_sampler=%d slice_balanced_sampler_min_rows=%d hard_red_stop_patience=%d "
+        "hard_red_stop_min_epochs=%d flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -7014,6 +7069,8 @@ def run_train(
         str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
         int(bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER)),
         int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
+        int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE),
+        int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
     )
@@ -7092,6 +7149,7 @@ def run_train(
     epochs_since_improve = 0
     last_epoch = 0
     early_stopped = False
+    hard_red_stopped = False
     _ckpt_monitor = ENTRY_CKPT_MONITOR if ENTRY_CKPT_MONITOR in {"val_loss", "dir_acc"} else "val_loss"
     log.info(
         "[CKPT_MONITOR] selecting best checkpoint on %s class_balance_guard_weight=%.3f min_pred_to_label=%.3f min_pred_rate=%.3f",
@@ -7379,6 +7437,29 @@ def run_train(
                     float(early_stopping_min_delta),
                 )
                 break
+        if _direction_ckpt_slice_guard_required() and _direction_slice_hard_red_stop_ready(
+            epoch=epoch + 1,
+            epochs_since_improve=epochs_since_improve,
+            best_slice_contract_ok=best_direction_slice_contract_ok,
+            val_stats=val_stats,
+        ):
+            hard_red_stopped = True
+            log.info(
+                "[ENTRY_DIR_HARD_RED_STOP] epoch=%d best_epoch=%d best_dir_ckpt_score=%.6f "
+                "epochs_since_improve=%d patience=%d min_epochs=%d current_failures=%d "
+                "current_acc_failures=%d current_pred_rate_failures=%d; refusing to burn more "
+                "compute on a no-progress hard-red slice run",
+                epoch + 1,
+                best_epoch,
+                float(best_dir_ckpt_score),
+                int(epochs_since_improve),
+                int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE),
+                int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS),
+                int(val_stats.get("direction_slice_failure_count", 0) if val_stats else 0),
+                int(val_stats.get("direction_slice_accuracy_failure_count", 0) if val_stats else 0),
+                int(val_stats.get("direction_slice_pred_rate_failure_count", 0) if val_stats else 0),
+            )
+            break
 
     _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
     raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
@@ -7503,6 +7584,7 @@ def run_train(
         "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
         "last_epoch": last_epoch,
         "early_stopped": bool(early_stopped),
+        "hard_red_stopped": bool(hard_red_stopped),
         "early_stopping_patience": int(early_stopping_patience),
         "early_stopping_min_delta": float(early_stopping_min_delta),
         "epochs": epochs,
@@ -7805,6 +7887,8 @@ def run_train(
             "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
             "direction_slice_balanced_sampler": bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER),
             "direction_slice_balanced_sampler_min_rows": int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
+            "direction_slice_hard_red_stop_patience": int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE),
+            "direction_slice_hard_red_stop_min_epochs": int(ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS),
             "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
             "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),

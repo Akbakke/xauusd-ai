@@ -205,6 +205,14 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE:-0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS:-6}"'
+        in text
+    )
+    assert (
         'CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT:-0.0}"'
         in text
     )
@@ -309,6 +317,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=" in text
     assert "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=" in text
     assert "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS=" in text
+    assert "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=" in text
+    assert "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_RESIDUAL_SCALE" in text
@@ -397,6 +407,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=0.10" in text
     assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=8" in text
     assert "CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in text
+    assert "CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3" in text
+    assert "CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
     assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
