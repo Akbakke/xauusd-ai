@@ -99,6 +99,7 @@ class CtxModelConfig:
     enable_hierarchical_entry_heads: bool = False
     enable_hierarchical_direction_composition: bool = False
     hierarchical_composition_residual_logit_cap: float = 0.0
+    hierarchical_composition_residual_side_neutral: bool = False
     enable_side_validity_head: bool = False
     enable_trendline_rail_head: bool = False
     trendline_rail_output_dim: int = 4
@@ -281,6 +282,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         enable_hierarchical_entry_heads: bool = False,
         enable_hierarchical_direction_composition: bool = False,
         hierarchical_composition_residual_logit_cap: float = 0.0,
+        hierarchical_composition_residual_side_neutral: bool = False,
         enable_side_validity_head: bool = False,
         enable_trendline_rail_head: bool = False,
         trendline_rail_output_dim: int = 4,
@@ -376,6 +378,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
             enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
             hierarchical_composition_residual_logit_cap=float(hierarchical_composition_residual_logit_cap),
+            hierarchical_composition_residual_side_neutral=bool(
+                hierarchical_composition_residual_side_neutral
+            ),
             enable_side_validity_head=bool(enable_side_validity_head),
             enable_trendline_rail_head=bool(enable_trendline_rail_head),
             trendline_rail_output_dim=int(trendline_rail_output_dim),
@@ -1090,6 +1095,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 ).to(dtype=raw_direction_logits.dtype)
                 _assert_finite("composed_direction_logits", composed_direction_logits)
                 residual_direction_logits = self.residual_scale.to(delta_logits.dtype) * delta_logits
+                if bool(getattr(self.cfg, "hierarchical_composition_residual_side_neutral", False)):
+                    trade_residual = residual_direction_logits[:, :2].mean(dim=1)
+                    residual_direction_logits = torch.stack(
+                        (
+                            trade_residual,
+                            trade_residual,
+                            residual_direction_logits[:, 2],
+                        ),
+                        dim=1,
+                    )
                 residual_cap = self.hierarchical_composition_residual_logit_cap.to(
                     device=residual_direction_logits.device,
                     dtype=residual_direction_logits.dtype,
@@ -1105,6 +1120,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 out["direction_logits"] = direction_logits
                 out["hierarchical_direction_base_logits"] = composed_direction_logits
                 out["hierarchical_direction_residual_logits"] = residual_direction_logits
+                out["hierarchical_direction_residual_side_neutral"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    1.0 if bool(getattr(self.cfg, "hierarchical_composition_residual_side_neutral", False)) else 0.0,
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
                 out["hierarchical_direction_composed"] = torch.ones(
                     (direction_logits.shape[0], 1),
                     device=direction_logits.device,

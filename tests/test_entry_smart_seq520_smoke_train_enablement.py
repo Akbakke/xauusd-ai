@@ -105,6 +105,7 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0 "
             "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=1 "
             "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.18 "
+            "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1 "
             "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=4.00 "
             "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00 "
             "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=0.10 "
@@ -134,6 +135,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_utility_triad_ce": True,
         "has_hierarchical_composition": True,
         "has_hier_compose_residual_cap": True,
+        "has_hier_compose_residual_side_neutral": True,
         "has_hier_slice_side": True,
         "has_flat_starvation": True,
         "has_xau_repair_heads": True,
@@ -159,6 +161,7 @@ def test_smart_smoke_train_enablement_passes_with_clean_package(monkeypatch, tmp
     assert report["promotion_shadow_live_allowed"] is False
     assert report["wrapper_dry_run"]["has_capped_run"] is True
     assert report["wrapper_dry_run"]["has_hier_compose_residual_cap"] is True
+    assert report["wrapper_dry_run"]["has_hier_compose_residual_side_neutral"] is True
 
 
 def test_smart_smoke_train_enablement_blocks_missing_vedtak(monkeypatch, tmp_path: Path) -> None:

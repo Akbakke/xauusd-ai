@@ -100,6 +100,7 @@ SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN = 2.0
 SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
+SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
 SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN = 0.10
@@ -1394,6 +1395,15 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    hier_compose_residual_side_neutral = _bool_value(
+        recipe.get(
+            "hier_compose_residual_side_neutral",
+            _hierarchical_direction_meta.get(
+                "residual_side_neutral",
+                meta.get("hier_compose_residual_side_neutral", False),
+            ),
+        )
+    )
     _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
     _hier_slice_side_meta = (
         _hier_entry_meta.get("slice_side_supervision")
@@ -1868,6 +1878,8 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires hier_compose_residual_logit_cap <= "
                     f"{SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX:.2f}"
                 )
+            if hier_compose_residual_side_neutral is not SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED:
+                failures.append("smart direction active head requires hier_compose_residual_side_neutral=true")
             if hier_slice_side_ce_weight < SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_slice_side_ce_weight >= "
@@ -2015,6 +2027,7 @@ def _direction_balance_recipe_contract(
         "direction_utility_triad_ce_class_weight_cap": direction_utility_triad_ce_class_weight_cap,
         "direction_hierarchical_composition": direction_hierarchical_composition,
         "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
+        "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
         "hier_slice_side_ce_weight": hier_slice_side_ce_weight,
         "hier_slice_side_true_margin_weight": hier_slice_side_true_margin_weight,
         "hier_slice_side_true_margin": hier_slice_side_true_margin,

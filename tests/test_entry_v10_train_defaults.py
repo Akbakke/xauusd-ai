@@ -1217,6 +1217,7 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "direction_utility_triad_ce_class_weight_cap",
         "direction_hierarchical_composition",
         "hier_compose_residual_logit_cap",
+        "hier_compose_residual_side_neutral",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",
@@ -1640,6 +1641,7 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
     assert "residual_scale=float(ENTRY_RESIDUAL_SCALE)" in train_ctor
     assert "anchor_eps=float(ENTRY_ANCHOR_EPS)" in train_ctor
     assert "hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)" in train_ctor
+    assert "hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)" in train_ctor
 
 
 def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:
@@ -1709,6 +1711,7 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
         enable_hierarchical_entry_heads=True,
         enable_hierarchical_direction_composition=True,
         hierarchical_composition_residual_logit_cap=0.18,
+        hierarchical_composition_residual_side_neutral=True,
     )
     capped_model.eval()
     with torch.no_grad():
@@ -1716,6 +1719,12 @@ def test_entry_v10_hierarchical_direction_composition_exports_public_logits() ->
     capped_out = capped_model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
 
     assert float(capped_out["hierarchical_direction_residual_logits"].abs().max().item()) <= 0.180001
+    assert torch.allclose(
+        capped_out["hierarchical_direction_residual_logits"][:, 0],
+        capped_out["hierarchical_direction_residual_logits"][:, 1],
+        atol=1e-7,
+    )
+    assert torch.all(capped_out["hierarchical_direction_residual_side_neutral"] == 1.0)
     assert torch.allclose(
         capped_out["direction_logits"],
         capped_out["hierarchical_direction_base_logits"] + capped_out["hierarchical_direction_residual_logits"],

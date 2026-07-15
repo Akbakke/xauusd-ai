@@ -538,6 +538,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
             "hier_compose_residual_logit_cap": 0.18,
+            "hier_compose_residual_side_neutral": True,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,
@@ -607,6 +608,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["direction_utility_triad_ce_class_weight_cap"] == 4.0
     assert report["direction_hierarchical_composition"] is True
     assert report["hier_compose_residual_logit_cap"] == 0.18
+    assert report["hier_compose_residual_side_neutral"] is True
     assert report["hier_slice_side_ce_weight"] == 4.00
     assert report["hier_slice_side_true_margin_weight"] == 3.00
     assert report["hier_slice_side_true_margin"] == 0.10
@@ -708,6 +710,7 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
             "hier_compose_residual_logit_cap": 0.18,
+            "hier_compose_residual_side_neutral": True,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,
@@ -781,6 +784,7 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
             "hier_compose_residual_logit_cap": 0.18,
+            "hier_compose_residual_side_neutral": True,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -842,6 +846,7 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("direction_utility_triad_ce_class_weight_cap" in failure for failure in report["failures"])
     assert any("direction_hierarchical_composition" in failure for failure in report["failures"])
     assert any("hier_compose_residual_logit_cap" in failure for failure in report["failures"])
+    assert any("hier_compose_residual_side_neutral" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_weight" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_label_rate" in failure for failure in report["failures"])
     assert any("direction_flat_starvation_min_rows" in failure for failure in report["failures"])
@@ -903,6 +908,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
             "hier_compose_residual_logit_cap": 0.18,
+            "hier_compose_residual_side_neutral": True,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
@@ -969,6 +975,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
             "direction_utility_triad_ce_class_weight_cap": 4.0,
             "direction_hierarchical_composition": True,
             "hier_compose_residual_logit_cap": 0.18,
+            "hier_compose_residual_side_neutral": True,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,
