@@ -97,6 +97,7 @@ class CtxModelConfig:
     enable_anchor_gate: bool = False
     anchor_gate_init: float = 1.0
     enable_hierarchical_entry_heads: bool = False
+    enable_hierarchical_direction_composition: bool = False
     enable_side_validity_head: bool = False
     enable_trendline_rail_head: bool = False
     trendline_rail_output_dim: int = 4
@@ -277,6 +278,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         enable_anchor_gate: bool = False,
         anchor_gate_init: float = 1.0,
         enable_hierarchical_entry_heads: bool = False,
+        enable_hierarchical_direction_composition: bool = False,
         enable_side_validity_head: bool = False,
         enable_trendline_rail_head: bool = False,
         trendline_rail_output_dim: int = 4,
@@ -351,6 +353,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         if enable_side_validity_head and not enable_hierarchical_entry_heads:
             raise RuntimeError("SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
+        if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
+            raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
 
         self.cfg = CtxModelConfig(
             seq_input_dim=seq_input_dim,
@@ -363,6 +367,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             enable_anchor_gate=bool(enable_anchor_gate),
             anchor_gate_init=float(anchor_gate_init),
             enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+            enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
             enable_side_validity_head=bool(enable_side_validity_head),
             enable_trendline_rail_head=bool(enable_trendline_rail_head),
             trendline_rail_output_dim=int(trendline_rail_output_dim),
@@ -1011,17 +1016,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 self.mtf_dir_scale.to(direction_logits.dtype) * mtf_dir_logits
             )
 
-        # Post-hoc direction calibration (identity unless the bundle loader
-        # installed metadata-fitted values — see set_direction_calibration).
-        # Applied to the FINAL logits so audit == serve by construction.
-        if self._direction_cal is not None:
-            _cal_t, _cal_b = self._direction_cal
-            direction_logits = direction_logits / _cal_t + _cal_b.to(
-                device=direction_logits.device, dtype=direction_logits.dtype
-            )
-
-        # Hard output finite checks
-        _assert_finite("direction_logits", direction_logits)
         path_quality = self.head_path_quality(z)
         mfe_first_n = self.head_mfe_first_n(z)
         tradable_logit = self.head_tradable(z)
@@ -1039,8 +1033,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite("clean_edge_logit", clean_edge_logit)
         _assert_finite("survival_logit", survival_logit)
 
+        raw_direction_logits = direction_logits
         out = {
             "direction_logits": direction_logits,
+            "raw_direction_logits": raw_direction_logits,
             "anchor_logits": anchor_logits,
             "delta_logits": delta_logits,
             **({"anchor_gate": anchor_gate} if anchor_gate is not None else {}),
@@ -1068,6 +1064,26 @@ class EntryV10CtxHybridTransformer(nn.Module):
             _assert_finite("side_mae", side_mae)
             if side_validity_logit is not None:
                 _assert_finite("side_validity_logit", side_validity_logit)
+            if bool(getattr(self.cfg, "enable_hierarchical_direction_composition", False)):
+                trade_log_prob = nn.functional.logsigmoid(trade_logit.reshape(-1))
+                flat_log_prob = nn.functional.logsigmoid(-trade_logit.reshape(-1))
+                side_log_probs = nn.functional.log_softmax(side_logits, dim=1)
+                composed_direction_logits = torch.stack(
+                    (
+                        trade_log_prob + side_log_probs[:, 0],
+                        trade_log_prob + side_log_probs[:, 1],
+                        flat_log_prob,
+                    ),
+                    dim=1,
+                ).to(dtype=raw_direction_logits.dtype)
+                _assert_finite("composed_direction_logits", composed_direction_logits)
+                direction_logits = composed_direction_logits
+                out["direction_logits"] = direction_logits
+                out["hierarchical_direction_composed"] = torch.ones(
+                    (direction_logits.shape[0], 1),
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
             out.update(
                 {
                     "trade_logit": trade_logit,
@@ -1078,6 +1094,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     **({"side_validity_logit": side_validity_logit} if side_validity_logit is not None else {}),
                 }
             )
+        # Post-hoc direction calibration (identity unless the bundle loader
+        # installed metadata-fitted values). Applied after optional hierarchical
+        # composition so audit, replay and live serve consume the same public
+        # direction_logits.
+        if self._direction_cal is not None:
+            _cal_t, _cal_b = self._direction_cal
+            direction_logits = direction_logits / _cal_t + _cal_b.to(
+                device=direction_logits.device, dtype=direction_logits.dtype
+            )
+            out["direction_logits"] = direction_logits
+
+        _assert_finite("direction_logits", direction_logits)
         if self.cfg.enable_trendline_rail_head and hasattr(self, "head_trendline_rail"):
             trendline_rail_logits = self.head_trendline_rail(z)
             _assert_finite("trendline_rail_logits", trendline_rail_logits)

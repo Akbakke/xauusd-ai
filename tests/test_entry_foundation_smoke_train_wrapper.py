@@ -103,6 +103,7 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=0.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=0.50" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0" in result.stdout
+    assert "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=0" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in result.stdout
@@ -221,6 +222,7 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=0.0" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=0.50" in result.stdout
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0" in result.stdout
+    assert "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=1" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in result.stdout
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in result.stdout
@@ -402,6 +404,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS" in text
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH" in text
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP" in text
+    assert "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS" in text

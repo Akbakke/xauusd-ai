@@ -131,6 +131,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS": "0.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_HIERARCHICAL_COMPOSITION": "1",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -332,6 +333,12 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP must be >= 2.0 for strict XAU repair, "
             f"got {utility_triad_ce_class_weight_cap}"
+        )
+    hierarchical_composition = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_HIERARCHICAL_COMPOSITION", "0")))
+    if hierarchical_composition != 1:
+        failures.append(
+            "DIRECTION_HIERARCHICAL_COMPOSITION must be 1 for strict XAU repair, "
+            f"got {hierarchical_composition}"
         )
     flat_starvation_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT", "0"))
     flat_starvation_min_label_rate = float(

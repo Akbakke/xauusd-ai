@@ -406,6 +406,7 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_utility_bps"] = 0.0
     report["direction_balance_recipe_contract"]["direction_utility_triad_ce_max_bad_path"] = 0.50
     report["direction_balance_recipe_contract"]["direction_utility_triad_ce_class_weight_cap"] = 4.0
+    report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
     report["direction_balance_recipe_contract"]["direction_flat_starvation_weight"] = 8.00
     report["direction_balance_recipe_contract"]["direction_flat_starvation_min_label_rate"] = 0.10
     report["direction_balance_recipe_contract"]["direction_flat_starvation_min_rows"] = 8
@@ -470,6 +471,7 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_utility_bps"] = 0.0
     report["direction_balance_recipe_contract"]["direction_utility_triad_ce_max_bad_path"] = 0.50
     report["direction_balance_recipe_contract"]["direction_utility_triad_ce_class_weight_cap"] = 4.0
+    report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
     report["direction_balance_recipe_contract"]["direction_flat_starvation_weight"] = 8.00
     report["direction_balance_recipe_contract"]["direction_flat_starvation_min_label_rate"] = 0.10
     report["direction_balance_recipe_contract"]["direction_flat_starvation_min_rows"] = 8
@@ -947,6 +949,7 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_utility_bps"] = 0.0
     smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_max_bad_path"] = 0.50
     smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_class_weight_cap"] = 4.0
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_weight"] = 8.00
     smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_min_label_rate"] = 0.10
     smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_min_rows"] = 8

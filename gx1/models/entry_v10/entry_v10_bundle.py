@@ -216,6 +216,8 @@ def load_entry_v10_ctx_bundle(
     _has_anchor_gate = "head_anchor_gate.weight" in state_dict_preview
     _has_q_head = "q_head.weight" in state_dict_preview
     _has_hierarchical_entry_heads = "head_trade.weight" in state_dict_preview and "head_side.weight" in state_dict_preview
+    _hierarchical_direction_cfg = (meta.get("hierarchical_direction_composition") or {}) if isinstance(meta, dict) else {}
+    _enable_hierarchical_direction_composition = bool(_hierarchical_direction_cfg.get("enabled", False))
     _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
     _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
     _trendline_rail_output_dim = 4
@@ -283,6 +285,7 @@ def load_entry_v10_ctx_bundle(
         enable_anchor_gate=_has_anchor_gate,
         anchor_gate_init=float((meta.get("anchor_gate") or {}).get("init", 1.0)) if isinstance(meta, dict) else 1.0,
         enable_hierarchical_entry_heads=_has_hierarchical_entry_heads,
+        enable_hierarchical_direction_composition=_enable_hierarchical_direction_composition,
         enable_side_validity_head=_has_side_validity_head,
         enable_trendline_rail_head=_has_trendline_rail,
         trendline_rail_output_dim=_trendline_rail_output_dim,

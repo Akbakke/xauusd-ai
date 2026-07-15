@@ -103,6 +103,7 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=0.0 "
             "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=0.50 "
             "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=4.0 "
+            "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=1 "
             "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=8.00 "
             "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10 "
             "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=8 "
@@ -125,6 +126,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_side_utility_conviction": True,
         "has_utility_trade_conviction": True,
         "has_utility_triad_ce": True,
+        "has_hierarchical_composition": True,
         "has_flat_starvation": True,
         "has_xau_repair_heads": True,
         "has_strict_edge_audit": True,

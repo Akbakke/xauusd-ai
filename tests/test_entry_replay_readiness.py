@@ -821,6 +821,7 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "direction_utility_triad_ce_min_utility_bps": 0.0,
             "direction_utility_triad_ce_max_bad_path": 0.50,
             "direction_utility_triad_ce_class_weight_cap": 4.0,
+            "direction_hierarchical_composition": True,
             "direction_flat_starvation_weight": 8.00,
             "direction_flat_starvation_min_label_rate": 0.10,
             "direction_flat_starvation_min_rows": 8,

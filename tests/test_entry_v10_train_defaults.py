@@ -1094,6 +1094,7 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "direction_utility_triad_ce_min_utility_bps",
         "direction_utility_triad_ce_max_bad_path",
         "direction_utility_triad_ce_class_weight_cap",
+        "direction_hierarchical_composition",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",
@@ -1516,6 +1517,47 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
     train_ctor = text.split("model = EntryV10CtxHybridTransformer(", 2)[2].split(").to(device)", 1)[0]
     assert "residual_scale=float(ENTRY_RESIDUAL_SCALE)" in train_ctor
     assert "anchor_eps=float(ENTRY_ANCHOR_EPS)" in train_ctor
+
+
+def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:
+    import torch
+
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+
+    torch.manual_seed(7)
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=4,
+        snap_input_dim=7,
+        seq_len=5,
+        ctx_cont_dim=3,
+        ctx_cat_dim=2,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+    )
+    model.eval()
+    seq_x = torch.randn(3, 5, 4)
+    snap_x = torch.randn(3, 7)
+    ctx_cont = torch.randn(3, 3)
+    ctx_cat = torch.zeros(3, 2, dtype=torch.long)
+
+    with torch.no_grad():
+        out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    trade_log_prob = torch.nn.functional.logsigmoid(out["trade_logit"].reshape(-1))
+    flat_log_prob = torch.nn.functional.logsigmoid(-out["trade_logit"].reshape(-1))
+    side_log_probs = torch.nn.functional.log_softmax(out["side_logits"], dim=1)
+    expected = torch.stack(
+        (
+            trade_log_prob + side_log_probs[:, 0],
+            trade_log_prob + side_log_probs[:, 1],
+            flat_log_prob,
+        ),
+        dim=1,
+    )
+
+    assert out["hierarchical_direction_composed"].shape == (3, 1)
+    assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
+    assert torch.allclose(torch.softmax(out["direction_logits"], dim=1).sum(dim=1), torch.ones(3), atol=1e-6)
 
 
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:

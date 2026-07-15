@@ -97,6 +97,7 @@ SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX = 15.0
 SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX = 0.0
 SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX = 0.50
 SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN = 2.0
+SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
 SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
 SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
@@ -1366,6 +1367,17 @@ def _direction_balance_recipe_contract(
             meta.get("direction_utility_triad_ce_class_weight_cap", 0.0),
         )
     )
+    _hierarchical_direction_meta = (
+        meta.get("hierarchical_direction_composition")
+        if isinstance(meta.get("hierarchical_direction_composition"), dict)
+        else {}
+    )
+    direction_hierarchical_composition = bool(
+        recipe.get(
+            "direction_hierarchical_composition",
+            _hierarchical_direction_meta.get("enabled", False),
+        )
+    )
     direction_flat_starvation_weight = _safe_float(
         recipe.get(
             "direction_flat_starvation_weight",
@@ -1775,6 +1787,8 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_utility_triad_ce_class_weight_cap >= "
                     f"{SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN:.1f}"
                 )
+            if direction_hierarchical_composition is not SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED:
+                failures.append("smart direction active head requires direction_hierarchical_composition=true")
             if direction_flat_starvation_weight < SMART_DIRECTION_FLAT_STARVATION_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_flat_starvation_weight >= "
@@ -1895,6 +1909,7 @@ def _direction_balance_recipe_contract(
         "direction_utility_triad_ce_min_utility_bps": direction_utility_triad_ce_min_utility_bps,
         "direction_utility_triad_ce_max_bad_path": direction_utility_triad_ce_max_bad_path,
         "direction_utility_triad_ce_class_weight_cap": direction_utility_triad_ce_class_weight_cap,
+        "direction_hierarchical_composition": direction_hierarchical_composition,
         "direction_flat_starvation_weight": direction_flat_starvation_weight,
         "direction_flat_starvation_min_label_rate": direction_flat_starvation_min_label_rate,
         "direction_flat_starvation_min_rows": direction_flat_starvation_min_rows,

@@ -440,6 +440,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=" in text
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=" in text
     assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=" in text
+    assert "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=" in text
     assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=" in text

@@ -447,6 +447,9 @@ ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH = float(
 ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP = float(
     _env_str("ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP", "4.0")
 )
+ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION = int(
+    float(_env_str("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", "0"))
+)
 ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
     _env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0.10")
@@ -710,6 +713,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS": "0.0",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
+    "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION": "0",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -6542,6 +6546,7 @@ def run_train(
     enable_anchor_gate: bool = False,
     anchor_gate_init: float = 1.0,
     enable_hierarchical_entry_heads: bool = False,
+    enable_hierarchical_direction_composition: bool = False,
     enable_side_validity_head: bool = False,
     enable_trendline_rail_head: bool = False,
     enable_specialist_fusion: bool = False,
@@ -7130,6 +7135,7 @@ def run_train(
         enable_anchor_gate=bool(enable_anchor_gate),
         anchor_gate_init=float(anchor_gate_init),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
@@ -7340,6 +7346,7 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN)
+    _require_nonneg("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION)
     _require_nonneg(
         "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
         ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT,
@@ -7389,6 +7396,11 @@ def run_train(
             "[ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_INVALID] "
             "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE="
             f"{ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE:.6f} expected >0.0"
+        )
+    if int(ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION_INVALID] "
+            f"ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION={ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION} expected 0 or 1"
         )
     if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE > 1.0:
         raise RuntimeError(
@@ -7813,6 +7825,8 @@ def run_train(
                 "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP="
                 f"{ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP:.3f} expected >=2.0"
             )
+        if not bool(enable_hierarchical_direction_composition):
+            repair_failures.append("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=0 expected 1")
         if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
@@ -8000,7 +8014,7 @@ def run_train(
         "utility_trade_conviction_margin=%.3f "
         "utility_triad_ce_w=%.3f utility_triad_ce_min_gap_bps=%.3f "
         "utility_triad_ce_min_utility_bps=%.3f utility_triad_ce_max_bad_path=%.3f "
-        "utility_triad_ce_class_weight_cap=%.3f "
+        "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
         "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
@@ -8058,6 +8072,7 @@ def run_train(
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS),
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH),
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP),
+        int(bool(enable_hierarchical_direction_composition)),
         float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -8573,6 +8588,7 @@ def run_train(
                     "direction_utility_triad_ce_class_weight_cap": float(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
+                    "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
                     "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
                     "direction_flat_starvation_min_label_rate": float(
                         ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
@@ -8725,6 +8741,7 @@ def run_train(
                     "direction_utility_triad_ce_class_weight_cap": float(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
+                    "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
                     "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
                     "direction_flat_starvation_min_label_rate": float(
                         ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE
@@ -8950,6 +8967,12 @@ def run_train(
             "init": float(anchor_gate_init),
             "purpose": "learned per-regime suppression of signal-bridge anchor logits",
         },
+        "hierarchical_direction_composition": {
+            "enabled": bool(enable_hierarchical_direction_composition),
+            "formula": "P(long)=P(trade)*P(long|trade); P(short)=P(trade)*P(short|trade); P(flat)=P(flat)",
+            "public_output": "direction_logits",
+            "runtime_rule_free": True,
+        },
         "hierarchical_entry_heads": {
             "enabled": bool(enable_hierarchical_entry_heads),
             "selection_score": "expected_utility_side",
@@ -9132,6 +9155,7 @@ def run_train(
         "direction_utility_triad_ce_class_weight_cap": float(
             ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
         ),
+        "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
         "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -9246,6 +9270,7 @@ def run_train(
             "direction_utility_triad_ce_class_weight_cap": float(
                 ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
             ),
+            "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
             "direction_flat_starvation_weight": float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
             "direction_flat_starvation_min_label_rate": float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
             "direction_flat_starvation_min_rows": int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -9392,6 +9417,7 @@ def run_train(
         enable_anchor_gate=bool(enable_anchor_gate),
         anchor_gate_init=float(anchor_gate_init),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
@@ -10433,10 +10459,11 @@ def main() -> None:
             enable_timing_head=bool(args.enable_timing_head),
             enable_tail_risk_head=bool(args.enable_tail_risk_head),
             enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
-            enable_anchor_gate=_anchor_gate,
-            anchor_gate_init=float(args.anchor_gate_init),
-            enable_hierarchical_entry_heads=_hier_heads,
-            enable_side_validity_head=_side_validity_head,
+        enable_anchor_gate=_anchor_gate,
+        anchor_gate_init=float(args.anchor_gate_init),
+        enable_hierarchical_entry_heads=_hier_heads,
+        enable_hierarchical_direction_composition=bool(ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION),
+        enable_side_validity_head=_side_validity_head,
             enable_trendline_rail_head=_trendline_head,
             enable_specialist_fusion=bool(args.enable_specialist_fusion),
             specialist_audit_json=args.specialist_audit_json,

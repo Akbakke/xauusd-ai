@@ -108,6 +108,7 @@ SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX = 15.0
 SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX = 0.0
 SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX = 0.50
 SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN = 2.0
+SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
 SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
 SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
@@ -303,6 +304,7 @@ def _direction_balance_contract_passes(
         <= SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX
         and _float_or_zero(contract.get("direction_utility_triad_ce_class_weight_cap"))
         >= SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN
+        and contract.get("direction_hierarchical_composition") is SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED
         and _float_or_zero(contract.get("direction_flat_starvation_weight"))
         >= SMART_DIRECTION_FLAT_STARVATION_WEIGHT
         and _float_or_zero(contract.get("direction_flat_starvation_min_label_rate"))
