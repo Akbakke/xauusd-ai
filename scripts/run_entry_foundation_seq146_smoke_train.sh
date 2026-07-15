@@ -368,9 +368,9 @@ while [[ $# -gt 0 ]]; do
         echo "WARNING: smart auto-recipe DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=8 overridden by env: ${SMOKE_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_DIRECTION_SLICE_LOSS_AGGREGATION+x}" ]]; then
-        SMOKE_DIRECTION_SLICE_LOSS_AGGREGATION=mean
+        SMOKE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max
       else
-        echo "WARNING: smart auto-recipe DIRECTION_SLICE_LOSS_AGGREGATION=mean overridden by env: ${SMOKE_DIRECTION_SLICE_LOSS_AGGREGATION}" >&2
+        echo "WARNING: smart auto-recipe DIRECTION_SLICE_LOSS_AGGREGATION=mean_max overridden by env: ${SMOKE_DIRECTION_SLICE_LOSS_AGGREGATION}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_DIRECTION_SLICE_BALANCED_SAMPLER+x}" ]]; then
         SMOKE_DIRECTION_SLICE_BALANCED_SAMPLER=1

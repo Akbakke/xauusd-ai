@@ -6647,6 +6647,11 @@ def run_train(
                 "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS="
                 f"{ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS} expected >=8"
             )
+        if ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION != "mean_max":
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION="
+                f"{ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION!r} expected 'mean_max'"
+            )
         if ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT < 3.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT="

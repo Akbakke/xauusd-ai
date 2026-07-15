@@ -82,7 +82,7 @@ def _direction_balance_wrapper_text(kind: str) -> str:
             "DIRECTION_SLICE_TRUE_MARGIN=0.10",
             "DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE=0.10",
             "DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=8",
-            "DIRECTION_SLICE_LOSS_AGGREGATION=mean",
+            "DIRECTION_SLICE_LOSS_AGGREGATION=mean_max",
             "DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00",
             "DIRECTION_VS_FLAT_MARGIN=0.10",
             "HIER_LEGACY_CE_MULT=1.00",
