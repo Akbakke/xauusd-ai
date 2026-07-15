@@ -330,6 +330,34 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_HIER_FLAT_LOGIT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_FLAT_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN:-0.10}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:-0.10}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN:-0.10}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:-0.10}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS:-8}"'
+        in text
+    )
+    assert (
         'CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT:-0.0}"'
         in text
     )
@@ -465,6 +493,13 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=" in text
     assert "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT=" in text
     assert "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT=" in text
+    assert "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT=" in text
+    assert "ENTRY_HIER_FLAT_LOGIT_MARGIN=" in text
+    assert "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=" in text
+    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT=" in text
+    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN=" in text
+    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=" in text
+    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS=" in text
     assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=" in text
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=" in text
     assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=" in text

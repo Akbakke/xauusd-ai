@@ -108,6 +108,13 @@ SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = 8
+SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT = 8.00
+SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN = 0.10
+SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT = 8.00
+SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN = 0.10
+SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS = 8
 SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN = 0.10
@@ -1494,6 +1501,71 @@ def _direction_balance_recipe_contract(
             )
         )
     )
+    hier_flat_logit_margin_weight = _safe_float(
+        recipe.get(
+            "hier_flat_logit_margin_weight",
+            _hier_trade_prior_meta.get(
+                "flat_logit_margin_weight",
+                meta.get("hier_flat_logit_margin_weight", 0.0),
+            ),
+        )
+    )
+    hier_flat_logit_margin = _safe_float(
+        recipe.get(
+            "hier_flat_logit_margin",
+            _hier_trade_prior_meta.get(
+                "flat_logit_margin",
+                meta.get("hier_flat_logit_margin", 0.0),
+            ),
+        )
+    )
+    hier_flat_logit_margin_min_label_rate = _safe_float(
+        recipe.get(
+            "hier_flat_logit_margin_min_label_rate",
+            _hier_trade_prior_meta.get(
+                "flat_logit_margin_min_label_rate",
+                meta.get("hier_flat_logit_margin_min_label_rate", 0.0),
+            ),
+        )
+    )
+    hier_slice_flat_logit_margin_weight = _safe_float(
+        recipe.get(
+            "hier_slice_flat_logit_margin_weight",
+            _hier_trade_prior_meta.get(
+                "slice_flat_logit_margin_weight",
+                meta.get("hier_slice_flat_logit_margin_weight", 0.0),
+            ),
+        )
+    )
+    hier_slice_flat_logit_margin = _safe_float(
+        recipe.get(
+            "hier_slice_flat_logit_margin",
+            _hier_trade_prior_meta.get(
+                "slice_flat_logit_margin",
+                meta.get("hier_slice_flat_logit_margin", 0.0),
+            ),
+        )
+    )
+    hier_slice_flat_logit_margin_min_label_rate = _safe_float(
+        recipe.get(
+            "hier_slice_flat_logit_margin_min_label_rate",
+            _hier_trade_prior_meta.get(
+                "slice_flat_logit_margin_min_label_rate",
+                meta.get("hier_slice_flat_logit_margin_min_label_rate", 0.0),
+            ),
+        )
+    )
+    hier_slice_flat_logit_margin_min_rows = int(
+        _safe_float(
+            recipe.get(
+                "hier_slice_flat_logit_margin_min_rows",
+                _hier_trade_prior_meta.get(
+                    "slice_flat_logit_margin_min_rows",
+                    meta.get("hier_slice_flat_logit_margin_min_rows", -1.0),
+                ),
+            )
+        )
+    )
     hier_slice_side_ce_weight = _safe_float(
         recipe.get(
             "hier_slice_side_ce_weight",
@@ -2064,6 +2136,44 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires hier_slice_trade_prior_match_min_rows >= "
                     f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS}"
                 )
+            if hier_flat_logit_margin_weight < SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT:
+                failures.append(
+                    "smart direction active head requires hier_flat_logit_margin_weight >= "
+                    f"{SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT:.2f}"
+                )
+            if hier_flat_logit_margin < SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN:
+                failures.append(
+                    "smart direction active head requires hier_flat_logit_margin >= "
+                    f"{SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN:.2f}"
+                )
+            if hier_flat_logit_margin_min_label_rate < SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:
+                failures.append(
+                    "smart direction active head requires hier_flat_logit_margin_min_label_rate >= "
+                    f"{SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:.2f}"
+                )
+            if hier_slice_flat_logit_margin_weight < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:
+                failures.append(
+                    "smart direction active head requires hier_slice_flat_logit_margin_weight >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:.2f}"
+                )
+            if hier_slice_flat_logit_margin < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN:
+                failures.append(
+                    "smart direction active head requires hier_slice_flat_logit_margin >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN:.2f}"
+                )
+            if (
+                hier_slice_flat_logit_margin_min_label_rate
+                < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
+            ):
+                failures.append(
+                    "smart direction active head requires hier_slice_flat_logit_margin_min_label_rate >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:.2f}"
+                )
+            if hier_slice_flat_logit_margin_min_rows < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS:
+                failures.append(
+                    "smart direction active head requires hier_slice_flat_logit_margin_min_rows >= "
+                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS}"
+                )
             if hier_slice_side_ce_weight < SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_slice_side_ce_weight >= "
@@ -2254,6 +2364,13 @@ def _direction_balance_recipe_contract(
         "hier_slice_trade_prior_match_tolerance": hier_slice_trade_prior_match_tolerance,
         "hier_slice_trade_prior_match_min_label_rate": hier_slice_trade_prior_match_min_label_rate,
         "hier_slice_trade_prior_match_min_rows": hier_slice_trade_prior_match_min_rows,
+        "hier_flat_logit_margin_weight": hier_flat_logit_margin_weight,
+        "hier_flat_logit_margin": hier_flat_logit_margin,
+        "hier_flat_logit_margin_min_label_rate": hier_flat_logit_margin_min_label_rate,
+        "hier_slice_flat_logit_margin_weight": hier_slice_flat_logit_margin_weight,
+        "hier_slice_flat_logit_margin": hier_slice_flat_logit_margin,
+        "hier_slice_flat_logit_margin_min_label_rate": hier_slice_flat_logit_margin_min_label_rate,
+        "hier_slice_flat_logit_margin_min_rows": hier_slice_flat_logit_margin_min_rows,
         "hier_slice_side_ce_weight": hier_slice_side_ce_weight,
         "hier_slice_side_true_margin_weight": hier_slice_side_true_margin_weight,
         "hier_slice_side_true_margin": hier_slice_side_true_margin,

@@ -546,6 +546,13 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "hier_slice_trade_prior_match_tolerance": 0.02,
             "hier_slice_trade_prior_match_min_label_rate": 0.10,
             "hier_slice_trade_prior_match_min_rows": 8,
+            "hier_flat_logit_margin_weight": 8.00,
+            "hier_flat_logit_margin": 0.10,
+            "hier_flat_logit_margin_min_label_rate": 0.10,
+            "hier_slice_flat_logit_margin_weight": 8.00,
+            "hier_slice_flat_logit_margin": 0.10,
+            "hier_slice_flat_logit_margin_min_label_rate": 0.10,
+            "hier_slice_flat_logit_margin_min_rows": 8,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,
@@ -630,6 +637,13 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["hier_slice_trade_prior_match_tolerance"] == 0.02
     assert report["hier_slice_trade_prior_match_min_label_rate"] == 0.10
     assert report["hier_slice_trade_prior_match_min_rows"] == 8
+    assert report["hier_flat_logit_margin_weight"] == 8.00
+    assert report["hier_flat_logit_margin"] == 0.10
+    assert report["hier_flat_logit_margin_min_label_rate"] == 0.10
+    assert report["hier_slice_flat_logit_margin_weight"] == 8.00
+    assert report["hier_slice_flat_logit_margin"] == 0.10
+    assert report["hier_slice_flat_logit_margin_min_label_rate"] == 0.10
+    assert report["hier_slice_flat_logit_margin_min_rows"] == 8
     assert report["hier_slice_side_ce_weight"] == 4.00
     assert report["hier_slice_side_true_margin_weight"] == 3.00
     assert report["hier_slice_side_true_margin"] == 0.10
@@ -746,6 +760,13 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "hier_slice_trade_prior_match_tolerance": 0.02,
             "hier_slice_trade_prior_match_min_label_rate": 0.10,
             "hier_slice_trade_prior_match_min_rows": 8,
+            "hier_flat_logit_margin_weight": 8.00,
+            "hier_flat_logit_margin": 0.10,
+            "hier_flat_logit_margin_min_label_rate": 0.10,
+            "hier_slice_flat_logit_margin_weight": 8.00,
+            "hier_slice_flat_logit_margin": 0.10,
+            "hier_slice_flat_logit_margin_min_label_rate": 0.10,
+            "hier_slice_flat_logit_margin_min_rows": 8,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,

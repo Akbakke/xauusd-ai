@@ -749,6 +749,41 @@ def test_entry_v10_hier_trade_prior_terms_penalize_all_trade_head(monkeypatch) -
     assert float(trainer._hier_slice_trade_prior_match_term(collapsed_trade, y_trade, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_hier_flat_logit_margin_terms_penalize_flat_as_trade(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_FLAT_LOGIT_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    bad_trade = torch.full((6, 1), 1.0, dtype=torch.float32)
+    good_trade = torch.tensor([[1.0], [1.0], [1.0], [-1.0], [-1.0], [-1.0]], dtype=torch.float32)
+
+    bad_global = float(trainer._hier_flat_logit_margin_term(bad_trade, y_trade).item())
+    good_global = float(trainer._hier_flat_logit_margin_term(good_trade, y_trade).item())
+    bad_slice = float(trainer._hier_slice_flat_logit_margin_term(bad_trade, y_trade, ctx_cat).item())
+    good_slice = float(trainer._hier_slice_flat_logit_margin_term(good_trade, y_trade, ctx_cat).item())
+
+    assert bad_global > good_global
+    assert bad_slice > good_slice
+    assert good_global == 0.0
+    assert good_slice == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT", 0.0)
+    assert float(trainer._hier_flat_logit_margin_term(bad_trade, y_trade).item()) == 0.0
+    assert float(trainer._hier_slice_flat_logit_margin_term(bad_trade, y_trade, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
     import torch
 
