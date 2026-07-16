@@ -8,6 +8,15 @@ import pytest
 from gx1.scripts import materialize_build_iql_offline_data_contract_research_only_v1 as gate
 
 
+def _load_inputs_or_skip() -> dict:
+    try:
+        return gate._load_inputs()
+    except RuntimeError as exc:
+        if "Missing required source artifact(s)" in str(exc):
+            pytest.skip(f"external truth_e2e_sanity LOCK artifacts not present: {exc}")
+        raise
+
+
 def test_explicit_artifact_roots_reject_latest_and_glob() -> None:
     assert gate.validate_explicit_artifact_roots(
         [Path("/tmp/BUILD_IQL_OFFLINE_DATA_CONTRACT_RESEARCH_ONLY_V1_20260428T000000Z_LOCK")]
@@ -72,7 +81,7 @@ def test_reproducibility_requires_140_safe_core_and_78_shield() -> None:
 
 
 def test_state_contract_blocks_labels_membership_blueprint_mfe_and_row_identity() -> None:
-    inputs = gate._load_inputs()
+    inputs = _load_inputs_or_skip()
     frame, _ = gate._frame_and_masks(inputs)
     rows = gate._state_contract_rows(frame)
     by_name = {row["field_name_v1"]: row for row in rows}
@@ -135,6 +144,7 @@ def test_final_status_and_next_action_are_allowlisted() -> None:
 
 
 def test_materializer_writes_required_outputs_and_keeps_live_paths_closed(tmp_path: Path) -> None:
+    _load_inputs_or_skip()
     artifact_root = tmp_path / "BUILD_IQL_OFFLINE_DATA_CONTRACT_RESEARCH_ONLY_V1_20260428T000000Z_LOCK"
     summary = gate.materialize(artifact_root)
 

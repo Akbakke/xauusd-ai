@@ -8,6 +8,15 @@ import pytest
 from gx1.scripts import materialize_collect_or_reconstruct_iql_sequence_metadata_v1 as gate
 
 
+def _require_locked_inputs_or_skip() -> None:
+    try:
+        gate._load_inputs()
+    except RuntimeError as exc:
+        if "Missing required source artifact(s)" in str(exc):
+            pytest.skip(f"external truth_e2e_sanity LOCK artifacts not present: {exc}")
+        raise
+
+
 def test_explicit_artifact_roots_reject_latest_and_glob() -> None:
     assert gate.validate_explicit_artifact_roots(
         [Path("/tmp/COLLECT_OR_RECONSTRUCT_IQL_SEQUENCE_METADATA_V1_20260428T000000Z_LOCK")]
@@ -113,6 +122,7 @@ def test_final_status_and_next_action_are_allowlisted() -> None:
 
 
 def test_materializer_writes_outputs_and_recommends_event_ordered_dataset(tmp_path: Path) -> None:
+    _require_locked_inputs_or_skip()
     artifact_root = tmp_path / "COLLECT_OR_RECONSTRUCT_IQL_SEQUENCE_METADATA_V1_20260428T000000Z_LOCK"
     summary = gate.materialize(artifact_root)
 

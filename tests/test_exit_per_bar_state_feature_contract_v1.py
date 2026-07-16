@@ -8,6 +8,16 @@ import pytest
 from gx1.scripts import materialize_exit_per_bar_state_feature_contract_v1 as gate
 
 
+def _require_locked_inputs_or_skip() -> None:
+    try:
+        gate._load_inputs()
+    except RuntimeError as exc:
+        message = str(exc)
+        if "MISSING_REQUIRED_INPUT_LOCKS" in message or "BASE34_M5_FEATURES_PATH_NOT_FOUND" in message or "NO_EXIT_EVAL_TRACE_FILES_FOUND" in message:
+            pytest.skip(f"external exit truth_e2e_sanity inputs not present: {exc}")
+        raise
+
+
 def test_explicit_artifact_roots_reject_latest() -> None:
     assert gate.validate_explicit_artifact_roots(
         [Path("/tmp/EXIT_PER_BAR_STATE_FEATURE_CONTRACT_V1_20260429T000000Z_LOCK")]
@@ -124,6 +134,7 @@ def test_proposed_state_features_mark_entry_transformer_outputs_not_established(
 
 
 def test_write_artifacts_produces_required_outputs(tmp_path: Path) -> None:
+    _require_locked_inputs_or_skip()
     out_root = tmp_path / "EXIT_PER_BAR_STATE_FEATURE_CONTRACT_V1_20260429T999999Z_LOCK"
     result = gate.write_artifacts(out_root=out_root, built_at_utc="20260429T999999Z")
     artifact_root = Path(result["artifact_root"])

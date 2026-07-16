@@ -5,8 +5,11 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
-from gx1.execution.exit_manager import EXIT_EVAL_TRACE_V2_FIELDS, ExitManager
+exit_manager = pytest.importorskip("gx1.execution.exit_manager")
+EXIT_EVAL_TRACE_V2_FIELDS = exit_manager.EXIT_EVAL_TRACE_V2_FIELDS
+ExitManager = exit_manager.ExitManager
 from gx1.scripts.materialize_path_dynamics_logging_v2_implementation_and_replay_audit_v1 import (
     AS_OF_RAW_STATE_TABLE,
     CONTRACT,

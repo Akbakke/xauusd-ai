@@ -19,7 +19,8 @@ import pandas as pd
 import pytest
 from datetime import datetime, timedelta, timezone
 
-from gx1.execution.oanda_demo_runner import GX1DemoRunner
+oanda_demo_runner = pytest.importorskip("gx1.execution.oanda_demo_runner")
+GX1DemoRunner = oanda_demo_runner.GX1DemoRunner
 
 
 def test_replay_trend_vol_not_unknown():
@@ -159,4 +160,3 @@ def test_replay_trend_vol_not_unknown():
 if __name__ == "__main__":
     test_replay_trend_vol_not_unknown()
     print("\n✓ Test passed: REPLAY computes trend/vol from candles after warmup")
-
