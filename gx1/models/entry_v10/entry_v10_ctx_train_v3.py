@@ -463,6 +463,7 @@ ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL = int(
 ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE = int(
     float(_env_str("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", "0"))
 )
+ENTRY_HIER_PUBLIC_SIDE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER = int(float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE = float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", "0.0"))
 ENTRY_HIER_CTX_DIRECTION_CALIBRATION = int(
@@ -838,6 +839,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.0",
     "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "0",
     "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "0",
+    "ENTRY_HIER_PUBLIC_SIDE_HEAD": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.0",
     "ENTRY_HIER_CTX_DIRECTION_CALIBRATION": "0",
@@ -1105,6 +1107,7 @@ def _build_active_head_names(
     enable_vol_forecast_head: bool,
     enable_anchor_gate: bool = False,
     enable_hierarchical_entry_heads: bool = False,
+    enable_hierarchical_public_side_head: bool = False,
     enable_hierarchical_ctx_prior_adapter: bool = False,
     enable_hierarchical_ctx_direction_calibration: bool = False,
     enable_side_validity_head: bool = False,
@@ -1132,6 +1135,7 @@ def _build_active_head_names(
         ("vol_forecast", enable_vol_forecast_head),
         ("anchor_gate", enable_anchor_gate),
         ("trade_side_hierarchy", enable_hierarchical_entry_heads),
+        ("hierarchical_public_side_head", enable_hierarchical_public_side_head),
         ("hierarchical_ctx_prior_adapter", enable_hierarchical_ctx_prior_adapter),
         ("hierarchical_ctx_direction_calibration", enable_hierarchical_ctx_direction_calibration),
         ("side_validity", enable_side_validity_head),
@@ -8454,6 +8458,7 @@ def run_train(
         hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+        enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -8695,6 +8700,7 @@ def run_train(
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
     _require_nonneg("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
+    _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_HEAD", ENTRY_HIER_PUBLIC_SIDE_HEAD)
     _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER", ENTRY_HIER_CTX_PRIOR_ADAPTER)
     _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)
     _require_nonneg("ENTRY_HIER_CTX_DIRECTION_CALIBRATION", ENTRY_HIER_CTX_DIRECTION_CALIBRATION)
@@ -8832,6 +8838,11 @@ def run_train(
             "[ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_INVALID] "
             "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="
             f"{ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_PUBLIC_SIDE_HEAD) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_SIDE_HEAD_INVALID] "
+            f"ENTRY_HIER_PUBLIC_SIDE_HEAD={ENTRY_HIER_PUBLIC_SIDE_HEAD} expected 0 or 1"
         )
     if int(ENTRY_HIER_CTX_PRIOR_ADAPTER) not in (0, 1):
         raise RuntimeError(
@@ -9518,6 +9529,8 @@ def run_train(
             repair_failures.append("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0 expected 1")
         if not bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE):
             repair_failures.append("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0 expected 1")
+        if not bool(ENTRY_HIER_PUBLIC_SIDE_HEAD):
+            repair_failures.append("ENTRY_HIER_PUBLIC_SIDE_HEAD=0 expected 1")
         if not bool(ENTRY_HIER_CTX_PRIOR_ADAPTER):
             repair_failures.append("ENTRY_HIER_CTX_PRIOR_ADAPTER=0 expected 1")
         if ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE < 0.25:
@@ -9812,7 +9825,8 @@ def run_train(
         "utility_triad_ce_min_utility_bps=%.3f utility_triad_ce_max_bad_path=%.3f "
         "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
         "hier_compose_residual_cap=%.3f hier_compose_residual_side_neutral=%d "
-        "hier_compose_public_flat_from_trade=%d hier_ctx_prior_adapter=%d "
+        "hier_compose_public_flat_from_trade=%d hier_public_side_head=%d "
+        "hier_ctx_prior_adapter=%d "
         "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
         "hier_ctx_direction_calibration_scale=%.3f hier_ctx_direction_calibration_cap=%.3f "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
@@ -9878,6 +9892,7 @@ def run_train(
         float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         int(bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)),
         int(bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)),
+        int(bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)),
         int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
         float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         int(bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION)),
@@ -10496,6 +10511,7 @@ def run_train(
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+                    "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
                     "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -10752,6 +10768,7 @@ def run_train(
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+                    "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
                     "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -10952,6 +10969,7 @@ def run_train(
         enable_vol_forecast_head=enable_vol_forecast_head,
         enable_anchor_gate=bool(enable_anchor_gate),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
         enable_side_validity_head=bool(enable_side_validity_head),
@@ -11082,6 +11100,13 @@ def run_train(
             "residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
             "public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+            "public_side_head": {
+                "enabled": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+                "input": "shared_entry_representation",
+                "applies_to": ["public_long_logit", "public_short_logit"],
+                "flat_source": "trade_logit",
+                "runtime_rule_free": True,
+            },
             "ctx_prior_adapter": {
                 "enabled": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                 "scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -11099,9 +11124,10 @@ def run_train(
             },
             "formula": (
                 (
-                    "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
+                    "logits=[log P(trade)+log P(public long|trade), log P(trade)+log P(public short|trade), "
                     "log P(flat)] + common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
-                    "common residual is softmax-invariant, so public FLAT comes from hierarchy no-trade"
+                    "common residual is softmax-invariant, public side uses a separate learned head, "
+                    "and public FLAT comes from hierarchy no-trade"
                 )
                 if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
                 else
@@ -11393,6 +11419,7 @@ def run_train(
         "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+        "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -11571,6 +11598,7 @@ def run_train(
             "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
             "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+            "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
             "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
             "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
             "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -11779,6 +11807,7 @@ def run_train(
         hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+        enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),

@@ -147,6 +147,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.18",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION": "1",
@@ -410,6 +411,12 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
             f"got {hier_compose_public_flat_from_trade}"
         )
     hier_ctx_prior_adapter = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER", "0")))
+    hier_public_side_head = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD", "0")))
+    if hier_public_side_head != 1:
+        failures.append(
+            "HIER_PUBLIC_SIDE_HEAD must be 1 for strict XAU repair, "
+            f"got {hier_public_side_head}"
+        )
     if hier_ctx_prior_adapter != 1:
         failures.append(
             "HIER_CTX_PRIOR_ADAPTER must be 1 for strict XAU repair, "

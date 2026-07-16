@@ -502,6 +502,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=" in text
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=" in text
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=" in text
+    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD=" in text
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=" in text
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=" in text
     assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=" in text
@@ -517,6 +518,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION" in text
@@ -529,6 +531,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         'ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="$CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"'
         in text
     )
+    assert 'ENTRY_HIER_PUBLIC_SIDE_HEAD="$CANDIDATE_HIER_PUBLIC_SIDE_HEAD"' in text
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER"' in text
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE"' in text
     assert 'ENTRY_HIER_CTX_DIRECTION_CALIBRATION="$CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION"' in text
@@ -684,6 +687,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text
     assert "CANDIDATE_HIER_UTILITY_WEIGHT=1.00" in text
     assert "CANDIDATE_HIER_BAD_PATH_WEIGHT=1.25" in text
+    assert "CANDIDATE_HIER_PUBLIC_SIDE_HEAD=1" in text
     assert "CANDIDATE_HIER_CTX_PRIOR_ADAPTER=1" in text
     assert "CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50" in text
     assert "CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION=1" in text

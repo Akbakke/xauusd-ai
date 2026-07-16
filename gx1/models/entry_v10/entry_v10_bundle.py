@@ -236,6 +236,10 @@ def load_entry_v10_ctx_bundle(
             meta.get("hier_compose_public_flat_from_trade", False) if isinstance(meta, dict) else False,
         )
     )
+    _has_hierarchical_public_side_head = "head_public_side.weight" in state_dict_preview
+    if _has_hierarchical_public_side_head and "public_side_head" not in _hierarchical_direction_cfg:
+        if not bool(meta.get("hier_public_side_head", False) if isinstance(meta, dict) else False):
+            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_SIDE_HEAD_METADATA_MISSING]")
     _hierarchical_entry_cfg = (meta.get("hierarchical_entry_heads") or {}) if isinstance(meta, dict) else {}
     _hierarchical_ctx_prior_cfg = (
         _hierarchical_direction_cfg.get("ctx_prior_adapter")
@@ -350,6 +354,7 @@ def load_entry_v10_ctx_bundle(
         hierarchical_composition_residual_logit_cap=_hierarchical_composition_residual_logit_cap,
         hierarchical_composition_residual_side_neutral=_hierarchical_composition_residual_side_neutral,
         hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
+        enable_hierarchical_public_side_head=_has_hierarchical_public_side_head,
         enable_hierarchical_ctx_prior_adapter=_has_hierarchical_ctx_prior_adapter,
         hierarchical_ctx_prior_adapter_scale=_hierarchical_ctx_prior_adapter_scale,
         enable_hierarchical_ctx_direction_calibration=_has_hierarchical_ctx_direction_calibration,

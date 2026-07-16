@@ -101,6 +101,7 @@ class CtxModelConfig:
     hierarchical_composition_residual_logit_cap: float = 0.0
     hierarchical_composition_residual_side_neutral: bool = False
     hierarchical_composition_public_flat_from_trade: bool = False
+    enable_hierarchical_public_side_head: bool = False
     enable_hierarchical_ctx_prior_adapter: bool = False
     hierarchical_ctx_prior_adapter_scale: float = 0.0
     enable_hierarchical_ctx_direction_calibration: bool = False
@@ -290,6 +291,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         hierarchical_composition_residual_logit_cap: float = 0.0,
         hierarchical_composition_residual_side_neutral: bool = False,
         hierarchical_composition_public_flat_from_trade: bool = False,
+        enable_hierarchical_public_side_head: bool = False,
         enable_hierarchical_ctx_prior_adapter: bool = False,
         hierarchical_ctx_prior_adapter_scale: float = 0.0,
         enable_hierarchical_ctx_direction_calibration: bool = False,
@@ -383,6 +385,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "HIERARCHICAL_CTX_DIRECTION_CALIBRATION_REQUIRES_CTX_CAT: "
                 f"ctx_cat_dim={int(ctx_cat_dim)}"
             )
+        if enable_hierarchical_public_side_head and not enable_hierarchical_direction_composition:
+            raise RuntimeError("HIERARCHICAL_PUBLIC_SIDE_HEAD_REQUIRES_COMPOSITION")
         if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
@@ -427,6 +431,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             hierarchical_composition_public_flat_from_trade=bool(
                 hierarchical_composition_public_flat_from_trade
             ),
+            enable_hierarchical_public_side_head=bool(enable_hierarchical_public_side_head),
             enable_hierarchical_ctx_prior_adapter=bool(enable_hierarchical_ctx_prior_adapter),
             hierarchical_ctx_prior_adapter_scale=float(hierarchical_ctx_prior_adapter_scale),
             enable_hierarchical_ctx_direction_calibration=bool(enable_hierarchical_ctx_direction_calibration),
@@ -615,6 +620,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if self.cfg.enable_hierarchical_entry_heads:
             self.head_trade = nn.Linear(d_model, 1)
             self.head_side = nn.Linear(d_model, 2)              # LONG / SHORT conditional on trade
+            if self.cfg.enable_hierarchical_public_side_head:
+                self.head_public_side = nn.Linear(d_model, 2)   # public LONG / SHORT conditional on trade
             self.head_side_utility = nn.Linear(d_model, 2)      # expected path utility, bps
             self.head_side_bad_path = nn.Linear(d_model, 2)     # side-specific bad-path logits
             self.head_side_mae = nn.Linear(d_model, 2)          # side-specific expected MAE, bps
@@ -626,6 +633,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 self.head_side_validity = nn.Linear(d_model, 2)  # side-specific valid-trade logits
             nn.init.zeros_(self.head_trade.bias)
             nn.init.zeros_(self.head_side.bias)
+            if self.cfg.enable_hierarchical_public_side_head:
+                nn.init.zeros_(self.head_public_side.weight)
+                nn.init.zeros_(self.head_public_side.bias)
             nn.init.zeros_(self.head_side_utility.bias)
             nn.init.zeros_(self.head_side_bad_path.bias)
             nn.init.zeros_(self.head_side_mae.bias)
@@ -1154,7 +1164,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if bool(getattr(self.cfg, "enable_hierarchical_direction_composition", False)):
                 trade_log_prob = nn.functional.logsigmoid(trade_logit.reshape(-1))
                 flat_log_prob = nn.functional.logsigmoid(-trade_logit.reshape(-1))
-                side_log_probs = nn.functional.log_softmax(side_logits, dim=1)
+                public_side_logits = (
+                    self.head_public_side(z)
+                    if hasattr(self, "head_public_side")
+                    else side_logits
+                )
+                _assert_finite("public_side_logits", public_side_logits)
+                side_log_probs = nn.functional.log_softmax(public_side_logits, dim=1)
                 composed_direction_logits = torch.stack(
                     (
                         trade_log_prob + side_log_probs[:, 0],
@@ -1232,6 +1248,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 out["direction_logits"] = direction_logits
                 out["hierarchical_direction_base_logits"] = composed_direction_logits
                 out["hierarchical_direction_residual_logits"] = residual_direction_logits
+                if hasattr(self, "head_public_side"):
+                    out["public_side_logits"] = public_side_logits
                 out["hierarchical_direction_residual_side_neutral"] = torch.full(
                     (direction_logits.shape[0], 1),
                     1.0

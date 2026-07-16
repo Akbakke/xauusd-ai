@@ -109,6 +109,7 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.0" in result.stdout
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0" in result.stdout
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD=0" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=0" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.0" in result.stdout
     assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=0" in result.stdout
@@ -273,6 +274,7 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.18" in result.stdout
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1" in result.stdout
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD=1" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=1" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50" in result.stdout
     assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=1" in result.stdout
@@ -517,6 +519,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_FOUNDATION_SMOKE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in text
+    assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_SIDE_HEAD" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_CTX_PRIOR_ADAPTER" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_CTX_PRIOR_ADAPTER_SCALE" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_CTX_DIRECTION_CALIBRATION" in text
@@ -536,6 +539,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
         'ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="$SMOKE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"'
         in text
     )
+    assert 'ENTRY_HIER_PUBLIC_SIDE_HEAD="$SMOKE_HIER_PUBLIC_SIDE_HEAD"' in text
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER="$SMOKE_HIER_CTX_PRIOR_ADAPTER"' in text
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="$SMOKE_HIER_CTX_PRIOR_ADAPTER_SCALE"' in text
     assert 'ENTRY_HIER_CTX_DIRECTION_CALIBRATION="$SMOKE_HIER_CTX_DIRECTION_CALIBRATION"' in text
@@ -673,6 +677,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_HIER_SIDE_WEIGHT=1.75" in text
     assert "SMOKE_HIER_UTILITY_WEIGHT=1.00" in text
     assert "SMOKE_HIER_BAD_PATH_WEIGHT=1.25" in text
+    assert "SMOKE_HIER_PUBLIC_SIDE_HEAD=1" in text
     assert "SMOKE_HIER_CTX_PRIOR_ADAPTER=1" in text
     assert "SMOKE_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50" in text
     assert "SMOKE_HIER_CTX_DIRECTION_CALIBRATION=1" in text

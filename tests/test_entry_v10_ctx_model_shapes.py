@@ -161,6 +161,7 @@ def test_entry_v10_ctx_hierarchical_direction_ctx_calibration_shape_contract():
         enable_hierarchical_entry_heads=True,
         enable_hierarchical_direction_composition=True,
         hierarchical_composition_public_flat_from_trade=True,
+        enable_hierarchical_public_side_head=True,
         enable_hierarchical_ctx_direction_calibration=True,
         hierarchical_ctx_direction_calibration_scale=0.50,
         hierarchical_ctx_direction_calibration_cap=0.35,
@@ -170,8 +171,11 @@ def test_entry_v10_ctx_hierarchical_direction_ctx_calibration_shape_contract():
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
 
     assert out["direction_logits"].shape == (3, 3)
+    assert out["public_side_logits"].shape == (3, 2)
     assert out["hierarchical_ctx_direction_calibration_logits"].shape == (3, 3)
+    assert "head_public_side.weight" in model.state_dict()
     assert "hierarchical_ctx_direction_calibration.weight" in model.state_dict()
+    assert torch.isfinite(out["public_side_logits"]).all()
     assert torch.isfinite(out["hierarchical_ctx_direction_calibration_logits"]).all()
 
 
