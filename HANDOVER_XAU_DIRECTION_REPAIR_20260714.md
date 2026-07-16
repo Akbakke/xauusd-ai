@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `837G` free after the latest cleanup/resource check.
-- Runtime: no transformer training/eval job is running during the 2026-07-16 public trade/FLAT-head source repair. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
+- Runtime: no transformer training/eval job is running after the 2026-07-16 public margin-composition smoke stop. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the public trade/FLAT-head repair. Verify exact commit with `git log -1 --oneline`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the public margin-composition repair. Verify exact commit with `git log -1 --oneline`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Standing Rules
@@ -1247,6 +1247,50 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   2. Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard direction slice and class-balance gates.
   3. The next repair needs a new topology/staging change, not another scalar-only retune or more epochs on this recipe.
 
+## 2026-07-16 Source Update - Public Margin Direction Composition
+
+- After `SMART_SEQ520_XAU_SMOKE_PUBTRADE_E6_20260716`, the failure was structural:
+  - public hierarchy used joint log-prob composition: `LONG=log P(trade)+log P(side long)`, `SHORT=log P(trade)+log P(side short)`, `FLAT=log P(flat)`;
+  - with weak side confidence, FLAT wins argmax too easily even when trade probability is near target;
+  - this explained the all-FLAT epoch-1 collapse and required a topology repair, not IQL and not scalar-only retuning.
+- Implemented and committed `aba63709 Require XAU public margin composition`.
+  - Added `ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION` with allowed values `logprob` and `margin`.
+  - Strict smart XAU repair now requires `margin`.
+  - In `margin` mode, public direction logits are `[public_trade_logit+public_side_long_logit, public_trade_logit+public_side_short_logit, -public_trade_logit]`.
+  - Legacy/non-XAU default remains `logprob` for explicit compatibility, but smart XAU preflight/audit/readiness fails closed unless `margin` is present.
+  - Bundle loading fails closed if a public trade/flat-from-trade bundle lacks public direction-composition metadata.
+  - This is not fallback. It is a hard model topology contract.
+- Validation before smoke:
+  - `py_compile` passed for changed Python modules.
+  - `bash -n` passed for changed shell wrappers.
+  - `git diff --check` passed.
+  - Deterministic model test proved margin logits exactly: trade bias `0.2`, side biases `[0.3,-0.1]` -> direction logits `[0.5,0.1,-0.2]`.
+  - Focused entry/XAU pytest suite passed.
+  - Broader XAU/entry/readiness suite passed, excluding only two stale legacy-import tests that reference inactive `gx1.execution` modules.
+  - Pre-commit hook passed during commit.
+- Clean-git post-commit gates passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_MARGINCOMP_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`
+- Ran one bounded smoke and stopped it after epoch `1` because it was hard-red:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_MARGINCOMP_E6_20260716`.
+  - Pre-train manifest was `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T104820Z.json`, then deleted after manual stop because the run was aborted and stale.
+  - Intended bundle dir was not created: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T104820Z`.
+  - No matching fresh memmap/tmp dir was found.
+  - Epoch `1`: `dir_acc=0.318359`, `balance_guard_ok=0`, `slice_contract_ok=0`, `51` slice failures (`17` accuracy, `34` pred-rate), `direction_slice_ckpt_score=-2.826244`.
+  - Epoch `1` public pred rates: LONG `0.947266`, SHORT `0.048828`, FLAT `0.003906`.
+  - Epoch `1` hierarchy evidence: `trade_pred=1.000000`, `trade_prob=0.509584`, `trade_prob_label_flat=0.509410`, `side_pred_long_edge=0.967197`, `side_acc_edge=0.492048`.
+  - Interpretation: margin composition removed the all-FLAT log-prob starvation, but the model immediately collapsed to LONG. This is real progress on diagnosis/topology, not a usable candidate.
+- Post-stop cleanup/resource state:
+  - No transformer train/eval process running.
+  - Aborted pre-train manifest deleted.
+  - No bundle dir and no fresh memmap/tmp dir existed.
+  - `/home/andre2/GX1_DATA`: about `837G` free; RAM about `38GiB` available, swap `0B`.
+- Next action:
+  1. Do not rerun `SMART_SEQ520_XAU_SMOKE_MARGINCOMP_E6_20260716` unchanged.
+  2. Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard direction slice and class-balance gates.
+  3. The next repair should target training staging/calibration/initialization around trade-vs-side learning under margin composition. Do not add fallback, do not move to IQL, and do not extend epochs on this red recipe.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -1256,11 +1300,11 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after public trade/FLAT-head repair was stopped hard-red after epoch `1`. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
-   - Latest source repair: `Require XAU public trade head`.
-   - Epoch `1`: balance guard failed, `51` slice failures, `dir_acc=0.345052`, public pred LONG `0.000000`, SHORT `0.000000`, FLAT `1.000000`.
+2. Latest executed smart XAU smoke after public margin-composition repair was stopped hard-red after epoch `1`. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
+   - Latest source repair: `aba63709 Require XAU public margin composition`.
+   - Epoch `1`: balance guard failed, `51` slice failures, `dir_acc=0.318359`, public pred LONG `0.947266`, SHORT `0.048828`, FLAT `0.003906`.
    - The run was manually stopped during epoch `2` train to avoid burning compute.
-   - The active blocker remains genuine active-slice direction discrimination and stable public FLAT/no-trade calibration under hierarchy-composed public direction output, not an IQL problem.
+   - The active blocker remains genuine active-slice direction discrimination and stable public trade/side/FLAT calibration under hierarchy-composed public direction output, not an IQL problem.
    - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/10` detailed red slices weak on required rail features.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
@@ -1268,16 +1312,16 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, or ctx-direction-calibration recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, or public-margin-composition recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
-   - keep residual-through-composition, hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, side-prior, trade-prior, hierarchy trade-accuracy edge, and direction-slice evidence logging; they are useful guardrails.
-   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows the ctx direction calibration adapter did not solve active-slice accuracy and regressed by epoch 2.
+   - keep residual-through-composition, hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, public margin composition, side-prior, trade-prior, hierarchy trade-accuracy edge, and direction-slice evidence logging; they are useful guardrails.
+   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows margin composition fixed the all-FLAT starvation shape, but immediately hard-red-collapsed to LONG with `51` slice failures.
    - first inspect the latest red-slice rows/confusion evidence against existing XAU rail/SR/wick/regime features; if those features are present but ignored, make a topology/staging change.
    - likely next source-level options:
      - add staged training/annealing so public direction slice losses, trade/flat losses, and side losses do not fight from epoch 1.
-     - split public side-choice from public FLAT/no-trade calibration more cleanly so side learning cannot starve abstain.
-     - replace the current additive calibration idea with a topology/staging change if public logits continue to ignore existing slice-separable features.
+     - initialize or stage public side logits so margin composition cannot start by sending nearly every edge to LONG.
+     - split public side-choice from public FLAT/no-trade calibration more cleanly so side learning cannot starve abstain or force one-sided trade.
    - keep side-prior enabled while targeting remaining slice-level accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
