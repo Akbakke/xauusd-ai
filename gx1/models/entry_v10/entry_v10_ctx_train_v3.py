@@ -9732,6 +9732,7 @@ def run_train(
         "[ENTRY_HIER_RECIPE] enabled=%d legacy_ce_mult=%.3f trade_w=%.3f side_w=%.3f utility_w=%.3f bad_path_w=%.3f mae_w=%.3f "
         "trade_global_prior_w=%.3f trade_global_prior_tol=%.3f trade_global_prior_min_label_rate=%.3f "
         "slice_trade_prior_w=%.3f slice_trade_prior_tol=%.3f slice_trade_prior_min_rows=%d slice_trade_prior_min_label_rate=%.3f "
+        "slice_trade_acc_edge_w=%.3f slice_trade_acc_edge_margin=%.3f "
         "flat_logit_margin_w=%.3f flat_logit_margin=%.3f flat_logit_margin_min_label_rate=%.3f "
         "slice_flat_logit_margin_w=%.3f slice_flat_logit_margin=%.3f slice_flat_logit_margin_min_rows=%d slice_flat_logit_margin_min_label_rate=%.3f "
         "public_flat_consistency_w=%.3f public_flat_consistency_min_label_rate=%.3f "
@@ -9757,6 +9758,8 @@ def run_train(
         float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE),
         int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
         float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE),
+        float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT),
+        float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN),
         float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT),
         float(ENTRY_HIER_FLAT_LOGIT_MARGIN),
         float(ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE),

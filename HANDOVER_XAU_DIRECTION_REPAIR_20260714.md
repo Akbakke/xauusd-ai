@@ -74,6 +74,25 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - `py_compile` passed for changed Python modules.
   - `bash -n` passed for changed shell wrappers.
   - Targeted pytest passed for trainer defaults, smoke/candidate wrappers, rebuild contract, smart enablement/readiness, sweep, bundle audit, candidate readiness, replay readiness, and smoke readiness.
+- Clean-git post-commit gates passed:
+  - `smart-smoke-readiness --quiet`
+  - `smart-trainability-readiness --quiet`
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_HIERTRADEACCEDGE_E6_20260716 --epochs 6 --batch-size 64 --quiet`
+  - Enablement confirmed the new trade accuracy-edge env and kept `candidate_training_allowed=false`, `iql_allowed=false`, `replay_allowed=false`, `promotion_shadow_live_allowed=false`, and `trainer_started=false`.
+- Ran one bounded smoke:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_HIERTRADEACCEDGE_E6_20260716`.
+  - Pre-train manifest was `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T050651Z.json`.
+  - Intended bundle was `v10_entry_smart_seq520_smoke_20260716T050651Z`.
+  - Result: hard fail on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was written.
+  - Best epoch was `4`: `dir_acc=0.366536`, `balance_guard_ok=1`, public pred LONG `0.350260`, SHORT `0.326172`, FLAT `0.323568`, `10` slice failures, `10` accuracy failures, `0` pred-rate failures, `direction_slice_ckpt_score=0.031214`.
+  - Best epoch hierarchy evidence: `trade_pred=0.998047`, `trade_prob=0.656814`, `side_acc_edge=0.527833`.
+  - Final epoch `6` regressed to `14` slice failures (`12` accuracy, `2` pred-rate), `dir_acc=0.373047`, public pred LONG `0.255208`, SHORT `0.512370`, FLAT `0.232422`, `trade_pred=0.985026`.
+  - Interpretation: the repair materially improved global class balance and eliminated pred-rate failures at best epoch, but it did not solve active slice accuracy and it did not keep hierarchy trade hard-pred calibrated. This is progress, not a candidate.
+  - Failed-run manifest and failure sidecar were deleted after extracting the evidence; no bundle dir or memmap dir existed.
+- Post-smoke resource state:
+  - `/home/andre2/GX1_DATA`: about `838G` free.
+  - RAM: about `36GiB` available, swap `0B`.
+  - No active `python3` training/eval process.
 - Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard slice and class-balance gates.
 
 ## Always-Active Operating Rules
