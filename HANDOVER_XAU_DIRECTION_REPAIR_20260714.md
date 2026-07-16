@@ -76,6 +76,38 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - Entry-IQL is still closed. We are not fine-tuning IQL.
   - Transformer entry training has not resumed yet on the fresh dataset. The next possible step is an explicit enablement review and then one bounded fresh smoke train with hard-red stop rules, not more epochs on old recipes and not candidate/replay/IQL.
 
+## 2026-07-16 Update - Smart Smoke Train Wrapper Bound To Fresh XAU Contract
+
+- User question answered directly:
+  - We have made real progress on the input/control path, but no accepted transformer bundle exists yet.
+  - We are still working on entry-transformer direction repair, not Entry-IQL. Entry-IQL remains closed.
+- Critical blocker found before training:
+  - `scripts/run_entry_foundation_seq146_smoke_train.sh --smart-seq520` still hardcoded the stale `v10_6yr_rebuild_20260626_spreadfix` smart source/smoke paths.
+  - Training from that wrapper would therefore have risked using stale input despite the fresh XAU rebuild/readiness reports.
+- Repair implemented:
+  - `--smart-seq520` now resolves source dataset, smoke dataset, smoke stem, feature/target/specialist audits, and fresh XAU M5 prebuilt from:
+    - `ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json`
+    - `ENTRY_SMART_SEQ520_SMOKE_MANIFEST_READINESS_latest.json`
+    - report-copied `SMOKE_DATASET_MANIFEST.json`
+  - It fails closed with `FATAL: smart seq520 train contract invalid` if the reports disagree, paths are missing, readiness is not green, or report-only/no-replay/no-IQL/no-live contracts are not intact.
+  - Real-train preflight now passes explicit fresh paths to `smart-smoke-readiness` and explicit report paths to `smart-trainability-readiness`; it no longer relies on old smart-readiness defaults.
+  - Dry-run proof now shows fresh source/smoke/M5 paths under `v10_6yr_rebuild_20260716_fresh_xau_direction_repair`.
+- Verification before commit:
+  - `bash -n scripts/run_entry_foundation_seq146_smoke_train.sh`: PASS.
+  - `scripts/run_entry_foundation_seq146_smoke_train.sh --smart-seq520 --vedtak SMART_SEQ520_XAU_DIRECTION_REPAIR_DRYRUN_20260716 --dry-run`: PASS, fresh 20260716 paths confirmed.
+  - `.venv/bin/python -m pytest -q tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_smart_seq520_smoke_train_enablement.py`: PASS (`12 passed`).
+  - `git diff --check`: PASS.
+- Resource state while making this repair:
+  - No `python3` transformer training job running.
+  - Persistent live/collector/dashboard/notifier `python` processes only.
+  - `/home/andre2/GX1_DATA`: about `762G` free.
+  - RAM: about `37GiB` available.
+- Next action after commit:
+  1. Run `smart-smoke-train-enablement` against the fresh contract.
+  2. If enablement passes and git is clean, run one bounded fresh XAU smart smoke train.
+  3. Stop immediately if the first epochs are hard red and continuing only burns CPU.
+  4. Keep candidate/replay/IQL/shadow/live closed until a fresh XAU transformer bundle passes hard direction-slice and class-balance gates.
+
 ## 2026-07-16 Test/Resource Update - Broad XAU/IQL/Replay Readiness Suite
 
 - Broad XAU/replay/readiness/IQL contract pytest suite now passes after separating real regressions from stale local-artifact assumptions.

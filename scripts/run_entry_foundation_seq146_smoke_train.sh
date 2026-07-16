@@ -17,6 +17,10 @@ TARGET_AUDIT=$DATA/reports/entry_target_foundation_audit_20260628_v1/foundation_
 SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
 SMOKE_TRAIN_MANIFEST_DIR=$DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1
 SMOKE_BUNDLE_AUDIT_OUT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1
+SMART_REBUILD_PREFLIGHT_JSON=$DATA/reports/entry_smart_seq_rebuild_preflight_20260630_v1/ENTRY_SMART_REBUILD_PREFLIGHT_latest.json
+SMART_POST_REBUILD_READINESS_JSON=$DATA/reports/entry_smart_dataset_post_rebuild_readiness_20260630_v1/ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json
+SMART_SMOKE_MANIFEST_READINESS_JSON=$DATA/reports/entry_smart_seq520_smoke_manifest_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_MANIFEST_READINESS_latest.json
+SMART_SMOKE_DATASET_MANIFEST_JSON=$DATA/reports/entry_smart_seq520_smoke_manifest_20260630_v1/SMOKE_DATASET_MANIFEST.json
 
 VEDTAK="${ENTRY_FOUNDATION_SMOKE_VEDTAK:-}"
 RUN_FLAVOR=foundation_seq146
@@ -227,6 +231,160 @@ SMOKE_RUN_MEM="${ENTRY_FOUNDATION_SMOKE_RUN_MEM:-22G}"
 SMOKE_RUN_SWAP="${ENTRY_FOUNDATION_SMOKE_RUN_SWAP:-2G}"
 SMOKE_CAPPED_RUNNER=scripts/gx1_capped_run.sh
 
+resolve_smart_seq520_train_contract() {
+  local resolved
+  resolved=$("$PY" - "$SMART_POST_REBUILD_READINESS_JSON" "$SMART_SMOKE_MANIFEST_READINESS_JSON" "$SMART_SMOKE_DATASET_MANIFEST_JSON" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+post_rebuild_path = Path(sys.argv[1]).expanduser().resolve()
+manifest_readiness_path = Path(sys.argv[2]).expanduser().resolve()
+smoke_manifest_path = Path(sys.argv[3]).expanduser().resolve()
+
+
+def fail(message: str, evidence: dict | None = None) -> None:
+    print(f"FATAL: smart seq520 train contract invalid: {message}", file=sys.stderr)
+    if evidence:
+        print(json.dumps(evidence, indent=2, sort_keys=True), file=sys.stderr)
+    raise SystemExit(2)
+
+
+def read_json(path: Path, label: str) -> dict:
+    if not path.is_file():
+        fail(f"{label} missing", {"path": str(path)})
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        fail(f"{label} is not valid JSON", {"path": str(path), "error": str(exc)})
+
+
+def require_path(raw: object, label: str, *, kind: str) -> Path:
+    if isinstance(raw, Path):
+        path = raw.expanduser().resolve()
+    elif isinstance(raw, str) and raw.strip():
+        path = Path(raw).expanduser().resolve()
+    else:
+        fail(f"{label} missing", {"value": raw})
+    if kind == "dir" and not path.is_dir():
+        fail(f"{label} is not a directory", {"path": str(path)})
+    if kind == "file" and not path.is_file():
+        fail(f"{label} is not a file", {"path": str(path)})
+    return path
+
+
+def same_path(left: Path, right: Path) -> bool:
+    return str(left) == str(right)
+
+
+post_rebuild = read_json(post_rebuild_path, "smart post-rebuild readiness")
+manifest_readiness = read_json(manifest_readiness_path, "smart smoke manifest readiness")
+smoke_manifest = read_json(smoke_manifest_path, "smart smoke dataset manifest")
+
+if post_rebuild.get("decision") != "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW":
+    fail(
+        "smart post-rebuild readiness is not ready",
+        {"path": str(post_rebuild_path), "decision": post_rebuild.get("decision")},
+    )
+
+contract = post_rebuild.get("post_rebuild_refresh_command_contract")
+if not isinstance(contract, dict):
+    fail("post-rebuild refresh command contract missing", {"path": str(post_rebuild_path)})
+if contract.get("all_commands_avoid_training_replay_iql_shadow_live") is not True:
+    fail("post-rebuild contract does not prove no training/replay/IQL/shadow/live side effects", contract)
+
+if manifest_readiness.get("decision") != "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW":
+    fail(
+        "smart smoke manifest readiness is not ready",
+        {"path": str(manifest_readiness_path), "decision": manifest_readiness.get("decision")},
+    )
+if manifest_readiness.get("failures") or manifest_readiness.get("blockers"):
+    fail(
+        "smart smoke manifest readiness has failures/blockers",
+        {
+            "path": str(manifest_readiness_path),
+            "failures": manifest_readiness.get("failures"),
+            "blockers": manifest_readiness.get("blockers"),
+        },
+    )
+for key in ("training_allowed", "replay_allowed", "iql_allowed", "shadow_live_allowed"):
+    if manifest_readiness.get(key) is not False:
+        fail(f"smart smoke manifest readiness {key} must be false", {key: manifest_readiness.get(key)})
+if manifest_readiness.get("report_only") is not True:
+    fail("smart smoke manifest readiness must be report-only", {"report_only": manifest_readiness.get("report_only")})
+
+source_dataset = require_path(post_rebuild.get("dataset_dir"), "post-rebuild dataset_dir", kind="dir")
+smoke_dataset = require_path(contract.get("smart_smoke_dataset_dir"), "contract smart_smoke_dataset_dir", kind="dir")
+manifest_dataset = require_path(
+    smoke_manifest.get("dataset_dir") or smoke_manifest.get("out_dir"),
+    "smoke manifest dataset_dir/out_dir",
+    kind="dir",
+)
+manifest_ready_dataset = require_path(
+    manifest_readiness.get("smart_smoke_dataset_dir"),
+    "manifest readiness smart_smoke_dataset_dir",
+    kind="dir",
+)
+if not same_path(smoke_dataset, manifest_dataset) or not same_path(smoke_dataset, manifest_ready_dataset):
+    fail(
+        "smart smoke dataset paths disagree",
+        {
+            "contract": str(smoke_dataset),
+            "manifest": str(manifest_dataset),
+            "manifest_readiness": str(manifest_ready_dataset),
+        },
+    )
+
+manifest_path_from_readiness = require_path(
+    manifest_readiness.get("manifest_path"),
+    "manifest readiness manifest_path",
+    kind="file",
+)
+if not same_path(manifest_path_from_readiness, smoke_manifest_path):
+    fail(
+        "manifest readiness path does not match selected smoke manifest",
+        {"manifest_readiness": str(manifest_path_from_readiness), "selected": str(smoke_manifest_path)},
+    )
+
+stem = str(smoke_manifest.get("stem") or "v10_smart_seq520_smoke__HOLD_03B")
+if not stem:
+    fail("smoke manifest stem missing")
+train_parquet = smoke_dataset / f"{stem}_train.parquet"
+require_path(train_parquet, "smart smoke train parquet", kind="file")
+require_path(smoke_dataset / "SMOKE_DATASET_MANIFEST.json", "smart smoke dataset local manifest", kind="file")
+
+feature_audit = require_path(contract.get("feature_audit_latest"), "contract feature_audit_latest", kind="file")
+target_audit = require_path(contract.get("target_audit_latest"), "contract target_audit_latest", kind="file")
+specialist_audit = require_path(contract.get("specialist_audit_latest"), "contract specialist_audit_latest", kind="file")
+m5_prebuilt = require_path(
+    source_dataset.parent / "cv3" / "xauusd_m5_CANONICAL_V3_2020_2026.parquet",
+    "fresh XAU M5 prebuilt",
+    kind="file",
+)
+
+print(source_dataset)
+print(smoke_dataset)
+print(stem)
+print(feature_audit)
+print(target_audit)
+print(specialist_audit)
+print(m5_prebuilt)
+PY
+)
+  mapfile -t SMART_SEQ520_CONTRACT_VALUES <<<"$resolved"
+  if [[ "${#SMART_SEQ520_CONTRACT_VALUES[@]}" -ne 7 ]]; then
+    echo "FATAL: smart seq520 train contract resolver returned unexpected field count: ${#SMART_SEQ520_CONTRACT_VALUES[@]}" >&2
+    exit 2
+  fi
+  SOURCE_DATASET="${SMART_SEQ520_CONTRACT_VALUES[0]}"
+  SMOKE_DATASET="${SMART_SEQ520_CONTRACT_VALUES[1]}"
+  SMOKE_STEM="${SMART_SEQ520_CONTRACT_VALUES[2]}"
+  FEATURE_AUDIT="${SMART_SEQ520_CONTRACT_VALUES[3]}"
+  TARGET_AUDIT="${SMART_SEQ520_CONTRACT_VALUES[4]}"
+  SPECIALIST_AUDIT="${SMART_SEQ520_CONTRACT_VALUES[5]}"
+  M5_PREBUILT="${SMART_SEQ520_CONTRACT_VALUES[6]}"
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -411,12 +569,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --smart-seq520)
       RUN_FLAVOR=smart_seq520
-      SOURCE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair
-      SMOKE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke
-      SMOKE_STEM=v10_smart_seq520_smoke__HOLD_03B
-      FEATURE_AUDIT=$DATA/reports/entry_feature_foundation_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json
-      TARGET_AUDIT=$DATA/reports/entry_target_foundation_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_TARGET_FOUNDATION_AUDIT_latest.json
-      SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+      resolve_smart_seq520_train_contract
       SMOKE_BUNDLE_AUDIT_OUT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/smart_seq520_candidate
       SPECIALIST_CONTRACT_MODE=smart_seq520_candidate
       EXPECTED_SIGNAL_DIM=520
@@ -1266,8 +1419,20 @@ fi
 
 if [[ "$DRY_RUN" != "1" ]]; then
   if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
-    scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet
-    scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet
+    scripts/entry_next_edge_control.sh smart-smoke-readiness \
+      --smart-rebuild-preflight-json "$SMART_REBUILD_PREFLIGHT_JSON" \
+      --smart-dataset-dir "$SOURCE_DATASET" \
+      --smart-smoke-dataset-dir "$SMOKE_DATASET" \
+      --smart-feature-audit-json "$FEATURE_AUDIT" \
+      --smart-target-audit-json "$TARGET_AUDIT" \
+      --smart-specialist-audit-json "$SPECIALIST_AUDIT" \
+      --smart-smoke-dataset-manifest-json "$SMART_SMOKE_DATASET_MANIFEST_JSON" \
+      --smart-smoke-dataset-manifest-readiness-json "$SMART_SMOKE_MANIFEST_READINESS_JSON" \
+      --quiet
+    scripts/entry_next_edge_control.sh smart-trainability-readiness \
+      --smart-post-rebuild-readiness-json "$SMART_POST_REBUILD_READINESS_JSON" \
+      --smart-smoke-readiness-json "$PREFLIGHT_GUARDRAILS_JSON" \
+      --quiet
     if [[ "$MANIFEST_ONLY" != "1" ]]; then
       require_clean_git_for_real_train
     fi
@@ -1537,8 +1702,8 @@ fi
 
 if [[ "$DRY_RUN" = "1" ]]; then
   if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
-    echo "Real-train preflight command: scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet"
-    echo "Real-train preflight command: scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet"
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh smart-smoke-readiness --smart-dataset-dir $SOURCE_DATASET --smart-smoke-dataset-dir $SMOKE_DATASET --quiet"
+    echo "Real-train preflight command: scripts/entry_next_edge_control.sh smart-trainability-readiness --smart-post-rebuild-readiness-json $SMART_POST_REBUILD_READINESS_JSON --smart-smoke-readiness-json $PREFLIGHT_GUARDRAILS_JSON --quiet"
   else
     echo "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet"
     echo "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"

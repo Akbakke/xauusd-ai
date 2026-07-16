@@ -213,13 +213,23 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
         "--dry-run",
     )
 
+    fresh_rebuild = "v10_6yr_rebuild_20260716_fresh_xau_direction_repair"
     assert "Smoke train command:" in result.stdout
     assert "smart_seq520_candidate" in result.stdout
-    assert "Real-train preflight command: scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet" in result.stdout
     assert (
-        "Real-train preflight command: scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet"
+        "Real-train preflight command: scripts/entry_next_edge_control.sh smart-smoke-readiness "
         in result.stdout
     )
+    assert "--smart-dataset-dir" in result.stdout
+    assert "--smart-smoke-dataset-dir" in result.stdout
+    assert (
+        "Real-train preflight command: scripts/entry_next_edge_control.sh smart-trainability-readiness "
+        in result.stdout
+    )
+    assert "--smart-post-rebuild-readiness-json" in result.stdout
+    assert "--smart-smoke-readiness-json" in result.stdout
+    assert fresh_rebuild in result.stdout
+    assert "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair" not in result.stdout
     assert "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet" not in result.stdout
     assert (
         "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"
@@ -692,8 +702,18 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SPECIALIST_CONTRACT_MODE=challenger_seq215" in text
     assert "--smart-seq520" in text
     assert "SPECIALIST_CONTRACT_MODE=smart_seq520_candidate" in text
-    assert "smart-smoke-readiness --quiet" in text
-    assert "smart-trainability-readiness --quiet" in text
+    assert "resolve_smart_seq520_train_contract" in text
+    smart_branch = text[text.index("--smart-seq520)") : text.index("# Pre-set ENTRY_FOUNDATION_SMOKE_* env")]
+    assert "v10_6yr_rebuild_20260626_spreadfix" not in smart_branch
+    assert "SMART_POST_REBUILD_READINESS_JSON" in text
+    assert "SMART_SMOKE_MANIFEST_READINESS_JSON" in text
+    assert "SMART_SMOKE_DATASET_MANIFEST_JSON" in text
+    assert '--smart-dataset-dir "$SOURCE_DATASET"' in text
+    assert '--smart-smoke-dataset-dir "$SMOKE_DATASET"' in text
+    assert '--smart-smoke-dataset-manifest-json "$SMART_SMOKE_DATASET_MANIFEST_JSON"' in text
+    assert '--smart-smoke-dataset-manifest-readiness-json "$SMART_SMOKE_MANIFEST_READINESS_JSON"' in text
+    assert '--smart-post-rebuild-readiness-json "$SMART_POST_REBUILD_READINESS_JSON"' in text
+    assert '--smart-smoke-readiness-json "$PREFLIGHT_GUARDRAILS_JSON"' in text
     assert 'PREFLIGHT_GUARDRAILS_JSON="$DATA/reports/entry_smart_seq520_smoke_readiness_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_READINESS_latest.json"' in text
     assert 'PREFLIGHT_READINESS_JSON="$DATA/reports/entry_smart_seq520_trainability_readiness_20260630_v1/ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"' in text
     assert 'readiness_artifact_key = "smart_trainability_readiness" if run_flavor == "smart_seq520" else "training_readiness"' in text
