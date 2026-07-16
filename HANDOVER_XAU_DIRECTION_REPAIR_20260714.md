@@ -1528,6 +1528,57 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   3. Next repair should target training dynamics/staging: prevent epoch-2 drift of public side logits back to LONG dominance while preserving epoch-1 balanced side behavior.
   4. Candidate/replay/IQL/shadow/live remain closed. This is still transformer-entry formulation/staging, not Entry-IQL.
 
+### 2026-07-16T12:48Z Update: Public Side Residual-Cap Test Failed Closed
+
+- Source commit:
+  - `adb4b441 Require XAU public side residual cap training loss`
+- What changed:
+  - Added strict XAU train-time public side-head residual cap:
+    - `ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT=8.00`
+    - `ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP=0.20`
+  - The loss penalizes `public_side_logits - public_side_dir_margin_bridge.detach()` outside the cap.
+  - This is not fallback and not a live hand-rule. It is a learned training contract and fails closed through metadata/readiness/audit gates.
+  - Updated smoke/candidate wrappers, 6yr rebuild env, smart smoke manifest/readiness/trainability, enablement, sweep, candidate/replay readiness, smoke bundle audit, and tests.
+- Verification before smoke:
+  - `python -m py_compile` on changed Python files: PASS.
+  - `bash -n` on changed shell wrappers: PASS.
+  - `git diff --check`: PASS.
+  - `git diff -G 'fallback|Fallback|FALLBACK' --stat`: no new fallback diff.
+  - Focused pytest suite: PASS (`tests/test_entry_v10_hierarchical_loss.py`, wrapper/readiness/audit/sweep/rebuild tests).
+  - Commit pre-hook golden cement guard: PASS.
+  - `smart-smoke-readiness --quiet`: PASS.
+  - `smart-trainability-readiness --quiet`: PASS.
+  - `smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_SIDERESCAP_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`: PASS.
+- Smoke attempted:
+  - `SMART_SEQ520_XAU_SMOKE_SIDERESCAP_E6_20260716`
+  - Stopped manually during epoch `3` train immediately after epoch `2` proved hard red. No candidate bundle.
+- Epoch `1` evidence:
+  - `dir_acc=0.365234`, `balance_guard_ok=1`, `slice_contract_ok=0`, `15` slice failures, `direction_slice_ckpt_score=-0.284914`.
+  - Public pred rates: LONG `0.324219`, SHORT `0.417969`, FLAT `0.257812`; labels LONG `0.322917`, SHORT `0.332031`, FLAT `0.345052`.
+  - Hierarchy evidence: `trade_pred=1.000000`, `trade_prob=0.517594`, `trade_prob_label_flat=0.517566`, `side_pred_long_edge=0.446322`, `side_acc_edge=0.513917`.
+  - Residual-cap evidence: `hier_side_rescap=0.000000`.
+- Epoch `2` hard-red evidence:
+  - `dir_acc=0.346354`, `balance_guard_ok=0`, `slice_contract_ok=0`, `29` slice failures, `direction_slice_ckpt_score=-1.369856`.
+  - Public pred rates: LONG `0.464844`, SHORT `0.071615`, FLAT `0.463542`; labels unchanged.
+  - Hierarchy evidence: `trade_pred=1.000000`, `trade_prob=0.513288`, `trade_prob_label_flat=0.513228`, `side_pred_long_edge=0.888668`, `side_acc_edge=0.497018`.
+  - Residual-cap evidence: `hier_side_rescap=0.000000`.
+- Interpretation:
+  - Residual-cap did not engage in epoch `1` or epoch `2`; the public side head was not drifting outside the bridge cap by this metric.
+  - Therefore the active failure is not "head residual too large versus bridge". It is a deeper loss/composition/training-dynamics conflict that still lets public direction output starve SHORT by epoch `2`.
+  - Do not spend another run tuning only this residual cap, epochs, or scalar weights.
+  - Candidate/replay/IQL/shadow/live remain closed.
+- Cleanup/resource state:
+  - Stopped with Ctrl-C after epoch `2` evidence.
+  - Pre-train manifest `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T124136Z.json` deleted.
+  - Bundle dir `v10_entry_smart_seq520_smoke_20260716T124136Z` was not created.
+  - No fresh memmap/tmp dir found.
+  - `/home/andre2/GX1_DATA`: about `837G` free; RAM about `37GiB` available; swap `0B`; GPU idle after stop.
+- Next action:
+  1. Do not rerun `SMART_SEQ520_XAU_SMOKE_SIDERESCAP_E6_20260716` unchanged.
+  2. Stop treating this as a scalar-weight problem. The last two bounded smokes produce identical epoch-2 collapse.
+  3. Inspect/repair the actual public direction composition and loss conflict: the side bridge can produce balanced epoch-1 side behavior, but composed public LONG/SHORT/FLAT output still collapses SHORT in epoch 2 while trade stays always-on.
+  4. Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard direction-slice and balance gates.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -1542,10 +1593,11 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `df9302bb Require XAU maxnorm confidence direction composition`
      - `02edd453 Bound XAU public side confidence abstain penalty`
      - `8b139dec Require XAU public side direction-margin bridge`
+     - `adb4b441 Require XAU public side residual cap training loss`
    - Latest side-margin-bridge smoke improved epoch `1` to `balance_guard_ok=1`, `15` slice failures, `dir_acc=0.365234`, public pred LONG `0.324219`, SHORT `0.417969`, FLAT `0.257812`, and `side_pred_long_edge=0.446322`.
    - The same run became hard-red at epoch `2`: `balance_guard_ok=0`, `29` slice failures, `dir_acc=0.346354`, public pred LONG `0.464844`, SHORT `0.071615`, FLAT `0.463542`, and `side_pred_long_edge=0.888668`.
    - The run was manually stopped during epoch `3` train to avoid burning compute.
-   - The active blocker is now training dynamics/staging of public side separation under hierarchy-composed public direction output, not an IQL problem.
+   - The latest residual-cap smoke repeated the same epoch-2 hard red and showed `hier_side_rescap=0.000000`; the active blocker is now training dynamics/composition/loss conflict under hierarchy-composed public direction output, not an IQL problem and not a public side-head residual-cap miss.
    - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/10` detailed red slices weak on required rail features.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
@@ -1553,7 +1605,7 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, public-margin-composition, centered-public-margin-composition, max-normalized-public-margin-composition, public-trade-direction-margin-bridge, public-side-direction-margin-bridge, or maxnorm-confidence public direction recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, public-margin-composition, centered-public-margin-composition, max-normalized-public-margin-composition, public-trade-direction-margin-bridge, public-side-direction-margin-bridge, public-side-head-residual-cap, or maxnorm-confidence public direction recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
    - keep residual-through-composition, hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, max-normalized public margin composition, side-prior, trade-prior, hierarchy trade-accuracy edge, and direction-slice evidence logging; they are useful guardrails.
