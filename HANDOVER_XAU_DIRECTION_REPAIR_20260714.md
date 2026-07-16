@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no `python`/`python3` training/eval jobs are running after the latest 2026-07-16 public-side-head smoke ended without a bundle. GPU is idle, RAM is safe, and swap is unused.
+- Runtime: no transformer training/eval job is running after the latest 2026-07-16 public-side direct-supervision smoke failed closed. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry source repair commit is `596f1a67 Require XAU public side head`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry source repair commit is `dcee5921 Train XAU public side head directly`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
@@ -220,6 +220,51 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - There is real source/contract progress, but not yet sufficient model progress.
   - Entry-IQL remains closed because there is still no fresh XAU transformer bundle that passes hard direction slice and class-balance gates.
   - The next repair should inspect why hierarchy hard `trade_pred` remains much higher than target despite reasonable `trade_prob`, then change the threshold/staging/topology so public FLAT coverage and LONG/SHORT side separation can both satisfy active ctx slices.
+
+## 2026-07-16 Source Update - Public Side Direct Supervision
+
+- After `SMART_SEQ520_XAU_SMOKE_PUBLICSIDE_E6_20260716`, inspection found a real topology/supervision bug:
+  - `head_public_side` controlled public LONG/SHORT composition;
+  - but the dedicated hierarchy side losses still trained `side_logits`, not `public_side_logits`;
+  - therefore the public side head was only trained indirectly through public direction CE/slice losses.
+- Implemented and committed `dcee5921 Train XAU public side head directly`.
+  - `public_side_logits` now receives direct `y_side` supervision on `y_side_mask` rows.
+  - The same hard active-slice side objectives are applied to the public side head: balanced CE, true margin, accuracy edge, global prior match, and slice prior match.
+  - Validation-side hierarchy side diagnostics now use `public_side_logits` when the public side head is active, so failure logs inspect the public side actually used in `direction_logits`.
+  - Trainer metadata marks `public_side_head.direct_side_supervision=true` and records the supervision losses.
+  - This is not fallback. It is direct model-training supervision for the public head that already controls public logits.
+- Validation before clean-git readiness:
+  - `python3 -m py_compile gx1/models/entry_v10/entry_v10_ctx_train_v3.py` passed.
+  - `git diff --check` passed.
+  - `scripts/pytest_repo.sh tests/test_entry_v10_hierarchical_loss.py tests/test_entry_v10_ctx_model_shapes.py -q` passed.
+  - `scripts/pytest_repo.sh tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py -q` passed.
+  - Pre-commit guardrails, including the golden cement-V10 test triggered by trainer changes, passed.
+- Clean-git post-commit gates passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_PUBLICSIDE_SUP_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`.
+  - Enablement report: `/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_train_enablement_20260715_v1/ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_20260716T093318Z.json`.
+  - Enablement kept `candidate_training_allowed=false`, `iql_allowed=false`, `replay_allowed=false`, `promotion_shadow_live_allowed=false`, and `trainer_started=false`.
+- Ran one bounded smart smoke:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_PUBLICSIDE_SUP_E6_20260716`.
+  - Manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T093339Z.json`.
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T093339Z`.
+  - Failure sidecar: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T093339Z__direction_slice_failure_evidence.json`.
+  - Result: fail-closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`; no bundle directory was written.
+  - Hard-red-stop triggered at epoch `6`; no manual stop was needed.
+  - Best epoch was `1`: `dir_acc=0.362630`, balance guard OK, public pred LONG `0.416016`, SHORT `0.252604`, FLAT `0.331380`, `14` slice failures (`12` accuracy, `2` pred-rate), `direction_slice_ckpt_score=-0.179833`, hierarchy `trade_pred=0.927083`, `trade_prob=0.666018`, public-side diagnostic `side_pred_long_edge=0.579523`, `side_acc_edge=0.547714`.
+  - Last epoch `6`: `dir_acc=0.363932`, balance guard OK, public pred LONG `0.355469`, SHORT `0.388672`, FLAT `0.255859`, `15` slice failures (`12` accuracy, `3` pred-rate), `direction_slice_ckpt_score=-0.205557`, hierarchy `trade_pred=0.998047`, `trade_prob=0.607349`, public-side diagnostic `side_pred_long_edge=0.734592`, `side_acc_edge=0.561630`.
+  - Interpretation: direct public-side supervision fixed a real training hole, but it did not solve the hard direction slice contract. Do not rerun this recipe unchanged and do not run candidate/IQL/replay from it.
+- Post-run resource and cleanup state:
+  - No transformer train/eval process running.
+  - `/home/andre2/GX1_DATA`: about `837G` free.
+  - RAM: about `38GiB` available, swap `0B`.
+  - No bundle dir and no fresh memmap tmp dir existed.
+  - The current small manifest and failure sidecar are kept as active failure evidence, not stale artifacts.
+- Current interpretation:
+  - We are still tuning/repairing transformer-entry, not entry-IQL.
+  - Entry-IQL remains closed because there is no passing fresh XAU transformer bundle.
+  - The next repair should not be another scalar-only retune. The failure now points at public FLAT/trade hard-threshold and side-staging instability: `trade_prob` can look near the target while hard `trade_pred` remains almost always trade, and public side can swing LONG/SHORT by slice. The next change should explicitly make trade/no-trade threshold separation and side competition learnable under the same active ctx slice gate, or stage public trade/side learning so side pressure cannot destroy FLAT coverage.
 
 ## Always-Active Operating Rules
 
