@@ -9239,11 +9239,18 @@ def run_train(
             "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="
             f"{ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE} expected 0 or 1"
         )
-    if ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION not in {"logprob", "margin", "margin_centered", "margin_maxnorm"}:
+    if ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION not in {
+        "logprob",
+        "margin",
+        "margin_centered",
+        "margin_maxnorm",
+        "margin_maxnorm_confidence",
+    }:
         raise RuntimeError(
             "[ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION_INVALID] "
             f"ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION={ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} "
-            "expected 'logprob', 'margin', 'margin_centered', or 'margin_maxnorm'"
+            "expected 'logprob', 'margin', 'margin_centered', 'margin_maxnorm', "
+            "or 'margin_maxnorm_confidence'"
         )
     if int(ENTRY_HIER_PUBLIC_TRADE_HEAD) not in (0, 1):
         raise RuntimeError(
@@ -9946,10 +9953,10 @@ def run_train(
             repair_failures.append("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0 expected 1")
         if not bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE):
             repair_failures.append("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0 expected 1")
-        if ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION != "margin_maxnorm":
+        if ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION != "margin_maxnorm_confidence":
             repair_failures.append(
                 "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION="
-                f"{ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} expected 'margin_maxnorm'"
+                f"{ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} expected 'margin_maxnorm_confidence'"
             )
         if not bool(ENTRY_HIER_PUBLIC_TRADE_HEAD):
             repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_HEAD=0 expected 1")
@@ -11658,16 +11665,19 @@ def run_train(
             },
             "formula": (
                 (
-                    "logits=[public_trade_logit+(public_side_long_logit-max(public_side_logits)), "
-                    "public_trade_logit+(public_side_short_logit-max(public_side_logits)), -public_trade_logit] "
+                    "logits=[public_trade_logit+max_log_softmax(public_side_logits)"
+                    "+(public_side_long_logit-max(public_side_logits)), "
+                    "public_trade_logit+max_log_softmax(public_side_logits)"
+                    "+(public_side_short_logit-max(public_side_logits)), "
+                    "-(public_trade_logit+max_log_softmax(public_side_logits))] "
                     "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
                     "public_trade_logit includes capped mean(raw LONG/SHORT)-raw FLAT direction-margin bridge; "
-                    "margin_maxnorm composition keeps max public side contribution at zero so side-choice "
-                    "cannot move trade-vs-flat, public trade/flat and public side use separate learned heads, "
+                    "margin_maxnorm_confidence keeps max public side contribution at zero while side uncertainty "
+                    "can only lower trade-vs-flat, public trade/flat and public side use separate learned heads, "
                     "and public FLAT comes from hierarchy no-trade"
                 )
                 if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-                and ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION == "margin_maxnorm"
+                and ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION == "margin_maxnorm_confidence"
                 else (
                     "logits=[public_trade_logit+centered_public_side_long_logit, "
                     "public_trade_logit+centered_public_side_short_logit, -public_trade_logit] "

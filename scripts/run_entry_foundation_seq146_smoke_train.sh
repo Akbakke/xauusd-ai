@@ -710,9 +710,9 @@ while [[ $# -gt 0 ]]; do
         echo "WARNING: smart auto-recipe HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1 overridden by env: ${SMOKE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION+x}" ]]; then
-        SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm
+        SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence
       else
-        echo "WARNING: smart auto-recipe HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm overridden by env: ${SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION}" >&2
+        echo "WARNING: smart auto-recipe HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence overridden by env: ${SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_HEAD+x}" ]]; then
         SMOKE_HIER_PUBLIC_TRADE_HEAD=1

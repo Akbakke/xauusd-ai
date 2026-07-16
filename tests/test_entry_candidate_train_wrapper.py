@@ -714,7 +714,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text
     assert "CANDIDATE_HIER_UTILITY_WEIGHT=1.00" in text
     assert "CANDIDATE_HIER_BAD_PATH_WEIGHT=1.25" in text
-    assert "CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm" in text
+    assert "CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_HEAD=1" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in text

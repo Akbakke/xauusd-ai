@@ -406,11 +406,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_COMPOSITION_PUBLIC_FLAT_FROM_TRADE_REQUIRES_COMPOSITION")
         hierarchical_public_direction_composition = str(hierarchical_public_direction_composition or "logprob").strip().lower()
-        if hierarchical_public_direction_composition not in {"logprob", "margin", "margin_centered", "margin_maxnorm"}:
+        allowed_public_direction_compositions = {
+            "logprob",
+            "margin",
+            "margin_centered",
+            "margin_maxnorm",
+            "margin_maxnorm_confidence",
+        }
+        if hierarchical_public_direction_composition not in allowed_public_direction_compositions:
             raise RuntimeError(
                 "HIERARCHICAL_PUBLIC_DIRECTION_COMPOSITION_INVALID: "
                 f"got {hierarchical_public_direction_composition!r}, "
-                "expected 'logprob', 'margin', 'margin_centered', or 'margin_maxnorm'"
+                "expected 'logprob', 'margin', 'margin_centered', 'margin_maxnorm', "
+                "or 'margin_maxnorm_confidence'"
             )
         if float(hierarchical_ctx_prior_adapter_scale) < 0.0:
             raise RuntimeError(
@@ -1259,17 +1267,28 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 public_direction_composition = str(
                     getattr(self.cfg, "hierarchical_public_direction_composition", "logprob")
                 ).strip().lower()
-                if public_direction_composition in {"margin", "margin_centered", "margin_maxnorm"}:
+                if public_direction_composition in {
+                    "margin",
+                    "margin_centered",
+                    "margin_maxnorm",
+                    "margin_maxnorm_confidence",
+                }:
                     public_trade_margin = public_trade_logit.reshape(-1)
                     public_side_for_composition = public_side_logits
                     if public_direction_composition == "margin_centered":
                         public_side_for_composition = (
                             public_side_logits - public_side_logits.mean(dim=1, keepdim=True)
                         )
-                    elif public_direction_composition == "margin_maxnorm":
+                    elif public_direction_composition in {"margin_maxnorm", "margin_maxnorm_confidence"}:
                         public_side_for_composition = (
                             public_side_logits - public_side_logits.max(dim=1, keepdim=True).values
                         )
+                    if public_direction_composition == "margin_maxnorm_confidence":
+                        side_confidence_penalty = nn.functional.log_softmax(
+                            public_side_logits,
+                            dim=1,
+                        ).max(dim=1).values
+                        public_trade_margin = public_trade_margin + side_confidence_penalty
                     composed_direction_logits = torch.stack(
                         (
                             public_trade_margin + public_side_for_composition[:, 0],
@@ -1398,7 +1417,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
                 out["hierarchical_public_direction_composition_margin"] = torch.full(
                     (direction_logits.shape[0], 1),
-                    1.0 if public_direction_composition in {"margin", "margin_centered", "margin_maxnorm"} else 0.0,
+                    (
+                        1.0
+                        if public_direction_composition
+                        in {"margin", "margin_centered", "margin_maxnorm", "margin_maxnorm_confidence"}
+                        else 0.0
+                    ),
                     device=direction_logits.device,
                     dtype=direction_logits.dtype,
                 )
@@ -1410,7 +1434,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
                 out["hierarchical_public_direction_composition_margin_maxnorm"] = torch.full(
                     (direction_logits.shape[0], 1),
-                    1.0 if public_direction_composition == "margin_maxnorm" else 0.0,
+                    (
+                        1.0
+                        if public_direction_composition in {"margin_maxnorm", "margin_maxnorm_confidence"}
+                        else 0.0
+                    ),
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
+                out["hierarchical_public_direction_composition_margin_maxnorm_confidence"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    1.0 if public_direction_composition == "margin_maxnorm_confidence" else 0.0,
                     device=direction_logits.device,
                     dtype=direction_logits.dtype,
                 )

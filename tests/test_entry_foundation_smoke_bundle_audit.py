@@ -542,7 +542,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
-            "hier_public_direction_composition": "margin_maxnorm",
+            "hier_public_direction_composition": "margin_maxnorm_confidence",
             "hier_public_trade_head": True,
             "hier_public_trade_dir_margin_bridge": True,
             "hier_public_trade_dir_margin_bridge_scale": 0.50,
@@ -656,7 +656,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["hier_compose_residual_logit_cap"] == 0.18
     assert report["hier_compose_residual_side_neutral"] is True
     assert report["hier_compose_public_flat_from_trade"] is True
-    assert report["hier_public_direction_composition"] == "margin_maxnorm"
+    assert report["hier_public_direction_composition"] == "margin_maxnorm_confidence"
     assert report["hier_public_trade_head"] is True
     assert report["hier_public_trade_dir_margin_bridge"] is True
     assert report["hier_public_trade_dir_margin_bridge_scale"] == 0.50
@@ -802,7 +802,7 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
-            "hier_public_direction_composition": "margin_maxnorm",
+            "hier_public_direction_composition": "margin_maxnorm_confidence",
             "hier_public_trade_head": True,
             "hier_public_trade_dir_margin_bridge": True,
             "hier_public_trade_dir_margin_bridge_scale": 0.50,
@@ -918,7 +918,7 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
-            "hier_public_direction_composition": "margin_maxnorm",
+            "hier_public_direction_composition": "margin_maxnorm_confidence",
             "hier_public_trade_head": True,
             "hier_public_trade_dir_margin_bridge": True,
             "hier_public_trade_dir_margin_bridge_scale": 0.50,
@@ -1061,7 +1061,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
-            "hier_public_direction_composition": "margin_maxnorm",
+            "hier_public_direction_composition": "margin_maxnorm_confidence",
             "hier_public_trade_head": True,
             "hier_public_trade_dir_margin_bridge": True,
             "hier_public_trade_dir_margin_bridge_scale": 0.50,
@@ -1140,7 +1140,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
-            "hier_public_direction_composition": "margin_maxnorm",
+            "hier_public_direction_composition": "margin_maxnorm_confidence",
             "hier_public_trade_head": True,
             "hier_public_trade_dir_margin_bridge": True,
             "hier_public_trade_dir_margin_bridge_scale": 0.50,
