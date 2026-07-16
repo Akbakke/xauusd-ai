@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `837G` free after the latest cleanup/resource check.
-- Runtime: no transformer training/eval job is running after the 2026-07-16 bounded side-gradient-staging smoke stop. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
+- Runtime: no transformer training/eval job is running after the 2026-07-16 independent public-FLAT-head smoke failed closed. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is public direction side-gradient staging. Latest commit at update time: `e3ce8298 Stage XAU public direction side gradients`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the independent public FLAT-head contract. Latest commit at update time: `c210d2dd Require XAU public flat head`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Standing Rules
@@ -21,6 +21,44 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Monitor disk/RAM before and after heavy jobs. If available disk approaches below `700G` or used space grows toward roughly `800G`, stop and run cleanup before more training. Delete stale aborted manifests, old failed run dirs, and obsolete tmp/memmap dirs once their evidence has been extracted.
 - Stop bounded transformer training when validation is hard-red and continuing only burns compute. Do not extend epochs on a red recipe.
 - Keep the runtime/live collector processes separate from transformer train/eval jobs; do not kill persistent live/collector/dashboard/notifier processes unless explicitly asked.
+
+## 2026-07-16 Source Update - Independent Public FLAT Head
+
+- After the side-gradient-staging smoke, the remaining active failure was no longer "can the side head learn"; it was public trade/FLAT threshold collapse. Public FLAT was still effectively tied to `-public_trade_logit`, so trade/no-trade and side competition could oscillate between zero-FLAT, all-FLAT, LONG-heavy, and SHORT-heavy public outputs.
+- Implemented and committed `c210d2dd Require XAU public flat head`.
+  - Added `ENTRY_HIER_PUBLIC_FLAT_HEAD` and a trainable `head_public_flat`.
+  - `EntryV10CtxHybridTransformer` now emits `public_flat_logit`; when enabled, public direction composition uses independent public trade and public FLAT margins instead of deriving FLAT only from `-public_trade_logit`.
+  - The trainer adds direct public FLAT supervision against `1-y_trade`, logs `hier_public_flat`, and makes public FLAT consistency use the independent FLAT logit.
+  - Smart XAU repair requires `ENTRY_HIER_PUBLIC_FLAT_HEAD=1`; smoke/candidate wrappers, rebuild defaults, smart readiness/trainability, smoke manifests, enablement, sweep lint, bundle audit, candidate readiness, replay readiness, trainer metadata, and tests carry the contract.
+  - Bundle loading fails closed if public-FLAT-head weights and metadata disagree. This is not fallback; missing or stale public FLAT contract blocks use.
+- Validation before commit:
+  - `python3 -m py_compile` passed for changed Python modules.
+  - `bash -n` passed for changed shell wrappers.
+  - `git diff --check` passed.
+  - `git diff -Gfallback --stat` was empty.
+  - Focused pytest passed for model shape/composition, hierarchical loss, trainer defaults, smoke/candidate wrappers, smart enablement/readiness, sweep lint, bundle audit, candidate readiness, replay readiness, trainability readiness, smoke readiness, and rebuild contract.
+  - Pre-commit guardrails passed.
+- Clean-git post-commit gates passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_PUBLICFLAT_ENABLEMENT_20260716`.
+- Ran one bounded smart smoke:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_PUBLICFLAT_E6_20260716`.
+  - Command: `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_PUBLICFLAT_E6_20260716 --require-edge-audit --epochs 6 --early-stop-patience 6`.
+  - Recipe log confirmed `hier_public_flat_head=1`.
+  - Epoch `1`: `dir_acc=0.395182`, `balance_guard_ok=0`, `slice_contract_ok=0`, public pred LONG `0.404297`, SHORT `0.595703`, FLAT `0.000000`, `26` slice failures, hierarchy `trade_pred=1.000000`, `trade_prob=0.517245`, `flat_prob=0.482755`.
+  - Epoch `2`: still red, `dir_acc=0.333984`, `balance_guard_ok=0`, `slice_contract_ok=0`, public pred LONG `0.444661`, SHORT `0.099609`, FLAT `0.455729`, `28` slice failures.
+  - Epoch `6`: hard-red stop fired with `dir_acc=0.359375`, `balance_guard_ok=0`, `slice_contract_ok=0`, public pred LONG `0.008464`, SHORT `0.744792`, FLAT `0.246745`, `29` slice failures. The trainer then failed closed on `[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]` and refused to write a collapsed bundle.
+  - No candidate bundle was produced.
+- Cleanup/resource state after the failed smoke:
+  - Removed the failed smoke manifest, stale `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_latest.json`, failed trainability timestamp, and the `v10_entry_smart_seq520_smoke_20260716T132425Z__direction_slice_failure_evidence.json` sidecar after extracting the evidence.
+  - Restored trainability `latest` to the prior clean PASS report `ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_20260716T132314Z`.
+  - `/home/andre2/GX1_DATA`: about `837G` free; RAM about `37GiB` available; swap `0B`; GPU idle except for base runtime memory.
+  - No transformer train/eval process is running.
+- Current interpretation:
+  - Yes, there is real source/contract progress: the public FLAT threshold now has its own trainable head and fail-closed metadata contract.
+  - No, there is still no model progress sufficient for candidate/IQL/replay. The bounded smoke proved that independent public FLAT alone does not solve active slice class balance.
+  - Do not rerun `SMART_SEQ520_XAU_SMOKE_PUBLICFLAT_E6_20260716` unchanged. The next step must be a new formulation/staging change, likely around public trade/FLAT and side competition training dynamics, not another scalar-only retune and not Entry-IQL.
 
 ## 2026-07-16 Source Update - Public Direction Side-Gradient Staging
 
@@ -1647,16 +1685,16 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, public-margin-composition, centered-public-margin-composition, max-normalized-public-margin-composition, public-trade-direction-margin-bridge, public-side-direction-margin-bridge, public-side-head-residual-cap, or maxnorm-confidence public direction recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, public-flat-head, public-margin-composition, centered-public-margin-composition, max-normalized-public-margin-composition, public-trade-direction-margin-bridge, public-side-direction-margin-bridge, public-side-head-residual-cap, side-gradient-staging, or maxnorm-confidence public direction recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
    - keep residual-through-composition, hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, max-normalized public margin composition, side-prior, trade-prior, hierarchy trade-accuracy edge, and direction-slice evidence logging; they are useful guardrails.
-   - do not spend another run tuning only scalar caps/weights/epochs. The latest side-bridge smoke shows epoch-1 side balance can be restored, but epoch-2 training dynamics still collapse SHORT: SHORT pred `0.071615` versus SHORT label `0.332031`.
+   - do not spend another run tuning only scalar caps/weights/epochs. The latest public-FLAT-head smoke still failed class balance and active slices; independent FLAT supervision alone did not make public hard predictions stable.
    - first inspect the latest red-slice rows/confusion evidence against existing XAU rail/SR/wick/regime features; if those features are present but ignored, make a topology/staging change.
    - likely next source-level options:
      - add staged training/annealing so public trade/no-trade and side-choice losses do not undo epoch-1 side balance by epoch 2.
      - repair public side-head staging/calibration so `side_pred_long_edge` does not drift from `0.446` at epoch 1 back to `0.889` at epoch 2.
-     - repair public trade hard-threshold calibration so `trade_prob≈0.515` does not coexist with hard class-balance failure.
+     - repair public trade hard-threshold calibration so `trade_prob` near `0.51` does not coexist with hard class-balance failure.
      - strengthen FLAT/no-trade and side-separation calibration in the model/training contract without adding live hand-rules.
    - keep side-prior enabled while targeting remaining slice-level accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
