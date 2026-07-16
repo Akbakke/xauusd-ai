@@ -106,6 +106,11 @@ SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED = "margin_maxnorm"
 SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED = True
+SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED = True
+SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN = 0.25
+SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX = 1.00
+SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN = 0.05
+SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX = 0.50
 SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
@@ -1520,6 +1525,38 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    _hier_public_trade_dir_margin_bridge_meta = (
+        _hierarchical_direction_meta.get("public_trade_dir_margin_bridge")
+        if isinstance(_hierarchical_direction_meta.get("public_trade_dir_margin_bridge"), dict)
+        else {}
+    )
+    hier_public_trade_dir_margin_bridge = _bool_value(
+        recipe.get(
+            "hier_public_trade_dir_margin_bridge",
+            _hier_public_trade_dir_margin_bridge_meta.get(
+                "enabled",
+                meta.get("hier_public_trade_dir_margin_bridge", False),
+            ),
+        )
+    )
+    hier_public_trade_dir_margin_bridge_scale = _safe_float(
+        recipe.get(
+            "hier_public_trade_dir_margin_bridge_scale",
+            _hier_public_trade_dir_margin_bridge_meta.get(
+                "scale",
+                meta.get("hier_public_trade_dir_margin_bridge_scale", 0.0),
+            ),
+        )
+    )
+    hier_public_trade_dir_margin_bridge_cap = _safe_float(
+        recipe.get(
+            "hier_public_trade_dir_margin_bridge_cap",
+            _hier_public_trade_dir_margin_bridge_meta.get(
+                "cap",
+                meta.get("hier_public_trade_dir_margin_bridge_cap", 0.0),
+            ),
+        )
+    )
     _hier_public_side_meta = (
         _hierarchical_direction_meta.get("public_side_head")
         if isinstance(_hierarchical_direction_meta.get("public_side_head"), dict)
@@ -2362,6 +2399,45 @@ def _direction_balance_recipe_contract(
                 failures.append("smart direction active head requires hier_public_side_head=true")
             if hier_public_trade_head is not SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED:
                 failures.append("smart direction active head requires hier_public_trade_head=true")
+            if (
+                hier_public_trade_dir_margin_bridge
+                is not SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED
+            ):
+                failures.append(
+                    "smart direction active head requires hier_public_trade_dir_margin_bridge=true"
+                )
+            if (
+                hier_public_trade_dir_margin_bridge_scale
+                < SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN
+            ):
+                failures.append(
+                    "smart direction active head requires hier_public_trade_dir_margin_bridge_scale >= "
+                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN:.2f}"
+                )
+            if (
+                hier_public_trade_dir_margin_bridge_scale
+                > SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires hier_public_trade_dir_margin_bridge_scale <= "
+                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX:.2f}"
+                )
+            if (
+                hier_public_trade_dir_margin_bridge_cap
+                < SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN
+            ):
+                failures.append(
+                    "smart direction active head requires hier_public_trade_dir_margin_bridge_cap >= "
+                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN:.2f}"
+                )
+            if (
+                hier_public_trade_dir_margin_bridge_cap
+                > SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires hier_public_trade_dir_margin_bridge_cap <= "
+                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX:.2f}"
+                )
             if hier_ctx_direction_calibration is not SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED:
                 failures.append("smart direction active head requires hier_ctx_direction_calibration=true")
             if (
@@ -2725,6 +2801,9 @@ def _direction_balance_recipe_contract(
         "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
         "hier_public_direction_composition": hier_public_direction_composition,
         "hier_public_trade_head": hier_public_trade_head,
+        "hier_public_trade_dir_margin_bridge": hier_public_trade_dir_margin_bridge,
+        "hier_public_trade_dir_margin_bridge_scale": hier_public_trade_dir_margin_bridge_scale,
+        "hier_public_trade_dir_margin_bridge_cap": hier_public_trade_dir_margin_bridge_cap,
         "hier_public_side_head": hier_public_side_head,
         "hier_ctx_prior_adapter": hier_ctx_prior_adapter,
         "hier_ctx_prior_adapter_scale": hier_ctx_prior_adapter_scale,

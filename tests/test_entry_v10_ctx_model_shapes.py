@@ -301,6 +301,55 @@ def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_keeps_flat_t
     assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
 
 
+def test_entry_v10_ctx_public_trade_dir_margin_bridge_feeds_trade_flat_only():
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=SEQ_DIM,
+        snap_input_dim=SEQ_DIM,
+        seq_len=SEQ_LEN,
+        ctx_cont_dim=CTX_CONT_DIM,
+        ctx_cat_dim=CTX_CAT_DIM,
+        residual_scale=1.0,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_public_flat_from_trade=True,
+        hierarchical_public_direction_composition="margin_maxnorm",
+        enable_hierarchical_public_trade_head=True,
+        enable_hierarchical_public_trade_dir_margin_bridge=True,
+        hierarchical_public_trade_dir_margin_bridge_scale=0.50,
+        hierarchical_public_trade_dir_margin_bridge_cap=0.25,
+        enable_hierarchical_public_side_head=True,
+    ).eval()
+    with torch.no_grad():
+        for param in model.parameters():
+            param.zero_()
+        model.head_direction.bias.copy_(torch.tensor([0.4, 0.2, -0.2]))
+        model.head_public_trade.bias.fill_(0.1)
+        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
+    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
+    snap_x.zero_()
+
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    bridge = torch.tensor(0.25 * torch.tanh(torch.tensor(1.0)).item(), dtype=out["direction_logits"].dtype)
+    expected_trade = 0.1 + bridge
+    expected = torch.tensor(
+        [
+            [expected_trade.item(), (expected_trade - 0.4).item(), (-expected_trade).item()],
+            [expected_trade.item(), (expected_trade - 0.4).item(), (-expected_trade).item()],
+        ],
+        dtype=out["direction_logits"].dtype,
+    )
+    assert torch.allclose(
+        out["public_trade_dir_margin_bridge"],
+        torch.full((2, 1), bridge.item(), dtype=out["direction_logits"].dtype),
+        atol=1e-6,
+    )
+    assert torch.allclose(out["public_trade_logit"], torch.full((2, 1), expected_trade.item()), atol=1e-6)
+    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
+    assert torch.all(out["hierarchical_public_trade_dir_margin_bridge"] == 1.0)
+    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
+
+
 def test_entry_v10_ctx_side_validity_requires_hierarchy():
     with pytest.raises(RuntimeError, match="SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS"):
         EntryV10CtxHybridTransformer(

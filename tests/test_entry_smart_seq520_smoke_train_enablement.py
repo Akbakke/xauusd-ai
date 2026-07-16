@@ -119,6 +119,9 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1 "
             "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm "
             "ENTRY_HIER_PUBLIC_TRADE_HEAD=1 "
+            "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1 "
+            "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50 "
+            "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.25 "
             "ENTRY_HIER_PUBLIC_SIDE_HEAD=1 "
             "ENTRY_HIER_CTX_PRIOR_ADAPTER=1 "
             "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50 "
@@ -190,6 +193,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_hier_compose_public_flat_from_trade": True,
         "has_hier_public_direction_margin_maxnorm_composition": True,
         "has_hier_public_trade_head": True,
+        "has_hier_public_trade_dir_margin_bridge": True,
         "has_hier_public_side_head": True,
         "has_hier_ctx_prior_adapter": True,
         "has_hier_ctx_direction_calibration": True,
@@ -226,6 +230,7 @@ def test_smart_smoke_train_enablement_passes_with_clean_package(monkeypatch, tmp
     assert report["wrapper_dry_run"]["has_hier_compose_public_flat_from_trade"] is True
     assert report["wrapper_dry_run"]["has_hier_public_direction_margin_maxnorm_composition"] is True
     assert report["wrapper_dry_run"]["has_hier_public_trade_head"] is True
+    assert report["wrapper_dry_run"]["has_hier_public_trade_dir_margin_bridge"] is True
     assert report["wrapper_dry_run"]["has_hier_public_side_head"] is True
     assert report["wrapper_dry_run"]["has_hier_ctx_prior_adapter"] is True
     assert report["wrapper_dry_run"]["has_hier_ctx_direction_calibration"] is True

@@ -261,6 +261,39 @@ def load_entry_v10_ctx_bundle(
     if _has_hierarchical_public_trade_head and "public_trade_head" not in _hierarchical_direction_cfg:
         if not bool(meta.get("hier_public_trade_head", False) if isinstance(meta, dict) else False):
             raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_HEAD_METADATA_MISSING]")
+    _hierarchical_public_trade_dir_margin_bridge_cfg = (
+        _hierarchical_direction_cfg.get("public_trade_dir_margin_bridge")
+        if isinstance(_hierarchical_direction_cfg.get("public_trade_dir_margin_bridge"), dict)
+        else {}
+    )
+    _has_hierarchical_public_trade_dir_margin_bridge = bool(
+        _hierarchical_public_trade_dir_margin_bridge_cfg.get(
+            "enabled",
+            meta.get("hier_public_trade_dir_margin_bridge", False) if isinstance(meta, dict) else False,
+        )
+    )
+    if _has_hierarchical_public_trade_dir_margin_bridge:
+        _public_trade_dir_margin_bridge_scale_raw = _hierarchical_public_trade_dir_margin_bridge_cfg.get(
+            "scale",
+            meta.get("hier_public_trade_dir_margin_bridge_scale") if isinstance(meta, dict) else None,
+        )
+        _public_trade_dir_margin_bridge_cap_raw = _hierarchical_public_trade_dir_margin_bridge_cfg.get(
+            "cap",
+            meta.get("hier_public_trade_dir_margin_bridge_cap") if isinstance(meta, dict) else None,
+        )
+        if _public_trade_dir_margin_bridge_scale_raw is None:
+            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MISSING]")
+        if _public_trade_dir_margin_bridge_cap_raw is None:
+            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MISSING]")
+        _hierarchical_public_trade_dir_margin_bridge_scale = float(
+            _public_trade_dir_margin_bridge_scale_raw
+        )
+        _hierarchical_public_trade_dir_margin_bridge_cap = float(
+            _public_trade_dir_margin_bridge_cap_raw
+        )
+    else:
+        _hierarchical_public_trade_dir_margin_bridge_scale = 0.0
+        _hierarchical_public_trade_dir_margin_bridge_cap = 0.0
     _has_hierarchical_public_side_head = "head_public_side.weight" in state_dict_preview
     if _has_hierarchical_public_side_head and "public_side_head" not in _hierarchical_direction_cfg:
         if not bool(meta.get("hier_public_side_head", False) if isinstance(meta, dict) else False):
@@ -381,6 +414,9 @@ def load_entry_v10_ctx_bundle(
         hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
         hierarchical_public_direction_composition=_hierarchical_public_direction_composition,
         enable_hierarchical_public_trade_head=_has_hierarchical_public_trade_head,
+        enable_hierarchical_public_trade_dir_margin_bridge=_has_hierarchical_public_trade_dir_margin_bridge,
+        hierarchical_public_trade_dir_margin_bridge_scale=_hierarchical_public_trade_dir_margin_bridge_scale,
+        hierarchical_public_trade_dir_margin_bridge_cap=_hierarchical_public_trade_dir_margin_bridge_cap,
         enable_hierarchical_public_side_head=_has_hierarchical_public_side_head,
         enable_hierarchical_ctx_prior_adapter=_has_hierarchical_ctx_prior_adapter,
         hierarchical_ctx_prior_adapter_scale=_hierarchical_ctx_prior_adapter_scale,

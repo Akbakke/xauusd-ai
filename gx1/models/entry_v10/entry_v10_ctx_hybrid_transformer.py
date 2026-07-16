@@ -103,6 +103,9 @@ class CtxModelConfig:
     hierarchical_composition_public_flat_from_trade: bool = False
     hierarchical_public_direction_composition: str = "logprob"
     enable_hierarchical_public_trade_head: bool = False
+    enable_hierarchical_public_trade_dir_margin_bridge: bool = False
+    hierarchical_public_trade_dir_margin_bridge_scale: float = 0.0
+    hierarchical_public_trade_dir_margin_bridge_cap: float = 0.0
     enable_hierarchical_public_side_head: bool = False
     enable_hierarchical_ctx_prior_adapter: bool = False
     hierarchical_ctx_prior_adapter_scale: float = 0.0
@@ -295,6 +298,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
         hierarchical_composition_public_flat_from_trade: bool = False,
         hierarchical_public_direction_composition: str = "logprob",
         enable_hierarchical_public_trade_head: bool = False,
+        enable_hierarchical_public_trade_dir_margin_bridge: bool = False,
+        hierarchical_public_trade_dir_margin_bridge_scale: float = 0.0,
+        hierarchical_public_trade_dir_margin_bridge_cap: float = 0.0,
         enable_hierarchical_public_side_head: bool = False,
         enable_hierarchical_ctx_prior_adapter: bool = False,
         hierarchical_ctx_prior_adapter_scale: float = 0.0,
@@ -391,6 +397,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         if enable_hierarchical_public_trade_head and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_PUBLIC_TRADE_HEAD_REQUIRES_COMPOSITION")
+        if enable_hierarchical_public_trade_dir_margin_bridge and not enable_hierarchical_direction_composition:
+            raise RuntimeError("HIERARCHICAL_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRES_COMPOSITION")
         if enable_hierarchical_public_side_head and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_PUBLIC_SIDE_HEAD_REQUIRES_COMPOSITION")
         if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
@@ -419,6 +427,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "HIERARCHICAL_CTX_DIRECTION_CALIBRATION_CAP_INVALID: "
                 f"got {float(hierarchical_ctx_direction_calibration_cap)}"
             )
+        if float(hierarchical_public_trade_dir_margin_bridge_scale) < 0.0:
+            raise RuntimeError(
+                "HIERARCHICAL_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_INVALID: "
+                f"got {float(hierarchical_public_trade_dir_margin_bridge_scale)}"
+            )
+        if float(hierarchical_public_trade_dir_margin_bridge_cap) < 0.0:
+            raise RuntimeError(
+                "HIERARCHICAL_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_INVALID: "
+                f"got {float(hierarchical_public_trade_dir_margin_bridge_cap)}"
+            )
         if float(hierarchical_composition_residual_logit_cap) < 0.0:
             raise RuntimeError(
                 "HIERARCHICAL_COMPOSITION_RESIDUAL_LOGIT_CAP_INVALID: "
@@ -446,6 +464,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
             ),
             hierarchical_public_direction_composition=hierarchical_public_direction_composition,
             enable_hierarchical_public_trade_head=bool(enable_hierarchical_public_trade_head),
+            enable_hierarchical_public_trade_dir_margin_bridge=bool(
+                enable_hierarchical_public_trade_dir_margin_bridge
+            ),
+            hierarchical_public_trade_dir_margin_bridge_scale=float(
+                hierarchical_public_trade_dir_margin_bridge_scale
+            ),
+            hierarchical_public_trade_dir_margin_bridge_cap=float(
+                hierarchical_public_trade_dir_margin_bridge_cap
+            ),
             enable_hierarchical_public_side_head=bool(enable_hierarchical_public_side_head),
             enable_hierarchical_ctx_prior_adapter=bool(enable_hierarchical_ctx_prior_adapter),
             hierarchical_ctx_prior_adapter_scale=float(hierarchical_ctx_prior_adapter_scale),
@@ -1173,6 +1200,43 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 if hasattr(self, "head_public_trade"):
                     public_trade_logit = public_trade_logit + prior_scale * hierarchical_ctx_prior[:, :1]
                 side_logits = side_logits + prior_scale * hierarchical_ctx_prior[:, 1:3]
+            public_trade_dir_margin_bridge = None
+            if bool(getattr(self.cfg, "enable_hierarchical_public_trade_dir_margin_bridge", False)):
+                public_trade_dir_margin_bridge = (
+                    raw_direction_logits[:, :2].mean(dim=1, keepdim=True)
+                    - raw_direction_logits[:, 2:3]
+                )
+                public_trade_dir_margin_bridge = (
+                    float(
+                        getattr(
+                            self.cfg,
+                            "hierarchical_public_trade_dir_margin_bridge_scale",
+                            0.0,
+                        )
+                    )
+                    * public_trade_dir_margin_bridge
+                )
+                bridge_cap = float(
+                    getattr(
+                        self.cfg,
+                        "hierarchical_public_trade_dir_margin_bridge_cap",
+                        0.0,
+                    )
+                )
+                if bridge_cap > 0.0:
+                    bridge_cap_t = torch.as_tensor(
+                        bridge_cap,
+                        device=public_trade_dir_margin_bridge.device,
+                        dtype=public_trade_dir_margin_bridge.dtype,
+                    )
+                    public_trade_dir_margin_bridge = bridge_cap_t * torch.tanh(
+                        public_trade_dir_margin_bridge / bridge_cap_t
+                    )
+                _assert_finite(
+                    "public_trade_dir_margin_bridge",
+                    public_trade_dir_margin_bridge,
+                )
+                public_trade_logit = public_trade_logit + public_trade_dir_margin_bridge
             side_utility = self.head_side_utility(z)
             side_bad_path_logit = self.head_side_bad_path(z)
             side_mae = self.head_side_mae(z)
@@ -1299,6 +1363,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     out["public_side_logits"] = public_side_logits
                 if hasattr(self, "head_public_trade"):
                     out["public_trade_logit"] = public_trade_logit
+                if public_trade_dir_margin_bridge is not None:
+                    out["public_trade_dir_margin_bridge"] = public_trade_dir_margin_bridge
+                out["hierarchical_public_trade_dir_margin_bridge"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    1.0
+                    if bool(
+                        getattr(
+                            self.cfg,
+                            "enable_hierarchical_public_trade_dir_margin_bridge",
+                            False,
+                        )
+                    )
+                    else 0.0,
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
                 out["hierarchical_direction_residual_side_neutral"] = torch.full(
                     (direction_logits.shape[0], 1),
                     1.0

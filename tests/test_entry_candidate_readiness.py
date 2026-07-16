@@ -416,6 +416,9 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
     report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_maxnorm"
     report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
+    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge"] = True
+    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_scale"] = 0.50
+    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_cap"] = 0.25
     report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
     report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
     report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter_scale"] = 0.50
@@ -526,6 +529,9 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
     report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_maxnorm"
     report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
+    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge"] = True
+    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_scale"] = 0.50
+    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_cap"] = 0.25
     report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
     report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
     report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter_scale"] = 0.50
@@ -1049,6 +1055,9 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_maxnorm"
     smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_scale"] = 0.50
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_cap"] = 0.25
     smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter_scale"] = 0.50
