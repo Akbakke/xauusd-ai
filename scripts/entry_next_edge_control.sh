@@ -3099,6 +3099,7 @@ PY
     SMART_SMOKE_VAL_ROWS=1536
     SMART_SMOKE_TEST_ROWS=1536
     SMART_REFRESH_MEM=8G
+    SMART_POST_REBUILD_READINESS_JSON="/home/andre2/GX1_DATA/reports/entry_smart_dataset_post_rebuild_readiness_20260630_v1/ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --apply)
@@ -3125,8 +3126,12 @@ PY
           SMART_REFRESH_MEM="${2:-}"
           shift 2
           ;;
+        --post-rebuild-readiness-json)
+          SMART_POST_REBUILD_READINESS_JSON="${2:-}"
+          shift 2
+          ;;
         -h|--help)
-          echo "Usage: scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>] [--val-rows <n>] [--test-rows <n>] [--mem <cap, default 8G>]"
+          echo "Usage: scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--post-rebuild-readiness-json <path>] [--train-rows <n>] [--val-rows <n>] [--test-rows <n>] [--mem <cap, default 8G>]"
           exit 0
           ;;
         *)
@@ -3143,12 +3148,12 @@ PY
       echo "FATAL: smart-post-rebuild-refresh requires explicit --vedtak <id>" >&2
       exit 2
     fi
-    "$PY" - <<'PY'
+    mapfile -t SMART_REFRESH_FIELDS < <("$PY" - "$SMART_POST_REBUILD_READINESS_JSON" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-path = Path("/home/andre2/GX1_DATA/reports/entry_smart_dataset_post_rebuild_readiness_20260630_v1/ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json")
+path = Path(sys.argv[1]).expanduser().resolve()
 if not path.exists():
     print(f"FATAL: missing smart post-rebuild readiness report: {path}", file=sys.stderr)
     raise SystemExit(2)
@@ -3157,14 +3162,41 @@ decision = str(report.get("decision") or "")
 if decision != "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW":
     print(f"FATAL: smart-post-rebuild-refresh blocked by decision={decision}", file=sys.stderr)
     raise SystemExit(2)
+contract = report.get("post_rebuild_refresh_command_contract")
+if not isinstance(contract, dict):
+    print("FATAL: post-rebuild report lacks refresh command contract", file=sys.stderr)
+    raise SystemExit(2)
+required = {
+    "source_dir": report.get("dataset_dir"),
+    "out_dir": contract.get("smart_smoke_dataset_dir"),
+    "feature_audit_json": contract.get("feature_audit_latest"),
+    "target_audit_json": contract.get("target_audit_latest"),
+    "specialist_audit_json": contract.get("specialist_audit_latest"),
+}
+missing = [key for key, value in required.items() if not str(value or "").strip()]
+if missing:
+    print(f"FATAL: refresh contract missing required fields: {missing}", file=sys.stderr)
+    raise SystemExit(2)
+for value in required.values():
+    print(str(value))
 PY
+)
+    if [[ "${#SMART_REFRESH_FIELDS[@]}" -ne 5 ]]; then
+      echo "FATAL: failed to resolve smart-post-rebuild-refresh fields from ${SMART_POST_REBUILD_READINESS_JSON}" >&2
+      exit 2
+    fi
+    SMART_REFRESH_SOURCE_DIR="${SMART_REFRESH_FIELDS[0]}"
+    SMART_REFRESH_OUT_DIR="${SMART_REFRESH_FIELDS[1]}"
+    SMART_REFRESH_FEATURE_AUDIT_JSON="${SMART_REFRESH_FIELDS[2]}"
+    SMART_REFRESH_TARGET_AUDIT_JSON="${SMART_REFRESH_FIELDS[3]}"
+    SMART_REFRESH_SPECIALIST_AUDIT_JSON="${SMART_REFRESH_FIELDS[4]}"
     exec "$REPO/scripts/gx1_capped_run.sh" --mem "$SMART_REFRESH_MEM" --swap 1G -- "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
-      --source-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair \
-      --out-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke \
+      --source-dir "$SMART_REFRESH_SOURCE_DIR" \
+      --out-dir "$SMART_REFRESH_OUT_DIR" \
       --stem v10_smart_seq520_smoke__HOLD_03B \
-      --feature-audit-json /home/andre2/GX1_DATA/reports/entry_feature_foundation_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json \
-      --target-audit-json /home/andre2/GX1_DATA/reports/entry_target_foundation_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_TARGET_FOUNDATION_AUDIT_latest.json \
-      --specialist-audit-json /home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json \
+      --feature-audit-json "$SMART_REFRESH_FEATURE_AUDIT_JSON" \
+      --target-audit-json "$SMART_REFRESH_TARGET_AUDIT_JSON" \
+      --specialist-audit-json "$SMART_REFRESH_SPECIALIST_AUDIT_JSON" \
       --schema-version entry_smart_seq520_smoke_dataset_v1 \
       --split-schema-version entry_smart_seq520_smoke_split_manifest_v1 \
       --manifest-variant smart_seq520_candidate \

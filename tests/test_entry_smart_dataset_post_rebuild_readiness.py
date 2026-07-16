@@ -355,6 +355,15 @@ def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: 
     assert Path(report["json_path"]).exists()
 
 
+def test_smart_post_rebuild_refresh_control_uses_report_contract() -> None:
+    control = Path("scripts/entry_next_edge_control.sh").read_text(encoding="utf-8")
+    refresh_block = control.split("smart-post-rebuild-refresh)", 1)[1].split("smart-smoke-manifest)", 1)[0]
+
+    assert "post_rebuild_refresh_command_contract" in refresh_block
+    assert "--post-rebuild-readiness-json" in refresh_block
+    assert "v10_6yr_rebuild_20260626_spreadfix" not in refresh_block
+
+
 def test_smart_dataset_post_rebuild_readiness_fails_closed_when_dataset_missing(tmp_path: Path) -> None:
     report = gate.run(_build_fixture(tmp_path, create_dataset=False))
 

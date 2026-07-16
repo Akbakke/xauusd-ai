@@ -8,10 +8,10 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
-- Disk: `/dev/sdd` has about `837G` free after the latest cleanup/resource check.
-- Runtime: no transformer training/eval job is running after the 2026-07-16 public trade/FLAT pairwise-margin smoke was stopped hard-red after epoch 1. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
+- Disk: `/dev/sdd` has about `762G` free after the 2026-07-16 fresh XAU rebuild and smoke-dataset materialization. Fresh rebuild dir is about `76G`; fresh smoke dataset is about `697M`.
+- Runtime: no transformer training/eval, replay, or IQL job is running after the 2026-07-16 fresh rebuild/audit sequence. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates. Latest source update in this handover is the public trade/FLAT pairwise-margin contract plus the broad-test cleanup/test-hygiene update from 2026-07-16.
+- Worktree: verify clean with `git status --short` before clean-git gates. Latest source update in this handover is the public trade/FLAT pairwise-margin contract, broad-test cleanup/test-hygiene update, and the 2026-07-16 smart post-rebuild refresh wrapper fix.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Standing Rules
@@ -21,6 +21,60 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Monitor disk/RAM before and after heavy jobs. If available disk approaches below `700G` or used space grows toward roughly `800G`, stop and run cleanup before more training. Delete stale aborted manifests, old failed run dirs, and obsolete tmp/memmap dirs once their evidence has been extracted.
 - Stop bounded transformer training when validation is hard-red and continuing only burns compute. Do not extend epochs on a red recipe.
 - Keep the runtime/live collector processes separate from transformer train/eval jobs; do not kill persistent live/collector/dashboard/notifier processes unless explicitly asked.
+
+## 2026-07-16 Fresh XAU Rebuild / Smoke-Gate Update
+
+- This is real progress, but it is not proof that the transformer has learned the direction problem yet. The fresh XAU input path and all report-only readiness gates below are now green; no fresh transformer bundle has been trained or accepted from this dataset yet.
+- Fresh rebuild command used a new rebuild root with training disabled:
+  - `REBUILD_DIR=/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260716_fresh_xau_direction_repair`
+  - `RUN_TRAIN=0`
+  - `GX1_MTF_CACHE_ALLOW_STALE=0`
+  - `GX1_PERTF_CLOSED_BAR=1`
+- Rebuild completed all data stages and stopped at the intended Stage 6 guard:
+  - `[6] SACRED train GUARDED (set RUN_TRAIN=1 after dim-gate verified)`
+  - no transformer trainer was started.
+- Fresh dataset:
+  - `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260716_fresh_xau_direction_repair/v10_dataset_6yr_smartctx_xau_direction_repair`
+  - train rows `391129`: LONG `60011` (`0.1534`), SHORT `52512` (`0.1343`), FLAT `278606` (`0.7123`)
+  - val rows `3745`: LONG `686` (`0.1832`), SHORT `796` (`0.2126`), FLAT `2263` (`0.6043`)
+  - test rows `4543`: LONG `703` (`0.1547`), SHORT `1142` (`0.2514`), FLAT `2698` (`0.5939`)
+  - signal/snap width `520`, base signal `41`, seq-structure extension `479`, ctx_cont `142`, ctx_cat `5`
+  - rank reference: `smart520_rank_reference_xau_direction_repair.npz`, sha256 `c258eb61273cc92eb4b9fb57a90c7c856741e6c52bd67d1781735754c560384e`
+- Post-rebuild readiness on the fresh dataset passed:
+  - report: `/home/andre2/GX1_DATA/reports/entry_smart_dataset_post_rebuild_readiness_20260630_v1/ENTRY_SMART_DATASET_POST_REBUILD_READINESS_20260716T161544Z.json`
+  - decision `ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW`
+  - failures `[]`
+  - `training_allowed=false`, `candidate_training_allowed=false`
+  - train/val/test split manifests and parquets all exist and declare `seq_input_dim=520`, `snap_input_dim=520`
+- XAU direction-repair pretrain audit on the fresh dataset passed:
+  - report: `/home/andre2/GX1_DATA/reports/xau_direction_repair_pretrain_audit_20260713_v1/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260716T161608Z.json`
+  - decision `PASS`
+  - failures `[]`
+  - required rail features present, no missing target columns, `feature_count=520`
+  - anti-wrong-side rates are `0` in sampled train/val/test evidence
+- Fresh feature/target/specialist audits passed:
+  - feature audit decision `PASS`, failures `[]`, objective coverage/liveness live
+  - target audit decision `PASS`, failures `[]`, active target heads live; `hold_horizon` remains explicitly blocked by wrapper contract
+  - specialist audit decision `PASS`, failures `[]`, `signal_field_count=520`, `selected_feature_count=479`, unmapped signal features `0`
+- Fresh smart smoke dataset was materialized from the fresh dataset:
+  - `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260716_fresh_xau_direction_repair/v10_dataset_6yr_smartctx_xau_direction_repair_smoke`
+  - size about `697M`
+  - train rows `4095`, labels LONG `1357`, SHORT `1338`, FLAT `1400`
+  - val rows `1536`, labels LONG `496`, SHORT `510`, FLAT `530`
+  - test rows `1536`, labels LONG `507`, SHORT `513`, FLAT `516`
+  - width `520`, manifest variant `smart_seq520_candidate`
+- Smoke manifest/readiness/trainability gates passed as report-only review gates:
+  - smoke manifest decision `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`, failures `[]`
+  - smoke readiness decision `READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW`, failures `[]`, blockers `[]`
+  - trainability decision `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW`, failures `[]`, blockers `[]`
+  - trainability still reports `training_allowed=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`
+- Important wrapper repair:
+  - `scripts/entry_next_edge_control.sh smart-post-rebuild-refresh` was found hardcoding the old `v10_6yr_rebuild_20260626_spreadfix` path.
+  - It has been repaired to read source/out/audit paths from the post-rebuild readiness report's `post_rebuild_refresh_command_contract`.
+  - Added a static regression test so the refresh block cannot reintroduce the stale `spreadfix` path.
+- Operational consequence:
+  - Entry-IQL is still closed. We are not fine-tuning IQL.
+  - Transformer entry training has not resumed yet on the fresh dataset. The next possible step is an explicit enablement review and then one bounded fresh smoke train with hard-red stop rules, not more epochs on old recipes and not candidate/replay/IQL.
 
 ## 2026-07-16 Test/Resource Update - Broad XAU/IQL/Replay Readiness Suite
 
