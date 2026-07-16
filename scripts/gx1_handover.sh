@@ -15,14 +15,19 @@ cd "$REPO"
 echo "## GX1 XAU Direction Repair Takeover"
 echo
 echo "### Project Goal"
-echo "Build the GX1 trading bot for gold/XAUUSD so it can read tops and bottoms"
-echo "from the full feature stack and choose direction with near-perfect practical"
-echo "accuracy. Features must be fused into learned evidence; no fallback, no live"
-echo "hand-rules, and no stale artifacts are acceptable."
+echo "Build the GX1 trading bot for gold/XAUUSD so it reads tops and bottoms"
+echo "from the full feature stack and selects LONG/SHORT/FLAT direction with"
+echo "near-perfect practical precision. All available structure, trend,"
+echo "liquidity, volatility, momentum, session, price-action, path-quality,"
+echo "and utility features must be fused into one learned evidence path."
+echo "No fallback, no live hand-rules, no stale artifacts, and no competing"
+echo "handover scripts are acceptable."
 echo
 echo "### Single Handover Entry Point"
 echo "Use this script only: scripts/gx1_handover.sh"
 echo "It prints the current source of truth: HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
+echo "If another scripts/*handover*.sh file appears, merge its useful content here"
+echo "and delete the extra script before handing over."
 echo
 echo "### Git"
 git status --short

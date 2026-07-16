@@ -2,7 +2,7 @@
 
 ## Continuation Goal
 
-Build the GX1 trading bot for gold/XAUUSD so it can read tops and bottoms from the full feature stack and choose direction with near-perfect practical accuracy. The work is to fuse all available structure, trend, liquidity, volatility, momentum, session, price-action, path-quality, and utility features into learned evidence, not to bolt on fallback rules.
+Build the GX1 trading bot for gold/XAUUSD so it reads tops and bottoms from the full feature stack and selects LONG/SHORT/FLAT direction with near-perfect practical precision. The work is to fuse all available structure, trend, liquidity, volatility, momentum, session, price-action, path-quality, and utility features into one learned evidence path, not to bolt on fallback rules or hand-written live direction logic.
 
 Continue the XAUUSD-only direction repair until the live/replay/training stack proves that the model learns to abstain or go long in bull/rising-support regimes, rather than selecting confident SHORT. Do not use non-XAU project artifacts. Do not promote any XAU bundle live until fresh XAU datasets, parity, live-like replay, calibration, and direction-pocket audits all pass.
 
@@ -130,6 +130,7 @@ Sub-agent findings still pending after this takeover update:
 ## Standing Rules
 
 - No fallback, advisory fallback, silent fallback, or soft continuation anywhere in the XAU direction-repair stack. Either the required contract/model/gate works, or the program fails closed with evidence.
+- `scripts/gx1_handover.sh` is the only handover shell entrypoint. If another `scripts/*handover*.sh` file appears, merge any useful content into `scripts/gx1_handover.sh` and delete the extra script before handover.
 - Do not open candidate training, replay, IQL, shadow, live, or promotion until a fresh XAU transformer bundle passes the hard direction slice and class-balance gates.
 - Monitor disk/RAM before and after heavy jobs. If available disk approaches below `700G` or used space grows toward roughly `800G`, stop and run cleanup before more training. Delete stale aborted manifests, old failed run dirs, and obsolete tmp/memmap dirs once their evidence has been extracted.
 - Stop bounded transformer training when validation is hard-red and continuing only burns compute. Do not extend epochs on a red recipe.

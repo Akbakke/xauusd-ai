@@ -14,12 +14,14 @@ def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
     assert "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md" in text
     assert "Use this script only: scripts/gx1_handover.sh" in text
     assert "trading bot for gold/XAUUSD" in text
+    assert "selects LONG/SHORT/FLAT direction" in text
+    assert "no competing" in text
     assert "GX1_ALLOW_LEGACY_HANDOVER" not in text
     assert "SMART JOINT POLICY PROMOTED" not in text
 
 
 def test_only_one_handover_shell_entrypoint_exists() -> None:
-    handover_scripts = sorted((REPO / "scripts").glob("*handover*.sh"))
+    handover_scripts = sorted((REPO / "scripts").rglob("*handover*.sh"))
 
     assert handover_scripts == [HANDOVER_VIEWER]
 
@@ -37,7 +39,9 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert result.returncode == 0
     assert "# XAUUSD Direction Repair Handover - 2026-07-14" in result.stdout
     assert "Build the GX1 trading bot for gold/XAUUSD" in result.stdout
+    assert "selects LONG/SHORT/FLAT direction" in result.stdout
     assert "Use this script only: scripts/gx1_handover.sh" in result.stdout
+    assert "no competing" in result.stdout
     assert "Continue the XAUUSD-only direction repair" in result.stdout
     assert "Do not use non-XAU project artifacts" in result.stdout
 
