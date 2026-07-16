@@ -39,10 +39,8 @@ MANIFEST_ONLY=0
 DRY_RUN=0
 REFRESH_SMOKE=0
 AUDIT_AFTER=1
-# Post-smoke audit runs on the (idle, post-train) GPU by default — validated
-# byte-identical edge verdict vs CPU on the run6 PASS bundle, ~2-3 min faster
-# (SMART+MAXED resource directive). Falls back to CPU when no CUDA. Override
-# with --audit-device cpu.
+# Post-smoke audit resolves an explicit device before execution. Use
+# --audit-device cpu/cuda to pin it; auto chooses CUDA only when available.
 AUDIT_DEVICE=auto
 AUDIT_BATCH_SIZE=512
 REQUIRE_EDGE_AUDIT=1
@@ -418,7 +416,7 @@ Options:
                        Plumbing-only audit; candidate-readiness will not pass.
 
 This is a smoke/plumbing path only. It writes a non-promoted bundle under the
-foundation seq146 run directory, audits the produced bundle including its active
+contract-selected rebuild root, audits the produced bundle including its active
 head contract, and does not pin, promote, shadow, or trade.
 
 Real training preflight reruns:
@@ -1450,7 +1448,11 @@ if [[ "$DRY_RUN" != "1" ]]; then
 fi
 
 STAMP=$(date -u '+%Y%m%dT%H%M%SZ')
-OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_${RUN_FLAVOR}_smoke_$STAMP
+if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
+  OUT_BUNDLE="$(dirname "$SOURCE_DATASET")/v10_entry_${RUN_FLAVOR}_smoke_$STAMP"
+else
+  OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_${RUN_FLAVOR}_smoke_$STAMP
+fi
 PRETRAIN_MANIFEST=$SMOKE_TRAIN_MANIFEST_DIR/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_$STAMP.json
 RUN_MODE=real_train
 if [[ "$MANIFEST_ONLY" = "1" ]]; then

@@ -6,7 +6,48 @@ for current Entry/Exit AI work. Detailed gates remain in
 `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
 `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`.
 
-## STATUS 2026-07-08 — SMART JOINT POLICY PROMOTED; SERVING WAVE IN FLIGHT
+## STATUS 2026-07-16 - XAU DIRECTION REPAIR ACTIVE
+
+The active work is no longer the 2026-07-08 serving wave. That state is
+historical context only and is not launch-valid for the current repair.
+
+Current source of truth for live work:
+- `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
+- `bash scripts/gx1_handover.sh`
+- `AGENTS.md` active XAU direction-repair override
+
+Current position:
+- Fresh 20260716 XAU rebuild, smoke dataset, and report-only readiness gates are
+  green.
+- Smart smoke training is bound to the fresh XAU contract and fails closed on
+  stale/missing paths.
+- No fresh XAU transformer bundle has passed hard direction-slice and
+  class-balance gates.
+- Latest bounded smart smoke attempts remained hard-red after source-level
+  repairs including independent public FLAT head, side-gradient staging, and
+  public trade/FLAT pairwise margin. No candidate bundle was produced.
+- Candidate training, replay, Entry-IQL, shadow, live, and promotion are closed.
+
+Active roadmap from here:
+1. Keep disk/RAM/process hygiene green before touching heavy jobs. Clean up
+   aborted manifests/tmp/runs after extracting evidence.
+2. Hunt code and contract mismatches before another run: stale paths, readiness
+   fields missing from audit, report/latest races, and fallback behavior.
+3. Require fresh source identity in every smart XAU gate: post-rebuild readiness,
+   smoke-readiness, trainability, future train argv and output bundle root must
+   point at the same fresh rebuild. Newer red reports invalidate older READY.
+4. Diagnose or repair the Entry Transformer public trade-vs-FLAT hard decision
+   surface. Do not move to Entry-IQL and do not rerun unchanged hard-red recipes.
+5. Do not allow smart direction-repair recipe overrides except under a separate
+   audited sweep contract with exact values carried through readiness/audit.
+6. After a small source repair, run focused tests plus smart smoke readiness,
+   trainability readiness, and train enablement from a clean git tree.
+7. Run at most one bounded fresh XAU smoke for that new formulation, with
+   hard-red stop discipline.
+8. Open candidate/replay/IQL only after a fresh XAU transformer bundle passes
+   hard direction-slice and class-balance gates.
+
+## STATUS 2026-07-08 - HISTORICAL SMART JOINT POLICY CONTEXT
 
 The ladder in this document has been executed through step 9's replay proof.
 The sections below ("Current Position", "Roadmap" steps 1-6) describe the
@@ -54,7 +95,7 @@ Refuted/parked this wave (reopen only with new data + explicit vedtak):
 - Full-history dense exit substrate: blocked on provenance (entry-IQL
   2026-bound + hash-pinned; top-20% selection not provable pre-2026).
 
-## Roadmap from here (2026-07-08)
+## Historical Roadmap From 2026-07-08
 
 1. SERVING WAVE (in flight, `gx1/execution`): live per-M5 520-dim
    state-builder + smart-entry adapter + runner integration. Extend the

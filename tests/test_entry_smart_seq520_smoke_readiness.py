@@ -72,6 +72,16 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         },
     )
     _write_json(
+        tmp_path / "post_rebuild_readiness.json",
+        {
+            "decision": "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW",
+            "dataset_dir": str(smart_dataset_dir),
+            "post_rebuild_refresh_command_contract": {
+                "smart_smoke_dataset_dir": str(smart_smoke_dataset_dir),
+            },
+        },
+    )
+    _write_json(
         tmp_path / "feature_audit.json",
         {
             "decision": "PASS",
@@ -209,6 +219,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     )
     return argparse.Namespace(
         smart_rebuild_preflight_json=str(tmp_path / "smart_rebuild_preflight.json"),
+        smart_post_rebuild_readiness_json=str(tmp_path / "post_rebuild_readiness.json"),
         smart_dataset_dir=str(smart_dataset_dir),
         smart_smoke_dataset_dir=str(smart_smoke_dataset_dir),
         smart_feature_audit_json=str(tmp_path / "feature_audit.json"),
@@ -264,6 +275,9 @@ def test_smart_seq520_smoke_readiness_passes_as_report_only(monkeypatch, tmp_pat
     assert train_contract["requires_direction_context_slice_contract"] is True
     assert train_contract["direction_context_slice_contract"] == readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
     train_argv = " ".join(train_contract["inner_train_argv_template"])
+    assert str(smart_smoke_root := Path(args.smart_smoke_dataset_dir)) in train_argv
+    out_idx = train_contract["inner_train_argv_template"].index("--out_bundle_dir") + 1
+    assert str(Path(args.smart_dataset_dir).parent) in train_contract["inner_train_argv_template"][out_idx]
     for key, value in readiness.PATH_CALIBRATION_ENV_TEMPLATE.items():
         assert f"{key}={value}" in train_argv
     for key, value in readiness.DIRECTION_BALANCE_ENV_TEMPLATE.items():

@@ -25,7 +25,6 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     specialist_model_contract_for_mode,
 )
 from gx1.scripts.verify_entry_foundation_state_v1 import (
-    FOUNDATION_DATASET_DIR,
     REPO,
     REPORTS_ROOT,
 )
@@ -42,13 +41,10 @@ EXPECTED_MODEL_CONTRACT = specialist_model_contract_for_mode(CONTRACT_MODE)
 DEFAULT_SMART_REBUILD_PREFLIGHT = (
     REPORTS_ROOT / "entry_smart_seq_rebuild_preflight_20260630_v1/ENTRY_SMART_REBUILD_PREFLIGHT_latest.json"
 )
-DEFAULT_SMART_DATASET_DIR = (
-    FOUNDATION_DATASET_DIR.parent.parent
-    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
-)
-DEFAULT_SMART_SMOKE_DATASET_DIR = (
-    FOUNDATION_DATASET_DIR.parent.parent
-    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
+DEFAULT_POST_REBUILD_READINESS_JSON = (
+    REPORTS_ROOT
+    / "entry_smart_dataset_post_rebuild_readiness_20260630_v1"
+    / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"
 )
 DEFAULT_FEATURE_AUDIT = (
     REPORTS_ROOT
@@ -473,6 +469,12 @@ def _artifact_meta(path: Path) -> dict[str, Any]:
     }
 
 
+def _contract_path(raw: object, *, label: str) -> Path:
+    if isinstance(raw, str) and raw.strip():
+        return Path(raw).expanduser().resolve()
+    return (Path("/") / f"GX1_MISSING_{label}").resolve()
+
+
 def _check(name: str, ok: bool, details: Any = None) -> dict[str, Any]:
     return {"name": name, "ok": bool(ok), "details": details if details is not None else {}}
 
@@ -701,16 +703,14 @@ def _trainer_loader_probe(specialist_audit_json: Path) -> dict[str, Any]:
 
 def _future_contracts(
     *,
+    smart_dataset_dir: Path,
     smart_smoke_dataset_dir: Path,
     specialist_audit_json: Path,
     memory_cap: str,
     swap_cap: str,
 ) -> dict[str, Any]:
     train_parquet = smart_smoke_dataset_dir / "v10_smart_seq520_smoke__HOLD_03B_train.parquet"
-    out_bundle = (
-        "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-        "v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_<STAMP>"
-    )
+    out_bundle = str(smart_dataset_dir.parent / "v10_entry_smart_seq520_smoke_<STAMP>")
     env_prefix = [
         "env",
         *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()],
@@ -834,8 +834,21 @@ def _future_contracts(
 def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    smart_dataset_dir = Path(args.smart_dataset_dir).expanduser().resolve()
-    smart_smoke_dataset_dir = Path(args.smart_smoke_dataset_dir).expanduser().resolve()
+    post_rebuild_readiness_json = Path(args.smart_post_rebuild_readiness_json).expanduser().resolve()
+    post_rebuild = _read_json_or_empty(post_rebuild_readiness_json)
+    post_rebuild_contract = (
+        post_rebuild.get("post_rebuild_refresh_command_contract")
+        if isinstance(post_rebuild.get("post_rebuild_refresh_command_contract"), dict)
+        else {}
+    )
+    smart_dataset_dir = _contract_path(
+        args.smart_dataset_dir or post_rebuild.get("dataset_dir"),
+        label="SMART_SEQ520_SOURCE_DATASET_DIR",
+    )
+    smart_smoke_dataset_dir = _contract_path(
+        args.smart_smoke_dataset_dir or post_rebuild_contract.get("smart_smoke_dataset_dir"),
+        label="SMART_SEQ520_SMOKE_DATASET_DIR",
+    )
     rebuild_preflight_json = Path(args.smart_rebuild_preflight_json).expanduser().resolve()
     feature_audit_json = Path(args.smart_feature_audit_json).expanduser().resolve()
     target_audit_json = Path(args.smart_target_audit_json).expanduser().resolve()
@@ -866,6 +879,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     git_status = _git_status_short(Path(args.repo_dir).expanduser().resolve())
     trainer_probe = _trainer_loader_probe(specialist_audit_json) if specialist_audit_json.exists() else {"ok": False}
     future_contracts = _future_contracts(
+        smart_dataset_dir=smart_dataset_dir,
         smart_smoke_dataset_dir=smart_smoke_dataset_dir,
         specialist_audit_json=specialist_audit_json,
         memory_cap=str(args.memory_cap),
@@ -886,6 +900,37 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _gate(
             "smart_rebuild_preflight",
             [
+                _check(
+                    "smart post-rebuild readiness exists",
+                    post_rebuild_readiness_json.exists(),
+                    _artifact_meta(post_rebuild_readiness_json),
+                ),
+                _check(
+                    "smart post-rebuild readiness is ready",
+                    post_rebuild.get("decision") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW",
+                    {"decision": post_rebuild.get("decision")},
+                ),
+                _check(
+                    "smart post-rebuild readiness points at selected source dataset",
+                    _dataset_path_matches(post_rebuild, smart_dataset_dir),
+                    {"dataset_dir": post_rebuild.get("dataset_dir"), "expected": str(smart_dataset_dir)},
+                ),
+                _check(
+                    "smart post-rebuild contract points at selected smoke dataset",
+                    _path_equals(post_rebuild_contract.get("smart_smoke_dataset_dir"), smart_smoke_dataset_dir),
+                    {
+                        "contract_smart_smoke_dataset_dir": post_rebuild_contract.get("smart_smoke_dataset_dir"),
+                        "expected": str(smart_smoke_dataset_dir),
+                    },
+                ),
+                _check(
+                    "smart source and smoke datasets share the same rebuild root",
+                    smart_dataset_dir.parent == smart_smoke_dataset_dir.parent,
+                    {
+                        "source_rebuild_root": str(smart_dataset_dir.parent),
+                        "smoke_rebuild_root": str(smart_smoke_dataset_dir.parent),
+                    },
+                ),
                 _check("smart rebuild preflight exists", rebuild_preflight_json.exists(), _artifact_meta(rebuild_preflight_json)),
                 _check(
                     "smart rebuild preflight is ready for vedtak review",
@@ -1248,6 +1293,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "live": False,
         },
         "inputs": {
+            "smart_post_rebuild_readiness": _artifact_meta(post_rebuild_readiness_json),
             "smart_rebuild_preflight": _artifact_meta(rebuild_preflight_json),
             "smart_feature_audit": _artifact_meta(feature_audit_json),
             "smart_target_audit": _artifact_meta(target_audit_json),
@@ -1302,9 +1348,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--smart-post-rebuild-readiness-json", default=str(DEFAULT_POST_REBUILD_READINESS_JSON))
     ap.add_argument("--smart-rebuild-preflight-json", default=str(DEFAULT_SMART_REBUILD_PREFLIGHT))
-    ap.add_argument("--smart-dataset-dir", default=str(DEFAULT_SMART_DATASET_DIR))
-    ap.add_argument("--smart-smoke-dataset-dir", default=str(DEFAULT_SMART_SMOKE_DATASET_DIR))
+    ap.add_argument("--smart-dataset-dir", default=None)
+    ap.add_argument("--smart-smoke-dataset-dir", default=None)
     ap.add_argument("--smart-feature-audit-json", default=str(DEFAULT_FEATURE_AUDIT))
     ap.add_argument("--smart-target-audit-json", default=str(DEFAULT_TARGET_AUDIT))
     ap.add_argument("--smart-specialist-audit-json", default=str(DEFAULT_SPECIALIST_AUDIT))

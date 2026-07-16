@@ -716,6 +716,56 @@ def _contains_exact_string(payloads: dict[str, Any], needle: str) -> list[str]:
     return matches
 
 
+def _path_str(raw: object) -> str | None:
+    if isinstance(raw, str) and raw.strip():
+        return str(Path(raw).expanduser().resolve())
+    return None
+
+
+def _argv_value(argv: object, flag: str) -> str | None:
+    if not isinstance(argv, list):
+        return None
+    for idx, value in enumerate(argv[:-1]):
+        if value == flag:
+            return _path_str(argv[idx + 1])
+    return None
+
+
+def _fresh_source_identity_contract(post_rebuild: dict[str, Any], smoke_readiness: dict[str, Any], future_train: dict[str, Any]) -> dict[str, Any]:
+    post_contract = (
+        post_rebuild.get("post_rebuild_refresh_command_contract")
+        if isinstance(post_rebuild.get("post_rebuild_refresh_command_contract"), dict)
+        else {}
+    )
+    smoke_inputs = smoke_readiness.get("inputs") if isinstance(smoke_readiness.get("inputs"), dict) else {}
+    source_dataset = _path_str(post_rebuild.get("dataset_dir"))
+    post_smoke_dataset = _path_str(post_contract.get("smart_smoke_dataset_dir"))
+    readiness_source_dataset = _path_str(smoke_inputs.get("smart_dataset_dir"))
+    readiness_smoke_dataset = _path_str(smoke_inputs.get("smart_smoke_dataset_dir"))
+    train_argv = future_train.get("inner_train_argv_template")
+    train_dataset = _argv_value(train_argv, "--dataset_dir")
+    train_out_bundle = _argv_value(train_argv, "--out_bundle_dir")
+    source_root = _path_str(str(Path(source_dataset).parent)) if source_dataset else None
+    smoke_root = _path_str(str(Path(post_smoke_dataset).parent)) if post_smoke_dataset else None
+    out_root = _path_str(str(Path(train_out_bundle).parent)) if train_out_bundle else None
+    return {
+        "source_dataset": source_dataset,
+        "post_rebuild_smoke_dataset": post_smoke_dataset,
+        "smoke_readiness_source_dataset": readiness_source_dataset,
+        "smoke_readiness_smoke_dataset": readiness_smoke_dataset,
+        "future_train_dataset": train_dataset,
+        "future_train_out_bundle": train_out_bundle,
+        "source_rebuild_root": source_root,
+        "smoke_rebuild_root": smoke_root,
+        "future_train_out_root": out_root,
+        "source_matches_smoke_readiness": bool(source_dataset) and source_dataset == readiness_source_dataset,
+        "smoke_matches_smoke_readiness": bool(post_smoke_dataset) and post_smoke_dataset == readiness_smoke_dataset,
+        "future_train_dataset_matches_smoke": bool(post_smoke_dataset) and post_smoke_dataset == train_dataset,
+        "future_train_out_under_source_root": bool(source_root) and source_root == out_root,
+        "source_and_smoke_share_rebuild_root": bool(source_root) and source_root == smoke_root,
+    }
+
+
 def _ctx_contract_rows(payloads: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for root, payload in payloads.items():
@@ -798,6 +848,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     post_rebuild = _read_json_or_empty(post_rebuild_json)
     smoke_readiness = _read_json_or_empty(smoke_readiness_json)
     future_train = _future_train_contract(smoke_readiness)
+    fresh_source_identity_contract = _fresh_source_identity_contract(post_rebuild, smoke_readiness, future_train)
     source_metadata_contract = _ctx_metadata_contract(
         {
             "smart_post_rebuild_readiness": post_rebuild,
@@ -836,6 +887,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checks = [
         _check("smart post-rebuild dataset audit is ready", post_rebuild.get("decision") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW", post_rebuild.get("decision")),
         _check("smart smoke readiness is ready", smoke_readiness.get("decision") == "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW", smoke_readiness.get("decision")),
+        _check(
+            "smart smoke readiness uses same source dataset as post-rebuild readiness",
+            fresh_source_identity_contract["source_matches_smoke_readiness"],
+            fresh_source_identity_contract,
+        ),
+        _check(
+            "smart smoke readiness uses same smoke dataset as post-rebuild contract",
+            fresh_source_identity_contract["smoke_matches_smoke_readiness"],
+            fresh_source_identity_contract,
+        ),
+        _check(
+            "smart future train dataset matches fresh smoke dataset",
+            fresh_source_identity_contract["future_train_dataset_matches_smoke"],
+            fresh_source_identity_contract,
+        ),
+        _check(
+            "smart future train output stays under fresh source rebuild root",
+            fresh_source_identity_contract["future_train_out_under_source_root"],
+            fresh_source_identity_contract,
+        ),
+        _check(
+            "smart source and smoke datasets share rebuild root",
+            fresh_source_identity_contract["source_and_smoke_share_rebuild_root"],
+            fresh_source_identity_contract,
+        ),
         _check("smart specialist mode is accepted by trainer contract modes", CONTRACT_MODE in SPECIALIST_CONTRACT_MODES, list(SPECIALIST_CONTRACT_MODES)),
         _check(
             "smart specialist registry is trainable only through explicit candidate gate",
@@ -965,6 +1041,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "replay_readiness_script": _artifact_meta(replay_readiness_script),
         },
         "future_train_contract": future_train,
+        "fresh_source_identity_contract": fresh_source_identity_contract,
         "source_metadata_contract": source_metadata_contract,
         "checks": checks,
         "failures": failures,

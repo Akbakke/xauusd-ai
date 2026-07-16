@@ -6,18 +6,49 @@ direction repair. The 2026-07-08 smart-chain promotion notes below are historica
 context only and are not launch-valid until the fresh XAU direction-repair
 dataset, parity, live-like replay, calibration, and pocket audits pass.
 
+Current takeover state, 2026-07-16:
+- First command for a new agent is `bash scripts/gx1_handover.sh`, then verify
+  `git status --short`, `df -h /home/andre2/GX1_DATA`, `free -h`, and
+  `ps -C python -C python3 -o pid,ppid,stat,%cpu,%mem,etime,cmd --sort=-%cpu`.
+- Fresh XAU data/readiness are green, but there is still no accepted fresh XAU
+  transformer bundle. The latest bounded smart smoke attempts hard-red-stopped
+  or failed closed; candidate/replay/IQL/shadow/live/promotion stay closed.
+- We are repairing the Entry Transformer direction formulation only. Entry-IQL
+  is not being fine-tuned, and no replay/candidate path is allowed until the
+  transformer passes hard direction-slice and class-balance gates.
+- Do not rerun an unchanged hard-red recipe. The next useful work is mismatch
+  hunting and a small source-level formulation/input-label diagnosis around
+  public trade-vs-FLAT hard decisioning, not scalar-only tuning or extra epochs.
+
 Always-active user rules for this repair:
 - **NO FALLBACK, ever:** if a required dataset, artifact, parity proof, audit,
   gate, feature, contract, or dependency is missing/stale/invalid, fail closed.
   Do not add advisory/fallback/soft-pass paths, do not silently continue with
   degraded inputs, and do not hide slice/gate failures behind report-only logic.
   Either the program works under the declared contract, or it does not.
+  This is an always-on rule for code, docs, tests, scripts, diagnosis, cleanup,
+  training, replay, IQL, shadow, live, and promotion.
 - **Disk cleanup is mandatory:** monitor `/home/andre2` and
   `/home/andre2/GX1_DATA` during long rebuild/train/sweep work. When available
   space approaches or drops below 700 GB, stop and do an explicit cleanup round
   of obsolete failed/superseded runs, tmp dirs, and stale reports before starting
   more heavy jobs. Never delete ACTIVE contract artifacts or evidence still
   needed to diagnose the current gate failure.
+- **OOM prevention is mandatory:** before and after heavy jobs, check RAM and
+  active Python processes. Do not start transformer/replay/IQL work when memory
+  headroom is unsafe; stop clearly hard-red training instead of burning compute.
+- **End every handoff with a mismatch hunt:** after source or contract changes,
+  run focused tests and scan for stale paths, missing readiness/audit contract
+  fields, and any fallback wording/behavior in the touched surface.
+- **Newest red invalidates older green:** report selection must be latest by
+  event/run identity, not "ready first". A newer hard-red/not-ready report for
+  the same family blocks older READY evidence until the exact dataset, smoke
+  dataset, bundle/pretrain manifest, hashes, and hard direction-slice /
+  class-balance status are refreshed green.
+- **Smart XAU recipe overrides are closed by default:** do not allow
+  `ENTRY_FOUNDATION_SMOKE_*` or `ENTRY_FOUNDATION_CANDIDATE_*` direction-repair
+  overrides in strict XAU runs unless a separate audited sweep contract names
+  them explicitly and fail-closed readiness/audit carries the exact values.
 
 Historical pre-repair state (do not use as launch authority):
 - v10_entry = smart_seq520 cand#4 ACTIVE (vedtak

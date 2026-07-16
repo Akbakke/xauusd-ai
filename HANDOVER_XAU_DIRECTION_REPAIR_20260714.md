@@ -4,6 +4,98 @@
 
 Continue the XAUUSD-only direction repair until the live/replay/training stack proves that the model learns to abstain or go long in bull/rising-support regimes, rather than selecting confident SHORT. Do not use non-XAU project artifacts. Do not promote any XAU bundle live until fresh XAU datasets, parity, live-like replay, calibration, and direction-pocket audits all pass.
 
+## New Agent Takeover Snapshot - 2026-07-16
+
+Start here:
+- Run `bash scripts/gx1_handover.sh`, then verify `git status --short`,
+  `df -h /home/andre2/GX1_DATA`, `free -h`, and
+  `ps -C python -C python3 -o pid,ppid,stat,%cpu,%mem,etime,cmd --sort=-%cpu`.
+- Do not start training, replay, IQL, shadow, live, or promotion from this
+  snapshot. The current task is code/contract mismatch hunting and the next
+  small Entry Transformer formulation repair.
+
+Current truth:
+- Fresh 20260716 XAU rebuild, smoke dataset, pretrain audit, smoke readiness,
+  trainability readiness, and train enablement have been proven on the fresh
+  XAU contract.
+- The smart smoke train wrapper no longer points at stale `spreadfix` paths; it
+  resolves the fresh XAU source/smoke/M5 paths from readiness reports and fails
+  closed on mismatch.
+- There is still no accepted fresh XAU transformer bundle. The latest bounded
+  smoke after public trade/FLAT pairwise-margin contract stayed hard-red at
+  epoch 1: `dir_acc=0.347005`, `balance_guard_ok=0`,
+  `slice_contract_ok=0`, public FLAT pred `0.000000`, and `30` slice failures.
+- Entry-IQL is closed. Candidate training, replay, shadow, live, and promotion
+  are closed until a fresh XAU transformer passes hard direction-slice and
+  class-balance gates.
+
+Do not repeat:
+- Do not rerun unchanged hard-red recipes, including public FLAT head,
+  side-gradient staging, public trade/FLAT pairwise margin, or old
+  side/flat/prior scalar retunes.
+- Do not spend more epochs on a red recipe. If first validation is hard-red and
+  evidence shows no useful recovery path, stop and clean aborted artifacts.
+- Do not use fallback paths, advisory gates, report-only pass-throughs, or
+  stale `latest` reports as permission.
+
+Next useful work:
+- Run targeted mismatch scans for stale paths, missing readiness/audit contract
+  fields, and any fallback behavior in the touched XAU direction-repair surface.
+- Inspect the public trade-vs-FLAT hard decision surface. Existing independent
+  public trade and public FLAT heads are supervised, but hard composition still
+  allows tiny relative trade edges to become all-trade public predictions.
+- If code changes are made, keep them small and fail-closed; then run focused
+  tests, clean-git readiness/trainability/enablement, and only one bounded smoke.
+
+## 2026-07-16 Sub-Agent Mismatch Audit / Takeover Fixes
+
+Three read-only sub-agents inspected the code for stale paths, public
+trade-vs-FLAT formulation gaps, and readiness/audit mismatches.
+
+Fixed in this takeover update:
+- `smart-smoke-readiness` no longer defaults to old
+  `v10_6yr_rebuild_20260626_spreadfix` source/smoke paths. When no explicit
+  paths are supplied, it resolves them from
+  `ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json` and fails closed if
+  the post-rebuild contract disagrees.
+- `smart-smoke-readiness` future train contract now writes smart smoke bundles
+  under the same fresh rebuild root as the source dataset, not under the old
+  `v10_6yr_rebuild_20260628_foundation_seq146` namespace.
+- `smart-trainability-readiness` now checks that post-rebuild readiness,
+  smoke-readiness inputs, future train `--dataset_dir`, and future train
+  `--out_bundle_dir` all share the same fresh source/smoke identity.
+- `scripts/entry_next_edge_control.sh` smart report helper selection now sorts
+  by newest report first; an older READY report no longer outranks a newer red
+  report.
+- Post-smoke audit text no longer says device fallback. It now describes
+  explicit device resolution.
+- Focused tests cover the fresh output-root, mixed fresh/stale smoke-readiness
+  block, and smoke-readiness source identity.
+
+Sub-agent findings still pending after this takeover update:
+- Public trade-vs-FLAT formulation still lacks first-class evidence around the
+  exact serving hard decision. Next source repair should log and gate
+  `softmax([public_trade_logit, public_flat_logit])`, hard trade/FLAT rates,
+  label rates, and final `direction_logits` hard FLAT rates globally and per
+  active ctx slice.
+- Current soft prior losses can look reasonable while hard FLAT argmax is zero.
+  Add a hard-rate validation/evidence gate before saving or continuing a red
+  run; do not rely on scalar loss increases.
+- Downstream smoke bundle audit, candidate readiness, and replay readiness still
+  need hard checks for `ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT`,
+  `ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION`, and
+  `ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR`.
+- Smart XAU recipe overrides in smoke/candidate wrappers should become
+  fail-closed unless a separate audited sweep contract explicitly carries the
+  override values.
+- Smart candidate `--dataset-dir` should be exact-contract based, not
+  denylist-based. A stale XAU path with a new name must not pass because it
+  contains `xau`.
+- Split generic promotion-review from smart XAU promotion-review; smart XAU
+  promotion review stays false until selected replay comparison, slice audit,
+  path calibration, direction-slice, class-balance, and hard-red gates are fresh
+  PASS.
+
 ## Current State
 
 - Repo: `/home/andre2/src/GX1_ENGINE`
@@ -1849,28 +1941,35 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke with the public side direction-margin bridge was stopped after epoch `2` went hard red. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
-   - Latest source repairs:
-     - `df9302bb Require XAU maxnorm confidence direction composition`
-     - `02edd453 Bound XAU public side confidence abstain penalty`
-     - `8b139dec Require XAU public side direction-margin bridge`
-     - `adb4b441 Require XAU public side residual cap training loss`
-   - Latest side-margin-bridge smoke improved epoch `1` to `balance_guard_ok=1`, `15` slice failures, `dir_acc=0.365234`, public pred LONG `0.324219`, SHORT `0.417969`, FLAT `0.257812`, and `side_pred_long_edge=0.446322`.
-   - The same run became hard-red at epoch `2`: `balance_guard_ok=0`, `29` slice failures, `dir_acc=0.346354`, public pred LONG `0.464844`, SHORT `0.071615`, FLAT `0.463542`, and `side_pred_long_edge=0.888668`.
-   - The run was manually stopped during epoch `3` train to avoid burning compute.
-   - The latest residual-cap smoke repeated the same epoch-2 hard red and showed `hier_side_rescap=0.000000`; the active blocker is now training dynamics/composition/loss conflict under hierarchy-composed public direction output, not an IQL problem and not a public side-head residual-cap miss.
-   - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/10` detailed red slices weak on required rail features.
+2. Latest executed smart XAU smoke on the fresh 20260716 XAU contract, after
+   independent public FLAT head, side-gradient staging, and public trade/FLAT
+   pairwise-margin source repairs, still hard-red-stopped. No candidate bundle
+   was produced and no failed bundle should be used as promotion evidence.
+   - Latest bounded smoke: `SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716`.
+   - Epoch `1`: `dir_acc=0.347005`, `balance_guard_ok=0`,
+     `slice_contract_ok=0`, public pred LONG `0.507161`, SHORT `0.492839`,
+     FLAT `0.000000`, `30` slice failures, hierarchy `trade_pred=1.000000`,
+     `trade_prob=0.513932`, `flat_prob=0.486068`.
+   - The run was interrupted during epoch `2` train to avoid burning compute on
+     a red recipe. No bundle directory, sidecar, or matching tmp/memmap dir was
+     left after cleanup.
+   - Active blocker is now public trade-vs-FLAT hard decisioning and
+     slice-level direction formulation/input-label diagnosis, not IQL and not
+     stale `spreadfix` input.
+   - The blocker is not missing required XAU rail input and not IQL-readiness;
+     fresh XAU rebuild/readiness is green, but transformer public hard
+     predictions still do not satisfy class-balance and direction-slice gates.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, public-flat-head, public-margin-composition, centered-public-margin-composition, max-normalized-public-margin-composition, public-trade-direction-margin-bridge, public-side-direction-margin-bridge, public-side-head-residual-cap, side-gradient-staging, or maxnorm-confidence public direction recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, ctx-direction-calibration, public-trade-head, public-flat-head, public-margin-composition, centered-public-margin-composition, max-normalized-public-margin-composition, public-trade-direction-margin-bridge, public-side-direction-margin-bridge, public-side-head-residual-cap, side-gradient-staging, maxnorm-confidence public direction, independent public FLAT head, or public trade/FLAT pairwise-margin recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
    - keep residual-through-composition, hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, max-normalized public margin composition, side-prior, trade-prior, hierarchy trade-accuracy edge, and direction-slice evidence logging; they are useful guardrails.
-   - do not spend another run tuning only scalar caps/weights/epochs. The latest public-FLAT-head smoke still failed class balance and active slices; independent FLAT supervision alone did not make public hard predictions stable.
+   - do not spend another run tuning only scalar caps/weights/epochs. The latest public trade/FLAT pairwise-margin smoke still failed class balance and active slices; independent FLAT supervision plus pairwise margin did not make public hard predictions stable.
    - first inspect the latest red-slice rows/confusion evidence against existing XAU rail/SR/wick/regime features; if those features are present but ignored, make a topology/staging change.
    - likely next source-level options:
      - add staged training/annealing so public trade/no-trade and side-choice losses do not undo epoch-1 side balance by epoch 2.

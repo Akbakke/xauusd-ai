@@ -229,7 +229,9 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "--smart-post-rebuild-readiness-json" in result.stdout
     assert "--smart-smoke-readiness-json" in result.stdout
     assert fresh_rebuild in result.stdout
+    assert f"{fresh_rebuild}/v10_entry_smart_seq520_smoke_" in result.stdout
     assert "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair" not in result.stdout
+    assert "v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_" not in result.stdout
     assert "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet" not in result.stdout
     assert (
         "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"

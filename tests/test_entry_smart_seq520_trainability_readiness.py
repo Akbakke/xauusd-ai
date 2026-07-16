@@ -19,6 +19,9 @@ def _write(path: Path, text: str) -> Path:
 def _path_calibration_future_contract(wired: bool) -> dict:
     if not wired:
         return {}
+    source_dataset = "/tmp/gx1_trainability_fixture/fresh_rebuild/v10_dataset_6yr_smartctx_xau_direction_repair"
+    smoke_dataset = f"{source_dataset}_smoke"
+    out_bundle = "/tmp/gx1_trainability_fixture/fresh_rebuild/v10_entry_smart_seq520_smoke_<STAMP>"
     return {
         "requires_path_calibration_recipe_contract": True,
         "path_calibration_recipe_contract": dict(gate.PATH_CALIBRATION_RECIPE_CONTRACT),
@@ -37,6 +40,10 @@ def _path_calibration_future_contract(wired: bool) -> dict:
             *[f"{key}={value}" for key, value in gate.DIRECTION_BALANCE_ENV_TEMPLATE.items()],
             *[f"{key}={value}" for key, value in gate.TAIL_DIRECTION_ENV_TEMPLATE.items()],
             ".venv/bin/python",
+            "--dataset_dir",
+            smoke_dataset,
+            "--out_bundle_dir",
+            out_bundle,
             "--enable-xau-direction-repair-heads",
             "--anchor-gate-init",
             "0.0",
@@ -151,6 +158,8 @@ def _tail_direction_wrapper_text(kind: str) -> str:
 def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse.Namespace:
     post_rebuild = tmp_path / "post_rebuild.json"
     smoke_readiness = tmp_path / "smoke_readiness.json"
+    source_dataset = "/tmp/gx1_trainability_fixture/fresh_rebuild/v10_dataset_6yr_smartctx_xau_direction_repair"
+    smoke_dataset = f"{source_dataset}_smoke"
     _write_json(
         post_rebuild,
         {
@@ -159,6 +168,10 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
                 if wired
                 else "BLOCKED_BY_ENTRY_SMART_DATASET_POST_REBUILD_AUDIT"
             ),
+            "dataset_dir": source_dataset,
+            "post_rebuild_refresh_command_contract": {
+                "smart_smoke_dataset_dir": smoke_dataset,
+            },
             "split_manifests": {
                 split: {
                     "ctx_contract": {
@@ -185,6 +198,10 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
                     "specialist_contract_mode": "smart_seq520_candidate",
                     **_path_calibration_future_contract(wired),
                 }
+            },
+            "inputs": {
+                "smart_dataset_dir": source_dataset,
+                "smart_smoke_dataset_dir": smoke_dataset,
             },
         },
     )
@@ -255,9 +272,24 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
     assert report["expected_signal_dim"] == 520
     assert report["source_metadata_contract"]["declared_ctx_contracts_match_expected"] is True
     assert report["source_metadata_contract"]["no_stale_ctx6cat6"] is True
+    assert report["fresh_source_identity_contract"]["future_train_out_under_source_root"] is True
     assert report["training_allowed"] is False
     assert report["execution_allowed_now"] is False
     assert report["failures"] == []
+
+
+def test_smart_trainability_blocks_mixed_fresh_and_stale_smoke_reports(tmp_path: Path) -> None:
+    args = _args(tmp_path, wired=True)
+    smoke_path = Path(args.smart_smoke_readiness_json)
+    smoke = json.loads(smoke_path.read_text(encoding="utf-8"))
+    smoke["inputs"]["smart_smoke_dataset_dir"] = "/tmp/stale_xau_rebuild/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
+    _write_json(smoke_path, smoke)
+
+    report = gate.run(args)
+
+    assert report["decision"] == gate.BLOCKED_DECISION
+    assert "smart smoke readiness uses same smoke dataset as post-rebuild contract" in report["blockers"]
+    assert report["training_allowed"] is False
 
 
 def test_smart_trainability_blocks_stale_ctx6cat6_source_metadata(tmp_path: Path) -> None:

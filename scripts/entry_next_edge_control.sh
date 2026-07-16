@@ -201,7 +201,7 @@ def latest_smart_selected_replay_readiness(root):
             mtime_ns = path.stat().st_mtime_ns
         except OSError:
             mtime_ns = 0
-        candidates.append((ready, mtime_ns, path))
+        candidates.append((mtime_ns, ready, path))
     if not candidates:
         return None
     return sorted(candidates, reverse=True)[0][2]
@@ -222,7 +222,7 @@ def latest_ready_smart_report(root, pattern, ready_decisions):
             mtime_ns = path.stat().st_mtime_ns
         except OSError:
             mtime_ns = 0
-        candidates.append((ready, mtime_ns, path))
+        candidates.append((mtime_ns, ready, path))
     if not candidates:
         return None
     return sorted(candidates, reverse=True)[0][2]
