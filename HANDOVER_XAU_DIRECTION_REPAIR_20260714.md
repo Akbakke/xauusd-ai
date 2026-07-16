@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no `python`/`python3` training/eval jobs are running after the latest 2026-07-16 direction-slice-confusion smoke failed closed. GPU is idle, RAM is safe, and swap is unused.
+- Runtime: no `python`/`python3` training/eval jobs are running after the latest 2026-07-16 ctx-direction-calibration smoke was stopped hard-red. GPU is idle, RAM is safe, and swap is unused.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry source repair commit is `071efcea Require XAU direction slice confusion pair loss`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry source repair commit is `be609151 Require XAU ctx direction calibration`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
@@ -133,6 +133,52 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - Yes, there has been source/contract progress; no, there is not yet model progress sufficient for a candidate.
   - Entry-IQL is still closed because there is no passing fresh transformer bundle to train or distill from.
   - The remaining blocker is active ctx-slice direction discrimination under hierarchy-composed public logits. The next step should be a new diagnostic/source repair, not another scalar-only retune: inspect the red slice confusion rows and then change topology/staging if existing XAU rail/SR/wick/regime features are present but ignored.
+
+## 2026-07-16 Source Update - Hierarchy Ctx Direction Calibration
+
+- After `SMART_SEQ520_XAU_SMOKE_DIRCONFPAIR_E6_20260716`, a report-only red-slice separability audit confirmed this was not primarily missing input:
+  - Report: `/home/andre2/GX1_DATA/reports/xau_red_slice_separability_audit_20260715_v1/XAU_RED_SLICE_SEPARABILITY_AUDIT_latest.json`.
+  - Evidence source: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T053209Z__direction_slice_failure_evidence.json`.
+  - Decision: `XAU_RED_SLICE_SEPARABILITY_AUDIT_COMPLETE`.
+  - Domain feature count remained `247`, missing required XAU direction features `0`, and only `1/10` detailed red slices was weak on required rail features. Even that weak required-rail slice had strong separability in other XAU domain features.
+  - Interpretation: existing XAU rail/SR/wick/regime inputs are present; the transformer is still ignoring or using them unstably in active ctx slices.
+- Implemented and committed `be609151 Require XAU ctx direction calibration`.
+  - Added optional `hierarchical_ctx_direction_calibration` to `EntryV10CtxHybridTransformer`.
+  - The adapter uses `ctx_cat` embeddings to add a learned, cap-limited calibration vector to hierarchy-composed public direction logits after the residual-through-composition step.
+  - Defaults remain OFF for legacy strict-load compatibility.
+  - Smart XAU repair now requires `ENTRY_HIER_CTX_DIRECTION_CALIBRATION=1`, `ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE` in `[0.25, 1.00]`, and `ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP` in `[0.10, 0.50]`; wrappers/readiness/manifest/sweep/rebuild default to scale `0.50`, cap `0.35`.
+  - Bundle loading fails closed if adapter weights exist but scale/cap metadata is missing.
+  - This is model-native learning/inference, not a live rule, not advisory logic, and not fallback.
+- Validation before clean-git readiness:
+  - `git diff --check` passed.
+  - `python3 -m py_compile` passed for changed Python modules.
+  - `bash -n` passed for changed shell wrappers.
+  - Targeted pytest passed for model shape contract, trainer defaults, smoke/candidate wrappers, rebuild contract, smart enablement/readiness, sweep, bundle audit, candidate readiness, and replay readiness.
+- Clean-git post-commit gates passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_CTXDIRCAL_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`.
+  - Enablement report: `/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_train_enablement_20260715_v1/ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_20260716T055346Z.json`.
+  - Enablement decision was `ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION`; it kept `training_allowed=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, `promotion_shadow_live_allowed=false`, and `trainer_started=false`.
+- Ran one bounded smart smoke and stopped it when it went hard-red:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_CTXDIRCAL_E6_20260716`.
+  - Command: `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_CTXDIRCAL_E6_20260716 --require-edge-audit --epochs 6 --early-stop-patience 6`.
+  - Pre-train manifest was written at `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T055353Z.json`, then deleted after manual stop because the run was aborted and stale.
+  - Intended bundle dir was not created: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T055353Z`.
+  - No failure sidecar was written because the process was intentionally interrupted during epoch `3` train before final trainer failure handling.
+  - Epoch `1`: balance guard OK but hard-red slices, `dir_acc=0.337240`, public pred LONG `0.575521`, SHORT `0.190104`, FLAT `0.234375`, `15` slice failures (`14` accuracy, `1` pred-rate), `direction_slice_ckpt_score=-0.419797`, hierarchy `trade_pred=0.951172`, `trade_prob=0.660255`, `side_acc_edge=0.517893`.
+  - Epoch `2`: degraded further; balance guard failed, `dir_acc=0.346354`, public pred LONG `0.626953`, SHORT `0.104167`, FLAT `0.268880`, `19` slice failures (`11` accuracy, `8` pred-rate), `direction_slice_ckpt_score=-1.095590`, hierarchy `trade_pred=0.981120`, `trade_prob=0.633834`, `side_acc_edge=0.498012`.
+  - The run was stopped immediately after epoch `2` evidence because continuing to epoch `6` would burn compute without a plausible bundle path.
+- Post-stop resource and cleanup state:
+  - No relevant `python`/`python3` training/eval process running.
+  - `/home/andre2/GX1_DATA`: about `838G` free.
+  - RAM: about `35GiB` available, swap `0B`.
+  - The aborted run manifest was deleted; no bundle dir, no failure sidecar, and no fresh memmap tmp dir existed.
+- Current interpretation:
+  - Yes, there has been source/contract progress; no, there is not yet model progress sufficient for a candidate.
+  - The ctx direction calibration adapter is wired and contract-guarded, but it worsened the latest smoke versus the prior best and should not be rerun unchanged.
+  - Entry-IQL remains closed because there is still no fresh XAU transformer bundle that passes hard direction slice and class-balance gates.
+  - The next repair should change topology/staging, not add another scalar pressure or run more epochs. The likely direction is to decouple public side-choice from public FLAT/no-trade calibration, or stage/anneal the hierarchy/public heads so side learning cannot starve abstain in active ctx slices.
 
 ## Always-Active Operating Rules
 
@@ -1066,28 +1112,28 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after direction-slice-confusion-pair repair failed closed on `[TRAIN_FAIL_DIRECTION_SLICE_GUARD]`. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
-   - The latest source repair is `071efcea Require XAU direction slice confusion pair loss`.
-   - Best checkpoint was epoch `1`: balance guard OK, `dir_acc=0.365234`, public pred LONG `0.397786`, SHORT `0.237630`, FLAT `0.364583`, and `11` slice failures (`9` accuracy, `2` pred-rate).
-   - Epoch `2` degraded hard: balance guard failed, public pred LONG `0.029297`, SHORT `0.637370`, FLAT `0.333333`, and `29` slice failures. Trainer early-stopped and refused bundle creation because the slice contract stayed red.
+2. Latest executed smart XAU smoke after ctx-direction-calibration repair was stopped hard-red after epoch `2`. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
+   - The latest source repair is `be609151 Require XAU ctx direction calibration`.
+   - Epoch `1`: balance guard OK but `15` slice failures, `dir_acc=0.337240`, public pred LONG `0.575521`, SHORT `0.190104`, FLAT `0.234375`.
+   - Epoch `2`: balance guard failed, `19` slice failures, `dir_acc=0.346354`, public pred LONG `0.626953`, SHORT `0.104167`, FLAT `0.268880`; the run was manually stopped during epoch `3` train to avoid burning compute.
    - The active blocker remains genuine active-slice direction discrimination under the hierarchy-composed public direction output, not missing public-FLAT composition and not an IQL problem.
-   - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/16` weak required-feature red slices.
+   - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/10` detailed red slices weak on required rail features.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
 3. No promoted XAU candidate yet proves the required bull/rising-support, bear/falling-resistance, calibration, replay, parity, and launch gates.
 
 ## Highest-Priority Next Steps
 
-1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, or direction-slice-confusion-pair recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
+1. Do not extend epochs on the old side-utility-conviction, utility-trade-conviction, utility-triad-CE, hierarchical-composition, trade-pos-weight, hierarchy side-slice, residual-through-composition, residual-cap, side-neutral residual, side-prior, trade-prior, flat-logit-margin, hierarchy trade-accuracy-edge, direction-slice-confusion-pair, or ctx-direction-calibration recipe. They already hard-red-stopped, failed closed, or were manually stopped with no candidate bundle.
 
 2. Next action should be a new small source repair, not another heavy run on the same recipe:
    - keep residual-through-composition, hard residual cap, side-neutral residual, public-FLAT-from-hierarchy composition, side-prior, trade-prior, hierarchy trade-accuracy edge, and direction-slice evidence logging; they are useful guardrails.
-   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows direct confusion-pair pressure did not solve active-slice accuracy and regressed after epoch 1.
+   - do not spend another run tuning only scalar caps/weights/epochs. The latest smoke shows the ctx direction calibration adapter did not solve active-slice accuracy and regressed by epoch 2.
    - first inspect the latest red-slice rows/confusion evidence against existing XAU rail/SR/wick/regime features; if those features are present but ignored, make a topology/staging change.
    - likely next source-level options:
      - add staged training/annealing so public direction slice losses, trade/flat losses, and side losses do not fight from epoch 1.
      - split public side-choice from public FLAT/no-trade calibration more cleanly so side learning cannot starve abstain.
-     - add a slice-conditioned calibration/specialist adapter for active ctx slices, still inside the transformer contract and still fail-closed.
+     - replace the current additive calibration idea with a topology/staging change if public logits continue to ignore existing slice-separable features.
    - keep side-prior enabled while targeting remaining slice-level accuracy; feature audit still says required XAU rail inputs are present.
    - after a source repair, rerun focused tests, then clean-git readiness/enablement, then only one bounded smoke with hard-red stop.
    - do not add random new input, do not move to IQL, and do not tune another scalar weight blindly.
