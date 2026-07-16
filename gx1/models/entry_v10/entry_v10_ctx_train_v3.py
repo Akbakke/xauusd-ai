@@ -466,6 +466,9 @@ ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE = int(
 ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION = (
     _env_str("ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION", "logprob").strip().lower()
 )
+ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD = int(
+    float(_env_str("ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD", "0"))
+)
 ENTRY_HIER_PUBLIC_TRADE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_TRADE_HEAD", "0")))
 ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE = int(
     float(_env_str("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE", "0"))
@@ -868,6 +871,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "0",
     "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "0",
     "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION": "logprob",
+    "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD": "0",
     "ENTRY_HIER_PUBLIC_TRADE_HEAD": "0",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE": "0",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
@@ -1150,6 +1154,7 @@ def _build_active_head_names(
     enable_hierarchical_public_side_head: bool = False,
     enable_hierarchical_public_side_dir_margin_bridge: bool = False,
     hierarchical_public_direction_composition: str = "logprob",
+    enable_hierarchical_public_direction_detach_side_grad: bool = False,
     enable_hierarchical_ctx_prior_adapter: bool = False,
     enable_hierarchical_ctx_direction_calibration: bool = False,
     enable_side_validity_head: bool = False,
@@ -1186,6 +1191,10 @@ def _build_active_head_names(
         (
             "hierarchical_public_side_dir_margin_bridge",
             enable_hierarchical_public_side_dir_margin_bridge,
+        ),
+        (
+            "hierarchical_public_direction_detach_side_grad",
+            enable_hierarchical_public_direction_detach_side_grad,
         ),
         ("hierarchical_ctx_prior_adapter", enable_hierarchical_ctx_prior_adapter),
         ("hierarchical_ctx_direction_calibration", enable_hierarchical_ctx_direction_calibration),
@@ -8901,6 +8910,9 @@ def run_train(
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+        hierarchical_public_direction_detach_side_grad=bool(
+            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+        ),
         enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         enable_hierarchical_public_trade_dir_margin_bridge=bool(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
@@ -9336,6 +9348,12 @@ def run_train(
             f"ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION={ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} "
             "expected 'logprob', 'margin', 'margin_centered', 'margin_maxnorm', "
             "or 'margin_maxnorm_confidence'"
+        )
+    if int(ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_INVALID] "
+            "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD="
+            f"{ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD} expected 0 or 1"
         )
     if int(ENTRY_HIER_PUBLIC_TRADE_HEAD) not in (0, 1):
         raise RuntimeError(
@@ -10058,6 +10076,8 @@ def run_train(
                 "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION="
                 f"{ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} expected 'margin_maxnorm_confidence'"
             )
+        if not bool(ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD):
+            repair_failures.append("ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=0 expected 1")
         if not bool(ENTRY_HIER_PUBLIC_TRADE_HEAD):
             repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_HEAD=0 expected 1")
         if not bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE):
@@ -10431,6 +10451,7 @@ def run_train(
         "hier_public_side_head_residual_cap_w=%.3f "
         "hier_public_side_head_residual_cap=%.3f "
         "hier_public_direction_composition=%s "
+        "hier_public_direction_detach_side_grad=%d "
         "hier_ctx_prior_adapter=%d "
         "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
         "hier_ctx_direction_calibration_scale=%.3f hier_ctx_direction_calibration_cap=%.3f "
@@ -10508,6 +10529,7 @@ def run_train(
         float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT),
         float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
         str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+        int(bool(ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD)),
         int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
         float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         int(bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION)),
@@ -11129,6 +11151,9 @@ def run_train(
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
                     "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+                    "hier_public_direction_detach_side_grad": bool(
+                        ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+                    ),
                     "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
                     "hier_public_trade_dir_margin_bridge": bool(
                         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
@@ -11412,6 +11437,9 @@ def run_train(
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
                     "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+                    "hier_public_direction_detach_side_grad": bool(
+                        ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+                    ),
                     "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
                     "hier_public_trade_dir_margin_bridge": bool(
                         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
@@ -11647,6 +11675,9 @@ def run_train(
             ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
         ),
         hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+        enable_hierarchical_public_direction_detach_side_grad=bool(
+            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+        ),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
         enable_side_validity_head=bool(enable_side_validity_head),
@@ -11778,6 +11809,9 @@ def run_train(
             "residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
             "public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
             "public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+            "public_direction_detach_side_grad": bool(
+                ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+            ),
             "public_trade_head": {
                 "enabled": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
                 "input": "shared_entry_representation",
@@ -12210,6 +12244,9 @@ def run_train(
         "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+        "hier_public_direction_detach_side_grad": bool(
+            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+        ),
         "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         "hier_public_trade_dir_margin_bridge": bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE),
         "hier_public_trade_dir_margin_bridge_scale": float(
@@ -12409,6 +12446,9 @@ def run_train(
             "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
             "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
             "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+            "hier_public_direction_detach_side_grad": bool(
+                ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+            ),
             "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
             "hier_public_trade_dir_margin_bridge": bool(
                 ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
@@ -12644,6 +12684,9 @@ def run_train(
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
+        hierarchical_public_direction_detach_side_grad=bool(
+            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
+        ),
         enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         enable_hierarchical_public_trade_dir_margin_bridge=bool(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE

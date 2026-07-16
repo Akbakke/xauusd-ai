@@ -187,6 +187,7 @@ def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> 
         "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="
         "${ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE:-1}" in text
     )
+    assert "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=${ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD:-1}" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=${ENTRY_HIER_PUBLIC_TRADE_HEAD:-1}" in text
     assert (
         "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE="

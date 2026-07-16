@@ -339,6 +339,40 @@ def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_confidence_a
     assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm_confidence"] == 1.0)
 
 
+def test_entry_v10_ctx_hierarchical_public_direction_can_detach_side_gradient():
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=SEQ_DIM,
+        snap_input_dim=SEQ_DIM,
+        seq_len=SEQ_LEN,
+        ctx_cont_dim=CTX_CONT_DIM,
+        ctx_cat_dim=CTX_CAT_DIM,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_public_flat_from_trade=True,
+        hierarchical_public_direction_composition="margin_maxnorm_confidence",
+        hierarchical_public_direction_detach_side_grad=True,
+        enable_hierarchical_public_trade_head=True,
+        enable_hierarchical_public_side_head=True,
+    )
+    with torch.no_grad():
+        for param in model.parameters():
+            param.zero_()
+        model.head_public_trade.bias.fill_(0.25)
+        model.head_public_side.bias.copy_(torch.tensor([0.4, -0.1]))
+    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
+    model.zero_grad(set_to_none=True)
+
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+    loss = out["direction_logits"][:, 0].sum()
+    loss.backward()
+
+    assert torch.all(out["hierarchical_public_direction_detach_side_grad"] == 1.0)
+    assert model.head_public_trade.bias.grad is not None
+    assert torch.any(model.head_public_trade.bias.grad != 0.0)
+    side_grad = model.head_public_side.bias.grad
+    assert side_grad is None or torch.all(side_grad == 0.0)
+
+
 def test_entry_v10_ctx_public_trade_dir_margin_bridge_feeds_trade_flat_only():
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=SEQ_DIM,

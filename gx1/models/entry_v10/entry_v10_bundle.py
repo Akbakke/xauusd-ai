@@ -242,6 +242,12 @@ def load_entry_v10_ctx_bundle(
             meta.get("hier_public_direction_composition", "logprob") if isinstance(meta, dict) else "logprob",
         )
     ).strip().lower()
+    _hierarchical_public_direction_detach_side_grad = bool(
+        _hierarchical_direction_cfg.get(
+            "public_direction_detach_side_grad",
+            meta.get("hier_public_direction_detach_side_grad", False) if isinstance(meta, dict) else False,
+        )
+    )
     if _hierarchical_public_direction_composition not in {
         "logprob",
         "margin",
@@ -264,6 +270,17 @@ def load_entry_v10_ctx_bundle(
         )
     ):
         raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_COMPOSITION_METADATA_MISSING]")
+    if (
+        _has_hierarchical_public_trade_head
+        and _hierarchical_composition_public_flat_from_trade
+        and _hierarchical_public_direction_composition == "margin_maxnorm_confidence"
+        and "public_direction_detach_side_grad" not in _hierarchical_direction_cfg
+        and (
+            not isinstance(meta, dict)
+            or "hier_public_direction_detach_side_grad" not in meta
+        )
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_METADATA_MISSING]")
     if _has_hierarchical_public_trade_head and "public_trade_head" not in _hierarchical_direction_cfg:
         if not bool(meta.get("hier_public_trade_head", False) if isinstance(meta, dict) else False):
             raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_HEAD_METADATA_MISSING]")
@@ -452,6 +469,7 @@ def load_entry_v10_ctx_bundle(
         hierarchical_composition_residual_side_neutral=_hierarchical_composition_residual_side_neutral,
         hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
         hierarchical_public_direction_composition=_hierarchical_public_direction_composition,
+        hierarchical_public_direction_detach_side_grad=_hierarchical_public_direction_detach_side_grad,
         enable_hierarchical_public_trade_head=_has_hierarchical_public_trade_head,
         enable_hierarchical_public_trade_dir_margin_bridge=_has_hierarchical_public_trade_dir_margin_bridge,
         hierarchical_public_trade_dir_margin_bridge_scale=_hierarchical_public_trade_dir_margin_bridge_scale,

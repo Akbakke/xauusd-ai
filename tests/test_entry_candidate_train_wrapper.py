@@ -503,6 +503,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=" in text
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=" in text
     assert "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=" in text
+    assert "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=" in text
@@ -529,6 +530,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE" in text
@@ -553,6 +555,10 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     )
     assert (
         'ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION="$CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION"'
+        in text
+    )
+    assert (
+        'ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD="$CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD"'
         in text
     )
     assert 'ENTRY_HIER_PUBLIC_TRADE_HEAD="$CANDIDATE_HIER_PUBLIC_TRADE_HEAD"' in text

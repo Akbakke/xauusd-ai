@@ -284,6 +284,7 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1" in result.stdout
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in result.stdout
@@ -539,6 +540,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_FOUNDATION_SMOKE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION" in text
+    assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_HEAD" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE" in text
@@ -564,6 +566,10 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
         in text
     )
     assert 'ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION="$SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION"' in text
+    assert (
+        'ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD="$SMOKE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD"'
+        in text
+    )
     assert 'ENTRY_HIER_PUBLIC_TRADE_HEAD="$SMOKE_HIER_PUBLIC_TRADE_HEAD"' in text
     assert (
         'ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE="$SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE"'

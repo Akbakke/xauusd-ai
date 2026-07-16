@@ -148,6 +148,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION": "margin_maxnorm_confidence",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.50",
@@ -427,6 +428,14 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_PUBLIC_DIRECTION_COMPOSITION must be margin_maxnorm_confidence for strict XAU repair, "
             f"got {hier_public_direction_composition!r}"
+        )
+    hier_public_direction_detach_side_grad = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD", "0"))
+    )
+    if hier_public_direction_detach_side_grad != 1:
+        failures.append(
+            "HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD must be 1 for strict XAU repair, "
+            f"got {hier_public_direction_detach_side_grad}"
         )
     hier_ctx_prior_adapter = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER", "0")))
     hier_public_trade_head = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD", "0")))

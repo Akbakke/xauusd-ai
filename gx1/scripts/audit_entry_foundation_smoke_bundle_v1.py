@@ -105,6 +105,7 @@ SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED = "margin_maxnorm_confidence"
+SMART_DIRECTION_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN = 0.25
@@ -1492,6 +1493,15 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    hier_public_direction_detach_side_grad = _bool_value(
+        recipe.get(
+            "hier_public_direction_detach_side_grad",
+            _hierarchical_direction_meta.get(
+                "public_direction_detach_side_grad",
+                meta.get("hier_public_direction_detach_side_grad", False),
+            ),
+        )
+    )
     _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
     _hier_ctx_prior_meta = (
         _hierarchical_direction_meta.get("ctx_prior_adapter")
@@ -2447,6 +2457,13 @@ def _direction_balance_recipe_contract(
                 failures.append(
                     "smart direction active head requires hier_public_direction_composition=margin_maxnorm_confidence"
                 )
+            if (
+                hier_public_direction_detach_side_grad
+                is not SMART_DIRECTION_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_REQUIRED
+            ):
+                failures.append(
+                    "smart direction active head requires hier_public_direction_detach_side_grad=true"
+                )
             if hier_ctx_prior_adapter is not SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED:
                 failures.append("smart direction active head requires hier_ctx_prior_adapter=true")
             if hier_ctx_prior_adapter_scale < SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN:
@@ -2935,6 +2952,7 @@ def _direction_balance_recipe_contract(
         "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
         "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
         "hier_public_direction_composition": hier_public_direction_composition,
+        "hier_public_direction_detach_side_grad": hier_public_direction_detach_side_grad,
         "hier_public_trade_head": hier_public_trade_head,
         "hier_public_trade_dir_margin_bridge": hier_public_trade_dir_margin_bridge,
         "hier_public_trade_dir_margin_bridge_scale": hier_public_trade_dir_margin_bridge_scale,

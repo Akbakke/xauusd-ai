@@ -75,6 +75,7 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "1",
     "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "1",
     "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION": "margin_maxnorm_confidence",
+    "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD": "1",
     "ENTRY_HIER_PUBLIC_TRADE_HEAD": "1",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE": "1",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.50",
@@ -278,6 +279,9 @@ def _dry_run_wrapper(
         "has_hier_public_direction_margin_maxnorm_confidence_composition": (
             "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in capped_line
         ),
+        "has_hier_public_direction_detach_side_grad": (
+            "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=1" in capped_line
+        ),
         "has_hier_public_trade_head": "ENTRY_HIER_PUBLIC_TRADE_HEAD=1" in capped_line,
         "has_hier_public_trade_dir_margin_bridge": (
             "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in capped_line
@@ -477,6 +481,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run.get("has_hier_compose_residual_side_neutral") is True
             and dry_run.get("has_hier_compose_public_flat_from_trade") is True
             and dry_run.get("has_hier_public_direction_margin_maxnorm_confidence_composition") is True
+            and dry_run.get("has_hier_public_direction_detach_side_grad") is True
             and dry_run.get("has_hier_public_trade_head") is True
             and dry_run.get("has_hier_public_trade_dir_margin_bridge") is True
             and dry_run.get("has_hier_public_side_head") is True

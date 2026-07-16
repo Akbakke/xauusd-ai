@@ -103,6 +103,7 @@ class CtxModelConfig:
     hierarchical_composition_residual_side_neutral: bool = False
     hierarchical_composition_public_flat_from_trade: bool = False
     hierarchical_public_direction_composition: str = "logprob"
+    hierarchical_public_direction_detach_side_grad: bool = False
     enable_hierarchical_public_trade_head: bool = False
     enable_hierarchical_public_trade_dir_margin_bridge: bool = False
     hierarchical_public_trade_dir_margin_bridge_scale: float = 0.0
@@ -301,6 +302,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         hierarchical_composition_residual_side_neutral: bool = False,
         hierarchical_composition_public_flat_from_trade: bool = False,
         hierarchical_public_direction_composition: str = "logprob",
+        hierarchical_public_direction_detach_side_grad: bool = False,
         enable_hierarchical_public_trade_head: bool = False,
         enable_hierarchical_public_trade_dir_margin_bridge: bool = False,
         hierarchical_public_trade_dir_margin_bridge_scale: float = 0.0,
@@ -414,6 +416,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_COMPOSITION_PUBLIC_FLAT_FROM_TRADE_REQUIRES_COMPOSITION")
+        if hierarchical_public_direction_detach_side_grad and not enable_hierarchical_direction_composition:
+            raise RuntimeError("HIERARCHICAL_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_REQUIRES_COMPOSITION")
         hierarchical_public_direction_composition = str(hierarchical_public_direction_composition or "logprob").strip().lower()
         allowed_public_direction_compositions = {
             "logprob",
@@ -490,6 +494,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 hierarchical_composition_public_flat_from_trade
             ),
             hierarchical_public_direction_composition=hierarchical_public_direction_composition,
+            hierarchical_public_direction_detach_side_grad=bool(
+                hierarchical_public_direction_detach_side_grad
+            ),
             enable_hierarchical_public_trade_head=bool(enable_hierarchical_public_trade_head),
             enable_hierarchical_public_trade_dir_margin_bridge=bool(
                 enable_hierarchical_public_trade_dir_margin_bridge
@@ -1339,18 +1346,31 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     "margin_maxnorm_confidence",
                 }:
                     public_trade_margin = public_trade_logit.reshape(-1)
-                    public_side_for_composition = public_side_logits
+                    public_side_for_direction = (
+                        public_side_logits.detach()
+                        if bool(
+                            getattr(
+                                self.cfg,
+                                "hierarchical_public_direction_detach_side_grad",
+                                False,
+                            )
+                        )
+                        else public_side_logits
+                    )
+                    public_side_for_composition = public_side_for_direction
                     if public_direction_composition == "margin_centered":
                         public_side_for_composition = (
-                            public_side_logits - public_side_logits.mean(dim=1, keepdim=True)
+                            public_side_for_direction
+                            - public_side_for_direction.mean(dim=1, keepdim=True)
                         )
                     elif public_direction_composition in {"margin_maxnorm", "margin_maxnorm_confidence"}:
                         public_side_for_composition = (
-                            public_side_logits - public_side_logits.max(dim=1, keepdim=True).values
+                            public_side_for_direction
+                            - public_side_for_direction.max(dim=1, keepdim=True).values
                         )
                     if public_direction_composition == "margin_maxnorm_confidence":
                         side_logprob_max = nn.functional.log_softmax(
-                            public_side_logits,
+                            public_side_for_direction,
                             dim=1,
                         ).max(dim=1).values
                         log_two = torch.as_tensor(
@@ -1372,7 +1392,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 else:
                     trade_log_prob = nn.functional.logsigmoid(public_trade_logit.reshape(-1))
                     flat_log_prob = nn.functional.logsigmoid(-public_trade_logit.reshape(-1))
-                    side_log_probs = nn.functional.log_softmax(public_side_logits, dim=1)
+                    public_side_for_direction = (
+                        public_side_logits.detach()
+                        if bool(
+                            getattr(
+                                self.cfg,
+                                "hierarchical_public_direction_detach_side_grad",
+                                False,
+                            )
+                        )
+                        else public_side_logits
+                    )
+                    side_log_probs = nn.functional.log_softmax(public_side_for_direction, dim=1)
                     composed_direction_logits = torch.stack(
                         (
                             trade_log_prob + side_log_probs[:, 0],
@@ -1533,6 +1564,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 out["hierarchical_public_direction_composition_margin_maxnorm_confidence"] = torch.full(
                     (direction_logits.shape[0], 1),
                     1.0 if public_direction_composition == "margin_maxnorm_confidence" else 0.0,
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
+                out["hierarchical_public_direction_detach_side_grad"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    (
+                        1.0
+                        if bool(
+                            getattr(
+                                self.cfg,
+                                "hierarchical_public_direction_detach_side_grad",
+                                False,
+                            )
+                        )
+                        else 0.0
+                    ),
                     device=direction_logits.device,
                     dtype=direction_logits.dtype,
                 )

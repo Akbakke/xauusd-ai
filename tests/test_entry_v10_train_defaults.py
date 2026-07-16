@@ -1930,6 +1930,10 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
         in train_ctor
     )
     assert "hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION)" in train_ctor
+    assert (
+        "hierarchical_public_direction_detach_side_grad=bool("
+        in train_ctor
+    )
     assert "enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)" in train_ctor
     assert (
         "enable_hierarchical_public_trade_dir_margin_bridge=bool("
