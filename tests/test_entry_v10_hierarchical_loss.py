@@ -158,6 +158,33 @@ def test_public_side_head_receives_direct_side_supervision(monkeypatch) -> None:
     assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
 
 
+def test_public_side_head_residual_cap_penalizes_head_drift_without_bridge_grad(monkeypatch) -> None:
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT", 8.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP", 0.20)
+    batch = _base_hier_batch()
+    public_side_logits = torch.tensor([[0.50, -0.50]], dtype=torch.float32, requires_grad=True)
+    bridge = torch.tensor([[0.20, -0.20]], dtype=torch.float32, requires_grad=True)
+
+    loss, stats = trainer._hierarchical_entry_loss(
+        {
+            "public_side_logits": public_side_logits,
+            "public_side_dir_margin_bridge": bridge,
+        },
+        batch,
+        torch.device("cpu"),
+        trade_pos_weight=1.0,
+        side_bad_path_pos_weight=1.0,
+    )
+
+    assert stats["hier_public_side_head_residual_cap_loss"] == pytest.approx(0.08)
+    assert float(loss.detach().cpu().item()) == pytest.approx(0.08)
+    loss.backward()
+    assert public_side_logits.grad is not None
+    assert public_side_logits.grad.abs().sum().item() > 0.0
+    assert bridge.grad is None
+
+
 def test_public_trade_head_receives_direct_trade_supervision(monkeypatch) -> None:
     monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_WEIGHT", 1.0)
     batch = _base_hier_batch()

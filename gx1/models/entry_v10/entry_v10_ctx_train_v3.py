@@ -486,6 +486,12 @@ ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE = float(
 ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP = float(
     _env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", "0.0")
 )
+ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT = float(
+    _env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT", "0.0")
+)
+ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP = float(
+    _env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP", "0.0")
+)
 ENTRY_HIER_CTX_PRIOR_ADAPTER = int(float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE = float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", "0.0"))
 ENTRY_HIER_CTX_DIRECTION_CALIBRATION = int(
@@ -870,6 +876,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE": "0",
     "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
     "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP": "0.0",
+    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT": "0.0",
+    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP": "0.0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.0",
     "ENTRY_HIER_CTX_DIRECTION_CALIBRATION": "0",
@@ -4880,6 +4888,7 @@ def _hierarchical_entry_loss(
         "hier_public_slice_side_accuracy_edge_loss": 0.0,
         "hier_public_side_global_prior_loss": 0.0,
         "hier_public_slice_side_prior_loss": 0.0,
+        "hier_public_side_head_residual_cap_loss": 0.0,
         "hier_utility_loss": 0.0,
         "hier_bad_path_loss": 0.0,
         "hier_mae_loss": 0.0,
@@ -4907,6 +4916,7 @@ def _hierarchical_entry_loss(
     direction_logits = out.get("direction_logits")
     side_logits = out.get("side_logits")
     public_side_logits = out.get("public_side_logits")
+    public_side_dir_margin_bridge = out.get("public_side_dir_margin_bridge")
     side_utility = out.get("side_utility")
     side_bad_path_logit = out.get("side_bad_path_logit")
     side_mae = out.get("side_mae")
@@ -5263,6 +5273,31 @@ def _hierarchical_entry_loss(
             total = total + hier_public_slice_side_prior
             stats["hier_public_slice_side_prior_loss"] = float(
                 hier_public_slice_side_prior.detach().cpu().item()
+            )
+        if (
+            isinstance(public_side_dir_margin_bridge, torch.Tensor)
+            and public_side_dir_margin_bridge.shape == public_side_logits.shape
+            and float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT) > 0.0
+        ):
+            residual_cap = float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP)
+            if residual_cap <= 0.0:
+                raise RuntimeError(
+                    "[ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_INVALID] "
+                    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP must be >0 when "
+                    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT>0"
+                )
+            public_side_head_residual = public_side_logits - public_side_dir_margin_bridge.detach()
+            cap_t = torch.as_tensor(
+                residual_cap,
+                device=public_side_logits.device,
+                dtype=public_side_logits.dtype,
+            )
+            excess = torch.relu(public_side_head_residual.abs() - cap_t)
+            raw = torch.square(excess).mean()
+            weighted = float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT) * raw
+            total = total + weighted
+            stats["hier_public_side_head_residual_cap_loss"] = float(
+                weighted.detach().cpu().item()
             )
 
     if side_utility is not None and float(ENTRY_HIER_UTILITY_WEIGHT) > 0.0:
@@ -5778,6 +5813,7 @@ def train_epoch(
     hier_public_slice_side_accuracy_edge_loss_sum = 0.0
     hier_public_side_global_prior_loss_sum = 0.0
     hier_public_slice_side_prior_loss_sum = 0.0
+    hier_public_side_head_residual_cap_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -6259,6 +6295,9 @@ def train_epoch(
         hier_public_slice_side_prior_loss_sum += float(
             hier_stats.get("hier_public_slice_side_prior_loss", 0.0)
         ) * bs
+        hier_public_side_head_residual_cap_loss_sum += float(
+            hier_stats.get("hier_public_side_head_residual_cap_loss", 0.0)
+        ) * bs
         hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
         hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
         hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -6406,6 +6445,9 @@ def train_epoch(
         ),
         "hier_public_slice_side_prior_loss_mean": (
             hier_public_slice_side_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_side_head_residual_cap_loss_mean": (
+            hier_public_side_head_residual_cap_loss_sum / max(1, n)
         ),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
@@ -7061,6 +7103,7 @@ def validate(
     hier_public_slice_side_accuracy_edge_loss_sum = 0.0
     hier_public_side_global_prior_loss_sum = 0.0
     hier_public_slice_side_prior_loss_sum = 0.0
+    hier_public_side_head_residual_cap_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -7536,6 +7579,9 @@ def validate(
             hier_public_slice_side_prior_loss_sum += float(
                 hier_stats.get("hier_public_slice_side_prior_loss", 0.0)
             ) * bs
+            hier_public_side_head_residual_cap_loss_sum += float(
+                hier_stats.get("hier_public_side_head_residual_cap_loss", 0.0)
+            ) * bs
             hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
             hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
             hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -7693,6 +7739,9 @@ def validate(
         ),
         "hier_public_slice_side_prior_loss_mean": (
             hier_public_slice_side_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_side_head_residual_cap_loss_mean": (
+            hier_public_side_head_residual_cap_loss_sum / max(1, n)
         ),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
@@ -9007,6 +9056,14 @@ def run_train(
     _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE", ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE)
     _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP)
     _require_nonneg(
+        "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT",
+        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP",
+        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP,
+    )
+    _require_nonneg(
         "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE",
         ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE,
     )
@@ -9301,6 +9358,15 @@ def run_train(
             "[ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_INVALID] "
             "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE="
             f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE} expected 0 or 1"
+        )
+    if (
+        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT > 0.0
+        and ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP <= 0.0
+    ):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_INVALID] "
+            "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP must be >0 when "
+            "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT>0"
         )
     if int(ENTRY_HIER_CTX_PRIOR_ADAPTER) not in (0, 1):
         raise RuntimeError(
@@ -10040,6 +10106,26 @@ def run_train(
                 "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="
                 f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP:.3f} expected <=0.50"
             )
+        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT="
+                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT > 16.0:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT="
+                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT:.3f} expected <=16.0"
+            )
+        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP < 0.05:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP="
+                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP:.3f} expected >=0.05"
+            )
+        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP > 0.50:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP="
+                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP:.3f} expected <=0.50"
+            )
         if not bool(ENTRY_HIER_CTX_PRIOR_ADAPTER):
             repair_failures.append("ENTRY_HIER_CTX_PRIOR_ADAPTER=0 expected 1")
         if ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE < 0.25:
@@ -10342,6 +10428,8 @@ def run_train(
         "hier_public_side_dir_margin_bridge=%d "
         "hier_public_side_dir_margin_bridge_scale=%.3f "
         "hier_public_side_dir_margin_bridge_cap=%.3f "
+        "hier_public_side_head_residual_cap_w=%.3f "
+        "hier_public_side_head_residual_cap=%.3f "
         "hier_public_direction_composition=%s "
         "hier_ctx_prior_adapter=%d "
         "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
@@ -10417,6 +10505,8 @@ def run_train(
         int(bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE)),
         float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE),
         float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP),
+        float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT),
+        float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
         str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
         int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
         float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -10656,7 +10746,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -10692,6 +10782,7 @@ def run_train(
                 float(val_stats.get("hier_slice_side_accuracy_edge_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_global_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_prior_loss_mean", 0.0)),
+                float(val_stats.get("hier_public_side_head_residual_cap_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_acc", 0.0)),
                 float(va_loss),
             )
@@ -10791,7 +10882,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -10827,6 +10918,7 @@ def run_train(
                 float(tr_stats.get("hier_slice_side_accuracy_edge_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_global_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_prior_loss_mean", 0.0)),
+                float(tr_stats.get("hier_public_side_head_residual_cap_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_acc", 0.0)),
                 float(tr_loss),
             )
@@ -11056,6 +11148,12 @@ def run_train(
                     ),
                     "hier_public_side_dir_margin_bridge_cap": float(
                         ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+                    ),
+                    "hier_public_side_head_residual_cap_weight": float(
+                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
+                    ),
+                    "hier_public_side_head_residual_cap": float(
+                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP
                     ),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -11333,6 +11431,12 @@ def run_train(
                     ),
                     "hier_public_side_dir_margin_bridge_cap": float(
                         ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+                    ),
+                    "hier_public_side_head_residual_cap_weight": float(
+                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
+                    ),
+                    "hier_public_side_head_residual_cap": float(
+                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP
                     ),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -11725,7 +11829,14 @@ def run_train(
                     "slice_accuracy_edge",
                     "global_prior_match",
                     "slice_prior_match",
+                    "public_side_head_residual_cap",
                 ],
+                "residual_cap_loss": {
+                    "weight": float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT),
+                    "cap": float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
+                    "residual": "public_side_logits-public_side_dir_margin_bridge",
+                    "bridge_gradient_source": "detached_for_residual_cap_loss",
+                },
                 "runtime_rule_free": True,
             },
             "public_side_dir_margin_bridge": {
@@ -12115,6 +12226,10 @@ def run_train(
         "hier_public_side_dir_margin_bridge_cap": float(
             ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
         ),
+        "hier_public_side_head_residual_cap_weight": float(
+            ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
+        ),
+        "hier_public_side_head_residual_cap": float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
         "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -12313,6 +12428,12 @@ def run_train(
             ),
             "hier_public_side_dir_margin_bridge_cap": float(
                 ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+            ),
+            "hier_public_side_head_residual_cap_weight": float(
+                ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
+            ),
+            "hier_public_side_head_residual_cap": float(
+                ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP
             ),
             "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
             "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),

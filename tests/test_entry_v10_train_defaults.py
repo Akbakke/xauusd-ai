@@ -1494,6 +1494,8 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "hier_public_side_dir_margin_bridge",
         "hier_public_side_dir_margin_bridge_scale",
         "hier_public_side_dir_margin_bridge_cap",
+        "hier_public_side_head_residual_cap_weight",
+        "hier_public_side_head_residual_cap",
         "hier_ctx_prior_adapter",
         "hier_ctx_prior_adapter_scale",
         "hier_ctx_direction_calibration",

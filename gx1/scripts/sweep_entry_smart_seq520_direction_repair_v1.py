@@ -156,6 +156,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP": "0.25",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT": "8.00",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP": "0.20",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION": "1",
@@ -498,6 +500,25 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP must stay within [0.05, 0.50] for strict XAU repair, "
             f"got {hier_public_side_dir_margin_bridge_cap}"
+        )
+    hier_public_side_head_residual_cap_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT", "0")
+    )
+    if (
+        hier_public_side_head_residual_cap_weight < 4.00
+        or hier_public_side_head_residual_cap_weight > 16.00
+    ):
+        failures.append(
+            "HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT must stay within [4.00, 16.00] for strict XAU repair, "
+            f"got {hier_public_side_head_residual_cap_weight}"
+        )
+    hier_public_side_head_residual_cap = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP", "0")
+    )
+    if hier_public_side_head_residual_cap < 0.05 or hier_public_side_head_residual_cap > 0.50:
+        failures.append(
+            "HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP must stay within [0.05, 0.50] for strict XAU repair, "
+            f"got {hier_public_side_head_residual_cap}"
         )
     if hier_ctx_prior_adapter != 1:
         failures.append(

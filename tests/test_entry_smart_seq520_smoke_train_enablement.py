@@ -126,6 +126,8 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=1 "
             "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE=0.50 "
             "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP=0.25 "
+            "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT=8.00 "
+            "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP=0.20 "
             "ENTRY_HIER_CTX_PRIOR_ADAPTER=1 "
             "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50 "
             "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=1 "
@@ -199,6 +201,7 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_hier_public_trade_dir_margin_bridge": True,
         "has_hier_public_side_head": True,
         "has_hier_public_side_dir_margin_bridge": True,
+        "has_hier_public_side_head_residual_cap": True,
         "has_hier_ctx_prior_adapter": True,
         "has_hier_ctx_direction_calibration": True,
         "has_hier_trade_prior": True,

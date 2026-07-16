@@ -551,6 +551,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "hier_public_side_dir_margin_bridge": True,
             "hier_public_side_dir_margin_bridge_scale": 0.50,
             "hier_public_side_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head_residual_cap_weight": 8.00,
+            "hier_public_side_head_residual_cap": 0.20,
             "hier_ctx_prior_adapter": True,
             "hier_ctx_prior_adapter_scale": 0.50,
             "hier_ctx_direction_calibration": True,
@@ -668,6 +670,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["hier_public_side_dir_margin_bridge"] is True
     assert report["hier_public_side_dir_margin_bridge_scale"] == 0.50
     assert report["hier_public_side_dir_margin_bridge_cap"] == 0.25
+    assert report["hier_public_side_head_residual_cap_weight"] == 8.00
+    assert report["hier_public_side_head_residual_cap"] == 0.20
     assert report["hier_ctx_prior_adapter"] is True
     assert report["hier_ctx_prior_adapter_scale"] == 0.50
     assert report["hier_ctx_direction_calibration"] is True
@@ -817,6 +821,8 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "hier_public_side_dir_margin_bridge": True,
             "hier_public_side_dir_margin_bridge_scale": 0.50,
             "hier_public_side_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head_residual_cap_weight": 8.00,
+            "hier_public_side_head_residual_cap": 0.20,
             "hier_ctx_prior_adapter": True,
             "hier_ctx_prior_adapter_scale": 0.50,
             "hier_ctx_direction_calibration": True,
@@ -936,6 +942,8 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "hier_public_side_dir_margin_bridge": True,
             "hier_public_side_dir_margin_bridge_scale": 0.50,
             "hier_public_side_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head_residual_cap_weight": 8.00,
+            "hier_public_side_head_residual_cap": 0.20,
             "hier_ctx_prior_adapter": True,
             "hier_ctx_prior_adapter_scale": 0.50,
             "hier_ctx_direction_calibration": True,
@@ -1008,6 +1016,8 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("hier_public_trade_dir_margin_bridge" in failure for failure in report["failures"])
     assert any("hier_public_side_head" in failure for failure in report["failures"])
     assert any("hier_public_side_dir_margin_bridge" in failure for failure in report["failures"])
+    assert any("hier_public_side_head_residual_cap_weight" in failure for failure in report["failures"])
+    assert any("hier_public_side_head_residual_cap" in failure for failure in report["failures"])
     assert any("hier_ctx_prior_adapter" in failure for failure in report["failures"])
     assert any("hier_ctx_prior_adapter_scale" in failure for failure in report["failures"])
     assert any("hier_public_flat_consistency_weight" in failure for failure in report["failures"])
@@ -1083,6 +1093,8 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "hier_public_side_dir_margin_bridge": True,
             "hier_public_side_dir_margin_bridge_scale": 0.50,
             "hier_public_side_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head_residual_cap_weight": 8.00,
+            "hier_public_side_head_residual_cap": 0.20,
             "hier_ctx_prior_adapter": True,
             "hier_ctx_prior_adapter_scale": 0.50,
             "hier_ctx_direction_calibration": True,
@@ -1165,6 +1177,8 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
             "hier_public_side_dir_margin_bridge": True,
             "hier_public_side_dir_margin_bridge_scale": 0.50,
             "hier_public_side_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head_residual_cap_weight": 8.00,
+            "hier_public_side_head_residual_cap": 0.20,
             "hier_ctx_prior_adapter": True,
             "hier_ctx_prior_adapter_scale": 0.50,
             "hier_ctx_direction_calibration": True,

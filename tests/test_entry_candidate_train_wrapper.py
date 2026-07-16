@@ -511,6 +511,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=" in text
     assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE=" in text
     assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP=" in text
+    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT=" in text
+    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP=" in text
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=" in text
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=" in text
     assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=" in text
@@ -535,6 +537,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION" in text
@@ -575,6 +579,14 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     )
     assert (
         'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="$CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP"'
+        in text
+    )
+    assert (
+        'ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT="$CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT"'
+        in text
+    )
+    assert (
+        'ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP="$CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP"'
         in text
     )
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER"' in text
