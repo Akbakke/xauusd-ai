@@ -236,7 +236,28 @@ def load_entry_v10_ctx_bundle(
             meta.get("hier_compose_public_flat_from_trade", False) if isinstance(meta, dict) else False,
         )
     )
+    _hierarchical_public_direction_composition = str(
+        _hierarchical_direction_cfg.get(
+            "public_direction_composition",
+            meta.get("hier_public_direction_composition", "logprob") if isinstance(meta, dict) else "logprob",
+        )
+    ).strip().lower()
+    if _hierarchical_public_direction_composition not in {"logprob", "margin"}:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_COMPOSITION_INVALID] "
+            f"{_hierarchical_public_direction_composition!r}"
+        )
     _has_hierarchical_public_trade_head = "head_public_trade.weight" in state_dict_preview
+    if (
+        _has_hierarchical_public_trade_head
+        and _hierarchical_composition_public_flat_from_trade
+        and "public_direction_composition" not in _hierarchical_direction_cfg
+        and (
+            not isinstance(meta, dict)
+            or "hier_public_direction_composition" not in meta
+        )
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_COMPOSITION_METADATA_MISSING]")
     if _has_hierarchical_public_trade_head and "public_trade_head" not in _hierarchical_direction_cfg:
         if not bool(meta.get("hier_public_trade_head", False) if isinstance(meta, dict) else False):
             raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_HEAD_METADATA_MISSING]")
@@ -358,6 +379,7 @@ def load_entry_v10_ctx_bundle(
         hierarchical_composition_residual_logit_cap=_hierarchical_composition_residual_logit_cap,
         hierarchical_composition_residual_side_neutral=_hierarchical_composition_residual_side_neutral,
         hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
+        hierarchical_public_direction_composition=_hierarchical_public_direction_composition,
         enable_hierarchical_public_trade_head=_has_hierarchical_public_trade_head,
         enable_hierarchical_public_side_head=_has_hierarchical_public_side_head,
         enable_hierarchical_ctx_prior_adapter=_has_hierarchical_ctx_prior_adapter,

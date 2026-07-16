@@ -62,6 +62,7 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
         assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP"] == "0.18"
         assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL"] == "1"
         assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"] == "1"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION"] == "margin"
         assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD"] == "1"
         assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD"] == "1"
         assert env["ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER"] == "1"
@@ -157,6 +158,7 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP"] == "0.18"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL"] == "1"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"] == "1"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION"] == "margin"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD"] == "1"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD"] == "1"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER"] == "1"
@@ -242,6 +244,7 @@ def test_xau_direction_repair_sweep_command_uses_smart_wrapper_and_dry_run() -> 
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.18" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD=1" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD=1" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER=1" in text
@@ -313,6 +316,7 @@ def test_xau_direction_repair_sweep_lints_invalid_contract_values() -> None:
     env["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP"] = "0.00"
     env["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL"] = "0"
     env["ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"] = "0"
+    env["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION"] = "logprob"
     env["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD"] = "0"
     env["ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD"] = "0"
     env["ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER"] = "0"
@@ -400,6 +404,7 @@ def test_xau_direction_repair_sweep_lints_invalid_contract_values() -> None:
     assert any("HIER_COMPOSE_RESIDUAL_LOGIT_CAP" in item for item in failures)
     assert any("HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in item for item in failures)
     assert any("HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in item for item in failures)
+    assert any("HIER_PUBLIC_DIRECTION_COMPOSITION" in item for item in failures)
     assert any("HIER_PUBLIC_TRADE_HEAD" in item for item in failures)
     assert any("HIER_PUBLIC_SIDE_HEAD" in item for item in failures)
     assert any("HIER_CTX_PRIOR_ADAPTER" in item for item in failures)

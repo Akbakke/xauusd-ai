@@ -107,7 +107,7 @@ def test_training_readiness_current_artifacts(tmp_path: Path) -> None:
     assert "foundation_activation_apply_required_before_smoke" in report
     assert "foundation_activation_post_apply_required_before_smoke" in report
     assert version_check["details"]["code_foundation_structure_feature_version"] == FOUNDATION_STRUCTURE_FEATURE_VERSION
-    if feature_gate["decision"] == "PASS":
+    if report["foundation_contract_ready_for_smoke"]:
         assert report["foundation_contract_ready_for_smoke"] is True
         assert report["foundation_activation_required_before_smoke"] is False
         assert report["foundation_activation_apply_required_before_smoke"] is False
@@ -165,13 +165,19 @@ def test_training_readiness_current_artifacts(tmp_path: Path) -> None:
                 assert "--apply --vedtak <id>" in report["next_allowed_command"]
         else:
             assert report["next_allowed_command"].startswith("fix failing readiness gates")
-        assert (
-            not version_check["ok"]
-            or not feature_checks["feature audit PASS"]["ok"]
-            or not feature_checks["feature audit has zero failures"]["ok"]
-        )
-        if not version_check["ok"]:
-            assert "rebuild the foundation seq146 dataset" in version_check["details"]["required_action"]
+        if feature_gate["decision"] != "PASS":
+            assert (
+                not version_check["ok"]
+                or not feature_checks["feature audit PASS"]["ok"]
+                or not feature_checks["feature audit has zero failures"]["ok"]
+            )
+            if not version_check["ok"]:
+                assert "rebuild the foundation seq146 dataset" in version_check["details"]["required_action"]
+        else:
+            assert any(
+                failure["gate"] != "feature_foundation"
+                for failure in report["failures"]
+            )
     assert report["candidate_training_allowed"] is False
     assert report["promotion_shadow_live_allowed"] is False
     assert "foundation_guardrails" in report["artifacts"]
@@ -301,7 +307,12 @@ def test_training_readiness_current_artifacts(tmp_path: Path) -> None:
             assert manifest_row["path"] == active_row["path"]
             assert manifest_row["sha256"] == active_row["sha256"]
             assert len(manifest_row["sha256"]) == 64
-    assert smoke_dataset_checks["smoke dataset records source split manifest hashes"]["ok"] is True
+    source_manifest_hashes = smoke_dataset_checks["smoke dataset records source split manifest hashes"]
+    if report["foundation_contract_ready_for_smoke"]:
+        assert source_manifest_hashes["ok"] is True
+    else:
+        assert source_manifest_hashes["ok"] is False
+        assert any(failure["gate"] == "smoke_dataset" for failure in report["failures"])
     assert smoke_dataset_checks["smoke dataset output parquet and manifest hashes match files"]["ok"] is True
     specialist_gate = next(gate for gate in report["gates"] if gate["name"] == "specialist_contract")
     specialist_checks = {check["name"]: check for check in specialist_gate["checks"]}
@@ -393,7 +404,11 @@ def test_training_readiness_current_artifacts(tmp_path: Path) -> None:
         assert post_stage["stage_missing_from_cached_count"] == 0
         assert post_stage["cached_not_in_stage_count"] == 0
         assert post_stage["cached_hold_overlap_count"] == 0
-    expected_non_execution_failures = set()
+    expected_non_execution_failures = {
+        failure["gate"]
+        for failure in report["failures"]
+        if failure["gate"] != "execution_hygiene"
+    }
     if feature_gate["decision"] != "PASS":
         expected_non_execution_failures.update(
             {

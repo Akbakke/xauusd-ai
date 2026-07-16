@@ -1921,6 +1921,7 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
         "hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)"
         in train_ctor
     )
+    assert "hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION)" in train_ctor
     assert "enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)" in train_ctor
     assert "enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)" in train_ctor
     assert "enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)" in train_ctor

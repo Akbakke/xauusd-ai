@@ -101,6 +101,7 @@ class CtxModelConfig:
     hierarchical_composition_residual_logit_cap: float = 0.0
     hierarchical_composition_residual_side_neutral: bool = False
     hierarchical_composition_public_flat_from_trade: bool = False
+    hierarchical_public_direction_composition: str = "logprob"
     enable_hierarchical_public_trade_head: bool = False
     enable_hierarchical_public_side_head: bool = False
     enable_hierarchical_ctx_prior_adapter: bool = False
@@ -292,6 +293,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         hierarchical_composition_residual_logit_cap: float = 0.0,
         hierarchical_composition_residual_side_neutral: bool = False,
         hierarchical_composition_public_flat_from_trade: bool = False,
+        hierarchical_public_direction_composition: str = "logprob",
         enable_hierarchical_public_trade_head: bool = False,
         enable_hierarchical_public_side_head: bool = False,
         enable_hierarchical_ctx_prior_adapter: bool = False,
@@ -395,6 +397,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_COMPOSITION_PUBLIC_FLAT_FROM_TRADE_REQUIRES_COMPOSITION")
+        hierarchical_public_direction_composition = str(hierarchical_public_direction_composition or "logprob").strip().lower()
+        if hierarchical_public_direction_composition not in {"logprob", "margin"}:
+            raise RuntimeError(
+                "HIERARCHICAL_PUBLIC_DIRECTION_COMPOSITION_INVALID: "
+                f"got {hierarchical_public_direction_composition!r}, expected 'logprob' or 'margin'"
+            )
         if float(hierarchical_ctx_prior_adapter_scale) < 0.0:
             raise RuntimeError(
                 "HIERARCHICAL_CTX_PRIOR_ADAPTER_SCALE_INVALID: "
@@ -435,6 +443,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             hierarchical_composition_public_flat_from_trade=bool(
                 hierarchical_composition_public_flat_from_trade
             ),
+            hierarchical_public_direction_composition=hierarchical_public_direction_composition,
             enable_hierarchical_public_trade_head=bool(enable_hierarchical_public_trade_head),
             enable_hierarchical_public_side_head=bool(enable_hierarchical_public_side_head),
             enable_hierarchical_ctx_prior_adapter=bool(enable_hierarchical_ctx_prior_adapter),
@@ -1176,23 +1185,37 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 _assert_finite("side_validity_logit", side_validity_logit)
             if bool(getattr(self.cfg, "enable_hierarchical_direction_composition", False)):
                 _assert_finite("public_trade_logit", public_trade_logit)
-                trade_log_prob = nn.functional.logsigmoid(public_trade_logit.reshape(-1))
-                flat_log_prob = nn.functional.logsigmoid(-public_trade_logit.reshape(-1))
                 public_side_logits = (
                     self.head_public_side(z)
                     if hasattr(self, "head_public_side")
                     else side_logits
                 )
                 _assert_finite("public_side_logits", public_side_logits)
-                side_log_probs = nn.functional.log_softmax(public_side_logits, dim=1)
-                composed_direction_logits = torch.stack(
-                    (
-                        trade_log_prob + side_log_probs[:, 0],
-                        trade_log_prob + side_log_probs[:, 1],
-                        flat_log_prob,
-                    ),
-                    dim=1,
-                ).to(dtype=raw_direction_logits.dtype)
+                public_direction_composition = str(
+                    getattr(self.cfg, "hierarchical_public_direction_composition", "logprob")
+                ).strip().lower()
+                if public_direction_composition == "margin":
+                    public_trade_margin = public_trade_logit.reshape(-1)
+                    composed_direction_logits = torch.stack(
+                        (
+                            public_trade_margin + public_side_logits[:, 0],
+                            public_trade_margin + public_side_logits[:, 1],
+                            -public_trade_margin,
+                        ),
+                        dim=1,
+                    ).to(dtype=raw_direction_logits.dtype)
+                else:
+                    trade_log_prob = nn.functional.logsigmoid(public_trade_logit.reshape(-1))
+                    flat_log_prob = nn.functional.logsigmoid(-public_trade_logit.reshape(-1))
+                    side_log_probs = nn.functional.log_softmax(public_side_logits, dim=1)
+                    composed_direction_logits = torch.stack(
+                        (
+                            trade_log_prob + side_log_probs[:, 0],
+                            trade_log_prob + side_log_probs[:, 1],
+                            flat_log_prob,
+                        ),
+                        dim=1,
+                    ).to(dtype=raw_direction_logits.dtype)
                 _assert_finite("composed_direction_logits", composed_direction_logits)
                 residual_direction_logits = self.residual_scale.to(delta_logits.dtype) * delta_logits
                 if bool(getattr(self.cfg, "hierarchical_composition_public_flat_from_trade", False)):
@@ -1280,6 +1303,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 out["hierarchical_direction_public_flat_from_trade"] = torch.full(
                     (direction_logits.shape[0], 1),
                     1.0 if bool(getattr(self.cfg, "hierarchical_composition_public_flat_from_trade", False)) else 0.0,
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
+                out["hierarchical_public_direction_composition_margin"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    1.0 if public_direction_composition == "margin" else 0.0,
                     device=direction_logits.device,
                     dtype=direction_logits.dtype,
                 )
