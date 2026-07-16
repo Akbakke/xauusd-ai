@@ -11,7 +11,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
 - Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 public-FLAT-from-hierarchy smoke failed closed and its failed-run artifacts were deleted.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry repair commit is `3be7c69e Require XAU hierarchy ctx prior adapter`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry source repair commit is `0e89eaa1 Require XAU hierarchy trade accuracy edge`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
@@ -56,6 +56,25 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   2. Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard slice and class-balance gates.
   3. The next repair should be another formulation/input change, not a scalar-only retune or more epochs on this recipe.
   4. Likely next angle: make hierarchy trade/flat hard predictions learn the public FLAT coverage directly per active ctx slice, or change label/input staging so ctx-slice prior calibration is learned before side competition dominates public argmax.
+
+## 2026-07-16 Source Update - Hierarchy Trade Accuracy Edge
+
+- After the `HIERCTXPRIOR_E6` smoke, the failure signature was not "more IQL needed" and not "train longer":
+  - public slice gates still failed hard;
+  - hierarchy `trade_prob` was near target, but hard `trade_pred` was around `0.93`;
+  - therefore the next repair targets the hierarchy trade/flat hard-threshold surface directly.
+- Implemented and committed `0e89eaa1 Require XAU hierarchy trade accuracy edge`.
+  - Added `ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT` and `ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN`.
+  - The trainer now penalizes active ctx slices where differentiable hard trade/flat correctness does not beat slice majority plus margin.
+  - Strict smart XAU repair requires weight `>=4.00` and margin `>=0.02`; missing or weak config fails preflight/audit/readiness.
+  - The recipe is passed through smoke/candidate wrappers, rebuild defaults, smart readiness, smoke manifest, enablement, sweep lint, candidate/replay readiness, bundle audit, metadata, failure evidence, and tests.
+  - This is not fallback. It is a hard model-training objective and a fail-closed contract.
+- Validation before clean-git readiness:
+  - `git diff --check` passed.
+  - `py_compile` passed for changed Python modules.
+  - `bash -n` passed for changed shell wrappers.
+  - Targeted pytest passed for trainer defaults, smoke/candidate wrappers, rebuild contract, smart enablement/readiness, sweep, bundle audit, candidate readiness, replay readiness, and smoke readiness.
+- Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard slice and class-balance gates.
 
 ## Always-Active Operating Rules
 
