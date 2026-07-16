@@ -153,6 +153,9 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP": "0.25",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE": "0.50",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP": "0.25",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION": "1",
@@ -465,6 +468,36 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_PUBLIC_SIDE_HEAD must be 1 for strict XAU repair, "
             f"got {hier_public_side_head}"
+        )
+    hier_public_side_dir_margin_bridge = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE", "0"))
+    )
+    if hier_public_side_dir_margin_bridge != 1:
+        failures.append(
+            "HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE must be 1 for strict XAU repair, "
+            f"got {hier_public_side_dir_margin_bridge}"
+        )
+    hier_public_side_dir_margin_bridge_scale = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE", "0")
+    )
+    if (
+        hier_public_side_dir_margin_bridge_scale < 0.25
+        or hier_public_side_dir_margin_bridge_scale > 1.00
+    ):
+        failures.append(
+            "HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE must stay within [0.25, 1.00] for strict XAU repair, "
+            f"got {hier_public_side_dir_margin_bridge_scale}"
+        )
+    hier_public_side_dir_margin_bridge_cap = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", "0")
+    )
+    if (
+        hier_public_side_dir_margin_bridge_cap < 0.05
+        or hier_public_side_dir_margin_bridge_cap > 0.50
+    ):
+        failures.append(
+            "HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP must stay within [0.05, 0.50] for strict XAU repair, "
+            f"got {hier_public_side_dir_margin_bridge_cap}"
         )
     if hier_ctx_prior_adapter != 1:
         failures.append(

@@ -1491,6 +1491,9 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "hier_public_trade_dir_margin_bridge_scale",
         "hier_public_trade_dir_margin_bridge_cap",
         "hier_public_side_head",
+        "hier_public_side_dir_margin_bridge",
+        "hier_public_side_dir_margin_bridge_scale",
+        "hier_public_side_dir_margin_bridge_cap",
         "hier_ctx_prior_adapter",
         "hier_ctx_prior_adapter_scale",
         "hier_ctx_direction_calibration",
@@ -1939,6 +1942,18 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
         in train_ctor
     )
     assert "enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)" in train_ctor
+    assert (
+        "enable_hierarchical_public_side_dir_margin_bridge=bool("
+        in train_ctor
+    )
+    assert (
+        "hierarchical_public_side_dir_margin_bridge_scale=float("
+        in train_ctor
+    )
+    assert (
+        "hierarchical_public_side_dir_margin_bridge_cap=float("
+        in train_ctor
+    )
     assert "enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)" in train_ctor
     assert "hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)" in train_ctor
     assert (

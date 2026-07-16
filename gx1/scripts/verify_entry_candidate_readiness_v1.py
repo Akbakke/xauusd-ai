@@ -610,6 +610,11 @@ SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX = 1.00
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN = 0.05
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX = 0.50
 SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED = True
+SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_REQUIRED = True
+SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MIN = 0.25
+SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MAX = 1.00
+SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MIN = 0.05
+SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MAX = 0.50
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX = 1.00
@@ -789,6 +794,16 @@ def _direction_balance_contract_passes(
         and _float_or_zero(contract.get("hier_public_trade_dir_margin_bridge_cap", 999.0))
         <= SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX
         and contract.get("hier_public_side_head") is SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED
+        and contract.get("hier_public_side_dir_margin_bridge")
+        is SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_REQUIRED
+        and _float_or_zero(contract.get("hier_public_side_dir_margin_bridge_scale"))
+        >= SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MIN
+        and _float_or_zero(contract.get("hier_public_side_dir_margin_bridge_scale", 999.0))
+        <= SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MAX
+        and _float_or_zero(contract.get("hier_public_side_dir_margin_bridge_cap"))
+        >= SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MIN
+        and _float_or_zero(contract.get("hier_public_side_dir_margin_bridge_cap", 999.0))
+        <= SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MAX
         and contract.get("hier_ctx_prior_adapter") is SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED
         and _float_or_zero(contract.get("hier_ctx_prior_adapter_scale"))
         >= SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN

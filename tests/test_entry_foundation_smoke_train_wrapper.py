@@ -114,6 +114,9 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.0" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.0" in result.stdout
     assert "ENTRY_HIER_PUBLIC_SIDE_HEAD=0" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=0" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE=0.0" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP=0.0" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=0" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.0" in result.stdout
     assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=0" in result.stdout
@@ -284,6 +287,9 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.25" in result.stdout
     assert "ENTRY_HIER_PUBLIC_SIDE_HEAD=1" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=1" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE=0.50" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP=0.25" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=1" in result.stdout
     assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50" in result.stdout
     assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=1" in result.stdout
@@ -568,6 +574,18 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
         in text
     )
     assert 'ENTRY_HIER_PUBLIC_SIDE_HEAD="$SMOKE_HIER_PUBLIC_SIDE_HEAD"' in text
+    assert (
+        'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE="$SMOKE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE"'
+        in text
+    )
+    assert (
+        'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE="$SMOKE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE"'
+        in text
+    )
+    assert (
+        'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="$SMOKE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP"'
+        in text
+    )
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER="$SMOKE_HIER_CTX_PRIOR_ADAPTER"' in text
     assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="$SMOKE_HIER_CTX_PRIOR_ADAPTER_SCALE"' in text
     assert 'ENTRY_HIER_CTX_DIRECTION_CALIBRATION="$SMOKE_HIER_CTX_DIRECTION_CALIBRATION"' in text

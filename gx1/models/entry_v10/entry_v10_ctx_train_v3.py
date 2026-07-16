@@ -477,6 +477,15 @@ ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP = float(
     _env_str("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP", "0.0")
 )
 ENTRY_HIER_PUBLIC_SIDE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD", "0")))
+ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE = int(
+    float(_env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE", "0"))
+)
+ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE = float(
+    _env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE", "0.0")
+)
+ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP = float(
+    _env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", "0.0")
+)
 ENTRY_HIER_CTX_PRIOR_ADAPTER = int(float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE = float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", "0.0"))
 ENTRY_HIER_CTX_DIRECTION_CALIBRATION = int(
@@ -858,6 +867,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP": "0.0",
     "ENTRY_HIER_PUBLIC_SIDE_HEAD": "0",
+    "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE": "0",
+    "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
+    "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP": "0.0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.0",
     "ENTRY_HIER_CTX_DIRECTION_CALIBRATION": "0",
@@ -1128,6 +1140,7 @@ def _build_active_head_names(
     enable_hierarchical_public_trade_head: bool = False,
     enable_hierarchical_public_trade_dir_margin_bridge: bool = False,
     enable_hierarchical_public_side_head: bool = False,
+    enable_hierarchical_public_side_dir_margin_bridge: bool = False,
     hierarchical_public_direction_composition: str = "logprob",
     enable_hierarchical_ctx_prior_adapter: bool = False,
     enable_hierarchical_ctx_direction_calibration: bool = False,
@@ -1162,6 +1175,10 @@ def _build_active_head_names(
             enable_hierarchical_public_trade_dir_margin_bridge,
         ),
         ("hierarchical_public_side_head", enable_hierarchical_public_side_head),
+        (
+            "hierarchical_public_side_dir_margin_bridge",
+            enable_hierarchical_public_side_dir_margin_bridge,
+        ),
         ("hierarchical_ctx_prior_adapter", enable_hierarchical_ctx_prior_adapter),
         ("hierarchical_ctx_direction_calibration", enable_hierarchical_ctx_direction_calibration),
         ("side_validity", enable_side_validity_head),
@@ -8846,6 +8863,15 @@ def run_train(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
         ),
         enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+        enable_hierarchical_public_side_dir_margin_bridge=bool(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
+        ),
+        hierarchical_public_side_dir_margin_bridge_scale=float(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
+        ),
+        hierarchical_public_side_dir_margin_bridge_cap=float(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+        ),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -8978,6 +9004,8 @@ def run_train(
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_MIN_ROWS", ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
     _require_nonneg("ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT)
     _require_nonneg("ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE", ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE)
+    _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE", ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE)
+    _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP)
     _require_nonneg(
         "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE",
         ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE,
@@ -9267,6 +9295,12 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_PUBLIC_SIDE_HEAD_INVALID] "
             f"ENTRY_HIER_PUBLIC_SIDE_HEAD={ENTRY_HIER_PUBLIC_SIDE_HEAD} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_INVALID] "
+            "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE="
+            f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE} expected 0 or 1"
         )
     if int(ENTRY_HIER_CTX_PRIOR_ADAPTER) not in (0, 1):
         raise RuntimeError(
@@ -9984,6 +10018,28 @@ def run_train(
             )
         if not bool(ENTRY_HIER_PUBLIC_SIDE_HEAD):
             repair_failures.append("ENTRY_HIER_PUBLIC_SIDE_HEAD=0 expected 1")
+        if not bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE):
+            repair_failures.append("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=0 expected 1")
+        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE < 0.25:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE="
+                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE:.3f} expected >=0.25"
+            )
+        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE > 1.00:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE="
+                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE:.3f} expected <=1.00"
+            )
+        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP < 0.05:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="
+                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP:.3f} expected >=0.05"
+            )
+        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP > 0.50:
+            repair_failures.append(
+                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="
+                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP:.3f} expected <=0.50"
+            )
         if not bool(ENTRY_HIER_CTX_PRIOR_ADAPTER):
             repair_failures.append("ENTRY_HIER_CTX_PRIOR_ADAPTER=0 expected 1")
         if ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE < 0.25:
@@ -10282,7 +10338,11 @@ def run_train(
         "hier_public_trade_dir_margin_bridge=%d "
         "hier_public_trade_dir_margin_bridge_scale=%.3f "
         "hier_public_trade_dir_margin_bridge_cap=%.3f "
-        "hier_public_side_head=%d hier_public_direction_composition=%s "
+        "hier_public_side_head=%d "
+        "hier_public_side_dir_margin_bridge=%d "
+        "hier_public_side_dir_margin_bridge_scale=%.3f "
+        "hier_public_side_dir_margin_bridge_cap=%.3f "
+        "hier_public_direction_composition=%s "
         "hier_ctx_prior_adapter=%d "
         "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
         "hier_ctx_direction_calibration_scale=%.3f hier_ctx_direction_calibration_cap=%.3f "
@@ -10354,6 +10414,9 @@ def run_train(
         float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE),
         float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP),
         int(bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)),
+        int(bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE)),
+        float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE),
+        float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP),
         str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
         int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
         float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -10985,6 +11048,15 @@ def run_train(
                         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
                     ),
                     "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+                    "hier_public_side_dir_margin_bridge": bool(
+                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
+                    ),
+                    "hier_public_side_dir_margin_bridge_scale": float(
+                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
+                    ),
+                    "hier_public_side_dir_margin_bridge_cap": float(
+                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+                    ),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
                     "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -11253,6 +11325,15 @@ def run_train(
                         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
                     ),
                     "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+                    "hier_public_side_dir_margin_bridge": bool(
+                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
+                    ),
+                    "hier_public_side_dir_margin_bridge_scale": float(
+                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
+                    ),
+                    "hier_public_side_dir_margin_bridge_cap": float(
+                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+                    ),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
                     "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -11458,6 +11539,9 @@ def run_train(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
         ),
         enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+        enable_hierarchical_public_side_dir_margin_bridge=bool(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
+        ),
         hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -11644,6 +11728,16 @@ def run_train(
                 ],
                 "runtime_rule_free": True,
             },
+            "public_side_dir_margin_bridge": {
+                "enabled": bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE),
+                "scale": float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE),
+                "cap": float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP),
+                "input": "pre-composition raw direction LONG/SHORT logits",
+                "formula": "capped(scale*(raw_long_short_logits-mean(raw_long_short_logits)))",
+                "applies_to": ["public_side_logits"],
+                "trade_direction_source": "none",
+                "runtime_rule_free": True,
+            },
             "ctx_prior_adapter": {
                 "enabled": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                 "scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -11672,6 +11766,7 @@ def run_train(
                     "-(public_trade_logit-bounded_side_uncertainty_penalty)] "
                     "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
                     "public_trade_logit includes capped mean(raw LONG/SHORT)-raw FLAT direction-margin bridge; "
+                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge; "
                     "margin_maxnorm_confidence keeps max public side contribution at zero while bounded side "
                     "uncertainty can only lower trade-vs-flat, public trade/flat and public side use separate "
                     "learned heads, and public FLAT comes from hierarchy no-trade"
@@ -11684,6 +11779,7 @@ def run_train(
                     "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
                     "margin_centered composition avoids joint-probability argmax starvation and "
                     "prevents public side common-mode from moving trade-vs-flat, "
+                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge, "
                     "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
                     "and public FLAT comes from hierarchy no-trade"
                 )
@@ -11694,6 +11790,7 @@ def run_train(
                     "public_trade_logit+public_side_short_logit, -public_trade_logit] "
                     "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
                     "margin composition avoids joint-probability argmax starvation, "
+                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge, "
                     "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
                     "and public FLAT comes from hierarchy no-trade"
                 )
@@ -11702,6 +11799,7 @@ def run_train(
                 else (
                     "logits=[log P(trade)+log P(public long|trade), log P(trade)+log P(public short|trade), "
                     "log P(flat)] + common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
+                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge, "
                     "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
                     "and public FLAT comes from hierarchy no-trade"
                 )
@@ -12010,6 +12108,13 @@ def run_train(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
         ),
         "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+        "hier_public_side_dir_margin_bridge": bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE),
+        "hier_public_side_dir_margin_bridge_scale": float(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
+        ),
+        "hier_public_side_dir_margin_bridge_cap": float(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+        ),
         "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -12200,6 +12305,15 @@ def run_train(
                 ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
             ),
             "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+            "hier_public_side_dir_margin_bridge": bool(
+                ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
+            ),
+            "hier_public_side_dir_margin_bridge_scale": float(
+                ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
+            ),
+            "hier_public_side_dir_margin_bridge_cap": float(
+                ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+            ),
             "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
             "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
             "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -12420,6 +12534,15 @@ def run_train(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
         ),
         enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+        enable_hierarchical_public_side_dir_margin_bridge=bool(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
+        ),
+        hierarchical_public_side_dir_margin_bridge_scale=float(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
+        ),
+        hierarchical_public_side_dir_margin_bridge_cap=float(
+            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
+        ),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
