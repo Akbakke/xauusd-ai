@@ -11,7 +11,7 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
 - Runtime: no `python`/`python3` training/eval jobs were running after the latest 2026-07-15 public-FLAT-from-hierarchy smoke failed closed and its failed-run artifacts were deleted.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry repair commit is `0f5ed3b7 Require XAU hierarchy side accuracy edge`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry repair commit is `3be7c69e Require XAU hierarchy ctx prior adapter`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
@@ -33,16 +33,29 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   - `env PYTHONPATH=. pytest -q tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_xau_direction_repair_sweep.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py` passed.
   - `git diff --check` passed.
   - `env PYTHONPATH=. python3 -m py_compile ...` on all changed Python modules passed.
-- Real smart-smoke training has not been started after this source update because `scripts/run_entry_foundation_seq146_smoke_train.sh` correctly requires a clean git worktree for real training.
+- Committed the source repair as `3be7c69e Require XAU hierarchy ctx prior adapter`.
+- Clean-git readiness after the commit:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness` returned exit `0` with `blockers=[]`; `candidate_training_allowed=false` remains expected until a passing candidate bundle exists.
+- Ran one bounded smoke:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_HIERCTXPRIOR_E6_20260715`.
+  - Pre-train manifest: `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260715T204719Z.json`.
+  - Intended bundle: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260715T204719Z`.
+  - Recipe log confirmed `hier_ctx_prior_adapter=1` and `hier_ctx_prior_adapter_scale=0.500`.
+  - Epoch `1`: balance guard OK, `dir_acc=0.376953`, public pred LONG `0.280599`, SHORT `0.382161`, FLAT `0.337240`, `10` slice failures (`8` accuracy, `2` pred-rate), hierarchy `trade_pred=0.933594`, `trade_prob=0.667095`, side-edge acc `0.570577`. This was the best observed point, but still failed the hard slice contract.
+  - Epoch `2`: hard-red regression, balance guard failed, public SHORT `0.614583`, `29` slice failures.
+  - Epoch `3`: recovered balance guard but stayed hard-red and FLAT-heavy, `dir_acc=0.380859`, public pred LONG `0.142578`, SHORT `0.252604`, FLAT `0.604818`, `13` slice failures.
+  - Training was manually stopped during epoch `4` because the run was not converging toward the slice contract and continuing would waste compute. No bundle was produced.
+  - The aborted pre-train manifest was deleted after extracting the evidence; no bundle dir and no matching memmap dir existed.
 - Resource state at this update:
   - `/home/andre2/GX1_DATA`: about `838G` free.
-  - RAM: about `37GiB` available, swap `0B` used.
+  - RAM: about `36GiB` available after stop, swap `0B` used.
   - No active transformer train/eval `python3` job was left running.
-- Next clean-git action:
-  1. Commit this source repair.
-  2. Rerun smart smoke readiness and smart trainability readiness.
-  3. Launch exactly one bounded smart smoke with hard-red-stop, e.g. `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_HIERCTXPRIOR_E6_20260715 --require-edge-audit --epochs 6 --early-stop-patience 6`.
-  4. Stop/avoid continuation if epochs are hard-red; do not move to candidate/replay/IQL until a fresh XAU transformer bundle passes hard slice and class-balance gates.
+- Next action:
+  1. Do not rerun `HIERCTXPRIOR_E6` unchanged. It improved epoch-1 slice count versus the latest side-edge smoke, but still failed hard and then oscillated.
+  2. Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard slice and class-balance gates.
+  3. The next repair should be another formulation/input change, not a scalar-only retune or more epochs on this recipe.
+  4. Likely next angle: make hierarchy trade/flat hard predictions learn the public FLAT coverage directly per active ctx slice, or change label/input staging so ctx-slice prior calibration is learned before side competition dominates public argmax.
 
 ## Always-Active Operating Rules
 
