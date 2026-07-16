@@ -108,6 +108,39 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
   3. Stop immediately if the first epochs are hard red and continuing only burns CPU.
   4. Keep candidate/replay/IQL/shadow/live closed until a fresh XAU transformer bundle passes hard direction-slice and class-balance gates.
 
+### 2026-07-16 Fresh XAU Smoke Attempt Result
+
+- Enablement:
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_FRESH_E6_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`
+  - decision `ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION`
+  - dry-run proved fresh `v10_6yr_rebuild_20260716_fresh_xau_direction_repair` smoke dataset and fresh XAU M5 prebuilt.
+  - `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, `promotion_shadow_live_allowed=false`, `trainer_started=false`.
+- Smoke attempted:
+  - `SMART_SEQ520_XAU_SMOKE_FRESH_E6_20260716`
+  - command: `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_FRESH_E6_20260716 --require-edge-audit --epochs 6 --early-stop-patience 6`
+  - input: fresh 20260716 XAU smoke dataset and fresh 20260716 XAU M5 prebuilt.
+- Epoch `1` was hard red and the run was stopped manually before burning more compute:
+  - `dir_acc=0.347005`
+  - `balance_guard_ok=0`
+  - `slice_contract_ok=0`
+  - `direction_slice_ckpt_score=-1.800417`
+  - `30` slice failures: `13` accuracy failures and `17` pred-rate failures
+  - global public pred rates: LONG `0.507161`, SHORT `0.492839`, FLAT `0.000000`
+  - label rates: LONG `0.322917`, SHORT `0.332031`, FLAT `0.345052`
+  - hierarchy: `trade_pred=1.000000`, `trade_prob=0.513932`, `trade_prob_label_flat=0.514127`, `side_pred_long_edge=0.516899`, `side_acc_edge=0.528827`
+- Interpretation:
+  - Fresh input path is now correct; the failure is not stale `spreadfix` input.
+  - The current transformer formulation still cannot produce public FLAT under the hard composed direction contract; it predicts no FLAT at epoch 1 while labels are about 34.5% FLAT.
+  - Do not rerun `SMART_SEQ520_XAU_SMOKE_FRESH_E6_20260716` unchanged.
+  - Next work should inspect/repair public trade-vs-FLAT hard calibration/staging, not Entry-IQL, not candidate/replay, and not another blind scalar-only retune.
+- Cleanup/resource state:
+  - Stopped with Ctrl-C after epoch 1 evidence.
+  - Pre-train manifest `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T164038Z.json` and stale `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_latest.json` were deleted.
+  - No bundle dir and no direction-slice sidecar existed for `v10_entry_smart_seq520_smoke_20260716T164038Z`.
+  - No matching tmp/memmap dir was found.
+  - No `python3` transformer train/eval process remains.
+  - `/home/andre2/GX1_DATA`: about `762G` free; RAM about `35GiB` available; swap about `1MiB` used.
+
 ## 2026-07-16 Test/Resource Update - Broad XAU/IQL/Replay Readiness Suite
 
 - Broad XAU/replay/readiness/IQL contract pytest suite now passes after separating real regressions from stale local-artifact assumptions.
