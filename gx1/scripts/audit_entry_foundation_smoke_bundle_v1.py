@@ -104,6 +104,7 @@ SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
+SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
@@ -1495,6 +1496,20 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    _hier_public_trade_meta = (
+        _hierarchical_direction_meta.get("public_trade_head")
+        if isinstance(_hierarchical_direction_meta.get("public_trade_head"), dict)
+        else {}
+    )
+    hier_public_trade_head = _bool_value(
+        recipe.get(
+            "hier_public_trade_head",
+            _hier_public_trade_meta.get(
+                "enabled",
+                meta.get("hier_public_trade_head", False),
+            ),
+        )
+    )
     _hier_public_side_meta = (
         _hierarchical_direction_meta.get("public_side_head")
         if isinstance(_hierarchical_direction_meta.get("public_side_head"), dict)
@@ -2328,6 +2343,8 @@ def _direction_balance_recipe_contract(
                 )
             if hier_public_side_head is not SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED:
                 failures.append("smart direction active head requires hier_public_side_head=true")
+            if hier_public_trade_head is not SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED:
+                failures.append("smart direction active head requires hier_public_trade_head=true")
             if hier_ctx_direction_calibration is not SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED:
                 failures.append("smart direction active head requires hier_ctx_direction_calibration=true")
             if (
@@ -2689,6 +2706,7 @@ def _direction_balance_recipe_contract(
         "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
         "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
         "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
+        "hier_public_trade_head": hier_public_trade_head,
         "hier_public_side_head": hier_public_side_head,
         "hier_ctx_prior_adapter": hier_ctx_prior_adapter,
         "hier_ctx_prior_adapter_scale": hier_ctx_prior_adapter_scale,

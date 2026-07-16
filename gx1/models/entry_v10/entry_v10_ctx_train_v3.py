@@ -463,6 +463,7 @@ ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL = int(
 ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE = int(
     float(_env_str("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", "0"))
 )
+ENTRY_HIER_PUBLIC_TRADE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_TRADE_HEAD", "0")))
 ENTRY_HIER_PUBLIC_SIDE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER = int(float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE = float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", "0.0"))
@@ -839,6 +840,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.0",
     "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "0",
     "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "0",
+    "ENTRY_HIER_PUBLIC_TRADE_HEAD": "0",
     "ENTRY_HIER_PUBLIC_SIDE_HEAD": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.0",
@@ -1107,6 +1109,7 @@ def _build_active_head_names(
     enable_vol_forecast_head: bool,
     enable_anchor_gate: bool = False,
     enable_hierarchical_entry_heads: bool = False,
+    enable_hierarchical_public_trade_head: bool = False,
     enable_hierarchical_public_side_head: bool = False,
     enable_hierarchical_ctx_prior_adapter: bool = False,
     enable_hierarchical_ctx_direction_calibration: bool = False,
@@ -1135,6 +1138,7 @@ def _build_active_head_names(
         ("vol_forecast", enable_vol_forecast_head),
         ("anchor_gate", enable_anchor_gate),
         ("trade_side_hierarchy", enable_hierarchical_entry_heads),
+        ("hierarchical_public_trade_head", enable_hierarchical_public_trade_head),
         ("hierarchical_public_side_head", enable_hierarchical_public_side_head),
         ("hierarchical_ctx_prior_adapter", enable_hierarchical_ctx_prior_adapter),
         ("hierarchical_ctx_direction_calibration", enable_hierarchical_ctx_direction_calibration),
@@ -4817,6 +4821,12 @@ def _hierarchical_entry_loss(
         "hier_slice_trade_accuracy_edge_loss": 0.0,
         "hier_flat_logit_margin_loss": 0.0,
         "hier_slice_flat_logit_margin_loss": 0.0,
+        "hier_public_trade_loss": 0.0,
+        "hier_public_trade_global_prior_loss": 0.0,
+        "hier_public_slice_trade_prior_loss": 0.0,
+        "hier_public_slice_trade_accuracy_edge_loss": 0.0,
+        "hier_public_flat_logit_margin_loss": 0.0,
+        "hier_public_slice_flat_logit_margin_loss": 0.0,
         "hier_public_flat_consistency_loss": 0.0,
         "hier_slice_public_flat_consistency_loss": 0.0,
         "hier_side_loss": 0.0,
@@ -4854,6 +4864,7 @@ def _hierarchical_entry_loss(
         "hier_countertrend_short_trap_rate": 0.0,
     }
     trade_logit = out.get("trade_logit")
+    public_trade_logit = out.get("public_trade_logit")
     direction_logits = out.get("direction_logits")
     side_logits = out.get("side_logits")
     public_side_logits = out.get("public_side_logits")
@@ -4863,6 +4874,7 @@ def _hierarchical_entry_loss(
     side_validity_logit = out.get("side_validity_logit")
     if (
         trade_logit is None
+        and public_trade_logit is None
         and side_logits is None
         and public_side_logits is None
         and side_utility is None
@@ -5010,9 +5022,14 @@ def _hierarchical_entry_loss(
             stats["hier_slice_flat_logit_margin_loss"] = float(
                 hier_slice_flat_logit_margin.detach().cpu().item()
             )
+        public_flat_source_logit = (
+            public_trade_logit
+            if isinstance(public_trade_logit, torch.Tensor)
+            else trade_logit
+        )
         hier_public_flat_consistency = _hier_public_flat_consistency_term(
             direction_logits if isinstance(direction_logits, torch.Tensor) else None,
-            trade_logit,
+            public_flat_source_logit,
             y_trade,
         )
         if hier_public_flat_consistency.numel() == 1:
@@ -5022,7 +5039,7 @@ def _hierarchical_entry_loss(
             )
         hier_slice_public_flat_consistency = _hier_slice_public_flat_consistency_term(
             direction_logits if isinstance(direction_logits, torch.Tensor) else None,
-            trade_logit,
+            public_flat_source_logit,
             y_trade,
             ctx_cat,
         )
@@ -5030,6 +5047,67 @@ def _hierarchical_entry_loss(
             total = total + hier_slice_public_flat_consistency
             stats["hier_slice_public_flat_consistency_loss"] = float(
                 hier_slice_public_flat_consistency.detach().cpu().item()
+            )
+
+    if public_trade_logit is not None and float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
+        raw = nn.functional.binary_cross_entropy_with_logits(
+            public_trade_logit.reshape(-1),
+            y_trade,
+            pos_weight=torch.tensor(
+                float(trade_pos_weight),
+                device=device,
+                dtype=public_trade_logit.dtype,
+            ),
+        )
+        weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_public_trade_loss"] = float(weighted.detach().cpu().item())
+
+    if public_trade_logit is not None:
+        hier_public_trade_global_prior = _hier_trade_global_prior_match_term(
+            public_trade_logit,
+            y_trade,
+        )
+        if hier_public_trade_global_prior.numel() == 1:
+            total = total + hier_public_trade_global_prior
+            stats["hier_public_trade_global_prior_loss"] = float(
+                hier_public_trade_global_prior.detach().cpu().item()
+            )
+        hier_public_slice_trade_prior = _hier_slice_trade_prior_match_term(
+            public_trade_logit,
+            y_trade,
+            ctx_cat,
+        )
+        if hier_public_slice_trade_prior.numel() == 1:
+            total = total + hier_public_slice_trade_prior
+            stats["hier_public_slice_trade_prior_loss"] = float(
+                hier_public_slice_trade_prior.detach().cpu().item()
+            )
+        hier_public_slice_trade_accuracy_edge = _hier_slice_trade_accuracy_edge_term(
+            public_trade_logit,
+            y_trade,
+            ctx_cat,
+        )
+        if hier_public_slice_trade_accuracy_edge.numel() == 1:
+            total = total + hier_public_slice_trade_accuracy_edge
+            stats["hier_public_slice_trade_accuracy_edge_loss"] = float(
+                hier_public_slice_trade_accuracy_edge.detach().cpu().item()
+            )
+        hier_public_flat_logit_margin = _hier_flat_logit_margin_term(public_trade_logit, y_trade)
+        if hier_public_flat_logit_margin.numel() == 1:
+            total = total + hier_public_flat_logit_margin
+            stats["hier_public_flat_logit_margin_loss"] = float(
+                hier_public_flat_logit_margin.detach().cpu().item()
+            )
+        hier_public_slice_flat_logit_margin = _hier_slice_flat_logit_margin_term(
+            public_trade_logit,
+            y_trade,
+            ctx_cat,
+        )
+        if hier_public_slice_flat_logit_margin.numel() == 1:
+            total = total + hier_public_slice_flat_logit_margin
+            stats["hier_public_slice_flat_logit_margin_loss"] = float(
+                hier_public_slice_flat_logit_margin.detach().cpu().item()
             )
 
     if (
@@ -5641,6 +5719,12 @@ def train_epoch(
     hier_slice_trade_accuracy_edge_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
+    hier_public_trade_loss_sum = 0.0
+    hier_public_trade_global_prior_loss_sum = 0.0
+    hier_public_slice_trade_prior_loss_sum = 0.0
+    hier_public_slice_trade_accuracy_edge_loss_sum = 0.0
+    hier_public_flat_logit_margin_loss_sum = 0.0
+    hier_public_slice_flat_logit_margin_loss_sum = 0.0
     hier_public_flat_consistency_loss_sum = 0.0
     hier_slice_public_flat_consistency_loss_sum = 0.0
     hier_side_loss_sum = 0.0
@@ -6090,6 +6174,22 @@ def train_epoch(
         hier_slice_flat_logit_margin_loss_sum += (
             float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
         )
+        hier_public_trade_loss_sum += float(hier_stats.get("hier_public_trade_loss", 0.0)) * bs
+        hier_public_trade_global_prior_loss_sum += (
+            float(hier_stats.get("hier_public_trade_global_prior_loss", 0.0)) * bs
+        )
+        hier_public_slice_trade_prior_loss_sum += (
+            float(hier_stats.get("hier_public_slice_trade_prior_loss", 0.0)) * bs
+        )
+        hier_public_slice_trade_accuracy_edge_loss_sum += (
+            float(hier_stats.get("hier_public_slice_trade_accuracy_edge_loss", 0.0)) * bs
+        )
+        hier_public_flat_logit_margin_loss_sum += (
+            float(hier_stats.get("hier_public_flat_logit_margin_loss", 0.0)) * bs
+        )
+        hier_public_slice_flat_logit_margin_loss_sum += (
+            float(hier_stats.get("hier_public_slice_flat_logit_margin_loss", 0.0)) * bs
+        )
         hier_public_flat_consistency_loss_sum += (
             float(hier_stats.get("hier_public_flat_consistency_loss", 0.0)) * bs
         )
@@ -6221,6 +6321,22 @@ def train_epoch(
         "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_trade_loss_mean": (hier_public_trade_loss_sum / max(1, n)),
+        "hier_public_trade_global_prior_loss_mean": (
+            hier_public_trade_global_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_trade_prior_loss_mean": (
+            hier_public_slice_trade_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_trade_accuracy_edge_loss_mean": (
+            hier_public_slice_trade_accuracy_edge_loss_sum / max(1, n)
+        ),
+        "hier_public_flat_logit_margin_loss_mean": (
+            hier_public_flat_logit_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_flat_logit_margin_loss_mean": (
+            hier_public_slice_flat_logit_margin_loss_sum / max(1, n)
         ),
         "hier_public_flat_consistency_loss_mean": (
             hier_public_flat_consistency_loss_sum / max(1, n)
@@ -6886,6 +7002,12 @@ def validate(
     hier_slice_trade_accuracy_edge_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
+    hier_public_trade_loss_sum = 0.0
+    hier_public_trade_global_prior_loss_sum = 0.0
+    hier_public_slice_trade_prior_loss_sum = 0.0
+    hier_public_slice_trade_accuracy_edge_loss_sum = 0.0
+    hier_public_flat_logit_margin_loss_sum = 0.0
+    hier_public_slice_flat_logit_margin_loss_sum = 0.0
     hier_public_flat_consistency_loss_sum = 0.0
     hier_slice_public_flat_consistency_loss_sum = 0.0
     hier_side_loss_sum = 0.0
@@ -6966,6 +7088,7 @@ def validate(
             clean_edge_logit = out.get("clean_edge_logit")
             survival_logit = out.get("survival_logit")
             trade_logit = out.get("trade_logit")
+            public_trade_logit = out.get("public_trade_logit")
             side_logits = out.get("side_logits")
             public_side_logits = out.get("public_side_logits")
             anchor_logits = out.get("anchor_logits")
@@ -6990,8 +7113,13 @@ def validate(
                 _diag_pred["path_quality"].append(_np1d(path_pred))
             if mfe_pred is not None:
                 _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
-            if trade_logit is not None:
-                hierarchy_trade_prob_chunks.append(_np1d(torch.sigmoid(trade_logit)))
+            trade_metric_logit = (
+                public_trade_logit
+                if isinstance(public_trade_logit, torch.Tensor)
+                else trade_logit
+            )
+            if trade_metric_logit is not None:
+                hierarchy_trade_prob_chunks.append(_np1d(torch.sigmoid(trade_metric_logit)))
             side_metric_logits = (
                 public_side_logits
                 if (
@@ -7323,6 +7451,22 @@ def validate(
             hier_slice_flat_logit_margin_loss_sum += (
                 float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
             )
+            hier_public_trade_loss_sum += float(hier_stats.get("hier_public_trade_loss", 0.0)) * bs
+            hier_public_trade_global_prior_loss_sum += (
+                float(hier_stats.get("hier_public_trade_global_prior_loss", 0.0)) * bs
+            )
+            hier_public_slice_trade_prior_loss_sum += (
+                float(hier_stats.get("hier_public_slice_trade_prior_loss", 0.0)) * bs
+            )
+            hier_public_slice_trade_accuracy_edge_loss_sum += (
+                float(hier_stats.get("hier_public_slice_trade_accuracy_edge_loss", 0.0)) * bs
+            )
+            hier_public_flat_logit_margin_loss_sum += (
+                float(hier_stats.get("hier_public_flat_logit_margin_loss", 0.0)) * bs
+            )
+            hier_public_slice_flat_logit_margin_loss_sum += (
+                float(hier_stats.get("hier_public_slice_flat_logit_margin_loss", 0.0)) * bs
+            )
             hier_public_flat_consistency_loss_sum += (
                 float(hier_stats.get("hier_public_flat_consistency_loss", 0.0)) * bs
             )
@@ -7464,6 +7608,22 @@ def validate(
         "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_trade_loss_mean": (hier_public_trade_loss_sum / max(1, n)),
+        "hier_public_trade_global_prior_loss_mean": (
+            hier_public_trade_global_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_trade_prior_loss_mean": (
+            hier_public_slice_trade_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_trade_accuracy_edge_loss_mean": (
+            hier_public_slice_trade_accuracy_edge_loss_sum / max(1, n)
+        ),
+        "hier_public_flat_logit_margin_loss_mean": (
+            hier_public_flat_logit_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_flat_logit_margin_loss_mean": (
+            hier_public_slice_flat_logit_margin_loss_sum / max(1, n)
         ),
         "hier_public_flat_consistency_loss_mean": (
             hier_public_flat_consistency_loss_sum / max(1, n)
@@ -8652,6 +8812,7 @@ def run_train(
         hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+        enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -8894,6 +9055,7 @@ def run_train(
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
     _require_nonneg("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
+    _require_nonneg("ENTRY_HIER_PUBLIC_TRADE_HEAD", ENTRY_HIER_PUBLIC_TRADE_HEAD)
     _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_HEAD", ENTRY_HIER_PUBLIC_SIDE_HEAD)
     _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER", ENTRY_HIER_CTX_PRIOR_ADAPTER)
     _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)
@@ -9032,6 +9194,11 @@ def run_train(
             "[ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_INVALID] "
             "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="
             f"{ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_PUBLIC_TRADE_HEAD) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_TRADE_HEAD_INVALID] "
+            f"ENTRY_HIER_PUBLIC_TRADE_HEAD={ENTRY_HIER_PUBLIC_TRADE_HEAD} expected 0 or 1"
         )
     if int(ENTRY_HIER_PUBLIC_SIDE_HEAD) not in (0, 1):
         raise RuntimeError(
@@ -9723,6 +9890,8 @@ def run_train(
             repair_failures.append("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0 expected 1")
         if not bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE):
             repair_failures.append("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0 expected 1")
+        if not bool(ENTRY_HIER_PUBLIC_TRADE_HEAD):
+            repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_HEAD=0 expected 1")
         if not bool(ENTRY_HIER_PUBLIC_SIDE_HEAD):
             repair_failures.append("ENTRY_HIER_PUBLIC_SIDE_HEAD=0 expected 1")
         if not bool(ENTRY_HIER_CTX_PRIOR_ADAPTER):
@@ -10019,7 +10188,8 @@ def run_train(
         "utility_triad_ce_min_utility_bps=%.3f utility_triad_ce_max_bad_path=%.3f "
         "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
         "hier_compose_residual_cap=%.3f hier_compose_residual_side_neutral=%d "
-        "hier_compose_public_flat_from_trade=%d hier_public_side_head=%d "
+        "hier_compose_public_flat_from_trade=%d hier_public_trade_head=%d "
+        "hier_public_side_head=%d "
         "hier_ctx_prior_adapter=%d "
         "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
         "hier_ctx_direction_calibration_scale=%.3f hier_ctx_direction_calibration_cap=%.3f "
@@ -10086,6 +10256,7 @@ def run_train(
         float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         int(bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)),
         int(bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)),
+        int(bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)),
         int(bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)),
         int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
         float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -10705,6 +10876,7 @@ def run_train(
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+                    "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
                     "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -10962,6 +11134,7 @@ def run_train(
                     "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
                     "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+                    "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
                     "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -11163,6 +11336,7 @@ def run_train(
         enable_vol_forecast_head=enable_vol_forecast_head,
         enable_anchor_gate=bool(enable_anchor_gate),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
+        enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
@@ -11294,11 +11468,39 @@ def run_train(
             "residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
             "public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+            "public_trade_head": {
+                "enabled": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+                "input": "shared_entry_representation",
+                "applies_to": [
+                    "public_long_logit",
+                    "public_short_logit",
+                    "public_flat_logit",
+                ],
+                "side_source": (
+                    "public_side_logits"
+                    if bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)
+                    else "side_logits"
+                ),
+                "direct_trade_supervision": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+                "supervision_losses": [
+                    "binary_cross_entropy_on_y_trade",
+                    "global_prior_match",
+                    "slice_prior_match",
+                    "slice_accuracy_edge",
+                    "flat_logit_margin",
+                    "slice_flat_logit_margin",
+                ],
+                "runtime_rule_free": True,
+            },
             "public_side_head": {
                 "enabled": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
                 "input": "shared_entry_representation",
                 "applies_to": ["public_long_logit", "public_short_logit"],
-                "flat_source": "trade_logit",
+                "flat_source": (
+                    "public_trade_logit"
+                    if bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)
+                    else "trade_logit"
+                ),
                 "direct_side_supervision": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
                 "supervision_losses": [
                     "cross_entropy_on_y_side_mask",
@@ -11314,7 +11516,11 @@ def run_train(
                 "enabled": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                 "scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
                 "input": "ctx_cat_embeddings",
-                "applies_to": ["trade_logit", "side_logits"],
+                "applies_to": (
+                    ["trade_logit", "public_trade_logit", "side_logits"]
+                    if bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)
+                    else ["trade_logit", "side_logits"]
+                ),
                 "runtime_rule_free": True,
             },
             "ctx_direction_calibration": {
@@ -11329,7 +11535,7 @@ def run_train(
                 (
                     "logits=[log P(trade)+log P(public long|trade), log P(trade)+log P(public short|trade), "
                     "log P(flat)] + common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
-                    "common residual is softmax-invariant, public side uses a separate learned head, "
+                    "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
                     "and public FLAT comes from hierarchy no-trade"
                 )
                 if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
@@ -11627,6 +11833,7 @@ def run_train(
         "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+        "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -11806,6 +12013,7 @@ def run_train(
             "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
             "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
             "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+            "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
             "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
             "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
             "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
@@ -12015,6 +12223,7 @@ def run_train(
         hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
         hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
+        enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
         enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),

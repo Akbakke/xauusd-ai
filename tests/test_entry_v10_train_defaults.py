@@ -1486,6 +1486,7 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "hier_compose_residual_logit_cap",
         "hier_compose_residual_side_neutral",
         "hier_compose_public_flat_from_trade",
+        "hier_public_trade_head",
         "hier_public_side_head",
         "hier_ctx_prior_adapter",
         "hier_ctx_prior_adapter_scale",
@@ -1920,6 +1921,7 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
         "hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)"
         in train_ctor
     )
+    assert "enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)" in train_ctor
     assert "enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)" in train_ctor
     assert "enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)" in train_ctor
     assert "hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)" in train_ctor

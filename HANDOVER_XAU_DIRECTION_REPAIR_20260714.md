@@ -8,11 +8,19 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
-- Disk: `/dev/sdd` has about `838G` free after the 2026-07-15 cleanup round.
-- Runtime: no transformer training/eval job is running after the latest 2026-07-16 public-side direct-supervision smoke failed closed. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
+- Disk: `/dev/sdd` has about `837G` free after the latest cleanup/resource check.
+- Runtime: no transformer training/eval job is running during the 2026-07-16 public trade/FLAT-head source repair. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest transformer-entry source repair commit is `dcee5921 Train XAU public side head directly`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the public trade/FLAT-head repair. Verify exact commit with `git log -1 --oneline`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
+
+## Standing Rules
+
+- No fallback, advisory fallback, silent fallback, or soft continuation anywhere in the XAU direction-repair stack. Either the required contract/model/gate works, or the program fails closed with evidence.
+- Do not open candidate training, replay, IQL, shadow, live, or promotion until a fresh XAU transformer bundle passes the hard direction slice and class-balance gates.
+- Monitor disk/RAM before and after heavy jobs. If available disk approaches below `700G` or used space grows toward roughly `800G`, stop and run cleanup before more training. Delete stale aborted manifests, old failed run dirs, and obsolete tmp/memmap dirs once their evidence has been extracted.
+- Stop bounded transformer training when validation is hard-red and continuing only burns compute. Do not extend epochs on a red recipe.
+- Keep the runtime/live collector processes separate from transformer train/eval jobs; do not kill persistent live/collector/dashboard/notifier processes unless explicitly asked.
 
 ## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
 
@@ -1189,6 +1197,56 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
   - RAM about `38GiB` available, swap `0B`.
   - The aborted run manifest was deleted; no stale bundle directory existed.
 
+## 2026-07-16 Source Update - Hierarchy Public Trade/FLAT Head
+
+- This is the next topology repair after the public-side-head/direct-supervision failures. It is still transformer-entry work, not Entry-IQL, and it is not fallback.
+- Implemented a dedicated learned `head_public_trade` / `public_trade_logit`:
+  - public LONG/SHORT/FLAT composition now uses `public_trade_logit` for public trade-vs-FLAT when the head is active;
+  - internal `trade_logit` remains available for hierarchy/utility supervision;
+  - public FLAT consistency and validation hierarchy diagnostics use the public trade logit when present, so slice evidence reflects the actual public FLAT source.
+- Added direct public trade/FLAT supervision:
+  - BCE on `y_trade`;
+  - global/slice trade prior terms;
+  - slice trade accuracy-edge;
+  - global/slice flat-logit margin.
+- Strict XAU smart repair now requires `ENTRY_HIER_PUBLIC_TRADE_HEAD=1`:
+  - trainer preflight/failure evidence/metadata;
+  - smoke/candidate wrappers and rebuild defaults;
+  - smart smoke/trainability readiness, smoke manifest, enablement, sweep lint;
+  - bundle audit, candidate readiness, replay readiness;
+  - bundle loader fails closed if `head_public_trade.*` weights exist without matching metadata.
+- Validation completed before any heavy training:
+  - `python3 -m py_compile` passed for all touched Python modules.
+  - `bash -n` passed for smoke/candidate/rebuild shell wrappers.
+  - `git diff --check` passed.
+  - Focused pytest passed:
+    `scripts/pytest_repo.sh tests/test_entry_v10_ctx_model_shapes.py tests/test_entry_v10_hierarchical_loss.py tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_v10_6yr_rebuild_direction_repair_contract.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_xau_direction_repair_sweep.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_smart_seq520_smoke_readiness.py -q`
+- Resource state during this update:
+  - `/home/andre2/GX1_DATA`: about `837G` free.
+  - RAM: about `38GiB` available, swap `0B`.
+  - No transformer train/eval process running.
+- Clean-git readiness/enablement after commit:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet` passed.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_PUBTRADE_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet` passed.
+  - Enablement confirmed `has_hier_public_trade_head=true`, `has_hier_public_side_head=true`, `trainer_started=false`, `candidate_training_allowed=false`, `replay_allowed=false`, `iql_allowed=false`, and `promotion_shadow_live_allowed=false`.
+- Ran one bounded smart smoke and stopped it after the first validation because it was hard-red:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_PUBTRADE_E6_20260716`.
+  - Pre-train manifest was written at `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T102417Z.json`, then deleted after manual stop because the run was aborted and stale.
+  - Intended bundle dir was not created: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T102417Z`.
+  - No failure sidecar was written because the process was intentionally interrupted during epoch `2` train before final trainer failure handling.
+  - Epoch `1`: balance guard failed, public pred LONG `0.000000`, SHORT `0.000000`, FLAT `1.000000`, `dir_acc=0.345052`, `51` slice failures (`17` accuracy, `34` pred-rate), `direction_slice_ckpt_score=-2.972229`, hierarchy `trade_pred=1.000000`, `trade_prob=0.510204`, `trade_prob_label_flat=0.509933`, `side_acc_edge=0.612326`.
+  - Interpretation: the public trade-head topology and contract are wired, but the first epoch collapsed to all-FLAT. Continuing would burn compute with no plausible bundle path, so the run was stopped.
+- Post-stop cleanup/resource state:
+  - No transformer train/eval process running.
+  - No bundle dir, no failure sidecar, and no matching memmap tmp dir existed.
+  - The aborted pre-train manifest was deleted.
+  - `/home/andre2/GX1_DATA`: about `837G` free; RAM about `38GiB` available, swap `0B`.
+- Next action:
+  1. Do not rerun `SMART_SEQ520_XAU_SMOKE_PUBTRADE_E6_20260716` unchanged.
+  2. Candidate/replay/IQL/shadow/live remain closed until a fresh XAU transformer bundle passes hard direction slice and class-balance gates.
+  3. The next repair needs a new topology/staging change, not another scalar-only retune or more epochs on this recipe.
+
 ## Current Blockers
 
 1. Current direction pocket audit is red/stale and must not be used as promotion proof.
@@ -1198,11 +1256,11 @@ Broad XAU/replay/readiness suite passed under canonical env on 2026-07-15.
      - `rising_channel_support_touch selected SHORT rate 0.840`
    - It also points at stale July/pathutil artifacts.
 
-2. Latest executed smart XAU smoke after ctx-direction-calibration repair was stopped hard-red after epoch `2`. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
-   - The latest source repair is `be609151 Require XAU ctx direction calibration`.
-   - Epoch `1`: balance guard OK but `15` slice failures, `dir_acc=0.337240`, public pred LONG `0.575521`, SHORT `0.190104`, FLAT `0.234375`.
-   - Epoch `2`: balance guard failed, `19` slice failures, `dir_acc=0.346354`, public pred LONG `0.626953`, SHORT `0.104167`, FLAT `0.268880`; the run was manually stopped during epoch `3` train to avoid burning compute.
-   - The active blocker remains genuine active-slice direction discrimination under the hierarchy-composed public direction output, not missing public-FLAT composition and not an IQL problem.
+2. Latest executed smart XAU smoke after public trade/FLAT-head repair was stopped hard-red after epoch `1`. No candidate bundle was produced and no failed bundle should be used as promotion evidence.
+   - Latest source repair: `Require XAU public trade head`.
+   - Epoch `1`: balance guard failed, `51` slice failures, `dir_acc=0.345052`, public pred LONG `0.000000`, SHORT `0.000000`, FLAT `1.000000`.
+   - The run was manually stopped during epoch `2` train to avoid burning compute.
+   - The active blocker remains genuine active-slice direction discrimination and stable public FLAT/no-trade calibration under hierarchy-composed public direction output, not an IQL problem.
    - The blocker is not missing required XAU rail input and not IQL-readiness; the latest separability audit still found domain feature count `247`, missing required XAU direction features `0`, and only `1/10` detailed red slices weak on required rail features.
    - Until a fresh XAU transformer candidate bundle passes hard direction-slice and class-balance gates, candidate training, replay, IQL, shadow, live, and promotion remain closed.
 
