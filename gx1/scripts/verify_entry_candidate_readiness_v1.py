@@ -608,6 +608,8 @@ SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = 8
+SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT = 4.00
+SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN = 0.02
 SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT = 8.00
 SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN = 0.10
 SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = 0.10
@@ -767,6 +769,10 @@ def _direction_balance_contract_passes(
         >= SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
         and _float_or_zero(contract.get("hier_slice_trade_prior_match_min_rows"))
         >= SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS
+        and _float_or_zero(contract.get("hier_slice_trade_accuracy_edge_weight"))
+        >= SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT
+        and _float_or_zero(contract.get("hier_slice_trade_accuracy_edge_margin"))
+        >= SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN
         and _float_or_zero(contract.get("hier_flat_logit_margin_weight"))
         >= SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT
         and _float_or_zero(contract.get("hier_flat_logit_margin"))

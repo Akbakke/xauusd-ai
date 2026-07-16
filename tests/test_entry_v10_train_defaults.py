@@ -738,6 +738,8 @@ def test_entry_v10_hier_trade_prior_terms_penalize_all_trade_head(monkeypatch) -
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE", 0.02)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE", 0.10)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN", 0.02)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 0.05)
@@ -751,15 +753,25 @@ def test_entry_v10_hier_trade_prior_terms_penalize_all_trade_head(monkeypatch) -
     good_global_prior = float(trainer._hier_trade_global_prior_match_term(matched_trade, y_trade).item())
     bad_slice_prior = float(trainer._hier_slice_trade_prior_match_term(collapsed_trade, y_trade, ctx_cat).item())
     good_slice_prior = float(trainer._hier_slice_trade_prior_match_term(matched_trade, y_trade, ctx_cat).item())
+    bad_accuracy_edge = float(
+        trainer._hier_slice_trade_accuracy_edge_term(collapsed_trade, y_trade, ctx_cat).item()
+    )
+    good_accuracy_edge = float(
+        trainer._hier_slice_trade_accuracy_edge_term(matched_trade, y_trade, ctx_cat).item()
+    )
 
     assert bad_global_prior > good_global_prior
     assert bad_slice_prior > good_slice_prior
+    assert bad_accuracy_edge > good_accuracy_edge
     assert good_global_prior == 0.0
     assert good_slice_prior == 0.0
+    assert good_accuracy_edge == 0.0
     monkeypatch.setattr(trainer, "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", 0.0)
     monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT", 0.0)
     assert float(trainer._hier_trade_global_prior_match_term(collapsed_trade, y_trade).item()) == 0.0
     assert float(trainer._hier_slice_trade_prior_match_term(collapsed_trade, y_trade, ctx_cat).item()) == 0.0
+    assert float(trainer._hier_slice_trade_accuracy_edge_term(collapsed_trade, y_trade, ctx_cat).item()) == 0.0
 
 
 def test_entry_v10_hier_flat_logit_margin_terms_penalize_flat_as_trade(monkeypatch) -> None:

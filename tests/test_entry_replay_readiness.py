@@ -834,6 +834,8 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "hier_slice_trade_prior_match_tolerance": 0.02,
             "hier_slice_trade_prior_match_min_label_rate": 0.10,
             "hier_slice_trade_prior_match_min_rows": 8,
+            "hier_slice_trade_accuracy_edge_weight": 4.00,
+            "hier_slice_trade_accuracy_edge_margin": 0.02,
             "hier_flat_logit_margin_weight": 8.00,
             "hier_flat_logit_margin": 0.10,
             "hier_flat_logit_margin_min_label_rate": 0.10,

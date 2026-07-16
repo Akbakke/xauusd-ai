@@ -565,6 +565,12 @@ ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = float(
 ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = int(
     float(_env_str("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
+ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT = float(
+    _env_str("ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT", "0.0")
+)
+ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN = float(
+    _env_str("ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN", "0.02")
+)
 ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT = float(_env_str("ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT", "0.0"))
 ENTRY_HIER_FLAT_LOGIT_MARGIN = float(_env_str("ENTRY_HIER_FLAT_LOGIT_MARGIN", "0.10"))
 ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = float(
@@ -877,6 +883,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE": "0.02",
     "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS": "8",
+    "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT": "0.0",
+    "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN": "0.02",
     "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT": "0.0",
     "ENTRY_HIER_FLAT_LOGIT_MARGIN": "0.10",
     "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
@@ -3637,6 +3645,74 @@ def _hier_slice_trade_prior_match_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _hier_slice_trade_accuracy_edge_term(
+    trade_logit: torch.Tensor,
+    y_trade: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
+    weight = float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    logits = trade_logit.reshape(-1)
+    if len(y_trade) != logits.shape[0] or ctx_cat.shape[0] != logits.shape[0]:
+        return zero
+
+    margin = float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN)
+    min_rows = int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS)
+    min_label_rate = float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE)
+    if margin < 0.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN={margin:.6f} expected >=0.0"
+        )
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    targets = _hier_trade_prior_targets(y_trade).to(device=trade_logit.device)
+    hardish_probs = _hier_trade_prior_probs(trade_logit)
+    margin_t = torch.as_tensor(margin, device=trade_logit.device, dtype=trade_logit.dtype)
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = ctx_cat[:, idx].long() == value
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = targets[mask]
+            counts = torch.bincount(slice_targets, minlength=2).to(
+                device=trade_logit.device,
+                dtype=trade_logit.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active = label_rates >= min_label_rate
+            if int(active.sum().detach().cpu().item()) < 2:
+                continue
+            true_prob = hardish_probs[mask][
+                torch.arange(rows, device=trade_logit.device),
+                slice_targets.clamp(min=0, max=1),
+            ].mean()
+            required = torch.clamp(label_rates[:2].max() + margin_t, max=1.0)
+            values.append(torch.relu(required - true_prob))
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _hier_flat_logit_margin_term(
     trade_logit: torch.Tensor,
     y_trade: torch.Tensor,
@@ -4634,6 +4710,7 @@ def _hierarchical_entry_loss(
         "hier_trade_loss": 0.0,
         "hier_trade_global_prior_loss": 0.0,
         "hier_slice_trade_prior_loss": 0.0,
+        "hier_slice_trade_accuracy_edge_loss": 0.0,
         "hier_flat_logit_margin_loss": 0.0,
         "hier_slice_flat_logit_margin_loss": 0.0,
         "hier_public_flat_consistency_loss": 0.0,
@@ -4799,6 +4876,16 @@ def _hierarchical_entry_loss(
         if hier_slice_trade_prior.numel() == 1:
             total = total + hier_slice_trade_prior
             stats["hier_slice_trade_prior_loss"] = float(hier_slice_trade_prior.detach().cpu().item())
+        hier_slice_trade_accuracy_edge = _hier_slice_trade_accuracy_edge_term(
+            trade_logit,
+            y_trade,
+            ctx_cat,
+        )
+        if hier_slice_trade_accuracy_edge.numel() == 1:
+            total = total + hier_slice_trade_accuracy_edge
+            stats["hier_slice_trade_accuracy_edge_loss"] = float(
+                hier_slice_trade_accuracy_edge.detach().cpu().item()
+            )
         hier_flat_logit_margin = _hier_flat_logit_margin_term(trade_logit, y_trade)
         if hier_flat_logit_margin.numel() == 1:
             total = total + hier_flat_logit_margin
@@ -5370,6 +5457,7 @@ def train_epoch(
     hier_trade_loss_sum = 0.0
     hier_trade_global_prior_loss_sum = 0.0
     hier_slice_trade_prior_loss_sum = 0.0
+    hier_slice_trade_accuracy_edge_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
     hier_public_flat_consistency_loss_sum = 0.0
@@ -5803,6 +5891,9 @@ def train_epoch(
         hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
         hier_trade_global_prior_loss_sum += float(hier_stats.get("hier_trade_global_prior_loss", 0.0)) * bs
         hier_slice_trade_prior_loss_sum += float(hier_stats.get("hier_slice_trade_prior_loss", 0.0)) * bs
+        hier_slice_trade_accuracy_edge_loss_sum += float(
+            hier_stats.get("hier_slice_trade_accuracy_edge_loss", 0.0)
+        ) * bs
         hier_flat_logit_margin_loss_sum += float(hier_stats.get("hier_flat_logit_margin_loss", 0.0)) * bs
         hier_slice_flat_logit_margin_loss_sum += (
             float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
@@ -5909,6 +6000,9 @@ def train_epoch(
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
         "hier_trade_global_prior_loss_mean": (hier_trade_global_prior_loss_sum / max(1, n)),
         "hier_slice_trade_prior_loss_mean": (hier_slice_trade_prior_loss_sum / max(1, n)),
+        "hier_slice_trade_accuracy_edge_loss_mean": (
+            hier_slice_trade_accuracy_edge_loss_sum / max(1, n)
+        ),
         "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
@@ -6551,6 +6645,7 @@ def validate(
     hier_trade_loss_sum = 0.0
     hier_trade_global_prior_loss_sum = 0.0
     hier_slice_trade_prior_loss_sum = 0.0
+    hier_slice_trade_accuracy_edge_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
     hier_public_flat_consistency_loss_sum = 0.0
@@ -6958,6 +7053,9 @@ def validate(
             hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
             hier_trade_global_prior_loss_sum += float(hier_stats.get("hier_trade_global_prior_loss", 0.0)) * bs
             hier_slice_trade_prior_loss_sum += float(hier_stats.get("hier_slice_trade_prior_loss", 0.0)) * bs
+            hier_slice_trade_accuracy_edge_loss_sum += float(
+                hier_stats.get("hier_slice_trade_accuracy_edge_loss", 0.0)
+            ) * bs
             hier_flat_logit_margin_loss_sum += float(hier_stats.get("hier_flat_logit_margin_loss", 0.0)) * bs
             hier_slice_flat_logit_margin_loss_sum += (
                 float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
@@ -7074,6 +7172,9 @@ def validate(
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
         "hier_trade_global_prior_loss_mean": (hier_trade_global_prior_loss_sum / max(1, n)),
         "hier_slice_trade_prior_loss_mean": (hier_slice_trade_prior_loss_sum / max(1, n)),
+        "hier_slice_trade_accuracy_edge_loss_mean": (
+            hier_slice_trade_accuracy_edge_loss_sum / max(1, n)
+        ),
         "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
@@ -8500,6 +8601,14 @@ def run_train(
         ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE,
     )
     _require_nonneg("ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS)
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT",
+        ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN",
+        ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN,
+    )
     _require_nonneg("ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT", ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_HIER_FLAT_LOGIT_MARGIN", ENTRY_HIER_FLAT_LOGIT_MARGIN)
     _require_nonneg(
@@ -8645,6 +8754,12 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS_INVALID] "
             f"ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS={ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS} expected >=2"
+        )
+    if ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN > 1.0:
+        raise RuntimeError(
+            "[ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN_INVALID] "
+            "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN="
+            f"{ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN:.6f} expected <=1.0"
         )
     if ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE > 1.0:
         raise RuntimeError(
@@ -9081,6 +9196,16 @@ def run_train(
             repair_failures.append(
                 "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS="
                 f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS} expected >=8"
+            )
+        if ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT="
+                f"{ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN < 0.02:
+            repair_failures.append(
+                "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN="
+                f"{ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN:.3f} expected >=0.02"
             )
         if ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT < 8.0:
             repair_failures.append(
@@ -10215,6 +10340,12 @@ def run_train(
                     "hier_slice_trade_prior_match_min_rows": int(
                         ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS
                     ),
+                    "hier_slice_trade_accuracy_edge_weight": float(
+                        ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT
+                    ),
+                    "hier_slice_trade_accuracy_edge_margin": float(
+                        ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN
+                    ),
                     "hier_flat_logit_margin_weight": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT),
                     "hier_flat_logit_margin": float(ENTRY_HIER_FLAT_LOGIT_MARGIN),
                     "hier_flat_logit_margin_min_label_rate": float(
@@ -10457,6 +10588,12 @@ def run_train(
                     ),
                     "hier_slice_trade_prior_match_min_rows": int(
                         ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS
+                    ),
+                    "hier_slice_trade_accuracy_edge_weight": float(
+                        ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT
+                    ),
+                    "hier_slice_trade_accuracy_edge_margin": float(
+                        ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN
                     ),
                     "hier_flat_logit_margin_weight": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT),
                     "hier_flat_logit_margin": float(ENTRY_HIER_FLAT_LOGIT_MARGIN),
@@ -10828,6 +10965,7 @@ def run_train(
                 "enabled": (
                     float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT) > 0.0
+                    or float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT) > 0.0
                     or float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT) > 0.0
                     or float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT) > 0.0
@@ -10842,6 +10980,8 @@ def run_train(
                 "prior_match_tolerance": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE),
                 "prior_match_min_label_rate": float(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE),
                 "prior_match_min_rows": int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
+                "accuracy_edge_weight": float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT),
+                "accuracy_edge_margin": float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN),
                 "flat_logit_margin_weight": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT),
                 "flat_logit_margin": float(ENTRY_HIER_FLAT_LOGIT_MARGIN),
                 "flat_logit_margin_min_label_rate": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE),
@@ -11064,6 +11204,8 @@ def run_train(
             ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
         ),
         "hier_slice_trade_prior_match_min_rows": int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
+        "hier_slice_trade_accuracy_edge_weight": float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT),
+        "hier_slice_trade_accuracy_edge_margin": float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN),
         "hier_flat_logit_margin_weight": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT),
         "hier_flat_logit_margin": float(ENTRY_HIER_FLAT_LOGIT_MARGIN),
         "hier_flat_logit_margin_min_label_rate": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE),
@@ -11235,6 +11377,8 @@ def run_train(
                 ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE
             ),
             "hier_slice_trade_prior_match_min_rows": int(ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS),
+            "hier_slice_trade_accuracy_edge_weight": float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT),
+            "hier_slice_trade_accuracy_edge_margin": float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN),
             "hier_flat_logit_margin_weight": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT),
             "hier_flat_logit_margin": float(ENTRY_HIER_FLAT_LOGIT_MARGIN),
             "hier_flat_logit_margin_min_label_rate": float(ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE),

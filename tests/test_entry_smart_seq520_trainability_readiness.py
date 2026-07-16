@@ -117,6 +117,8 @@ def _direction_balance_wrapper_text(kind: str) -> str:
             "DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10",
             "HIER_LEGACY_CE_MULT=1.00",
             "HIER_SIDE_VALIDITY_WEIGHT=1.50",
+            "HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT=4.00",
+            "HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN=0.02",
             "HIER_SLICE_SIDE_CE_WEIGHT=4.00",
             "HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=3.00",
             "HIER_SLICE_SIDE_TRUE_MARGIN=0.10",

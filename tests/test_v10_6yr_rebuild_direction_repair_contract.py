@@ -68,6 +68,14 @@ def test_v10_6yr_rebuild_uses_smart_seq520_inline_direction_repair_surface() -> 
         "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS="
         "${ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS:-8}" in text
     )
+    assert (
+        "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT="
+        "${ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT:-4.00}" in text
+    )
+    assert (
+        "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN="
+        "${ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN:-0.02}" in text
+    )
     assert "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT=${ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT:-8.00}" in text
     assert "ENTRY_HIER_FLAT_LOGIT_MARGIN=${ENTRY_HIER_FLAT_LOGIT_MARGIN:-0.10}" in text
     assert (

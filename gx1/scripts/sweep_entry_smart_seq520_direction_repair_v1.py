@@ -164,6 +164,8 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE": "0.02",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT": "4.00",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN": "0.02",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN": "0.10",
@@ -437,6 +439,12 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
     hier_slice_trade_prior_min_rows = int(
         float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS", "0"))
     )
+    hier_slice_trade_accuracy_edge_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT", "0")
+    )
+    hier_slice_trade_accuracy_edge_margin = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN", "0")
+    )
     hier_flat_logit_margin_weight = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN_WEIGHT", "0")
     )
@@ -503,6 +511,16 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS must be >= 8 for strict XAU repair, "
             f"got {hier_slice_trade_prior_min_rows}"
+        )
+    if hier_slice_trade_accuracy_edge_weight < 4.0:
+        failures.append(
+            "HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT must be >= 4.0 for strict XAU repair, "
+            f"got {hier_slice_trade_accuracy_edge_weight}"
+        )
+    if hier_slice_trade_accuracy_edge_margin < 0.02:
+        failures.append(
+            "HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN must be >= 0.02 for strict XAU repair, "
+            f"got {hier_slice_trade_accuracy_edge_margin}"
         )
     if hier_flat_logit_margin_weight < 8.0:
         failures.append(
