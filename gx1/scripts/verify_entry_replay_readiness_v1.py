@@ -90,6 +90,10 @@ SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
 SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
 SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.50
+SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT = 4.00
+SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN = 0.02
+SMART_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT = 4.00
+SMART_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN = 0.02
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_UTILITY_MARGIN_WEIGHT = 4.00
@@ -305,6 +309,14 @@ def _direction_balance_contract_passes(
         and 0.0
         < _float_or_zero(contract.get("direction_min_pred_rate_softmax_temperature"))
         <= SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX
+        and _float_or_zero(contract.get("direction_slice_accuracy_edge_weight"))
+        >= SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT
+        and _float_or_zero(contract.get("direction_slice_accuracy_edge_margin"))
+        >= SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN
+        and _float_or_zero(contract.get("direction_slice_confusion_pair_weight"))
+        >= SMART_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT
+        and _float_or_zero(contract.get("direction_slice_confusion_pair_margin"))
+        >= SMART_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN
         and _float_or_zero(contract.get("direction_vs_flat_margin_weight"))
         >= SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT
         and _float_or_zero(contract.get("direction_vs_flat_margin"))

@@ -963,6 +963,53 @@ def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(m
     assert float(trainer._direction_slice_accuracy_edge_term(below_majority, targets, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_direction_slice_confusion_pair_term_penalizes_wrong_class(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN", 0.02)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS", 6)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
+    ctx_cat = torch.tensor([[3]] * len(targets), dtype=torch.long)
+    confused_logits = torch.tensor(
+        [
+            [-1.0, 4.0, -1.0],
+            [-1.0, 4.0, -1.0],
+            [4.0, -1.0, -1.0],
+            [4.0, -1.0, -1.0],
+            [4.0, -1.0, -1.0],
+            [4.0, -1.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    correct_logits = torch.tensor(
+        [
+            [4.0, -1.0, -1.0],
+            [4.0, -1.0, -1.0],
+            [-1.0, 4.0, -1.0],
+            [-1.0, 4.0, -1.0],
+            [-1.0, -1.0, 4.0],
+            [-1.0, -1.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    bad_loss = float(trainer._direction_slice_confusion_pair_term(confused_logits, targets, ctx_cat).item())
+    good_loss = float(trainer._direction_slice_confusion_pair_term(correct_logits, targets, ctx_cat).item())
+
+    assert bad_loss > 0.0
+    assert good_loss == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT", 0.0)
+    assert float(trainer._direction_slice_confusion_pair_term(confused_logits, targets, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_slice_prior_match_penalizes_slice_distribution_drift(monkeypatch) -> None:
     import torch
 

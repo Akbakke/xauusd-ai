@@ -371,6 +371,12 @@ ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT = float(
 ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN = float(
     _env_str("ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN", "0.02")
 )
+ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT = float(
+    _env_str("ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT", "0.0")
+)
+ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN = float(
+    _env_str("ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN", "0.02")
+)
 ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE = float(
     _env_str("ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
 )
@@ -788,6 +794,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS": "8",
     "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT": "0.0",
     "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN": "0.02",
+    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN": "0.02",
     "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS": "8",
     "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT": "0.0",
@@ -4080,6 +4088,84 @@ def _direction_slice_accuracy_edge_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
+def _direction_slice_confusion_pair_term(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=logits.device, dtype=logits.dtype)
+    weight = float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if logits.ndim != 2 or logits.shape[1] < 3 or ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(targets) != logits.shape[0] or ctx_cat.shape[0] != logits.shape[0]:
+        return zero
+
+    margin = float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN)
+    min_rows = int(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS)
+    min_label_rate = float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE)
+    if margin < 0.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN={margin:.6f} expected >=0.0"
+        )
+    if min_rows < 2:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS={min_rows} expected >=2"
+        )
+    if min_label_rate < 0.0 or min_label_rate > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
+        )
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    probs = torch.softmax(logits, dim=1)
+    hardish_probs = _direction_pred_rate_probs(probs)
+    target_i = targets.long().clamp(min=0, max=hardish_probs.shape[1] - 1)
+    margin_t = torch.as_tensor(margin, device=logits.device, dtype=logits.dtype)
+    values: list[torch.Tensor] = []
+    for idx in indices:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
+            mask = ctx_cat[:, idx].long() == value
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = target_i[mask]
+            counts = torch.bincount(slice_targets, minlength=logits.shape[1]).to(
+                device=logits.device,
+                dtype=logits.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active_classes = torch.nonzero(label_rates[:3] >= min_label_rate, as_tuple=False).flatten()
+            if int(active_classes.numel()) < 2:
+                continue
+            slice_probs = hardish_probs[mask, :3]
+            for cls_t in active_classes:
+                cls = int(cls_t.detach().cpu().item())
+                class_mask = slice_targets == cls
+                if int(class_mask.sum().detach().cpu().item()) < 1:
+                    continue
+                true_mean = slice_probs[class_mask, cls].mean()
+                wrong_means = [
+                    slice_probs[class_mask, int(wrong_t.detach().cpu().item())].mean()
+                    for wrong_t in active_classes
+                    if int(wrong_t.detach().cpu().item()) != cls
+                ]
+                if not wrong_means:
+                    continue
+                worst_wrong = torch.stack(wrong_means).max()
+                values.append(torch.relu(worst_wrong + margin_t - true_mean))
+    if not values:
+        return zero
+    return weight * _direction_slice_loss_aggregate(values)
+
+
 def _direction_slice_prior_match_term(
     probs: torch.Tensor,
     targets: torch.Tensor,
@@ -5409,6 +5495,7 @@ def train_epoch(
     total_direction_slice_balanced_ce = 0.0
     total_direction_slice_true_margin = 0.0
     total_direction_slice_accuracy_edge = 0.0
+    total_direction_slice_confusion_pair = 0.0
     total_direction_slice_prior_match = 0.0
     total_direction_flat_margin = 0.0
     total_direction_utility_margin = 0.0
@@ -5568,6 +5655,7 @@ def train_epoch(
         slice_balanced_ce_term = _direction_slice_balanced_ce_term(logits, y, ctx_cat)
         slice_true_margin_term = _direction_slice_true_margin_term(logits, y, ctx_cat)
         slice_accuracy_edge_term = _direction_slice_accuracy_edge_term(logits, y, ctx_cat)
+        slice_confusion_pair_term = _direction_slice_confusion_pair_term(logits, y, ctx_cat)
         slice_prior_match_term = _direction_slice_prior_match_term(probs, y, ctx_cat)
         direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
         direction_utility_margin_term = _direction_utility_margin_term(
@@ -5612,6 +5700,7 @@ def train_epoch(
             + slice_balanced_ce_term
             + slice_true_margin_term
             + slice_accuracy_edge_term
+            + slice_confusion_pair_term
             + slice_prior_match_term
             + direction_flat_margin_term
             + direction_utility_margin_term
@@ -5868,6 +5957,7 @@ def train_epoch(
         total_direction_slice_balanced_ce += float(slice_balanced_ce_term.detach().cpu().item()) * bs
         total_direction_slice_true_margin += float(slice_true_margin_term.detach().cpu().item()) * bs
         total_direction_slice_accuracy_edge += float(slice_accuracy_edge_term.detach().cpu().item()) * bs
+        total_direction_slice_confusion_pair += float(slice_confusion_pair_term.detach().cpu().item()) * bs
         total_direction_slice_prior_match += float(slice_prior_match_term.detach().cpu().item()) * bs
         total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
         total_direction_utility_margin += float(direction_utility_margin_term.detach().cpu().item()) * bs
@@ -5958,6 +6048,7 @@ def train_epoch(
         "direction_slice_balanced_ce_loss_mean": (total_direction_slice_balanced_ce / max(1, n)),
         "direction_slice_true_margin_loss_mean": (total_direction_slice_true_margin / max(1, n)),
         "direction_slice_accuracy_edge_loss_mean": (total_direction_slice_accuracy_edge / max(1, n)),
+        "direction_slice_confusion_pair_loss_mean": (total_direction_slice_confusion_pair / max(1, n)),
         "direction_slice_prior_match_loss_mean": (total_direction_slice_prior_match / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
@@ -6612,6 +6703,7 @@ def validate(
     total_direction_slice_balanced_ce = 0.0
     total_direction_slice_true_margin = 0.0
     total_direction_slice_accuracy_edge = 0.0
+    total_direction_slice_confusion_pair = 0.0
     total_direction_slice_prior_match = 0.0
     total_direction_flat_margin = 0.0
     total_direction_utility_margin = 0.0
@@ -6794,6 +6886,7 @@ def validate(
             slice_balanced_ce_term = _direction_slice_balanced_ce_term(logits, y, ctx_cat)
             slice_true_margin_term = _direction_slice_true_margin_term(logits, y, ctx_cat)
             slice_accuracy_edge_term = _direction_slice_accuracy_edge_term(logits, y, ctx_cat)
+            slice_confusion_pair_term = _direction_slice_confusion_pair_term(logits, y, ctx_cat)
             slice_prior_match_term = _direction_slice_prior_match_term(probs, y, ctx_cat)
             direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
             direction_utility_margin_term = _direction_utility_margin_term(
@@ -6838,6 +6931,7 @@ def validate(
                 + slice_balanced_ce_term
                 + slice_true_margin_term
                 + slice_accuracy_edge_term
+                + slice_confusion_pair_term
                 + slice_prior_match_term
                 + direction_flat_margin_term
                 + direction_utility_margin_term
@@ -7033,6 +7127,7 @@ def validate(
             total_direction_slice_balanced_ce += float(slice_balanced_ce_term.detach().cpu().item()) * bs
             total_direction_slice_true_margin += float(slice_true_margin_term.detach().cpu().item()) * bs
             total_direction_slice_accuracy_edge += float(slice_accuracy_edge_term.detach().cpu().item()) * bs
+            total_direction_slice_confusion_pair += float(slice_confusion_pair_term.detach().cpu().item()) * bs
             total_direction_slice_prior_match += float(slice_prior_match_term.detach().cpu().item()) * bs
             total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
             total_direction_utility_margin += float(direction_utility_margin_term.detach().cpu().item()) * bs
@@ -7153,6 +7248,7 @@ def validate(
         "direction_slice_balanced_ce_loss_mean": (total_direction_slice_balanced_ce / max(1, n)),
         "direction_slice_true_margin_loss_mean": (total_direction_slice_true_margin / max(1, n)),
         "direction_slice_accuracy_edge_loss_mean": (total_direction_slice_accuracy_edge / max(1, n)),
+        "direction_slice_confusion_pair_loss_mean": (total_direction_slice_confusion_pair / max(1, n)),
         "direction_slice_prior_match_loss_mean": (total_direction_slice_prior_match / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
@@ -8547,6 +8643,8 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS", ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS)
     _require_nonneg("ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT", ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN", ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN)
+    _require_nonneg("ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT", ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT)
+    _require_nonneg("ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN", ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN)
     _require_nonneg(
         "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE",
         ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE,
@@ -8875,6 +8973,12 @@ def run_train(
             "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE="
             f"{ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE:.6f} expected <=1.0"
         )
+    if ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN_INVALID] "
+            "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN="
+            f"{ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:.6f} expected <=1.0"
+        )
     if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS < 2:
         raise RuntimeError(
             "[ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS_INVALID] "
@@ -9131,6 +9235,16 @@ def run_train(
             repair_failures.append(
                 "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN="
                 f"{ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:.3f} expected >=0.02"
+            )
+        if ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT < 4.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT="
+                f"{ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT:.3f} expected >=4.0"
+            )
+        if ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN < 0.02:
+            repair_failures.append(
+                "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN="
+                f"{ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:.3f} expected >=0.02"
             )
         if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE < 0.10:
             repair_failures.append(
@@ -9629,7 +9743,8 @@ def run_train(
         "slice_recall_min_label_rate=%.3f slice_balanced_ce_w=%.3f slice_balanced_ce_min_rows=%d "
         "slice_balanced_ce_min_label_rate=%.3f slice_true_margin_w=%.3f slice_true_margin=%.3f "
         "slice_true_margin_min_rows=%d slice_true_margin_min_label_rate=%.3f slice_acc_edge_w=%.3f "
-        "slice_acc_edge_margin=%.3f slice_acc_edge_min_rows=%d slice_acc_edge_min_label_rate=%.3f "
+        "slice_acc_edge_margin=%.3f slice_confusion_pair_w=%.3f slice_confusion_pair_margin=%.3f "
+        "slice_acc_edge_min_rows=%d slice_acc_edge_min_label_rate=%.3f "
         "slice_prior_w=%.3f slice_prior_tol=%.3f slice_prior_min_rows=%d "
         "slice_prior_min_label_rate=%.3f slice_agg=%s "
         "slice_balanced_sampler=%d slice_balanced_sampler_min_rows=%d hard_red_stop_patience=%d "
@@ -9674,6 +9789,8 @@ def run_train(
         float(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE),
         float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT),
         float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN),
+        float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT),
+        float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN),
         int(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS),
         float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE),
         float(ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT),
@@ -9942,7 +10059,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -9958,6 +10075,7 @@ def run_train(
                 float(val_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_true_margin_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_accuracy_edge_loss_mean", 0.0)),
+                float(val_stats.get("direction_slice_confusion_pair_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_prior_match_loss_mean", 0.0)),
                 float(val_stats.get("tail_direction_loss_mean", 0.0)),
                 int(val_stats.get("tail_direction_rows", 0)),
@@ -10076,7 +10194,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -10092,6 +10210,7 @@ def run_train(
                 float(tr_stats.get("direction_slice_balanced_ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_true_margin_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_accuracy_edge_loss_mean", 0.0)),
+                float(tr_stats.get("direction_slice_confusion_pair_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_prior_match_loss_mean", 0.0)),
                 float(tr_stats.get("tail_direction_loss_mean", 0.0)),
                 int(tr_stats.get("tail_direction_rows", 0)),
@@ -10502,6 +10621,8 @@ def run_train(
                     "direction_slice_true_margin_min_rows": int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
                     "direction_slice_accuracy_edge_weight": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT),
                     "direction_slice_accuracy_edge_margin": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN),
+                    "direction_slice_confusion_pair_weight": float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT),
+                    "direction_slice_confusion_pair_margin": float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN),
                     "direction_slice_accuracy_edge_min_label_rate": float(
                         ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE
                     ),
@@ -11145,6 +11266,8 @@ def run_train(
         "direction_slice_true_margin_min_rows": int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
         "direction_slice_accuracy_edge_weight": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT),
         "direction_slice_accuracy_edge_margin": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN),
+        "direction_slice_confusion_pair_weight": float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT),
+        "direction_slice_confusion_pair_margin": float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN),
         "direction_slice_accuracy_edge_min_label_rate": float(
             ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE
         ),
@@ -11316,6 +11439,8 @@ def run_train(
             "direction_slice_true_margin_min_rows": int(ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS),
             "direction_slice_accuracy_edge_weight": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT),
             "direction_slice_accuracy_edge_margin": float(ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN),
+            "direction_slice_confusion_pair_weight": float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT),
+            "direction_slice_confusion_pair_margin": float(ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN),
             "direction_slice_accuracy_edge_min_label_rate": float(
                 ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE
             ),

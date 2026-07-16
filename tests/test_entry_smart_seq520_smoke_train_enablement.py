@@ -83,10 +83,20 @@ def _dry_run_stub(**kwargs) -> dict:
             "env ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00 "
             "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02 "
             "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10 "
+            "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT=4.00 "
+            "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN=0.02 "
+            "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=0.10 "
+            "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=8 "
+            "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT=4.00 "
+            "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN=0.02 "
             "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00 "
             "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02 "
+            "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE=0.10 "
+            "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS=8 "
             "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3 "
             "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6 "
+            "ENTRY_CKPT_DIRECTION_SLICE_GUARD=1 "
+            "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max "
             "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00 "
             "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=15.0 "
             "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=0.10 "
@@ -107,6 +117,8 @@ def _dry_run_stub(**kwargs) -> dict:
             "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.18 "
             "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1 "
             "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1 "
+            "ENTRY_HIER_CTX_PRIOR_ADAPTER=1 "
+            "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50 "
             "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT=4.00 "
             "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02 "
             "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10 "
@@ -158,6 +170,8 @@ def _dry_run_stub(**kwargs) -> dict:
         "has_swap_cap": True,
         "has_num_workers_zero": True,
         "has_global_prior_match": True,
+        "has_accuracy_edge": True,
+        "has_confusion_pair": True,
         "has_prior_match": True,
         "has_hard_red_stop": True,
         "has_utility_margin": True,

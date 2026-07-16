@@ -197,6 +197,14 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:-0.02}"'
+        in text
+    )
+    assert (
         'CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE:-0.10}"'
         in text
     )
@@ -459,6 +467,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=" in text
     assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT=" in text
     assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN=" in text
+    assert "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN=" in text
     assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=" in text
     assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=" in text
     assert "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=" in text
@@ -624,6 +634,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=8" in text
     assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN=0.02" in text
+    assert "CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT=4.00" in text
+    assert "CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN=0.02" in text
     assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=0.10" in text
     assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=8" in text
     assert "CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00" in text

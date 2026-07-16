@@ -508,6 +508,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "direction_slice_true_margin_min_rows": 8,
             "direction_slice_accuracy_edge_weight": 4.00,
             "direction_slice_accuracy_edge_margin": 0.02,
+            "direction_slice_confusion_pair_weight": 4.00,
+            "direction_slice_confusion_pair_margin": 0.02,
             "direction_slice_accuracy_edge_min_label_rate": 0.10,
             "direction_slice_accuracy_edge_min_rows": 8,
             "direction_slice_prior_match_weight": 3.00,
@@ -611,6 +613,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["direction_slice_true_margin_min_rows"] == 8
     assert report["direction_slice_accuracy_edge_weight"] == 4.00
     assert report["direction_slice_accuracy_edge_margin"] == 0.02
+    assert report["direction_slice_confusion_pair_weight"] == 4.00
+    assert report["direction_slice_confusion_pair_margin"] == 0.02
     assert report["direction_slice_accuracy_edge_min_label_rate"] == 0.10
     assert report["direction_slice_accuracy_edge_min_rows"] == 8
     assert report["direction_slice_prior_match_weight"] == 3.00
@@ -746,6 +750,8 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "direction_slice_true_margin_min_rows": 8,
             "direction_slice_accuracy_edge_weight": 4.00,
             "direction_slice_accuracy_edge_margin": 0.02,
+            "direction_slice_confusion_pair_weight": 4.00,
+            "direction_slice_confusion_pair_margin": 0.02,
             "direction_slice_accuracy_edge_min_label_rate": 0.10,
             "direction_slice_accuracy_edge_min_rows": 8,
             "direction_slice_prior_match_weight": 3.00,
