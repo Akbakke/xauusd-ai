@@ -6985,6 +6985,105 @@ def _direction_hierarchy_output_stats(
     return stats
 
 
+def _direction_public_trade_flat_output_stats(
+    targets_np: np.ndarray,
+    trade_prob_np: Optional[np.ndarray] = None,
+    pred_np: Optional[np.ndarray] = None,
+    *,
+    min_pred_to_label: float,
+    min_pred_rate: float,
+    guard_required: bool = False,
+) -> Dict[str, Any]:
+    targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
+    n = int(targets_i.size)
+    if n <= 0:
+        return {
+            "public_trade_flat_available": False,
+            "public_trade_flat_hard_rate_guard_ok": not bool(guard_required),
+        }
+
+    trade_target = targets_i != 2
+    flat_target = targets_i == 2
+    target_rates = np.asarray(
+        [float(np.mean(trade_target)), float(np.mean(flat_target))],
+        dtype=np.float64,
+    )
+    stats: Dict[str, Any] = {
+        "public_trade_flat_available": False,
+        "public_trade_flat_target_trade_rate": float(target_rates[0]),
+        "public_trade_flat_target_flat_rate": float(target_rates[1]),
+        "public_trade_flat_min_pred_to_label_threshold": float(min_pred_to_label),
+        "public_trade_flat_min_pred_rate_threshold": float(min_pred_rate),
+    }
+
+    trade_prob = _optional_float_1d(trade_prob_np, n)
+    pred = _optional_int_1d(pred_np, n)
+    if trade_prob is None or pred is None:
+        if bool(guard_required):
+            stats["public_trade_flat_hard_rate_guard_ok"] = False
+        return stats
+
+    finite = np.isfinite(trade_prob)
+    if not bool(np.any(finite)):
+        if bool(guard_required):
+            stats["public_trade_flat_hard_rate_guard_ok"] = False
+        return stats
+
+    trade_prob_f = trade_prob[finite]
+    flat_prob_f = 1.0 - trade_prob_f
+    trade_pred = pred[finite] == 0
+    flat_pred = ~trade_pred
+    trade_target_f = trade_target[finite]
+    flat_target_f = flat_target[finite]
+    pred_rates = np.asarray(
+        [float(np.mean(trade_pred)), float(np.mean(flat_pred))],
+        dtype=np.float64,
+    )
+    active = target_rates > 0.0
+    pred_to_label = np.divide(
+        pred_rates,
+        np.maximum(target_rates, 1e-12),
+        out=np.zeros_like(pred_rates),
+        where=active,
+    )
+    min_pred_to_label_seen = float(np.min(pred_to_label[active])) if bool(np.any(active)) else 0.0
+    min_pred_to_label_req = float(min_pred_to_label)
+    min_pred_rate_req = float(min_pred_rate)
+    required = np.maximum(target_rates * min_pred_to_label_req, min_pred_rate_req)
+    guard_ok = bool(np.all(pred_rates[active] + 1e-12 >= required[active]))
+
+    stats.update(
+        {
+            "public_trade_flat_available": True,
+            "public_trade_flat_trade_prob_mean": float(np.mean(trade_prob_f)),
+            "public_trade_flat_flat_prob_mean": float(np.mean(flat_prob_f)),
+            "public_trade_flat_hard_trade_rate": float(pred_rates[0]),
+            "public_trade_flat_hard_flat_rate": float(pred_rates[1]),
+            "public_trade_flat_hard_acc": float(np.mean(trade_pred == trade_target_f)),
+            "public_trade_flat_pred_label_l1": float(np.abs(pred_rates - target_rates).sum()),
+            "public_trade_flat_min_pred_to_label": min_pred_to_label_seen,
+            "public_trade_flat_required_trade_rate": float(required[0]),
+            "public_trade_flat_required_flat_rate": float(required[1]),
+            "public_trade_flat_hard_rate_guard_ok": guard_ok,
+        }
+    )
+    if bool(np.any(trade_target_f)):
+        stats["public_trade_flat_trade_prob_label_trade_mean"] = float(
+            np.mean(trade_prob_f[trade_target_f])
+        )
+        stats["public_trade_flat_flat_prob_label_trade_mean"] = float(
+            np.mean(flat_prob_f[trade_target_f])
+        )
+    if bool(np.any(flat_target_f)):
+        stats["public_trade_flat_trade_prob_label_flat_mean"] = float(
+            np.mean(trade_prob_f[flat_target_f])
+        )
+        stats["public_trade_flat_flat_prob_label_flat_mean"] = float(
+            np.mean(flat_prob_f[flat_target_f])
+        )
+    return stats
+
+
 def _direction_slice_balance_stats(
     targets_np: np.ndarray,
     preds_np: np.ndarray,
@@ -6992,6 +7091,8 @@ def _direction_slice_balance_stats(
     trade_prob_np: Optional[np.ndarray] = None,
     side_pred_np: Optional[np.ndarray] = None,
     side_long_prob_np: Optional[np.ndarray] = None,
+    public_trade_flat_trade_prob_np: Optional[np.ndarray] = None,
+    public_trade_flat_pred_np: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
     preds_i = np.asarray(preds_np, dtype=np.int64).reshape(-1)
@@ -7033,6 +7134,11 @@ def _direction_slice_balance_stats(
     trade_prob = _optional_float_1d(trade_prob_np, targets_i.size)
     side_pred = _optional_int_1d(side_pred_np, targets_i.size)
     side_long_prob = _optional_float_1d(side_long_prob_np, targets_i.size)
+    public_trade_flat_trade_prob = _optional_float_1d(
+        public_trade_flat_trade_prob_np,
+        targets_i.size,
+    )
+    public_trade_flat_pred = _optional_int_1d(public_trade_flat_pred_np, targets_i.size)
 
     audited = 0
     accuracy_failures = 0
@@ -7085,6 +7191,18 @@ def _direction_slice_balance_stats(
                     side_pred[mask] if side_pred is not None else None,
                     side_long_prob[mask] if side_long_prob is not None else None,
                 )
+                public_trade_flat_detail = _direction_public_trade_flat_output_stats(
+                    labels_s,
+                    (
+                        public_trade_flat_trade_prob[mask]
+                        if public_trade_flat_trade_prob is not None
+                        else None
+                    ),
+                    public_trade_flat_pred[mask] if public_trade_flat_pred is not None else None,
+                    min_pred_to_label=pred_to_label,
+                    min_pred_rate=min_pred_rate,
+                    guard_required=False,
+                )
                 failure_details.append(
                     {
                         "ctx_cat_index": int(idx),
@@ -7101,6 +7219,7 @@ def _direction_slice_balance_stats(
                         "pred_rate_shortfalls": [float(v) for v in shortfalls.tolist()],
                         "pred_rate_shortfall": float(shortfalls.sum()),
                         **hierarchy_detail,
+                        **public_trade_flat_detail,
                     }
                 )
 
@@ -7225,6 +7344,25 @@ def _direction_slice_stats_snapshot(stats: Optional[Dict[str, Any]]) -> Dict[str
         "hier_side_long_prob_mean_on_edge",
         "hier_side_long_prob_label_long_mean",
         "hier_side_long_prob_label_short_mean",
+        "public_trade_flat_available",
+        "public_trade_flat_target_trade_rate",
+        "public_trade_flat_target_flat_rate",
+        "public_trade_flat_trade_prob_mean",
+        "public_trade_flat_flat_prob_mean",
+        "public_trade_flat_hard_trade_rate",
+        "public_trade_flat_hard_flat_rate",
+        "public_trade_flat_hard_acc",
+        "public_trade_flat_pred_label_l1",
+        "public_trade_flat_min_pred_to_label",
+        "public_trade_flat_min_pred_to_label_threshold",
+        "public_trade_flat_min_pred_rate_threshold",
+        "public_trade_flat_required_trade_rate",
+        "public_trade_flat_required_flat_rate",
+        "public_trade_flat_hard_rate_guard_ok",
+        "public_trade_flat_trade_prob_label_trade_mean",
+        "public_trade_flat_flat_prob_label_trade_mean",
+        "public_trade_flat_trade_prob_label_flat_mean",
+        "public_trade_flat_flat_prob_label_flat_mean",
     )
     return {key: stats.get(key) for key in keys if key in stats}
 
@@ -7262,6 +7400,14 @@ def _direction_ckpt_balance_guard_required() -> bool:
 
 def _direction_ckpt_slice_guard_required() -> bool:
     return bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD)
+
+
+def _public_trade_flat_hard_rate_guard_required() -> bool:
+    return (
+        _direction_ckpt_balance_guard_required()
+        and bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)
+        and bool(ENTRY_HIER_PUBLIC_FLAT_HEAD)
+    )
 
 
 def validate(
@@ -7387,6 +7533,8 @@ def validate(
     hierarchy_trade_prob_chunks: List[np.ndarray] = []
     hierarchy_side_pred_chunks: List[np.ndarray] = []
     hierarchy_side_long_prob_chunks: List[np.ndarray] = []
+    public_trade_flat_trade_prob_chunks: List[np.ndarray] = []
+    public_trade_flat_pred_chunks: List[np.ndarray] = []
 
     with torch.no_grad():
         for batch in loader:
@@ -7425,6 +7573,7 @@ def validate(
             survival_logit = out.get("survival_logit")
             trade_logit = out.get("trade_logit")
             public_trade_logit = out.get("public_trade_logit")
+            public_flat_logit = out.get("public_flat_logit")
             side_logits = out.get("side_logits")
             public_side_logits = out.get("public_side_logits")
             anchor_logits = out.get("anchor_logits")
@@ -7456,6 +7605,25 @@ def validate(
             )
             if trade_metric_logit is not None:
                 hierarchy_trade_prob_chunks.append(_np1d(torch.sigmoid(trade_metric_logit)))
+            if isinstance(public_trade_logit, torch.Tensor) and isinstance(public_flat_logit, torch.Tensor):
+                public_trade_1d = public_trade_logit.reshape(-1)
+                public_flat_1d = public_flat_logit.reshape(-1)
+                if public_trade_1d.shape[0] != public_flat_1d.shape[0]:
+                    raise RuntimeError(
+                        "[ENTRY_PUBLIC_TRADE_FLAT_VAL_SHAPE_INVALID] "
+                        f"public_trade_rows={public_trade_1d.shape[0]} "
+                        f"public_flat_rows={public_flat_1d.shape[0]}"
+                    )
+                public_pair_probs = torch.softmax(
+                    torch.stack([public_trade_1d.float(), public_flat_1d.float()], dim=1),
+                    dim=1,
+                )
+                public_trade_flat_trade_prob_chunks.append(
+                    public_pair_probs[:, 0].detach().cpu().numpy().reshape(-1)
+                )
+                public_trade_flat_pred_chunks.append(
+                    torch.argmax(public_pair_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
+                )
             side_metric_logits = (
                 public_side_logits
                 if (
@@ -7903,6 +8071,16 @@ def validate(
         if hierarchy_side_long_prob_chunks
         else None
     )
+    public_trade_flat_trade_prob_np = (
+        np.concatenate(public_trade_flat_trade_prob_chunks, axis=0)
+        if public_trade_flat_trade_prob_chunks
+        else None
+    )
+    public_trade_flat_pred_np = (
+        np.concatenate(public_trade_flat_pred_chunks, axis=0)
+        if public_trade_flat_pred_chunks
+        else None
+    )
 
     acc = float(accuracy_score(targets_np.astype(int), preds_np.astype(int)))
     short_pred_long_rate = (short_pred_long / short_total if short_total > 0 else 0.0)
@@ -8046,6 +8224,16 @@ def validate(
             hierarchy_side_long_prob_np,
         )
     )
+    stats.update(
+        _direction_public_trade_flat_output_stats(
+            targets_np,
+            public_trade_flat_trade_prob_np,
+            public_trade_flat_pred_np,
+            min_pred_to_label=float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+            min_pred_rate=float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+            guard_required=_public_trade_flat_hard_rate_guard_required(),
+        )
+    )
     slice_stats = _direction_slice_balance_stats(
         targets_np,
         preds_np,
@@ -8053,6 +8241,8 @@ def validate(
         trade_prob_np=hierarchy_trade_prob_np,
         side_pred_np=hierarchy_side_pred_np,
         side_long_prob_np=hierarchy_side_long_prob_np,
+        public_trade_flat_trade_prob_np=public_trade_flat_trade_prob_np,
+        public_trade_flat_pred_np=public_trade_flat_pred_np,
     )
     stats.update(slice_stats)
     stats["direction_slice_ckpt_score"] = _direction_slice_ckpt_score(
@@ -11013,8 +11203,10 @@ def run_train(
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
     best_dir_ckpt_score = float("-inf")
     best_direction_balance_guard_ok: Optional[bool] = None
+    best_public_trade_flat_hard_rate_guard_ok: Optional[bool] = None
     best_direction_slice_contract_ok: Optional[bool] = None
     raw_best_direction_balance_guard_ok: Optional[bool] = None
+    raw_best_public_trade_flat_hard_rate_guard_ok: Optional[bool] = None
     raw_best_direction_slice_contract_ok: Optional[bool] = None
     best_direction_slice_stats: Dict[str, Any] = {}
     last_direction_slice_stats: Dict[str, Any] = {}
@@ -11205,6 +11397,27 @@ def run_train(
                     float(val_stats.get("hier_side_pred_long_rate_on_edge", 0.0)),
                     float(val_stats.get("hier_side_acc_on_edge", 0.0)),
                 )
+            if "public_trade_flat_available" in val_stats:
+                log.info(
+                    "[ENTRY_PUBLIC_TRADE_FLAT_OUTPUT] split=val epoch=%d available=%d "
+                    "target_trade=%.6f pred_trade=%.6f target_flat=%.6f pred_flat=%.6f "
+                    "trade_prob=%.6f flat_prob=%.6f trade_prob_label_trade=%.6f "
+                    "trade_prob_label_flat=%.6f hard_acc=%.6f min_pred_to_label=%.6f "
+                    "guard_ok=%d",
+                    epoch + 1,
+                    int(bool(val_stats.get("public_trade_flat_available", False))),
+                    float(val_stats.get("public_trade_flat_target_trade_rate", 0.0)),
+                    float(val_stats.get("public_trade_flat_hard_trade_rate", 0.0)),
+                    float(val_stats.get("public_trade_flat_target_flat_rate", 0.0)),
+                    float(val_stats.get("public_trade_flat_hard_flat_rate", 0.0)),
+                    float(val_stats.get("public_trade_flat_trade_prob_mean", 0.0)),
+                    float(val_stats.get("public_trade_flat_flat_prob_mean", 0.0)),
+                    float(val_stats.get("public_trade_flat_trade_prob_label_trade_mean", 0.0)),
+                    float(val_stats.get("public_trade_flat_trade_prob_label_flat_mean", 0.0)),
+                    float(val_stats.get("public_trade_flat_hard_acc", 0.0)),
+                    float(val_stats.get("public_trade_flat_min_pred_to_label", 0.0)),
+                    int(bool(val_stats.get("public_trade_flat_hard_rate_guard_ok", True))),
+                )
             log.info(
                 "[ENTRY_DIR_SLICE_CKPT] split=val epoch=%d score=%.6f failures=%d "
                 "acc_failures=%d pred_rate_failures=%d audited=%d acc_deficit=%.6f pred_shortfall=%.6f",
@@ -11228,7 +11441,10 @@ def run_train(
                     "required=%.6f,%.6f,%.6f pred_rate_failed_classes=%s pred_shortfall=%.6f "
                     "hier_trade_target=%.6f hier_trade_pred=%.6f hier_trade_prob=%.6f "
                     "hier_trade_prob_label_flat=%.6f hier_side_pred_long_edge=%.6f "
-                    "hier_side_acc_edge=%.6f",
+                    "hier_side_acc_edge=%.6f public_trade_flat_available=%d "
+                    "public_trade_flat_pred_trade=%.6f public_trade_flat_pred_flat=%.6f "
+                    "public_trade_flat_trade_prob_label_flat=%.6f "
+                    "public_trade_flat_guard_ok=%d",
                     epoch + 1,
                     int(detail.get("ctx_cat_index", -1)),
                     int(detail.get("ctx_cat_value", -1)),
@@ -11254,6 +11470,11 @@ def run_train(
                     float(detail.get("hier_trade_prob_label_flat_mean", 0.0)),
                     float(detail.get("hier_side_pred_long_rate_on_edge", 0.0)),
                     float(detail.get("hier_side_acc_on_edge", 0.0)),
+                    int(bool(detail.get("public_trade_flat_available", False))),
+                    float(detail.get("public_trade_flat_hard_trade_rate", 0.0)),
+                    float(detail.get("public_trade_flat_hard_flat_rate", 0.0)),
+                    float(detail.get("public_trade_flat_trade_prob_label_flat_mean", 0.0)),
+                    int(bool(detail.get("public_trade_flat_hard_rate_guard_ok", True))),
                 )
         log.info(
             "[SHORT_TO_LONG_TRAIN] rate=%.6f short_lead_count=%d short_lead_long_prob_mean=%.6f",
@@ -11349,6 +11570,16 @@ def run_train(
             best_direction_balance_guard_ok = (
                 bool(val_stats.get("direction_class_balance_guard_ok", True)) if val_stats else True
             )
+            best_public_trade_flat_hard_rate_guard_ok = (
+                bool(
+                    val_stats.get(
+                        "public_trade_flat_hard_rate_guard_ok",
+                        not _public_trade_flat_hard_rate_guard_required(),
+                    )
+                )
+                if val_stats
+                else not _public_trade_flat_hard_rate_guard_required()
+            )
             best_direction_slice_contract_ok = (
                 bool(val_stats.get("direction_slice_contract_ok", False)) if val_stats else False
             )
@@ -11359,12 +11590,13 @@ def run_train(
             epochs_since_improve = 0
             log.info(
                 "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f dir_ckpt_score=%.6f "
-                "balance_guard_ok=%d slice_contract_ok=%d monitor=%s",
+                "balance_guard_ok=%d public_trade_flat_guard_ok=%d slice_contract_ok=%d monitor=%s",
                 best_epoch,
                 best_val,
                 acc,
                 best_dir_ckpt_score,
                 int(bool(best_direction_balance_guard_ok)),
+                int(bool(best_public_trade_flat_hard_rate_guard_ok)),
                 int(bool(best_direction_slice_contract_ok)),
                 _ckpt_monitor,
             )
@@ -11407,6 +11639,7 @@ def run_train(
 
     _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
     raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
+    raw_best_public_trade_flat_hard_rate_guard_ok = best_public_trade_flat_hard_rate_guard_ok
     raw_best_direction_slice_contract_ok = best_direction_slice_contract_ok
     if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
         intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
@@ -11434,8 +11667,12 @@ def run_train(
                     float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
                 ),
                 "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+                "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
                 "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
                 "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+                "raw_best_public_trade_flat_hard_rate_guard_ok": (
+                    raw_best_public_trade_flat_hard_rate_guard_ok
+                ),
                 "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
                 "best_direction_slice_stats": best_direction_slice_stats,
                 "last_direction_slice_stats": last_direction_slice_stats,
@@ -11446,6 +11683,9 @@ def run_train(
                         ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL
                     ),
                     "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+                    "public_trade_flat_hard_rate_guard_required": bool(
+                        _public_trade_flat_hard_rate_guard_required()
+                    ),
                     "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
                     "direction_global_prior_match_weight": float(ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT),
                     "direction_global_prior_match_tolerance": float(
@@ -11683,6 +11923,84 @@ def run_train(
             "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
             "refusing to write a collapsed direction bundle"
         )
+    if (
+        _public_trade_flat_hard_rate_guard_required()
+        and not bool(best_public_trade_flat_hard_rate_guard_ok)
+    ):
+        intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
+        evidence_path = _write_direction_slice_failure_evidence(
+            intended_out_bundle_dir,
+            {
+                "schema_version": "entry_direction_slice_failure_evidence_v1",
+                "created_at_utc": _utc_now(),
+                "decision": "FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD",
+                "failure_code": "TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD",
+                "vedtak_id": str(vedtak_id or ""),
+                "git_commit": _git_commit(),
+                "intended_out_bundle_dir": str(intended_out_bundle_dir),
+                "train_data": str(train_parquet),
+                "val_data": str(val_parquet),
+                "train_data_sha256": _sha256_file(Path(train_parquet)),
+                "val_data_sha256": _sha256_file(Path(val_parquet)),
+                "best_epoch": int(best_epoch),
+                "last_epoch": int(last_epoch),
+                "epochs": int(epochs),
+                "early_stopped": bool(early_stopped),
+                "hard_red_stopped": bool(hard_red_stopped),
+                "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
+                "best_dir_ckpt_score": (
+                    float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
+                ),
+                "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+                "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
+                "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
+                "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+                "raw_best_public_trade_flat_hard_rate_guard_ok": (
+                    raw_best_public_trade_flat_hard_rate_guard_ok
+                ),
+                "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
+                "best_direction_slice_stats": best_direction_slice_stats,
+                "last_direction_slice_stats": last_direction_slice_stats,
+                "train_recipe": {
+                    "ckpt_monitor": str(_ckpt_monitor),
+                    "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
+                    "ckpt_class_balance_min_pred_to_label": float(
+                        ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL
+                    ),
+                    "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+                    "public_trade_flat_hard_rate_guard_required": bool(
+                        _public_trade_flat_hard_rate_guard_required()
+                    ),
+                    "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+                    "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
+                    "hier_public_trade_flat_margin_weight": float(
+                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
+                    ),
+                    "hier_public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
+                    "hier_public_trade_flat_margin_min_label_rate": float(
+                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_public_trade_flat_margin_weight": float(
+                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
+                    ),
+                    "hier_slice_public_trade_flat_margin": float(
+                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
+                    ),
+                    "hier_slice_public_trade_flat_margin_min_label_rate": float(
+                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
+                    ),
+                    "hier_slice_public_trade_flat_margin_min_rows": int(
+                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
+                    ),
+                },
+            },
+        )
+        log.error("[ENTRY_PUBLIC_TRADE_FLAT_HARD_RATE_FAILURE_EVIDENCE] path=%s", evidence_path)
+        raise RuntimeError(
+            "[TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD] "
+            "best checkpoint failed active public trade-vs-FLAT hard-rate guard; "
+            "refusing to write a public-trade-flat-collapsed direction bundle"
+        )
     if _direction_ckpt_slice_guard_required() and not bool(best_direction_slice_contract_ok):
         intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
         evidence_path = _write_direction_slice_failure_evidence(
@@ -11709,13 +12027,20 @@ def run_train(
                     float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
                 ),
                 "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+                "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
                 "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
                 "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+                "raw_best_public_trade_flat_hard_rate_guard_ok": (
+                    raw_best_public_trade_flat_hard_rate_guard_ok
+                ),
                 "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
                 "best_direction_slice_stats": best_direction_slice_stats,
                 "last_direction_slice_stats": last_direction_slice_stats,
                 "train_recipe": {
                     "ckpt_monitor": str(_ckpt_monitor),
+                    "public_trade_flat_hard_rate_guard_required": bool(
+                        _public_trade_flat_hard_rate_guard_required()
+                    ),
                     "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
                     "direction_global_prior_match_weight": float(ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT),
                     "direction_global_prior_match_tolerance": float(ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE),
@@ -12101,6 +12426,9 @@ def run_train(
         "best_dir_ckpt_score": (float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None),
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+        "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
+        "raw_best_public_trade_flat_hard_rate_guard_ok": raw_best_public_trade_flat_hard_rate_guard_ok,
+        "public_trade_flat_hard_rate_guard_required": bool(_public_trade_flat_hard_rate_guard_required()),
         "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
         "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
         "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),

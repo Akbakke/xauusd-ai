@@ -319,6 +319,8 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     trade_prob = np.asarray([0.80, 0.82, 0.84, 0.86, 0.94, 0.96] * 12, dtype=np.float64)
     side_pred = np.asarray([0, 0, 1, 1, 0, 1] * 12, dtype=np.int64)
     side_long_prob = np.asarray([0.80, 0.78, 0.20, 0.18, 0.70, 0.30] * 12, dtype=np.float64)
+    public_trade_flat_prob = np.asarray([0.80, 0.82, 0.84, 0.86, 0.94, 0.96] * 12, dtype=np.float64)
+    public_trade_flat_pred = np.asarray([0, 0, 0, 0, 0, 0] * 12, dtype=np.int64)
 
     stats = trainer._direction_slice_balance_stats(
         labels,
@@ -327,6 +329,8 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
         trade_prob_np=trade_prob,
         side_pred_np=side_pred,
         side_long_prob_np=side_long_prob,
+        public_trade_flat_trade_prob_np=public_trade_flat_prob,
+        public_trade_flat_pred_np=public_trade_flat_pred,
     )
     detail = stats["direction_slice_failure_details"][0]
 
@@ -335,6 +339,10 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     assert detail["hier_trade_prob_label_flat_mean"] > 0.90
     assert detail["hier_side_pred_long_rate_on_edge"] == 0.5
     assert detail["hier_side_acc_on_edge"] == 1.0
+    assert detail["public_trade_flat_available"] is True
+    assert detail["public_trade_flat_hard_trade_rate"] == 1.0
+    assert detail["public_trade_flat_hard_flat_rate"] == 0.0
+    assert detail["public_trade_flat_hard_rate_guard_ok"] is False
 
     global_stats = trainer._direction_hierarchy_output_stats(
         labels,
@@ -344,6 +352,64 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     )
     assert global_stats["hier_trade_pred_rate"] == 1.0
     assert global_stats["hier_flat_label_rate"] == 1 / 3
+
+
+def test_entry_v10_public_trade_flat_output_stats_gates_hard_flat_collapse(monkeypatch) -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    labels = np.asarray([0, 1, 2, 2], dtype=np.int64)
+    collapsed = trainer._direction_public_trade_flat_output_stats(
+        labels,
+        np.asarray([0.90, 0.80, 0.70, 0.60], dtype=np.float64),
+        np.asarray([0, 0, 0, 0], dtype=np.int64),
+        min_pred_to_label=0.35,
+        min_pred_rate=0.05,
+        guard_required=True,
+    )
+    covered = trainer._direction_public_trade_flat_output_stats(
+        labels,
+        np.asarray([0.90, 0.80, 0.20, 0.10], dtype=np.float64),
+        np.asarray([0, 0, 1, 1], dtype=np.int64),
+        min_pred_to_label=0.35,
+        min_pred_rate=0.05,
+        guard_required=True,
+    )
+    missing = trainer._direction_public_trade_flat_output_stats(
+        labels,
+        None,
+        None,
+        min_pred_to_label=0.35,
+        min_pred_rate=0.05,
+        guard_required=True,
+    )
+
+    assert collapsed["public_trade_flat_available"] is True
+    assert collapsed["public_trade_flat_target_flat_rate"] == 0.5
+    assert collapsed["public_trade_flat_hard_flat_rate"] == 0.0
+    assert collapsed["public_trade_flat_required_flat_rate"] == 0.175
+    assert collapsed["public_trade_flat_hard_rate_guard_ok"] is False
+    assert covered["public_trade_flat_hard_rate_guard_ok"] is True
+    assert covered["public_trade_flat_hard_flat_rate"] == 0.5
+    assert covered["public_trade_flat_min_pred_to_label"] == 1.0
+    assert missing["public_trade_flat_available"] is False
+    assert missing["public_trade_flat_hard_rate_guard_ok"] is False
+
+
+def test_entry_v10_public_trade_flat_guard_required_follows_public_heads(monkeypatch) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_HEAD", 1)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_HEAD", 1)
+
+    assert trainer._public_trade_flat_hard_rate_guard_required() is True
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_HEAD", 0)
+    assert trainer._public_trade_flat_hard_rate_guard_required() is False
 
 
 def test_entry_v10_hier_trade_pos_weight_can_downweight_majority_trade_labels() -> None:
@@ -419,11 +485,18 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
                 "rows": np.int64(64),
                 "accuracy": np.float64(0.25),
                 "hier_trade_pred_rate": np.float64(1.0),
+                "public_trade_flat_hard_flat_rate": np.float64(0.0),
+                "public_trade_flat_hard_rate_guard_ok": False,
             }
         ],
         "hier_trade_pred_rate": np.float64(1.0),
         "hier_trade_prob_label_flat_mean": np.float64(0.66),
         "hier_side_acc_on_edge": np.float64(0.57),
+        "public_trade_flat_available": True,
+        "public_trade_flat_hard_trade_rate": np.float64(1.0),
+        "public_trade_flat_hard_flat_rate": np.float64(0.0),
+        "public_trade_flat_trade_prob_label_flat_mean": np.float64(0.91),
+        "public_trade_flat_hard_rate_guard_ok": False,
         "unrelated": "not persisted",
     }
     snapshot = trainer._direction_slice_stats_snapshot(stats)
@@ -448,7 +521,17 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
     assert payload["best_direction_slice_stats"]["hier_trade_pred_rate"] == 1.0
     assert payload["best_direction_slice_stats"]["hier_trade_prob_label_flat_mean"] == 0.66
     assert payload["best_direction_slice_stats"]["hier_side_acc_on_edge"] == 0.57
+    assert payload["best_direction_slice_stats"]["public_trade_flat_available"] is True
+    assert payload["best_direction_slice_stats"]["public_trade_flat_hard_trade_rate"] == 1.0
+    assert payload["best_direction_slice_stats"]["public_trade_flat_hard_flat_rate"] == 0.0
+    assert payload["best_direction_slice_stats"]["public_trade_flat_hard_rate_guard_ok"] is False
     assert payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]["hier_trade_pred_rate"] == 1.0
+    assert (
+        payload["best_direction_slice_stats"]["direction_slice_failure_details"][0][
+            "public_trade_flat_hard_rate_guard_ok"
+        ]
+        is False
+    )
     assert "unrelated" not in payload["best_direction_slice_stats"]
 
 
@@ -2089,6 +2172,16 @@ def test_entry_v10_train_refuses_to_write_bundle_when_best_class_balance_guard_f
     assert "FAIL_DIRECTION_CLASS_BALANCE_GUARD" in text
     assert "[ENTRY_DIR_CLASS_BALANCE_FAILURE_EVIDENCE]" in text
     assert "refusing to write a collapsed direction bundle" in text
+
+
+def test_entry_v10_train_refuses_to_write_bundle_when_public_trade_flat_guard_failed() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "[TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD]" in text
+    assert "_public_trade_flat_hard_rate_guard_required()" in text
+    assert "FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD" in text
+    assert "[ENTRY_PUBLIC_TRADE_FLAT_HARD_RATE_FAILURE_EVIDENCE]" in text
+    assert "refusing to write a public-trade-flat-collapsed direction bundle" in text
 
 
 def test_entry_v10_train_refuses_to_write_bundle_when_best_slice_guard_failed() -> None:

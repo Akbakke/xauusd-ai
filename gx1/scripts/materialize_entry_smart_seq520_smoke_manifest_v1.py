@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 import pyarrow.parquet as pq
 
-from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
+from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT
 
 
 SPLITS = ("train", "val", "test")
@@ -28,10 +28,6 @@ MANIFEST_VARIANT = "smart_seq520_candidate"
 EXPECTED_SEQ_SNAP_WIDTH = 520
 DEFAULT_STEM = "v10_smart_seq520_smoke__HOLD_03B"
 SMART_SPECIALIST_CONTRACT_MODE = "smart_seq520_candidate"
-DEFAULT_SMART_SMOKE_DATASET_DIR = (
-    FOUNDATION_DATASET_DIR.parent.parent
-    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
-)
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_seq520_smoke_manifest_20260630_v1"
 DEFAULT_POST_REBUILD_READINESS_JSON = (
     REPORTS_ROOT
@@ -412,6 +408,15 @@ DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "requires_class_distribution_coverage": True,
     "skips_low_label_diversity": True,
 }
+PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT = {
+    "source": "trainer_metadata.public_trade_flat_hard_rate_guard",
+    "trainer_metadata_required": True,
+    "public_trade_flat_hard_rate_guard_required": True,
+    "best_public_trade_flat_hard_rate_guard_ok": True,
+    "uses_ckpt_class_balance_thresholds": True,
+    "public_trade_head_required": True,
+    "public_flat_head_required": True,
+}
 SIDE_EFFECTS_STARTED = {
     "dataset_rebuild": False,
     "training": False,
@@ -505,6 +510,14 @@ def _direction_context_slice_ok(contract: dict[str, Any]) -> bool:
     return (
         contract.get("requires_direction_context_slice_contract") is True
         and contract.get("direction_context_slice_contract") == DIRECTION_CONTEXT_SLICE_CONTRACT
+    )
+
+
+def _public_trade_flat_hard_rate_ok(contract: dict[str, Any]) -> bool:
+    return (
+        contract.get("requires_public_trade_flat_hard_rate_contract") is True
+        and contract.get("public_trade_flat_hard_rate_contract")
+        == PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT
     )
 
 
@@ -742,6 +755,8 @@ def _future_command_contracts(
             "tail_direction_env_template": dict(TAIL_DIRECTION_ENV_TEMPLATE),
             "requires_direction_context_slice_contract": True,
             "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
+            "requires_public_trade_flat_hard_rate_contract": True,
+            "public_trade_flat_hard_rate_contract": dict(PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT),
             "started_by_this_report": False,
             "starts_training_if_executed": True,
             "starts_replay": False,
@@ -812,7 +827,6 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    dataset_dir = Path(args.smart_smoke_dataset_dir).expanduser().resolve()
     post_rebuild_readiness_json = Path(args.post_rebuild_readiness_json).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -822,16 +836,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     sample_rows = int(args.sample_rows)
     batch_size = int(args.batch_size)
 
-    splits = {
-        split: _split_summary(dataset_dir, split, sample_rows=sample_rows, batch_size=batch_size)
-        for split in SPLITS
-    }
     post_rebuild_readiness = _read_json_or_empty(post_rebuild_readiness_json)
     post_rebuild_refresh_contract = (
         post_rebuild_readiness.get("post_rebuild_refresh_command_contract")
         if isinstance(post_rebuild_readiness.get("post_rebuild_refresh_command_contract"), dict)
         else {}
     )
+    raw_dataset_dir = str(getattr(args, "smart_smoke_dataset_dir", "") or "").strip()
+    contract_dataset_dir = str(post_rebuild_refresh_contract.get("smart_smoke_dataset_dir") or "").strip()
+    dataset_dir_source = "argument" if raw_dataset_dir else "post_rebuild_readiness"
+    dataset_dir_missing = not bool(raw_dataset_dir or contract_dataset_dir)
+    dataset_dir = (
+        Path(raw_dataset_dir or contract_dataset_dir).expanduser().resolve()
+        if not dataset_dir_missing
+        else (out_dir / "__MISSING_SMART_SMOKE_DATASET_DIR__").resolve()
+    )
+    splits = {
+        split: _split_summary(dataset_dir, split, sample_rows=sample_rows, batch_size=batch_size)
+        for split in SPLITS
+    }
     post_rebuild_side_effects = (
         post_rebuild_readiness.get("side_effects_started")
         if isinstance(post_rebuild_readiness.get("side_effects_started"), dict)
@@ -865,6 +888,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "explicit smart seq520 smoke vedtak id is provided",
             _explicit_vedtak_id_ok(vedtak_id),
             {"vedtak_id": vedtak_id},
+        ),
+        _check(
+            "smart smoke dataset directory is explicit or pinned by post-rebuild readiness",
+            not dataset_dir_missing,
+            {
+                "dataset_dir_source": dataset_dir_source,
+                "argument_smart_smoke_dataset_dir": raw_dataset_dir,
+                "post_rebuild_contract_smart_smoke_dataset_dir": contract_dataset_dir,
+                "resolved_smart_smoke_dataset_dir": str(dataset_dir),
+            },
         ),
         _check(
             "smart post-rebuild readiness report exists",
@@ -987,6 +1020,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             _direction_context_slice_ok(future_command_contracts["smart_smoke_train"]),
             future_command_contracts["smart_smoke_train"],
         ),
+        _check(
+            "future train contract declares public trade flat hard-rate audit",
+            _public_trade_flat_hard_rate_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
     ]
     failures = [check for check in checks if not check["ok"]]
     ready = not failures
@@ -1029,6 +1067,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
         "explicit_vedtak_id": vedtak_id if _explicit_vedtak_id_ok(vedtak_id) else None,
         "smart_smoke_dataset_dir": str(dataset_dir),
+        "smart_smoke_dataset_dir_source": dataset_dir_source,
         "out_dir": str(out_dir),
         "manifest_path": str(manifest_path),
         "manifest_written": bool(ready),
@@ -1074,7 +1113,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--smart-smoke-dataset-dir", default=str(DEFAULT_SMART_SMOKE_DATASET_DIR))
+    ap.add_argument("--smart-smoke-dataset-dir", default="")
     ap.add_argument("--post-rebuild-readiness-json", default=str(DEFAULT_POST_REBUILD_READINESS_JSON))
     ap.add_argument("--smart-specialist-audit-json", default=str(DEFAULT_SPECIALIST_AUDIT_JSON))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))

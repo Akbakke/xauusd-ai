@@ -391,6 +391,15 @@ DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "requires_class_distribution_coverage": True,
     "skips_low_label_diversity": True,
 }
+PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT = {
+    "source": "trainer_metadata.public_trade_flat_hard_rate_guard",
+    "trainer_metadata_required": True,
+    "public_trade_flat_hard_rate_guard_required": True,
+    "best_public_trade_flat_hard_rate_guard_ok": True,
+    "uses_ckpt_class_balance_thresholds": True,
+    "public_trade_head_required": True,
+    "public_flat_head_required": True,
+}
 
 DEFAULT_POST_REBUILD_READINESS_JSON = (
     REPORTS_ROOT
@@ -571,6 +580,20 @@ def _direction_context_slice_review(contract: dict[str, Any]) -> dict[str, Any]:
         "requires_direction_context_slice_contract": contract.get("requires_direction_context_slice_contract"),
         "contract_exact": exact,
         "expected_contract": DIRECTION_CONTEXT_SLICE_CONTRACT,
+        "observed_contract": observed,
+    }
+
+
+def _public_trade_flat_hard_rate_review(contract: dict[str, Any]) -> dict[str, Any]:
+    observed = contract.get("public_trade_flat_hard_rate_contract")
+    exact = isinstance(observed, dict) and observed == PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT
+    return {
+        "ok": bool(contract.get("requires_public_trade_flat_hard_rate_contract") is True and exact),
+        "requires_public_trade_flat_hard_rate_contract": contract.get(
+            "requires_public_trade_flat_hard_rate_contract"
+        ),
+        "contract_exact": exact,
+        "expected_contract": PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT,
         "observed_contract": observed,
     }
 
@@ -877,6 +900,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     direction_balance_review = _direction_balance_recipe_review(future_train)
     tail_direction_review = _tail_direction_recipe_review(future_train)
     direction_context_slice_review = _direction_context_slice_review(future_train)
+    public_trade_flat_hard_rate_review = _public_trade_flat_hard_rate_review(future_train)
     smoke_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(smoke_wrapper_text)
     candidate_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(candidate_wrapper_text)
     smoke_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(smoke_wrapper_text)
@@ -976,6 +1000,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart smoke future contract declares direction context slice audit",
             bool(direction_context_slice_review["ok"]),
             direction_context_slice_review,
+        ),
+        _check(
+            "smart smoke future contract declares public trade flat hard-rate audit",
+            bool(public_trade_flat_hard_rate_review["ok"]),
+            public_trade_flat_hard_rate_review,
         ),
         _check(
             "trainer supports path calibration rank env",

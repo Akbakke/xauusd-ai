@@ -2,6 +2,8 @@
 
 ## Continuation Goal
 
+Build the GX1 trading bot for gold/XAUUSD so it can read tops and bottoms from the full feature stack and choose direction with near-perfect practical accuracy. The work is to fuse all available structure, trend, liquidity, volatility, momentum, session, price-action, path-quality, and utility features into learned evidence, not to bolt on fallback rules.
+
 Continue the XAUUSD-only direction repair until the live/replay/training stack proves that the model learns to abstain or go long in bull/rising-support regimes, rather than selecting confident SHORT. Do not use non-XAU project artifacts. Do not promote any XAU bundle live until fresh XAU datasets, parity, live-like replay, calibration, and direction-pocket audits all pass.
 
 ## New Agent Takeover Snapshot - 2026-07-16
@@ -58,6 +60,9 @@ Fixed in this takeover update:
   paths are supplied, it resolves them from
   `ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json` and fails closed if
   the post-rebuild contract disagrees.
+- `smart-smoke-manifest` no longer has a stale `spreadfix` smoke-dataset
+  default. It uses an explicit dataset or the post-rebuild readiness contract;
+  missing binding blocks the manifest.
 - `smart-smoke-readiness` future train contract now writes smart smoke bundles
   under the same fresh rebuild root as the source dataset, not under the old
   `v10_6yr_rebuild_20260628_foundation_seq146` namespace.
@@ -69,18 +74,34 @@ Fixed in this takeover update:
   report.
 - Post-smoke audit text no longer says device fallback. It now describes
   explicit device resolution.
+- Entry transformer validation now logs and gates global
+  `softmax([public_trade_logit, public_flat_logit])` hard trade/FLAT rates.
+  If the public pair hard-rate guard is required and the best checkpoint fails
+  it, training refuses to write a bundle and emits
+  `TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD` evidence.
+- Smart smoke manifest/readiness/trainability/enablement now declare a required
+  public trade/FLAT hard-rate audit contract.
+- Smoke bundle audit, candidate readiness, and replay readiness now require
+  trainer metadata proving `public_trade_flat_hard_rate_guard_required=true`
+  and `best_public_trade_flat_hard_rate_guard_ok=true` for smart XAU.
+- `scripts/gx1_handover.sh` is the only handover shell entrypoint and now
+  prints the project goal: build the gold/XAUUSD trading bot so it reads tops
+  and bottoms from the full feature stack and chooses direction with
+  near-perfect practical accuracy.
 - Focused tests cover the fresh output-root, mixed fresh/stale smoke-readiness
-  block, and smoke-readiness source identity.
+  block, smoke-readiness source identity, public trade/FLAT hard-rate gate,
+  public hard-rate downstream contracts, and the single handover entrypoint.
 
 Sub-agent findings still pending after this takeover update:
-- Public trade-vs-FLAT formulation still lacks first-class evidence around the
-  exact serving hard decision. Next source repair should log and gate
-  `softmax([public_trade_logit, public_flat_logit])`, hard trade/FLAT rates,
-  label rates, and final `direction_logits` hard FLAT rates globally and per
-  active ctx slice.
-- Current soft prior losses can look reasonable while hard FLAT argmax is zero.
-  Add a hard-rate validation/evidence gate before saving or continuing a red
-  run; do not rely on scalar loss increases.
+- Public trade-vs-FLAT now has a global hard-rate trainer gate, but it still
+  needs a separate per-slice hard public trade/FLAT contract over active
+  `ctx_cat` slices. Current slice details are attached to direction slice
+  failures, but public pair slices are not independently audited/gated yet.
+- Post-smoke split audit should recompute public trade/FLAT hard rates from
+  model outputs, not only consume trainer metadata.
+- Selective-edge and replay artifacts should persist public trade/FLAT
+  probabilities, margin, and hard decision, then require those columns in replay
+  evidence/readiness.
 - Downstream smoke bundle audit, candidate readiness, and replay readiness still
   need hard checks for `ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT`,
   `ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION`, and

@@ -530,6 +530,8 @@ def _direction_balance_contract_passes(
         and _float_or_zero(contract.get("direction_flat_starvation_logit_margin"))
         >= SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN
         and contract.get("best_direction_balance_guard_ok") is True
+        and contract.get("public_trade_flat_hard_rate_guard_required") is True
+        and contract.get("best_public_trade_flat_hard_rate_guard_ok") is True
     )
 
 

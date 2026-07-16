@@ -40,6 +40,12 @@ REQUIRED_SPECIALISTS = [
 ]
 
 
+def _mark_public_trade_flat_guard_green(meta: dict) -> dict:
+    meta["public_trade_flat_hard_rate_guard_required"] = True
+    meta["best_public_trade_flat_hard_rate_guard_ok"] = True
+    return meta
+
+
 def _specialist_model_contract_payload() -> dict:
     return json.loads(json.dumps(SPECIALIST_MODEL_CONTRACT))
 
@@ -611,6 +617,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
         }
     }
 
+    _mark_public_trade_flat_guard_green(meta)
     report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
 
     assert report["decision"] == "PASS"
@@ -746,6 +753,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["anchor_gate_enabled"] is True
     assert report["anchor_gate_init"] == 0.0
     assert report["best_direction_balance_guard_ok"] is True
+    assert report["public_trade_flat_hard_rate_guard_required"] is True
+    assert report["best_public_trade_flat_hard_rate_guard_ok"] is True
     assert report["best_direction_slice_contract_ok"] is True
 
 
@@ -899,6 +908,7 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
         },
     }
 
+    _mark_public_trade_flat_guard_green(meta)
     report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
 
     assert report["decision"] == "PASS"
@@ -987,6 +997,7 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
         },
     }
 
+    _mark_public_trade_flat_guard_green(meta)
     report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
 
     assert report["decision"] == "FAIL"
@@ -1006,6 +1017,7 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
         }
     }
 
+    _mark_public_trade_flat_guard_green(meta)
     report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
 
     assert report["decision"] == "FAIL"
@@ -1142,11 +1154,80 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
         },
     }
 
+    _mark_public_trade_flat_guard_green(meta)
     report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
 
     assert report["decision"] == "FAIL"
     assert report["ckpt_balance_guard_required"] is True
     assert any("best_direction_balance_guard_ok=true" in failure for failure in report["failures"])
+
+
+def test_smart_direction_balance_recipe_contract_rejects_missing_public_trade_flat_guard() -> None:
+    meta = {
+        "best_direction_balance_guard_ok": True,
+        "best_direction_slice_contract_ok": True,
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.50,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "direction_ce_scale": 2.00,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "hier_side_validity_weight": 1.50,
+            "hier_side_validity_min_utility_bps": 15.0,
+            "hier_side_validity_pos_weight_cap": 8.0,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
+            "ckpt_monitor": "dir_acc",
+            "ckpt_class_balance_guard_weight": 0.50,
+            "ckpt_class_balance_min_pred_to_label": 0.35,
+            "ckpt_class_balance_min_pred_rate": 0.05,
+            "ckpt_direction_slice_guard": True,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
+            "direction_min_pred_rate_softmax_temperature": 0.05,
+            "direction_hierarchical_composition": True,
+            "hier_compose_residual_logit_cap": 0.18,
+            "hier_compose_residual_side_neutral": True,
+            "hier_compose_public_flat_from_trade": True,
+            "hier_public_direction_composition": "margin_maxnorm_confidence",
+            "hier_public_direction_detach_side_grad": True,
+            "hier_public_trade_head": True,
+            "hier_public_flat_head": True,
+            "hier_public_trade_dir_margin_bridge": True,
+            "hier_public_trade_dir_margin_bridge_scale": 0.50,
+            "hier_public_trade_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head": True,
+            "hier_public_side_dir_margin_bridge": True,
+            "hier_public_side_dir_margin_bridge_scale": 0.50,
+            "hier_public_side_dir_margin_bridge_cap": 0.25,
+            "hier_public_side_head_residual_cap_weight": 8.00,
+            "hier_public_side_head_residual_cap": 0.20,
+            "hier_ctx_prior_adapter": True,
+            "hier_ctx_prior_adapter_scale": 0.50,
+            "hier_ctx_direction_calibration": True,
+            "hier_ctx_direction_calibration_scale": 0.50,
+            "hier_ctx_direction_calibration_cap": 0.35,
+            "direction_flat_starvation_weight": 8.00,
+            "direction_flat_starvation_min_label_rate": 0.10,
+            "direction_flat_starvation_min_rows": 8,
+            "direction_flat_starvation_pred_fraction": 0.50,
+            "direction_flat_starvation_pred_floor": 0.10,
+            "direction_flat_starvation_logit_margin": 0.10,
+        },
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert any("public_trade_flat_hard_rate_guard_required=true" in failure for failure in report["failures"])
+    assert any("best_public_trade_flat_hard_rate_guard_ok=true" in failure for failure in report["failures"])
 
 
 def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard() -> None:
@@ -1228,6 +1309,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard
         },
     }
 
+    _mark_public_trade_flat_guard_green(meta)
     report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
 
     assert report["decision"] == "FAIL"

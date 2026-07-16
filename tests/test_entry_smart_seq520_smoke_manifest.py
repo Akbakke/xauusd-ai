@@ -120,9 +120,10 @@ def _args(
     *,
     vedtak_id: str = "SMART_SEQ520_SMOKE_PYTEST",
     post_rebuild_readiness_json: Path | None = None,
+    smart_smoke_dataset_dir: str | None = None,
 ) -> argparse.Namespace:
     return argparse.Namespace(
-        smart_smoke_dataset_dir=str(dataset_dir),
+        smart_smoke_dataset_dir=str(dataset_dir) if smart_smoke_dataset_dir is None else smart_smoke_dataset_dir,
         post_rebuild_readiness_json=str(post_rebuild_readiness_json or _write_post_rebuild_readiness(tmp_path, dataset_dir)),
         out_dir=str(tmp_path / "reports"),
         vedtak_id=vedtak_id,
@@ -133,6 +134,14 @@ def _args(
         fail_on_not_ready=False,
         quiet=True,
     )
+
+
+def test_smart_seq520_smoke_manifest_parser_has_no_stale_dataset_default() -> None:
+    parser = manifest_gate.build_parser()
+    args = parser.parse_args(["--vedtak", "SMART_SEQ520_SMOKE_PYTEST"])
+
+    assert args.smart_smoke_dataset_dir == ""
+    assert "v10_6yr_rebuild_20260626_spreadfix" not in parser.format_help()
 
 
 def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> None:
@@ -191,6 +200,11 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
     assert train_contract["tail_direction_env_template"] == manifest_gate.TAIL_DIRECTION_ENV_TEMPLATE
     assert train_contract["requires_direction_context_slice_contract"] is True
     assert train_contract["direction_context_slice_contract"] == manifest_gate.DIRECTION_CONTEXT_SLICE_CONTRACT
+    assert train_contract["requires_public_trade_flat_hard_rate_contract"] is True
+    assert (
+        train_contract["public_trade_flat_hard_rate_contract"]
+        == manifest_gate.PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT
+    )
     train_argv = " ".join(train_contract["inner_train_argv_template"])
     for key, value in manifest_gate.PATH_CALIBRATION_ENV_TEMPLATE.items():
         assert f"{key}={value}" in train_argv
@@ -202,6 +216,45 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
     assert train_contract["starts_replay"] is False
     assert train_contract["starts_iql_distillation"] is False
     assert train_contract["touches_shadow_or_live"] is False
+
+
+def test_smart_seq520_smoke_manifest_resolves_dataset_from_post_rebuild_contract(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path)
+    post_rebuild = _write_post_rebuild_readiness(tmp_path, dataset_dir)
+
+    report = manifest_gate.run(
+        _args(
+            tmp_path,
+            dataset_dir,
+            smart_smoke_dataset_dir="",
+            post_rebuild_readiness_json=post_rebuild,
+        )
+    )
+
+    assert report["decision"] == "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW"
+    assert report["smart_smoke_dataset_dir"] == str(dataset_dir.resolve())
+    assert report["smart_smoke_dataset_dir_source"] == "post_rebuild_readiness"
+
+
+def test_smart_seq520_smoke_manifest_blocks_missing_dataset_binding(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path)
+    post_rebuild = _write_post_rebuild_readiness(tmp_path, dataset_dir)
+    payload = json.loads(post_rebuild.read_text(encoding="utf-8"))
+    del payload["post_rebuild_refresh_command_contract"]["smart_smoke_dataset_dir"]
+    _write_json(post_rebuild, payload)
+
+    report = manifest_gate.run(
+        _args(
+            tmp_path,
+            dataset_dir,
+            smart_smoke_dataset_dir="",
+            post_rebuild_readiness_json=post_rebuild,
+        )
+    )
+
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    assert "smart smoke dataset directory is explicit or pinned by post-rebuild readiness" in report["blockers"]
+    assert report["manifest_written"] is False
 
 
 def test_smart_seq520_smoke_manifest_fails_closed_when_split_manifest_missing(tmp_path: Path) -> None:

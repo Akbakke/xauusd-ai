@@ -891,6 +891,8 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "direction_flat_starvation_pred_floor": 0.10,
             "direction_flat_starvation_logit_margin": 0.10,
             "best_direction_balance_guard_ok": True,
+            "public_trade_flat_hard_rate_guard_required": True,
+            "best_public_trade_flat_hard_rate_guard_ok": True,
         }
     )
 

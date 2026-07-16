@@ -430,6 +430,15 @@ DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "requires_class_distribution_coverage": True,
     "skips_low_label_diversity": True,
 }
+PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT = {
+    "source": "trainer_metadata.public_trade_flat_hard_rate_guard",
+    "trainer_metadata_required": True,
+    "public_trade_flat_hard_rate_guard_required": True,
+    "best_public_trade_flat_hard_rate_guard_ok": True,
+    "uses_ckpt_class_balance_thresholds": True,
+    "public_trade_head_required": True,
+    "public_flat_head_required": True,
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -521,6 +530,14 @@ def _direction_context_slice_ok(contract: dict[str, Any]) -> bool:
     return (
         contract.get("requires_direction_context_slice_contract") is True
         and contract.get("direction_context_slice_contract") == DIRECTION_CONTEXT_SLICE_CONTRACT
+    )
+
+
+def _public_trade_flat_hard_rate_ok(contract: dict[str, Any]) -> bool:
+    return (
+        contract.get("requires_public_trade_flat_hard_rate_contract") is True
+        and contract.get("public_trade_flat_hard_rate_contract")
+        == PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT
     )
 
 
@@ -801,6 +818,8 @@ def _future_contracts(
         "tail_direction_env_template": dict(TAIL_DIRECTION_ENV_TEMPLATE),
         "requires_direction_context_slice_contract": True,
         "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
+        "requires_public_trade_flat_hard_rate_contract": True,
+        "public_trade_flat_hard_rate_contract": dict(PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT),
         "post_smoke_audit_argv_template": audit,
         "specialist_contract_mode": CONTRACT_MODE,
         "expected_signal_dim": EXPECTED_SIGNAL_DIM,
@@ -1232,6 +1251,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "smart smoke train contract declares direction context slice audit",
                     future_contracts["smart_smoke_train"]["requires_direction_context_slice_contract"] is True
                     and _direction_context_slice_ok(future_contracts["smart_smoke_train"]),
+                    future_contracts["smart_smoke_train"],
+                ),
+                _check(
+                    "smart smoke train contract declares public trade flat hard-rate audit",
+                    future_contracts["smart_smoke_train"]["requires_public_trade_flat_hard_rate_contract"]
+                    is True
+                    and _public_trade_flat_hard_rate_ok(future_contracts["smart_smoke_train"]),
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(

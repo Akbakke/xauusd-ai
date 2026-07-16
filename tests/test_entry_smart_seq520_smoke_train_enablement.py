@@ -19,6 +19,8 @@ def _future_train_contract() -> dict:
         "touches_shadow_or_live": False,
         "requires_ram_cap": True,
         "requires_edge_audit": True,
+        "requires_public_trade_flat_hard_rate_contract": True,
+        "public_trade_flat_hard_rate_contract": dict(gate.PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT),
         "direction_balance_env_template": dict(gate.REQUIRED_DIRECTION_ENV),
     }
 

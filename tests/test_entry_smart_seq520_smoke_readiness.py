@@ -274,6 +274,11 @@ def test_smart_seq520_smoke_readiness_passes_as_report_only(monkeypatch, tmp_pat
     assert train_contract["tail_direction_env_template"] == readiness.TAIL_DIRECTION_ENV_TEMPLATE
     assert train_contract["requires_direction_context_slice_contract"] is True
     assert train_contract["direction_context_slice_contract"] == readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
+    assert train_contract["requires_public_trade_flat_hard_rate_contract"] is True
+    assert (
+        train_contract["public_trade_flat_hard_rate_contract"]
+        == readiness.PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT
+    )
     train_argv = " ".join(train_contract["inner_train_argv_template"])
     assert str(smart_smoke_root := Path(args.smart_smoke_dataset_dir)) in train_argv
     out_idx = train_contract["inner_train_argv_template"].index("--out_bundle_dir") + 1

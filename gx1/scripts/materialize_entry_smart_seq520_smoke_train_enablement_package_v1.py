@@ -36,6 +36,15 @@ READY_TRAINABILITY_DECISION = "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW"
 READY_DECISION = "ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION"
 BLOCKED_DECISION = "BLOCKED_BY_ENTRY_SMART_SEQ520_SMOKE_TRAIN_ENABLEMENT_PACKAGE"
 VEDTAK_PREFIX = "SMART_SEQ520_XAU_SMOKE_"
+PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT = {
+    "source": "trainer_metadata.public_trade_flat_hard_rate_guard",
+    "trainer_metadata_required": True,
+    "public_trade_flat_hard_rate_guard_required": True,
+    "best_public_trade_flat_hard_rate_guard_ok": True,
+    "uses_ckpt_class_balance_thresholds": True,
+    "public_trade_head_required": True,
+    "public_flat_head_required": True,
+}
 REQUIRED_DIRECTION_ENV = {
     "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT": "8.00",
     "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
@@ -471,6 +480,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "touches_shadow_or_live": future_train.get("touches_shadow_or_live"),
                 "requires_ram_cap": future_train.get("requires_ram_cap"),
                 "requires_edge_audit": future_train.get("requires_edge_audit"),
+            },
+        ),
+        _check(
+            "future smart smoke train contract requires public trade flat hard-rate audit",
+            future_train.get("requires_public_trade_flat_hard_rate_contract") is True
+            and future_train.get("public_trade_flat_hard_rate_contract")
+            == PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT,
+            {
+                "requires_public_trade_flat_hard_rate_contract": future_train.get(
+                    "requires_public_trade_flat_hard_rate_contract"
+                ),
+                "public_trade_flat_hard_rate_contract": future_train.get(
+                    "public_trade_flat_hard_rate_contract"
+                ),
+                "expected_contract": PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT,
             },
         ),
         _check(

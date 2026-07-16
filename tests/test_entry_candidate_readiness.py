@@ -49,6 +49,8 @@ def _add_smart_public_trade_flat_margin_contract(contract: dict) -> None:
             "hier_slice_public_trade_flat_margin": 0.10,
             "hier_slice_public_trade_flat_margin_min_label_rate": 0.10,
             "hier_slice_public_trade_flat_margin_min_rows": 8,
+            "public_trade_flat_hard_rate_guard_required": True,
+            "best_public_trade_flat_hard_rate_guard_ok": True,
         }
     )
 
@@ -484,6 +486,8 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_floor"] = 0.10
     report["direction_balance_recipe_contract"]["direction_flat_starvation_logit_margin"] = 0.10
     report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
+    report["direction_balance_recipe_contract"]["public_trade_flat_hard_rate_guard_required"] = True
+    report["direction_balance_recipe_contract"]["best_public_trade_flat_hard_rate_guard_ok"] = True
 
     checks = _smoke_edge_checks(
         report,
@@ -1143,6 +1147,8 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_floor"] = 0.10
     smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_logit_margin"] = 0.10
     smart_smoke_report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["public_trade_flat_hard_rate_guard_required"] = True
+    smart_smoke_report["direction_balance_recipe_contract"]["best_public_trade_flat_hard_rate_guard_ok"] = True
     smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
     foundation_smoke_path = tmp_path / "foundation_smoke_audit.json"
     foundation_smoke_path.write_text(json.dumps(_passing_smoke_audit()), encoding="utf-8")

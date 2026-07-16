@@ -2138,6 +2138,12 @@ def _direction_balance_recipe_contract(
         )
     )
     best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
+    public_trade_flat_hard_rate_guard_required = meta.get(
+        "public_trade_flat_hard_rate_guard_required"
+    )
+    best_public_trade_flat_hard_rate_guard_ok = meta.get(
+        "best_public_trade_flat_hard_rate_guard_ok"
+    )
     best_direction_slice_contract_ok = meta.get("best_direction_slice_contract_ok")
     ckpt_balance_guard_required = (
         ckpt_class_balance_guard_weight > 0.0
@@ -2992,6 +2998,16 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_flat_starvation_logit_margin >= "
                     f"{SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:.2f}"
                 )
+            if public_trade_flat_hard_rate_guard_required is not True:
+                failures.append(
+                    "smart direction active head requires "
+                    "public_trade_flat_hard_rate_guard_required=true"
+                )
+            if best_public_trade_flat_hard_rate_guard_ok is not True:
+                failures.append(
+                    "smart direction active head requires "
+                    "best_public_trade_flat_hard_rate_guard_ok=true"
+                )
             if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
                 failures.append(
                     "smart direction active head with MTF aux head enabled requires "
@@ -3160,6 +3176,8 @@ def _direction_balance_recipe_contract(
         "direction_flat_starvation_logit_margin": direction_flat_starvation_logit_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+        "public_trade_flat_hard_rate_guard_required": public_trade_flat_hard_rate_guard_required,
+        "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
         "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
         "failures": failures,
     }

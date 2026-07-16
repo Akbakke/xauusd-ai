@@ -34,6 +34,8 @@ def _path_calibration_future_contract(wired: bool) -> dict:
         "tail_direction_env_template": dict(gate.TAIL_DIRECTION_ENV_TEMPLATE),
         "requires_direction_context_slice_contract": True,
         "direction_context_slice_contract": dict(gate.DIRECTION_CONTEXT_SLICE_CONTRACT),
+        "requires_public_trade_flat_hard_rate_contract": True,
+        "public_trade_flat_hard_rate_contract": dict(gate.PUBLIC_TRADE_FLAT_HARD_RATE_CONTRACT),
         "inner_train_argv_template": [
             "env",
             *[f"{key}={value}" for key, value in gate.PATH_CALIBRATION_ENV_TEMPLATE.items()],
