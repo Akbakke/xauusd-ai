@@ -176,6 +176,13 @@ DIRECTION_BALANCE_RECIPE_CONTRACT = {
     "hier_slice_public_flat_consistency_weight": 4.00,
     "hier_slice_public_flat_consistency_min_label_rate": 0.10,
     "hier_slice_public_flat_consistency_min_rows": 8,
+    "hier_public_trade_flat_margin_weight": 6.00,
+    "hier_public_trade_flat_margin": 0.10,
+    "hier_public_trade_flat_margin_min_label_rate": 0.10,
+    "hier_slice_public_trade_flat_margin_weight": 6.00,
+    "hier_slice_public_trade_flat_margin": 0.10,
+    "hier_slice_public_trade_flat_margin_min_label_rate": 0.10,
+    "hier_slice_public_trade_flat_margin_min_rows": 8,
     "hier_slice_side_ce_weight": 4.00,
     "hier_slice_side_true_margin_weight": 3.00,
     "hier_slice_side_true_margin": 0.10,
@@ -351,6 +358,13 @@ DIRECTION_BALANCE_ENV_TEMPLATE = {
     "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "4.00",
     "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS": "8",
+    "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT": "6.00",
+    "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN": "0.10",
+    "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT": "6.00",
+    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS": "8",
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "4.00",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "3.00",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
@@ -513,11 +527,11 @@ def _split_candidates(dataset_dir: Path, split: str) -> tuple[list[Path], list[P
     return parquets, manifests
 
 
-def _resolve_manifest_output_path(manifest: dict[str, Any], fallback: Path | None) -> Path | None:
+def _resolve_manifest_output_path(manifest: dict[str, Any], default_path: Path | None) -> Path | None:
     raw = str(manifest.get("output_data_path") or "").strip()
     if raw:
         return Path(raw).expanduser().resolve()
-    return fallback.resolve() if fallback is not None else None
+    return default_path.resolve() if default_path is not None else None
 
 
 def _stack_list_column(values: Any, dtype: np.dtype) -> np.ndarray:

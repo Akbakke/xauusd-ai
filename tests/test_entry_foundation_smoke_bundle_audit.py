@@ -581,6 +581,13 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "hier_slice_public_flat_consistency_weight": 4.00,
             "hier_slice_public_flat_consistency_min_label_rate": 0.10,
             "hier_slice_public_flat_consistency_min_rows": 8,
+            "hier_public_trade_flat_margin_weight": 6.00,
+            "hier_public_trade_flat_margin": 0.10,
+            "hier_public_trade_flat_margin_min_label_rate": 0.10,
+            "hier_slice_public_trade_flat_margin_weight": 6.00,
+            "hier_slice_public_trade_flat_margin": 0.10,
+            "hier_slice_public_trade_flat_margin_min_label_rate": 0.10,
+            "hier_slice_public_trade_flat_margin_min_rows": 8,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,
@@ -702,6 +709,13 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["hier_slice_public_flat_consistency_weight"] == 4.00
     assert report["hier_slice_public_flat_consistency_min_label_rate"] == 0.10
     assert report["hier_slice_public_flat_consistency_min_rows"] == 8
+    assert report["hier_public_trade_flat_margin_weight"] == 6.00
+    assert report["hier_public_trade_flat_margin"] == 0.10
+    assert report["hier_public_trade_flat_margin_min_label_rate"] == 0.10
+    assert report["hier_slice_public_trade_flat_margin_weight"] == 6.00
+    assert report["hier_slice_public_trade_flat_margin"] == 0.10
+    assert report["hier_slice_public_trade_flat_margin_min_label_rate"] == 0.10
+    assert report["hier_slice_public_trade_flat_margin_min_rows"] == 8
     assert report["hier_slice_side_ce_weight"] == 4.00
     assert report["hier_slice_side_true_margin_weight"] == 3.00
     assert report["hier_slice_side_true_margin"] == 0.10
@@ -855,6 +869,13 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "hier_slice_public_flat_consistency_weight": 4.00,
             "hier_slice_public_flat_consistency_min_label_rate": 0.10,
             "hier_slice_public_flat_consistency_min_rows": 8,
+            "hier_public_trade_flat_margin_weight": 6.00,
+            "hier_public_trade_flat_margin": 0.10,
+            "hier_public_trade_flat_margin_min_label_rate": 0.10,
+            "hier_slice_public_trade_flat_margin_weight": 6.00,
+            "hier_slice_public_trade_flat_margin": 0.10,
+            "hier_slice_public_trade_flat_margin_min_label_rate": 0.10,
+            "hier_slice_public_trade_flat_margin_min_rows": 8,
             "hier_slice_side_ce_weight": 4.00,
             "hier_slice_side_true_margin_weight": 3.00,
             "hier_slice_side_true_margin": 0.10,

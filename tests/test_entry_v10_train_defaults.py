@@ -908,6 +908,128 @@ def test_entry_v10_hier_public_flat_consistency_terms_penalize_head_conflict(mon
     )
 
 
+def test_entry_v10_hier_public_trade_flat_margin_terms_penalize_pairwise_conflict(
+    monkeypatch,
+) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    bad_trade_logit = torch.tensor([[0.0], [0.0], [0.0], [1.0], [1.0], [1.0]], dtype=torch.float32)
+    bad_flat_logit = torch.tensor([[1.0], [1.0], [1.0], [0.0], [0.0], [0.0]], dtype=torch.float32)
+    good_trade_logit = torch.tensor([[1.0], [1.0], [1.0], [0.0], [0.0], [0.0]], dtype=torch.float32)
+    good_flat_logit = torch.tensor([[0.0], [0.0], [0.0], [1.0], [1.0], [1.0]], dtype=torch.float32)
+
+    bad_global = float(
+        trainer._hier_public_trade_flat_margin_term(
+            bad_trade_logit,
+            bad_flat_logit,
+            y_trade,
+        ).item()
+    )
+    good_global = float(
+        trainer._hier_public_trade_flat_margin_term(
+            good_trade_logit,
+            good_flat_logit,
+            y_trade,
+        ).item()
+    )
+    bad_slice = float(
+        trainer._hier_slice_public_trade_flat_margin_term(
+            bad_trade_logit,
+            bad_flat_logit,
+            y_trade,
+            ctx_cat,
+        ).item()
+    )
+    good_slice = float(
+        trainer._hier_slice_public_trade_flat_margin_term(
+            good_trade_logit,
+            good_flat_logit,
+            y_trade,
+            ctx_cat,
+        ).item()
+    )
+
+    assert bad_global > good_global + 6.0
+    assert bad_slice > good_slice + 6.0
+    assert good_global == 0.0
+    assert good_slice == 0.0
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 0.0)
+    assert (
+        float(
+            trainer._hier_public_trade_flat_margin_term(
+                bad_trade_logit,
+                bad_flat_logit,
+                y_trade,
+            ).item()
+        )
+        == 0.0
+    )
+    assert (
+        float(
+            trainer._hier_slice_public_trade_flat_margin_term(
+                bad_trade_logit,
+                bad_flat_logit,
+                y_trade,
+                ctx_cat,
+            ).item()
+        )
+        == 0.0
+    )
+
+
+def test_entry_v10_hier_public_trade_flat_margin_fails_closed_on_contract_break(
+    monkeypatch,
+) -> None:
+    import pytest
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "")
+
+    y_trade = torch.tensor([1, 0], dtype=torch.float32)
+    trade_logit = torch.zeros((2, 1), dtype=torch.float32)
+    flat_logit_bad_shape = torch.zeros((1, 1), dtype=torch.float32)
+    flat_logit = torch.zeros((2, 1), dtype=torch.float32)
+
+    with pytest.raises(RuntimeError, match="ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_SHAPE_INVALID"):
+        trainer._hier_public_trade_flat_margin_term(trade_logit, flat_logit_bad_shape, y_trade)
+
+    with pytest.raises(RuntimeError, match="ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_CTX_INVALID"):
+        trainer._hier_slice_public_trade_flat_margin_term(trade_logit, flat_logit, y_trade, None)
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_CTX_INDICES_EMPTY",
+    ):
+        trainer._hier_slice_public_trade_flat_margin_term(
+            trade_logit,
+            flat_logit,
+            y_trade,
+            torch.zeros((2, 1), dtype=torch.long),
+        )
+
+
 def test_entry_v10_hier_public_flat_consistency_uses_independent_flat_logit(monkeypatch) -> None:
     import torch
 

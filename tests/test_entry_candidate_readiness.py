@@ -39,6 +39,20 @@ SEQ146_SPECIALISTS = [
 SEQ215_SPECIALISTS = [*SEQ146_SPECIALISTS, "chart_geometry_encoder", "price_action_candle_encoder"]
 
 
+def _add_smart_public_trade_flat_margin_contract(contract: dict) -> None:
+    contract.update(
+        {
+            "hier_public_trade_flat_margin_weight": 6.00,
+            "hier_public_trade_flat_margin": 0.10,
+            "hier_public_trade_flat_margin_min_label_rate": 0.10,
+            "hier_slice_public_trade_flat_margin_weight": 6.00,
+            "hier_slice_public_trade_flat_margin": 0.10,
+            "hier_slice_public_trade_flat_margin_min_label_rate": 0.10,
+            "hier_slice_public_trade_flat_margin_min_rows": 8,
+        }
+    )
+
+
 def test_candidate_readiness_seq215_defaults_are_isolated_from_seq146_latest() -> None:
     smoke_path = _mode_smoke_bundle_audit_path("challenger_seq215")
     out_dir = _mode_out_dir("challenger_seq215")
@@ -453,6 +467,7 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_weight"] = 4.00
     report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_label_rate"] = 0.10
     report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_rows"] = 8
+    _add_smart_public_trade_flat_margin_contract(report["direction_balance_recipe_contract"])
     report["direction_balance_recipe_contract"]["hier_side_global_prior_match_weight"] = 4.00
     report["direction_balance_recipe_contract"]["hier_side_global_prior_match_tolerance"] = 0.02
     report["direction_balance_recipe_contract"]["hier_side_global_prior_match_min_label_rate"] = 0.10
@@ -573,6 +588,7 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_weight"] = 4.00
     report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_label_rate"] = 0.10
     report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_rows"] = 8
+    _add_smart_public_trade_flat_margin_contract(report["direction_balance_recipe_contract"])
     report["direction_balance_recipe_contract"]["hier_side_global_prior_match_weight"] = 4.00
     report["direction_balance_recipe_contract"]["hier_side_global_prior_match_tolerance"] = 0.02
     report["direction_balance_recipe_contract"]["hier_side_global_prior_match_min_label_rate"] = 0.10
@@ -1108,6 +1124,9 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
         "hier_slice_public_flat_consistency_min_label_rate"
     ] = 0.10
     smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_rows"] = 8
+    _add_smart_public_trade_flat_margin_contract(
+        smart_smoke_report["direction_balance_recipe_contract"]
+    )
     smart_smoke_report["direction_balance_recipe_contract"]["hier_side_global_prior_match_weight"] = 4.00
     smart_smoke_report["direction_balance_recipe_contract"]["hier_side_global_prior_match_tolerance"] = 0.02
     smart_smoke_report["direction_balance_recipe_contract"]["hier_side_global_prior_match_min_label_rate"] = 0.10

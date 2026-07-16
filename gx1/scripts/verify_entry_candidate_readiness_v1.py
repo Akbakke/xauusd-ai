@@ -650,6 +650,13 @@ SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = 0.10
 SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS = 8
+SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT = 6.00
+SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN = 0.10
+SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT = 6.00
+SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN = 0.10
+SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE = 0.10
+SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS = 8
 SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
@@ -878,6 +885,20 @@ def _direction_balance_contract_passes(
         >= SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
         and _float_or_zero(contract.get("hier_slice_public_flat_consistency_min_rows"))
         >= SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
+        and _float_or_zero(contract.get("hier_public_trade_flat_margin_weight"))
+        >= SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
+        and _float_or_zero(contract.get("hier_public_trade_flat_margin"))
+        >= SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN
+        and _float_or_zero(contract.get("hier_public_trade_flat_margin_min_label_rate"))
+        >= SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
+        and _float_or_zero(contract.get("hier_slice_public_trade_flat_margin_weight"))
+        >= SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
+        and _float_or_zero(contract.get("hier_slice_public_trade_flat_margin"))
+        >= SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
+        and _float_or_zero(contract.get("hier_slice_public_trade_flat_margin_min_label_rate"))
+        >= SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
+        and _float_or_zero(contract.get("hier_slice_public_trade_flat_margin_min_rows"))
+        >= SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
         and _float_or_zero(contract.get("hier_side_global_prior_match_weight"))
         >= SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT
         and _float_or_zero(contract.get("hier_side_global_prior_match_tolerance", 999.0))
