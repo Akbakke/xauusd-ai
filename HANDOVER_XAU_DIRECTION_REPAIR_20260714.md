@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `837G` free after the latest cleanup/resource check.
-- Runtime: no transformer training/eval job is running after the 2026-07-16 independent public-FLAT-head smoke failed closed. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
+- Runtime: no transformer training/eval job is running after the 2026-07-16 public trade/FLAT pairwise-margin smoke was stopped hard-red after epoch 1. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the independent public FLAT-head contract. Latest commit at update time: `c210d2dd Require XAU public flat head`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the public trade/FLAT pairwise-margin contract. Latest commit at update time: `ad76a4a4 Require XAU public trade flat margin`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Standing Rules
@@ -21,6 +21,47 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Monitor disk/RAM before and after heavy jobs. If available disk approaches below `700G` or used space grows toward roughly `800G`, stop and run cleanup before more training. Delete stale aborted manifests, old failed run dirs, and obsolete tmp/memmap dirs once their evidence has been extracted.
 - Stop bounded transformer training when validation is hard-red and continuing only burns compute. Do not extend epochs on a red recipe.
 - Keep the runtime/live collector processes separate from transformer train/eval jobs; do not kill persistent live/collector/dashboard/notifier processes unless explicitly asked.
+
+## 2026-07-16 Source Update - Public Trade/FLAT Pairwise Margin
+
+- The independent public FLAT head was necessary but not sufficient. The remaining formulation hole was that `public_trade_logit` and `public_flat_logit` were supervised independently while public direction composition makes them compete directly.
+- Implemented and committed `ad76a4a4 Require XAU public trade flat margin`.
+  - Added global and slice pairwise margin losses:
+    - trade rows require `public_trade_logit > public_flat_logit + margin`;
+    - FLAT rows require `public_flat_logit > public_trade_logit + margin`.
+  - Strict smart XAU repair now requires `ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT>=6.00`, `ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT>=6.00`, margin `0.10`, min label rate `0.10`, and slice min rows `8`.
+  - Shape/ctx contract breaks in the new loss fail closed with RuntimeError; they do not silently become zero-loss.
+  - Smoke/candidate wrappers, 6yr rebuild defaults, smart smoke manifest/readiness/trainability, smoke enablement, sweep lint, bundle audit, candidate readiness, replay readiness, trainer metadata, and tests carry the contract.
+  - Metadata formula was updated so public FLAT is described as `public_flat_logit` when the public FLAT head is enabled, not stale `-public_trade_logit`.
+- Validation before commit:
+  - `python3 -m py_compile` passed for touched Python modules.
+  - `bash -n` passed for touched shell wrappers.
+  - `git diff --check` passed.
+  - Focused pytest passed:
+    `env PYTHONPATH=. pytest -q tests/test_entry_v10_train_defaults.py tests/test_entry_foundation_smoke_train_wrapper.py tests/test_entry_candidate_train_wrapper.py tests/test_entry_smart_seq520_smoke_train_enablement.py tests/test_entry_smart_seq520_smoke_manifest.py tests/test_entry_smart_seq520_smoke_readiness.py tests/test_entry_smart_seq520_trainability_readiness.py tests/test_entry_candidate_readiness.py tests/test_entry_replay_readiness.py tests/test_entry_foundation_smoke_bundle_audit.py tests/test_xau_direction_repair_sweep.py tests/test_v10_6yr_rebuild_direction_repair_contract.py`
+  - Pre-commit guardrails passed.
+- Clean-git post-commit gates passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`.
+  - Enablement dry-run confirmed `has_hier_public_trade_flat_margin=true`, `has_hier_public_flat_head=true`, `trainer_started=false`, and no candidate/replay/IQL/live/promotion gate opened.
+- Ran one bounded smart smoke and stopped after epoch 1 because it was hard-red:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716`.
+  - Command: `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716 --require-edge-audit --epochs 6 --early-stop-patience 6`.
+  - Recipe log confirmed `public_trade_flat_margin_w=6.000` and `slice_public_trade_flat_margin_w=6.000`.
+  - Epoch `1`: `dir_acc=0.347005`, `balance_guard_ok=0`, `slice_contract_ok=0`, public pred LONG `0.507161`, SHORT `0.492839`, FLAT `0.000000`, `30` slice failures (`13` accuracy, `17` pred-rate), hierarchy `trade_pred=1.000000`, `trade_prob=0.513932`, `flat_prob=0.486068`, `hier_public_trade_flat_margin=0.637465`, `hier_slice_public_trade_flat_margin=1.925661`.
+  - The run was interrupted during epoch `2` train to avoid burning compute on a red recipe. No bundle was produced.
+- Cleanup/resource state after the stopped smoke:
+  - Deleted aborted manifest `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T141429Z.json` and stale `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_latest.json`.
+  - No bundle dir existed for `v10_entry_smart_seq520_smoke_20260716T141429Z`.
+  - No matching tmp/memmap dir or failure sidecar existed.
+  - `/home/andre2/GX1_DATA`: about `837G` free; RAM about `37GiB` available; swap unused.
+  - No transformer train/eval process is running.
+- Current interpretation:
+  - Source/contract progress is real: public trade/FLAT competition now has a direct fail-closed objective and is fully visible to readiness/audit.
+  - Model progress is still not sufficient: the first bounded smoke stayed FLAT-starved with hard-red balance and slice contracts.
+  - Entry-IQL, replay, candidate training, shadow, live, and promotion remain closed. Do not open them until a fresh XAU transformer bundle passes hard direction slice and class-balance gates.
+  - Do not rerun `SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716` unchanged. The next step needs a new formulation or input/label diagnosis, not scalar-only retune and not Entry-IQL.
 
 ## 2026-07-16 Source Update - Independent Public FLAT Head
 
