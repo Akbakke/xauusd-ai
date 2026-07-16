@@ -829,7 +829,7 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "hier_compose_residual_logit_cap": 0.18,
             "hier_compose_residual_side_neutral": True,
             "hier_compose_public_flat_from_trade": True,
-            "hier_public_direction_composition": "margin",
+            "hier_public_direction_composition": "margin_centered",
             "hier_public_trade_head": True,
             "hier_public_side_head": True,
             "hier_ctx_prior_adapter": True,

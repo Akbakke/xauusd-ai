@@ -398,10 +398,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
             raise RuntimeError("HIERARCHICAL_COMPOSITION_PUBLIC_FLAT_FROM_TRADE_REQUIRES_COMPOSITION")
         hierarchical_public_direction_composition = str(hierarchical_public_direction_composition or "logprob").strip().lower()
-        if hierarchical_public_direction_composition not in {"logprob", "margin"}:
+        if hierarchical_public_direction_composition not in {"logprob", "margin", "margin_centered"}:
             raise RuntimeError(
                 "HIERARCHICAL_PUBLIC_DIRECTION_COMPOSITION_INVALID: "
-                f"got {hierarchical_public_direction_composition!r}, expected 'logprob' or 'margin'"
+                f"got {hierarchical_public_direction_composition!r}, "
+                "expected 'logprob', 'margin', or 'margin_centered'"
             )
         if float(hierarchical_ctx_prior_adapter_scale) < 0.0:
             raise RuntimeError(
@@ -1194,12 +1195,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 public_direction_composition = str(
                     getattr(self.cfg, "hierarchical_public_direction_composition", "logprob")
                 ).strip().lower()
-                if public_direction_composition == "margin":
+                if public_direction_composition in {"margin", "margin_centered"}:
                     public_trade_margin = public_trade_logit.reshape(-1)
+                    public_side_for_composition = public_side_logits
+                    if public_direction_composition == "margin_centered":
+                        public_side_for_composition = (
+                            public_side_logits - public_side_logits.mean(dim=1, keepdim=True)
+                        )
                     composed_direction_logits = torch.stack(
                         (
-                            public_trade_margin + public_side_logits[:, 0],
-                            public_trade_margin + public_side_logits[:, 1],
+                            public_trade_margin + public_side_for_composition[:, 0],
+                            public_trade_margin + public_side_for_composition[:, 1],
                             -public_trade_margin,
                         ),
                         dim=1,
@@ -1308,7 +1314,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
                 out["hierarchical_public_direction_composition_margin"] = torch.full(
                     (direction_logits.shape[0], 1),
-                    1.0 if public_direction_composition == "margin" else 0.0,
+                    1.0 if public_direction_composition in {"margin", "margin_centered"} else 0.0,
+                    device=direction_logits.device,
+                    dtype=direction_logits.dtype,
+                )
+                out["hierarchical_public_direction_composition_margin_centered"] = torch.full(
+                    (direction_logits.shape[0], 1),
+                    1.0 if public_direction_composition == "margin_centered" else 0.0,
                     device=direction_logits.device,
                     dtype=direction_logits.dtype,
                 )

@@ -414,7 +414,7 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
     report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
     report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
-    report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin"
+    report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_centered"
     report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
     report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
     report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
@@ -524,7 +524,7 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
     report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
     report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
-    report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin"
+    report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_centered"
     report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
     report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
     report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
@@ -1047,7 +1047,7 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
     smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin"
+    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_centered"
     smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
     smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True

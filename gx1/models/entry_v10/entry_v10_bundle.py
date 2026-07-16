@@ -242,7 +242,7 @@ def load_entry_v10_ctx_bundle(
             meta.get("hier_public_direction_composition", "logprob") if isinstance(meta, dict) else "logprob",
         )
     ).strip().lower()
-    if _hierarchical_public_direction_composition not in {"logprob", "margin"}:
+    if _hierarchical_public_direction_composition not in {"logprob", "margin", "margin_centered"}:
         raise RuntimeError(
             "[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_COMPOSITION_INVALID] "
             f"{_hierarchical_public_direction_composition!r}"

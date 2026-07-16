@@ -212,6 +212,36 @@ def test_entry_v10_ctx_hierarchical_public_direction_margin_composition():
     assert torch.all(out["hierarchical_public_direction_composition_margin"] == 1.0)
 
 
+def test_entry_v10_ctx_hierarchical_public_direction_margin_centered_composition():
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=SEQ_DIM,
+        snap_input_dim=SEQ_DIM,
+        seq_len=SEQ_LEN,
+        ctx_cont_dim=CTX_CONT_DIM,
+        ctx_cat_dim=CTX_CAT_DIM,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_public_flat_from_trade=True,
+        hierarchical_public_direction_composition="margin_centered",
+        enable_hierarchical_public_trade_head=True,
+        enable_hierarchical_public_side_head=True,
+    ).eval()
+    with torch.no_grad():
+        for param in model.parameters():
+            param.zero_()
+        model.head_public_trade.bias.fill_(0.2)
+        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
+    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
+
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    expected = torch.tensor([[0.4, 0.0, -0.2], [0.4, 0.0, -0.2]], dtype=out["direction_logits"].dtype)
+    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
+    assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
+    assert torch.all(out["hierarchical_public_direction_composition_margin"] == 1.0)
+    assert torch.all(out["hierarchical_public_direction_composition_margin_centered"] == 1.0)
+
+
 def test_entry_v10_ctx_side_validity_requires_hierarchy():
     with pytest.raises(RuntimeError, match="SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS"):
         EntryV10CtxHybridTransformer(
