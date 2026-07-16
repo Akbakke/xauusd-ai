@@ -11665,16 +11665,16 @@ def run_train(
             },
             "formula": (
                 (
-                    "logits=[public_trade_logit+max_log_softmax(public_side_logits)"
+                    "logits=[public_trade_logit-bounded_side_uncertainty_penalty"
                     "+(public_side_long_logit-max(public_side_logits)), "
-                    "public_trade_logit+max_log_softmax(public_side_logits)"
+                    "public_trade_logit-bounded_side_uncertainty_penalty"
                     "+(public_side_short_logit-max(public_side_logits)), "
-                    "-(public_trade_logit+max_log_softmax(public_side_logits))] "
+                    "-(public_trade_logit-bounded_side_uncertainty_penalty)] "
                     "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
                     "public_trade_logit includes capped mean(raw LONG/SHORT)-raw FLAT direction-margin bridge; "
-                    "margin_maxnorm_confidence keeps max public side contribution at zero while side uncertainty "
-                    "can only lower trade-vs-flat, public trade/flat and public side use separate learned heads, "
-                    "and public FLAT comes from hierarchy no-trade"
+                    "margin_maxnorm_confidence keeps max public side contribution at zero while bounded side "
+                    "uncertainty can only lower trade-vs-flat, public trade/flat and public side use separate "
+                    "learned heads, and public FLAT comes from hierarchy no-trade"
                 )
                 if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
                 and ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION == "margin_maxnorm_confidence"

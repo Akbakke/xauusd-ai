@@ -318,18 +318,17 @@ def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_confidence_a
     with torch.no_grad():
         for param in model.parameters():
             param.zero_()
-        model.head_public_trade.bias.fill_(0.2)
-        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
+        model.head_public_trade.bias.fill_(0.02)
+        model.head_public_side.bias.copy_(torch.tensor([0.0, 0.0]))
     seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
 
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
 
-    penalty = torch.log_softmax(torch.tensor([1.3, 0.9]), dim=0).max()
-    trade_margin = 0.2 + penalty
+    trade_margin = 0.02 - 0.08
     expected = torch.tensor(
         [
-            [trade_margin.item(), (trade_margin - 0.4).item(), (-trade_margin).item()],
-            [trade_margin.item(), (trade_margin - 0.4).item(), (-trade_margin).item()],
+            [trade_margin, trade_margin, -trade_margin],
+            [trade_margin, trade_margin, -trade_margin],
         ],
         dtype=out["direction_logits"].dtype,
     )

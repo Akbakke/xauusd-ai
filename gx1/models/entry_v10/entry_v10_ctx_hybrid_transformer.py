@@ -25,6 +25,7 @@ def _assert_finite(name: str, t: torch.Tensor) -> None:
 
 _ANCHOR_FIELDS = ("p_long", "p_short", "p_flat")
 _ANCHOR_IDX = tuple(ORDERED_FIELDS.index(f) for f in _ANCHOR_FIELDS)
+_PUBLIC_DIRECTION_CONFIDENCE_PENALTY_MAX = 0.08
 
 # ── Dip-analysis head layout (V10 entry) — risk-aware, multi-horizon, distributional.
 # Output index = flatten over (direction, horizon, target) in this order. The
@@ -1284,10 +1285,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
                             public_side_logits - public_side_logits.max(dim=1, keepdim=True).values
                         )
                     if public_direction_composition == "margin_maxnorm_confidence":
-                        side_confidence_penalty = nn.functional.log_softmax(
+                        side_logprob_max = nn.functional.log_softmax(
                             public_side_logits,
                             dim=1,
                         ).max(dim=1).values
+                        log_two = torch.as_tensor(
+                            math.log(2.0),
+                            device=side_logprob_max.device,
+                            dtype=side_logprob_max.dtype,
+                        )
+                        side_uncertainty = torch.clamp(-side_logprob_max / log_two, min=0.0, max=1.0)
+                        side_confidence_penalty = -float(_PUBLIC_DIRECTION_CONFIDENCE_PENALTY_MAX) * side_uncertainty
                         public_trade_margin = public_trade_margin + side_confidence_penalty
                     composed_direction_logits = torch.stack(
                         (
