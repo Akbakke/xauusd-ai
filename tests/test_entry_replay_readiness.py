@@ -832,6 +832,7 @@ def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path:
             "hier_public_direction_composition": "margin_maxnorm_confidence",
             "hier_public_direction_detach_side_grad": True,
             "hier_public_trade_head": True,
+            "hier_public_flat_head": True,
             "hier_public_trade_dir_margin_bridge": True,
             "hier_public_trade_dir_margin_bridge_scale": 0.50,
             "hier_public_trade_dir_margin_bridge_cap": 0.25,

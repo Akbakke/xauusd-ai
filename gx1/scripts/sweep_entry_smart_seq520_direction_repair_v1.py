@@ -150,6 +150,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION": "margin_maxnorm_confidence",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_FLAT_HEAD": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP": "0.25",
@@ -443,6 +444,12 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_PUBLIC_TRADE_HEAD must be 1 for strict XAU repair, "
             f"got {hier_public_trade_head}"
+        )
+    hier_public_flat_head = int(float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_FLAT_HEAD", "0")))
+    if hier_public_flat_head != 1:
+        failures.append(
+            "HIER_PUBLIC_FLAT_HEAD must be 1 for strict XAU repair, "
+            f"got {hier_public_flat_head}"
         )
     hier_public_trade_dir_margin_bridge = int(
         float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE", "0"))

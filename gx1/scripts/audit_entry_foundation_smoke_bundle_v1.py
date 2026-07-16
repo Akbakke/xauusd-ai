@@ -107,6 +107,7 @@ SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED = "margin_maxnorm_confidence"
 SMART_DIRECTION_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED = True
+SMART_DIRECTION_HIER_PUBLIC_FLAT_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN = 0.25
 SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX = 1.00
@@ -1544,6 +1545,20 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    _hier_public_flat_meta = (
+        _hierarchical_direction_meta.get("public_flat_head")
+        if isinstance(_hierarchical_direction_meta.get("public_flat_head"), dict)
+        else {}
+    )
+    hier_public_flat_head = _bool_value(
+        recipe.get(
+            "hier_public_flat_head",
+            _hier_public_flat_meta.get(
+                "enabled",
+                meta.get("hier_public_flat_head", False),
+            ),
+        )
+    )
     _hier_public_trade_dir_margin_bridge_meta = (
         _hierarchical_direction_meta.get("public_trade_dir_margin_bridge")
         if isinstance(_hierarchical_direction_meta.get("public_trade_dir_margin_bridge"), dict)
@@ -2551,6 +2566,8 @@ def _direction_balance_recipe_contract(
                 )
             if hier_public_trade_head is not SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED:
                 failures.append("smart direction active head requires hier_public_trade_head=true")
+            if hier_public_flat_head is not SMART_DIRECTION_HIER_PUBLIC_FLAT_HEAD_REQUIRED:
+                failures.append("smart direction active head requires hier_public_flat_head=true")
             if (
                 hier_public_trade_dir_margin_bridge
                 is not SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED
@@ -2954,6 +2971,7 @@ def _direction_balance_recipe_contract(
         "hier_public_direction_composition": hier_public_direction_composition,
         "hier_public_direction_detach_side_grad": hier_public_direction_detach_side_grad,
         "hier_public_trade_head": hier_public_trade_head,
+        "hier_public_flat_head": hier_public_flat_head,
         "hier_public_trade_dir_margin_bridge": hier_public_trade_dir_margin_bridge,
         "hier_public_trade_dir_margin_bridge_scale": hier_public_trade_dir_margin_bridge_scale,
         "hier_public_trade_dir_margin_bridge_cap": hier_public_trade_dir_margin_bridge_cap,

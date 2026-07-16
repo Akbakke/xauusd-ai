@@ -505,6 +505,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=" in text
     assert "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=" in text
+    assert "ENTRY_HIER_PUBLIC_FLAT_HEAD=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=" in text
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=" in text
@@ -532,6 +533,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_FLAT_HEAD" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP" in text
@@ -562,6 +564,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert 'ENTRY_HIER_PUBLIC_TRADE_HEAD="$CANDIDATE_HIER_PUBLIC_TRADE_HEAD"' in text
+    assert 'ENTRY_HIER_PUBLIC_FLAT_HEAD="$CANDIDATE_HIER_PUBLIC_FLAT_HEAD"' in text
     assert (
         'ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE="$CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE"'
         in text
@@ -752,6 +755,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_HIER_BAD_PATH_WEIGHT=1.25" in text
     assert "CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_HEAD=1" in text
+    assert "CANDIDATE_HIER_PUBLIC_FLAT_HEAD=1" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in text
     assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.25" in text

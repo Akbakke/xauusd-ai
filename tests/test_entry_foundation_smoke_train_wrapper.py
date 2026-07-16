@@ -110,6 +110,7 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0" in result.stdout
     assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=0" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_FLAT_HEAD=0" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=0" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.0" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.0" in result.stdout
@@ -286,6 +287,7 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in result.stdout
     assert "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=1" in result.stdout
+    assert "ENTRY_HIER_PUBLIC_FLAT_HEAD=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in result.stdout
     assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.25" in result.stdout
@@ -542,6 +544,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_HEAD" in text
+    assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_FLAT_HEAD" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE" in text
     assert "ENTRY_FOUNDATION_SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP" in text
@@ -571,6 +574,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
         in text
     )
     assert 'ENTRY_HIER_PUBLIC_TRADE_HEAD="$SMOKE_HIER_PUBLIC_TRADE_HEAD"' in text
+    assert 'ENTRY_HIER_PUBLIC_FLAT_HEAD="$SMOKE_HIER_PUBLIC_FLAT_HEAD"' in text
     assert (
         'ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE="$SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE"'
         in text
@@ -743,6 +747,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_HIER_BAD_PATH_WEIGHT=1.25" in text
     assert "SMOKE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in text
     assert "SMOKE_HIER_PUBLIC_TRADE_HEAD=1" in text
+    assert "SMOKE_HIER_PUBLIC_FLAT_HEAD=1" in text
     assert "SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in text
     assert "SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in text
     assert "SMOKE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.25" in text

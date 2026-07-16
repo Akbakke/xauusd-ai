@@ -908,6 +908,65 @@ def test_entry_v10_hier_public_flat_consistency_terms_penalize_head_conflict(mon
     )
 
 
+def test_entry_v10_hier_public_flat_consistency_uses_independent_flat_logit(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+
+    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    trade_logit = torch.zeros((6, 1), dtype=torch.float32)
+    flat_logit = torch.tensor([[-4.0], [-4.0], [-4.0], [4.0], [4.0], [4.0]], dtype=torch.float32)
+    matched_direction = torch.tensor(
+        [
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [4.0, 0.0, -4.0],
+            [-4.0, 0.0, 4.0],
+            [-4.0, 0.0, 4.0],
+            [-4.0, 0.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    without_flat_head = float(
+        trainer._hier_public_flat_consistency_term(
+            matched_direction,
+            trade_logit,
+            y_trade,
+        ).item()
+    )
+    with_flat_head = float(
+        trainer._hier_public_flat_consistency_term(
+            matched_direction,
+            trade_logit,
+            y_trade,
+            flat_logit=flat_logit,
+        ).item()
+    )
+    slice_with_flat_head = float(
+        trainer._hier_slice_public_flat_consistency_term(
+            matched_direction,
+            trade_logit,
+            y_trade,
+            ctx_cat,
+            flat_logit=flat_logit,
+        ).item()
+    )
+
+    assert with_flat_head < 0.01
+    assert slice_with_flat_head < 0.01
+    assert without_flat_head > with_flat_head + 0.25
+
+
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
     import torch
 
@@ -1487,6 +1546,7 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "hier_compose_residual_side_neutral",
         "hier_compose_public_flat_from_trade",
         "hier_public_trade_head",
+        "hier_public_flat_head",
         "hier_public_trade_dir_margin_bridge",
         "hier_public_trade_dir_margin_bridge_scale",
         "hier_public_trade_dir_margin_bridge_cap",
@@ -1935,6 +1995,7 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
         in train_ctor
     )
     assert "enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)" in train_ctor
+    assert "enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD)" in train_ctor
     assert (
         "enable_hierarchical_public_trade_dir_margin_bridge=bool("
         in train_ctor

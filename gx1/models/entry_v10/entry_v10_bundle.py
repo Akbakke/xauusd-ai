@@ -284,6 +284,22 @@ def load_entry_v10_ctx_bundle(
     if _has_hierarchical_public_trade_head and "public_trade_head" not in _hierarchical_direction_cfg:
         if not bool(meta.get("hier_public_trade_head", False) if isinstance(meta, dict) else False):
             raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_HEAD_METADATA_MISSING]")
+    _hierarchical_public_flat_head_cfg = (
+        _hierarchical_direction_cfg.get("public_flat_head")
+        if isinstance(_hierarchical_direction_cfg.get("public_flat_head"), dict)
+        else {}
+    )
+    _has_hierarchical_public_flat_head = "head_public_flat.weight" in state_dict_preview
+    _public_flat_head_meta_enabled = bool(
+        _hierarchical_public_flat_head_cfg.get(
+            "enabled",
+            meta.get("hier_public_flat_head", False) if isinstance(meta, dict) else False,
+        )
+    )
+    if _has_hierarchical_public_flat_head and not _public_flat_head_meta_enabled:
+        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_FLAT_HEAD_METADATA_MISSING]")
+    if _public_flat_head_meta_enabled and not _has_hierarchical_public_flat_head:
+        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_FLAT_HEAD_STATE_MISSING]")
     _hierarchical_public_trade_dir_margin_bridge_cfg = (
         _hierarchical_direction_cfg.get("public_trade_dir_margin_bridge")
         if isinstance(_hierarchical_direction_cfg.get("public_trade_dir_margin_bridge"), dict)
@@ -471,6 +487,7 @@ def load_entry_v10_ctx_bundle(
         hierarchical_public_direction_composition=_hierarchical_public_direction_composition,
         hierarchical_public_direction_detach_side_grad=_hierarchical_public_direction_detach_side_grad,
         enable_hierarchical_public_trade_head=_has_hierarchical_public_trade_head,
+        enable_hierarchical_public_flat_head=_has_hierarchical_public_flat_head,
         enable_hierarchical_public_trade_dir_margin_bridge=_has_hierarchical_public_trade_dir_margin_bridge,
         hierarchical_public_trade_dir_margin_bridge_scale=_hierarchical_public_trade_dir_margin_bridge_scale,
         hierarchical_public_trade_dir_margin_bridge_cap=_hierarchical_public_trade_dir_margin_bridge_cap,

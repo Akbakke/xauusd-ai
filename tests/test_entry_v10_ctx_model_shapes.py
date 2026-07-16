@@ -272,6 +272,39 @@ def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_composition(
     assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
 
 
+def test_entry_v10_ctx_hierarchical_public_flat_head_keeps_independent_flat_margin():
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=SEQ_DIM,
+        snap_input_dim=SEQ_DIM,
+        seq_len=SEQ_LEN,
+        ctx_cont_dim=CTX_CONT_DIM,
+        ctx_cat_dim=CTX_CAT_DIM,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_public_flat_from_trade=True,
+        hierarchical_public_direction_composition="margin_maxnorm",
+        enable_hierarchical_public_trade_head=True,
+        enable_hierarchical_public_flat_head=True,
+        enable_hierarchical_public_side_head=True,
+    ).eval()
+    with torch.no_grad():
+        for param in model.parameters():
+            param.zero_()
+        model.head_public_trade.bias.fill_(0.2)
+        model.head_public_flat.bias.fill_(0.7)
+        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
+    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
+
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    expected = torch.tensor([[0.2, -0.2, 0.7], [0.2, -0.2, 0.7]], dtype=out["direction_logits"].dtype)
+    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
+    assert torch.all(out["direction_logits"].argmax(dim=1) == 2)
+    assert out["public_flat_logit"].shape == (2, 1)
+    assert torch.all(out["hierarchical_public_flat_head"] == 1.0)
+    assert "head_public_flat.weight" in model.state_dict()
+
+
 def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_keeps_flat_threshold():
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=SEQ_DIM,

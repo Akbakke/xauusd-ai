@@ -470,6 +470,7 @@ ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD = int(
     float(_env_str("ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD", "0"))
 )
 ENTRY_HIER_PUBLIC_TRADE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_TRADE_HEAD", "0")))
+ENTRY_HIER_PUBLIC_FLAT_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_FLAT_HEAD", "0")))
 ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE = int(
     float(_env_str("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE", "0"))
 )
@@ -873,6 +874,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION": "logprob",
     "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD": "0",
     "ENTRY_HIER_PUBLIC_TRADE_HEAD": "0",
+    "ENTRY_HIER_PUBLIC_FLAT_HEAD": "0",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE": "0",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
     "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP": "0.0",
@@ -1150,6 +1152,7 @@ def _build_active_head_names(
     enable_anchor_gate: bool = False,
     enable_hierarchical_entry_heads: bool = False,
     enable_hierarchical_public_trade_head: bool = False,
+    enable_hierarchical_public_flat_head: bool = False,
     enable_hierarchical_public_trade_dir_margin_bridge: bool = False,
     enable_hierarchical_public_side_head: bool = False,
     enable_hierarchical_public_side_dir_margin_bridge: bool = False,
@@ -1183,6 +1186,7 @@ def _build_active_head_names(
         ("anchor_gate", enable_anchor_gate),
         ("trade_side_hierarchy", enable_hierarchical_entry_heads),
         ("hierarchical_public_trade_head", enable_hierarchical_public_trade_head),
+        ("hierarchical_public_flat_head", enable_hierarchical_public_flat_head),
         (
             "hierarchical_public_trade_dir_margin_bridge",
             enable_hierarchical_public_trade_dir_margin_bridge,
@@ -3896,6 +3900,8 @@ def _hier_public_flat_consistency_term(
     direction_logits: Optional[torch.Tensor],
     trade_logit: torch.Tensor,
     y_trade: torch.Tensor,
+    *,
+    flat_logit: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
     weight = float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
@@ -3905,6 +3911,9 @@ def _hier_public_flat_consistency_term(
         return zero
     logits = trade_logit.reshape(-1)
     if direction_logits.shape[0] != logits.shape[0]:
+        return zero
+    flat_logits = flat_logit.reshape(-1) if isinstance(flat_logit, torch.Tensor) else None
+    if flat_logits is not None and flat_logits.shape[0] != logits.shape[0]:
         return zero
     flat_mask = y_trade.reshape(-1).float() <= 0.5
     if flat_mask.numel() != logits.shape[0]:
@@ -3919,7 +3928,11 @@ def _hier_public_flat_consistency_term(
     if flat_rate < min_label_rate:
         return zero
     public_flat_prob = torch.softmax(direction_logits.float(), dim=1)[:, 2]
-    hier_flat_prob = 1.0 - torch.sigmoid(logits.float())
+    hier_flat_prob = (
+        torch.sigmoid(flat_logits.float())
+        if flat_logits is not None
+        else 1.0 - torch.sigmoid(logits.float())
+    )
     return weight * nn.functional.mse_loss(public_flat_prob, hier_flat_prob)
 
 
@@ -3928,6 +3941,8 @@ def _hier_slice_public_flat_consistency_term(
     trade_logit: torch.Tensor,
     y_trade: torch.Tensor,
     ctx_cat: Optional[torch.Tensor],
+    *,
+    flat_logit: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
     weight = float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
@@ -3939,6 +3954,9 @@ def _hier_slice_public_flat_consistency_term(
         return zero
     logits = trade_logit.reshape(-1)
     if direction_logits.shape[0] != logits.shape[0] or ctx_cat.shape[0] != logits.shape[0]:
+        return zero
+    flat_logits = flat_logit.reshape(-1) if isinstance(flat_logit, torch.Tensor) else None
+    if flat_logits is not None and flat_logits.shape[0] != logits.shape[0]:
         return zero
     flat_mask = y_trade.reshape(-1).float() <= 0.5
     if flat_mask.numel() != logits.shape[0]:
@@ -3961,7 +3979,11 @@ def _hier_slice_public_flat_consistency_term(
         return zero
 
     public_flat_prob = torch.softmax(direction_logits.float(), dim=1)[:, 2]
-    hier_flat_prob = 1.0 - torch.sigmoid(logits.float())
+    hier_flat_prob = (
+        torch.sigmoid(flat_logits.float())
+        if flat_logits is not None
+        else 1.0 - torch.sigmoid(logits.float())
+    )
     values: list[torch.Tensor] = []
     for idx in indices:
         slice_values = torch.unique(ctx_cat[:, idx].long())
@@ -4878,6 +4900,7 @@ def _hierarchical_entry_loss(
         "hier_flat_logit_margin_loss": 0.0,
         "hier_slice_flat_logit_margin_loss": 0.0,
         "hier_public_trade_loss": 0.0,
+        "hier_public_flat_loss": 0.0,
         "hier_public_trade_global_prior_loss": 0.0,
         "hier_public_slice_trade_prior_loss": 0.0,
         "hier_public_slice_trade_accuracy_edge_loss": 0.0,
@@ -4922,6 +4945,7 @@ def _hierarchical_entry_loss(
     }
     trade_logit = out.get("trade_logit")
     public_trade_logit = out.get("public_trade_logit")
+    public_flat_logit = out.get("public_flat_logit")
     direction_logits = out.get("direction_logits")
     side_logits = out.get("side_logits")
     public_side_logits = out.get("public_side_logits")
@@ -4933,6 +4957,7 @@ def _hierarchical_entry_loss(
     if (
         trade_logit is None
         and public_trade_logit is None
+        and public_flat_logit is None
         and side_logits is None
         and public_side_logits is None
         and side_utility is None
@@ -5089,6 +5114,7 @@ def _hierarchical_entry_loss(
             direction_logits if isinstance(direction_logits, torch.Tensor) else None,
             public_flat_source_logit,
             y_trade,
+            flat_logit=public_flat_logit if isinstance(public_flat_logit, torch.Tensor) else None,
         )
         if hier_public_flat_consistency.numel() == 1:
             total = total + hier_public_flat_consistency
@@ -5100,6 +5126,7 @@ def _hierarchical_entry_loss(
             public_flat_source_logit,
             y_trade,
             ctx_cat,
+            flat_logit=public_flat_logit if isinstance(public_flat_logit, torch.Tensor) else None,
         )
         if hier_slice_public_flat_consistency.numel() == 1:
             total = total + hier_slice_public_flat_consistency
@@ -5120,6 +5147,21 @@ def _hierarchical_entry_loss(
         weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
         total = total + weighted
         stats["hier_public_trade_loss"] = float(weighted.detach().cpu().item())
+
+    if public_flat_logit is not None and float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
+        flat_pos_weight = 1.0 / max(float(trade_pos_weight), 1e-6)
+        raw = nn.functional.binary_cross_entropy_with_logits(
+            public_flat_logit.reshape(-1),
+            1.0 - y_trade,
+            pos_weight=torch.tensor(
+                float(flat_pos_weight),
+                device=device,
+                dtype=public_flat_logit.dtype,
+            ),
+        )
+        weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
+        total = total + weighted
+        stats["hier_public_flat_loss"] = float(weighted.detach().cpu().item())
 
     if public_trade_logit is not None:
         hier_public_trade_global_prior = _hier_trade_global_prior_match_term(
@@ -5803,6 +5845,7 @@ def train_epoch(
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
     hier_public_trade_loss_sum = 0.0
+    hier_public_flat_loss_sum = 0.0
     hier_public_trade_global_prior_loss_sum = 0.0
     hier_public_slice_trade_prior_loss_sum = 0.0
     hier_public_slice_trade_accuracy_edge_loss_sum = 0.0
@@ -6259,6 +6302,7 @@ def train_epoch(
             float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
         )
         hier_public_trade_loss_sum += float(hier_stats.get("hier_public_trade_loss", 0.0)) * bs
+        hier_public_flat_loss_sum += float(hier_stats.get("hier_public_flat_loss", 0.0)) * bs
         hier_public_trade_global_prior_loss_sum += (
             float(hier_stats.get("hier_public_trade_global_prior_loss", 0.0)) * bs
         )
@@ -6410,6 +6454,7 @@ def train_epoch(
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
         ),
         "hier_public_trade_loss_mean": (hier_public_trade_loss_sum / max(1, n)),
+        "hier_public_flat_loss_mean": (hier_public_flat_loss_sum / max(1, n)),
         "hier_public_trade_global_prior_loss_mean": (
             hier_public_trade_global_prior_loss_sum / max(1, n)
         ),
@@ -7093,6 +7138,7 @@ def validate(
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
     hier_public_trade_loss_sum = 0.0
+    hier_public_flat_loss_sum = 0.0
     hier_public_trade_global_prior_loss_sum = 0.0
     hier_public_slice_trade_prior_loss_sum = 0.0
     hier_public_slice_trade_accuracy_edge_loss_sum = 0.0
@@ -7543,6 +7589,7 @@ def validate(
                 float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
             )
             hier_public_trade_loss_sum += float(hier_stats.get("hier_public_trade_loss", 0.0)) * bs
+            hier_public_flat_loss_sum += float(hier_stats.get("hier_public_flat_loss", 0.0)) * bs
             hier_public_trade_global_prior_loss_sum += (
                 float(hier_stats.get("hier_public_trade_global_prior_loss", 0.0)) * bs
             )
@@ -7704,6 +7751,7 @@ def validate(
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
         ),
         "hier_public_trade_loss_mean": (hier_public_trade_loss_sum / max(1, n)),
+        "hier_public_flat_loss_mean": (hier_public_flat_loss_sum / max(1, n)),
         "hier_public_trade_global_prior_loss_mean": (
             hier_public_trade_global_prior_loss_sum / max(1, n)
         ),
@@ -8914,6 +8962,7 @@ def run_train(
             ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
         ),
         enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+        enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
         enable_hierarchical_public_trade_dir_margin_bridge=bool(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
         ),
@@ -9185,6 +9234,7 @@ def run_train(
     _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
     _require_nonneg("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
     _require_nonneg("ENTRY_HIER_PUBLIC_TRADE_HEAD", ENTRY_HIER_PUBLIC_TRADE_HEAD)
+    _require_nonneg("ENTRY_HIER_PUBLIC_FLAT_HEAD", ENTRY_HIER_PUBLIC_FLAT_HEAD)
     _require_nonneg(
         "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE",
         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE,
@@ -9359,6 +9409,16 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_PUBLIC_TRADE_HEAD_INVALID] "
             f"ENTRY_HIER_PUBLIC_TRADE_HEAD={ENTRY_HIER_PUBLIC_TRADE_HEAD} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_PUBLIC_FLAT_HEAD) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_FLAT_HEAD_INVALID] "
+            f"ENTRY_HIER_PUBLIC_FLAT_HEAD={ENTRY_HIER_PUBLIC_FLAT_HEAD} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_PUBLIC_FLAT_HEAD) and not int(ENTRY_HIER_PUBLIC_TRADE_HEAD):
+        raise RuntimeError(
+            "[ENTRY_HIER_PUBLIC_FLAT_HEAD_REQUIRES_PUBLIC_TRADE_HEAD] "
+            "ENTRY_HIER_PUBLIC_FLAT_HEAD=1 requires ENTRY_HIER_PUBLIC_TRADE_HEAD=1"
         )
     if int(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE) not in (0, 1):
         raise RuntimeError(
@@ -10080,6 +10140,8 @@ def run_train(
             repair_failures.append("ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=0 expected 1")
         if not bool(ENTRY_HIER_PUBLIC_TRADE_HEAD):
             repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_HEAD=0 expected 1")
+        if not bool(ENTRY_HIER_PUBLIC_FLAT_HEAD):
+            repair_failures.append("ENTRY_HIER_PUBLIC_FLAT_HEAD=0 expected 1")
         if not bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE):
             repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=0 expected 1")
         if ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE < 0.25:
@@ -10441,6 +10503,7 @@ def run_train(
         "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
         "hier_compose_residual_cap=%.3f hier_compose_residual_side_neutral=%d "
         "hier_compose_public_flat_from_trade=%d hier_public_trade_head=%d "
+        "hier_public_flat_head=%d "
         "hier_public_trade_dir_margin_bridge=%d "
         "hier_public_trade_dir_margin_bridge_scale=%.3f "
         "hier_public_trade_dir_margin_bridge_cap=%.3f "
@@ -10519,6 +10582,7 @@ def run_train(
         int(bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)),
         int(bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)),
         int(bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)),
+        int(bool(ENTRY_HIER_PUBLIC_FLAT_HEAD)),
         int(bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE)),
         float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE),
         float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP),
@@ -10768,7 +10832,7 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_public_flat=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -10792,6 +10856,7 @@ def run_train(
                 float(val_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(val_stats.get("hier_trade_loss_mean", 0.0)),
+                float(val_stats.get("hier_public_flat_loss_mean", 0.0)),
                 float(val_stats.get("hier_trade_global_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_flat_logit_margin_loss_mean", 0.0)),
@@ -10904,7 +10969,7 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_public_flat=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -10928,6 +10993,7 @@ def run_train(
                 float(tr_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(tr_stats.get("hier_trade_loss_mean", 0.0)),
+                float(tr_stats.get("hier_public_flat_loss_mean", 0.0)),
                 float(tr_stats.get("hier_trade_global_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_flat_logit_margin_loss_mean", 0.0)),
@@ -11155,6 +11221,7 @@ def run_train(
                         ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
                     ),
                     "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+                    "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
                     "hier_public_trade_dir_margin_bridge": bool(
                         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
                     ),
@@ -11441,6 +11508,7 @@ def run_train(
                         ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
                     ),
                     "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+                    "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
                     "hier_public_trade_dir_margin_bridge": bool(
                         ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
                     ),
@@ -11667,6 +11735,7 @@ def run_train(
         enable_anchor_gate=bool(enable_anchor_gate),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
         enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+        enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
         enable_hierarchical_public_trade_dir_margin_bridge=bool(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
         ),
@@ -11818,7 +11887,6 @@ def run_train(
                 "applies_to": [
                     "public_long_logit",
                     "public_short_logit",
-                    "public_flat_logit",
                 ],
                 "side_source": (
                     "public_side_logits"
@@ -11833,6 +11901,18 @@ def run_train(
                     "slice_accuracy_edge",
                     "flat_logit_margin",
                     "slice_flat_logit_margin",
+                ],
+                "runtime_rule_free": True,
+            },
+            "public_flat_head": {
+                "enabled": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
+                "input": "shared_entry_representation",
+                "applies_to": ["public_flat_logit"],
+                "direct_flat_supervision": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
+                "supervision_losses": [
+                    "binary_cross_entropy_on_not_y_trade",
+                    "public_flat_consistency",
+                    "slice_public_flat_consistency",
                 ],
                 "runtime_rule_free": True,
             },
@@ -12248,6 +12328,7 @@ def run_train(
             ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
         ),
         "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+        "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
         "hier_public_trade_dir_margin_bridge": bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE),
         "hier_public_trade_dir_margin_bridge_scale": float(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
@@ -12450,6 +12531,7 @@ def run_train(
                 ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
             ),
             "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+            "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
             "hier_public_trade_dir_margin_bridge": bool(
                 ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
             ),
@@ -12688,6 +12770,7 @@ def run_train(
             ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
         ),
         enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
+        enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
         enable_hierarchical_public_trade_dir_margin_bridge=bool(
             ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
         ),
