@@ -74,7 +74,7 @@ REQUIRED_DIRECTION_ENV = {
     "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.18",
     "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "1",
     "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "1",
-    "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION": "margin_centered",
+    "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION": "margin_maxnorm",
     "ENTRY_HIER_PUBLIC_TRADE_HEAD": "1",
     "ENTRY_HIER_PUBLIC_SIDE_HEAD": "1",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER": "1",
@@ -267,8 +267,8 @@ def _dry_run_wrapper(
         "has_hier_compose_residual_cap": "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=0.18" in capped_line,
         "has_hier_compose_residual_side_neutral": "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=1" in capped_line,
         "has_hier_compose_public_flat_from_trade": "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=1" in capped_line,
-        "has_hier_public_direction_margin_centered_composition": (
-            "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_centered" in capped_line
+        "has_hier_public_direction_margin_maxnorm_composition": (
+            "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm" in capped_line
         ),
         "has_hier_public_trade_head": "ENTRY_HIER_PUBLIC_TRADE_HEAD=1" in capped_line,
         "has_hier_public_side_head": "ENTRY_HIER_PUBLIC_SIDE_HEAD=1" in capped_line,
@@ -454,7 +454,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and dry_run.get("has_hier_compose_residual_cap") is True
             and dry_run.get("has_hier_compose_residual_side_neutral") is True
             and dry_run.get("has_hier_compose_public_flat_from_trade") is True
-            and dry_run.get("has_hier_public_direction_margin_centered_composition") is True
+            and dry_run.get("has_hier_public_direction_margin_maxnorm_composition") is True
             and dry_run.get("has_hier_public_trade_head") is True
             and dry_run.get("has_hier_public_side_head") is True
             and dry_run.get("has_hier_ctx_prior_adapter") is True

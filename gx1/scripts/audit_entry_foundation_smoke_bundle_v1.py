@@ -104,7 +104,7 @@ SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
 SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
 SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED = "margin_centered"
+SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED = "margin_maxnorm"
 SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
@@ -2344,7 +2344,7 @@ def _direction_balance_recipe_contract(
                 != SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED
             ):
                 failures.append(
-                    "smart direction active head requires hier_public_direction_composition=margin_centered"
+                    "smart direction active head requires hier_public_direction_composition=margin_maxnorm"
                 )
             if hier_ctx_prior_adapter is not SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED:
                 failures.append("smart direction active head requires hier_ctx_prior_adapter=true")
