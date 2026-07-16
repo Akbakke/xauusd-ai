@@ -1488,6 +1488,9 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         "hier_compose_public_flat_from_trade",
         "hier_ctx_prior_adapter",
         "hier_ctx_prior_adapter_scale",
+        "hier_ctx_direction_calibration",
+        "hier_ctx_direction_calibration_scale",
+        "hier_ctx_direction_calibration_cap",
         "direction_flat_starvation_weight",
         "direction_flat_starvation_min_label_rate",
         "direction_flat_starvation_min_rows",
@@ -1918,6 +1921,18 @@ def test_entry_v10_train_model_uses_residual_scale_env() -> None:
     )
     assert "enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)" in train_ctor
     assert "hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)" in train_ctor
+    assert (
+        "enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION)"
+        in train_ctor
+    )
+    assert (
+        "hierarchical_ctx_direction_calibration_scale=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE)"
+        in train_ctor
+    )
+    assert (
+        "hierarchical_ctx_direction_calibration_cap=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP)"
+        in train_ctor
+    )
 
 
 def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:

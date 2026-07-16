@@ -107,6 +107,11 @@ SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX = 1.00
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED = True
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN = 0.25
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX = 1.00
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN = 0.10
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX = 0.50
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
@@ -1489,6 +1494,38 @@ def _direction_balance_recipe_contract(
             ),
         )
     )
+    _hier_ctx_direction_meta = (
+        _hierarchical_direction_meta.get("ctx_direction_calibration")
+        if isinstance(_hierarchical_direction_meta.get("ctx_direction_calibration"), dict)
+        else {}
+    )
+    hier_ctx_direction_calibration = _bool_value(
+        recipe.get(
+            "hier_ctx_direction_calibration",
+            _hier_ctx_direction_meta.get(
+                "enabled",
+                meta.get("hier_ctx_direction_calibration", False),
+            ),
+        )
+    )
+    hier_ctx_direction_calibration_scale = _safe_float(
+        recipe.get(
+            "hier_ctx_direction_calibration_scale",
+            _hier_ctx_direction_meta.get(
+                "scale",
+                meta.get("hier_ctx_direction_calibration_scale", 0.0),
+            ),
+        )
+    )
+    hier_ctx_direction_calibration_cap = _safe_float(
+        recipe.get(
+            "hier_ctx_direction_calibration_cap",
+            _hier_ctx_direction_meta.get(
+                "cap",
+                meta.get("hier_ctx_direction_calibration_cap", 0.0),
+            ),
+        )
+    )
     _hier_trade_prior_meta = (
         _hier_entry_meta.get("trade_prior_supervision")
         if isinstance(_hier_entry_meta.get("trade_prior_supervision"), dict)
@@ -2274,6 +2311,34 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires hier_ctx_prior_adapter_scale <= "
                     f"{SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX:.2f}"
                 )
+            if hier_ctx_direction_calibration is not SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED:
+                failures.append("smart direction active head requires hier_ctx_direction_calibration=true")
+            if (
+                hier_ctx_direction_calibration_scale
+                < SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN
+            ):
+                failures.append(
+                    "smart direction active head requires hier_ctx_direction_calibration_scale >= "
+                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN:.2f}"
+                )
+            if (
+                hier_ctx_direction_calibration_scale
+                > SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires hier_ctx_direction_calibration_scale <= "
+                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX:.2f}"
+                )
+            if hier_ctx_direction_calibration_cap < SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN:
+                failures.append(
+                    "smart direction active head requires hier_ctx_direction_calibration_cap >= "
+                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN:.2f}"
+                )
+            if hier_ctx_direction_calibration_cap > SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX:
+                failures.append(
+                    "smart direction active head requires hier_ctx_direction_calibration_cap <= "
+                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX:.2f}"
+                )
             if hier_trade_global_prior_match_weight < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:
                 failures.append(
                     "smart direction active head requires hier_trade_global_prior_match_weight >= "
@@ -2609,6 +2674,9 @@ def _direction_balance_recipe_contract(
         "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
         "hier_ctx_prior_adapter": hier_ctx_prior_adapter,
         "hier_ctx_prior_adapter_scale": hier_ctx_prior_adapter_scale,
+        "hier_ctx_direction_calibration": hier_ctx_direction_calibration,
+        "hier_ctx_direction_calibration_scale": hier_ctx_direction_calibration_scale,
+        "hier_ctx_direction_calibration_cap": hier_ctx_direction_calibration_cap,
         "hier_trade_global_prior_match_weight": hier_trade_global_prior_match_weight,
         "hier_trade_global_prior_match_tolerance": hier_trade_global_prior_match_tolerance,
         "hier_trade_global_prior_match_min_label_rate": hier_trade_global_prior_match_min_label_rate,

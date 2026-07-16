@@ -151,6 +151,30 @@ def test_entry_v10_ctx_direction_repair_heads_shape_contract():
         assert torch.isfinite(out[key]).all(), f"{key} contains NaN/Inf"
 
 
+def test_entry_v10_ctx_hierarchical_direction_ctx_calibration_shape_contract():
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=SEQ_DIM,
+        snap_input_dim=SEQ_DIM,
+        seq_len=SEQ_LEN,
+        ctx_cont_dim=CTX_CONT_DIM,
+        ctx_cat_dim=CTX_CAT_DIM,
+        enable_hierarchical_entry_heads=True,
+        enable_hierarchical_direction_composition=True,
+        hierarchical_composition_public_flat_from_trade=True,
+        enable_hierarchical_ctx_direction_calibration=True,
+        hierarchical_ctx_direction_calibration_scale=0.50,
+        hierarchical_ctx_direction_calibration_cap=0.35,
+    ).eval()
+    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=3)
+
+    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
+
+    assert out["direction_logits"].shape == (3, 3)
+    assert out["hierarchical_ctx_direction_calibration_logits"].shape == (3, 3)
+    assert "hierarchical_ctx_direction_calibration.weight" in model.state_dict()
+    assert torch.isfinite(out["hierarchical_ctx_direction_calibration_logits"]).all()
+
+
 def test_entry_v10_ctx_side_validity_requires_hierarchy():
     with pytest.raises(RuntimeError, match="SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS"):
         EntryV10CtxHybridTransformer(

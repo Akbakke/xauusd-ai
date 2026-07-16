@@ -149,6 +149,9 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER": "1",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.50",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION": "1",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_SCALE": "0.50",
+    "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_CAP": "0.35",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -419,6 +422,30 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "HIER_CTX_PRIOR_ADAPTER_SCALE must stay within [0.25, 1.00] for strict XAU repair, "
             f"got {hier_ctx_prior_adapter_scale}"
+        )
+    hier_ctx_direction_calibration = int(
+        float(env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION", "0"))
+    )
+    if hier_ctx_direction_calibration != 1:
+        failures.append(
+            "HIER_CTX_DIRECTION_CALIBRATION must be 1 for strict XAU repair, "
+            f"got {hier_ctx_direction_calibration}"
+        )
+    hier_ctx_direction_calibration_scale = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_SCALE", "0")
+    )
+    if hier_ctx_direction_calibration_scale < 0.25 or hier_ctx_direction_calibration_scale > 1.00:
+        failures.append(
+            "HIER_CTX_DIRECTION_CALIBRATION_SCALE must stay within [0.25, 1.00] for strict XAU repair, "
+            f"got {hier_ctx_direction_calibration_scale}"
+        )
+    hier_ctx_direction_calibration_cap = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_CAP", "0")
+    )
+    if hier_ctx_direction_calibration_cap < 0.10 or hier_ctx_direction_calibration_cap > 0.50:
+        failures.append(
+            "HIER_CTX_DIRECTION_CALIBRATION_CAP must stay within [0.10, 0.50] for strict XAU repair, "
+            f"got {hier_ctx_direction_calibration_cap}"
         )
     hier_trade_global_prior_weight = float(
         env.get("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", "0")

@@ -253,6 +253,32 @@ def load_entry_v10_ctx_bundle(
         _hierarchical_ctx_prior_adapter_scale = float(_hierarchical_ctx_prior_scale_raw)
     else:
         _hierarchical_ctx_prior_adapter_scale = 0.0
+    _hierarchical_ctx_direction_cfg = (
+        _hierarchical_direction_cfg.get("ctx_direction_calibration")
+        if isinstance(_hierarchical_direction_cfg.get("ctx_direction_calibration"), dict)
+        else {}
+    )
+    _has_hierarchical_ctx_direction_calibration = (
+        "hierarchical_ctx_direction_calibration.weight" in state_dict_preview
+    )
+    if _has_hierarchical_ctx_direction_calibration:
+        _hierarchical_ctx_direction_scale_raw = _hierarchical_ctx_direction_cfg.get(
+            "scale",
+            meta.get("hier_ctx_direction_calibration_scale") if isinstance(meta, dict) else None,
+        )
+        _hierarchical_ctx_direction_cap_raw = _hierarchical_ctx_direction_cfg.get(
+            "cap",
+            meta.get("hier_ctx_direction_calibration_cap") if isinstance(meta, dict) else None,
+        )
+        if _hierarchical_ctx_direction_scale_raw is None:
+            raise RuntimeError("[ENTRY_BUNDLE_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MISSING]")
+        if _hierarchical_ctx_direction_cap_raw is None:
+            raise RuntimeError("[ENTRY_BUNDLE_HIER_CTX_DIRECTION_CALIBRATION_CAP_MISSING]")
+        _hierarchical_ctx_direction_calibration_scale = float(_hierarchical_ctx_direction_scale_raw)
+        _hierarchical_ctx_direction_calibration_cap = float(_hierarchical_ctx_direction_cap_raw)
+    else:
+        _hierarchical_ctx_direction_calibration_scale = 0.0
+        _hierarchical_ctx_direction_calibration_cap = 0.0
     _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
     _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
     _trendline_rail_output_dim = 4
@@ -326,6 +352,9 @@ def load_entry_v10_ctx_bundle(
         hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
         enable_hierarchical_ctx_prior_adapter=_has_hierarchical_ctx_prior_adapter,
         hierarchical_ctx_prior_adapter_scale=_hierarchical_ctx_prior_adapter_scale,
+        enable_hierarchical_ctx_direction_calibration=_has_hierarchical_ctx_direction_calibration,
+        hierarchical_ctx_direction_calibration_scale=_hierarchical_ctx_direction_calibration_scale,
+        hierarchical_ctx_direction_calibration_cap=_hierarchical_ctx_direction_calibration_cap,
         enable_side_validity_head=_has_side_validity_head,
         enable_trendline_rail_head=_has_trendline_rail,
         trendline_rail_output_dim=_trendline_rail_output_dim,

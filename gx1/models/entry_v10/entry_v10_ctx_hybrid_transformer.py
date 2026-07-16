@@ -103,6 +103,9 @@ class CtxModelConfig:
     hierarchical_composition_public_flat_from_trade: bool = False
     enable_hierarchical_ctx_prior_adapter: bool = False
     hierarchical_ctx_prior_adapter_scale: float = 0.0
+    enable_hierarchical_ctx_direction_calibration: bool = False
+    hierarchical_ctx_direction_calibration_scale: float = 0.0
+    hierarchical_ctx_direction_calibration_cap: float = 0.0
     enable_side_validity_head: bool = False
     enable_trendline_rail_head: bool = False
     trendline_rail_output_dim: int = 4
@@ -289,6 +292,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
         hierarchical_composition_public_flat_from_trade: bool = False,
         enable_hierarchical_ctx_prior_adapter: bool = False,
         hierarchical_ctx_prior_adapter_scale: float = 0.0,
+        enable_hierarchical_ctx_direction_calibration: bool = False,
+        hierarchical_ctx_direction_calibration_scale: float = 0.0,
+        hierarchical_ctx_direction_calibration_cap: float = 0.0,
         enable_side_validity_head: bool = False,
         enable_trendline_rail_head: bool = False,
         trendline_rail_output_dim: int = 4,
@@ -370,6 +376,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "HIERARCHICAL_CTX_PRIOR_ADAPTER_REQUIRES_CTX_CAT: "
                 f"ctx_cat_dim={int(ctx_cat_dim)}"
             )
+        if enable_hierarchical_ctx_direction_calibration and not enable_hierarchical_direction_composition:
+            raise RuntimeError("HIERARCHICAL_CTX_DIRECTION_CALIBRATION_REQUIRES_COMPOSITION")
+        if enable_hierarchical_ctx_direction_calibration and int(ctx_cat_dim) <= 0:
+            raise RuntimeError(
+                "HIERARCHICAL_CTX_DIRECTION_CALIBRATION_REQUIRES_CTX_CAT: "
+                f"ctx_cat_dim={int(ctx_cat_dim)}"
+            )
         if enable_hierarchical_direction_composition and not enable_hierarchical_entry_heads:
             raise RuntimeError("HIERARCHICAL_DIRECTION_COMPOSITION_REQUIRES_HIERARCHICAL_ENTRY_HEADS")
         if hierarchical_composition_public_flat_from_trade and not enable_hierarchical_direction_composition:
@@ -378,6 +391,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError(
                 "HIERARCHICAL_CTX_PRIOR_ADAPTER_SCALE_INVALID: "
                 f"got {float(hierarchical_ctx_prior_adapter_scale)}"
+            )
+        if float(hierarchical_ctx_direction_calibration_scale) < 0.0:
+            raise RuntimeError(
+                "HIERARCHICAL_CTX_DIRECTION_CALIBRATION_SCALE_INVALID: "
+                f"got {float(hierarchical_ctx_direction_calibration_scale)}"
+            )
+        if float(hierarchical_ctx_direction_calibration_cap) < 0.0:
+            raise RuntimeError(
+                "HIERARCHICAL_CTX_DIRECTION_CALIBRATION_CAP_INVALID: "
+                f"got {float(hierarchical_ctx_direction_calibration_cap)}"
             )
         if float(hierarchical_composition_residual_logit_cap) < 0.0:
             raise RuntimeError(
@@ -406,6 +429,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             ),
             enable_hierarchical_ctx_prior_adapter=bool(enable_hierarchical_ctx_prior_adapter),
             hierarchical_ctx_prior_adapter_scale=float(hierarchical_ctx_prior_adapter_scale),
+            enable_hierarchical_ctx_direction_calibration=bool(enable_hierarchical_ctx_direction_calibration),
+            hierarchical_ctx_direction_calibration_scale=float(
+                hierarchical_ctx_direction_calibration_scale
+            ),
+            hierarchical_ctx_direction_calibration_cap=float(hierarchical_ctx_direction_calibration_cap),
             enable_side_validity_head=bool(enable_side_validity_head),
             enable_trendline_rail_head=bool(enable_trendline_rail_head),
             trendline_rail_output_dim=int(trendline_rail_output_dim),
@@ -592,6 +620,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self.head_side_mae = nn.Linear(d_model, 2)          # side-specific expected MAE, bps
             if self.cfg.enable_hierarchical_ctx_prior_adapter:
                 self.hierarchical_ctx_prior_adapter = nn.Linear(ctx_cat_flat_dim, 3)
+            if self.cfg.enable_hierarchical_ctx_direction_calibration:
+                self.hierarchical_ctx_direction_calibration = nn.Linear(ctx_cat_flat_dim, 3)
             if self.cfg.enable_side_validity_head:
                 self.head_side_validity = nn.Linear(d_model, 2)  # side-specific valid-trade logits
             nn.init.zeros_(self.head_trade.bias)
@@ -602,6 +632,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if self.cfg.enable_hierarchical_ctx_prior_adapter:
                 nn.init.zeros_(self.hierarchical_ctx_prior_adapter.weight)
                 nn.init.zeros_(self.hierarchical_ctx_prior_adapter.bias)
+            if self.cfg.enable_hierarchical_ctx_direction_calibration:
+                nn.init.zeros_(self.hierarchical_ctx_direction_calibration.weight)
+                nn.init.zeros_(self.hierarchical_ctx_direction_calibration.bias)
             if self.cfg.enable_side_validity_head:
                 nn.init.zeros_(self.head_side_validity.bias)
         if self.cfg.enable_trendline_rail_head:
@@ -1164,6 +1197,38 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 direction_logits = composed_direction_logits + residual_direction_logits.to(
                     dtype=composed_direction_logits.dtype
                 )
+                if hasattr(self, "hierarchical_ctx_direction_calibration"):
+                    ctx_direction_calibration_logits = self.hierarchical_ctx_direction_calibration(cat_flat)
+                    _assert_finite(
+                        "hierarchical_ctx_direction_calibration_logits",
+                        ctx_direction_calibration_logits,
+                    )
+                    ctx_direction_calibration_logits = (
+                        float(getattr(self.cfg, "hierarchical_ctx_direction_calibration_scale", 0.0))
+                        * ctx_direction_calibration_logits
+                    )
+                    calibration_cap = float(
+                        getattr(self.cfg, "hierarchical_ctx_direction_calibration_cap", 0.0)
+                    )
+                    if calibration_cap > 0.0:
+                        calibration_cap_t = torch.as_tensor(
+                            calibration_cap,
+                            device=ctx_direction_calibration_logits.device,
+                            dtype=ctx_direction_calibration_logits.dtype,
+                        )
+                        ctx_direction_calibration_logits = calibration_cap_t * torch.tanh(
+                            ctx_direction_calibration_logits / calibration_cap_t
+                        )
+                    _assert_finite(
+                        "hierarchical_ctx_direction_calibration_logits_capped",
+                        ctx_direction_calibration_logits,
+                    )
+                    direction_logits = direction_logits + ctx_direction_calibration_logits.to(
+                        dtype=direction_logits.dtype
+                    )
+                    out["hierarchical_ctx_direction_calibration_logits"] = (
+                        ctx_direction_calibration_logits
+                    )
                 out["direction_logits"] = direction_logits
                 out["hierarchical_direction_base_logits"] = composed_direction_logits
                 out["hierarchical_direction_residual_logits"] = residual_direction_logits

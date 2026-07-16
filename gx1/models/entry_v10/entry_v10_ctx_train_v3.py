@@ -465,6 +465,15 @@ ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE = int(
 )
 ENTRY_HIER_CTX_PRIOR_ADAPTER = int(float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER", "0")))
 ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE = float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", "0.0"))
+ENTRY_HIER_CTX_DIRECTION_CALIBRATION = int(
+    float(_env_str("ENTRY_HIER_CTX_DIRECTION_CALIBRATION", "0"))
+)
+ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE = float(
+    _env_str("ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE", "0.0")
+)
+ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP = float(
+    _env_str("ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP", "0.0")
+)
 ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
     _env_str("ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE", "0.10")
@@ -831,6 +840,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER": "0",
     "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.0",
+    "ENTRY_HIER_CTX_DIRECTION_CALIBRATION": "0",
+    "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE": "0.0",
+    "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
@@ -1094,6 +1106,7 @@ def _build_active_head_names(
     enable_anchor_gate: bool = False,
     enable_hierarchical_entry_heads: bool = False,
     enable_hierarchical_ctx_prior_adapter: bool = False,
+    enable_hierarchical_ctx_direction_calibration: bool = False,
     enable_side_validity_head: bool = False,
     enable_trendline_rail_head: bool = False,
 ) -> List[str]:
@@ -1120,6 +1133,7 @@ def _build_active_head_names(
         ("anchor_gate", enable_anchor_gate),
         ("trade_side_hierarchy", enable_hierarchical_entry_heads),
         ("hierarchical_ctx_prior_adapter", enable_hierarchical_ctx_prior_adapter),
+        ("hierarchical_ctx_direction_calibration", enable_hierarchical_ctx_direction_calibration),
         ("side_validity", enable_side_validity_head),
         ("trendline_rail", enable_trendline_rail_head),
     ]
@@ -8442,6 +8456,9 @@ def run_train(
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+        enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+        hierarchical_ctx_direction_calibration_scale=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
+        hierarchical_ctx_direction_calibration_cap=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
@@ -8680,6 +8697,15 @@ def run_train(
     _require_nonneg("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
     _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER", ENTRY_HIER_CTX_PRIOR_ADAPTER)
     _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)
+    _require_nonneg("ENTRY_HIER_CTX_DIRECTION_CALIBRATION", ENTRY_HIER_CTX_DIRECTION_CALIBRATION)
+    _require_nonneg(
+        "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE",
+        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE,
+    )
+    _require_nonneg(
+        "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP",
+        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP,
+    )
     _require_nonneg("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT)
     _require_nonneg(
         "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE",
@@ -8811,6 +8837,11 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_CTX_PRIOR_ADAPTER_INVALID] "
             f"ENTRY_HIER_CTX_PRIOR_ADAPTER={ENTRY_HIER_CTX_PRIOR_ADAPTER} expected 0 or 1"
+        )
+    if int(ENTRY_HIER_CTX_DIRECTION_CALIBRATION) not in (0, 1):
+        raise RuntimeError(
+            "[ENTRY_HIER_CTX_DIRECTION_CALIBRATION_INVALID] "
+            f"ENTRY_HIER_CTX_DIRECTION_CALIBRATION={ENTRY_HIER_CTX_DIRECTION_CALIBRATION} expected 0 or 1"
         )
     if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE > 1.0:
         raise RuntimeError(
@@ -9499,6 +9530,28 @@ def run_train(
                 "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="
                 f"{ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE:.3f} expected <=1.00"
             )
+        if not bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION):
+            repair_failures.append("ENTRY_HIER_CTX_DIRECTION_CALIBRATION=0 expected 1")
+        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE < 0.25:
+            repair_failures.append(
+                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE="
+                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE:.3f} expected >=0.25"
+            )
+        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE > 1.00:
+            repair_failures.append(
+                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE="
+                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE:.3f} expected <=1.00"
+            )
+        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP < 0.10:
+            repair_failures.append(
+                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP="
+                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP:.3f} expected >=0.10"
+            )
+        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP > 0.50:
+            repair_failures.append(
+                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP="
+                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP:.3f} expected <=0.50"
+            )
         if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
             repair_failures.append(
                 "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
@@ -9760,7 +9813,8 @@ def run_train(
         "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
         "hier_compose_residual_cap=%.3f hier_compose_residual_side_neutral=%d "
         "hier_compose_public_flat_from_trade=%d hier_ctx_prior_adapter=%d "
-        "hier_ctx_prior_adapter_scale=%.3f "
+        "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
+        "hier_ctx_direction_calibration_scale=%.3f hier_ctx_direction_calibration_cap=%.3f "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
         "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
@@ -9826,6 +9880,9 @@ def run_train(
         int(bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)),
         int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
         float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+        int(bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION)),
+        float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
+        float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
         float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -10441,6 +10498,11 @@ def run_train(
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+                    "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+                    "hier_ctx_direction_calibration_scale": float(
+                        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE
+                    ),
+                    "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
                     "hier_trade_global_prior_match_weight": float(
                         ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
                     ),
@@ -10692,6 +10754,11 @@ def run_train(
                     "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
                     "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
                     "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+                    "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+                    "hier_ctx_direction_calibration_scale": float(
+                        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE
+                    ),
+                    "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
                     "hier_trade_global_prior_match_weight": float(
                         ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
                     ),
@@ -10886,6 +10953,7 @@ def run_train(
         enable_anchor_gate=bool(enable_anchor_gate),
         enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
+        enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
     )
@@ -11021,10 +11089,18 @@ def run_train(
                 "applies_to": ["trade_logit", "side_logits"],
                 "runtime_rule_free": True,
             },
+            "ctx_direction_calibration": {
+                "enabled": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+                "scale": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
+                "cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
+                "input": "ctx_cat_embeddings",
+                "applies_to": ["public_direction_logits"],
+                "runtime_rule_free": True,
+            },
             "formula": (
                 (
                     "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
-                    "log P(flat)] + common(capped(residual_scale*delta_logits)); "
+                    "log P(flat)] + common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
                     "common residual is softmax-invariant, so public FLAT comes from hierarchy no-trade"
                 )
                 if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
@@ -11319,6 +11395,9 @@ def run_train(
         "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+        "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+        "hier_ctx_direction_calibration_scale": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
+        "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
         "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
         "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
         "hier_trade_global_prior_match_min_label_rate": float(
@@ -11494,6 +11573,9 @@ def run_train(
             "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
             "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
             "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+            "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+            "hier_ctx_direction_calibration_scale": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
+            "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
             "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
             "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
             "hier_trade_global_prior_match_min_label_rate": float(
@@ -11699,6 +11781,9 @@ def run_train(
         hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
         enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
         hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
+        enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
+        hierarchical_ctx_direction_calibration_scale=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
+        hierarchical_ctx_direction_calibration_cap=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
         enable_side_validity_head=bool(enable_side_validity_head),
         enable_trendline_rail_head=bool(enable_trendline_rail_head),
         trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,

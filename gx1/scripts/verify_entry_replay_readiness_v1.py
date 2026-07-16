@@ -120,6 +120,11 @@ SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
 SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX = 1.00
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED = True
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN = 0.25
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX = 1.00
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN = 0.10
+SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX = 0.50
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
 SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
@@ -367,6 +372,16 @@ def _direction_balance_contract_passes(
         >= SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN
         and _float_or_zero(contract.get("hier_ctx_prior_adapter_scale", 999.0))
         <= SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX
+        and contract.get("hier_ctx_direction_calibration")
+        is SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED
+        and _float_or_zero(contract.get("hier_ctx_direction_calibration_scale"))
+        >= SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN
+        and _float_or_zero(contract.get("hier_ctx_direction_calibration_scale", 999.0))
+        <= SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX
+        and _float_or_zero(contract.get("hier_ctx_direction_calibration_cap"))
+        >= SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN
+        and _float_or_zero(contract.get("hier_ctx_direction_calibration_cap", 999.0))
+        <= SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX
         and _float_or_zero(contract.get("hier_trade_global_prior_match_weight"))
         >= SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
         and _float_or_zero(contract.get("hier_trade_global_prior_match_tolerance", 999.0))
