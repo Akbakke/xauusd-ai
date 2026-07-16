@@ -129,6 +129,35 @@ def test_hierarchical_side_validity_invalidates_early_failure_even_with_positive
     assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
 
 
+def test_public_side_head_receives_direct_side_supervision(monkeypatch) -> None:
+    monkeypatch.setattr(trainer, "ENTRY_HIER_SIDE_WEIGHT", 1.0)
+    batch = _base_hier_batch()
+
+    out_good = {"public_side_logits": torch.tensor([[4.0, -4.0]], dtype=torch.float32)}
+    out_bad = {"public_side_logits": torch.tensor([[-4.0, 4.0]], dtype=torch.float32)}
+
+    good_loss, good_stats = trainer._hierarchical_entry_loss(
+        out_good,
+        batch,
+        torch.device("cpu"),
+        trade_pos_weight=1.0,
+        side_bad_path_pos_weight=1.0,
+    )
+    bad_loss, bad_stats = trainer._hierarchical_entry_loss(
+        out_bad,
+        batch,
+        torch.device("cpu"),
+        trade_pos_weight=1.0,
+        side_bad_path_pos_weight=1.0,
+    )
+
+    assert good_stats["hier_public_side_rows"] == pytest.approx(1.0)
+    assert good_stats["hier_public_side_acc"] == pytest.approx(1.0)
+    assert bad_stats["hier_public_side_acc"] == pytest.approx(0.0)
+    assert good_stats["hier_public_side_loss"] < bad_stats["hier_public_side_loss"]
+    assert float(good_loss.detach().cpu().item()) < float(bad_loss.detach().cpu().item())
+
+
 def test_trendline_rail_aux_loss_penalizes_rising_support_short_confidence(monkeypatch) -> None:
     monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", 1.0)
     monkeypatch.setattr(trainer, "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT", 1.0)

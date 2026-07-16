@@ -4825,6 +4825,12 @@ def _hierarchical_entry_loss(
         "hier_slice_side_accuracy_edge_loss": 0.0,
         "hier_side_global_prior_loss": 0.0,
         "hier_slice_side_prior_loss": 0.0,
+        "hier_public_side_loss": 0.0,
+        "hier_public_slice_side_ce_loss": 0.0,
+        "hier_public_slice_side_margin_loss": 0.0,
+        "hier_public_slice_side_accuracy_edge_loss": 0.0,
+        "hier_public_side_global_prior_loss": 0.0,
+        "hier_public_slice_side_prior_loss": 0.0,
         "hier_utility_loss": 0.0,
         "hier_bad_path_loss": 0.0,
         "hier_mae_loss": 0.0,
@@ -4840,6 +4846,8 @@ def _hierarchical_entry_loss(
         "hier_pocket_anti_long_rows": 0.0,
         "hier_side_rows": 0.0,
         "hier_side_acc": 0.0,
+        "hier_public_side_rows": 0.0,
+        "hier_public_side_acc": 0.0,
         "hier_long_bad_target_rate": 0.0,
         "hier_short_bad_target_rate": 0.0,
         "hier_countertrend_long_trap_rate": 0.0,
@@ -4848,6 +4856,7 @@ def _hierarchical_entry_loss(
     trade_logit = out.get("trade_logit")
     direction_logits = out.get("direction_logits")
     side_logits = out.get("side_logits")
+    public_side_logits = out.get("public_side_logits")
     side_utility = out.get("side_utility")
     side_bad_path_logit = out.get("side_bad_path_logit")
     side_mae = out.get("side_mae")
@@ -4855,6 +4864,7 @@ def _hierarchical_entry_loss(
     if (
         trade_logit is None
         and side_logits is None
+        and public_side_logits is None
         and side_utility is None
         and side_bad_path_logit is None
         and side_mae is None
@@ -5071,6 +5081,72 @@ def _hierarchical_entry_loss(
         if hier_slice_side_prior.numel() == 1:
             total = total + hier_slice_side_prior
             stats["hier_slice_side_prior_loss"] = float(hier_slice_side_prior.detach().cpu().item())
+
+    if public_side_logits is not None and isinstance(public_side_logits, torch.Tensor):
+        if float(ENTRY_HIER_SIDE_WEIGHT) > 0.0 and y_side_mask.any():
+            raw = nn.functional.cross_entropy(public_side_logits[y_side_mask], y_side[y_side_mask])
+            weighted = float(ENTRY_HIER_SIDE_WEIGHT) * raw
+            total = total + weighted
+            pred_side = torch.argmax(public_side_logits[y_side_mask], dim=1)
+            stats["hier_public_side_rows"] = float(int(y_side_mask.sum().detach().cpu().item()))
+            stats["hier_public_side_acc"] = float(
+                (pred_side == y_side[y_side_mask]).float().mean().detach().cpu().item()
+            )
+            stats["hier_public_side_loss"] = float(weighted.detach().cpu().item())
+        hier_public_slice_side_ce = _hier_slice_side_balanced_ce_term(
+            public_side_logits,
+            y_side,
+            y_side_mask,
+            ctx_cat,
+        )
+        if hier_public_slice_side_ce.numel() == 1:
+            total = total + hier_public_slice_side_ce
+            stats["hier_public_slice_side_ce_loss"] = float(
+                hier_public_slice_side_ce.detach().cpu().item()
+            )
+        hier_public_slice_side_margin = _hier_slice_side_true_margin_term(
+            public_side_logits,
+            y_side,
+            y_side_mask,
+            ctx_cat,
+        )
+        if hier_public_slice_side_margin.numel() == 1:
+            total = total + hier_public_slice_side_margin
+            stats["hier_public_slice_side_margin_loss"] = float(
+                hier_public_slice_side_margin.detach().cpu().item()
+            )
+        hier_public_slice_side_accuracy_edge = _hier_slice_side_accuracy_edge_term(
+            public_side_logits,
+            y_side,
+            y_side_mask,
+            ctx_cat,
+        )
+        if hier_public_slice_side_accuracy_edge.numel() == 1:
+            total = total + hier_public_slice_side_accuracy_edge
+            stats["hier_public_slice_side_accuracy_edge_loss"] = float(
+                hier_public_slice_side_accuracy_edge.detach().cpu().item()
+            )
+        hier_public_side_global_prior = _hier_side_global_prior_match_term(
+            public_side_logits,
+            y_side,
+            y_side_mask,
+        )
+        if hier_public_side_global_prior.numel() == 1:
+            total = total + hier_public_side_global_prior
+            stats["hier_public_side_global_prior_loss"] = float(
+                hier_public_side_global_prior.detach().cpu().item()
+            )
+        hier_public_slice_side_prior = _hier_slice_side_prior_match_term(
+            public_side_logits,
+            y_side,
+            y_side_mask,
+            ctx_cat,
+        )
+        if hier_public_slice_side_prior.numel() == 1:
+            total = total + hier_public_slice_side_prior
+            stats["hier_public_slice_side_prior_loss"] = float(
+                hier_public_slice_side_prior.detach().cpu().item()
+            )
 
     if side_utility is not None and float(ENTRY_HIER_UTILITY_WEIGHT) > 0.0:
         util_target = (torch.stack([y_long_util, y_short_util], dim=1) / util_scale).to(dtype=side_utility.dtype)
@@ -5573,6 +5649,12 @@ def train_epoch(
     hier_slice_side_accuracy_edge_loss_sum = 0.0
     hier_side_global_prior_loss_sum = 0.0
     hier_slice_side_prior_loss_sum = 0.0
+    hier_public_side_loss_sum = 0.0
+    hier_public_slice_side_ce_loss_sum = 0.0
+    hier_public_slice_side_margin_loss_sum = 0.0
+    hier_public_slice_side_accuracy_edge_loss_sum = 0.0
+    hier_public_side_global_prior_loss_sum = 0.0
+    hier_public_slice_side_prior_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -5587,6 +5669,8 @@ def train_epoch(
     hier_countertrend_short_trap_rate_sum = 0.0
     hier_side_rows_sum = 0
     hier_side_correct_sum = 0.0
+    hier_public_side_rows_sum = 0
+    hier_public_side_correct_sum = 0.0
     trendline_rail_loss_sum = 0.0
     trendline_rail_rows_sum = 0
     trendline_rising_rows_sum = 0
@@ -6020,6 +6104,22 @@ def train_epoch(
         ) * bs
         hier_side_global_prior_loss_sum += float(hier_stats.get("hier_side_global_prior_loss", 0.0)) * bs
         hier_slice_side_prior_loss_sum += float(hier_stats.get("hier_slice_side_prior_loss", 0.0)) * bs
+        hier_public_side_loss_sum += float(hier_stats.get("hier_public_side_loss", 0.0)) * bs
+        hier_public_slice_side_ce_loss_sum += float(
+            hier_stats.get("hier_public_slice_side_ce_loss", 0.0)
+        ) * bs
+        hier_public_slice_side_margin_loss_sum += float(
+            hier_stats.get("hier_public_slice_side_margin_loss", 0.0)
+        ) * bs
+        hier_public_slice_side_accuracy_edge_loss_sum += float(
+            hier_stats.get("hier_public_slice_side_accuracy_edge_loss", 0.0)
+        ) * bs
+        hier_public_side_global_prior_loss_sum += float(
+            hier_stats.get("hier_public_side_global_prior_loss", 0.0)
+        ) * bs
+        hier_public_slice_side_prior_loss_sum += float(
+            hier_stats.get("hier_public_slice_side_prior_loss", 0.0)
+        ) * bs
         hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
         hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
         hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -6036,6 +6136,12 @@ def train_epoch(
         if _side_rows > 0:
             hier_side_rows_sum += _side_rows
             hier_side_correct_sum += float(hier_stats.get("hier_side_acc", 0.0)) * _side_rows
+        _public_side_rows = int(hier_stats.get("hier_public_side_rows", 0.0))
+        if _public_side_rows > 0:
+            hier_public_side_rows_sum += _public_side_rows
+            hier_public_side_correct_sum += (
+                float(hier_stats.get("hier_public_side_acc", 0.0)) * _public_side_rows
+            )
         trendline_rail_loss_sum += float(trendline_stats.get("trendline_rail_loss", 0.0)) * bs
         trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
         trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
@@ -6130,6 +6236,22 @@ def train_epoch(
         ),
         "hier_side_global_prior_loss_mean": (hier_side_global_prior_loss_sum / max(1, n)),
         "hier_slice_side_prior_loss_mean": (hier_slice_side_prior_loss_sum / max(1, n)),
+        "hier_public_side_loss_mean": (hier_public_side_loss_sum / max(1, n)),
+        "hier_public_slice_side_ce_loss_mean": (
+            hier_public_slice_side_ce_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_side_margin_loss_mean": (
+            hier_public_slice_side_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_side_accuracy_edge_loss_mean": (
+            hier_public_slice_side_accuracy_edge_loss_sum / max(1, n)
+        ),
+        "hier_public_side_global_prior_loss_mean": (
+            hier_public_side_global_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_side_prior_loss_mean": (
+            hier_public_slice_side_prior_loss_sum / max(1, n)
+        ),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
         "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
@@ -6144,6 +6266,12 @@ def train_epoch(
         "hier_countertrend_short_trap_rate": (hier_countertrend_short_trap_rate_sum / max(1, n)),
         "hier_side_rows": int(hier_side_rows_sum),
         "hier_side_acc": (hier_side_correct_sum / hier_side_rows_sum if hier_side_rows_sum > 0 else 0.0),
+        "hier_public_side_rows": int(hier_public_side_rows_sum),
+        "hier_public_side_acc": (
+            hier_public_side_correct_sum / hier_public_side_rows_sum
+            if hier_public_side_rows_sum > 0
+            else 0.0
+        ),
         "trendline_rail_loss_mean": (trendline_rail_loss_sum / max(1, n)),
         "trendline_rail_rows": int(trendline_rail_rows_sum),
         "trendline_rising_rows": int(trendline_rising_rows_sum),
@@ -6766,6 +6894,12 @@ def validate(
     hier_slice_side_accuracy_edge_loss_sum = 0.0
     hier_side_global_prior_loss_sum = 0.0
     hier_slice_side_prior_loss_sum = 0.0
+    hier_public_side_loss_sum = 0.0
+    hier_public_slice_side_ce_loss_sum = 0.0
+    hier_public_slice_side_margin_loss_sum = 0.0
+    hier_public_slice_side_accuracy_edge_loss_sum = 0.0
+    hier_public_side_global_prior_loss_sum = 0.0
+    hier_public_slice_side_prior_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -6780,6 +6914,8 @@ def validate(
     hier_countertrend_short_trap_rate_sum = 0.0
     hier_side_rows_sum = 0
     hier_side_correct_sum = 0.0
+    hier_public_side_rows_sum = 0
+    hier_public_side_correct_sum = 0.0
     trendline_rail_loss_sum = 0.0
     trendline_rail_rows_sum = 0
     trendline_rising_rows_sum = 0
@@ -6831,6 +6967,7 @@ def validate(
             survival_logit = out.get("survival_logit")
             trade_logit = out.get("trade_logit")
             side_logits = out.get("side_logits")
+            public_side_logits = out.get("public_side_logits")
             anchor_logits = out.get("anchor_logits")
             delta_logits = out.get("delta_logits")
             specialist_gate_loss, _specialist_gate_stats = _specialist_gate_regularization(out, device)
@@ -6855,8 +6992,21 @@ def validate(
                 _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
             if trade_logit is not None:
                 hierarchy_trade_prob_chunks.append(_np1d(torch.sigmoid(trade_logit)))
-            if side_logits is not None and isinstance(side_logits, torch.Tensor) and side_logits.ndim == 2:
-                side_probs = torch.softmax(side_logits.float(), dim=1)
+            side_metric_logits = (
+                public_side_logits
+                if (
+                    public_side_logits is not None
+                    and isinstance(public_side_logits, torch.Tensor)
+                    and public_side_logits.ndim == 2
+                )
+                else side_logits
+            )
+            if (
+                side_metric_logits is not None
+                and isinstance(side_metric_logits, torch.Tensor)
+                and side_metric_logits.ndim == 2
+            ):
+                side_probs = torch.softmax(side_metric_logits.float(), dim=1)
                 hierarchy_side_pred_chunks.append(
                     torch.argmax(side_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
                 )
@@ -7187,6 +7337,22 @@ def validate(
             ) * bs
             hier_side_global_prior_loss_sum += float(hier_stats.get("hier_side_global_prior_loss", 0.0)) * bs
             hier_slice_side_prior_loss_sum += float(hier_stats.get("hier_slice_side_prior_loss", 0.0)) * bs
+            hier_public_side_loss_sum += float(hier_stats.get("hier_public_side_loss", 0.0)) * bs
+            hier_public_slice_side_ce_loss_sum += float(
+                hier_stats.get("hier_public_slice_side_ce_loss", 0.0)
+            ) * bs
+            hier_public_slice_side_margin_loss_sum += float(
+                hier_stats.get("hier_public_slice_side_margin_loss", 0.0)
+            ) * bs
+            hier_public_slice_side_accuracy_edge_loss_sum += float(
+                hier_stats.get("hier_public_slice_side_accuracy_edge_loss", 0.0)
+            ) * bs
+            hier_public_side_global_prior_loss_sum += float(
+                hier_stats.get("hier_public_side_global_prior_loss", 0.0)
+            ) * bs
+            hier_public_slice_side_prior_loss_sum += float(
+                hier_stats.get("hier_public_slice_side_prior_loss", 0.0)
+            ) * bs
             hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
             hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
             hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -7203,6 +7369,12 @@ def validate(
             if _side_rows > 0:
                 hier_side_rows_sum += _side_rows
                 hier_side_correct_sum += float(hier_stats.get("hier_side_acc", 0.0)) * _side_rows
+            _public_side_rows = int(hier_stats.get("hier_public_side_rows", 0.0))
+            if _public_side_rows > 0:
+                hier_public_side_rows_sum += _public_side_rows
+                hier_public_side_correct_sum += (
+                    float(hier_stats.get("hier_public_side_acc", 0.0)) * _public_side_rows
+                )
             trendline_rail_loss_sum += float(trendline_stats.get("trendline_rail_loss", 0.0)) * bs
             trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
             trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
@@ -7307,6 +7479,22 @@ def validate(
         ),
         "hier_side_global_prior_loss_mean": (hier_side_global_prior_loss_sum / max(1, n)),
         "hier_slice_side_prior_loss_mean": (hier_slice_side_prior_loss_sum / max(1, n)),
+        "hier_public_side_loss_mean": (hier_public_side_loss_sum / max(1, n)),
+        "hier_public_slice_side_ce_loss_mean": (
+            hier_public_slice_side_ce_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_side_margin_loss_mean": (
+            hier_public_slice_side_margin_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_side_accuracy_edge_loss_mean": (
+            hier_public_slice_side_accuracy_edge_loss_sum / max(1, n)
+        ),
+        "hier_public_side_global_prior_loss_mean": (
+            hier_public_side_global_prior_loss_sum / max(1, n)
+        ),
+        "hier_public_slice_side_prior_loss_mean": (
+            hier_public_slice_side_prior_loss_sum / max(1, n)
+        ),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
         "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
@@ -7321,6 +7509,12 @@ def validate(
         "hier_countertrend_short_trap_rate": (hier_countertrend_short_trap_rate_sum / max(1, n)),
         "hier_side_rows": int(hier_side_rows_sum),
         "hier_side_acc": (hier_side_correct_sum / hier_side_rows_sum if hier_side_rows_sum > 0 else 0.0),
+        "hier_public_side_rows": int(hier_public_side_rows_sum),
+        "hier_public_side_acc": (
+            hier_public_side_correct_sum / hier_public_side_rows_sum
+            if hier_public_side_rows_sum > 0
+            else 0.0
+        ),
         "trendline_rail_loss_mean": (trendline_rail_loss_sum / max(1, n)),
         "trendline_rail_rows": int(trendline_rail_rows_sum),
         "trendline_rising_rows": int(trendline_rising_rows_sum),
@@ -11105,6 +11299,15 @@ def run_train(
                 "input": "shared_entry_representation",
                 "applies_to": ["public_long_logit", "public_short_logit"],
                 "flat_source": "trade_logit",
+                "direct_side_supervision": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
+                "supervision_losses": [
+                    "cross_entropy_on_y_side_mask",
+                    "slice_balanced_ce",
+                    "slice_true_margin",
+                    "slice_accuracy_edge",
+                    "global_prior_match",
+                    "slice_prior_match",
+                ],
                 "runtime_rule_free": True,
             },
             "ctx_prior_adapter": {
@@ -11242,6 +11445,11 @@ def run_train(
                     or float(ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT) > 0.0
+                ),
+                "applies_to": (
+                    ["side_logits", "public_side_logits"]
+                    if bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)
+                    else ["side_logits"]
                 ),
                 "balanced_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                 "true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
