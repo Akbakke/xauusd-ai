@@ -9,9 +9,9 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Repo: `/home/andre2/src/GX1_ENGINE`
 - Data root: `/home/andre2/GX1_DATA`
 - Disk: `/dev/sdd` has about `837G` free after the latest cleanup/resource check.
-- Runtime: no transformer training/eval job is running after the 2026-07-16 bounded maxnorm-confidence smoke stop. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
+- Runtime: no transformer training/eval job is running after the 2026-07-16 bounded side-gradient-staging smoke stop. The persistent live/collector/dashboard/notifier Python processes are still running; do not confuse them with transformer training.
 - Non-XAU project artifacts: removed from the working machine except for fail-closed XAU isolation guards.
-- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is the bounded maxnorm-confidence public direction composition repair. Verify exact commit with `git log -1 --oneline`.
+- Worktree: verify clean with `git status --short` before clean-git gates; latest source update in this handover is public direction side-gradient staging. Latest commit at update time: `e3ce8298 Stage XAU public direction side gradients`.
 - Canonical Python: `/home/andre2/venvs/gx1/bin/python`, pytest `9.0.2`, `lightgbm 4.6.0`.
 
 ## Standing Rules
@@ -21,6 +21,48 @@ Continue the XAUUSD-only direction repair until the live/replay/training stack p
 - Monitor disk/RAM before and after heavy jobs. If available disk approaches below `700G` or used space grows toward roughly `800G`, stop and run cleanup before more training. Delete stale aborted manifests, old failed run dirs, and obsolete tmp/memmap dirs once their evidence has been extracted.
 - Stop bounded transformer training when validation is hard-red and continuing only burns compute. Do not extend epochs on a red recipe.
 - Keep the runtime/live collector processes separate from transformer train/eval jobs; do not kill persistent live/collector/dashboard/notifier processes unless explicitly asked.
+
+## 2026-07-16 Source Update - Public Direction Side-Gradient Staging
+
+- After the side residual-cap smoke, the failure signature showed that the public direction CE/slice objective could still push directly through `public_side_logits`, including FLAT rows where side is undefined. That made it plausible for direction training to undo side-head balance and starve one public side after epoch 1.
+- Implemented and committed `e3ce8298 Stage XAU public direction side gradients`.
+  - Added `ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD`.
+  - `EntryV10CtxHybridTransformer` now lets public direction forward composition use `public_side_logits`, but can detach those logits from direction-composition gradients. Side-head learning then comes from direct side supervision and side slice/prior contracts, not from FLAT/no-trade direction CE pressure.
+  - The detach applies to both margin-style and logprob-style public direction composition.
+  - Smart XAU repair now requires `ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=1`; wrappers, rebuild defaults, smart smoke/trainability readiness, smoke manifest, enablement, sweep lint, candidate/replay readiness, bundle audit, trainer metadata, and tests carry the contract.
+  - Bundle loading fails closed if a maxnorm-confidence public direction bundle lacks detach-side-grad metadata.
+  - This is not fallback. It is train-time topology/staging under a hard contract.
+- Validation before commit:
+  - `python3 -m py_compile` passed for changed Python modules.
+  - `bash -n` passed for changed shell wrappers.
+  - `git diff --check` passed.
+  - `git diff -G fallback --stat` was empty.
+  - Focused pytest passed for model shape/gradient behavior, trainer defaults, smoke/candidate wrappers, smart enablement/readiness, sweep, bundle audit, candidate readiness, replay readiness, and rebuild contract.
+  - Pre-commit guardrails passed, including the golden cement-V10 test.
+- Clean-git post-commit gates passed:
+  - `scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet`.
+  - `scripts/entry_next_edge_control.sh smart-smoke-train-enablement --vedtak SMART_SEQ520_XAU_SMOKE_SIDEGRADSTAGE_ENABLEMENT_20260716 --epochs 6 --batch-size 64 --quiet`.
+- Ran one bounded smart smoke and stopped it because epoch 1 was already hard-red:
+  - Vedtak: `SMART_SEQ520_XAU_SMOKE_SIDEGRADSTAGE_E6_20260716`.
+  - Command: `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak SMART_SEQ520_XAU_SMOKE_SIDEGRADSTAGE_E6_20260716 --require-edge-audit --epochs 6 --early-stop-patience 6`.
+  - Pre-train manifest was written at `/home/andre2/GX1_DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_20260716T130052Z.json`, then deleted after extracting evidence because the run was aborted and stale.
+  - `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_latest.json` also pointed at the same aborted run and was deleted.
+  - Intended bundle dir was not created: `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_20260716T130052Z`.
+  - No failure sidecar and no matching tmp/memmap dir existed because the process was intentionally interrupted during epoch 2 train before final trainer failure handling.
+  - Recipe log confirmed `hier_public_direction_detach_side_grad=1`.
+  - Epoch `1`: `dir_acc=0.375651`, `balance_guard_ok=0`, `slice_contract_ok=0`, public pred LONG `0.288411`, SHORT `0.645833`, FLAT `0.065755`, `24` slice failures (`11` accuracy, `13` pred-rate), `direction_slice_ckpt_score=-1.293566`, hierarchy `trade_pred=1.000000`, `trade_prob=0.519630`, public-side `side_acc_edge=0.577535`.
+  - The run was stopped during epoch `2` backward because continuing would burn compute on an already hard-red recipe.
+- Post-stop resource and cleanup state:
+  - No transformer train/eval process running.
+  - `/home/andre2/GX1_DATA`: about `837G` free.
+  - RAM: about `37GiB` available, swap `0B`.
+  - The aborted timestamp manifest and stale `latest` manifest were deleted; no bundle dir, no failure sidecar, and no fresh memmap tmp dir existed.
+- Current interpretation:
+  - Yes, there is real source/contract progress: the public side head is now protected from direction-loss gradients under a strict XAU contract.
+  - No, there is still no model progress sufficient for a candidate. The first side-gradient-staged smoke was globally class-balance red and FLAT-starved.
+  - Entry-IQL, replay, candidate training, shadow, live, and promotion remain closed because there is still no fresh XAU transformer bundle that passes hard direction slice and class-balance gates.
+  - Do not rerun `SIDEGRADSTAGE_E6` unchanged. The next repair should change the trade/flat threshold and staging surface itself, or diagnose why trade/no-trade hard prediction is still failing while side supervision is isolated.
 
 ## 2026-07-15 22:46 CEST Source Update - Hierarchy Ctx Prior Adapter
 
