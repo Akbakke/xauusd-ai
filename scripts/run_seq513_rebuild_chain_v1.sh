@@ -20,16 +20,18 @@ RANK_NPZ="$EVENT/model_native_train_rank_reference_v3.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
 AUDIT="$EVENT/audit"
 PRE_OUT="$EVENT/preflight"
-# history < train strictly (preflight contract): history provides the GROUP_A
-# attach warmup (~13.4k rows); trained rows effectively start ~2021-03-15
-# anyway (warmup prefix is trimmed), so this declares reality.
-HISTORY_START=2020-11-13T00:00:00Z
-TRAIN_START=2021-03-15T00:00:00Z
+# history < train strictly. Source (FULL_PLUS) first row is 2021-01-04T23:55
+# (the ctx-adder trims its own warmup), so history starts there; GROUP_A
+# attach consumes 13,439 warmup rows -> 277 clean rows remain before
+# TRAIN_START (>= 95 required by the 96-bar sequence window).
+HISTORY_START=2021-01-05T00:00:00Z
+TRAIN_START=2021-03-16T00:00:00Z
 TRAIN_END=2026-03-31T23:59:59Z
 VAL_START=2026-04-01T00:00:00Z
 VAL_END=2026-04-30T23:59:59Z
 TEST_START=2026-05-01T00:00:00Z
-TEST_END=2026-06-14T23:59:59Z
+# Exactly the source's last bar (coverage check requires source >= test end).
+TEST_END=2026-06-14T23:55:00Z
 
 LOG="$EVENT/CHAIN_LOG_$(date -u +%Y%m%dT%H%M%SZ).txt"
 STATUS="$EVENT/CHAIN_STATUS.json"
@@ -97,6 +99,20 @@ if [[ -z $MANIFEST ]]; then
 fi
 echo "[chain] manifest: $MANIFEST"
 
+# ── Terminal state + proven-partial debris handling (BEFORE preflight, which
+#    itself asserts fresh output paths) ─────────────────────────────────────
+STEM_DIR="$EVENT/dataset"
+BUILD_DONE=1
+for split in train val test; do
+  [[ -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_${split}.manifest.json" ]] || BUILD_DONE=0
+done
+if [[ $BUILD_DONE -eq 0 ]]; then
+  rm -f "$STEM_DIR/DATASET_BUILD_PROOF.json" "$RANK_NPZ" "${RANK_NPZ}.json"
+  [[ -d "$AUDIT" ]] && rmdir "$AUDIT" 2>/dev/null || true
+  rm -f "$PRE_OUT"/*.json 2>/dev/null
+  rmdir "$PRE_OUT" 2>/dev/null || true
+fi
+
 # ── Step 3: rebuild preflight ──────────────────────────────────────────────
 PRE_DONE=$(ls -1 "$PRE_OUT"/*.json 2>/dev/null | head -1 || true)
 if [[ -z $PRE_DONE ]]; then
@@ -115,17 +131,9 @@ fi
 echo "[chain] preflight OK"
 
 # ── Step 4: dataset rebuild (multi-hour; wrapper is capped internally) ─────
-# Terminal artifacts = all three split manifests (the builder writes
-# DATASET_BUILD_PROOF.json EARLY, so its existence alone proves nothing).
-STEM_DIR="$EVENT/dataset"
-if [[ ! -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_train.manifest.json" \
-   || ! -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_val.manifest.json" \
-   || ! -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_test.manifest.json" ]]; then
-  # A crashed attempt leaves an early proof/audit/rank that the fail-closed
-  # wrapper refuses to overwrite; clear ONLY when the terminal artifacts are
-  # absent (proven-partial debris).
-  rm -f "$STEM_DIR/DATASET_BUILD_PROOF.json" "$RANK_NPZ" "${RANK_NPZ}.json"
-  [[ -d "$AUDIT" ]] && rmdir "$AUDIT" 2>/dev/null || true
+# Debris was already cleared before preflight; BUILD_DONE holds the terminal
+# state (all three split manifests).
+if [[ $BUILD_DONE -eq 0 ]]; then
   write_status dataset-rebuild RUNNING
   tg "⚙️ GX1 seq513: preflight grønn — dataset-rebuild startet (fler-timers jobb)."
   (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \
