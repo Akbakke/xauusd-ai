@@ -99,6 +99,12 @@ parquet and produced no learned predictions. Immutable historical selection-
 benchmark bytes and exact learned-probe evidence are absent, so this proves
 neither abstention quality nor direction edge and authorizes nothing.
 
+The abstention verifier cannot accept free-standing JSON assertions. A
+historical benchmark must equal the exact registered comparison artifact, and
+learned rows must be rejoined one-for-one to an immutable candidate TEST
+prediction event with matching report/predictions hashes, bundle, dataset,
+UTC keys and recomputed model direction. Those inputs remain absent.
+
 ## Runtime boundary
 
 One exact runtime evidence contract is shared by the model-native decision,
@@ -127,10 +133,11 @@ Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-The committed source baseline was green at 1,388 passed, 5 skipped and zero
-failures. Subsequent narrow audits removed additional dead stop-script
-branches, bound serving/train artifact identity, and added a compact takeover
-fingerprint; these are source-contract changes, not empirical edge. The next
+The current committed source baseline and subsequent contract changes pass the
+full repository suite with five skips and zero failures. Narrow audits removed
+dead stop-script branches, bound serving/train/downstream artifact identity,
+and added a compact takeover fingerprint; these are source-contract changes,
+not empirical edge. The next
 empirical gate is immutable historical selection-benchmark bytes plus exact learned
 model-native abstention-probe evidence at comparable OOT coverage. The current
 metadata-only probe is insufficient. Only a green probe may justify returning

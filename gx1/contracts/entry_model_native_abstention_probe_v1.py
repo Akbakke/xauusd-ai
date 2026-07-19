@@ -11,6 +11,8 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +23,7 @@ HISTORICAL_ROLE = "historical_entry_iql_raw_adv_benchmark_comparison_only"
 MODEL_NATIVE_ROLE = "model_native_calibrated_argmax_abstention_probe"
 UTILITY_DEFINITION = "shared_realized_net_utility_bps_after_costs_v1"
 MAX_COVERAGE_DELTA = 0.02
+_UTC_SECOND_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 _BASE_ROW_KEYS = {
     "sample_id",
@@ -69,6 +72,9 @@ def _exact_file(path_value: Any, sha_value: Any, *, context: str) -> Path:
         raise AbstentionProbeEvidenceError(f"{context}: mutable latest path is forbidden")
     if path.is_symlink() or not path.is_file():
         raise AbstentionProbeEvidenceError(f"{context}: regular immutable file is missing")
+    resolved = path.resolve()
+    if resolved != path:
+        raise AbstentionProbeEvidenceError(f"{context}: path must be canonical")
     expected_sha = str(sha_value or "").lower()
     if len(expected_sha) != 64 or any(c not in "0123456789abcdef" for c in expected_sha):
         raise AbstentionProbeEvidenceError(f"{context}: expected sha256 is invalid")
@@ -77,7 +83,7 @@ def _exact_file(path_value: Any, sha_value: Any, *, context: str) -> Path:
         raise AbstentionProbeEvidenceError(
             f"{context}: sha256 mismatch expected={expected_sha} actual={actual_sha}"
         )
-    return path.resolve()
+    return resolved
 
 
 def _finite(value: Any, *, context: str) -> float:
@@ -93,6 +99,7 @@ def _finite(value: Any, *, context: str) -> float:
 def _read_rows(path: Path, *, role: str) -> tuple[dict[str, Any], dict[str, float]]:
     expected_keys = _MODEL_ROW_KEYS if role == MODEL_NATIVE_ROLE else _BASE_ROW_KEYS
     seen: set[str] = set()
+    seen_times: set[str] = set()
     take_values: list[float] = []
     skip_values: list[float] = []
     universe_rows: list[tuple[str, str, float]] = []
@@ -113,10 +120,22 @@ def _read_rows(path: Path, *, role: str) -> tuple[dict[str, Any], dict[str, floa
                     f"row evidence line {line_number}: sample_id missing or duplicated"
                 )
             seen.add(sample_id)
-            if not isinstance(row["time_utc"], str) or not row["time_utc"].endswith("Z"):
+            time_utc = row["time_utc"]
+            if not isinstance(time_utc, str) or not _UTC_SECOND_RE.fullmatch(time_utc):
                 raise AbstentionProbeEvidenceError(
-                    f"row evidence line {line_number}: time_utc must be explicit UTC"
+                    f"row evidence line {line_number}: time_utc must be exact UTC seconds"
                 )
+            try:
+                datetime.strptime(time_utc, "%Y-%m-%dT%H:%M:%SZ")
+            except ValueError as exc:
+                raise AbstentionProbeEvidenceError(
+                    f"row evidence line {line_number}: time_utc is invalid"
+                ) from exc
+            if time_utc in seen_times:
+                raise AbstentionProbeEvidenceError(
+                    f"row evidence line {line_number}: time_utc is duplicated"
+                )
+            seen_times.add(time_utc)
             if type(row["take"]) is not bool or row["costs_included"] is not True:
                 raise AbstentionProbeEvidenceError(
                     f"row evidence line {line_number}: take must be bool and costs included"
@@ -135,7 +154,7 @@ def _read_rows(path: Path, *, role: str) -> tuple[dict[str, Any], dict[str, floa
                 row["realized_net_utility_bps"],
                 context=f"row evidence line {line_number} utility",
             )
-            universe_rows.append((sample_id, row["time_utc"], utility))
+            universe_rows.append((sample_id, time_utc, utility))
             (take_values if row["take"] else skip_values).append(utility)
 
     rows = len(seen)

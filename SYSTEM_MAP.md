@@ -348,6 +348,10 @@ Current facts:
 - immutable historical selection-benchmark bytes and exact learned-probe OOT
   evidence are absent; obtaining both is the next empirical gate and the
   metadata run authorizes no rebuild, training or launch;
+- abstention evidence cannot pass as two unrelated JSON declarations: the
+  historical file must equal the registry path/SHA, while learned TEST rows
+  must match a newest immutable prediction report/parquet and its exact
+  bundle/dataset UTC/model-direction lineage;
 - Entry candidate, replay, paper/demo/live and promotion remain blocked.
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)

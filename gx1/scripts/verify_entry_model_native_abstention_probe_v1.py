@@ -16,6 +16,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import pandas as pd
+
 from gx1.contracts.entry_model_native_abstention_probe_v1 import (
     HISTORICAL_ROLE,
     MODEL_NATIVE_ROLE,
@@ -25,7 +28,19 @@ from gx1.contracts.entry_model_native_abstention_probe_v1 import (
     validate_selection_evidence,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.model_native_serve_gate_v1 import (
+    MODEL_NATIVE_REQUIRED_MODEL_NAME,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+)
 from gx1.scripts import materialize_entry_model_native_seq513_smoke_manifest_v1 as smoke_recipe_owner
+from gx1.scripts.audit_model_native_direction_pockets_v1 import (
+    _model_direction_contract_failures,
+)
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    resolve_and_validate_prediction_evidence,
+)
 
 
 SCHEMA_VERSION = "entry_model_native_pre_rebuild_abstention_probe_v1"
@@ -47,6 +62,14 @@ REQUIRED_POSITIVE_ABSTENTION_RECIPE_FIELDS = (
     "direction_flat_starvation_weight",
     "hier_trade_weight",
 )
+_LEARNED_PREDICTION_ARGUMENTS = (
+    "learned_predictions_parquet",
+    "learned_predictions_sha256",
+    "learned_prediction_report_json",
+    "learned_prediction_report_sha256",
+    "learned_bundle_dir",
+    "learned_dataset_dir",
+)
 
 
 def _strict_json(path: Path) -> dict[str, Any]:
@@ -64,7 +87,7 @@ def _strict_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _bound_json(path_value: str, expected_sha256: str, *, context: str) -> tuple[Path, dict[str, Any]]:
+def _bound_file(path_value: str, expected_sha256: str, *, context: str) -> Path:
     path = Path(path_value).expanduser()
     if not path.is_absolute():
         raise RuntimeError(f"{context}: explicit path must be absolute")
@@ -72,14 +95,21 @@ def _bound_json(path_value: str, expected_sha256: str, *, context: str) -> tuple
         raise RuntimeError(f"{context}: mutable latest path is forbidden")
     if path.is_symlink() or not path.is_file():
         raise RuntimeError(f"{context}: regular input file is missing")
+    resolved = path.resolve()
+    if resolved != path:
+        raise RuntimeError(f"{context}: explicit path must be canonical")
     expected = str(expected_sha256 or "").lower()
     actual = sha256_file(path)
     if len(expected) != 64 or actual != expected:
         raise RuntimeError(
             f"{context}: sha256 mismatch expected={expected!r} actual={actual}"
         )
-    resolved = path.resolve()
-    return resolved, _strict_json(resolved)
+    return resolved
+
+
+def _bound_json(path_value: str, expected_sha256: str, *, context: str) -> tuple[Path, dict[str, Any]]:
+    path = _bound_file(path_value, expected_sha256, context=context)
+    return path, _strict_json(path)
 
 
 def _manifest_probe(
@@ -145,6 +175,166 @@ def _paired_optional(
     if not path_value:
         return None
     return Path(path_value), str(sha_value)
+
+
+def _learned_prediction_args(args: argparse.Namespace) -> dict[str, str] | None:
+    values = {
+        name: str(getattr(args, name, "") or "").strip()
+        for name in _LEARNED_PREDICTION_ARGUMENTS
+    }
+    present = {name for name, value in values.items() if value}
+    if present and present != set(_LEARNED_PREDICTION_ARGUMENTS):
+        missing = sorted(set(_LEARNED_PREDICTION_ARGUMENTS) - present)
+        raise RuntimeError(
+            f"learned prediction lineage is partial; missing={missing}"
+        )
+    return values if present else None
+
+
+def _canonical_dir(path_value: str, *, context: str) -> Path:
+    path = Path(path_value).expanduser()
+    if (
+        not path.is_absolute()
+        or path.resolve() != path
+        or path.is_symlink()
+        or not path.is_dir()
+        or any("latest" in part.lower() for part in path.parts)
+    ):
+        raise RuntimeError(f"{context}: immutable directory identity is invalid")
+    return path
+
+
+def _learned_rows(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for raw in handle:
+            rows.append(json.loads(raw))
+    return rows
+
+
+def _validate_learned_prediction_lineage(
+    learned: dict[str, Any],
+    lineage_args: dict[str, str],
+) -> dict[str, Any]:
+    predictions_path = _bound_file(
+        lineage_args["learned_predictions_parquet"],
+        lineage_args["learned_predictions_sha256"],
+        context="learned predictions",
+    )
+    prediction_report_path, expected_report = _bound_json(
+        lineage_args["learned_prediction_report_json"],
+        lineage_args["learned_prediction_report_sha256"],
+        context="learned prediction report",
+    )
+    bundle_dir = _canonical_dir(
+        lineage_args["learned_bundle_dir"],
+        context="learned bundle",
+    )
+    dataset_dir = _canonical_dir(
+        lineage_args["learned_dataset_dir"],
+        context="learned dataset",
+    )
+    authoritative, report, declaration = resolve_and_validate_prediction_evidence(
+        predictions_path,
+        prediction_report_path=prediction_report_path,
+        bundle_dir=bundle_dir,
+        dataset_dir=dataset_dir,
+        expected_split="test",
+        expected_model=MODEL_NATIVE_REQUIRED_MODEL_NAME,
+    )
+    if authoritative != predictions_path or report != expected_report:
+        raise RuntimeError("learned prediction resolver changed explicit identity")
+    if str(declaration.get("sha256") or "").lower() != lineage_args[
+        "learned_predictions_sha256"
+    ].lower():
+        raise RuntimeError("learned prediction declaration hash mismatch")
+
+    frame = pd.read_parquet(predictions_path)
+    failures = _model_direction_contract_failures(frame)
+    if failures:
+        raise RuntimeError(
+            "learned prediction model-direction contract failed: "
+            + " | ".join(failures)
+        )
+    scoped = frame.loc[
+        (frame["split"].astype(str) == "test")
+        & (frame["model"].astype(str) == MODEL_NATIVE_REQUIRED_MODEL_NAME)
+    ].copy()
+    if scoped.empty:
+        raise RuntimeError("learned prediction event has no candidate TEST rows")
+    if set(scoped["selection_score_mode"].astype(str)) != {
+        MODEL_DIRECTION_SELECTION_MODE
+    }:
+        raise RuntimeError("learned TEST rows use a non-model direction selector")
+    times = pd.to_datetime(scoped["time"], utc=True, errors="coerce")
+    if times.isna().any() or times.duplicated().any():
+        raise RuntimeError("learned TEST prediction times are invalid or duplicated")
+    if not bool((times.dt.floor("s") == times).all()):
+        raise RuntimeError("learned TEST prediction times are not exact UTC seconds")
+    scoped["time_utc"] = times.dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if scoped["time_utc"].duplicated().any():
+        raise RuntimeError("learned TEST prediction UTC keys are duplicated")
+
+    learned_rows_path = _bound_file(
+        learned["row_evidence"]["path"],
+        learned["row_evidence"]["sha256"],
+        context="learned selection rows",
+    )
+    evidence_rows = _learned_rows(learned_rows_path)
+    if len(evidence_rows) != len(scoped):
+        raise RuntimeError(
+            "learned evidence rows do not exactly cover candidate TEST predictions"
+        )
+    evidence_by_time = {str(row["time_utc"]): row for row in evidence_rows}
+    if len(evidence_by_time) != len(evidence_rows) or set(evidence_by_time) != set(
+        scoped["time_utc"]
+    ):
+        raise RuntimeError(
+            "learned evidence UTC universe differs from candidate TEST predictions"
+        )
+    directions = pd.to_numeric(
+        scoped["pred_direction"],
+        errors="coerce",
+    ).to_numpy(dtype=np.float64)
+    if not np.isfinite(directions).all() or not np.equal(
+        directions,
+        np.floor(directions),
+    ).all():
+        raise RuntimeError("learned prediction direction is not an exact integer")
+    for time_utc, direction in zip(
+        scoped["time_utc"],
+        directions.astype(np.int64),
+        strict=True,
+    ):
+        row = evidence_by_time[str(time_utc)]
+        if row["model_direction_index"] != int(direction):
+            raise RuntimeError(
+                "learned evidence direction differs from prediction event"
+            )
+    if sha256_file(predictions_path) != lineage_args[
+        "learned_predictions_sha256"
+    ].lower():
+        raise RuntimeError("learned predictions changed during validation")
+    if sha256_file(prediction_report_path) != lineage_args[
+        "learned_prediction_report_sha256"
+    ].lower():
+        raise RuntimeError("learned prediction report changed during validation")
+    if sha256_file(learned_rows_path) != learned["row_evidence"]["sha256"]:
+        raise RuntimeError("learned selection rows changed during validation")
+    return {
+        "predictions_path": str(predictions_path),
+        "predictions_sha256": lineage_args["learned_predictions_sha256"].lower(),
+        "prediction_report_path": str(prediction_report_path),
+        "prediction_report_sha256": lineage_args[
+            "learned_prediction_report_sha256"
+        ].lower(),
+        "bundle_dir": str(bundle_dir),
+        "dataset_dir": str(dataset_dir),
+        "model": MODEL_NATIVE_REQUIRED_MODEL_NAME,
+        "split": "test",
+        "rows": int(len(scoped)),
+        "direction_rows_exact": True,
+    }
 
 
 def _artifact_registry_probe(path_value: str, sha_value: str) -> tuple[dict[str, Any], bool]:
@@ -254,7 +444,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     blockers: list[str] = []
     historical: dict[str, Any] | None = None
     learned: dict[str, Any] | None = None
+    learned_prediction_lineage: dict[str, Any] | None = None
     comparison: dict[str, Any] | None = None
+    prediction_parquet_read = False
 
     benchmark_args = _paired_optional(
         args.benchmark_evidence_json,
@@ -266,6 +458,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         args.learned_probe_evidence_sha256,
         label="learned probe evidence",
     )
+    learned_prediction_args = _learned_prediction_args(args)
     if not registry_available:
         blockers.append("HISTORICAL_ENTRY_IQL_BENCHMARK_BYTES_NOT_REGISTERED")
     if benchmark_args is None:
@@ -277,6 +470,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         except AbstentionProbeEvidenceError as exc:
             blockers.append(f"HISTORICAL_SELECTION_BENCHMARK_INVALID: {exc}")
+    if historical is not None and registry_available:
+        registered = registry["entry_iql"]
+        if (
+            historical["path"] != registered["path"]
+            or historical["sha256"] != registered["sha256"]
+        ):
+            blockers.append(
+                "HISTORICAL_SELECTION_BENCHMARK_IS_NOT_EXACT_REGISTERED_ARTIFACT"
+            )
+            historical = None
+    elif historical is not None:
+        historical = None
     if learned_args is None:
         blockers.append("EXACT_MODEL_NATIVE_LEARNED_ABSTENTION_PROBE_EVIDENCE_MISSING")
     else:
@@ -286,6 +491,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         except AbstentionProbeEvidenceError as exc:
             blockers.append(f"MODEL_NATIVE_LEARNED_ABSTENTION_PROBE_INVALID: {exc}")
+    if learned is not None:
+        if learned_prediction_args is None:
+            blockers.append("EXACT_MODEL_NATIVE_PREDICTION_LINEAGE_MISSING")
+            learned = None
+        else:
+            prediction_parquet_read = True
+            try:
+                learned_prediction_lineage = _validate_learned_prediction_lineage(
+                    learned,
+                    learned_prediction_args,
+                )
+            except (RuntimeError, OSError, ValueError) as exc:
+                blockers.append(f"MODEL_NATIVE_PREDICTION_LINEAGE_INVALID: {exc}")
+                learned = None
     if not recipe["all_required_weights_positive"]:
         blockers.append("ACTIVE_ABSTENTION_RECIPE_WEIGHTS_NOT_POSITIVE")
     if historical is not None and learned is not None:
@@ -305,6 +524,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "artifact_registry": registry,
             "historical_benchmark_evidence": historical,
             "model_native_learned_probe_evidence": learned,
+            "model_native_prediction_lineage": learned_prediction_lineage,
         },
         "probe_diagnostics": {
             "historical_rejected_seq520_label_balance": manifests,
@@ -325,7 +545,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "launch_authorized": False,
         "live_authorized": False,
         "side_effects": {
-            "parquet_read": False,
+            "parquet_read": prediction_parquet_read,
             "dataset_rebuild": False,
             "training": False,
             "replay": False,
@@ -355,6 +575,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--benchmark-evidence-sha256")
     parser.add_argument("--learned-probe-evidence-json")
     parser.add_argument("--learned-probe-evidence-sha256")
+    parser.add_argument("--learned-predictions-parquet")
+    parser.add_argument("--learned-predictions-sha256")
+    parser.add_argument("--learned-prediction-report-json")
+    parser.add_argument("--learned-prediction-report-sha256")
+    parser.add_argument("--learned-bundle-dir")
+    parser.add_argument("--learned-dataset-dir")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--quiet", action="store_true")
     return parser

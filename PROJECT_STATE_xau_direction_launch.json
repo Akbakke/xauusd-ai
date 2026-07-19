@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-19T19:47:47Z",
+  "updated_utc": "2026-07-19T21:57:17Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716",
   "latest_terminal_event_decision": "FAIL",
@@ -29,7 +29,7 @@
     "Preflight, wrapper, builder and trainer now bind explicit ranking, signal-manifest and TRAIN/VAL/TEST manifest/parquet identities with matching hashes, vedtak/source lineage and exact TRAIN window; this code proof is not an accepted rebuild or trading-edge result.",
     "The 20260716 520-wide dataset contains seven constant neutral-XGB bridge fields and is rejected by the exact 513 model-native contract; a fresh rebuild is required.",
     "The report-only model-native abstention metadata run is BLOCK_ABSTENTION_EMPIRICAL_GATE: FLAT labels are balanced on TRAIN 1400/4095 (34.19%), validation 530/1536 (34.51%), and TEST 516/1536 (33.59%), with positive active FLAT/utility/margin weights, but it read zero parquet and produced no learned-probe evidence.",
-    "Immutable historical selection-benchmark bytes and exact learned abstention-probe OOT prediction/evaluation evidence at comparable coverage are absent; metadata cannot authorize rebuild, training, candidate, replay, or launch.",
+    "Immutable historical selection-benchmark bytes and exact learned abstention-probe OOT evidence are absent; PASS requires the benchmark to equal its registry path/SHA and learned TEST rows to match a hash-bound newest prediction report/parquet plus exact bundle/dataset UTC/model-direction lineage.",
     "Latest bounded fresh smoke hard-red-stopped with zero FLAT predictions and 30 direction-slice failures.",
     "The July-06/July-08 smart candidate is historical and is not launch-valid under the active XAU direction repair.",
     "No canonical joint Entry plus adopted active Exit-V3/Exit-IQL/Strategy-F sizing-only TEST replay proof exists; label-horizon sizing evidence is diagnostic only.",

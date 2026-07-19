@@ -4,6 +4,19 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-19 — abstention evidence is source-recomputed, not self-asserted
+
+The historical selection evidence file must be exactly the path and SHA-256
+registered as retired Entry-IQL comparison evidence; registering an unrelated
+file no longer satisfies the gate. Model-native learned rows require an exact
+hash-bound candidate predictions parquet, matching newest immutable prediction
+report, bundle and dataset. TEST UTC coverage and `pred_direction` are joined
+and compared row-for-row. Free-standing JSON, `calibrated_argmax=true` or an
+unrelated registered artifact cannot produce a comparison or PASS.
+
+This verifier change grants no run, rebuild, training, direction or launch
+authority. Both real evidence families remain absent.
+
 ## 2026-07-19 — one exact split identity survives every Entry evidence stage
 
 Foundation feature, target and specialist audits must resolve TRAIN/VAL/TEST

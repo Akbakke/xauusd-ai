@@ -62,6 +62,12 @@ run read zero parquet, trained no probe and emitted no learned predictions.
 Historical selection-benchmark bytes and exact learned-probe evidence are
 absent, so it authorizes nothing and proves no edge.
 
+The empirical verifier now rejects evidence-only pass-throughs. Historical
+benchmark JSON must be the exact path/SHA registered under retired Entry-IQL,
+and learned TEST rows must match an exact hash-bound newest prediction report,
+predictions parquet, bundle and dataset row-for-row in UTC and model direction.
+This hardening does not create either missing artifact or authorize a run.
+
 ## Exact Entry contract
 
 - contract mode: `xau_seq513_model_native_direction_v1`;
