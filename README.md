@@ -53,6 +53,12 @@ edge. Each family's influence and the fused decision must be proved
 empirically on immutable OOS/live-like evidence; duplicate indicator aliases
 and future-leaking variants are not additional robustness.
 
+TRAIN/VAL/TEST identities are explicit and hash-bound end to end: foundation
+audits, smoke/adoption, selective-edge prediction, replay, serve parity and
+learned sizing all consume the declared manifest/parquet bytes. No stage may
+select a split by directory glob, infer it from another split's filename or
+accept an unbound artifact merely because it is present in the same directory.
+
 ## Start here
 
 ```bash

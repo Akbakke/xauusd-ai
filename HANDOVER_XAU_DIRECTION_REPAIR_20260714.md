@@ -45,6 +45,14 @@ artifacts: TRAIN/VAL/TEST manifest plus TRAIN/VAL/TEST parquet. Their exact
 paths and hashes flow through the validated recipe environment; the trainer
 does not infer VAL/TEST from a TRAIN stem or discover a split with glob/latest.
 
+That identity now continues through the full downstream chain. Foundation
+feature/target/specialist audits resolve each parquet only through an explicit
+hash-bound split manifest and publish the same four path/hash fields. Smoke and
+adoption gates compare those bytes to the candidate split declarations.
+Selective-edge prediction, replay materialization, serve parity and learned
+sizing derive their dataset inputs only from the matching immutable report;
+unbound directory files have no authority and a byte mismatch fails closed.
+
 No seq513 rebuild chain or training process is running. A new report-only
 model-native abstention metadata run ended
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: FLAT labels are balanced at TRAIN
@@ -90,6 +98,12 @@ repair it.
 All genuine trend/session/liquidity/volatility/momentum/structure/chart/candle
 evidence remains. Only disconnected rules that could independently veto,
 flip, threshold or pass a direction have been retired.
+
+Repository cleanup is an always-on token/credit rule in `AGENTS.md`: when work
+exposes apparently unused code, perform one bounded ownership/reference check
+and delete it with its sole-purpose baggage when safe. Do not accumulate dead
+copies or repeatedly rescan the repository; preserve unique reproducibility
+evidence and active Exit ownership.
 
 The learned `position_size` head remains mandatory. Its target is exactly
 `sigmoid((MFE-MAE)/(2*ATR_bps))`, where MAE is a non-negative adverse

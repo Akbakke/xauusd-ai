@@ -4,6 +4,21 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-19 — one exact split identity survives every Entry evidence stage
+
+Foundation feature, target and specialist audits must resolve TRAIN/VAL/TEST
+parquets only through explicit canonical manifests plus declared manifest and
+parquet SHA-256 values. They publish the normalized identities; smoke and
+adoption gates require byte-for-byte equality with the candidate declaration.
+Selective-edge prediction, replay, serve parity and learned sizing consume the
+same immutable report bindings. Directory uniqueness, glob selection,
+TRAIN-stem derivation and unbound decoy files have no authority.
+
+Repository cleanup is a permanent token/credit discipline. Proven-unused code
+and sole-purpose baggage are deleted when encountered after one bounded owner/
+caller/process/evidence check. Uncertain ownership is recorded precisely; it
+does not justify repeated repository-wide scans or renamed dead copies.
+
 ## 2026-07-19 — exact split and serving identities precede execution
 
 Smoke/candidate wrappers and the trainer must receive explicit TRAIN/VAL/TEST

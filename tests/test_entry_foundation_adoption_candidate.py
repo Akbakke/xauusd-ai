@@ -13,6 +13,9 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_binding,
     foundation_audit_policy_enforcement,
 )
+from gx1.contracts.entry_dataset_split_artifacts_v1 import (
+    ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
@@ -129,6 +132,27 @@ def _event(
 
 def _audits(root: Path, dataset: Path) -> dict[str, Path]:
     audit_dir = root / "audits"
+    split_artifacts = {
+        split: {
+            "manifest_path": str(
+                (dataset / f"candidate_{split}.manifest.json").resolve()
+            ),
+            "manifest_sha256": _sha(
+                dataset / f"candidate_{split}.manifest.json"
+            ),
+            "parquet_path": str(
+                (dataset / f"candidate_{split}.parquet").resolve()
+            ),
+            "parquet_sha256": _sha(dataset / f"candidate_{split}.parquet"),
+        }
+        for split in FOUNDATION_AUDIT_DATA_SPLITS
+    }
+    split_identity = {
+        "split_artifacts_schema_version": (
+            ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+        ),
+        "split_artifacts": split_artifacts,
+    }
     selected = canonical_model_native_selected_fields(
         remainder_prefix="session_regime.adoption_fixture"
     )
@@ -148,6 +172,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "failures": [],
             "dataset_dir": str(dataset),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            **split_identity,
             "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
             "base_signal_fields": list(MODEL_NATIVE_BASE_FIELDS),
@@ -188,6 +213,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "failures": [],
             "dataset_dir": str(dataset),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            **split_identity,
             "target_head_contract": {
                 "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
                 "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
@@ -208,6 +234,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "failures": [],
             "dataset_dir": str(dataset),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            **split_identity,
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "signal_field_count": MODEL_NATIVE_SIGNAL_DIM,
             "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
@@ -347,6 +374,39 @@ def test_model_native_adoption_produces_one_report_only_immutable_event(
     assert list((tmp_path / "reports").iterdir()) == [event]
 
 
+def test_adoption_uses_smoke_bound_split_identity_not_directory_inventory(
+    tmp_path: Path,
+) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    smoke = _smoke_event(tmp_path, dataset, rows)
+    (dataset / "unbound_decoy_train.parquet").write_bytes(b"decoy")
+    (dataset / "unbound_decoy_train.manifest.json").write_text(
+        "{}\n", encoding="utf-8"
+    )
+
+    report = run(_args(tmp_path, dataset, audits, smoke))
+
+    assert report["adoption_evidence_ready"] is True
+    assert all(
+        "unbound_decoy" not in value for value in report["artifacts"].values()
+    )
+
+
+def test_adoption_rejects_smoke_bound_split_hash_mismatch(tmp_path: Path) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    smoke = _smoke_event(tmp_path, dataset, rows)
+    payload = json.loads(smoke.read_text(encoding="utf-8"))
+    payload["smoke_manifest"]["splits"]["val"]["out_parquet_sha256"] = "0" * 64
+    smoke.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="ARTIFACT_HASH_MISMATCH"):
+        run(_args(tmp_path, dataset, audits, smoke))
+
+    assert not (tmp_path / "reports").exists()
+
+
 def test_adoption_fails_closed_on_audit_dataset_mismatch(tmp_path: Path) -> None:
     dataset, rows = _dataset(tmp_path)
     audits = _audits(tmp_path, dataset)
@@ -366,6 +426,30 @@ def test_adoption_fails_closed_on_audit_dataset_mismatch(tmp_path: Path) -> None
         row["gate"] == "feature_audit"
         and row["check"]
         == "evidence dataset matches the explicit seq513 candidate"
+        for row in report["failures"]
+    )
+
+
+def test_adoption_rejects_stale_audit_split_artifact_binding(
+    tmp_path: Path,
+) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    target = json.loads(audits["target_audit"].read_text(encoding="utf-8"))
+    target["split_artifacts"]["val"]["parquet_sha256"] = "0" * 64
+    audits["target_audit"].write_text(
+        json.dumps(target, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    smoke = _smoke_event(tmp_path, dataset, rows)
+
+    report = run(_args(tmp_path, dataset, audits, smoke))
+
+    assert report["adoption_evidence_ready"] is False
+    assert any(
+        row["gate"] == "target_audit"
+        and row["check"]
+        == "foundation audit is content-bound to exact candidate split artifacts"
         for row in report["failures"]
     )
 
@@ -482,3 +566,11 @@ def test_parser_requires_explicit_smoke_event_and_output() -> None:
     assert "--smoke-dataset-dir" not in help_text
     assert "_latest.json" not in help_text
     assert "fail-on-not-ready" not in help_text
+
+
+def test_adoption_source_has_no_split_glob_or_stem_inference() -> None:
+    source = Path(
+        "gx1/scripts/verify_entry_foundation_adoption_candidate_v1.py"
+    ).read_text(encoding="utf-8")
+    assert "_split_candidates" not in source
+    assert 'glob(f"*_{split}' not in source

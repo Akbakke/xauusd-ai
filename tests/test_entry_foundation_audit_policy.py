@@ -119,3 +119,8 @@ def test_audit_clis_expose_no_semantic_policy_overrides() -> None:
     assert "--max-majority-rate" not in target_help
     assert "--data-splits" not in specialist_help
     assert "--contract-mode" not in specialist_help
+    for help_text in (feature_help, target_help, specialist_help):
+        for split in FOUNDATION_AUDIT_DATA_SPLITS:
+            assert f"--{split}-manifest-json" in help_text
+            assert f"--{split}-manifest-sha256" in help_text
+            assert f"--{split}-parquet-sha256" in help_text

@@ -43,6 +43,14 @@ recipe, then rechecked with manifest self-path, vedtak and six-way-distinctness
 contracts. VAL and TEST are never inferred from TRAIN names or directory
 inventory.
 
+The same immutable identities now bind foundation feature/target/specialist
+audits, smoke/adoption review, selective-edge prediction, candidate replay,
+serve parity and sizing calibration/OOS provenance. Audit parquets are resolved
+only from explicitly supplied hash-bound manifests; downstream consumers read
+the exact paths and SHA-256 values from their matching immutable reports. There
+is no split glob, stem-derived manifest or unbound-directory fallback in the
+Entry evidence chain.
+
 No seq513 rebuild chain or training process is running. Active Entry has zero
 imports from `signal_bridge_v1` and `signal_bridge_v3`;
 `entry_model_native_signal_v1` is the exact owner of the 34 base, 142

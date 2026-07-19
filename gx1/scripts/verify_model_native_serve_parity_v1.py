@@ -50,6 +50,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -1442,16 +1443,68 @@ def _git_commit() -> str:
         return "unknown"
 
 
-def _load_offline_rows(dataset_dir: Path, split: str, times: pd.DatetimeIndex) -> pd.DataFrame:
+def _prediction_report_test_parquet(
+    prediction_report: dict[str, Any],
+    dataset_dir: Path,
+) -> Path:
+    contract = prediction_report.get("dataset_signal_contract")
+    rows = contract.get("splits") if isinstance(contract, dict) else None
+    row = rows.get(MODEL_NATIVE_REQUIRED_TEST_SPLIT) if isinstance(rows, dict) else None
+    if not isinstance(row, dict):
+        raise RuntimeError(
+            "[parity] prediction report lacks exact TEST dataset artifact binding"
+        )
+    manifest_path: Path | None = None
+    parquet_path: Path | None = None
+    for kind, suffix in (
+        ("manifest", f"_{MODEL_NATIVE_REQUIRED_TEST_SPLIT}.manifest.json"),
+        ("parquet", f"_{MODEL_NATIVE_REQUIRED_TEST_SPLIT}.parquet"),
+    ):
+        path = Path(str(row.get(f"{kind}_path") or "")).expanduser()
+        expected_sha = str(row.get(f"{kind}_sha256") or "").strip().lower()
+        if (
+            not path.is_absolute()
+            or path.is_symlink()
+            or not path.is_file()
+            or path.resolve() != path
+            or path.parent != dataset_dir
+            or not path.name.endswith(suffix)
+            or any("latest" in part.lower() for part in path.parts)
+        ):
+            raise RuntimeError(
+                f"[parity] prediction report TEST {kind} identity is invalid: {path}"
+            )
+        if len(expected_sha) != 64 or any(
+            character not in "0123456789abcdef" for character in expected_sha
+        ):
+            raise RuntimeError(
+                f"[parity] prediction report TEST {kind} lacks SHA-256"
+            )
+        if sha256_file(path) != expected_sha:
+            raise RuntimeError(
+                f"[parity] prediction report TEST {kind} hash mismatch"
+            )
+        if kind == "manifest":
+            manifest_path = path
+        else:
+            parquet_path = path
+    if manifest_path is None or parquet_path is None:
+        raise RuntimeError("[parity] TEST dataset identity is incomplete")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if Path(str(manifest.get("output_data_path") or "")).expanduser() != parquet_path:
+        raise RuntimeError("[parity] TEST manifest output_data_path mismatch")
+    if sha256_file(manifest_path) != str(row["manifest_sha256"]).strip().lower():
+        raise RuntimeError("[parity] TEST manifest changed during validation")
+    return parquet_path
+
+
+def _load_offline_rows(parquet_path: Path, times: pd.DatetimeIndex) -> pd.DataFrame:
     """Stream the split parquet batch-wise and keep ONLY the target rows.
     (A one-shot filtered to_table materializes every row group's nested
     (96,513) seq lists ≈ 14+GB — OOM'd the 34G-capped gate 2026-07-08.)"""
     import pyarrow.parquet as pq
-    matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-    if len(matches) != 1:
-        raise RuntimeError(f"expected exactly one *_{split}.parquet in {dataset_dir}, got {matches}")
     want = set(times.tz_convert("UTC").asi8)
-    pf = pq.ParquetFile(matches[0])
+    pf = pq.ParquetFile(parquet_path)
     kept: list[pd.DataFrame] = []
     for batch in pf.iter_batches(batch_size=512, columns=["time", "seq", "snap", "ctx_cont", "ctx_cat"]):
         ts = pd.to_datetime(pd.Series(batch.column("time").to_pandas()), utc=True)
@@ -1507,6 +1560,10 @@ def main() -> int:
         dataset_dir=dataset_dir,
         pinned_path=args.pinned_predictions,
         prediction_report_path=args.prediction_report_json,
+    )
+    dataset_parquet = _prediction_report_test_parquet(
+        prediction_report,
+        dataset_dir,
     )
 
     t0 = time.time()
@@ -1589,13 +1646,6 @@ def main() -> int:
     print(f"[parity] live prebuilts loaded (cutoff={cutoff}, {time.time()-t0:.0f}s)", flush=True)
 
     # ── exact TEST coverage + deterministic representative positions ─────────
-    matches = sorted(dataset_dir.glob(f"*_{MODEL_NATIVE_REQUIRED_TEST_SPLIT}.parquet"))
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"expected exactly one *_{MODEL_NATIVE_REQUIRED_TEST_SPLIT}.parquet "
-            f"in {dataset_dir}; got {matches}"
-        )
-    dataset_parquet = matches[0].expanduser().resolve()
     all_times = pd.to_datetime(
         pd.read_parquet(dataset_parquet, columns=["time"])["time"],
         utc=True,
@@ -1654,9 +1704,7 @@ def main() -> int:
     print(f"[parity] live states built ({time.time()-t0:.0f}s)", flush=True)
 
     # ── LEG 1: state parity vs offline dataset rows ──────────────────────────
-    off = _load_offline_rows(
-        dataset_dir, MODEL_NATIVE_REQUIRED_TEST_SPLIT, targets
-    )
+    off = _load_offline_rows(dataset_parquet, targets)
     missing = [str(t) for t in targets if t not in off.index]
     if missing:
         failures.append(f"offline rows missing for {len(missing)} targets: {missing[:3]}")

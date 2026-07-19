@@ -1,8 +1,11 @@
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
+from gx1.scripts import audit_model_native_direction_evidence_v1 as direction_audit
 from gx1.scripts.audit_model_native_direction_evidence_v1 import (
     FORBIDDEN_PREDICTION_COLUMNS,
     _chosen_side,
@@ -73,3 +76,45 @@ def test_source_is_seq513_strict_and_writes_no_duplicate_latest_or_csv() -> None
     assert "SMART_DIRECTION_CONTRIBUTION" not in source
     assert "_latest.json" not in source
     assert ".to_csv(" not in source
+    assert "dataset_dir.glob" not in source
+
+
+def test_direction_evidence_uses_hash_bound_prediction_report_split(
+    tmp_path: Path,
+) -> None:
+    dataset_dir = (tmp_path / "dataset").resolve()
+    dataset_dir.mkdir()
+    parquet = dataset_dir / "entry_model_native_test.parquet"
+    parquet.write_bytes(b"bound")
+    manifest = dataset_dir / "entry_model_native_test.manifest.json"
+    manifest.write_text(
+        json.dumps({"output_data_path": str(parquet)}),
+        encoding="utf-8",
+    )
+    (dataset_dir / "decoy_test.parquet").write_bytes(b"decoy")
+    report = {
+        "dataset_signal_contract": {
+            "splits": {
+                "test": {
+                    "manifest_path": str(manifest),
+                    "manifest_sha256": direction_audit.sha256_file(manifest),
+                    "parquet_path": str(parquet),
+                    "parquet_sha256": direction_audit.sha256_file(parquet),
+                }
+            }
+        }
+    }
+
+    assert direction_audit._prediction_report_split_parquet(
+        report,
+        dataset_dir,
+        "test",
+    ) == parquet
+
+    parquet.write_bytes(b"changed")
+    with pytest.raises(RuntimeError, match="test parquet hash mismatch"):
+        direction_audit._prediction_report_split_parquet(
+            report,
+            dataset_dir,
+            "test",
+        )

@@ -359,17 +359,66 @@ def _validate_prediction_report_contract(
         raise RuntimeError("prediction report model-native contract failed: " + " | ".join(failures))
 
 
-def _split_file(dataset_dir: Path, split: str) -> Path:
-    matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-    if len(matches) != 1:
-        raise RuntimeError(f"expected exactly one {split} parquet under {dataset_dir}, got {matches}")
-    return matches[0]
+def _prediction_report_split_artifacts(
+    report: dict[str, Any],
+    dataset_dir: Path,
+) -> dict[str, Path]:
+    contract = report.get("dataset_signal_contract")
+    rows = contract.get("splits") if isinstance(contract, dict) else None
+    if not isinstance(rows, dict) or set(rows) != {"val", "test"}:
+        raise RuntimeError(
+            "prediction report lacks exact val/test dataset artifact bindings"
+        )
+    parquets: dict[str, Path] = {}
+    for split in ("val", "test"):
+        row = rows[split]
+        if not isinstance(row, dict):
+            raise RuntimeError(
+                f"prediction report dataset binding is invalid: split={split}"
+            )
+        for kind, suffix in (
+            ("manifest", f"_{split}.manifest.json"),
+            ("parquet", f"_{split}.parquet"),
+        ):
+            path = Path(str(row.get(f"{kind}_path") or "")).expanduser()
+            expected_sha = str(row.get(f"{kind}_sha256") or "").strip().lower()
+            if (
+                not path.is_absolute()
+                or path.is_symlink()
+                or not path.is_file()
+                or path.resolve() != path
+                or path.parent != dataset_dir
+                or not path.name.endswith(suffix)
+                or any("latest" in part.lower() for part in path.parts)
+            ):
+                raise RuntimeError(
+                    f"prediction report dataset artifact is invalid: {split}_{kind}={path}"
+                )
+            if len(expected_sha) != 64 or any(
+                character not in "0123456789abcdef" for character in expected_sha
+            ):
+                raise RuntimeError(
+                    f"prediction report dataset artifact lacks SHA-256: {split}_{kind}"
+                )
+            observed_sha = sha256_file(path)
+            if observed_sha != expected_sha:
+                raise RuntimeError(
+                    f"prediction report dataset artifact hash mismatch: {split}_{kind}"
+                )
+            if kind == "parquet":
+                parquets[split] = path
+        manifest = json.loads(Path(row["manifest_path"]).read_text(encoding="utf-8"))
+        if Path(str(manifest.get("output_data_path") or "")).expanduser() != parquets[split]:
+            raise RuntimeError(
+                f"prediction report dataset manifest self-path mismatch: split={split}"
+            )
+    return parquets
 
 
-def _load_horizons(dataset_dir: Path, splits: list[str]) -> pd.DataFrame:
+def _load_horizons(split_parquets: dict[str, Path], splits: list[str]) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
     for split in splits:
-        path = _split_file(dataset_dir, split)
+        path = split_parquets[split]
         frame = pd.read_parquet(path, columns=["time", "label_horizon_bars"])
         frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="coerce")
         if frame["time"].isna().any():
@@ -397,7 +446,7 @@ def _load_horizons(dataset_dir: Path, splits: list[str]) -> pd.DataFrame:
 
 def _prepare_predictions(
     predictions_path: Path,
-    dataset_dir: Path,
+    split_parquets: dict[str, Path],
     model_name: str,
 ) -> pd.DataFrame:
     required = {
@@ -473,7 +522,7 @@ def _prepare_predictions(
         if bool(values.isin(["", "UNKNOWN", "NAN", "NONE"]).any()):
             raise RuntimeError(f"prediction {column} contains missing/UNKNOWN state")
 
-    horizons = _load_horizons(dataset_dir, ["val", "test"])
+    horizons = _load_horizons(split_parquets, ["val", "test"])
     coverage = predictions[["split", "time"]].merge(
         horizons[["split", "time"]],
         on=["split", "time"],
@@ -875,7 +924,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     bundle_dir = Path(str(prediction_report.get("bundle_dir") or "")).expanduser().resolve()
     _validate_prediction_report_contract(prediction_report, bundle_dir=bundle_dir)
-    predictions = _prepare_predictions(predictions_path, dataset_dir, str(args.model_name))
+    split_parquets = _prediction_report_split_artifacts(
+        prediction_report,
+        dataset_dir,
+    )
+    predictions = _prepare_predictions(
+        predictions_path,
+        split_parquets,
+        str(args.model_name),
+    )
     score_column, selection_score_mode = _resolve_score_surface(predictions)
     test = predictions[predictions["split"] == "test"].sort_values(
         "time", kind="mergesort"

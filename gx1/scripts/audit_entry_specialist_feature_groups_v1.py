@@ -21,6 +21,10 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
     foundation_audit_policy_metadata,
 )
+from gx1.contracts.entry_dataset_split_artifacts_v1 import (
+    ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+    require_dataset_split_artifacts,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
@@ -81,20 +85,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _split_manifest_path(dataset_dir: Path, split: str) -> Path:
-    matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
-    if len(matches) != 1:
-        raise RuntimeError(f"expected exactly one {split} split manifest under {dataset_dir}, got {matches}")
-    return matches[0]
-
-
-def _split_parquet_path(dataset_dir: Path, split: str) -> Path:
-    matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-    if len(matches) != 1:
-        raise RuntimeError(f"expected exactly one {split} split parquet under {dataset_dir}, got {matches}")
-    return matches[0]
-
-
 def _load_selected_features(path: Path) -> list[str]:
     manifest = _read_json(path)
     selected = [str(x) for x in manifest.get("selected_features", []) if str(x).strip()]
@@ -103,10 +93,13 @@ def _load_selected_features(path: Path) -> list[str]:
     return selected
 
 
-def _load_split_signal_fields(dataset_dir: Path, splits: list[str]) -> dict[str, dict[str, Any]]:
+def _load_split_signal_fields(
+    split_artifacts: dict[str, dict[str, str]],
+    splits: list[str],
+) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for split in splits:
-        path = _split_manifest_path(dataset_dir, split)
+        path = Path(split_artifacts[split]["manifest_path"])
         manifest = _read_json(path)
         extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
         signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
@@ -141,10 +134,13 @@ def _load_split_signal_fields(dataset_dir: Path, splits: list[str]) -> dict[str,
     return out
 
 
-def _load_split_context_fields(dataset_dir: Path, splits: list[str]) -> dict[str, dict[str, Any]]:
+def _load_split_context_fields(
+    split_artifacts: dict[str, dict[str, str]],
+    splits: list[str],
+) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for split in splits:
-        path = _split_manifest_path(dataset_dir, split)
+        path = Path(split_artifacts[split]["manifest_path"])
         manifest = _read_json(path)
         ctx_contract = ((manifest.get("extra") or {}).get("ctx_contract") or {})
         ctx_cont_names = [str(x) for x in ctx_contract.get("ctx_cont_names", []) if str(x).strip()]
@@ -382,7 +378,7 @@ def _smart_contract_failures(
 
 
 def _specialist_input_liveness_rows(
-    dataset_dir: Path,
+    split_artifacts: dict[str, dict[str, str]],
     splits: list[str],
     signal_fields: list[str],
     required_specialists: tuple[str, ...],
@@ -390,7 +386,7 @@ def _specialist_input_liveness_rows(
     groups_by_feature = [classify_entry_specialist_feature(feature) for feature in signal_fields]
     rows: list[dict[str, Any]] = []
     for split in splits:
-        parquet_path = _split_parquet_path(dataset_dir, split)
+        parquet_path = Path(split_artifacts[split]["parquet_path"])
         snap = _stack_list_column(pd.read_parquet(parquet_path, columns=["snap"])["snap"], np.float32)
         if snap.ndim != 2 or snap.shape[1] != len(signal_fields):
             raise RuntimeError(
@@ -695,12 +691,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     specialist_model_contract = MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
 
     failures: list[str] = []
+    split_artifacts = require_dataset_split_artifacts(
+        dataset_dir,
+        {
+            split: {
+                "manifest_path": getattr(args, f"{split}_manifest_json"),
+                "manifest_sha256": getattr(args, f"{split}_manifest_sha256"),
+                "parquet_sha256": getattr(args, f"{split}_parquet_sha256"),
+            }
+            for split in splits
+        },
+        expected_splits=splits,
+        context="SPECIALIST_FEATURE_AUDIT_DATASET",
+    )
     seq_manifest = _read_json(seq_manifest_path)
     selected_features = [str(x) for x in seq_manifest.get("selected_features", []) if str(x).strip()]
     if not selected_features:
         raise RuntimeError(f"sequence structure manifest has no selected_features: {seq_manifest_path}")
-    split_contracts = _load_split_signal_fields(dataset_dir, splits)
-    context_contracts = _load_split_context_fields(dataset_dir, splits)
+    split_contracts = _load_split_signal_fields(split_artifacts, splits)
+    context_contracts = _load_split_context_fields(split_artifacts, splits)
     first_split = splits[0]
     signal_fields = list(split_contracts[first_split]["fields"])
     signal_set = set(signal_fields)
@@ -753,7 +762,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             failures.append(f"{group}: no selected sequence-extension features assigned")
 
     specialist_input_liveness = _specialist_input_liveness_rows(
-        dataset_dir,
+        split_artifacts,
         splits,
         signal_fields,
         required_training_specialists,
@@ -822,6 +831,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "training_allowed_with_explicit_vedtak": False,
         "training_allowed_reason": "specialist feature-group audit is report-only; training requires separate readiness gates",
         "dataset_dir": str(dataset_dir),
+        "split_artifacts_schema_version": (
+            ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+        ),
+        "split_artifacts": split_artifacts,
         "seq_structure_manifest": str(seq_manifest_path),
         "contract_mode": contract_mode,
         "contract_training_surface": contract_training_surface,
@@ -914,6 +927,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dataset-dir", required=True)
+    for split in FOUNDATION_AUDIT_DATA_SPLITS:
+        ap.add_argument(f"--{split}-manifest-json", required=True)
+        ap.add_argument(f"--{split}-manifest-sha256", required=True)
+        ap.add_argument(f"--{split}-parquet-sha256", required=True)
     ap.add_argument("--seq-structure-manifest", required=True)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")

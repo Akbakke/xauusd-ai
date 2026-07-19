@@ -160,6 +160,50 @@ def test_model_native_parity_requires_explicit_event_inputs() -> None:
     assert serve_parity.SERVE_PARITY_FORWARD_TOL == 1e-3
 
 
+def test_serve_parity_resolves_test_dataset_only_from_prediction_report(
+    tmp_path: Path,
+) -> None:
+    dataset_dir = (tmp_path / "dataset").resolve()
+    dataset_dir.mkdir()
+    parquet_path = dataset_dir / "model_native_test.parquet"
+    parquet_path.write_bytes(b"bound-test-artifact")
+    manifest_path = dataset_dir / "model_native_test.manifest.json"
+    manifest_path.write_text(
+        json.dumps({"output_data_path": str(parquet_path)}, sort_keys=True),
+        encoding="utf-8",
+    )
+    (dataset_dir / "decoy_test.parquet").write_bytes(b"unbound-decoy")
+    report = {
+        "dataset_signal_contract": {
+            "splits": {
+                "test": {
+                    "manifest_path": str(manifest_path),
+                    "manifest_sha256": serve_parity.sha256_file(manifest_path),
+                    "parquet_path": str(parquet_path),
+                    "parquet_sha256": serve_parity.sha256_file(parquet_path),
+                }
+            }
+        }
+    }
+
+    assert (
+        serve_parity._prediction_report_test_parquet(report, dataset_dir)
+        == parquet_path
+    )
+
+    parquet_path.write_bytes(b"changed-after-report")
+    with pytest.raises(RuntimeError, match="TEST parquet hash mismatch"):
+        serve_parity._prediction_report_test_parquet(report, dataset_dir)
+
+
+def test_serve_parity_has_no_dataset_glob_fallback() -> None:
+    source = Path(serve_parity.__file__).read_text(encoding="utf-8")
+
+    assert "dataset_dir.glob" not in source
+    assert "_prediction_report_test_parquet(" in source
+    assert "_load_offline_rows(dataset_parquet, targets)" in source
+
+
 def test_serve_parity_uses_shared_model_direction_contract() -> None:
     assert (
         serve_parity.MODEL_DIRECTION_SELECTION_MODE

@@ -35,6 +35,13 @@ Token/credit discipline:
 - Start discovery from the ownership paths in `SYSTEM_MAP.md`. Read exact
   files or bounded sections and cap search output; broaden a source scan only
   when the map cannot identify the owner, and record why it was necessary.
+- Repository cleanup is a token/credit control, not optional polish. Whenever
+  work exposes apparently unused code, perform one bounded ownership/reference
+  check immediately. If no active caller, process, control route, unique
+  evidence producer or reproducibility duty remains, delete the code and its
+  sole-purpose tests/config/docs in the same change instead of postponing it.
+  If safe deletion is not yet proven, record the exact unresolved owner; do not
+  repeatedly rescan the repository or retain commented/renamed dead copies.
 
 ## Hard architecture invariants
 
@@ -194,7 +201,9 @@ sole-purpose stale tests, obsolete configs and historical Markdown. Before
 deletion, prove no active imports, subprocess calls, control routes, process
 command lines or unique evidence ownership remain. Preserve user changes and
 anything touched by an active process. Empty compatibility shells are not a
-valid substitute for deletion.
+valid substitute for deletion. This rule applies during every task: clean up
+proven-dead code when encountered, rather than accumulating a separate future
+cleanup backlog.
 
 Never use destructive Git recovery commands. Do not modify or remove secrets.
 Never force-push.

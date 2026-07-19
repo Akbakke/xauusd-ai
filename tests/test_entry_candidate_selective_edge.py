@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -263,24 +264,52 @@ def test_dataset_contract_requires_exact_equal_34_plus_479_for_each_split(
     contract = _signal_contract()
     assert contract["base_signal_dim"] == 34
     assert contract["selected_feature_count"] == 479
+    bindings: dict[str, dict[str, str]] = {}
     for split in ("val", "test"):
-        (tmp_path / f"native_{split}.manifest.json").write_text(
-            json.dumps({"extra": {"model_native_signal_contract": contract}}),
+        parquet = tmp_path / f"native_{split}.parquet"
+        parquet.write_bytes(f"immutable-{split}".encode())
+        manifest = tmp_path / f"native_{split}.manifest.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "output_data_path": str(parquet),
+                    "extra": {"model_native_signal_contract": contract},
+                }
+            ),
             encoding="utf-8",
         )
+        bindings[split] = {
+            "manifest_path": str(manifest),
+            "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+            "parquet_path": str(parquet),
+            "parquet_sha256": hashlib.sha256(parquet.read_bytes()).hexdigest(),
+        }
 
-    observed = _dataset_model_native_contract(tmp_path, ["val", "test"])
+    observed = _dataset_model_native_contract(
+        tmp_path,
+        ["val", "test"],
+        bindings,
+    )
     assert observed["contract"] == contract
     assert {row["seq_input_dim"] for row in observed["splits"].values()} == {513}
 
     broken = json.loads(json.dumps(contract))
     broken["bridge_dim"] = 7
-    (tmp_path / "native_test.manifest.json").write_text(
-        json.dumps({"extra": {"model_native_signal_contract": broken}}),
+    test_manifest = tmp_path / "native_test.manifest.json"
+    test_manifest.write_text(
+        json.dumps(
+            {
+                "output_data_path": str(tmp_path / "native_test.parquet"),
+                "extra": {"model_native_signal_contract": broken},
+            }
+        ),
         encoding="utf-8",
     )
+    bindings["test"]["manifest_sha256"] = hashlib.sha256(
+        test_manifest.read_bytes()
+    ).hexdigest()
     with pytest.raises(RuntimeError, match="MODEL_NATIVE_SIGNAL_CONTRACT_INVALID"):
-        _dataset_model_native_contract(tmp_path, ["val", "test"])
+        _dataset_model_native_contract(tmp_path, ["val", "test"], bindings)
 
 
 def test_selection_metrics_never_accept_session_filter_or_score_fallback() -> None:
@@ -300,20 +329,35 @@ def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flag
     parser = build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args([])
-    args = parser.parse_args(
-        [
-            "--bundle-dir",
-            "/tmp/bundle",
-            "--dataset-dir",
-            "/tmp/dataset",
-            "--m5-prebuilt-path",
-            "/tmp/m5.parquet",
-            "--multi-tf-cache-dir",
-            "/tmp/mtf",
-            "--out-dir",
-            "/tmp/out",
-        ]
-    )
+    required = [
+        "--bundle-dir",
+        "/tmp/bundle",
+        "--dataset-dir",
+        "/tmp/dataset",
+        "--val-manifest-json",
+        "/tmp/dataset/native_val.manifest.json",
+        "--val-manifest-sha256",
+        "a" * 64,
+        "--val-parquet",
+        "/tmp/dataset/native_val.parquet",
+        "--val-parquet-sha256",
+        "b" * 64,
+        "--test-manifest-json",
+        "/tmp/dataset/native_test.manifest.json",
+        "--test-manifest-sha256",
+        "c" * 64,
+        "--test-parquet",
+        "/tmp/dataset/native_test.parquet",
+        "--test-parquet-sha256",
+        "d" * 64,
+        "--m5-prebuilt-path",
+        "/tmp/m5.parquet",
+        "--multi-tf-cache-dir",
+        "/tmp/mtf",
+        "--out-dir",
+        "/tmp/out",
+    ]
+    args = parser.parse_args(required)
     assert not hasattr(args, "contract_mode")
     assert not hasattr(args, "splits")
     assert not hasattr(args, "top_fracs")
@@ -321,34 +365,17 @@ def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flag
     assert not hasattr(args, "selection_score_mode")
     with pytest.raises(SystemExit):
         parser.parse_args(
-            [
-                "--bundle-dir",
-                "/tmp/bundle",
-                "--dataset-dir",
-                "/tmp/dataset",
-                "--m5-prebuilt-path",
-                "/tmp/m5.parquet",
-                "--multi-tf-cache-dir",
-                "/tmp/mtf",
-                "--out-dir",
-                "/tmp/out",
-                "--selection-score-mode",
-                MODEL_DIRECTION_SELECTION_MODE,
-            ]
+            [*required, "--selection-score-mode", MODEL_DIRECTION_SELECTION_MODE]
         )
     with pytest.raises(SystemExit):
-        parser.parse_args(
-            [
-                "--bundle-dir",
-                "/tmp/bundle",
-                "--dataset-dir",
-                "/tmp/dataset",
-                "--m5-prebuilt-path",
-                "/tmp/m5.parquet",
-                "--multi-tf-cache-dir",
-                "/tmp/mtf",
-                "--out-dir",
-                "/tmp/out",
-                "--smart-seq520",
-            ]
-        )
+        parser.parse_args([*required, "--smart-seq520"])
+
+
+def test_selective_edge_source_has_no_split_glob_or_imported_split_selector() -> None:
+    source = Path(
+        "gx1/scripts/evaluate_entry_candidate_selective_edge_v1.py"
+    ).read_text(encoding="utf-8")
+    assert "_split_file" not in source
+    assert 'glob(f"*_{split}' not in source
+    assert "source_manifest" not in source
+    assert "shutil.copy2(manifest_path, tmp_manifest)" in source

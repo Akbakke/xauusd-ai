@@ -6,7 +6,7 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,10 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_binding,
     foundation_audit_policy_enforcement,
     foundation_audit_policy_metadata,
+)
+from gx1.contracts.entry_dataset_split_artifacts_v1 import (
+    ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+    require_dataset_split_artifacts,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -171,21 +175,6 @@ def _json_default(obj: Any) -> Any:
     if isinstance(obj, Path):
         return str(obj)
     return str(obj)
-
-
-def _split_files(dataset_dir: Path, splits: Iterable[str]) -> dict[str, Path]:
-    if not dataset_dir.is_dir():
-        raise RuntimeError(f"model-native dataset directory missing: {dataset_dir}")
-    out: dict[str, Path] = {}
-    for split in splits:
-        matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-        if len(matches) != 1:
-            raise RuntimeError(
-                f"model-native split parquet is not exact: split={split} "
-                f"matches={[str(path) for path in matches]}"
-            )
-        out[split] = matches[0]
-    return out
 
 
 def _safe_rate(series: pd.Series, value: int | float | bool) -> float | None:
@@ -775,8 +764,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures: list[str] = []
     frames: list[pd.DataFrame] = []
     split_paths: dict[str, str] = {}
+    split_artifacts: dict[str, dict[str, str]] = {}
     try:
-        files = _split_files(dataset_dir, splits)
+        split_artifacts = require_dataset_split_artifacts(
+            dataset_dir,
+            {
+                split: {
+                    "manifest_path": getattr(args, f"{split}_manifest_json"),
+                    "manifest_sha256": getattr(
+                        args,
+                        f"{split}_manifest_sha256",
+                    ),
+                    "parquet_sha256": getattr(args, f"{split}_parquet_sha256"),
+                }
+                for split in splits
+            },
+            expected_splits=splits,
+            context="FOUNDATION_TARGET_AUDIT_DATASET",
+        )
+        files = {
+            split: Path(split_artifacts[split]["parquet_path"])
+            for split in splits
+        }
     except Exception as exc:
         files = {}
         failures.append(f"dataset split resolution failed: {exc}")
@@ -884,6 +893,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "dataset_dir": str(dataset_dir),
         "data_splits": splits,
+        "split_artifacts_schema_version": (
+            ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+        ),
+        "split_artifacts": split_artifacts,
         "split_paths": split_paths,
         "missing_required_by_split": missing_required_by_split,
         "label_horizons": label_horizons,
@@ -919,6 +932,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dataset-dir", required=True)
+    for split in FOUNDATION_AUDIT_DATA_SPLITS:
+        ap.add_argument(f"--{split}-manifest-json", required=True)
+        ap.add_argument(f"--{split}-manifest-sha256", required=True)
+        ap.add_argument(f"--{split}-parquet-sha256", required=True)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

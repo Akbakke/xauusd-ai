@@ -16,6 +16,7 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -60,13 +61,62 @@ FORBIDDEN_PREDICTION_COLUMNS = frozenset(
 )
 
 
-def _split_parquet(dataset_dir: Path, split: str) -> Path:
-    matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-    if len(matches) != 1:
+def _prediction_report_split_parquet(
+    prediction_report: dict[str, Any],
+    dataset_dir: Path,
+    split: str,
+) -> Path:
+    contract = prediction_report.get("dataset_signal_contract")
+    rows = contract.get("splits") if isinstance(contract, dict) else None
+    row = rows.get(split) if isinstance(rows, dict) else None
+    if not isinstance(row, dict):
         raise RuntimeError(
-            f"expected exactly one *_{split}.parquet in {dataset_dir}, got {matches}"
+            f"prediction report lacks exact {split} dataset artifact binding"
         )
-    return matches[0]
+    paths: dict[str, Path] = {}
+    for kind, suffix in (
+        ("manifest", f"_{split}.manifest.json"),
+        ("parquet", f"_{split}.parquet"),
+    ):
+        path = Path(str(row.get(f"{kind}_path") or "")).expanduser()
+        expected_sha = str(row.get(f"{kind}_sha256") or "").strip().lower()
+        if (
+            not path.is_absolute()
+            or path.resolve() != path
+            or path.is_symlink()
+            or not path.is_file()
+            or path.parent != dataset_dir
+            or not path.name.endswith(suffix)
+            or any("latest" in part.lower() for part in path.parts)
+        ):
+            raise RuntimeError(
+                f"prediction report {split} {kind} identity is invalid: {path}"
+            )
+        if len(expected_sha) != 64 or any(
+            character not in "0123456789abcdef" for character in expected_sha
+        ):
+            raise RuntimeError(
+                f"prediction report {split} {kind} lacks SHA-256"
+            )
+        if sha256_file(path) != expected_sha:
+            raise RuntimeError(
+                f"prediction report {split} {kind} hash mismatch"
+            )
+        paths[kind] = path
+    manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+    if Path(str(manifest.get("output_data_path") or "")).expanduser() != paths[
+        "parquet"
+    ]:
+        raise RuntimeError(
+            f"prediction report {split} manifest output_data_path mismatch"
+        )
+    if sha256_file(paths["manifest"]) != str(
+        row["manifest_sha256"]
+    ).strip().lower():
+        raise RuntimeError(
+            f"prediction report {split} manifest changed during validation"
+        )
+    return paths["parquet"]
 
 
 def _schema_cols(path: Path) -> set[str]:
@@ -232,7 +282,11 @@ def main() -> int:
     if not ctx_cont_names:
         raise RuntimeError("bundle metadata lacks ordered_ctx_cont_names")
 
-    dataset_parquet = _split_parquet(dataset_dir, str(args.split))
+    dataset_parquet = _prediction_report_split_parquet(
+        prediction_report,
+        dataset_dir,
+        str(args.split),
+    )
     dataset_required = [
         "time",
         "snap",

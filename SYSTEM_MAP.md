@@ -209,6 +209,13 @@ trainer, together with recipe-bound hashes. The trainer revalidates all six;
 it has no dataset-directory glob, TRAIN-stem VAL/TEST inference or optional
 split fallback.
 
+`gx1/contracts/entry_dataset_split_artifacts_v1.py` owns the common foundation
+audit boundary. For each TRAIN/VAL/TEST split it requires an explicit canonical
+manifest path, manifest SHA-256 and parquet SHA-256; the parquet path may come
+only from the hash-bound manifest. Feature, target and specialist audits emit
+the normalized four-field identity, and smoke/adoption gates compare it with
+the candidate manifest. Extra files in the dataset directory are inert.
+
 The only model-native train wrappers are:
 
 - `scripts/run_entry_model_native_seq513_smoke_train.sh`;
@@ -232,6 +239,12 @@ slices on both validation and test.
 calibration artifact. `gx1/contracts/immutable_event_authority_v1.py` and the
 candidate evidence/readiness scripts bind events by content and lineage. A
 mutable report path or a copied `PASS` decision is insufficient.
+
+Selective-edge prediction carries exact VAL/TEST manifest and parquet
+identities into its immutable report. Candidate replay and serve parity consume
+those report-bound identities directly. Learned sizing provenance does the
+same for TRAIN/VAL fitting and TEST diagnostics; it neither scans the dataset
+directory nor grants sizing any direction authority.
 
 `gx1/execution/model_native_entry_replay_v1.py` owns neutral source-tape and
 offline label-horizon primitives. Replay consumes the model's final direction;

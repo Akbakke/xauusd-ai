@@ -17,7 +17,7 @@ import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
@@ -52,7 +52,6 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _bundle_dataset_kwargs,
     _device_arg,
-    _split_file,
 )
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 SIDE_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
@@ -574,17 +573,85 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
     }
 
 
-def _dataset_model_native_contract(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
+def _explicit_dataset_artifact(
+    path_value: str,
+    sha256_value: str,
+    *,
+    dataset_dir: Path,
+    label: str,
+    suffix: str,
+) -> tuple[Path, str]:
+    path = Path(path_value).expanduser()
+    if (
+        not path.is_absolute()
+        or path.is_symlink()
+        or not path.is_file()
+        or path.resolve() != path
+        or path.parent != dataset_dir
+        or not path.name.endswith(suffix)
+        or any("latest" in part.lower() for part in path.parts)
+    ):
+        raise RuntimeError(
+            f"selective-edge explicit dataset artifact is invalid: {label}={path}"
+        )
+    expected_sha = str(sha256_value or "").strip().lower()
+    if len(expected_sha) != 64 or any(
+        character not in "0123456789abcdef" for character in expected_sha
+    ):
+        raise RuntimeError(
+            f"selective-edge explicit dataset artifact lacks SHA-256: {label}"
+        )
+    observed_sha = _sha256_file(path)
+    if observed_sha != expected_sha:
+        raise RuntimeError(
+            f"selective-edge dataset artifact hash mismatch: {label} "
+            f"expected={expected_sha} observed={observed_sha}"
+        )
+    return path, expected_sha
+
+
+def _dataset_model_native_contract(
+    dataset_dir: Path,
+    splits: list[str],
+    split_bindings: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    if set(split_bindings) != set(splits):
+        raise RuntimeError(
+            "selective-edge explicit dataset split bindings are incomplete"
+        )
     rows: dict[str, Any] = {}
     reference_contract: dict[str, Any] | None = None
     for split in splits:
-        matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
-        if len(matches) != 1:
+        binding = split_bindings[split]
+        if not isinstance(binding, dict) or set(binding) != {
+            "manifest_path",
+            "manifest_sha256",
+            "parquet_path",
+            "parquet_sha256",
+        }:
             raise RuntimeError(
-                f"dataset split {split!r} must have exactly one manifest; got {len(matches)}"
+                f"selective-edge split binding is invalid: split={split}"
             )
-        path = matches[0]
-        data = json.loads(path.read_text(encoding="utf-8"))
+        manifest_path, manifest_sha = _explicit_dataset_artifact(
+            binding["manifest_path"],
+            binding["manifest_sha256"],
+            dataset_dir=dataset_dir,
+            label=f"{split}_manifest",
+            suffix=f"_{split}.manifest.json",
+        )
+        parquet_path, parquet_sha = _explicit_dataset_artifact(
+            binding["parquet_path"],
+            binding["parquet_sha256"],
+            dataset_dir=dataset_dir,
+            label=f"{split}_parquet",
+            suffix=f"_{split}.parquet",
+        )
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        declared_parquet = Path(str(data.get("output_data_path") or "")).expanduser()
+        if not declared_parquet.is_absolute() or declared_parquet != parquet_path:
+            raise RuntimeError(
+                f"dataset split {split!r} manifest output_data_path mismatch"
+            )
         extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
         contract = extra.get("model_native_signal_contract")
         if not isinstance(contract, dict):
@@ -598,19 +665,28 @@ def _dataset_model_native_contract(dataset_dir: Path, splits: list[str]) -> dict
         elif dict(contract) != reference_contract:
             raise RuntimeError("dataset split model-native signal contracts differ")
         rows[split] = {
-            "manifest_path": str(path),
-            "manifest_sha256": _sha256_file(path),
-            "manifest_count": 1,
+            "manifest_path": str(manifest_path),
+            "manifest_sha256": manifest_sha,
+            "parquet_path": str(parquet_path),
+            "parquet_sha256": parquet_sha,
             "seq_input_dim": int(contract["seq_input_dim"]),
             "snap_input_dim": int(contract["snap_input_dim"]),
             "ordered_fields_sha256": str(contract["ordered_fields_sha256"]),
         }
+        if _sha256_file(manifest_path) != manifest_sha:
+            raise RuntimeError(
+                f"dataset split {split!r} manifest changed during validation"
+            )
     if reference_contract is None:
         raise RuntimeError("dataset has no model-native signal contract")
     return {"contract": reference_contract, "splits": rows}
 
 
-def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
+def _iter_split_chunks(
+    parquet_path: Path,
+    manifest_path: Path,
+    stream_chunk_rows: int,
+):
     """Yield (chunk_parquet_path, cleanup_fn). Each dataset row carries its own
     nested (seq_len, signal_dim) sequence, so rows are independent and row-range
     chunking is loss-free. stream_chunk_rows<=0 -> the original file, unsliced.
@@ -642,9 +718,7 @@ def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
         del table
         tmp_path = Path(tmp.name)
         tmp_manifest = tmp_path.with_suffix(".manifest.json")
-        source_manifest = Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
-        if source_manifest.exists():
-            shutil.copy2(source_manifest, tmp_manifest)
+        shutil.copy2(manifest_path, tmp_manifest)
         print(f"[STREAM_CHUNK] chunk ready: {tmp_path.name}", flush=True)
         yield tmp_path, (
             lambda p=tmp_path, m=tmp_manifest: (
@@ -709,7 +783,8 @@ def _derived_serve_parity_outputs(
 def _predict_bundle(
     *,
     bundle_dir: Path,
-    dataset_dir: Path,
+    split_manifests: dict[str, Path],
+    split_parquets: dict[str, Path],
     splits: list[str],
     model_name: str,
     device: torch.device,
@@ -758,8 +833,13 @@ def _predict_bundle(
     rows: list[pd.DataFrame] = []
 
     for split in splits:
-        parquet_path = _split_file(dataset_dir, split)
-        for _chunk_path, _chunk_cleanup in _iter_split_chunks(parquet_path, int(stream_chunk_rows)):
+        manifest_path = split_manifests[split]
+        parquet_path = split_parquets[split]
+        for _chunk_path, _chunk_cleanup in _iter_split_chunks(
+            parquet_path,
+            manifest_path,
+            int(stream_chunk_rows),
+        ):
             try:
                 dataset = EntryV10CtxDataset(
                     parquet_path=_chunk_path,
@@ -914,7 +994,7 @@ def _predict_bundle(
                             ("trendline_rail_long_early_failure_prob", 5),
                         ):
                             extra_chunks.setdefault(_name, []).append(trendline_rail_probs[:, _index])
-                        trade_logit = _tensor_np(out, "trade_logit", width=1)
+                        _tensor_np(out, "trade_logit", width=1)
                         side_logits = _tensor_np(out, "side_logits", width=2)
                         side_utility = _tensor_np(out, "side_utility", width=2)
                         side_bad_path_logit = _tensor_np(out, "side_bad_path_logit", width=2)
@@ -1131,7 +1211,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
     splits = list(EVALUATION_SPLITS)
-    dataset_contract = _dataset_model_native_contract(dataset_dir, splits)
+    split_bindings = {
+        split: {
+            "manifest_path": str(getattr(args, f"{split}_manifest_json")),
+            "manifest_sha256": str(getattr(args, f"{split}_manifest_sha256")),
+            "parquet_path": str(getattr(args, f"{split}_parquet")),
+            "parquet_sha256": str(getattr(args, f"{split}_parquet_sha256")),
+        }
+        for split in splits
+    }
+    dataset_contract = _dataset_model_native_contract(
+        dataset_dir,
+        splits,
+        split_bindings,
+    )
+    split_parquets = {
+        split: Path(dataset_contract["splits"][split]["parquet_path"])
+        for split in splits
+    }
+    split_manifests = {
+        split: Path(dataset_contract["splits"][split]["manifest_path"])
+        for split in splits
+    }
     top_fracs = list(EVALUATION_TOP_FRACS)
     device = torch.device(_device_arg(args.device))
     _reject_retired_selection_environment()
@@ -1159,7 +1260,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     bundle_meta: dict[str, Any] = {}
     candidate, candidate_failures, bundle_meta = _predict_bundle(
         bundle_dir=bundle_dir,
-        dataset_dir=dataset_dir,
+        split_manifests=split_manifests,
+        split_parquets=split_parquets,
         splits=splits,
         model_name=EVALUATION_MODEL_NAME,
         device=device,
@@ -1321,6 +1423,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bundle-dir", required=True)
     ap.add_argument("--dataset-dir", required=True)
+    for split in EVALUATION_SPLITS:
+        ap.add_argument(f"--{split}-manifest-json", required=True)
+        ap.add_argument(f"--{split}-manifest-sha256", required=True)
+        ap.add_argument(f"--{split}-parquet", required=True)
+        ap.add_argument(f"--{split}-parquet-sha256", required=True)
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument(

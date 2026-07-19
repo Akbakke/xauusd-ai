@@ -19,6 +19,9 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_binding,
     require_foundation_audit_report_policy,
 )
+from gx1.contracts.entry_dataset_split_artifacts_v1 import (
+    ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
@@ -112,15 +115,40 @@ def _canonical_equal(left: Any, right: Any) -> bool:
         return False
 
 
-def _split_candidates(dataset_dir: Path, split: str) -> tuple[list[Path], list[Path]]:
-    return (
-        sorted(dataset_dir.glob(f"*_{split}.parquet")),
-        sorted(dataset_dir.glob(f"*_{split}.manifest.json")),
-    )
+def _declared_split_artifact(
+    value: Any,
+    expected_sha256: Any,
+    *,
+    dataset_dir: Path,
+    label: str,
+) -> Path:
+    raw = Path(str(value or "")).expanduser()
+    if (
+        not raw.is_absolute()
+        or raw.is_symlink()
+        or not raw.is_file()
+        or raw.resolve() != raw
+        or raw.parent != dataset_dir
+        or any("latest" in part.lower() for part in raw.parts)
+    ):
+        raise RuntimeError(
+            f"[ADOPTION_DATASET_ARTIFACT_IDENTITY_INVALID] {label}={raw}"
+        )
+    expected = str(expected_sha256 or "").strip().lower()
+    if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
+        raise RuntimeError(f"[ADOPTION_DATASET_ARTIFACT_HASH_INVALID] {label}")
+    observed = sha256_file(raw)
+    if observed != expected:
+        raise RuntimeError(
+            f"[ADOPTION_DATASET_ARTIFACT_HASH_MISMATCH] {label} "
+            f"expected={expected} observed={observed}"
+        )
+    return raw
 
 
 def _dataset_contract(
     dataset_dir: Path,
+    smoke_report: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, Path]]:
     checks = [
         _check(
@@ -132,26 +160,30 @@ def _dataset_contract(
     split_rows: dict[str, dict[str, Any]] = {}
     artifacts: dict[str, Path] = {}
     contracts: list[dict[str, Any]] = []
+    embedded = smoke_report.get("smoke_manifest")
+    embedded_splits = (
+        embedded.get("splits") if isinstance(embedded, dict) else None
+    )
+    if not isinstance(embedded_splits, dict) or set(embedded_splits) != set(SPLITS):
+        raise RuntimeError("[ADOPTION_DATASET_SPLIT_IDENTITY_MISSING]")
     for split in SPLITS:
-        parquets, manifests = _split_candidates(dataset_dir, split)
-        parquet = parquets[0].absolute() if len(parquets) == 1 else None
-        manifest_path = manifests[0].absolute() if len(manifests) == 1 else None
-        checks.extend(
-            [
-                _check(
-                    f"{split} parquet exists exactly once",
-                    parquet is not None and parquet.is_file(),
-                    {"candidates": [str(path) for path in parquets]},
-                ),
-                _check(
-                    f"{split} manifest exists exactly once",
-                    manifest_path is not None and manifest_path.is_file(),
-                    {"candidates": [str(path) for path in manifests]},
-                ),
-            ]
+        declaration = embedded_splits[split]
+        if not isinstance(declaration, dict):
+            raise RuntimeError(
+                f"[ADOPTION_DATASET_SPLIT_IDENTITY_INVALID] split={split}"
+            )
+        parquet = _declared_split_artifact(
+            declaration.get("out_parquet"),
+            declaration.get("out_parquet_sha256"),
+            dataset_dir=dataset_dir,
+            label=f"{split}_parquet",
         )
-        if parquet is None or manifest_path is None:
-            continue
+        manifest_path = _declared_split_artifact(
+            declaration.get("out_manifest"),
+            declaration.get("out_manifest_sha256"),
+            dataset_dir=dataset_dir,
+            label=f"{split}_manifest",
+        )
         artifacts[f"dataset_{split}_parquet"] = parquet
         artifacts[f"dataset_{split}_manifest"] = manifest_path
         manifest = _read_json(manifest_path)
@@ -215,6 +247,12 @@ def _dataset_contract(
                 row,
             )
         )
+        if sha256_file(manifest_path) != str(
+            declaration.get("out_manifest_sha256") or ""
+        ).strip().lower():
+            raise RuntimeError(
+                f"[ADOPTION_DATASET_MANIFEST_CHANGED_DURING_VALIDATION] split={split}"
+            )
     checks.append(
         _check(
             "train val test signal contracts are identical",
@@ -232,6 +270,7 @@ def _base_evidence_checks(
     schema_version: str,
     audit_kind: str,
     dataset_dir: Path,
+    split_rows: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     policy_error = ""
     try:
@@ -242,6 +281,15 @@ def _base_evidence_checks(
         )
     except RuntimeError as exc:
         policy_error = str(exc)
+    expected_split_artifacts = {
+        split: {
+            "manifest_path": row["manifest_path"],
+            "manifest_sha256": row["manifest_sha256"],
+            "parquet_path": row["parquet_path"],
+            "parquet_sha256": row["parquet_sha256"],
+        }
+        for split, row in split_rows.items()
+    }
     return [
         _check(
             "evidence schema is exact",
@@ -278,10 +326,27 @@ def _base_evidence_checks(
                 "observed": report.get("data_splits"),
             },
         ),
+        _check(
+            "foundation audit is content-bound to exact candidate split artifacts",
+            report.get("split_artifacts_schema_version")
+            == ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+            and _canonical_equal(
+                report.get("split_artifacts"),
+                expected_split_artifacts,
+            ),
+            {
+                "expected": expected_split_artifacts,
+                "observed": report.get("split_artifacts"),
+            },
+        ),
     ]
 
 
-def _feature_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, Any]]:
+def _feature_checks(
+    report: dict[str, Any],
+    dataset_dir: Path,
+    split_rows: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
     signal_contract = (
         report.get("model_native_signal_contract")
         if isinstance(report.get("model_native_signal_contract"), dict)
@@ -337,6 +402,7 @@ def _feature_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str,
             schema_version="entry_feature_foundation_audit_v1",
             audit_kind="feature",
             dataset_dir=dataset_dir,
+            split_rows=split_rows,
         ),
         _check(
             "feature audit proves exact model-native 34 plus 305 plus 174 partition",
@@ -396,7 +462,11 @@ def _feature_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str,
     ]
 
 
-def _target_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, Any]]:
+def _target_checks(
+    report: dict[str, Any],
+    dataset_dir: Path,
+    split_rows: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
     contract = (
         report.get("target_head_contract")
         if isinstance(report.get("target_head_contract"), dict)
@@ -410,6 +480,7 @@ def _target_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, 
             schema_version="entry_target_foundation_audit_v1",
             audit_kind="target",
             dataset_dir=dataset_dir,
+            split_rows=split_rows,
         ),
         _check(
             "target audit head contract is exact model-native base",
@@ -426,7 +497,9 @@ def _target_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, 
 
 
 def _specialist_checks(
-    report: dict[str, Any], dataset_dir: Path
+    report: dict[str, Any],
+    dataset_dir: Path,
+    split_rows: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     required = tuple(
         str(value) for value in report.get("required_training_specialists", [])
@@ -447,6 +520,7 @@ def _specialist_checks(
             schema_version="entry_specialist_feature_group_audit_v1",
             audit_kind="specialist",
             dataset_dir=dataset_dir,
+            split_rows=split_rows,
         ),
         _check(
             "specialist audit uses exact model-native seq513 dimensions",
@@ -630,15 +704,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     require_newest_immutable_event(evidence_paths["smoke_manifest"], SMOKE_EVENT_PREFIX)
 
     reports = {name: _read_json(path) for name, path in evidence_paths.items()}
-    dataset_checks, split_rows, dataset_artifacts = _dataset_contract(dataset_dir)
+    dataset_checks, split_rows, dataset_artifacts = _dataset_contract(
+        dataset_dir,
+        reports["smoke_manifest"],
+    )
     artifacts = {**evidence_paths, **dataset_artifacts}
     fingerprints = artifact_fingerprints(artifacts)
     gate_checks = {
         "candidate_dataset": dataset_checks,
-        "feature_audit": _feature_checks(reports["feature_audit"], dataset_dir),
-        "target_audit": _target_checks(reports["target_audit"], dataset_dir),
+        "feature_audit": _feature_checks(
+            reports["feature_audit"],
+            dataset_dir,
+            split_rows,
+        ),
+        "target_audit": _target_checks(
+            reports["target_audit"],
+            dataset_dir,
+            split_rows,
+        ),
         "specialist_audit": _specialist_checks(
-            reports["specialist_audit"], dataset_dir
+            reports["specialist_audit"],
+            dataset_dir,
+            split_rows,
         ),
         "smoke_manifest": _smoke_checks(
             reports["smoke_manifest"],

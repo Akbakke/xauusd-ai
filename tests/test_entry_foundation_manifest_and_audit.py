@@ -150,7 +150,7 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
         encoding="utf-8",
     )
 
-    emitted = _load_emitted_contract(parquet)
+    emitted = _load_emitted_contract(parquet.with_suffix(".manifest.json"))
 
     assert emitted["signal_fields"] == signal_contract["fields"]
     assert emitted["seq_input_dim"] == MODEL_NATIVE_SIGNAL_DIM

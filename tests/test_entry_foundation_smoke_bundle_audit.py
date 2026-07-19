@@ -21,7 +21,6 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
-    MODEL_NATIVE_CONTRACT_MODE,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
@@ -426,7 +425,14 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         "pretrain": "xau_direction_repair_pretrain_audit_v1",
     }
 
-    def fake_input_audit_contract(*, name: str, path: Path, dataset_dir: Path):
+    def fake_input_audit_contract(
+        *,
+        name: str,
+        path: Path,
+        dataset_dir: Path,
+        expected_split_artifacts: object,
+    ):
+        assert expected_split_artifacts == manifest_report["splits"]
         report = {
             "path": str(audits[name]),
             "sha256": audit._sha256_file(audits[name]),

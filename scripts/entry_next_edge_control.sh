@@ -289,6 +289,14 @@ case "$cmd" in
     for flag in \
       --bundle-dir \
       --dataset-dir \
+      --val-manifest-json \
+      --val-manifest-sha256 \
+      --val-parquet \
+      --val-parquet-sha256 \
+      --test-manifest-json \
+      --test-manifest-sha256 \
+      --test-parquet \
+      --test-parquet-sha256 \
       --device \
       --batch-size \
       --stream-chunk-rows \

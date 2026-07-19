@@ -29,6 +29,9 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_metadata,
     require_foundation_audit_report_policy,
 )
+from gx1.contracts.entry_dataset_split_artifacts_v1 import (
+    ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
@@ -255,22 +258,6 @@ def _device_arg(raw: str) -> str:
     return value
 
 
-def _split_file(dataset_dir: Path, split: str) -> Path:
-    """Resolve one exact split file; fuzzy legacy matching is forbidden."""
-
-    dataset_dir = Path(dataset_dir).expanduser().resolve()
-    matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"dataset must contain exactly one *_{split}.parquet; "
-            f"observed={[str(path) for path in matches]}"
-        )
-    path = matches[0]
-    if path.is_symlink() or not path.is_file():
-        raise RuntimeError(f"split parquet is not a regular file: {path}")
-    return path.resolve()
-
-
 def _bundle_dataset_kwargs(
     metadata: Mapping[str, Any], m5_prebuilt_path: Path
 ) -> dict[str, Any]:
@@ -457,7 +444,11 @@ def _dataset_manifest_contract(
 
 
 def _input_audit_contract(
-    *, name: str, path: Path, dataset_dir: Path
+    *,
+    name: str,
+    path: Path,
+    dataset_dir: Path,
+    expected_split_artifacts: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     schema, prefix = _INPUT_AUDIT_CONTRACTS[name]
     path = Path(path).expanduser().absolute()
@@ -491,6 +482,32 @@ def _input_audit_contract(
                 )
             except RuntimeError as exc:
                 failures.append(str(exc))
+            observed_artifacts = payload.get("split_artifacts")
+            if (
+                payload.get("split_artifacts_schema_version")
+                != ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+                or not isinstance(observed_artifacts, Mapping)
+                or tuple(observed_artifacts) != FOUNDATION_AUDIT_DATA_SPLITS
+            ):
+                failures.append(
+                    f"{name} audit split artifact contract is missing or stale"
+                )
+            else:
+                for split in DATA_SPLITS:
+                    observed = observed_artifacts.get(split)
+                    expected = expected_split_artifacts.get(split)
+                    normalized_expected = {
+                        "manifest_path": expected.get("path"),
+                        "manifest_sha256": expected.get("sha256"),
+                        "parquet_path": expected.get("parquet_path"),
+                        "parquet_sha256": expected.get("parquet_sha256"),
+                    } if isinstance(expected, Mapping) else None
+                    if not isinstance(observed, Mapping) or dict(
+                        observed
+                    ) != normalized_expected:
+                        failures.append(
+                            f"{name} audit {split} split artifact binding mismatch"
+                        )
     if name == "target" and payload:
         contract = payload.get("target_head_contract")
         if not isinstance(contract, dict):
@@ -1479,6 +1496,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             name=name,
             path=Path(raw_path),
             dataset_dir=dataset_dir,
+            expected_split_artifacts=manifests["splits"],
         )
         input_audits[name] = audit_report
         failures.extend(

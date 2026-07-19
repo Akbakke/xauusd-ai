@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -15,7 +16,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_SPECIALIST,
-    FOUNDATION_OBJECTIVE_SPECIALISTS,
     MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_EXPECTED_SIGNAL_DIM,
     MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
@@ -23,8 +23,6 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_CONTRACT_MODES,
-    SPECIALIST_FUSION_ACTIVE_HEADS,
-    SPECIALIST_FUSION_BLOCKED_HEADS,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
     require_model_native_specialist_contract_mode,
@@ -180,7 +178,9 @@ def _write_smart_seq513_fixture(
     dataset_dir = tmp_path / "smart_dataset"
     dataset_dir.mkdir()
     for split in ("train", "val", "test"):
+        parquet_path = dataset_dir / f"sample_{split}.parquet"
         manifest = {
+            "output_data_path": str(parquet_path.resolve()),
             "extra": {
                 "model_native_signal_contract": signal_contract,
                 "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
@@ -206,12 +206,15 @@ def _write_smart_seq513_fixture(
                 },
             }
         }
-        (dataset_dir / f"sample_{split}.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         snap = [
             (np.linspace(0.1, 1.0, len(fields), dtype=np.float32) * float(i + 1)).tolist()
             for i in range(8)
         ]
-        pd.DataFrame({"snap": snap}).to_parquet(dataset_dir / f"sample_{split}.parquet", index=False)
+        pd.DataFrame({"snap": snap}).to_parquet(parquet_path, index=False)
+        (dataset_dir / f"sample_{split}.manifest.json").write_text(
+            json.dumps(manifest),
+            encoding="utf-8",
+        )
 
     seq_manifest = tmp_path / "smart_seq513_model_native_manifest.json"
     seq_manifest.write_text(
@@ -243,6 +246,17 @@ def _write_smart_seq513_fixture(
 
 
 def _audit_args(tmp_path: Path, dataset_dir: Path, seq_manifest: Path, *, contract_mode: str) -> argparse.Namespace:
+    split_args: dict[str, str] = {}
+    for split in ("train", "val", "test"):
+        manifest = (dataset_dir / f"sample_{split}.manifest.json").resolve()
+        parquet = (dataset_dir / f"sample_{split}.parquet").resolve()
+        split_args[f"{split}_manifest_json"] = str(manifest)
+        split_args[f"{split}_manifest_sha256"] = hashlib.sha256(
+            manifest.read_bytes()
+        ).hexdigest()
+        split_args[f"{split}_parquet_sha256"] = hashlib.sha256(
+            parquet.read_bytes()
+        ).hexdigest()
     return argparse.Namespace(
         dataset_dir=str(dataset_dir),
         seq_structure_manifest=str(seq_manifest),
@@ -250,6 +264,7 @@ def _audit_args(tmp_path: Path, dataset_dir: Path, seq_manifest: Path, *, contra
         data_splits="train,val,test",
         contract_mode=contract_mode,
         quiet=True,
+        **split_args,
     )
 
 
@@ -257,6 +272,8 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     tmp_path: Path,
 ) -> None:
     dataset_dir, seq_manifest = _write_smart_seq513_fixture(tmp_path)
+    for split in ("train", "val", "test"):
+        (dataset_dir / f"unbound_decoy_{split}.parquet").write_bytes(b"decoy")
 
     report = run(
         _audit_args(
@@ -291,6 +308,7 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert all(row["feature_count_matches"] is True for row in report["smart_family_contract_rows"])
     assert len(report["specialist_input_liveness"]) == 24
     assert report["specialist_input_liveness_all_live"] is True
+    assert set(report["split_artifacts"]) == {"train", "val", "test"}
 
 
 def test_specialist_feature_group_audit_fails_closed_on_model_native_family_count_mismatch(

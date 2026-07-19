@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
 from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     SizingFinalizationError,
     adopt_learned_sizing,
@@ -14,6 +15,50 @@ from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
 from tests.model_native_sizing_support import (
     write_passing_sizing_calibration_and_proof,
 )
+
+
+def test_sizing_split_bindings_come_only_from_prediction_report(
+    tmp_path: Path,
+) -> None:
+    dataset_dir = tmp_path / "dataset"
+    dataset_dir.mkdir()
+    bound_manifest = dataset_dir / "entry_model_native_test.manifest.json"
+    bound_parquet = dataset_dir / "entry_model_native_test.parquet"
+    bound_manifest.write_text("{}\n", encoding="utf-8")
+    bound_parquet.write_bytes(b"bound")
+    (dataset_dir / "decoy_test.parquet").write_bytes(b"decoy")
+    report = {
+        "dataset_signal_contract": {
+            "splits": {
+                "test": {
+                    "manifest_path": str(bound_manifest.resolve()),
+                    "manifest_sha256": "a" * 64,
+                    "parquet_path": str(bound_parquet.resolve()),
+                    "parquet_sha256": "b" * 64,
+                }
+            }
+        }
+    }
+
+    assert sizing_finalizer._dataset_split_bindings(
+        report,
+        dataset_dir,
+        ("test",),
+    ) == {
+        "test": {
+            "manifest_path": str(bound_manifest.resolve()),
+            "manifest_sha256": "a" * 64,
+            "parquet_path": str(bound_parquet.resolve()),
+            "parquet_sha256": "b" * 64,
+        }
+    }
+    source = Path(sizing_finalizer.__file__).read_text(encoding="utf-8")
+    helper_source = source[
+        source.index("def _dataset_split_bindings(") : source.index(
+            "\ndef _prediction_provenance(",
+        )
+    ]
+    assert ".glob(" not in helper_source
 
 
 def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(

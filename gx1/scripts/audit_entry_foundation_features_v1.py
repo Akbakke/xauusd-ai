@@ -21,6 +21,10 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
     foundation_audit_policy_metadata,
 )
+from gx1.contracts.entry_dataset_split_artifacts_v1 import (
+    ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
+    require_dataset_split_artifacts,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -158,21 +162,6 @@ def _sha256_json(value: Any) -> str:
         allow_nan=False,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
-
-
-def _split_files(dataset_dir: Path, splits: list[str]) -> dict[str, Path]:
-    if not dataset_dir.is_dir():
-        raise RuntimeError(f"model-native dataset directory missing: {dataset_dir}")
-    files: dict[str, Path] = {}
-    for split in splits:
-        matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-        if len(matches) != 1:
-            raise RuntimeError(
-                f"model-native split parquet is not exact: split={split} "
-                f"matches={[str(path) for path in matches]}"
-            )
-        files[split] = matches[0]
-    return files
 
 
 def _strip_feature_prefix(name: str) -> str:
@@ -314,10 +303,12 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
     }
 
 
-def _split_schema(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
-    files = _split_files(dataset_dir, splits)
+def _split_schema(files: dict[str, Path], splits: list[str]) -> dict[str, Any]:
+    if tuple(files) != tuple(splits):
+        raise RuntimeError("model-native split parquet bindings are not exact")
     out: dict[str, Any] = {}
-    for split, path in files.items():
+    for split in splits:
+        path = files[split]
         pf = pq.ParquetFile(path)
         first = None
         for batch in pf.iter_batches(batch_size=1, columns=["seq", "snap", "ctx_cont", "ctx_cat"]):
@@ -343,12 +334,7 @@ def _split_schema(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
     return out
 
 
-def _split_manifest_path(parquet_path: Path) -> Path:
-    return parquet_path.with_suffix(".manifest.json")
-
-
-def _load_emitted_contract(parquet_path: Path) -> dict[str, Any]:
-    manifest_path = _split_manifest_path(parquet_path)
+def _load_emitted_contract(manifest_path: Path) -> dict[str, Any]:
     if not manifest_path.exists():
         raise RuntimeError(f"split manifest missing: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -1110,8 +1096,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     failures: list[str] = []
     schema: dict[str, Any] = {}
+    split_artifacts: dict[str, dict[str, str]] = {}
     try:
-        schema = _split_schema(dataset_dir, splits)
+        split_artifacts = require_dataset_split_artifacts(
+            dataset_dir,
+            {
+                split: {
+                    "manifest_path": getattr(args, f"{split}_manifest_json"),
+                    "manifest_sha256": getattr(
+                        args,
+                        f"{split}_manifest_sha256",
+                    ),
+                    "parquet_sha256": getattr(args, f"{split}_parquet_sha256"),
+                }
+                for split in splits
+            },
+            expected_splits=splits,
+            context="FOUNDATION_FEATURE_AUDIT_DATASET",
+        )
+        schema = _split_schema(
+            {
+                split: Path(split_artifacts[split]["parquet_path"])
+                for split in splits
+            },
+            splits,
+        )
     except Exception as exc:
         failures.append(f"dataset split/schema load failed: {exc}")
 
@@ -1129,7 +1138,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             parquet_path = Path(str(split_schema["path"]))
             try:
-                contract = _load_emitted_contract(parquet_path)
+                contract = _load_emitted_contract(
+                    Path(split_artifacts[split]["manifest_path"])
+                )
             except Exception as exc:
                 failures.append(f"{split}: emitted signal contract load failed: {exc}")
                 missing_by_split[split] = list(selected_features)
@@ -1293,6 +1304,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "dataset_dir": str(dataset_dir),
         "data_splits": splits,
+        "split_artifacts_schema_version": (
+            ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION
+        ),
+        "split_artifacts": split_artifacts,
         "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "base_signal_fields": list(MODEL_NATIVE_BASE_FIELDS),
@@ -1352,6 +1367,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dataset-dir", required=True)
+    for split in FOUNDATION_AUDIT_DATA_SPLITS:
+        ap.add_argument(f"--{split}-manifest-json", required=True)
+        ap.add_argument(f"--{split}-manifest-sha256", required=True)
+        ap.add_argument(f"--{split}-parquet-sha256", required=True)
     ap.add_argument("--seq-structure-manifest", required=True)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")

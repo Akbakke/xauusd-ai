@@ -210,6 +210,20 @@ def _write_prediction_event(
         bundle_metadata=metadata,
         requested_splits=["val", "test"],
     )
+    dataset_splits: dict[str, dict[str, str]] = {}
+    for split in ("val", "test"):
+        parquet = (dataset_dir / f"tiny_{split}.parquet").resolve()
+        manifest = parquet.with_suffix(".manifest.json")
+        manifest.write_text(
+            json.dumps({"output_data_path": str(parquet)}, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        dataset_splits[split] = {
+            "manifest_path": str(manifest),
+            "manifest_sha256": sha256_file(manifest),
+            "parquet_path": str(parquet),
+            "parquet_sha256": sha256_file(parquet),
+        }
     report_path = event_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{stamp}.json"
     report = {
         "schema_version": "entry_candidate_selective_edge_v1",
@@ -223,6 +237,10 @@ def _write_prediction_event(
         "models": ["candidate"],
         "feature_mask_ablation": {"enabled": False},
         "model_native_signal_contract": _signal_contract(),
+        "dataset_signal_contract": {
+            "contract": _signal_contract(),
+            "splits": dataset_splits,
+        },
         "bundle_seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "bundle_snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "bundle_specialist_fusion_enabled": True,
@@ -480,7 +498,14 @@ def test_candidate_replay_requires_full_dataset_prediction_coverage(
     incomplete.to_parquet(incomplete_path, index=False)
 
     with pytest.raises(RuntimeError, match="exactly cover all val/test dataset rows"):
-        _prepare_predictions(incomplete_path, dataset_dir, "candidate")
+        _prepare_predictions(
+            incomplete_path,
+            {
+                "val": dataset_dir / "tiny_val.parquet",
+                "test": dataset_dir / "tiny_test.parquet",
+            },
+            "candidate",
+        )
 
 
 def test_label_horizon_source_tape_fails_closed_on_incomplete_path(
@@ -532,6 +557,8 @@ def test_replay_sources_expose_no_retired_exit_or_filter_cli() -> None:
         assert retired_path not in trade_log_source
     assert "MODEL_NATIVE_APPLIED_SIZE_MULTIPLIER" not in trade_log_source
     assert "model_native_sizing_authority_contract_metadata" not in trade_log_source
+    assert "def _split_file" not in trade_log_source
+    assert 'glob(f"*_{split}' not in trade_log_source
     assert "def _first_stop_tp_hit" not in execution_source
     assert "def _first_stop_tp_mfe_protect_hit" not in execution_source
     assert "execution_sizing_authority" not in execution_source

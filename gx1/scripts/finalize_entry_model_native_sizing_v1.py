@@ -17,7 +17,6 @@ the launch-state selector and never starts training.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -40,7 +39,6 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     MODEL_NATIVE_SIZING_CALIBRATION_SCHEMA_VERSION,
     MODEL_NATIVE_SIZING_FIT_SPLITS,
     MODEL_NATIVE_SIZING_FIT_SCOPE,
-    MODEL_NATIVE_SIZING_HEAD_VARIATION_EPSILON,
     MODEL_NATIVE_SIZING_HOLDOUT_SPLIT,
     MODEL_NATIVE_SIZING_MAX_CAPACITY_FRACTION,
     MODEL_NATIVE_SIZING_MAX_GROSS_XAU_UNITS,
@@ -69,7 +67,6 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     resolve_and_validate_prediction_evidence,
 )
 from gx1.contracts.immutable_event_authority_v1 import (
-    require_newest_immutable_event,
     write_immutable_json_event,
 )
 
@@ -272,25 +269,37 @@ def _require_stage_path(path: Path, authority_root: Path, stage: str) -> None:
 
 
 def _dataset_split_bindings(
-    dataset_dir: Path, expected_splits: tuple[str, ...]
+    prediction_report: dict[str, Any],
+    dataset_dir: Path,
+    expected_splits: tuple[str, ...],
 ) -> dict[str, dict[str, str]]:
     dataset_dir = dataset_dir.expanduser().resolve()
     if not dataset_dir.is_dir():
         raise SizingFinalizationError(f"dataset_dir missing: {dataset_dir}")
+    contract = prediction_report.get("dataset_signal_contract")
+    report_splits = contract.get("splits") if isinstance(contract, dict) else None
+    if not isinstance(report_splits, dict) or set(report_splits) != set(
+        expected_splits
+    ):
+        raise SizingFinalizationError(
+            "prediction report dataset split bindings are not exact"
+        )
     rows: dict[str, dict[str, str]] = {}
     for split in expected_splits:
-        manifests = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
-        parquets = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-        if len(manifests) != 1 or len(parquets) != 1:
+        report_row = report_splits[split]
+        required = {
+            "manifest_path",
+            "manifest_sha256",
+            "parquet_path",
+            "parquet_sha256",
+        }
+        if not isinstance(report_row, dict) or not required.issubset(report_row):
             raise SizingFinalizationError(
-                f"dataset {split} requires exactly one manifest/parquet: "
-                f"manifests={manifests} parquets={parquets}"
+                f"prediction report {split} dataset artifact binding is incomplete"
             )
         rows[split] = {
-            "manifest_path": str(manifests[0].resolve()),
-            "manifest_sha256": _sha(manifests[0]),
-            "parquet_path": str(parquets[0].resolve()),
-            "parquet_sha256": _sha(parquets[0]),
+            key: str(report_row[key])
+            for key in sorted(required)
         }
     return rows
 
@@ -309,7 +318,7 @@ def _prediction_provenance(
     bundle_dir = bundle_dir.expanduser().resolve()
     dataset_dir = dataset_dir.expanduser().resolve()
     try:
-        authoritative, _report, evidence = resolve_and_validate_prediction_evidence(
+        authoritative, report, evidence = resolve_and_validate_prediction_evidence(
             predictions_path,
             prediction_report_path=prediction_report_path,
             bundle_dir=bundle_dir,
@@ -331,7 +340,9 @@ def _prediction_provenance(
         "bundle_dir": str(bundle_dir),
         "dataset_dir": str(dataset_dir),
         "dataset_split_bindings": _dataset_split_bindings(
-            dataset_dir, expected_splits
+            report,
+            dataset_dir,
+            expected_splits,
         ),
     }
     require_sizing_prediction_provenance(

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -12,9 +11,6 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     learned_sizing_authority_contract_metadata,
-)
-from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
-    calibrated_sizing_transform,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.model_native_serve_gate_v1 import (
@@ -176,12 +172,14 @@ def _prediction_row(
 def _write_dataset_manifest(
     path: Path,
     *,
+    output_data_path: Path,
     coverage: dict[str, tuple[pd.Timestamp, pd.Timestamp]],
     source_tape: Path,
 ) -> None:
     _write_json(
         path,
         {
+            "output_data_path": str(output_data_path.resolve()),
             "ts_min_max_by_split": {
                 split: {"ts_min": str(bounds[0]), "ts_max": str(bounds[1])}
                 for split, bounds in coverage.items()
@@ -218,11 +216,13 @@ def _write_prediction_event(
     report_path = root / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{stamp}.json"
     dataset_splits: dict[str, Any] = {}
     for split in splits:
-        manifest = next(dataset_dir.glob(f"*_{split}.manifest.json"))
+        manifest = dataset_dir / f"entry_model_native_{split}.manifest.json"
+        parquet = dataset_dir / f"entry_model_native_{split}.parquet"
         dataset_splits[split] = {
             "manifest_path": str(manifest.resolve()),
             "manifest_sha256": _sha(manifest),
-            "manifest_count": 1,
+            "parquet_path": str(parquet.resolve()),
+            "parquet_sha256": _sha(parquet),
             "seq_input_dim": 513,
             "snap_input_dim": 513,
             "ordered_fields_sha256": "f" * 64,
@@ -289,8 +289,12 @@ def _write_model_head_serve_parity(
         "model_name": "candidate",
         "bundle_dir": str(bundle_dir.resolve()),
         "dataset_dir": str(dataset_dir.resolve()),
-        "dataset_parquet": str(next(dataset_dir.glob("*_test.parquet")).resolve()),
-        "dataset_parquet_sha256": _sha(next(dataset_dir.glob("*_test.parquet"))),
+        "dataset_parquet": str(
+            (dataset_dir / "entry_model_native_test.parquet").resolve()
+        ),
+        "dataset_parquet_sha256": _sha(
+            dataset_dir / "entry_model_native_test.parquet"
+        ),
         "prediction_evidence": prediction_evidence,
         "prediction_report_evidence": _binding(prediction_report),
         "test_coverage": {
@@ -448,6 +452,7 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         frame.to_parquet(parquet, index=False)
         _write_dataset_manifest(
             dataset_dir / f"entry_model_native_{split}.manifest.json",
+            output_data_path=parquet,
             coverage=coverage,
             source_tape=tape,
         )

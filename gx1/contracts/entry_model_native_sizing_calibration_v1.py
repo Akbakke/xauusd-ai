@@ -35,7 +35,6 @@ from gx1.contracts.immutable_event_authority_v1 import (
     require_newest_immutable_event,
 )
 from gx1.contracts.model_native_serve_gate_v1 import (
-    SERVE_PARITY_SAMPLE_COUNT,
     serve_gate_event_contract_failures,
 )
 from gx1.execution.model_native_entry_replay_v1 import SourceTape
@@ -709,6 +708,17 @@ def require_sizing_prediction_provenance(
         parquet_path = Path(str(row["parquet_path"] or "")).expanduser()
         if not manifest_path.is_absolute() or not parquet_path.is_absolute():
             _fail(context, "dataset manifest/parquet paths must be absolute")
+        if (
+            manifest_path.resolve() != manifest_path
+            or parquet_path.resolve() != parquet_path
+            or manifest_path.is_symlink()
+            or parquet_path.is_symlink()
+            or any("latest" in part.lower() for part in manifest_path.parts)
+            or any("latest" in part.lower() for part in parquet_path.parts)
+            or not manifest_path.name.endswith(f"_{split}.manifest.json")
+            or not parquet_path.name.endswith(f"_{split}.parquet")
+        ):
+            _fail(context, f"{split} dataset artifact identity is not immutable")
         split_bindings[split] = {
             "manifest_path": str(manifest_path.resolve()),
             "manifest_sha256": _sha(
@@ -813,19 +823,34 @@ def require_sizing_prediction_provenance(
             or sha256_file(parquet_path) != bound["parquet_sha256"]
         ):
             _fail(context, f"{split} dataset manifest/parquet hash mismatch")
-        manifest_matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
-        parquet_matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-        if manifest_matches != [manifest_path] or parquet_matches != [parquet_path]:
-            _fail(context, f"{split} dataset binding is not the unique canonical split")
+        manifest = _json_file(
+            manifest_path,
+            context=f"{context}.{split}.dataset_manifest",
+        )
+        declared_parquet = Path(
+            str(manifest.get("output_data_path") or "")
+        ).expanduser()
+        if declared_parquet != parquet_path:
+            _fail(context, f"{split} manifest output_data_path mismatch")
         report_row = report_splits[split]
-        if not isinstance(report_row, Mapping) or (
-            Path(str(report_row.get("manifest_path") or "")).expanduser().resolve()
-            != manifest_path
-            or str(report_row.get("manifest_sha256") or "").lower()
-            != bound["manifest_sha256"]
-            or int(report_row.get("manifest_count") or 0) != 1
-        ):
+        if not isinstance(report_row, Mapping):
             _fail(context, f"prediction report {split} manifest binding mismatch")
+        for kind, expected_path in (
+            ("manifest", manifest_path),
+            ("parquet", parquet_path),
+        ):
+            if (
+                Path(str(report_row.get(f"{kind}_path") or "")).expanduser()
+                != expected_path
+                or str(report_row.get(f"{kind}_sha256") or "").lower()
+                != bound[f"{kind}_sha256"]
+            ):
+                _fail(
+                    context,
+                    f"prediction report {split} {kind} binding mismatch",
+                )
+        if sha256_file(manifest_path) != bound["manifest_sha256"]:
+            _fail(context, f"{split} manifest changed during validation")
         dataset_times = pd.to_datetime(
             pd.read_parquet(parquet_path, columns=["time"])["time"],
             utc=True,
