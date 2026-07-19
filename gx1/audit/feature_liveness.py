@@ -545,9 +545,13 @@ def _main() -> int:
                 "[FEATURE_LIVENESS_CLI_CTX_CONT_CONTRACT_INVALID] "
                 f"ordered_ctx_cont_names={len(cc)} expected=142"
             )
-        ds = EntryV10CtxDataset(parquet_path=Path(a.test_parquet), seq_len=96, allow_constant_labels=True,
-                                enable_multi_tf=True, m5_prebuilt_path=Path(a.m5_prebuilt), multi_tf_seq_len=96,
-                                per_tf_seq_lens={"H4": 96, "D1": 96})
+        ds = EntryV10CtxDataset(
+            parquet_path=Path(a.test_parquet),
+            seq_len=96,
+            m5_prebuilt_path=Path(a.m5_prebuilt),
+            multi_tf_seq_len=96,
+            per_tf_seq_lens={"H4": 96, "D1": 96},
+        )
         # shuffle=True is LOAD-BEARING: a consecutive batch false-flags slowly-varying features
         # (e.g. D1 regime is const within any short window but varies over the period). A shuffled
         # large batch samples across the whole period so only TRULY-constant features show std~0.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ast
+import inspect
 from pathlib import Path
 
 import numpy as np
@@ -180,3 +182,23 @@ def test_trainer_cannot_slice_bridge_or_soft_skip_post_export_liveness() -> None
     assert '"snap_x"][:, 7:]' not in block
     assert "audit skipped (non-fatal)" not in block
     assert "[FEATURE_LIVENESS_AUDIT_UNAVAILABLE]" in block
+
+
+def test_feature_liveness_cli_uses_current_exact_dataset_constructor() -> None:
+    tree = ast.parse(inspect.getsource(feature_liveness._main))
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "EntryV10CtxDataset"
+    ]
+    assert len(calls) == 1
+    keywords = {keyword.arg for keyword in calls[0].keywords}
+    assert keywords == {
+        "parquet_path",
+        "seq_len",
+        "m5_prebuilt_path",
+        "multi_tf_seq_len",
+        "per_tf_seq_lens",
+    }

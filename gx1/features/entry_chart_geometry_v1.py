@@ -719,11 +719,10 @@ CHART_GEOMETRY_FEATURE_NAMES = tuple(
 
 CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[41:]
 
-# Smart520 is served by a fixed 520-wide state contract. Keep the selected
-# smart2 geometry slice at 13 fields and swap in the explicit rail/trap fields
-# so the model can learn support/resistance side evidence without changing the
-# live tensor width.
-CHART_GEOMETRY_SMART520_FEATURE_NAMES = (
+# The model-native geometry surface retains this exact 13-field causal
+# rail/trap subset. Its name and ownership are independent of retired tensor
+# widths; the complete seq513 identity is bound by the signal manifest.
+CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES = (
     f"{CHART_GEOMETRY_FEATURE_PREFIX}trendline_channel_confluence_pressure",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_edge_rejection_pressure",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}rising_support_rail_long_pressure",

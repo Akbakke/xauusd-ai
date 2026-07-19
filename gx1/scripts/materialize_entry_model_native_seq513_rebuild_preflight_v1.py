@@ -47,6 +47,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     group_features_by_specialist,
 )
 from gx1.features.htf_features import (
+    HTF_V2_CACHE_BUILDER_VERSION,
     MULTI_TF_FEATURE_COUNT_V2,
     MULTI_TF_PER_BAR_FEATURES_V2,
     MULTI_TF_SHIFT,
@@ -63,9 +64,10 @@ READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW"
 BLOCKED_DECISION = "BLOCKED_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT"
 
 EXPECTED_MTF_TFS = ("M5", "M15", "H1", "H4", "D1")
-EXPECTED_MTF_BUILDER_VERSION = (
-    "prebuild_multi_tf_cache_v2_feature_order_shift_manifest_20260713"
-)
+# ONE numeric owner: the loader (htf_features) enforces this exact version at
+# consumption time; pinning a separate literal here made the two contracts
+# mutually unsatisfiable when the cache builder was re-versioned 2026-07-17.
+EXPECTED_MTF_BUILDER_VERSION = HTF_V2_CACHE_BUILDER_VERSION
 FULL_INPUT_LIVENESS_OUTPUT_PATTERN = (
     "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_<UTC_TIMESTAMP>.json"
 )

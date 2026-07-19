@@ -4,7 +4,7 @@ import pytest
 from gx1.features.entry_chart_geometry_v1 import (
     CHART_GEOMETRY_FEATURE_NAMES,
     CHART_GEOMETRY_SMART2_FEATURE_NAMES,
-    CHART_GEOMETRY_SMART520_FEATURE_NAMES,
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
     CHART_GEOMETRY_SOURCE_FIELDS,
     build_entry_chart_geometry_layer,
     missing_chart_geometry_source_fields,
@@ -114,10 +114,18 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     assert tuple(out_names) == CHART_GEOMETRY_FEATURE_NAMES
     assert CHART_GEOMETRY_SMART2_FEATURE_NAMES == SMART2_CHART_GEOMETRY_FEATURE_NAMES
     assert tuple(out_names[-len(SMART2_CHART_GEOMETRY_FEATURE_NAMES) :]) == CHART_GEOMETRY_SMART2_FEATURE_NAMES
-    assert len(CHART_GEOMETRY_SMART520_FEATURE_NAMES) == 13
-    assert set(CHART_GEOMETRY_SMART520_FEATURE_NAMES).issubset(set(CHART_GEOMETRY_SMART2_FEATURE_NAMES))
-    assert "chart.geometry_rising_support_rail_short_trap_pressure" in CHART_GEOMETRY_SMART520_FEATURE_NAMES
-    assert "chart.geometry_falling_resistance_rail_long_trap_pressure" in CHART_GEOMETRY_SMART520_FEATURE_NAMES
+    assert len(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES) == 13
+    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES).issubset(
+        set(CHART_GEOMETRY_SMART2_FEATURE_NAMES)
+    )
+    assert (
+        "chart.geometry_rising_support_rail_short_trap_pressure"
+        in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+    )
+    assert (
+        "chart.geometry_falling_resistance_rail_long_trap_pressure"
+        in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+    )
     assert np.isfinite(out).all()
     assert out[1, idx["chart.geometry_ema_cross_up_pressure"]] > 0.0
     assert out[3, idx["chart.geometry_fib_retracement_618_proximity"]] > 0.99

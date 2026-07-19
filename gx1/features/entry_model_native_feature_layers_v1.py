@@ -20,7 +20,7 @@ from gx1.features.entry_candlestick_patterns_v1 import (
     build_entry_candlestick_pattern_layer,
 )
 from gx1.features.entry_chart_geometry_v1 import (
-    CHART_GEOMETRY_SMART520_FEATURE_NAMES,
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
     CHART_GEOMETRY_SOURCE_FIELDS,
     build_entry_chart_geometry_layer,
 )
@@ -64,7 +64,7 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
         SESSION_REGIME_INTERACTION_FEATURE_NAMES,
     ),
     ("vol_compression_smart_layer", VOL_COMPRESSION_FEATURE_NAMES),
-    ("chart_geometry_smart2_layer", CHART_GEOMETRY_SMART520_FEATURE_NAMES),
+    ("chart_geometry_smart2_layer", CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES),
     (
         "price_action_candle_smart3_layer",
         CANDLESTICK_PATTERN_FEATURE_NAMES[28:],
