@@ -127,6 +127,24 @@ Before a heavy authorized run:
 - monitor `/home/andre2` and `/home/andre2/GX1_DATA`; clean repository debris
   continuously, but never delete GX1_DATA evidence without explicit approval.
 
+Operational discipline (paid for in the 2026-07-18/19 campaign; follow always):
+
+- Any computation over ~15 minutes MUST persist a checkpoint of its expensive
+  intermediate result before its final write step, bound to input sha and
+  window key, and reuse it on rerun (pattern: ranker `_ranker_checkpoint.npz`).
+- A watcher that polls for a process must match the exact python command line
+  (anchored `pgrep -f '^...python -m module'`), never a substring a wrapper
+  shell also contains; a dead job must alert immediately, not wait silently.
+- Every shell invocation starts with `cd /home/andre2/src/GX1_ENGINE &&`
+  (the working directory can reset between calls; rg then returns silently
+  empty results and `python -m gx1...` fails to resolve).
+- Never let a pipe swallow an exit code: capture command output to a file and
+  append the real `$?`, or check PIPESTATUS.
+- Per-row loops over the tape are ~85 ms/row: parallelize with one shared
+  full-series context and a fanned row loop (exact by construction), never
+  with chunk overlap — long-memory features (trailing-1yr percentiles) make
+  overlap both wrong and slow.
+
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python` for repository Python.
 Use `rg`/`rg --files` for source discovery so `.gitignore` excludes `.venv`,
 artifacts and data. Never recursively scan `.venv`, `.git` or
