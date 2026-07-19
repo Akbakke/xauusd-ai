@@ -1,8 +1,8 @@
-"""Candidate support/resistance level-memory features for Entry specialists.
+"""Canonical support/resistance level-memory features for Entry specialists.
 
 This smart layer derives causal numeric memory around already-materialized
-support/resistance, pivot, liquidity and SMC fields. It is report-only until a
-separate manifest/dataset gate adopts it.
+support/resistance, pivot, liquidity and SMC fields for the model-native
+train/serve feature path.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import numpy as np
 
 
 SUPPORT_RESISTANCE_MEMORY_FEATURE_VERSION = (
-    "entry_support_resistance_memory_v1_20260630_candidate_closed_bar_level_memory"
+    "entry_support_resistance_memory_v1_20260717_closed_bar_level_memory_failclosed"
 )
 SUPPORT_RESISTANCE_MEMORY_FEATURE_PREFIX = "chart.sr_memory_"
 
@@ -68,9 +68,6 @@ SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS = (
     "ctx_cont.d1_ema_slope_20_canon_v2",
     "ctx_cont.m15_trend_sign_canon_v2",
     "ctx_cont.regime_stack_sum_v3",
-)
-
-SUPPORT_RESISTANCE_MEMORY_OPTIONAL_FIELDS = (
     "chart.geometry_support_line_proximity_stack",
     "chart.geometry_resistance_line_proximity_stack",
     "chart.geometry_support_minus_resistance_stack",
@@ -87,23 +84,73 @@ SUPPORT_RESISTANCE_MEMORY_OPTIONAL_FIELDS = (
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
+    values = list(names)
+    invalid = [name for name in values if not isinstance(name, str) or not name]
+    if invalid:
+        raise RuntimeError(f"SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES_INVALID: {invalid[:10]}")
+    duplicates = sorted({name for name in values if values.count(name) > 1})
+    if duplicates:
+        raise RuntimeError(f"SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES_DUPLICATE: {duplicates[:10]}")
+    return {name: i for i, name in enumerate(values)}
 
 
 def missing_support_resistance_memory_source_fields(feature_names: Iterable[str]) -> list[str]:
-    available = {str(name) for name in feature_names}
+    available = set(feature_names)
     return [name for name in SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
-    if name not in index:
-        return np.full(x.shape[0], float(default), dtype=np.float32)
-    arr = np.asarray(x[:, index[name]], dtype=np.float32)
-    return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
+def _require_source_matrix(
+    x: np.ndarray,
+    feature_names: list[str],
+) -> tuple[np.ndarray, dict[str, int]]:
+    try:
+        matrix = np.asarray(x, dtype=np.float32)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("SUPPORT_RESISTANCE_MEMORY_INPUT_NOT_NUMERIC") from exc
+    if matrix.ndim != 2:
+        raise RuntimeError(f"SUPPORT_RESISTANCE_MEMORY_INPUT_NOT_2D: shape={matrix.shape}")
+    if matrix.shape[0] == 0:
+        raise RuntimeError("SUPPORT_RESISTANCE_MEMORY_INPUT_EMPTY")
+    if len(feature_names) != matrix.shape[1]:
+        raise RuntimeError(
+            "SUPPORT_RESISTANCE_MEMORY_FEATURE_NAME_COUNT_MISMATCH: "
+            f"names={len(feature_names)} columns={matrix.shape[1]}"
+        )
+    index = _name_index(feature_names)
+    missing = missing_support_resistance_memory_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(
+            "SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS_MISSING: "
+            f"{missing[:30]} total={len(missing)}"
+        )
+    if not np.isfinite(matrix).all():
+        bad = np.argwhere(~np.isfinite(matrix))[0]
+        row, column = int(bad[0]), int(bad[1])
+        raise RuntimeError(
+            "SUPPORT_RESISTANCE_MEMORY_SOURCE_NONFINITE: "
+            f"row={row} field={feature_names[column]}"
+        )
+    return matrix, index
+
+
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    try:
+        column = index[name]
+    except KeyError as exc:
+        raise RuntimeError(f"SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELD_MISSING: {name}") from exc
+    arr = np.asarray(x[:, column], dtype=np.float32)
+    if arr.ndim != 1 or not np.isfinite(arr).all():
+        raise RuntimeError(f"SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELD_INVALID: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if values.ndim != 1 or not np.isfinite(values).all():
+        raise RuntimeError(
+            f"SUPPORT_RESISTANCE_MEMORY_DERIVED_VALUE_INVALID: shape={values.shape}"
+        )
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -164,14 +211,13 @@ def build_entry_support_resistance_memory_layer(
     x: np.ndarray,
     feature_names: list[str],
 ) -> tuple[np.ndarray, list[str]]:
-    """Build deterministic support/resistance level-memory candidate features."""
-    x = np.asarray(x, dtype=np.float32)
-    idx = _name_index(feature_names)
+    """Build deterministic support/resistance memory from exact sources."""
+    x, idx = _require_source_matrix(x, feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     h1_trend = _tanh(c("ctx_cont._v1h1_ema_diff"))
     h4_trend = _tanh(c("ctx_cont._v1h4_ema_diff"))
@@ -197,8 +243,8 @@ def build_entry_support_resistance_memory_layer(
     h4_hi = _prox_abs(c("ctx_cont.dist_to_h4_hi_atr"))
     d1_lo = _prox_abs(c("ctx_cont.dist_to_d1_lo_atr"))
     d1_hi = _prox_abs(c("ctx_cont.dist_to_d1_hi_atr"))
-    swing_low = _prox_abs(c("ctx_cont.dist_last_swing_low_atr")) * (0.50 + _recency(c("ctx_cont.bars_since_swing_low", default=96.0)))
-    swing_high = _prox_abs(c("ctx_cont.dist_last_swing_high_atr")) * (0.50 + _recency(c("ctx_cont.bars_since_swing_high", default=96.0)))
+    swing_low = _prox_abs(c("ctx_cont.dist_last_swing_low_atr")) * (0.50 + _recency(c("ctx_cont.bars_since_swing_low")))
+    swing_high = _prox_abs(c("ctx_cont.dist_last_swing_high_atr")) * (0.50 + _recency(c("ctx_cont.bars_since_swing_high")))
 
     support_sources = np.vstack(
         [
@@ -271,13 +317,13 @@ def build_entry_support_resistance_memory_layer(
         + 0.50 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last12"))
         + 0.25 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last48"))
     )
-    sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep", default=96.0)) + c("ctx_cont.smc_sweep_recency_tau24"))
+    sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep")) + c("ctx_cont.smc_sweep_recency_tau24"))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
     bos_up = _clip01(c("snap.smc_bos_up") + 0.50 * _pos(c("ctx_cont.smc_bos_pressure_last12")) + 0.25 * _pos(c("ctx_cont.smc_bos_pressure_last48")))
     bos_down = _clip01(c("snap.smc_bos_down") + 0.50 * _neg(c("ctx_cont.smc_bos_pressure_last12")) + 0.25 * _neg(c("ctx_cont.smc_bos_pressure_last48")))
     choch = _clip01(c("snap.smc_choch") + c("ctx_cont.smc_choch_recent_tau12") + 0.50 * c("ctx_cont.smc_choch_recent_tau24"))
 
-    premium = _clip01(c("snap.smc_premium_discount", default=0.5))
+    premium = _clip01(c("snap.smc_premium_discount"))
     discount = _clip01(1.0 - premium)
     clv_unit = _clip01(0.5 + 0.5 * _clip(c("snap._v1_clv"), -1.0, 1.0))
     body_direction = _clip(c("snap.body_pct"), -1.0, 1.0)
@@ -285,7 +331,7 @@ def build_entry_support_resistance_memory_layer(
     body_bull = _clip01(_pos(body_direction) + clv_unit)
     body_bear = _clip01(_neg(body_direction) + (1.0 - clv_unit))
     wick_asym = _clip(c("snap.wick_asym"), -1.0, 1.0)
-    wick_ratio = _clip01(c("ctx_cont.wick_ratio", default=0.5))
+    wick_ratio = _clip01(c("ctx_cont.wick_ratio"))
     lower_wick = _clip01(_neg(wick_asym) + 0.50 * (1.0 - wick_ratio))
     upper_wick = _clip01(_pos(wick_asym) + 0.50 * wick_ratio)
     close_near_high = _clip01(0.55 * clv_unit + 0.45 * (1.0 - wick_ratio))
@@ -437,5 +483,9 @@ def build_entry_support_resistance_memory_layer(
 
 
 SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES = tuple(
-    name for name in build_entry_support_resistance_memory_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
+    name
+    for name in build_entry_support_resistance_memory_layer(
+        np.zeros((1, len(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS)), dtype=np.float32),
+        list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS),
+    )[1]
 )

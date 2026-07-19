@@ -18,12 +18,43 @@ bundle_dir contains:
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
+import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Mapping, Optional, Set
 
 import torch
+
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SEQ_LEN,
+    MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    require_training_objective_contract,
+)
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    HIDDEN_DIM as EVIDENCE_FUSION_HIDDEN_DIM,
+    INPUT_DIM as EVIDENCE_FUSION_INPUT_DIM,
+    OUTPUT_DIM as EVIDENCE_FUSION_OUTPUT_DIM,
+    require_direction_evidence_fusion_metadata,
+)
+from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
+    require_learned_component_movement_metadata,
+)
+from gx1.contracts.signal_bridge_v3 import (
+    ORDERED_CTX_CAT_NAMES_V3,
+    ORDERED_CTX_CONT_NAMES_V3,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    require_model_direction_decision_contract,
+)
 
 
 @dataclass
@@ -31,8 +62,6 @@ class EntryV10Bundle:
     bundle_dir: str
     device: torch.device
     transformer_model: Any
-    xgb_model_universal: Any
-    xgb_models_by_session: Dict[str, Any]
     metadata: Dict[str, Any]
     transformer_config: Dict[str, Any]
     capabilities: Dict[str, Any]
@@ -45,6 +74,14 @@ def _guard_required(path: Path, label: str) -> None:
 
 def _load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _resolve_device(device: Optional[str]) -> torch.device:
@@ -64,9 +101,7 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
     "tf_agreement": {"head_tf_agreement.weight", "head_tf_agreement.bias"},
     "path_quality_log_var": {"head_path_quality_log_var.weight", "head_path_quality_log_var.bias"},
     "position_size": {"head_position_size.weight", "head_position_size.bias"},
-    "hold_horizon": {"head_hold_horizon.weight", "head_hold_horizon.bias"},
-    "mtf_direction": {"head_mtf_direction.weight", "head_mtf_direction.bias", "mtf_dir_scale"},
-    "anchor_gate": {"head_anchor_gate.weight", "head_anchor_gate.bias"},
+    "mtf_direction": {"head_mtf_direction.weight", "head_mtf_direction.bias"},
     "trendline_rail": {"head_trendline_rail.weight", "head_trendline_rail.bias"},
     "q_per_action": {"q_head.weight", "q_head.bias"},
     "trade_side_hierarchy": {
@@ -82,6 +117,14 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
         "head_side_mae.bias",
     },
     "side_validity": {"head_side_validity.weight", "head_side_validity.bias"},
+    "model_native_evidence_fusion": {
+        "evidence_fusion_norm.weight",
+        "evidence_fusion_norm.bias",
+        "evidence_fusion_in.weight",
+        "evidence_fusion_in.bias",
+        "evidence_fusion_out.weight",
+        "evidence_fusion_out.bias",
+    },
     "dip": {"head_dip.weight", "head_dip.bias"},
     "forecast": {"head_forecast.weight", "head_forecast.bias"},
     "timing": {"head_timing.weight", "head_timing.bias"},
@@ -89,36 +132,581 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
     "vol_forecast": {"head_vol_forecast.weight", "head_vol_forecast.bias"},
 }
 
+_MODEL_NATIVE_METADATA_ONLY_COMPONENTS: frozenset[str] = frozenset()
+
+_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS = frozenset(
+    {
+        "direction",
+        "tradable",
+        "path_quality",
+        "mfe_first_n",
+        "bad_path",
+        "clean_edge",
+        "survival",
+        "tf_agreement",
+        "path_quality_log_var",
+        "position_size",
+        "mtf_direction",
+        "dip",
+        "forecast",
+        "timing",
+        "tail_risk",
+        "vol_forecast",
+        "trade_side_hierarchy",
+        "model_native_evidence_fusion",
+        "side_validity",
+        "trendline_rail",
+    }
+)
+
+_MODEL_NATIVE_REQUIRED_SPECIALISTS = (
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+    "chart_geometry_encoder",
+    "price_action_candle_encoder",
+)
+
+_MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS = tuple(
+    (f"y_dip_mae_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in (12, 48, 96)
+) + tuple(
+    (f"y_dip_mfe_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in (12, 48, 96)
+) + tuple(
+    (f"y_forecast_ret_K{horizon}", horizon)
+    for horizon in (1, 5, 12, 24)
+) + tuple(
+    (f"y_dip_bottom_frac_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in (12, 48, 96)
+) + tuple(
+    (f"y_time_to_mfe_frac_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in (12, 48, 96)
+) + tuple(
+    (f"y_tail_mae_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in (12, 48, 96)
+) + tuple(
+    (f"y_vol_fwd_K{horizon}", horizon)
+    for horizon in (12, 48, 96)
+)
+_MODEL_NATIVE_AUX_TARGET_COLUMNS = tuple(
+    name for name, _ in _MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS
+)
+_MODEL_NATIVE_AUX_TARGET_HORIZONS = {
+    name: int(horizon)
+    for name, horizon in _MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS
+}
+
+
+def _require_mapping_field(parent: Mapping[str, Any], key: str, *, context: str) -> Mapping[str, Any]:
+    value = parent.get(key)
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_METADATA_MISSING] {context}.{key}")
+    return value
+
+
+def _require_exact_model_native_bundle_metadata(
+    meta: Mapping[str, Any],
+    lock: Mapping[str, Any],
+) -> None:
+    """Reject every metadata default that could alter a model-native forward.
+
+    Lock and metadata must each carry the complete reconstruction contract;
+    the loader never infers a missing value from the other file or a default.
+    """
+
+    shared_exact = (
+        "contract_mode",
+        "direction_logit_mode",
+        "seq_input_dim",
+        "snap_input_dim",
+        "seq_len",
+        "ctx_cont_dim",
+        "ctx_cat_dim",
+        "ordered_signal_names",
+        "ordered_ctx_cont_names",
+        "ordered_ctx_cat_names",
+        "model_native_signal_contract",
+        "aux_head_target_contract",
+        "model_native_training_objective",
+        "model_native_direction_evidence_fusion",
+        "model_native_learned_component_movement",
+    )
+    missing_meta = [key for key in shared_exact if key not in meta]
+    missing_lock = [key for key in shared_exact if key not in lock]
+    if missing_meta or missing_lock:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_EXACT_METADATA_MISSING] "
+            f"meta={missing_meta} lock={missing_lock}"
+        )
+    split_brain = [key for key in shared_exact if meta[key] != lock[key]]
+    if split_brain:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_META_LOCK_SPLIT_BRAIN] "
+            f"fields={split_brain}"
+        )
+    meta_training_objective = require_training_objective_contract(
+        meta["model_native_training_objective"],
+        context="ENTRY_BUNDLE_META",
+    )
+    lock_training_objective = require_training_objective_contract(
+        lock["model_native_training_objective"],
+        context="ENTRY_BUNDLE_LOCK",
+    )
+    if meta_training_objective != lock_training_objective:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_TRAINING_OBJECTIVE_SPLIT_BRAIN]"
+        )
+    require_direction_evidence_fusion_metadata(
+        meta["model_native_direction_evidence_fusion"],
+        context="ENTRY_BUNDLE_META",
+    )
+    require_direction_evidence_fusion_metadata(
+        lock["model_native_direction_evidence_fusion"],
+        context="ENTRY_BUNDLE_LOCK",
+    )
+    require_learned_component_movement_metadata(
+        meta["model_native_learned_component_movement"],
+        context="ENTRY_BUNDLE_META",
+    )
+    require_learned_component_movement_metadata(
+        lock["model_native_learned_component_movement"],
+        context="ENTRY_BUNDLE_LOCK",
+    )
+    aux_contract = meta["aux_head_target_contract"]
+    if not isinstance(aux_contract, Mapping):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_AUX_TARGET_CONTRACT_MISSING]")
+    if (
+        aux_contract.get("schema_version") != "entry_model_native_aux_targets_v2"
+        or aux_contract.get("columns") != list(_MODEL_NATIVE_AUX_TARGET_COLUMNS)
+        or aux_contract.get("future_horizon_bars_by_column")
+        != _MODEL_NATIVE_AUX_TARGET_HORIZONS
+        or aux_contract.get("max_future_horizon_bars") != 96
+        or aux_contract.get("spread_aware_risk_magnitudes_required") is not True
+        or aux_contract.get("mid_price_timing_reference_only") is not True
+        or aux_contract.get("incomplete_value") != "NaN_before_emission_only"
+        or aux_contract.get("incomplete_rows_may_be_emitted") is not False
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_AUX_TARGET_CONTRACT_INVALID]")
+    if meta["contract_mode"] != MODEL_NATIVE_CONTRACT_MODE:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MODE_MISSING]")
+    if meta["direction_logit_mode"] != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_MODE_INVALID]")
+    if int(meta["seq_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM or int(meta["snap_input_dim"]) != MODEL_NATIVE_SIGNAL_DIM:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_SIGNAL_DIM_INVALID] "
+            f"seq={meta['seq_input_dim']} snap={meta['snap_input_dim']} expected={MODEL_NATIVE_SIGNAL_DIM}"
+        )
+    if int(meta["seq_len"]) != MODEL_NATIVE_SEQ_LEN:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_SEQ_LEN_INVALID] "
+            f"got={meta['seq_len']!r} expected={MODEL_NATIVE_SEQ_LEN}"
+        )
+    if (
+        int(meta["ctx_cont_dim"]) != MODEL_NATIVE_CTX_CONT_DIM
+        or int(meta["ctx_cat_dim"]) != MODEL_NATIVE_CTX_CAT_DIM
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_CTX_DIM_INVALID] "
+            f"continuous={meta['ctx_cont_dim']!r} categorical={meta['ctx_cat_dim']!r} "
+            f"expected={MODEL_NATIVE_CTX_CONT_DIM}+{MODEL_NATIVE_CTX_CAT_DIM}"
+        )
+    if len(meta["ordered_ctx_cont_names"]) != int(meta["ctx_cont_dim"]):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CONT_ORDER_INVALID]")
+    if len(meta["ordered_ctx_cat_names"]) != int(meta["ctx_cat_dim"]):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CAT_ORDER_INVALID]")
+    if list(meta["ordered_ctx_cont_names"]) != list(ORDERED_CTX_CONT_NAMES_V3):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CONT_ORDER_INVALID]")
+    if list(meta["ordered_ctx_cat_names"]) != list(ORDERED_CTX_CAT_NAMES_V3):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CAT_ORDER_INVALID]")
+    meta_signal_contract = meta["model_native_signal_contract"]
+    lock_signal_contract = lock["model_native_signal_contract"]
+    require_model_native_signal_contract(meta_signal_contract, context="ENTRY_BUNDLE_META")
+    require_model_native_signal_contract(lock_signal_contract, context="ENTRY_BUNDLE_LOCK")
+    if list(meta["ordered_signal_names"]) != list(meta_signal_contract["fields"]):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SIGNAL_ORDER_INVALID]")
+    if meta.get("supports_context_features") is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CONTEXT_FEATURES_REQUIRED]")
+    if meta.get("neutral_xgb_bridge") is not False or lock.get("neutral_xgb_bridge") is not False:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_NEUTRAL_BRIDGE_FLAG_INVALID]")
+    if meta.get("xgb_bridge_source") is not None or lock.get("xgb_bridge_source") is not None:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_BRIDGE_SOURCE_INVALID]")
+    if meta.get("anchored_entry_enabled") is not False or meta.get("anchor_source") is not None:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_ANCHOR_METADATA_FORBIDDEN]")
+    anchor_gate = _require_mapping_field(meta, "anchor_gate", context="meta")
+    if anchor_gate.get("enabled") is not False:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_ANCHOR_GATE_METADATA_FORBIDDEN]")
+
+    require_model_direction_decision_contract(meta, context="ENTRY_BUNDLE_META")
+    require_model_direction_decision_contract(lock, context="ENTRY_BUNDLE_LOCK")
+    if meta["direction_decision_contract"] != lock["direction_decision_contract"]:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CONTRACT_SPLIT_BRAIN]")
+
+    train_recipe = _require_mapping_field(meta, "train_recipe", context="meta")
+    active_raw = train_recipe.get("active_heads")
+    if not isinstance(active_raw, list) or any(not isinstance(value, str) for value in active_raw):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_ACTIVE_COMPONENTS_MISSING]")
+    active = frozenset(active_raw)
+    if len(active_raw) != len(active):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_ACTIVE_COMPONENTS_DUPLICATE]")
+    if active != _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_ACTIVE_COMPONENTS_MISMATCH] "
+            f"missing={sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS - active)} "
+            f"unexpected={sorted(active - _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS)}"
+        )
+
+    mtf = _require_mapping_field(meta, "multi_tf", context="meta")
+    required_mtf = (
+        "enabled",
+        "v2_mode",
+        "m5_seq_dim",
+        "m5_seq_len",
+        "m15_seq_dim",
+        "m15_seq_len",
+        "h1_seq_dim",
+        "h1_seq_len",
+        "h4_seq_dim",
+        "h4_seq_len",
+        "d1_seq_dim",
+        "d1_seq_len",
+        "multi_tf_scale",
+        "closed_bar_target_availability",
+        "target_availability_shift_minutes",
+    )
+    missing_mtf = [key for key in required_mtf if key not in mtf]
+    if missing_mtf:
+        raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_METADATA_MISSING] {missing_mtf}")
+    if mtf["enabled"] is not True or mtf["v2_mode"] is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_V2_REQUIRED]")
+    if not math.isfinite(float(mtf["multi_tf_scale"])) or float(mtf["multi_tf_scale"]) <= 0.0:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SCALE_INVALID]")
+    if mtf["closed_bar_target_availability"] is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CLOSED_BAR_REQUIRED]")
+    if abs(float(mtf["target_availability_shift_minutes"]) - 5.0) > 1e-9:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SHIFT_INVALID]")
+    for key in (
+        "m5_seq_dim",
+        "m5_seq_len",
+        "m15_seq_dim",
+        "m15_seq_len",
+        "h1_seq_dim",
+        "h1_seq_len",
+        "h4_seq_dim",
+        "h4_seq_len",
+        "d1_seq_dim",
+        "d1_seq_len",
+    ):
+        if isinstance(mtf[key], bool) or int(mtf[key]) <= 0:
+            raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_VALUE_INVALID] {key}={mtf[key]!r}")
+
+    for key in ("enable_pos_enc", "enable_regime_film"):
+        if meta.get(key) is not True:
+            raise RuntimeError(
+                f"[ENTRY_BUNDLE_MODEL_NATIVE_FULL_STACK_COMPONENT_REQUIRED] meta.{key}"
+            )
+    tf_input_scale = _require_mapping_field(meta, "tf_input_scale", context="meta")
+    if tf_input_scale.get("enabled") is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_REQUIRED]")
+    tf_init = _require_mapping_field(tf_input_scale, "init", context="meta.tf_input_scale")
+    if set(tf_init) != {"m5", "m15", "h1", "h4", "d1"}:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_INIT_MISMATCH]")
+    if any(
+        not math.isfinite(float(value)) or float(value) <= 0.0
+        for value in tf_init.values()
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_INVALID]")
+
+    forbidden_direction_artifacts = (
+        "hierarchical_direction_composition",
+        "residual_scale",
+    )
+    stale = [
+        f"{owner}.{key}"
+        for owner, payload in (("meta", meta), ("lock", lock))
+        for key in forbidden_direction_artifacts
+        if key in payload
+    ]
+    if stale:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_STALE_DIRECTION_ARTIFACT_FORBIDDEN] " + ",".join(stale)
+        )
+
+    hierarchy = _require_mapping_field(meta, "hierarchical_entry_heads", context="meta")
+    if hierarchy.get("enabled") is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_HIERARCHY_REQUIRED]")
+    trendline = _require_mapping_field(meta, "trendline_rail_head", context="meta")
+    if trendline.get("enabled") is not True or int(trendline.get("output_dim", 0)) != 6:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_RAIL_CONTRACT_INVALID]")
+    if trendline.get("hand_written_direction_pressure") is not False:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_DIRECTION_PRESSURE_FORBIDDEN]")
+    if trendline.get("direction_mapping") != "direct_learned_evidence_fusion":
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_FUSION_MAPPING_INVALID]")
+    state_contract = _require_mapping_field(meta, "model_native_state_contract", context="meta")
+    if not state_contract:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_CONTRACT_MISSING]")
+    specialist = _require_mapping_field(meta, "specialist_fusion", context="meta")
+    if specialist.get("enabled") is not True:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_FUSION_REQUIRED]")
+    if specialist.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_MODE_INVALID]")
+    input_indices = specialist.get("input_indices")
+    if not isinstance(input_indices, Mapping) or not input_indices:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDICES_MISSING]")
+    if list(input_indices) != list(_MODEL_NATIVE_REQUIRED_SPECIALISTS):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_ORDER_MISMATCH] "
+            f"observed={list(input_indices)} expected={list(_MODEL_NATIVE_REQUIRED_SPECIALISTS)}"
+        )
+    seen_specialist_indices: set[int] = set()
+    for specialist_name in _MODEL_NATIVE_REQUIRED_SPECIALISTS:
+        indices = input_indices[specialist_name]
+        if not isinstance(indices, list) or not indices:
+            raise RuntimeError(
+                f"[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDICES_INVALID] {specialist_name}"
+            )
+        if any(isinstance(index, bool) or not isinstance(index, int) for index in indices):
+            raise RuntimeError(
+                f"[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDEX_TYPE_INVALID] {specialist_name}"
+            )
+        if indices != sorted(set(indices)):
+            raise RuntimeError(
+                f"[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDEX_ORDER_INVALID] {specialist_name}"
+            )
+        if any(index < 0 or index >= MODEL_NATIVE_SIGNAL_DIM for index in indices):
+            raise RuntimeError(
+                f"[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDEX_RANGE_INVALID] {specialist_name}"
+            )
+        overlap = seen_specialist_indices.intersection(indices)
+        if overlap:
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDEX_OVERLAP] "
+                f"{specialist_name} overlap={sorted(overlap)}"
+            )
+        seen_specialist_indices.update(indices)
+    if list(specialist.get("trainable_specialists") or []) != list(
+        _MODEL_NATIVE_REQUIRED_SPECIALISTS
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRAINABLE_SPECIALISTS_MISMATCH]")
+    for key in ("num_layers", "fusion_scale"):
+        if key not in specialist:
+            raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_METADATA_MISSING] {key}")
+    if isinstance(specialist["num_layers"], bool) or int(specialist["num_layers"]) <= 0:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_NUM_LAYERS_INVALID]")
+    if float(specialist["fusion_scale"]) <= 0.0:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_FUSION_SCALE_INVALID]")
+
+    direction_calibration = meta.get("direction_calibration")
+    if direction_calibration is not None:
+        if not isinstance(direction_calibration, Mapping):
+            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_INVALID]")
+        missing = [
+            key
+            for key in ("enabled", "version", "temperature", "bias")
+            if key not in direction_calibration
+        ]
+        if missing or direction_calibration["enabled"] is not True:
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_INCOMPLETE] "
+                f"missing={missing}"
+            )
+        bias = direction_calibration["bias"]
+        if not isinstance(bias, list) or len(bias) != 3:
+            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_BIAS_INVALID]")
+        values = [float(direction_calibration["temperature"]), *(float(value) for value in bias)]
+        if not bool(torch.isfinite(torch.tensor(values, dtype=torch.float64)).all().item()) or values[0] <= 0.0:
+            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DIRECTION_CALIBRATION_NONFINITE]")
+    path_calibration = meta.get("path_calibration")
+    if path_calibration is not None:
+        if not isinstance(path_calibration, Mapping):
+            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_INVALID]")
+        required_path_cal = (
+            "enabled",
+            "version",
+            "path_quality_scale",
+            "path_quality_shift",
+            "bad_path_temperature",
+            "bad_path_bias",
+        )
+        missing = [key for key in required_path_cal if key not in path_calibration]
+        if missing or path_calibration["enabled"] is not True:
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_INCOMPLETE] "
+                f"missing={missing}"
+            )
+        values = [float(path_calibration[key]) for key in required_path_cal[2:]]
+        if not bool(torch.isfinite(torch.tensor(values, dtype=torch.float64)).all().item()):
+            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_NONFINITE]")
+        if values[0] <= 0.0 or values[2] <= 0.0:
+            raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_PATH_CALIBRATION_SCALE_INVALID]")
+
+
+def _require_model_native_state_head_contract(
+    meta: Mapping[str, Any],
+    state_dict: Mapping[str, Any],
+) -> None:
+    active = frozenset(meta["train_recipe"]["active_heads"])
+    expected_state_heads = active - _MODEL_NATIVE_METADATA_ONLY_COMPONENTS
+    state_heads = {
+        name
+        for name, keys in _ENTRY_HEAD_STATE_KEYS.items()
+        if keys.issubset(set(state_dict))
+    }
+    if state_heads != expected_state_heads:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_STATE_HEAD_CONTRACT_MISMATCH] "
+            f"missing={sorted(expected_state_heads - state_heads)} "
+            f"unexpected={sorted(state_heads - expected_state_heads)}"
+        )
+
+
+_MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS: Dict[str, tuple[str, ...]] = {
+    # These blocks are deliberately zero-initialized.  Merely finding their
+    # keys in a state_dict therefore does not prove they ever joined the
+    # learned decision path; at least one value must have moved during train.
+    "specialist_fusion_output": (
+        "specialist_out.weight",
+        "specialist_out.bias",
+    ),
+    "regime_film": (
+        "regime_film.2.weight",
+        "regime_film.2.bias",
+    ),
+    "cross_tf_output": (
+        "cross_tf_out.weight",
+        "cross_tf_out.bias",
+    ),
+    "cross_tf_gate": ("tf_gate_logits",),
+}
+
+_RETIRED_DIRECTION_STATE_PREFIXES = (
+    "head_public_trade.",
+    "head_public_flat.",
+    "head_public_side.",
+    "hierarchical_ctx_prior_adapter.",
+    "hierarchical_ctx_direction_calibration.",
+)
+_RETIRED_DIRECTION_STATE_KEYS = frozenset({"mtf_dir_scale"})
+
+
+def _require_evidence_fusion_state_contract(state_dict: Mapping[str, Any]) -> None:
+    expected_shapes = {
+        "evidence_fusion_norm.weight": (EVIDENCE_FUSION_INPUT_DIM,),
+        "evidence_fusion_norm.bias": (EVIDENCE_FUSION_INPUT_DIM,),
+        "evidence_fusion_in.weight": (
+            EVIDENCE_FUSION_HIDDEN_DIM,
+            EVIDENCE_FUSION_INPUT_DIM,
+        ),
+        "evidence_fusion_in.bias": (EVIDENCE_FUSION_HIDDEN_DIM,),
+        "evidence_fusion_out.weight": (
+            EVIDENCE_FUSION_OUTPUT_DIM,
+            EVIDENCE_FUSION_HIDDEN_DIM,
+        ),
+        "evidence_fusion_out.bias": (EVIDENCE_FUSION_OUTPUT_DIM,),
+    }
+    failures: list[str] = []
+    for key, expected_shape in expected_shapes.items():
+        value = state_dict.get(key)
+        if not isinstance(value, torch.Tensor):
+            failures.append(f"{key}:missing_or_non_tensor")
+            continue
+        if tuple(value.shape) != expected_shape:
+            failures.append(
+                f"{key}:shape={tuple(value.shape)} expected={expected_shape}"
+            )
+            continue
+        if not bool(torch.isfinite(value).all().item()):
+            failures.append(f"{key}:non_finite")
+    for key in (
+        "evidence_fusion_norm.weight",
+        "evidence_fusion_in.weight",
+        "evidence_fusion_out.weight",
+    ):
+        value = state_dict.get(key)
+        if isinstance(value, torch.Tensor) and not bool(torch.count_nonzero(value).item()):
+            failures.append(f"{key}:all_zero")
+    out_weight = state_dict.get("evidence_fusion_out.weight")
+    if isinstance(out_weight, torch.Tensor) and tuple(out_weight.shape) == (
+        EVIDENCE_FUSION_OUTPUT_DIM,
+        EVIDENCE_FUSION_HIDDEN_DIM,
+    ):
+        if any(
+            bool(torch.equal(out_weight[i], out_weight[j]))
+            for i in range(EVIDENCE_FUSION_OUTPUT_DIM)
+            for j in range(i + 1, EVIDENCE_FUSION_OUTPUT_DIM)
+        ):
+            failures.append("evidence_fusion_out.weight:identical_class_rows")
+    stale = sorted(
+        key
+        for key in state_dict
+        if key in _RETIRED_DIRECTION_STATE_KEYS
+        or key.startswith(_RETIRED_DIRECTION_STATE_PREFIXES)
+    )
+    if stale:
+        failures.append(f"retired_direction_state={stale}")
+    if failures:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_DIRECTION_EVIDENCE_FUSION_STATE_INVALID] "
+            + " | ".join(failures)
+        )
+
+
+def _require_model_native_learned_component_liveness(
+    state_dict: Mapping[str, Any],
+) -> None:
+    """Reject structurally present full-stack blocks that remained pass-throughs."""
+
+    failures: list[str] = []
+    for component, keys in _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS.items():
+        missing = [key for key in keys if key not in state_dict]
+        if missing:
+            failures.append(f"{component}:missing={missing}")
+            continue
+        tensors = [state_dict[key] for key in keys]
+        if any(not isinstance(value, torch.Tensor) for value in tensors):
+            failures.append(f"{component}:non_tensor_state")
+            continue
+        if any(not bool(torch.isfinite(value).all().item()) for value in tensors):
+            failures.append(f"{component}:non_finite_state")
+            continue
+        if not any(bool(torch.count_nonzero(value).item()) for value in tensors):
+            failures.append(f"{component}:zero_init_pass_through")
+    _require_evidence_fusion_state_contract(state_dict)
+    if failures:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_LEARNED_COMPONENT_LIVENESS_INVALID] "
+            + " | ".join(failures)
+        )
+
 
 def _infer_entry_bundle_capabilities(meta: Dict[str, Any], state_dict: Dict[str, Any]) -> Dict[str, Any]:
-    train_recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
-    declared_heads = {
-        str(h).strip()
-        for h in (train_recipe.get("active_heads") or [])
-        if str(h).strip()
-    }
+    declared_heads = {str(h) for h in meta["train_recipe"]["active_heads"]}
     state_heads = {
         head_name
         for head_name, required_keys in _ENTRY_HEAD_STATE_KEYS.items()
         if required_keys.issubset(set(state_dict.keys()))
     }
-    if declared_heads:
-        missing_declared = declared_heads - state_heads
-        if missing_declared:
-            raise RuntimeError(
-                f"[ENTRY_BUNDLE_CAPABILITY_MISMATCH] metadata declares unsupported heads: {sorted(missing_declared)}"
-            )
-        supported_heads = {"direction"} | declared_heads
-    else:
-        supported_heads = state_heads
-    supported_heads.add("direction")
+    missing_declared = declared_heads - state_heads - _MODEL_NATIVE_METADATA_ONLY_COMPONENTS
+    if missing_declared:
+        raise RuntimeError(
+            f"[ENTRY_BUNDLE_CAPABILITY_MISMATCH] metadata declares unsupported heads: {sorted(missing_declared)}"
+        )
+    supported_heads = {"direction"} | declared_heads
     unsupported_heads = sorted(set(_ENTRY_HEAD_STATE_KEYS) - supported_heads)
     return {
         "supported_heads": sorted(supported_heads),
         "unsupported_heads": unsupported_heads,
         "declared_active_heads": sorted(declared_heads),
         "state_dict_heads": sorted(state_heads),
-        "supports_context_features": bool(meta.get("supports_context_features", False)),
+        "supports_context_features": True,
     }
 
 
@@ -130,8 +718,6 @@ def load_entry_v10_ctx_bundle(
     snap_scaler_path: Optional[str | Path] = None,
     device: Optional[str] = None,
     is_replay: bool = True,
-    xgb_models: Optional[Dict[str, Any]] = None,
-    **_: Any,
 ) -> EntryV10Bundle:
 
     bd = Path(bundle_dir).expanduser().resolve()
@@ -147,21 +733,22 @@ def load_entry_v10_ctx_bundle(
 
     lock = _load_json(lock_path)
     meta = _load_json(meta_path)
-
-    seq_input_dim = int(meta.get("seq_input_dim") or lock.get("seq_input_dim") or 0)
-    snap_input_dim = int(meta.get("snap_input_dim") or lock.get("snap_input_dim") or 0)
-    seq_len = int(meta.get("seq_len") or lock.get("seq_len") or 0)
-    ctx_cont_dim = int(meta.get("ctx_cont_dim") or lock.get("ctx_cont_dim") or 0)
-    ctx_cat_dim = int(meta.get("ctx_cat_dim") or lock.get("ctx_cat_dim") or 0)
-
-    if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
+    _require_exact_model_native_bundle_metadata(meta, lock)
+    seq_input_dim = int(meta["seq_input_dim"])
+    snap_input_dim = int(meta["snap_input_dim"])
+    seq_len = int(meta["seq_len"])
+    ctx_cont_dim = int(meta["ctx_cont_dim"])
+    ctx_cat_dim = int(meta["ctx_cat_dim"])
+    if lock.get("model_path_relative") != state_path.name:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_PATH_BINDING_INVALID]")
+    observed_state_sha256 = _sha256_file(state_path)
+    lock_state_sha256 = lock.get("model_sha256")
+    meta_state_sha256 = meta.get("state_dict_sha256")
+    if lock_state_sha256 != observed_state_sha256 or meta_state_sha256 != observed_state_sha256:
         raise RuntimeError(
-            f"[ENTRY_V10_CTX_INVALID_META] seq_input_dim={seq_input_dim} "
-            f"snap_input_dim={snap_input_dim} seq_len={seq_len}"
-        )
-    if ctx_cont_dim <= 0 or ctx_cat_dim <= 0:
-        raise RuntimeError(
-            f"[ENTRY_V10_CTX_INVALID_META] ctx_cont_dim={ctx_cont_dim} ctx_cat_dim={ctx_cat_dim}"
+            "[ENTRY_BUNDLE_MODEL_NATIVE_STATE_SHA256_MISMATCH] "
+            f"observed={observed_state_sha256} lock={lock_state_sha256!r} "
+            f"meta={meta_state_sha256!r}"
         )
 
     dev = _resolve_device(device)
@@ -178,406 +765,84 @@ def load_entry_v10_ctx_bundle(
         EntryV10CtxHybridTransformer,
     )
 
-    # Detect multi-TF and v3+ aux heads from bundle metadata so model is
-    # constructed with matching parameters (otherwise their weights show
-    # up as unexpected_keys in strict-load below).
-    mtf_meta = (meta.get("multi_tf") or {}) if isinstance(meta, dict) else {}
-    enable_mtf = bool(mtf_meta.get("enabled", False))
-    _m15_seq_dim = int(mtf_meta.get("m15_seq_dim", 0)) if enable_mtf else 0
-    _h1_seq_dim = int(mtf_meta.get("h1_seq_dim", _m15_seq_dim)) if enable_mtf else 0
-    _h4_seq_dim = int(mtf_meta.get("h4_seq_dim", _m15_seq_dim)) if enable_mtf else 0
-    _d1_seq_dim = int(mtf_meta.get("d1_seq_dim", _m15_seq_dim)) if enable_mtf else 0
-    _m15_seq_len = int(mtf_meta.get("m15_seq_len", 96)) if enable_mtf else 96
-    _h1_seq_len = int(mtf_meta.get("h1_seq_len", _m15_seq_len)) if enable_mtf else _m15_seq_len
-    _h4_seq_len = int(mtf_meta.get("h4_seq_len", _m15_seq_len)) if enable_mtf else _m15_seq_len
-    _d1_seq_len = int(mtf_meta.get("d1_seq_len", _m15_seq_len)) if enable_mtf else _m15_seq_len
-    mtf_scale = float(mtf_meta.get("multi_tf_scale", 0.5)) if enable_mtf else 0.5
-    # V2 manifest fields (default 0/False = V1 bundles work unchanged).
-    _v2_mode = bool(mtf_meta.get("v2_mode", False))
-    _m5_seq_dim = int(mtf_meta.get("m5_seq_dim", 0)) if (enable_mtf and _v2_mode) else 0
-    _m5_seq_len = int(mtf_meta.get("m5_seq_len", _m15_seq_len)) if (enable_mtf and _v2_mode) else _m15_seq_len
-    # V10 v3+ aux heads: detect by presence in state_dict keys.
+    # Reconstruct the exact multi-TF contract declared by the validated bundle.
+    mtf_meta = meta["multi_tf"]
+    _m15_seq_dim = int(mtf_meta["m15_seq_dim"])
+    _h1_seq_dim = int(mtf_meta["h1_seq_dim"])
+    _h4_seq_dim = int(mtf_meta["h4_seq_dim"])
+    _d1_seq_dim = int(mtf_meta["d1_seq_dim"])
+    _m15_seq_len = int(mtf_meta["m15_seq_len"])
+    _h1_seq_len = int(mtf_meta["h1_seq_len"])
+    _h4_seq_len = int(mtf_meta["h4_seq_len"])
+    _d1_seq_len = int(mtf_meta["d1_seq_len"])
+    mtf_scale = float(mtf_meta["multi_tf_scale"])
+    _m5_seq_dim = int(mtf_meta["m5_seq_dim"])
+    _m5_seq_len = int(mtf_meta["m5_seq_len"])
     state_dict_preview = torch.load(state_path, map_location="cpu")
-    _has_tf_agreement = "head_tf_agreement.weight" in state_dict_preview
-    _has_path_var = "head_path_quality_log_var.weight" in state_dict_preview
-    _has_position_size = "head_position_size.weight" in state_dict_preview
-    _has_hold_horizon = "head_hold_horizon.weight" in state_dict_preview
-    # 2026-05-26 dip-aware heads + cross-TF attention — detect by state_dict
-    # presence so strict-load matches (else they read as unexpected_keys).
-    _has_dip = "head_dip.weight" in state_dict_preview
-    _has_forecast = "head_forecast.weight" in state_dict_preview
-    _has_timing = "head_timing.weight" in state_dict_preview
-    _has_tail_risk = "head_tail_risk.weight" in state_dict_preview
-    _has_vol_forecast = "head_vol_forecast.weight" in state_dict_preview
-    _has_cross_tf = any(k.startswith("cross_tf_attn.") or k == "tf_gate_logits" for k in state_dict_preview)
-    # Forceful MTF→direction head (2026-06-06): real params (head + scale) in
-    # state_dict → detect by presence so the rebuilt model matches strict-load.
-    _has_mtf_direction = "head_mtf_direction.weight" in state_dict_preview
-    _has_anchor_gate = "head_anchor_gate.weight" in state_dict_preview
-    _has_q_head = "q_head.weight" in state_dict_preview
-    _has_hierarchical_entry_heads = "head_trade.weight" in state_dict_preview and "head_side.weight" in state_dict_preview
-    _hierarchical_direction_cfg = (meta.get("hierarchical_direction_composition") or {}) if isinstance(meta, dict) else {}
-    _enable_hierarchical_direction_composition = bool(_hierarchical_direction_cfg.get("enabled", False))
-    _hierarchical_composition_residual_logit_cap = float(
-        _hierarchical_direction_cfg.get(
-            "residual_logit_cap",
-            meta.get("hier_compose_residual_logit_cap", 0.0) if isinstance(meta, dict) else 0.0,
-        )
-    )
-    _hierarchical_composition_residual_side_neutral = bool(
-        _hierarchical_direction_cfg.get(
-            "residual_side_neutral",
-            meta.get("hier_compose_residual_side_neutral", False) if isinstance(meta, dict) else False,
-        )
-    )
-    _hierarchical_composition_public_flat_from_trade = bool(
-        _hierarchical_direction_cfg.get(
-            "public_flat_from_trade",
-            meta.get("hier_compose_public_flat_from_trade", False) if isinstance(meta, dict) else False,
-        )
-    )
-    _hierarchical_public_direction_composition = str(
-        _hierarchical_direction_cfg.get(
-            "public_direction_composition",
-            meta.get("hier_public_direction_composition", "logprob") if isinstance(meta, dict) else "logprob",
-        )
-    ).strip().lower()
-    _hierarchical_public_direction_detach_side_grad = bool(
-        _hierarchical_direction_cfg.get(
-            "public_direction_detach_side_grad",
-            meta.get("hier_public_direction_detach_side_grad", False) if isinstance(meta, dict) else False,
-        )
-    )
-    if _hierarchical_public_direction_composition not in {
-        "logprob",
-        "margin",
-        "margin_centered",
-        "margin_maxnorm",
-        "margin_maxnorm_confidence",
-    }:
-        raise RuntimeError(
-            "[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_COMPOSITION_INVALID] "
-            f"{_hierarchical_public_direction_composition!r}"
-        )
-    _has_hierarchical_public_trade_head = "head_public_trade.weight" in state_dict_preview
-    if (
-        _has_hierarchical_public_trade_head
-        and _hierarchical_composition_public_flat_from_trade
-        and "public_direction_composition" not in _hierarchical_direction_cfg
-        and (
-            not isinstance(meta, dict)
-            or "hier_public_direction_composition" not in meta
-        )
-    ):
-        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_COMPOSITION_METADATA_MISSING]")
-    if (
-        _has_hierarchical_public_trade_head
-        and _hierarchical_composition_public_flat_from_trade
-        and _hierarchical_public_direction_composition == "margin_maxnorm_confidence"
-        and "public_direction_detach_side_grad" not in _hierarchical_direction_cfg
-        and (
-            not isinstance(meta, dict)
-            or "hier_public_direction_detach_side_grad" not in meta
-        )
-    ):
-        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_METADATA_MISSING]")
-    if _has_hierarchical_public_trade_head and "public_trade_head" not in _hierarchical_direction_cfg:
-        if not bool(meta.get("hier_public_trade_head", False) if isinstance(meta, dict) else False):
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_HEAD_METADATA_MISSING]")
-    _hierarchical_public_flat_head_cfg = (
-        _hierarchical_direction_cfg.get("public_flat_head")
-        if isinstance(_hierarchical_direction_cfg.get("public_flat_head"), dict)
-        else {}
-    )
-    _has_hierarchical_public_flat_head = "head_public_flat.weight" in state_dict_preview
-    _public_flat_head_meta_enabled = bool(
-        _hierarchical_public_flat_head_cfg.get(
-            "enabled",
-            meta.get("hier_public_flat_head", False) if isinstance(meta, dict) else False,
-        )
-    )
-    if _has_hierarchical_public_flat_head and not _public_flat_head_meta_enabled:
-        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_FLAT_HEAD_METADATA_MISSING]")
-    if _public_flat_head_meta_enabled and not _has_hierarchical_public_flat_head:
-        raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_FLAT_HEAD_STATE_MISSING]")
-    _hierarchical_public_trade_dir_margin_bridge_cfg = (
-        _hierarchical_direction_cfg.get("public_trade_dir_margin_bridge")
-        if isinstance(_hierarchical_direction_cfg.get("public_trade_dir_margin_bridge"), dict)
-        else {}
-    )
-    _has_hierarchical_public_trade_dir_margin_bridge = bool(
-        _hierarchical_public_trade_dir_margin_bridge_cfg.get(
-            "enabled",
-            meta.get("hier_public_trade_dir_margin_bridge", False) if isinstance(meta, dict) else False,
-        )
-    )
-    if _has_hierarchical_public_trade_dir_margin_bridge:
-        _public_trade_dir_margin_bridge_scale_raw = _hierarchical_public_trade_dir_margin_bridge_cfg.get(
-            "scale",
-            meta.get("hier_public_trade_dir_margin_bridge_scale") if isinstance(meta, dict) else None,
-        )
-        _public_trade_dir_margin_bridge_cap_raw = _hierarchical_public_trade_dir_margin_bridge_cfg.get(
-            "cap",
-            meta.get("hier_public_trade_dir_margin_bridge_cap") if isinstance(meta, dict) else None,
-        )
-        if _public_trade_dir_margin_bridge_scale_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MISSING]")
-        if _public_trade_dir_margin_bridge_cap_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MISSING]")
-        _hierarchical_public_trade_dir_margin_bridge_scale = float(
-            _public_trade_dir_margin_bridge_scale_raw
-        )
-        _hierarchical_public_trade_dir_margin_bridge_cap = float(
-            _public_trade_dir_margin_bridge_cap_raw
-        )
-    else:
-        _hierarchical_public_trade_dir_margin_bridge_scale = 0.0
-        _hierarchical_public_trade_dir_margin_bridge_cap = 0.0
-    _has_hierarchical_public_side_head = "head_public_side.weight" in state_dict_preview
-    if _has_hierarchical_public_side_head and "public_side_head" not in _hierarchical_direction_cfg:
-        if not bool(meta.get("hier_public_side_head", False) if isinstance(meta, dict) else False):
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_SIDE_HEAD_METADATA_MISSING]")
-    _hierarchical_public_side_dir_margin_bridge_cfg = (
-        _hierarchical_direction_cfg.get("public_side_dir_margin_bridge")
-        if isinstance(_hierarchical_direction_cfg.get("public_side_dir_margin_bridge"), dict)
-        else {}
-    )
-    _has_hierarchical_public_side_dir_margin_bridge = bool(
-        _hierarchical_public_side_dir_margin_bridge_cfg.get(
-            "enabled",
-            meta.get("hier_public_side_dir_margin_bridge", False) if isinstance(meta, dict) else False,
-        )
-    )
-    if _has_hierarchical_public_side_dir_margin_bridge:
-        _public_side_dir_margin_bridge_scale_raw = _hierarchical_public_side_dir_margin_bridge_cfg.get(
-            "scale",
-            meta.get("hier_public_side_dir_margin_bridge_scale") if isinstance(meta, dict) else None,
-        )
-        _public_side_dir_margin_bridge_cap_raw = _hierarchical_public_side_dir_margin_bridge_cfg.get(
-            "cap",
-            meta.get("hier_public_side_dir_margin_bridge_cap") if isinstance(meta, dict) else None,
-        )
-        if _public_side_dir_margin_bridge_scale_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MISSING]")
-        if _public_side_dir_margin_bridge_cap_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MISSING]")
-        _hierarchical_public_side_dir_margin_bridge_scale = float(
-            _public_side_dir_margin_bridge_scale_raw
-        )
-        _hierarchical_public_side_dir_margin_bridge_cap = float(
-            _public_side_dir_margin_bridge_cap_raw
-        )
-    else:
-        _hierarchical_public_side_dir_margin_bridge_scale = 0.0
-        _hierarchical_public_side_dir_margin_bridge_cap = 0.0
-    _hierarchical_entry_cfg = (meta.get("hierarchical_entry_heads") or {}) if isinstance(meta, dict) else {}
-    _hierarchical_ctx_prior_cfg = (
-        _hierarchical_direction_cfg.get("ctx_prior_adapter")
-        if isinstance(_hierarchical_direction_cfg.get("ctx_prior_adapter"), dict)
-        else (_hierarchical_entry_cfg.get("ctx_prior_adapter") if isinstance(_hierarchical_entry_cfg.get("ctx_prior_adapter"), dict) else {})
-    )
-    _has_hierarchical_ctx_prior_adapter = "hierarchical_ctx_prior_adapter.weight" in state_dict_preview
-    if _has_hierarchical_ctx_prior_adapter:
-        _hierarchical_ctx_prior_scale_raw = _hierarchical_ctx_prior_cfg.get(
-            "scale",
-            meta.get("hier_ctx_prior_adapter_scale") if isinstance(meta, dict) else None,
-        )
-        if _hierarchical_ctx_prior_scale_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_CTX_PRIOR_ADAPTER_SCALE_MISSING]")
-        _hierarchical_ctx_prior_adapter_scale = float(_hierarchical_ctx_prior_scale_raw)
-    else:
-        _hierarchical_ctx_prior_adapter_scale = 0.0
-    _hierarchical_ctx_direction_cfg = (
-        _hierarchical_direction_cfg.get("ctx_direction_calibration")
-        if isinstance(_hierarchical_direction_cfg.get("ctx_direction_calibration"), dict)
-        else {}
-    )
-    _has_hierarchical_ctx_direction_calibration = (
-        "hierarchical_ctx_direction_calibration.weight" in state_dict_preview
-    )
-    if _has_hierarchical_ctx_direction_calibration:
-        _hierarchical_ctx_direction_scale_raw = _hierarchical_ctx_direction_cfg.get(
-            "scale",
-            meta.get("hier_ctx_direction_calibration_scale") if isinstance(meta, dict) else None,
-        )
-        _hierarchical_ctx_direction_cap_raw = _hierarchical_ctx_direction_cfg.get(
-            "cap",
-            meta.get("hier_ctx_direction_calibration_cap") if isinstance(meta, dict) else None,
-        )
-        if _hierarchical_ctx_direction_scale_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MISSING]")
-        if _hierarchical_ctx_direction_cap_raw is None:
-            raise RuntimeError("[ENTRY_BUNDLE_HIER_CTX_DIRECTION_CALIBRATION_CAP_MISSING]")
-        _hierarchical_ctx_direction_calibration_scale = float(_hierarchical_ctx_direction_scale_raw)
-        _hierarchical_ctx_direction_calibration_cap = float(_hierarchical_ctx_direction_cap_raw)
-    else:
-        _hierarchical_ctx_direction_calibration_scale = 0.0
-        _hierarchical_ctx_direction_calibration_cap = 0.0
-    _has_side_validity_head = "head_side_validity.weight" in state_dict_preview
-    _has_trendline_rail = "head_trendline_rail.weight" in state_dict_preview
-    _trendline_rail_output_dim = 4
-    if _has_trendline_rail:
-        _trendline_weight = state_dict_preview.get("head_trendline_rail.weight")
-        _shape = tuple(getattr(_trendline_weight, "shape", ()) or ())
-        if len(_shape) >= 1 and int(_shape[0]) >= 4:
-            _trendline_rail_output_dim = int(_shape[0])
-    # Positional encoding uses a persistent=False buffer (NOT in state_dict),
-    # so it cannot be probed from keys like the aux heads — it MUST be read
-    # from bundle metadata. Default False keeps old (pos-enc-free) bundles
-    # bit-identical at inference.
-    _enable_pos_enc = bool(meta.get("enable_pos_enc", False)) if isinstance(meta, dict) else False
-    # BIG-9 (2026-06-03): FiLM regime-conditioning — must rebuild with the module if the
-    # bundle was trained with it (regime_film.* weights in state_dict), else strict-load fails.
-    _enable_regime_film = bool(meta.get("enable_regime_film", False)) if isinstance(meta, dict) else False
-    if not _enable_regime_film:
-        _enable_regime_film = any(str(k).startswith("regime_film.") for k in state_dict_preview)
+    _require_model_native_state_head_contract(meta, state_dict_preview)
+    _require_model_native_learned_component_liveness(state_dict_preview)
+    _tf_inits = meta["tf_input_scale"]["init"]
+    required_tf_scale_keys = {f"tf_input_scale_{tf}" for tf in ("m5", "m15", "h1", "h4", "d1")}
+    missing_tf_scale_keys = sorted(required_tf_scale_keys - set(state_dict_preview))
+    if missing_tf_scale_keys:
+        raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_STATE_MISSING] {missing_tf_scale_keys}")
 
-    # 2026-06-02: per-TF learnable input scaling (V10 v5+). Detect via
-    # state_dict so bundles without this feature continue to load. Init
-    # values come from meta so the Parameter shape matches state_dict
-    # (state_dict load overwrites init with learned values).
-    _tf_input_scale_cfg = (meta.get("tf_input_scale") or {}) if isinstance(meta, dict) else {}
-    _has_tf_input_scale = any(
-        f"tf_input_scale_{tf}" in state_dict_preview for tf in ("m5", "m15", "h1", "h4", "d1")
-    )
-    _tf_inits = (_tf_input_scale_cfg.get("init") or {})
-    _tf_scale_kwargs = dict(
-        enable_tf_input_scale=_has_tf_input_scale,
-        tf_input_scale_init_m5=float(_tf_inits.get("m5", 1.0)),
-        tf_input_scale_init_m15=float(_tf_inits.get("m15", 1.0)),
-        tf_input_scale_init_h1=float(_tf_inits.get("h1", 0.7)),
-        tf_input_scale_init_h4=float(_tf_inits.get("h4", 0.5)),
-        tf_input_scale_init_d1=float(_tf_inits.get("d1", 0.3)),
-    ) if _has_tf_input_scale else {}
-
-    _specialist_cfg = (meta.get("specialist_fusion") or {}) if isinstance(meta, dict) else {}
-    _has_specialist_fusion = bool(_specialist_cfg.get("enabled", False)) or any(
-        str(k).startswith("specialist_proj.")
-        or str(k).startswith("specialist_encoder.")
-        or str(k).startswith("specialist_gate.")
-        or str(k).startswith("specialist_out.")
-        or str(k) == "specialist_fusion_scale"
-        for k in state_dict_preview
-    )
-    _specialist_kwargs = {}
-    if _has_specialist_fusion:
-        _indices = _specialist_cfg.get("input_indices")
-        if not isinstance(_indices, dict) or not _indices:
-            raise RuntimeError("[ENTRY_BUNDLE_SPECIALIST_METADATA_MISSING] specialist_fusion.input_indices required")
-        _specialist_kwargs = {
-            "enable_specialist_fusion": True,
-            "specialist_input_indices": {str(k): [int(i) for i in list(v or [])] for k, v in _indices.items()},
-            "specialist_num_layers": int(_specialist_cfg.get("num_layers") or 1),
-            "specialist_fusion_scale": float(_specialist_cfg.get("fusion_scale") or 0.25),
-        }
-
+    _specialist_cfg = meta["specialist_fusion"]
+    _indices = _specialist_cfg["input_indices"]
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
-        enable_anchor_gate=_has_anchor_gate,
-        anchor_gate_init=float((meta.get("anchor_gate") or {}).get("init", 1.0)) if isinstance(meta, dict) else 1.0,
-        enable_hierarchical_entry_heads=_has_hierarchical_entry_heads,
-        enable_hierarchical_direction_composition=_enable_hierarchical_direction_composition,
-        hierarchical_composition_residual_logit_cap=_hierarchical_composition_residual_logit_cap,
-        hierarchical_composition_residual_side_neutral=_hierarchical_composition_residual_side_neutral,
-        hierarchical_composition_public_flat_from_trade=_hierarchical_composition_public_flat_from_trade,
-        hierarchical_public_direction_composition=_hierarchical_public_direction_composition,
-        hierarchical_public_direction_detach_side_grad=_hierarchical_public_direction_detach_side_grad,
-        enable_hierarchical_public_trade_head=_has_hierarchical_public_trade_head,
-        enable_hierarchical_public_flat_head=_has_hierarchical_public_flat_head,
-        enable_hierarchical_public_trade_dir_margin_bridge=_has_hierarchical_public_trade_dir_margin_bridge,
-        hierarchical_public_trade_dir_margin_bridge_scale=_hierarchical_public_trade_dir_margin_bridge_scale,
-        hierarchical_public_trade_dir_margin_bridge_cap=_hierarchical_public_trade_dir_margin_bridge_cap,
-        enable_hierarchical_public_side_head=_has_hierarchical_public_side_head,
-        enable_hierarchical_public_side_dir_margin_bridge=_has_hierarchical_public_side_dir_margin_bridge,
-        hierarchical_public_side_dir_margin_bridge_scale=_hierarchical_public_side_dir_margin_bridge_scale,
-        hierarchical_public_side_dir_margin_bridge_cap=_hierarchical_public_side_dir_margin_bridge_cap,
-        enable_hierarchical_ctx_prior_adapter=_has_hierarchical_ctx_prior_adapter,
-        hierarchical_ctx_prior_adapter_scale=_hierarchical_ctx_prior_adapter_scale,
-        enable_hierarchical_ctx_direction_calibration=_has_hierarchical_ctx_direction_calibration,
-        hierarchical_ctx_direction_calibration_scale=_hierarchical_ctx_direction_calibration_scale,
-        hierarchical_ctx_direction_calibration_cap=_hierarchical_ctx_direction_calibration_cap,
-        enable_side_validity_head=_has_side_validity_head,
-        enable_trendline_rail_head=_has_trendline_rail,
-        trendline_rail_output_dim=_trendline_rail_output_dim,
-        enable_multi_tf=enable_mtf,
         m15_seq_dim=_m15_seq_dim, h1_seq_dim=_h1_seq_dim, h4_seq_dim=_h4_seq_dim, d1_seq_dim=_d1_seq_dim,
         m15_seq_len=_m15_seq_len, h1_seq_len=_h1_seq_len,
         h4_seq_len=_h4_seq_len, d1_seq_len=_d1_seq_len,
-        # V2: enable M5 branch when manifest says so.
-        enable_multi_tf_m5=_v2_mode,
         m5_seq_dim=_m5_seq_dim, m5_seq_len=_m5_seq_len,
         multi_tf_scale=mtf_scale,
-        enable_tf_agreement_head=_has_tf_agreement,
-        enable_path_quality_variance_head=_has_path_var,
-        enable_position_size_head=_has_position_size,
-        enable_hold_horizon_head=_has_hold_horizon,
-        enable_pos_enc=_enable_pos_enc,
-        enable_regime_film=_enable_regime_film,
-        enable_dip_head=_has_dip,
-        enable_forecast_head=_has_forecast,
-        enable_timing_head=_has_timing,
-        enable_tail_risk_head=_has_tail_risk,
-        enable_vol_forecast_head=_has_vol_forecast,
-        enable_cross_tf_attn=_has_cross_tf,
-        enable_mtf_direction_head=_has_mtf_direction,
-        enable_q_head=_has_q_head,
-        **_tf_scale_kwargs,
-        **_specialist_kwargs,
+        tf_input_scale_init_m5=float(_tf_inits["m5"]),
+        tf_input_scale_init_m15=float(_tf_inits["m15"]),
+        tf_input_scale_init_h1=float(_tf_inits["h1"]),
+        tf_input_scale_init_h4=float(_tf_inits["h4"]),
+        tf_input_scale_init_d1=float(_tf_inits["d1"]),
+        specialist_input_indices={
+            str(k): list(v) for k, v in _indices.items()
+        },
+        specialist_num_layers=int(_specialist_cfg["num_layers"]),
+        specialist_fusion_scale=float(_specialist_cfg["fusion_scale"]),
     ).to(dev)
 
     state_dict = state_dict_preview
-    parked_head_keys = {
-        "head_early_move.weight",
-        "head_early_move.bias",
-        "head_quality.weight",
-        "head_quality.bias",
-        "head_clean_edge.weight",
-        "head_clean_edge.bias",
-        "head_survival.weight",
-        "head_survival.bias",
-    }
-    incompatible = model.load_state_dict(state_dict, strict=False)
-    missing = set(getattr(incompatible, "missing_keys", []) or [])
-    unexpected = set(getattr(incompatible, "unexpected_keys", []) or [])
-    unexpected_active = unexpected - parked_head_keys
-    if unexpected_active:
-        raise RuntimeError(f"[ENTRY_V10_CTX_UNEXPECTED_KEYS] {sorted(unexpected_active)}")
-    allowed_missing = parked_head_keys | {"hierarchical_composition_residual_logit_cap"}
-    if missing - allowed_missing:
-        raise RuntimeError(f"[ENTRY_V10_CTX_MISSING_KEYS] {sorted(missing - allowed_missing)}")
+    model.load_state_dict(state_dict, strict=True)
     model.eval()
-    # Post-hoc direction calibration (vedtak SMART_SEQ520_candidate_train_20260703):
-    # installed from bundle metadata into the model's canonical forward, so the
-    # bundle audit and live serve see identical calibrated logits by construction.
-    # Bundles without the key (all cemented/live bundles) are bit-identical.
-    _dir_cal = meta.get("direction_calibration") if isinstance(meta, dict) else None
-    if isinstance(_dir_cal, dict) and bool(_dir_cal.get("enabled", True)):
-        _cal_bias = torch.tensor([float(x) for x in (_dir_cal.get("bias") or [])], dtype=torch.float32)
-        model.set_direction_calibration(float(_dir_cal.get("temperature", 1.0)), _cal_bias)
+    # Optional immutable calibrations are part of the canonical forward and
+    # were fully validated above before any model is returned.
+    _dir_cal = meta.get("direction_calibration")
+    if _dir_cal is not None:
+        _cal_bias = torch.tensor([float(x) for x in _dir_cal["bias"]], dtype=torch.float32)
+        _cal_temperature = float(_dir_cal["temperature"])
+        _cal_fitted_on = str(_dir_cal.get("fitted_on_split", "unspecified"))
+        model.set_direction_calibration(_cal_temperature, _cal_bias)
         logging.getLogger(__name__).info(
             "[ENTRY_DIRECTION_CAL] installed: temperature=%.4f bias=%s fitted_on=%s",
-            float(_dir_cal.get("temperature", 1.0)),
-            [round(float(x), 4) for x in (_dir_cal.get("bias") or [])],
-            _dir_cal.get("fitted_on_split", "?"),
+            _cal_temperature,
+            [round(float(x), 4) for x in _cal_bias.tolist()],
+            _cal_fitted_on,
         )
-    _path_cal = meta.get("path_calibration") if isinstance(meta, dict) else None
-    if isinstance(_path_cal, dict) and bool(_path_cal.get("enabled", True)):
+    _path_cal = meta.get("path_calibration")
+    if _path_cal is not None:
+        _path_values = (
+            float(_path_cal["path_quality_scale"]),
+            float(_path_cal["path_quality_shift"]),
+            float(_path_cal["bad_path_temperature"]),
+            float(_path_cal["bad_path_bias"]),
+        )
         model.set_path_calibration(
-            float(_path_cal.get("path_quality_scale", 1.0)),
-            float(_path_cal.get("path_quality_shift", 0.0)),
-            float(_path_cal.get("bad_path_temperature", 1.0)),
-            float(_path_cal.get("bad_path_bias", 0.0)),
+            *_path_values,
         )
         logging.getLogger(__name__).info(
             "[ENTRY_PATH_CAL] installed: pq=%.4f*x%+.4f bad_path=x/%.4f%+.4f",
-            float(_path_cal.get("path_quality_scale", 1.0)),
-            float(_path_cal.get("path_quality_shift", 0.0)),
-            float(_path_cal.get("bad_path_temperature", 1.0)),
-            float(_path_cal.get("bad_path_bias", 0.0)),
+            *_path_values,
         )
     capabilities = _infer_entry_bundle_capabilities(meta, state_dict)
     logging.getLogger(__name__).info(
@@ -626,8 +891,6 @@ def load_entry_v10_ctx_bundle(
         bundle_dir=str(bd),
         device=dev,
         transformer_model=model,
-        xgb_model_universal=xgb_models.get("UNIVERSAL") if xgb_models else None,
-        xgb_models_by_session=xgb_models or {},
         metadata={
             **meta,
             "model_variant": "v10_ctx",
@@ -646,10 +909,3 @@ def load_entry_v10_ctx_bundle(
     )
 
     return bundle
-
-
-def load_entry_v10_bundle(*_args: Any, **_kwargs: Any) -> EntryV10Bundle:
-    """
-    LEGACY_DISABLED: Non-CTX ENTRY_V10 is removed.
-    """
-    raise RuntimeError("LEGACY_DISABLED: ENTRY_V10 (non-ctx) is removed. Use load_entry_v10_ctx_bundle().")

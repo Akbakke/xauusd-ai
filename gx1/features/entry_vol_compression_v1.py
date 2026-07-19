@@ -1,8 +1,7 @@
-"""Entry volatility/compression smart-layer features.
+"""Canonical Entry volatility/compression specialist features.
 
 This layer derives deterministic, closed-bar volatility-regime features from
-already materialized Entry snap/context fields. It is intentionally standalone
-until a later manifest/rebuild gate chooses to include it.
+exact, already materialized Entry snap/context/chart fields.
 """
 from __future__ import annotations
 
@@ -14,32 +13,24 @@ import numpy as np
 VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v1_20260630_causal_atr_squeeze_release_mtf"
 VOL_COMPRESSION_FEATURE_PREFIX = "vol_compression."
 
-VOL_COMPRESSION_REQUIRED_SOURCE_FIELDS = (
-    "atr_z",
-    "rvol_20",
-    "_v1_range_z",
-    "_v1_bb_squeeze_20_2",
-    "vol_ratio_5_20",
-    "signed_vol_z_20",
+VOL_COMPRESSION_SOURCE_FIELDS = (
+    "snap.atr_z",
+    "snap.rvol_20",
+    "snap._v1_range_z",
+    "snap._v1_bb_squeeze_20_2",
+    "snap.vol_ratio_5_20",
+    "snap.signed_vol_z_20",
+    "snap._v1_pk_sigma20",
+    "snap._v1_bb_bandwidth_delta_10",
+    "snap._v1_kurt_r",
+    "snap.vol_z_20",
+    "snap.vol_pct_96",
+    "snap.ret_1",
+    "snap.ret_5",
+    "snap.ret_20",
     "ctx_cont.H1_range_compression_ratio",
     "ctx_cont.M15_range_compression_ratio",
     "ctx_cont.D1_atr_percentile_252",
-)
-
-VOL_COMPRESSION_OPTIONAL_SOURCE_FIELDS = (
-    "_v1_atr14",
-    "_v1_pk_sigma20",
-    "_v1_bb_bandwidth_delta_10",
-    "_v1_kurt_r",
-    "vol_z_20",
-    "vol_pct_96",
-    "ret_1",
-    "ret_5",
-    "ret_20",
-    "ctx_cont.atr_bps",
-    "ctx_cont._v1h1_atr",
-    "ctx_cont._v1h4_atr",
-    "ctx_cont.d1_atr14_canon_v2",
     "ctx_cont.d1_range_z_20_canon_v2",
     "ctx_cont.m15_range_z_20_canon_v2",
     "ctx_cont.atr_ratio_m5_m15",
@@ -63,50 +54,6 @@ VOL_COMPRESSION_OPTIONAL_SOURCE_FIELDS = (
     "chart.foundation_compression_release_down",
     "chart.foundation_impulse_direction",
 )
-
-_SOURCE_ALIASES: dict[str, tuple[str, ...]] = {
-    "atr_z": ("snap.atr_z", "atr_z"),
-    "rvol_20": ("snap.rvol_20", "rvol_20"),
-    "_v1_range_z": ("snap._v1_range_z", "ctx_cont._v1_range_z", "_v1_range_z"),
-    "_v1_bb_squeeze_20_2": ("snap._v1_bb_squeeze_20_2", "_v1_bb_squeeze_20_2"),
-    "vol_ratio_5_20": ("snap.vol_ratio_5_20", "vol_ratio_5_20"),
-    "signed_vol_z_20": ("snap.signed_vol_z_20", "signed_vol_z_20"),
-    "_v1_atr14": ("snap._v1_atr14", "_v1_atr14"),
-    "_v1_pk_sigma20": ("snap._v1_pk_sigma20", "_v1_pk_sigma20"),
-    "_v1_bb_bandwidth_delta_10": ("snap._v1_bb_bandwidth_delta_10", "_v1_bb_bandwidth_delta_10"),
-    "_v1_kurt_r": ("snap._v1_kurt_r", "_v1_kurt_r"),
-    "vol_z_20": ("snap.vol_z_20", "vol_z_20"),
-    "vol_pct_96": ("snap.vol_pct_96", "vol_pct_96"),
-    "ret_1": ("snap.ret_1", "ret_1"),
-    "ret_5": ("snap.ret_5", "ret_5"),
-    "ret_20": ("snap.ret_20", "ret_20"),
-    "ctx_cont.atr_bps": ("ctx_cont.atr_bps", "atr_bps"),
-    "ctx_cont.H1_range_compression_ratio": ("ctx_cont.H1_range_compression_ratio", "H1_range_compression_ratio"),
-    "ctx_cont.M15_range_compression_ratio": ("ctx_cont.M15_range_compression_ratio", "M15_range_compression_ratio"),
-    "ctx_cont.D1_atr_percentile_252": ("ctx_cont.D1_atr_percentile_252", "D1_atr_percentile_252"),
-    "ctx_cont._v1h1_atr": ("ctx_cont._v1h1_atr", "_v1h1_atr"),
-    "ctx_cont._v1h4_atr": ("ctx_cont._v1h4_atr", "_v1h4_atr"),
-    "ctx_cont.d1_atr14_canon_v2": ("ctx_cont.d1_atr14_canon_v2", "d1_atr14_canon_v2"),
-    "ctx_cont.d1_range_z_20_canon_v2": ("ctx_cont.d1_range_z_20_canon_v2", "d1_range_z_20_canon_v2"),
-    "ctx_cont.m15_range_z_20_canon_v2": ("ctx_cont.m15_range_z_20_canon_v2", "m15_range_z_20_canon_v2"),
-    "ctx_cont.atr_ratio_m5_m15": ("ctx_cont.atr_ratio_m5_m15", "atr_ratio_m5_m15"),
-    "ctx_cont.atr_ratio_m5_h4": ("ctx_cont.atr_ratio_m5_h4", "atr_ratio_m5_h4"),
-    "ctx_cont.atr_ratio_m15_d1": ("ctx_cont.atr_ratio_m15_d1", "atr_ratio_m15_d1"),
-    "ctx_cont.atr_ratio_h1_d1": ("ctx_cont.atr_ratio_h1_d1", "atr_ratio_h1_d1"),
-    "ctx_cont.vol_pct_m5_1yr": ("ctx_cont.vol_pct_m5_1yr", "vol_pct_m5_1yr"),
-    "ctx_cont.vol_pct_h1_1yr": ("ctx_cont.vol_pct_h1_1yr", "vol_pct_h1_1yr"),
-    "ctx_cat.atr_bucket": ("ctx_cat.atr_bucket", "atr_bucket"),
-    "ctx_cat.vol_regime_id": ("ctx_cat.vol_regime_id", "vol_regime_id"),
-    "ctx_cont._v1h1_ema_diff": ("ctx_cont._v1h1_ema_diff", "_v1h1_ema_diff"),
-    "ctx_cont._v1h4_ema_diff": ("ctx_cont._v1h4_ema_diff", "_v1h4_ema_diff"),
-    "ctx_cont.d1_ema_slope_20_canon_v2": ("ctx_cont.d1_ema_slope_20_canon_v2", "d1_ema_slope_20_canon_v2"),
-    "ctx_cont.m15_trend_sign_canon_v2": ("ctx_cont.m15_trend_sign_canon_v2", "m15_trend_sign_canon_v2"),
-    "ctx_cont.regime_tf_agreement_v3": ("ctx_cont.regime_tf_agreement_v3", "regime_tf_agreement_v3"),
-    "ctx_cont.regime_divergence_flag_v3": (
-        "ctx_cont.regime_divergence_flag_v3",
-        "regime_divergence_flag_v3",
-    ),
-}
 
 VOL_COMPRESSION_FEATURE_SUFFIXES = (
     "atr_percentile_blend",
@@ -148,30 +95,20 @@ def _name_index(names: Iterable[str]) -> dict[str, int]:
     return {str(name): i for i, name in enumerate(names)}
 
 
-def _aliases(name: str) -> tuple[str, ...]:
-    return _SOURCE_ALIASES.get(name, (name,))
-
-
 def missing_entry_vol_compression_source_fields(feature_names: Iterable[str]) -> list[str]:
-    """Return required volatility/compression sources not represented by aliases."""
+    """Return exact canonical source fields absent from ``feature_names``."""
     available = {str(name) for name in feature_names}
-    return [
-        name
-        for name in VOL_COMPRESSION_REQUIRED_SOURCE_FIELDS
-        if not any(alias in available for alias in _aliases(name))
-    ]
+    return [name for name in VOL_COMPRESSION_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
-    for alias in _aliases(name):
-        if alias in index:
-            arr = np.asarray(x[:, index[alias]], dtype=np.float32)
-            return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
-    return np.full(x.shape[0], float(default), dtype=np.float32)
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    if name not in index:
+        raise RuntimeError(f"vol/compression required source field missing: {name}")
+    return np.asarray(x[:, index[name]], dtype=np.float32)
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    return np.clip(arr, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -203,7 +140,7 @@ def _lag1(arr: np.ndarray) -> np.ndarray:
 
 
 def _ratio_center(arr: np.ndarray) -> np.ndarray:
-    clean = np.maximum(np.nan_to_num(np.asarray(arr, dtype=np.float32), nan=1.0, posinf=1.0, neginf=1.0), 1e-4)
+    clean = np.maximum(np.asarray(arr, dtype=np.float32), 1e-4)
     return _clip(np.tanh(np.log(clean) / np.log(2.0)), -1.0, 1.0)
 
 
@@ -244,34 +181,46 @@ def build_entry_vol_compression_layer(
     x = np.asarray(x, dtype=np.float32)
     if x.ndim != 2:
         raise RuntimeError(f"vol/compression input matrix must be 2D, got {x.shape}")
+    if x.shape[0] == 0:
+        raise RuntimeError("vol/compression input matrix must contain at least one row")
     if x.shape[1] != len(feature_names):
         raise RuntimeError(
             f"vol/compression feature name count {len(feature_names)} does not match matrix width {x.shape[1]}"
         )
+    if len(feature_names) != len(set(feature_names)):
+        duplicates = sorted({name for name in feature_names if feature_names.count(name) > 1})
+        raise RuntimeError(f"vol/compression duplicate feature names: {duplicates[:10]}")
     missing = missing_entry_vol_compression_source_fields(feature_names)
     if missing:
         raise RuntimeError(f"vol/compression required source fields missing: {missing}")
+    if not np.isfinite(x).all():
+        bad_rows, bad_cols = np.where(~np.isfinite(x))
+        examples = [
+            {"row": int(row), "feature": feature_names[int(col)]}
+            for row, col in zip(bad_rows[:10], bad_cols[:10])
+        ]
+        raise RuntimeError(f"vol/compression input matrix contains non-finite values: {examples}")
 
     idx = _name_index(feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
-    atr_unit = _unit_from_z(c("atr_z"), scale=2.5)
-    range_unit = _unit_from_z(c("_v1_range_z"), scale=2.5)
-    rvol_unit = _unit_from_z(c("rvol_20"), scale=2.5)
-    vol_z_unit = _unit_from_z(c("vol_z_20"), scale=2.5)
-    vol_pct_96 = _clip01(c("vol_pct_96", default=0.5))
-    m5_vol_pct = _clip01(c("ctx_cont.vol_pct_m5_1yr", default=0.5))
-    h1_vol_pct = _clip01(c("ctx_cont.vol_pct_h1_1yr", default=0.5))
-    d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252", default=0.5))
-    atr_bucket = _clip01(c("ctx_cat.atr_bucket", default=2.0) / 4.0)
-    vol_regime = _clip01(c("ctx_cat.vol_regime_id", default=2.0) / 4.0)
-    m5_m15_ratio = _tanh(c("ctx_cont.atr_ratio_m5_m15", default=1.0) - 1.0, scale=1.0)
-    m15_d1_ratio = _tanh(c("ctx_cont.atr_ratio_m15_d1", default=1.0) - 1.0, scale=1.0)
-    h1_d1_ratio = _tanh(c("ctx_cont.atr_ratio_h1_d1", default=1.0) - 1.0, scale=1.0)
+    atr_unit = _unit_from_z(c("snap.atr_z"), scale=2.5)
+    range_unit = _unit_from_z(c("snap._v1_range_z"), scale=2.5)
+    rvol_unit = _unit_from_z(c("snap.rvol_20"), scale=2.5)
+    vol_z_unit = _unit_from_z(c("snap.vol_z_20"), scale=2.5)
+    vol_pct_96 = _clip01(c("snap.vol_pct_96"))
+    m5_vol_pct = _clip01(c("ctx_cont.vol_pct_m5_1yr"))
+    h1_vol_pct = _clip01(c("ctx_cont.vol_pct_h1_1yr"))
+    d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252"))
+    atr_bucket = _clip01(c("ctx_cat.atr_bucket") / 4.0)
+    vol_regime = _clip01(c("ctx_cat.vol_regime_id") / 4.0)
+    m5_m15_ratio = _tanh(c("ctx_cont.atr_ratio_m5_m15") - 1.0, scale=1.0)
+    m15_d1_ratio = _tanh(c("ctx_cont.atr_ratio_m15_d1") - 1.0, scale=1.0)
+    h1_d1_ratio = _tanh(c("ctx_cont.atr_ratio_h1_d1") - 1.0, scale=1.0)
 
     atr_percentile = _clip01(
         0.20 * atr_unit
@@ -295,8 +244,8 @@ def build_entry_vol_compression_layer(
 
     h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
     m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))
-    squeeze = _clip01(c("_v1_bb_squeeze_20_2"))
-    bb_delta = _tanh(c("_v1_bb_bandwidth_delta_10"), scale=1.0)
+    squeeze = _clip01(c("snap._v1_bb_squeeze_20_2"))
+    bb_delta = _tanh(c("snap._v1_bb_bandwidth_delta_10"), scale=1.0)
     bandwidth_narrowing = _neg(bb_delta)
     bandwidth_expanding = _pos(bb_delta)
     foundation_compression = _clip01(c("chart.foundation_compression_state"))
@@ -322,14 +271,14 @@ def build_entry_vol_compression_layer(
     )
     compression_persistence = _clip01(compression_depth * (0.55 + 0.45 * _lag1(compression_depth)))
 
-    atr_ratio_m5_m15 = _ratio_center(c("ctx_cont.atr_ratio_m5_m15", default=1.0))
-    atr_ratio_m5_h4 = _ratio_center(c("ctx_cont.atr_ratio_m5_h4", default=1.0))
-    atr_ratio_m15_d1 = _ratio_center(c("ctx_cont.atr_ratio_m15_d1", default=1.0))
-    atr_ratio_h1_d1 = _ratio_center(c("ctx_cont.atr_ratio_h1_d1", default=1.0))
+    atr_ratio_m5_m15 = _ratio_center(c("ctx_cont.atr_ratio_m5_m15"))
+    atr_ratio_m5_h4 = _ratio_center(c("ctx_cont.atr_ratio_m5_h4"))
+    atr_ratio_m15_d1 = _ratio_center(c("ctx_cont.atr_ratio_m15_d1"))
+    atr_ratio_h1_d1 = _ratio_center(c("ctx_cont.atr_ratio_h1_d1"))
     short_tf_expansion = _clip01(
         0.35 * _pos(atr_ratio_m5_m15)
         + 0.35 * _pos(atr_ratio_m5_h4)
-        + 0.20 * _pos(_tanh(c("vol_ratio_5_20"), scale=2.0))
+        + 0.20 * _pos(_tanh(c("snap.vol_ratio_5_20"), scale=2.0))
         + 0.10 * bandwidth_expanding
     )
     higher_tf_expansion = _clip01(
@@ -392,10 +341,10 @@ def build_entry_vol_compression_layer(
         + 0.25 * compression_depth * bandwidth_expanding
     )
 
-    ret1 = _tanh(c("ret_1"), scale=15.0)
-    ret5 = _tanh(c("ret_5"), scale=30.0)
-    ret20 = _tanh(c("ret_20"), scale=60.0)
-    signed_vol = _tanh(c("signed_vol_z_20"), scale=3.0)
+    ret1 = _tanh(c("snap.ret_1"), scale=15.0)
+    ret5 = _tanh(c("snap.ret_5"), scale=30.0)
+    ret20 = _tanh(c("snap.ret_20"), scale=60.0)
+    signed_vol = _tanh(c("snap.signed_vol_z_20"), scale=3.0)
     trend_proxy = _clip(
         0.30 * _tanh(c("ctx_cont._v1h1_ema_diff"), scale=2.0)
         + 0.25 * _tanh(c("ctx_cont._v1h4_ema_diff"), scale=2.0)
@@ -441,8 +390,8 @@ def build_entry_vol_compression_layer(
         1.0,
     )
 
-    kurt_pressure = _clip01(np.abs(_tanh(c("_v1_kurt_r"), scale=4.0)))
-    sigma_pressure = _clip01(np.abs(_tanh(c("_v1_pk_sigma20"), scale=2.5)))
+    kurt_pressure = _clip01(np.abs(_tanh(c("snap._v1_kurt_r"), scale=4.0)))
+    sigma_pressure = _clip01(np.abs(_tanh(c("snap._v1_pk_sigma20"), scale=2.5)))
     high_vol_tail_risk = _clip01(
         0.26 * high_atr_pressure
         + 0.18 * range_unit

@@ -1,26 +1,17 @@
-# Canonical EXIT Status
+# Retained Exit status
 
-> **ACTIVE 2026-07-02 OVERRIDE:** current Exit work is not the 2026-03-14
-> canonical bundle below. Exit is now a report-only downstream track for the
-> active Entry-to-Exit smart AI objective in
-> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
-> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
-> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. Exit Transformer
-> and Exit IQL training remain closed until Entry replay evidence and the Exit
-> feature-alignment/reconstruction/state-reward/split/architecture/training
-> gates are ready. No shadow/live/promotion decision may use the historical
-> bundle details below.
+Entry is currently blocked, but the separately selected Exit artifacts remain:
 
-**Updated (UTC):** 2026-03-14  
+- V3 Exit transformer:
+  `/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/v3_train_out_clean/v3_exit_clean_20260608`;
+- Exit-IQL:
+  `/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_deferral_20260707`;
+- Exit XGB input bundle:
+  `/home/andre2/GX1_DATA/models/xgb_v7_base80_20260526_cpu_PROMOTED_20260708`.
 
-## Current Canonical EXIT
-- **Bundle:** `/home/andre2/GX1_DATA/models/exit_transformer_v0/a4dba18d12b5b4ae8da44ec9af2c2ada4aac5f4408f238ceda1056928f94c960`
-- **Feature hash:** `23bf2db1d14e79e3` (EXIT_IO_V1_CTX36)
-- **Behavioral proof run:** `/home/andre2/GX1_DATA/reports/truth_e2e_sanity/E2E_SANITY_20260314_123327`
+The exact machine selection and Exit environment pins live in
+`PROJECT_STATE_artifacts.json`. `scripts/gx1_exit_env_pin.sh --print` must
+produce that complete environment unchanged.
 
-## Observability Status
-- **ENTRY observability:** improved (ctx_cont_named dump + non-inf stats proof)
-- **XGB calibration applied proof:** `/home/andre2/GX1_DATA/reports/truth_e2e_sanity/E2E_SANITY_20260314_124120`
-
-## Quarantine
-- **Previous canonical bundle:** `/home/andre2/GX1_DATA/models/exit_transformer_v0/_quarantine_exit/170cda1c67cdd3c0a60e221b02a69c74c0c7f766238804b9dd0cc26c24f00ae1`
+Removing XGB anchors and Entry-IQL from Entry does not authorize changes to
+Exit XGB use, M1 cadence, V3/Exit-IQL math, artifacts or operating point.

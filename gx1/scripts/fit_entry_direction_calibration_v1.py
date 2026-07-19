@@ -1,296 +1,892 @@
-"""Fit post-hoc direction calibration (temperature + per-class bias) for an
-Entry V10 candidate bundle and write it into bundle_metadata.json.
+"""Produce an immutable calibrated model-native Entry bundle.
 
-One-truth calibration leg for the FLAT-rate non-stationarity finding
-(vedtak SMART_SEQ520_candidate_train_20260703): the smart520 candidate
-DISCRIMINATES direction well OOT but its FLAT prediction RATE drifts with the
-market regime. This fits softmax(log(p)/T + b) by NLL on a recent held-out
-split (never train) and stores the result in
-bundle_metadata["direction_calibration"]; the bundle loader installs it into
-the model's canonical forward so the bundle audit and live serve see identical
-calibrated logits by construction.
-
-Fail-closed: refuses to fit on the train split, refuses non-finite params,
-backs up bundle_metadata.json before writing, and records full provenance
-(fit split, rows, NLL before/after, predictions source, vedtak).
+Calibration is fitted only from an explicitly named, immutable prediction
+event on one held-out ``val`` or ``calibration`` split.  The source bundle is
+never modified.  Execution creates a new timestamped sibling bundle, keeps
+the model state and lock byte-identical, and records a hash-bound calibration
+event inside the derived bundle.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
+import ctypes
+import errno
 import hashlib
 import json
+import math
+import os
+import re
 import shutil
 import sys
+import tempfile
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-import os
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
+import torch
 from scipy.optimize import minimize
+from scipy.special import logsumexp
 
+from gx1.contracts.immutable_event_authority_v1 import require_newest_immutable_event
+from gx1.models.entry_v10.entry_v10_bundle import (
+    _require_exact_model_native_bundle_metadata,
+    _require_model_native_learned_component_liveness,
+    _require_model_native_state_head_contract,
+)
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    resolve_and_validate_prediction_evidence,
+    sha256_file,
+)
+
+
+SCHEMA_VERSION = "entry_model_native_immutable_calibration_v1"
+DIRECTION_CALIBRATION_VERSION = "entry_model_native_direction_calibration_v1"
+PATH_CALIBRATION_VERSION = "entry_model_native_path_calibration_v1"
 CLASS_COLUMNS = ("p_long", "p_short", "p_flat")
-LABEL_TO_INDEX = {0: 0, 1: 1, 2: 2}
+CLASS_ORDER = ("LONG", "SHORT", "FLAT")
+HELD_OUT_SPLITS = ("val", "calibration")
+BUNDLE_REQUIRED_FILES = (
+    "MASTER_TRANSFORMER_LOCK.json",
+    "bundle_metadata.json",
+    "model_state_dict.pt",
+)
+RELATIVE_BUNDLE_REFERENCE_KEYS = (
+    "feature_meta_path",
+    "seq_scaler_path",
+    "snap_scaler_path",
+)
+CALIBRATION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_CALIBRATION_"
+_TIMESTAMPED_DIR_RE = re.compile(
+    r"[A-Za-z0-9][A-Za-z0-9._-]*_(?P<stamp>\d{8}T\d{12}Z)"
+)
+_MUTABLE_TOKENS = frozenset({"active", "current", "latest", "mutable"})
+_HEX64_RE = re.compile(r"[0-9a-f]{64}")
 
 
-def _parse_fit_splits(raw: str) -> list[str]:
-    splits = [str(part).strip() for part in str(raw).split(",") if str(part).strip()]
-    if not splits:
-        raise ValueError("empty --fit-split")
-    return splits
+def _positive_int(raw: str) -> int:
+    value = int(raw)
+    if value <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return value
 
 
-def _sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def _direction_odds_cap(raw: str) -> float:
+    value = float(raw)
+    if not math.isfinite(value) or value < 1.0:
+        raise argparse.ArgumentTypeError("must be finite and >= 1.0")
+    return value
 
 
-def _nll(params: np.ndarray, logp: np.ndarray, y: np.ndarray) -> float:
-    temperature = float(np.exp(params[0]))
-    bias = params[1:4]
-    z = logp / temperature + bias
-    z = z - z.max(axis=1, keepdims=True)
-    prob = np.exp(z)
-    prob /= prob.sum(axis=1, keepdims=True)
-    return float(-np.log(prob[np.arange(len(y)), y] + 1e-12).mean())
-
-
-def _fit_path_calibration(args, bundle_dir: Path, meta_path: Path, meta: dict) -> int:
-    """Affine recal for path_quality_pred (vs realized path_quality_bps) + Platt
-    for bad_path_prob (vs y_bad_path), fitted on the held-out split only."""
-    if isinstance(meta.get("path_calibration"), dict):
-        print("FATAL: bundle already carries path_calibration; refusing to re-fit on "
-              "calibrated predictions. Remove the key (restore backup) first.", file=sys.stderr)
-        return 2
-    pred_path = Path(args.predictions_parquet).expanduser().resolve()
-    cols = ["split", "model", "path_quality_pred", "bad_path_prob", "path_quality_bps", "y_bad_path"]
-    frame = pd.read_parquet(pred_path, columns=cols)
-    fit_splits = list(getattr(args, "fit_splits", [args.fit_split]))
-    frame = frame[(frame["split"].isin(fit_splits)) & (frame["model"] == args.model_name)].dropna()
-    if len(frame) < 200:
-        print(f"FATAL: too few rows ({len(frame)}) for splits={fit_splits}", file=sys.stderr)
-        return 2
-    x_pq = frame["path_quality_pred"].to_numpy(np.float64)
-    y_pq = frame["path_quality_bps"].to_numpy(np.float64)
-    # affine least-squares
-    A = np.vstack([x_pq, np.ones_like(x_pq)]).T
-    (a, b), *_ = np.linalg.lstsq(A, y_pq, rcond=None)
-    mse_before = float(np.mean((x_pq - y_pq) ** 2))
-    mse_after = float(np.mean((a * x_pq + b - y_pq) ** 2))
-    # Platt on bad_path logit
-    p_bp = np.clip(frame["bad_path_prob"].to_numpy(np.float64), 1e-9, 1 - 1e-9)
-    logit = np.log(p_bp / (1 - p_bp))
-    y_bp = frame["y_bad_path"].to_numpy(np.float64)
-    def _bce(params):
-        t, c = np.exp(params[0]), params[1]
-        z = logit / t + c
-        pz = 1 / (1 + np.exp(-z))
-        pz = np.clip(pz, 1e-12, 1 - 1e-12)
-        return -np.mean(y_bp * np.log(pz) + (1 - y_bp) * np.log(1 - pz))
-    bce_before = _bce(np.array([0.0, 0.0]))
-    res = minimize(_bce, np.zeros(2), method="Nelder-Mead", options={"maxiter": 2000})
-    bp_t, bp_b = float(np.exp(res.x[0])), float(res.x[1])
-    bce_after = _bce(res.x)
-    if not np.isfinite([a, b, bp_t, bp_b, mse_after, bce_after]).all() or bp_t <= 0:
-        print(f"FATAL: invalid path fit a={a} b={b} T={bp_t} c={bp_b}", file=sys.stderr)
-        return 2
-    if mse_after > mse_before or bce_after > bce_before:
-        print(f"FATAL: path calibration did not improve (mse {mse_before:.3f}->{mse_after:.3f}, "
-              f"bce {bce_before:.5f}->{bce_after:.5f})", file=sys.stderr)
-        return 2
-    # sign sanity (the cand#1 lesson): recal never fixes sign — refuse if the raw
-    # correlation with the realized target is non-positive.
-    corr = float(np.corrcoef(x_pq, y_pq)[0, 1])
-    if not (corr > 0.0):
-        print(f"FATAL: path_quality_pred correlates non-positively with realized "
-              f"path_quality_bps (r={corr:.3f}) — a SIGN defect; fix recipe/retrain, "
-              "do not calibrate over it.", file=sys.stderr)
-        return 2
-    payload = {
-        "enabled": True,
-        "path_quality_scale": float(a),
-        "path_quality_shift": float(b),
-        "bad_path_temperature": bp_t,
-        "bad_path_bias": bp_b,
-        "fitted_on_split": args.fit_split,
-        "fitted_on_splits": fit_splits,
-        "fitted_rows": int(len(frame)),
-        "path_quality_mse_before": mse_before,
-        "path_quality_mse_after": mse_after,
-        "bad_path_bce_before": bce_before,
-        "bad_path_bce_after": bce_after,
-        "path_quality_corr_raw": corr,
-        "predictions_parquet": str(pred_path),
-        "predictions_sha256": _sha256_file(pred_path),
-        "fitted_utc": datetime.now(timezone.utc).isoformat(),
-        "vedtak": args.vedtak,
-        "note": ("Post-hoc PATH-head calibration (2026-07-05 leg; cand#1 inversion "
-                 "lesson). Installed by load_entry_v10_ctx_bundle via "
-                 "set_path_calibration; audit == serve by construction."),
-    }
-    print(json.dumps({"fit": payload}, indent=1))
-    if args.dry_run:
-        print("DRY-RUN: not writing bundle metadata")
-        return 0
-    backup = bundle_dir / "bundle_metadata.pre_path_cal.json"
-    shutil.copy(meta_path, backup)
-    meta["path_calibration"] = payload
-    meta_path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
-    print(f"WROTE path_calibration -> {meta_path} (backup: {backup})")
-    return 0
-
-
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bundle-dir", required=True)
-    ap.add_argument("--predictions-parquet", required=True,
-                    help="selective_edge_predictions.parquet produced from the SAME bundle, pre-calibration")
-    ap.add_argument(
-        "--fit-split",
-        default="val",
-        help="comma-separated held-out split(s) to fit on, e.g. 'val,test' (never 'train')",
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source-bundle-dir", required=True)
+    parser.add_argument("--out-bundle-dir", required=True)
+    parser.add_argument(
+        "--predictions-parquet",
+        required=True,
+        help="exact timestamped selective_edge_predictions event",
     )
-    ap.add_argument("--model-name", default="candidate")
-    ap.add_argument("--vedtak", required=True)
-    ap.add_argument(
-        "--min-direction-fit-rows",
-        type=int,
-        default=int(os.environ.get("GX1_DIRECTION_CAL_MIN_ROWS", "5000")),
-        help="minimum held-out rows required for direction calibration",
+    parser.add_argument(
+        "--prediction-report-json",
+        required=True,
+        help="matching timestamped ENTRY_CANDIDATE_SELECTIVE_EDGE event",
     )
-    ap.add_argument(
-        "--max-equal-logit-long-short-odds",
-        type=float,
-        default=float(os.environ.get("GX1_DIRECTION_CAL_MAX_EQUAL_LOGIT_LS_ODDS", "1.20")),
-        help=(
-            "max allowed LONG/SHORT odds implied by calibration bias alone when raw logits are equal; "
-            "keeps calibration from becoming a directional prior"
-        ),
+    parser.add_argument("--dataset-dir", required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--heads", required=True, choices=("direction", "path"))
+    parser.add_argument("--fit-split", required=True, choices=HELD_OUT_SPLITS)
+    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--min-fit-rows", required=True, type=_positive_int)
+    parser.add_argument(
+        "--direction-odds-cap",
+        type=_direction_odds_cap,
+        help="required for direction; forbidden for path",
     )
-    ap.add_argument(
-        "--heads",
-        choices=("direction", "path"),
-        default="direction",
-        help=(
-            "direction (default): temperature+bias on direction logits. "
-            "path: affine on path_quality_pred (least-squares vs path_quality_bps) + "
-            "Platt on bad_path_prob (vs y_bad_path), written to "
-            "bundle_metadata['path_calibration'] (2026-07-05 path-leg; cand#1 "
-            "inversion lesson — recal fixes MAGNITUDE, never SIGN; wrong-sign "
-            "stays a slice-audit hard fail)."
-        ),
-    )
-    ap.add_argument("--dry-run", action="store_true")
-    args = ap.parse_args()
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--dry-run", action="store_true")
+    mode.add_argument("--execute", action="store_true")
+    return parser
 
+
+def _read_json(path: Path, *, label: str) -> dict[str, Any]:
     try:
-        args.fit_splits = _parse_fit_splits(args.fit_split)
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"could not read {label} JSON {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"{label} must be a JSON object: {path}")
+    return value
+
+
+def _canonical_json_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _write_json_fsync(path: Path, value: Mapping[str, Any]) -> None:
+    # Mapping order is contractual for specialist input indices.  Do not sort
+    # bundle metadata while serializing the derived bundle.
+    encoded = (json.dumps(value, indent=2) + "\n").encode("utf-8")
+    with path.open("xb") as handle:
+        handle.write(encoded)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _mutable_alias_tokens(path: Path) -> list[str]:
+    tokens = {part.lower() for part in path.parent.parts}
+    tokens.update(token for token in re.split(r"[._-]+", path.name.lower()) if token)
+    return sorted(tokens & _MUTABLE_TOKENS)
+
+
+def _copy_file_fsync(source: Path, destination: Path) -> None:
+    with source.open("rb") as source_handle, destination.open("xb") as destination_handle:
+        shutil.copyfileobj(source_handle, destination_handle, length=1024 * 1024)
+        destination_handle.flush()
+        os.fsync(destination_handle.fileno())
+
+
+def _timestamped_bundle_dir(raw: str, *, label: str, must_exist: bool) -> tuple[Path, str]:
+    supplied = Path(raw).expanduser()
+    if not supplied.is_absolute():
+        raise RuntimeError(f"{label} must be an absolute canonical path")
+    if supplied.is_symlink():
+        raise RuntimeError(f"{label} cannot be a symlink: {supplied}")
+    path = supplied.resolve(strict=False)
+    if path != supplied:
+        raise RuntimeError(f"{label} is not canonical: supplied={supplied} resolved={path}")
+    match = _TIMESTAMPED_DIR_RE.fullmatch(path.name)
+    if match is None:
+        raise RuntimeError(
+            f"{label} basename must end in an exact microsecond UTC stamp: {path.name!r}"
+        )
+    mutable = _mutable_alias_tokens(path)
+    if mutable:
+        raise RuntimeError(f"{label} contains mutable alias tokens: {mutable}")
+    stamp = match.group("stamp")
+    try:
+        parsed = datetime.strptime(stamp, "%Y%m%dT%H%M%S%fZ").replace(tzinfo=timezone.utc)
     except ValueError as exc:
-        print(f"FATAL: {exc}", file=sys.stderr)
-        return 2
-    if "train" in args.fit_splits:
-        print("FATAL: refusing to fit calibration on the train split", file=sys.stderr)
-        return 2
+        raise RuntimeError(f"{label} has an invalid UTC stamp: {stamp}") from exc
+    if parsed.strftime("%Y%m%dT%H%M%S%fZ") != stamp:
+        raise RuntimeError(f"{label} has a non-canonical UTC stamp: {stamp}")
+    if must_exist:
+        if not path.is_dir():
+            raise RuntimeError(f"{label} does not exist as a directory: {path}")
+    elif path.exists():
+        raise RuntimeError(f"immutable output bundle already exists: {path}")
+    return path, stamp
 
-    bundle_dir = Path(args.bundle_dir).expanduser().resolve()
-    meta_path = bundle_dir / "bundle_metadata.json"
-    if not meta_path.exists():
-        print(f"FATAL: missing {meta_path}", file=sys.stderr)
-        return 2
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    if args.heads == "path":
-        return _fit_path_calibration(args, bundle_dir, meta_path, meta)
-    if isinstance(meta.get("direction_calibration"), dict):
-        print("FATAL: bundle already carries direction_calibration; refusing to re-fit on "
-              "calibrated predictions. Remove the key (restore backup) first.", file=sys.stderr)
-        return 2
 
-    pred_path = Path(args.predictions_parquet).expanduser().resolve()
-    frame = pd.read_parquet(pred_path, columns=["split", "model", "y_direction", *CLASS_COLUMNS])
-    frame = frame[(frame["split"].isin(args.fit_splits)) & (frame["model"] == args.model_name)]
-    if frame.empty:
-        print(f"FATAL: no rows for splits={args.fit_splits} model={args.model_name} in {pred_path}", file=sys.stderr)
-        return 2
-    if len(frame) < int(args.min_direction_fit_rows):
-        print(
-            f"FATAL: only {len(frame)} rows for direction calibration; "
-            f"need >= {int(args.min_direction_fit_rows)}. Use a broader held-out calibration window.",
-            file=sys.stderr,
+def _require_plain_file(path: Path, *, label: str) -> None:
+    if path.is_symlink():
+        raise RuntimeError(f"{label} cannot be a symlink: {path}")
+    if not path.is_file():
+        raise RuntimeError(f"missing {label}: {path}")
+
+
+def _load_state_dict(path: Path) -> Mapping[str, Any]:
+    try:
+        value = torch.load(path, map_location="cpu", weights_only=True)
+    except Exception as exc:
+        raise RuntimeError(f"could not load model state {path}: {exc}") from exc
+    if not isinstance(value, Mapping) or not value:
+        raise RuntimeError(f"model state must be a non-empty mapping: {path}")
+    return value
+
+
+def _relative_bundle_artifacts(bundle_dir: Path, metadata: Mapping[str, Any]) -> dict[str, Path]:
+    artifacts: dict[str, Path] = {}
+    for key in RELATIVE_BUNDLE_REFERENCE_KEYS:
+        raw = metadata.get(key)
+        if raw is None:
+            continue
+        if not isinstance(raw, str) or not raw.strip():
+            raise RuntimeError(f"bundle metadata {key} must be null or a non-empty relative path")
+        relative = Path(raw)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise RuntimeError(f"bundle metadata {key} must be a contained relative path: {raw!r}")
+        unresolved = bundle_dir / relative
+        source = unresolved.resolve()
+        if source != unresolved:
+            raise RuntimeError(f"bundle metadata {key} cannot traverse symlinks: {raw!r}")
+        try:
+            source.relative_to(bundle_dir)
+        except ValueError as exc:
+            raise RuntimeError(f"bundle metadata {key} escapes source bundle: {raw!r}") from exc
+        _require_plain_file(source, label=key)
+        normalized = relative.as_posix()
+        if normalized in BUNDLE_REQUIRED_FILES:
+            raise RuntimeError(f"bundle metadata {key} collides with a required artifact")
+        artifacts[normalized] = source
+    return artifacts
+
+
+def _bundle_artifact_hashes(
+    bundle_dir: Path,
+    relative_artifacts: Mapping[str, Path],
+) -> dict[str, str]:
+    names = [*BUNDLE_REQUIRED_FILES, *sorted(relative_artifacts)]
+    hashes: dict[str, str] = {}
+    for name in names:
+        path = bundle_dir / name
+        _require_plain_file(path, label=f"bundle artifact {name}")
+        digest = sha256_file(path)
+        if _HEX64_RE.fullmatch(digest) is None:
+            raise RuntimeError(f"could not hash bundle artifact: {path}")
+        hashes[name] = digest
+    return hashes
+
+
+def _validate_source_bundle(
+    source_bundle_dir: Path,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Path], dict[str, str]]:
+    required = {name: source_bundle_dir / name for name in BUNDLE_REQUIRED_FILES}
+    for name, path in required.items():
+        _require_plain_file(path, label=name)
+    metadata = _read_json(required["bundle_metadata.json"], label="bundle metadata")
+    lock = _read_json(required["MASTER_TRANSFORMER_LOCK.json"], label="bundle lock")
+    _require_exact_model_native_bundle_metadata(metadata, lock)
+
+    state_path = required["model_state_dict.pt"]
+    observed_state_sha = sha256_file(state_path)
+    if _HEX64_RE.fullmatch(observed_state_sha) is None:
+        raise RuntimeError("model state SHA-256 is not canonical")
+    if lock.get("model_path_relative") != "model_state_dict.pt":
+        raise RuntimeError("bundle lock model_path_relative is not exact")
+    if str(lock.get("model_sha256") or "").lower() != observed_state_sha:
+        raise RuntimeError("bundle lock model SHA-256 mismatch")
+    if str(metadata.get("state_dict_sha256") or "").lower() != observed_state_sha:
+        raise RuntimeError("bundle metadata model SHA-256 mismatch")
+
+    state_dict = _load_state_dict(state_path)
+    _require_model_native_state_head_contract(metadata, state_dict)
+    _require_model_native_learned_component_liveness(state_dict)
+    relative_artifacts = _relative_bundle_artifacts(source_bundle_dir, metadata)
+    artifact_hashes = _bundle_artifact_hashes(source_bundle_dir, relative_artifacts)
+    return metadata, lock, relative_artifacts, artifact_hashes
+
+
+def _numeric_column(frame: pd.DataFrame, name: str) -> np.ndarray:
+    try:
+        values = pd.to_numeric(frame[name], errors="raise").to_numpy(dtype=np.float64)
+    except Exception as exc:
+        raise RuntimeError(f"prediction column {name} is not numeric") from exc
+    if values.ndim != 1 or len(values) != len(frame) or not np.isfinite(values).all():
+        raise RuntimeError(f"prediction column {name} is non-finite or malformed")
+    return values
+
+
+def _scoped_frame(
+    predictions_path: Path,
+    *,
+    columns: Sequence[str],
+    fit_split: str,
+    model: str,
+    min_fit_rows: int,
+) -> pd.DataFrame:
+    try:
+        frame = pd.read_parquet(predictions_path, columns=list(columns))
+    except Exception as exc:
+        raise RuntimeError(f"could not read required calibration columns: {exc}") from exc
+    scoped = frame[
+        frame["split"].astype(str).eq(fit_split)
+        & frame["model"].astype(str).eq(model)
+    ].copy()
+    if len(scoped) < min_fit_rows:
+        raise RuntimeError(
+            f"only {len(scoped)} calibration rows for split={fit_split!r} "
+            f"model={model!r}; require >= {min_fit_rows}"
         )
-        return 2
+    return scoped
 
-    probs = frame[list(CLASS_COLUMNS)].to_numpy(dtype=np.float64)
-    y = frame["y_direction"].to_numpy(dtype=np.int64)
-    if not np.isfinite(probs).all() or probs.min() < 0.0:
-        print("FATAL: non-finite/negative probabilities in predictions", file=sys.stderr)
-        return 2
-    logp = np.log(np.clip(probs, 1e-12, 1.0))
 
-    nll_before = _nll(np.array([0.0, 0.0, 0.0, 0.0]), logp, y)
-    res = minimize(_nll, np.zeros(4), args=(logp, y), method="Nelder-Mead",
-                   options={"maxiter": 4000, "xatol": 1e-5, "fatol": 1e-7})
-    temperature = float(np.exp(res.x[0]))
-    bias = [float(b) for b in res.x[1:4]]
-    nll_after = _nll(res.x, logp, y)
-    if not np.isfinite([temperature, *bias, nll_after]).all() or temperature <= 0.0:
-        print(f"FATAL: fit produced invalid params T={temperature} bias={bias}", file=sys.stderr)
-        return 2
-    if nll_after > nll_before:
-        print(f"FATAL: calibration did not improve NLL ({nll_before:.5f} -> {nll_after:.5f})", file=sys.stderr)
-        return 2
-    equal_logit = np.exp(np.asarray(bias, dtype=np.float64))
-    equal_logit = equal_logit / np.clip(equal_logit.sum(), 1e-12, None)
-    long_short_odds = float(max(
-        equal_logit[LABEL_TO_INDEX[0]] / np.clip(equal_logit[LABEL_TO_INDEX[1]], 1e-12, None),
-        equal_logit[LABEL_TO_INDEX[1]] / np.clip(equal_logit[LABEL_TO_INDEX[0]], 1e-12, None),
-    ))
-    if long_short_odds > float(args.max_equal_logit_long_short_odds):
-        print(
-            "FATAL: direction calibration bias injects too much LONG/SHORT prior "
-            f"at equal logits (odds={long_short_odds:.3f}, cap={float(args.max_equal_logit_long_short_odds):.3f}). "
-            "Re-fit on a broader chronological held-out window or retrain; do not calibrate over direction skew.",
-            file=sys.stderr,
+def _direction_nll(params: np.ndarray, logp: np.ndarray, labels: np.ndarray) -> float:
+    if params.shape != (3,) or not np.isfinite(params).all():
+        return float("inf")
+    temperature = float(np.exp(params[0]))
+    if not math.isfinite(temperature) or temperature <= 0.0:
+        return float("inf")
+    bias = np.asarray([params[1], params[2], -params[1] - params[2]], dtype=np.float64)
+    logits = logp / temperature + bias
+    value = np.mean(logsumexp(logits, axis=1) - logits[np.arange(len(labels)), labels])
+    return float(value) if math.isfinite(float(value)) else float("inf")
+
+
+def _fit_direction(
+    frame: pd.DataFrame,
+    *,
+    odds_cap: float,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    probabilities = np.column_stack([_numeric_column(frame, name) for name in CLASS_COLUMNS])
+    if probabilities.shape != (len(frame), 3):
+        raise RuntimeError("direction probabilities must have exact shape (rows, 3)")
+    if np.any(probabilities <= 0.0) or np.any(probabilities > 1.0):
+        raise RuntimeError("direction probabilities must be strictly positive and <= 1")
+    if not np.allclose(probabilities.sum(axis=1), 1.0, rtol=0.0, atol=1e-6):
+        raise RuntimeError("direction probability rows do not sum to one")
+
+    raw_labels = _numeric_column(frame, "y_direction")
+    if not np.array_equal(raw_labels, np.rint(raw_labels)):
+        raise RuntimeError("direction labels must be exact integers")
+    labels = raw_labels.astype(np.int64)
+    if np.any((labels < 0) | (labels > 2)):
+        raise RuntimeError("direction labels must use only LONG=0, SHORT=1, FLAT=2")
+    observed_classes = sorted(int(value) for value in np.unique(labels))
+    if observed_classes != [0, 1, 2]:
+        raise RuntimeError(f"direction calibration is missing classes: observed={observed_classes}")
+
+    logp = np.log(probabilities)
+    initial = np.zeros(3, dtype=np.float64)
+    nll_before = _direction_nll(initial, logp, labels)
+    result = minimize(
+        _direction_nll,
+        initial,
+        args=(logp, labels),
+        method="L-BFGS-B",
+        bounds=((-5.0, 5.0), (-10.0, 10.0), (-10.0, 10.0)),
+        options={"maxiter": 4000, "ftol": 1e-12, "gtol": 1e-8},
+    )
+    if result.success is not True:
+        raise RuntimeError(f"direction calibration optimizer failed: {result.message}")
+    fitted = np.asarray(result.x, dtype=np.float64)
+    if fitted.shape != (3,) or not np.isfinite(fitted).all():
+        raise RuntimeError("direction calibration optimizer returned malformed parameters")
+    nll_after = _direction_nll(fitted, logp, labels)
+    if not (math.isfinite(nll_before) and math.isfinite(nll_after) and nll_after < nll_before):
+        raise RuntimeError(
+            f"direction calibration lacks strict NLL improvement: {nll_before} -> {nll_after}"
         )
-        return 2
-
-    payload = {
+    temperature = float(np.exp(fitted[0]))
+    bias = [float(fitted[1]), float(fitted[2]), float(-fitted[1] - fitted[2])]
+    equal_logits = np.asarray(bias, dtype=np.float64)
+    equal_prob = np.exp(equal_logits - logsumexp(equal_logits))
+    long_short_odds = float(
+        max(equal_prob[0] / equal_prob[1], equal_prob[1] / equal_prob[0])
+    )
+    if not math.isfinite(long_short_odds) or long_short_odds > odds_cap:
+        raise RuntimeError(
+            "direction calibration exceeds the explicit equal-logit LONG/SHORT "
+            f"odds cap: observed={long_short_odds} cap={odds_cap}"
+        )
+    calibration = {
         "enabled": True,
+        "version": DIRECTION_CALIBRATION_VERSION,
         "temperature": temperature,
         "bias": bias,
-        "class_order": ["LONG", "SHORT", "FLAT"],
-        "fitted_on_split": args.fit_split,
-        "fitted_on_splits": args.fit_splits,
-        "fitted_rows": int(len(y)),
-        "min_direction_fit_rows": int(args.min_direction_fit_rows),
+        "class_order": list(CLASS_ORDER),
+    }
+    metrics = {
+        "fitted_rows": int(len(frame)),
+        "observed_classes": observed_classes,
         "nll_before": nll_before,
         "nll_after": nll_after,
-        "equal_logit_long_prob_after": float(equal_logit[LABEL_TO_INDEX[0]]),
-        "equal_logit_short_prob_after": float(equal_logit[LABEL_TO_INDEX[1]]),
-        "equal_logit_flat_prob_after": float(equal_logit[LABEL_TO_INDEX[2]]),
-        "equal_logit_long_short_odds_after": long_short_odds,
-        "max_equal_logit_long_short_odds": float(args.max_equal_logit_long_short_odds),
-        "predictions_parquet": str(pred_path),
-        "predictions_sha256": _sha256_file(pred_path),
-        "fitted_utc": datetime.now(timezone.utc).isoformat(),
-        "vedtak": args.vedtak,
-        "note": ("Post-hoc direction calibration (FLAT-rate non-stationarity leg). "
-                 "Installed by load_entry_v10_ctx_bundle into the canonical forward; "
-                 "audit == serve by construction."),
+        "nll_improvement": nll_before - nll_after,
+        "equal_logit_long_probability": float(equal_prob[0]),
+        "equal_logit_short_probability": float(equal_prob[1]),
+        "equal_logit_flat_probability": float(equal_prob[2]),
+        "equal_logit_long_short_odds": long_short_odds,
+        "direction_odds_cap": odds_cap,
+        "optimizer": {
+            "method": "L-BFGS-B",
+            "success": True,
+            "iterations": int(result.nit),
+        },
     }
-    print(json.dumps({"fit": payload}, indent=1))
-    if args.dry_run:
-        print("DRY-RUN: not writing bundle metadata")
-        return 0
+    return calibration, metrics
 
-    backup = bundle_dir / "bundle_metadata.pre_direction_cal.json"
-    shutil.copy(meta_path, backup)
-    meta["direction_calibration"] = payload
-    meta_path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
-    print(f"WROTE direction_calibration -> {meta_path} (backup: {backup})")
+
+def _binary_bce(params: np.ndarray, logits: np.ndarray, labels: np.ndarray) -> float:
+    if params.shape != (2,) or not np.isfinite(params).all():
+        return float("inf")
+    temperature = float(np.exp(params[0]))
+    if not math.isfinite(temperature) or temperature <= 0.0:
+        return float("inf")
+    calibrated = logits / temperature + float(params[1])
+    value = np.mean(np.logaddexp(0.0, calibrated) - labels * calibrated)
+    return float(value) if math.isfinite(float(value)) else float("inf")
+
+
+def _fit_path(frame: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
+    path_pred = _numeric_column(frame, "path_quality_pred")
+    path_target = _numeric_column(frame, "path_quality_bps")
+    bad_probability = _numeric_column(frame, "bad_path_prob")
+    raw_bad_labels = _numeric_column(frame, "y_bad_path")
+    if np.any(bad_probability <= 0.0) or np.any(bad_probability >= 1.0):
+        raise RuntimeError("bad-path probabilities must be strictly between zero and one")
+    if not np.array_equal(raw_bad_labels, np.rint(raw_bad_labels)):
+        raise RuntimeError("bad-path labels must be exact integers")
+    bad_labels = raw_bad_labels.astype(np.int64)
+    observed_bad_classes = sorted(int(value) for value in np.unique(bad_labels))
+    if observed_bad_classes != [0, 1]:
+        raise RuntimeError(
+            f"path calibration is missing bad-path classes: observed={observed_bad_classes}"
+        )
+
+    design = np.column_stack([path_pred, np.ones_like(path_pred)])
+    try:
+        coefficients, _, rank, _ = np.linalg.lstsq(design, path_target, rcond=None)
+    except np.linalg.LinAlgError as exc:
+        raise RuntimeError(f"path-quality affine fit failed: {exc}") from exc
+    if rank != 2 or coefficients.shape != (2,) or not np.isfinite(coefficients).all():
+        raise RuntimeError("path-quality affine fit is rank-deficient or non-finite")
+    path_scale, path_shift = (float(value) for value in coefficients)
+    if path_scale <= 0.0:
+        raise RuntimeError(f"path-quality affine scale must be positive, got {path_scale}")
+    path_calibrated = path_scale * path_pred + path_shift
+    mse_before = float(np.mean(np.square(path_pred - path_target)))
+    mse_after = float(np.mean(np.square(path_calibrated - path_target)))
+    if not (math.isfinite(mse_before) and math.isfinite(mse_after) and mse_after < mse_before):
+        raise RuntimeError(
+            f"path-quality calibration lacks strict MSE improvement: {mse_before} -> {mse_after}"
+        )
+    corr = float(np.corrcoef(path_pred, path_target)[0, 1])
+    if not math.isfinite(corr) or corr <= 0.0:
+        raise RuntimeError(f"path-quality raw correlation must be positive, got {corr}")
+
+    bad_logits = np.log(bad_probability) - np.log1p(-bad_probability)
+    initial = np.zeros(2, dtype=np.float64)
+    bce_before = _binary_bce(initial, bad_logits, bad_labels)
+    result = minimize(
+        _binary_bce,
+        initial,
+        args=(bad_logits, bad_labels),
+        method="L-BFGS-B",
+        bounds=((-5.0, 5.0), (-10.0, 10.0)),
+        options={"maxiter": 4000, "ftol": 1e-12, "gtol": 1e-8},
+    )
+    if result.success is not True:
+        raise RuntimeError(f"bad-path calibration optimizer failed: {result.message}")
+    fitted = np.asarray(result.x, dtype=np.float64)
+    if fitted.shape != (2,) or not np.isfinite(fitted).all():
+        raise RuntimeError("bad-path calibration optimizer returned malformed parameters")
+    bce_after = _binary_bce(fitted, bad_logits, bad_labels)
+    if not (math.isfinite(bce_before) and math.isfinite(bce_after) and bce_after < bce_before):
+        raise RuntimeError(
+            f"bad-path calibration lacks strict BCE improvement: {bce_before} -> {bce_after}"
+        )
+    bad_temperature = float(np.exp(fitted[0]))
+    bad_bias = float(fitted[1])
+    calibration = {
+        "enabled": True,
+        "version": PATH_CALIBRATION_VERSION,
+        "path_quality_scale": path_scale,
+        "path_quality_shift": path_shift,
+        "bad_path_temperature": bad_temperature,
+        "bad_path_bias": bad_bias,
+    }
+    metrics = {
+        "fitted_rows": int(len(frame)),
+        "observed_bad_path_classes": observed_bad_classes,
+        "path_quality_mse_before": mse_before,
+        "path_quality_mse_after": mse_after,
+        "path_quality_mse_improvement": mse_before - mse_after,
+        "path_quality_raw_correlation": corr,
+        "bad_path_bce_before": bce_before,
+        "bad_path_bce_after": bce_after,
+        "bad_path_bce_improvement": bce_before - bce_after,
+        "optimizer": {
+            "method": "L-BFGS-B",
+            "success": True,
+            "iterations": int(result.nit),
+        },
+    }
+    return calibration, metrics
+
+
+def _copy_bundle_to_stage(
+    *,
+    source_bundle_dir: Path,
+    stage_dir: Path,
+    relative_artifacts: Mapping[str, Path],
+) -> None:
+    for name in ("MASTER_TRANSFORMER_LOCK.json", "model_state_dict.pt"):
+        _copy_file_fsync(source_bundle_dir / name, stage_dir / name)
+    for relative, source in sorted(relative_artifacts.items()):
+        destination = stage_dir / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        _copy_file_fsync(source, destination)
+
+
+def _rename_dir_noreplace(source: Path, destination: Path) -> None:
+    """Atomically publish a directory using Linux renameat2(RENAME_NOREPLACE)."""
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise RuntimeError("atomic no-replace directory publication is unavailable")
+    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    renameat2.restype = ctypes.c_int
+    at_fdcwd = -100
+    rename_noreplace = 1
+    result = renameat2(
+        at_fdcwd,
+        os.fsencode(source),
+        at_fdcwd,
+        os.fsencode(destination),
+        rename_noreplace,
+    )
+    if result != 0:
+        code = ctypes.get_errno()
+        if code == errno.EEXIST:
+            raise RuntimeError(f"immutable output bundle already exists: {destination}")
+        raise RuntimeError(
+            f"atomic no-replace bundle publication failed: {os.strerror(code)}"
+        )
+    parent_fd = os.open(destination.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(parent_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def _publish_bundle(
+    *,
+    source_bundle_dir: Path,
+    out_bundle_dir: Path,
+    out_stamp: str,
+    source_metadata: Mapping[str, Any],
+    source_lock: Mapping[str, Any],
+    relative_artifacts: Mapping[str, Path],
+    source_hashes: Mapping[str, str],
+    calibration_key: str,
+    calibration: Mapping[str, Any],
+    metrics: Mapping[str, Any],
+    provenance: Mapping[str, Any],
+) -> tuple[Path, dict[str, Any]]:
+    parent = out_bundle_dir.parent
+    if not parent.is_dir() or parent.is_symlink():
+        raise RuntimeError(f"output bundle parent must be an existing real directory: {parent}")
+    if out_bundle_dir.exists():
+        raise RuntimeError(f"immutable output bundle already exists: {out_bundle_dir}")
+    stage_dir = Path(tempfile.mkdtemp(prefix=f".{out_bundle_dir.name}.", dir=parent))
+    published = False
+    try:
+        if _bundle_artifact_hashes(source_bundle_dir, relative_artifacts) != dict(
+            source_hashes
+        ):
+            raise RuntimeError("source bundle changed after validation")
+        if sha256_file(Path(str(provenance["predictions_path"]))) != provenance[
+            "predictions_sha256"
+        ]:
+            raise RuntimeError("prediction parquet changed after validation")
+        if sha256_file(Path(str(provenance["prediction_report_path"]))) != provenance[
+            "prediction_report_sha256"
+        ]:
+            raise RuntimeError("prediction report changed after validation")
+        _copy_bundle_to_stage(
+            source_bundle_dir=source_bundle_dir,
+            stage_dir=stage_dir,
+            relative_artifacts=relative_artifacts,
+        )
+        output_metadata = copy.deepcopy(dict(source_metadata))
+        output_metadata[calibration_key] = dict(calibration)
+        if output_metadata.get("model_native_training_objective") != source_lock.get(
+            "model_native_training_objective"
+        ):
+            raise RuntimeError(
+                "model-native training objective changed during calibration derivation"
+            )
+        metadata_path = stage_dir / "bundle_metadata.json"
+        _write_json_fsync(metadata_path, output_metadata)
+
+        staged_lock = _read_json(stage_dir / "MASTER_TRANSFORMER_LOCK.json", label="staged lock")
+        staged_metadata = _read_json(metadata_path, label="staged bundle metadata")
+        if staged_lock != dict(source_lock):
+            raise RuntimeError("staged lock content differs from source lock")
+        if staged_metadata != output_metadata:
+            raise RuntimeError("staged metadata content differs from derived metadata")
+        _require_exact_model_native_bundle_metadata(staged_metadata, staged_lock)
+        if sha256_file(stage_dir / "model_state_dict.pt") != source_hashes["model_state_dict.pt"]:
+            raise RuntimeError("staged model state differs from source model state")
+        if sha256_file(stage_dir / "MASTER_TRANSFORMER_LOCK.json") != source_hashes[
+            "MASTER_TRANSFORMER_LOCK.json"
+        ]:
+            raise RuntimeError("staged lock bytes differ from source lock")
+
+        staged_relative = {
+            relative: stage_dir / relative for relative in relative_artifacts
+        }
+        output_hashes = _bundle_artifact_hashes(stage_dir, staged_relative)
+        unchanged_names = {
+            "MASTER_TRANSFORMER_LOCK.json",
+            "model_state_dict.pt",
+            *relative_artifacts,
+        }
+        changed_copies = sorted(
+            name
+            for name in unchanged_names
+            if output_hashes.get(name) != source_hashes.get(name)
+        )
+        if changed_copies:
+            raise RuntimeError(f"derived bundle copied artifacts changed: {changed_copies}")
+        event_name = f"{CALIBRATION_EVENT_PREFIX}{out_stamp}.json"
+        final_event_path = out_bundle_dir / event_name
+        event = {
+            "schema_version": SCHEMA_VERSION,
+            "decision": "PASS",
+            "failures": [],
+            "created_utc": provenance["fitted_at_utc"],
+            "json_path": str(final_event_path),
+            "head": provenance["head"],
+            "model": provenance["model"],
+            "fit_split": provenance["fit_split"],
+            "min_fit_rows": provenance["min_fit_rows"],
+            "vedtak": provenance["vedtak"],
+            "calibration": dict(calibration),
+            "metrics": dict(metrics),
+            "source_bundle": {
+                "path": str(source_bundle_dir),
+                "artifact_sha256": dict(source_hashes),
+                "artifact_set_sha256": _canonical_json_sha256(source_hashes),
+            },
+            "output_bundle": {
+                "path": str(out_bundle_dir),
+                "artifact_sha256": output_hashes,
+                "artifact_set_sha256": _canonical_json_sha256(output_hashes),
+                "lock_and_state_unchanged": (
+                    output_hashes["MASTER_TRANSFORMER_LOCK.json"]
+                    == source_hashes["MASTER_TRANSFORMER_LOCK.json"]
+                    and output_hashes["model_state_dict.pt"]
+                    == source_hashes["model_state_dict.pt"]
+                ),
+                "training_objective_unchanged": (
+                    output_metadata["model_native_training_objective"]
+                    == source_metadata["model_native_training_objective"]
+                    == source_lock["model_native_training_objective"]
+                ),
+            },
+            "prediction_evidence": dict(provenance["prediction_evidence"]),
+            "predictions": {
+                "path": provenance["predictions_path"],
+                "sha256": provenance["predictions_sha256"],
+            },
+            "prediction_report": {
+                "path": provenance["prediction_report_path"],
+                "sha256": provenance["prediction_report_sha256"],
+            },
+            "dataset_dir": provenance["dataset_dir"],
+        }
+        if event["output_bundle"]["lock_and_state_unchanged"] is not True:
+            raise RuntimeError("derived bundle lock/state identity proof failed")
+        if event["output_bundle"]["training_objective_unchanged"] is not True:
+            raise RuntimeError("derived bundle training-objective identity proof failed")
+        _write_json_fsync(stage_dir / event_name, event)
+        stage_fd = os.open(stage_dir, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(stage_fd)
+        finally:
+            os.close(stage_fd)
+        _rename_dir_noreplace(stage_dir, out_bundle_dir)
+        published = True
+        return final_event_path, event
+    finally:
+        if not published:
+            shutil.rmtree(stage_dir, ignore_errors=True)
+
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    source_bundle_dir, source_stamp = _timestamped_bundle_dir(
+        args.source_bundle_dir,
+        label="source bundle",
+        must_exist=True,
+    )
+    out_bundle_dir, out_stamp = _timestamped_bundle_dir(
+        args.out_bundle_dir,
+        label="output bundle",
+        must_exist=False,
+    )
+    if source_bundle_dir == out_bundle_dir:
+        raise RuntimeError("source and output bundle paths must differ")
+    if out_stamp <= source_stamp:
+        raise RuntimeError("output bundle stamp must be later than source bundle stamp")
+    if args.heads == "direction" and args.direction_odds_cap is None:
+        raise RuntimeError("--direction-odds-cap is required for direction calibration")
+    if args.heads == "path" and args.direction_odds_cap is not None:
+        raise RuntimeError("--direction-odds-cap is forbidden for path calibration")
+    if not str(args.model).strip():
+        raise RuntimeError("--model cannot be blank")
+    if not str(args.vedtak).strip():
+        raise RuntimeError("--vedtak cannot be blank")
+
+    dataset_supplied = Path(args.dataset_dir).expanduser()
+    if not dataset_supplied.is_absolute() or dataset_supplied.is_symlink():
+        raise RuntimeError("dataset dir must be an absolute, non-symlink path")
+    dataset_dir = dataset_supplied.resolve(strict=False)
+    if dataset_dir != dataset_supplied or not dataset_dir.is_dir():
+        raise RuntimeError(f"dataset dir is not canonical or missing: {dataset_supplied}")
+    if mutable := _mutable_alias_tokens(dataset_dir):
+        raise RuntimeError(f"dataset dir contains mutable alias tokens: {mutable}")
+
+    source_metadata, source_lock, relative_artifacts, source_hashes = (
+        _validate_source_bundle(source_bundle_dir)
+    )
+    calibration_key = f"{args.heads}_calibration"
+    if calibration_key in source_metadata:
+        raise RuntimeError(
+            f"source bundle already carries selected {calibration_key}; re-fit is forbidden"
+        )
+
+    requested_predictions = Path(args.predictions_parquet).expanduser()
+    requested_report = Path(args.prediction_report_json).expanduser()
+    if not requested_predictions.is_absolute() or not requested_report.is_absolute():
+        raise RuntimeError("prediction parquet and report paths must be absolute")
+    for supplied, label in (
+        (requested_predictions, "prediction parquet"),
+        (requested_report, "prediction report"),
+    ):
+        if supplied.is_symlink() or supplied.resolve(strict=False) != supplied:
+            raise RuntimeError(f"{label} must be a canonical, non-symlink path: {supplied}")
+        if not supplied.is_file():
+            raise RuntimeError(f"{label} is missing: {supplied}")
+        if mutable := _mutable_alias_tokens(supplied):
+            raise RuntimeError(f"{label} contains mutable alias tokens: {mutable}")
+    predictions_path, _report, prediction_evidence = resolve_and_validate_prediction_evidence(
+        requested_predictions,
+        prediction_report_path=requested_report,
+        bundle_dir=source_bundle_dir,
+        dataset_dir=dataset_dir,
+        expected_split=args.fit_split,
+        expected_model=args.model,
+    )
+    prediction_report_path = requested_report.resolve()
+    prediction_stamp_match = re.fullmatch(
+        r"selective_edge_predictions_(\d{8}T\d{12}Z)\.parquet",
+        predictions_path.name,
+    )
+    if prediction_stamp_match is None:
+        raise RuntimeError("prediction parquet lacks the exact immutable event identity")
+    if out_stamp <= prediction_stamp_match.group(1):
+        raise RuntimeError("output bundle stamp must be later than prediction evidence stamp")
+    validated_prediction_sha = str(prediction_evidence.get("sha256") or "").lower()
+    if _HEX64_RE.fullmatch(validated_prediction_sha) is None or sha256_file(
+        predictions_path
+    ) != validated_prediction_sha:
+        raise RuntimeError("prediction parquet hash changed after evidence validation")
+    validated_report_sha = sha256_file(prediction_report_path)
+    if _HEX64_RE.fullmatch(validated_report_sha) is None:
+        raise RuntimeError("prediction report SHA-256 is not canonical")
+    if args.heads == "direction":
+        columns = ("split", "model", "y_direction", *CLASS_COLUMNS)
+    else:
+        columns = (
+            "split",
+            "model",
+            "path_quality_pred",
+            "bad_path_prob",
+            "path_quality_bps",
+            "y_bad_path",
+        )
+    frame = _scoped_frame(
+        predictions_path,
+        columns=columns,
+        fit_split=args.fit_split,
+        model=args.model,
+        min_fit_rows=args.min_fit_rows,
+    )
+    if args.heads == "direction":
+        calibration, metrics = _fit_direction(
+            frame,
+            odds_cap=float(args.direction_odds_cap),
+        )
+    else:
+        calibration, metrics = _fit_path(frame)
+
+    if sha256_file(predictions_path) != validated_prediction_sha:
+        raise RuntimeError("prediction parquet changed while calibration was fitting")
+    if sha256_file(prediction_report_path) != validated_report_sha:
+        raise RuntimeError("prediction report changed while calibration was fitting")
+
+    fitted_at = datetime.strptime(out_stamp, "%Y%m%dT%H%M%S%fZ").replace(
+        tzinfo=timezone.utc
+    ).isoformat()
+    provenance = {
+        "head": args.heads,
+        "model": str(args.model),
+        "fit_split": str(args.fit_split),
+        "min_fit_rows": int(args.min_fit_rows),
+        "vedtak": str(args.vedtak),
+        "fitted_at_utc": fitted_at,
+        "dataset_dir": str(dataset_dir),
+        "predictions_path": str(predictions_path),
+        "predictions_sha256": validated_prediction_sha,
+        "prediction_report_path": str(prediction_report_path),
+        "prediction_report_sha256": validated_report_sha,
+        "prediction_evidence": prediction_evidence,
+    }
+    calibration.update(
+        {
+            "fitted_at_utc": fitted_at,
+            "fitted_on_split": str(args.fit_split),
+            "fitted_rows": int(metrics["fitted_rows"]),
+            "model": str(args.model),
+            "min_fit_rows": int(args.min_fit_rows),
+            "vedtak": str(args.vedtak),
+            "source_bundle_dir": str(source_bundle_dir),
+            "source_bundle_metadata_sha256": source_hashes["bundle_metadata.json"],
+            "predictions_path": str(predictions_path),
+            "predictions_sha256": provenance["predictions_sha256"],
+            "prediction_report_path": str(prediction_report_path),
+            "prediction_report_sha256": provenance["prediction_report_sha256"],
+        }
+    )
+    preview = {
+        "decision": "DRY_RUN_PASS" if args.dry_run else "PASS",
+        "source_bundle_dir": str(source_bundle_dir),
+        "out_bundle_dir": str(out_bundle_dir),
+        "head": args.heads,
+        "calibration": calibration,
+        "metrics": metrics,
+        "source_artifact_sha256": source_hashes,
+        "predictions_sha256": provenance["predictions_sha256"],
+        "prediction_report_sha256": provenance["prediction_report_sha256"],
+    }
+    if args.dry_run:
+        return preview
+    event_path, event = _publish_bundle(
+        source_bundle_dir=source_bundle_dir,
+        out_bundle_dir=out_bundle_dir,
+        out_stamp=out_stamp,
+        source_metadata=source_metadata,
+        source_lock=source_lock,
+        relative_artifacts=relative_artifacts,
+        source_hashes=source_hashes,
+        calibration_key=calibration_key,
+        calibration=calibration,
+        metrics=metrics,
+        provenance=provenance,
+    )
+    require_newest_immutable_event(
+        event_path,
+        CALIBRATION_EVENT_PREFIX.rstrip("_"),
+    )
+    return {
+        **preview,
+        "calibration_evidence_json": str(event_path),
+        "calibration_evidence_sha256": sha256_file(event_path),
+        "output_artifact_sha256": event["output_bundle"]["artifact_sha256"],
+    }
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+    try:
+        result = run(args)
+    except Exception as exc:
+        print(f"FATAL: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 

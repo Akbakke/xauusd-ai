@@ -1,8 +1,7 @@
-"""Entry momentum/flow challenger features.
+"""Canonical Entry momentum/flow specialist features.
 
-This layer is intentionally inactive by default. It builds deterministic,
-closed-bar momentum derivatives from already-emitted snap/ctx/candle/chart
-inputs so they can be audited before any seq215 dataset rebuild or training.
+This layer builds deterministic, closed-bar momentum derivatives from exact
+snap/ctx/candle/chart inputs used by the model-native feature stack.
 """
 from __future__ import annotations
 
@@ -14,37 +13,34 @@ import numpy as np
 MOMENTUM_FLOW_FEATURE_VERSION = "entry_momentum_flow_v1_20260630_causal_flow_pressure"
 MOMENTUM_FLOW_FEATURE_PREFIX = "momentum.flow_"
 
-MOMENTUM_FLOW_REQUIRED_SOURCE_FIELDS = (
-    "ret_1",
-    "ret_5",
-    "ret_20",
-    "_v1_clv",
-    "micro_momentum_3",
-    "micro_momentum_5",
-    "micro_acceleration",
-)
-
-MOMENTUM_FLOW_OPTIONAL_SOURCE_FIELDS = (
-    "atr_bps",
-    "atr_z",
-    "_v1_range_z",
-    "_v1h1_slope5",
-    "_v1h4_slope5",
-    "d1_pct_change_5_canon_v2",
-    "d1_ema_slope_20_canon_v2",
-    "regime_tf_agreement_v3",
-    "regime_divergence_flag_v3",
-    "dip_confirmed_m5_v3",
-    "dip_confirmed_m15_v3",
-    "dip_confirmed_h1_v3",
-    "dip_confirmed_h4_v3",
-    "dip_confirmed_d1_v3",
-    "dip_confirmed_mean_5tf",
-    "dip_confirmed_max_5tf",
-    "dip_proximity_h1_v3",
-    "dip_proximity_h4_v3",
-    "dip_proximity_d1_v3",
-    "dip_proximity_mean_h1h4d1",
+MOMENTUM_FLOW_SOURCE_FIELDS = (
+    "snap.ret_1",
+    "snap.ret_5",
+    "snap.ret_20",
+    "snap._v1_clv",
+    "ctx_cont.micro_momentum_3",
+    "ctx_cont.micro_momentum_5",
+    "ctx_cont.micro_acceleration",
+    "ctx_cont.atr_bps",
+    "snap.atr_z",
+    "snap._v1_range_z",
+    "ctx_cont._v1h1_slope5",
+    "ctx_cont._v1h4_slope5",
+    "ctx_cont.d1_pct_change_5_canon_v2",
+    "ctx_cont.d1_ema_slope_20_canon_v2",
+    "ctx_cont.regime_tf_agreement_v3",
+    "ctx_cont.regime_divergence_flag_v3",
+    "ctx_cont.dip_confirmed_m5_v3",
+    "ctx_cont.dip_confirmed_m15_v3",
+    "ctx_cont.dip_confirmed_h1_v3",
+    "ctx_cont.dip_confirmed_h4_v3",
+    "ctx_cont.dip_confirmed_d1_v3",
+    "ctx_cont.dip_confirmed_mean_5tf",
+    "ctx_cont.dip_confirmed_max_5tf",
+    "ctx_cont.dip_proximity_h1_v3",
+    "ctx_cont.dip_proximity_h4_v3",
+    "ctx_cont.dip_proximity_d1_v3",
+    "ctx_cont.dip_proximity_mean_h1h4d1",
     "chart.foundation_impulse_direction",
     "chart.foundation_impulse_pullback_alignment",
     "chart.foundation_compression_release_up",
@@ -53,55 +49,12 @@ MOMENTUM_FLOW_OPTIONAL_SOURCE_FIELDS = (
     "candle.pattern_bear_continuation_pressure",
     "candle.pattern_bull_reversal_pressure",
     "candle.pattern_bear_reversal_pressure",
-    "body_pct",
-    "wick_asym",
-    "wick_ratio",
+    "snap.body_pct",
+    "snap.wick_asym",
+    "ctx_cont.wick_ratio",
     "candle.pattern_upper_wick_share",
     "candle.pattern_lower_wick_share",
 )
-
-_SOURCE_ALIASES: dict[str, tuple[str, ...]] = {
-    "ret_1": ("snap.ret_1", "ret_1"),
-    "ret_5": ("snap.ret_5", "ret_5"),
-    "ret_20": ("snap.ret_20", "ret_20"),
-    "_v1_clv": ("snap._v1_clv", "_v1_clv", "candle.pattern_close_location"),
-    "micro_momentum_3": ("ctx_cont.micro_momentum_3", "micro_momentum_3"),
-    "micro_momentum_5": ("ctx_cont.micro_momentum_5", "micro_momentum_5"),
-    "micro_acceleration": ("ctx_cont.micro_acceleration", "micro_acceleration"),
-    "atr_bps": ("ctx_cont.atr_bps", "atr_bps"),
-    "atr_z": ("snap.atr_z", "ctx_cont.atr_z", "atr_z"),
-    "_v1_range_z": ("snap._v1_range_z", "ctx_cont._v1_range_z", "_v1_range_z"),
-    "_v1h1_slope5": ("ctx_cont._v1h1_slope5", "_v1h1_slope5"),
-    "_v1h4_slope5": ("ctx_cont._v1h4_slope5", "_v1h4_slope5"),
-    "d1_pct_change_5_canon_v2": ("ctx_cont.d1_pct_change_5_canon_v2", "d1_pct_change_5_canon_v2"),
-    "d1_ema_slope_20_canon_v2": ("ctx_cont.d1_ema_slope_20_canon_v2", "d1_ema_slope_20_canon_v2"),
-    "regime_tf_agreement_v3": ("ctx_cont.regime_tf_agreement_v3", "regime_tf_agreement_v3"),
-    "regime_divergence_flag_v3": ("ctx_cont.regime_divergence_flag_v3", "regime_divergence_flag_v3"),
-    "dip_confirmed_m5_v3": ("ctx_cont.dip_confirmed_m5_v3", "dip_confirmed_m5_v3"),
-    "dip_confirmed_m15_v3": ("ctx_cont.dip_confirmed_m15_v3", "dip_confirmed_m15_v3"),
-    "dip_confirmed_h1_v3": ("ctx_cont.dip_confirmed_h1_v3", "dip_confirmed_h1_v3"),
-    "dip_confirmed_h4_v3": ("ctx_cont.dip_confirmed_h4_v3", "dip_confirmed_h4_v3"),
-    "dip_confirmed_d1_v3": ("ctx_cont.dip_confirmed_d1_v3", "dip_confirmed_d1_v3"),
-    "dip_confirmed_mean_5tf": ("ctx_cont.dip_confirmed_mean_5tf", "dip_confirmed_mean_5tf"),
-    "dip_confirmed_max_5tf": ("ctx_cont.dip_confirmed_max_5tf", "dip_confirmed_max_5tf"),
-    "dip_proximity_h1_v3": ("ctx_cont.dip_proximity_h1_v3", "dip_proximity_h1_v3"),
-    "dip_proximity_h4_v3": ("ctx_cont.dip_proximity_h4_v3", "dip_proximity_h4_v3"),
-    "dip_proximity_d1_v3": ("ctx_cont.dip_proximity_d1_v3", "dip_proximity_d1_v3"),
-    "dip_proximity_mean_h1h4d1": ("ctx_cont.dip_proximity_mean_h1h4d1", "dip_proximity_mean_h1h4d1"),
-    "chart.foundation_impulse_direction": ("chart.foundation_impulse_direction",),
-    "chart.foundation_impulse_pullback_alignment": ("chart.foundation_impulse_pullback_alignment",),
-    "chart.foundation_compression_release_up": ("chart.foundation_compression_release_up",),
-    "chart.foundation_compression_release_down": ("chart.foundation_compression_release_down",),
-    "candle.pattern_bull_continuation_pressure": ("candle.pattern_bull_continuation_pressure",),
-    "candle.pattern_bear_continuation_pressure": ("candle.pattern_bear_continuation_pressure",),
-    "candle.pattern_bull_reversal_pressure": ("candle.pattern_bull_reversal_pressure",),
-    "candle.pattern_bear_reversal_pressure": ("candle.pattern_bear_reversal_pressure",),
-    "body_pct": ("snap.body_pct", "body_pct", "candle.pattern_body_pct", "candle.pattern_body_share"),
-    "wick_asym": ("snap.wick_asym", "wick_asym"),
-    "wick_ratio": ("ctx_cont.wick_ratio", "wick_ratio"),
-    "candle.pattern_upper_wick_share": ("candle.pattern_upper_wick_share",),
-    "candle.pattern_lower_wick_share": ("candle.pattern_lower_wick_share",),
-}
 
 MOMENTUM_FLOW_FEATURE_SUFFIXES = (
     "vol_scale_bps_proxy",
@@ -141,34 +94,20 @@ def _name_index(names: Iterable[str]) -> dict[str, int]:
     return {str(name): i for i, name in enumerate(names)}
 
 
-def _aliases(name: str) -> tuple[str, ...]:
-    return _SOURCE_ALIASES.get(name, (name,))
-
-
-def _has_source(index: dict[str, int], canonical: str) -> bool:
-    return any(alias in index for alias in _aliases(canonical))
-
-
 def missing_entry_momentum_flow_source_fields(feature_names: Iterable[str]) -> list[str]:
-    """Return required source fields not represented by any accepted alias."""
+    """Return exact canonical source fields absent from ``feature_names``."""
     available = {str(name) for name in feature_names}
-    missing: list[str] = []
-    for canonical in MOMENTUM_FLOW_REQUIRED_SOURCE_FIELDS:
-        if not any(alias in available for alias in _aliases(canonical)):
-            missing.append(canonical)
-    return missing
+    return [name for name in MOMENTUM_FLOW_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], canonical: str, default: float = 0.0) -> np.ndarray:
-    for name in _aliases(canonical):
-        if name in index:
-            arr = np.asarray(x[:, index[name]], dtype=np.float32)
-            return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
-    return np.full(x.shape[0], float(default), dtype=np.float32)
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    if name not in index:
+        raise RuntimeError(f"momentum flow required source field missing: {name}")
+    return np.asarray(x[:, index[name]], dtype=np.float32)
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    return np.clip(arr, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -185,7 +124,7 @@ def _neg(arr: np.ndarray) -> np.ndarray:
 
 def _safe_scale(*parts: np.ndarray, floor: float = 1.0) -> np.ndarray:
     stack = np.vstack([np.abs(np.asarray(part, dtype=np.float32)) for part in parts])
-    return np.maximum(np.nanmax(stack, axis=0), float(floor)).astype(np.float32, copy=False)
+    return np.maximum(np.max(stack, axis=0), float(floor)).astype(np.float32, copy=False)
 
 
 def _tanh(arr: np.ndarray, scale: float | np.ndarray = 1.0) -> np.ndarray:
@@ -236,41 +175,47 @@ def build_entry_momentum_flow_layer(
     x = np.asarray(x, dtype=np.float32)
     if x.ndim != 2:
         raise RuntimeError(f"momentum flow input matrix must be 2D, got {x.shape}")
-    idx = _name_index(feature_names)
+    if x.shape[0] == 0:
+        raise RuntimeError("momentum flow input matrix must contain at least one row")
+    if x.shape[1] != len(feature_names):
+        raise RuntimeError(
+            f"momentum flow feature name count {len(feature_names)} does not match matrix width {x.shape[1]}"
+        )
+    if len(feature_names) != len(set(feature_names)):
+        duplicates = sorted({name for name in feature_names if feature_names.count(name) > 1})
+        raise RuntimeError(f"momentum flow duplicate feature names: {duplicates[:10]}")
     missing = missing_entry_momentum_flow_source_fields(feature_names)
     if missing:
         raise RuntimeError(f"momentum flow required source fields missing: {missing}")
+    if not np.isfinite(x).all():
+        bad_rows, bad_cols = np.where(~np.isfinite(x))
+        examples = [
+            {"row": int(row), "feature": feature_names[int(col)]}
+            for row, col in zip(bad_rows[:10], bad_cols[:10])
+        ]
+        raise RuntimeError(f"momentum flow input matrix contains non-finite values: {examples}")
+    idx = _name_index(feature_names)
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
-    ret1 = c("ret_1")
-    ret5 = c("ret_5")
-    ret20 = c("ret_20")
-    clv = _tanh(c("_v1_clv"), scale=2.0)
-    mom3 = c("micro_momentum_3")
-    mom5 = c("micro_momentum_5")
-    micro_accel = c("micro_acceleration")
-    atr_bps = c("atr_bps")
-    atr_z = _tanh(c("atr_z"), scale=3.0)
-    range_z = _tanh(c("_v1_range_z"), scale=3.0)
-    wick_signal_available = any(
-        _has_source(idx, name)
-        for name in (
-            "wick_asym",
-            "wick_ratio",
-            "candle.pattern_upper_wick_share",
-            "candle.pattern_lower_wick_share",
-        )
-    )
-    wick_weight = 1.0 if wick_signal_available else 0.0
-    wick_asym = _clip(c("wick_asym"), -1.0, 1.0)
-    wick_ratio = _clip01(c("wick_ratio", default=0.5))
+    ret1 = c("snap.ret_1")
+    ret5 = c("snap.ret_5")
+    ret20 = c("snap.ret_20")
+    clv = _tanh(c("snap._v1_clv"), scale=2.0)
+    mom3 = c("ctx_cont.micro_momentum_3")
+    mom5 = c("ctx_cont.micro_momentum_5")
+    micro_accel = c("ctx_cont.micro_acceleration")
+    atr_bps = c("ctx_cont.atr_bps")
+    atr_z = _tanh(c("snap.atr_z"), scale=3.0)
+    range_z = _tanh(c("snap._v1_range_z"), scale=3.0)
+    wick_asym = _clip(c("snap.wick_asym"), -1.0, 1.0)
+    wick_ratio = _clip01(c("ctx_cont.wick_ratio"))
     upper_wick_share = _clip01(c("candle.pattern_upper_wick_share"))
     lower_wick_share = _clip01(c("candle.pattern_lower_wick_share"))
-    upper_wick_flow = _clip01(wick_weight * (_pos(wick_asym) + 0.50 * wick_ratio + 0.50 * upper_wick_share))
+    upper_wick_flow = _clip01(_pos(wick_asym) + 0.50 * wick_ratio + 0.50 * upper_wick_share)
     lower_wick_flow = _clip01(
-        wick_weight * (_neg(wick_asym) + 0.50 * (1.0 - wick_ratio) + 0.50 * lower_wick_share)
+        _neg(wick_asym) + 0.50 * (1.0 - wick_ratio) + 0.50 * lower_wick_share
     )
 
     vol_scale = _safe_scale(
@@ -309,15 +254,15 @@ def build_entry_momentum_flow_layer(
         2.0,
     )
 
-    h1_flow = _tanh(c("_v1h1_slope5"), scale=2.0)
-    h4_flow = _tanh(c("_v1h4_slope5"), scale=2.0)
-    d1_ret = _tanh(c("d1_pct_change_5_canon_v2"), scale=25.0)
-    d1_slope = _tanh(c("d1_ema_slope_20_canon_v2"), scale=2.0)
+    h1_flow = _tanh(c("ctx_cont._v1h1_slope5"), scale=2.0)
+    h4_flow = _tanh(c("ctx_cont._v1h4_slope5"), scale=2.0)
+    d1_ret = _tanh(c("ctx_cont.d1_pct_change_5_canon_v2"), scale=25.0)
+    d1_slope = _tanh(c("ctx_cont.d1_ema_slope_20_canon_v2"), scale=2.0)
     mtf_confirmation, mtf_conflict, mtf_bull, mtf_bear = _sign_agreement(
         [ret5_norm, ret20_norm, h1_flow, h4_flow, d1_ret + d1_slope]
     )
-    regime_agreement = _clip01(c("regime_tf_agreement_v3"))
-    regime_divergence = _clip01(c("regime_divergence_flag_v3"))
+    regime_agreement = _clip01(c("ctx_cont.regime_tf_agreement_v3"))
+    regime_divergence = _clip01(c("ctx_cont.regime_divergence_flag_v3"))
     mtf_confirmation = _clip01(0.75 * mtf_confirmation + 0.25 * regime_agreement)
     mtf_conflict = _clip01(0.80 * mtf_conflict + 0.20 * regime_divergence)
     bull_persistence = _clip01(
@@ -340,7 +285,7 @@ def build_entry_momentum_flow_layer(
     bear_cont = _clip01(c("candle.pattern_bear_continuation_pressure"))
     bull_reversal = _clip01(c("candle.pattern_bull_reversal_pressure"))
     bear_reversal = _clip01(c("candle.pattern_bear_reversal_pressure"))
-    body_pct = _clip01(c("body_pct"))
+    body_pct = _clip01(c("snap.body_pct"))
     body_impulse = _clip01(0.55 * body_pct + 0.45 * np.abs(clv))
     clv_body_bull_flow = _clip01(
         0.40 * _pos(clv) * (0.50 + 0.50 * body_impulse)
@@ -463,21 +408,21 @@ def build_entry_momentum_flow_layer(
 
     dip_confirmed = _mean01(
         [
-            c("dip_confirmed_m5_v3"),
-            c("dip_confirmed_m15_v3"),
-            c("dip_confirmed_h1_v3"),
-            c("dip_confirmed_h4_v3"),
-            c("dip_confirmed_d1_v3"),
-            c("dip_confirmed_mean_5tf"),
-            c("dip_confirmed_max_5tf"),
+            c("ctx_cont.dip_confirmed_m5_v3"),
+            c("ctx_cont.dip_confirmed_m15_v3"),
+            c("ctx_cont.dip_confirmed_h1_v3"),
+            c("ctx_cont.dip_confirmed_h4_v3"),
+            c("ctx_cont.dip_confirmed_d1_v3"),
+            c("ctx_cont.dip_confirmed_mean_5tf"),
+            c("ctx_cont.dip_confirmed_max_5tf"),
         ]
     )
     dip_proximity = _mean01(
         [
-            c("dip_proximity_h1_v3"),
-            c("dip_proximity_h4_v3"),
-            c("dip_proximity_d1_v3"),
-            c("dip_proximity_mean_h1h4d1"),
+            c("ctx_cont.dip_proximity_h1_v3"),
+            c("ctx_cont.dip_proximity_h4_v3"),
+            c("ctx_cont.dip_proximity_d1_v3"),
+            c("ctx_cont.dip_proximity_mean_h1h4d1"),
         ]
     )
     dip_setup = _clip01(0.55 * dip_confirmed + 0.45 * dip_proximity)

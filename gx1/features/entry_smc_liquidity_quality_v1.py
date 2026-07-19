@@ -1,10 +1,4 @@
-"""Candidate SMC/liquidity quality features for Entry specialists.
-
-This layer is intentionally separate from the active seq146/seq215 contracts.
-It derives closed-bar, lookahead-safe SMC/liquidity context from already
-materialized ``snap.*``, ``ctx_cont.*`` and optional challenger fields so it can
-be audited before any manifest or training gate adopts it.
-"""
+"""Strict closed-bar SMC/liquidity quality features for model-native Entry."""
 from __future__ import annotations
 
 from typing import Iterable
@@ -13,7 +7,7 @@ import numpy as np
 
 
 SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = (
-    "entry_smc_liquidity_quality_v1_20260630_candidate_closed_bar_context_falsebreak_continuation_failclosed"
+    "entry_smc_liquidity_quality_v1_20260717_exact_sources_fail_closed"
 )
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
 
@@ -95,9 +89,6 @@ SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
     "ctx_cont.d1_ema_slope_20_canon_v2",
     "ctx_cont.m15_trend_sign_canon_v2",
     "ctx_cont.regime_stack_sum_v3",
-)
-
-SMC_LIQUIDITY_QUALITY_OPTIONAL_FIELDS = (
     "chart.foundation_sweep_low_reclaim_up_proxy",
     "chart.foundation_sweep_high_reclaim_down_proxy",
     "chart.foundation_false_breakout_high_followthrough_down_proxy",
@@ -116,23 +107,28 @@ SMC_LIQUIDITY_QUALITY_OPTIONAL_FIELDS = (
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
+    return {name: i for i, name in enumerate(names)}
 
 
 def missing_smc_liquidity_quality_source_fields(feature_names: Iterable[str]) -> list[str]:
-    available = {str(name) for name in feature_names}
+    available = set(feature_names)
     return [name for name in SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
     if name not in index:
-        return np.full(x.shape[0], float(default), dtype=np.float32)
+        raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_SOURCE_FIELD_MISSING: {name}")
     arr = np.asarray(x[:, index[name]], dtype=np.float32)
-    return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
+    if not np.isfinite(arr).all():
+        raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_SOURCE_NONFINITE: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if not np.isfinite(values).all():
+        raise RuntimeError("SMC_LIQUIDITY_QUALITY_DERIVATION_NONFINITE")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -160,8 +156,6 @@ def _tanh(arr: np.ndarray, scale: float = 1.0) -> np.ndarray:
 
 
 def _count_proxy(sources: np.ndarray, threshold: float = 0.55) -> np.ndarray:
-    if sources.size == 0:
-        return np.zeros(0, dtype=np.float32)
     return (sources > float(threshold)).mean(axis=0).astype(np.float32, copy=False)
 
 
@@ -183,20 +177,39 @@ def build_entry_smc_liquidity_quality_layer(
     x = np.asarray(x, dtype=np.float32)
     if x.ndim != 2:
         raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_INPUT_NOT_2D: shape={x.shape}")
+    if x.shape[0] == 0 or x.shape[1] == 0:
+        raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_INPUT_EMPTY: shape={x.shape}")
     if x.shape[1] != len(feature_names):
         raise RuntimeError(
             "SMC_LIQUIDITY_QUALITY_FEATURE_NAME_DIM_MISMATCH: "
             f"cols={x.shape[1]} names={len(feature_names)}"
         )
+    if any(not isinstance(name, str) or not name for name in feature_names):
+        raise RuntimeError("SMC_LIQUIDITY_QUALITY_FEATURE_NAME_INVALID")
+    if len(feature_names) != len(set(feature_names)):
+        seen: set[str] = set()
+        duplicates = sorted(
+            {name for name in feature_names if name in seen or seen.add(name)}
+        )
+        raise RuntimeError(
+            f"SMC_LIQUIDITY_QUALITY_DUPLICATE_FEATURE_NAMES: {duplicates[:20]}"
+        )
     idx = _name_index(feature_names)
     missing = missing_smc_liquidity_quality_source_fields(feature_names)
     if missing:
         raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS_MISSING: {missing[:20]} total={len(missing)}")
+    if not np.isfinite(x).all():
+        bad_rows, bad_cols = np.where(~np.isfinite(x))
+        examples = [
+            {"row": int(row), "feature": feature_names[int(col)]}
+            for row, col in zip(bad_rows[:10], bad_cols[:10])
+        ]
+        raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_SOURCE_NONFINITE: {examples}")
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     h1_trend = _tanh(c("ctx_cont._v1h1_ema_diff"))
     h4_trend = _tanh(c("ctx_cont._v1h4_ema_diff"))
@@ -217,11 +230,11 @@ def build_entry_smc_liquidity_quality_layer(
         + 0.50 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last12"))
         + 0.25 * _pos(c("ctx_cont.smc_sweep_bull_pressure_last48"))
     )
-    sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep", default=96.0)) + c("ctx_cont.smc_sweep_recency_tau24"))
+    sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep")) + c("ctx_cont.smc_sweep_recency_tau24"))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
     choch_recent = _clip01(c("snap.smc_choch") + c("ctx_cont.smc_choch_recent_tau12") + 0.5 * c("ctx_cont.smc_choch_recent_tau24"))
 
-    premium = _clip01(c("snap.smc_premium_discount", default=0.5))
+    premium = _clip01(c("snap.smc_premium_discount"))
     discount = _clip01(1.0 - premium)
     clv_unit = _clip01(0.5 + 0.5 * _clip(c("snap._v1_clv"), -1.0, 1.0))
     body_direction = _clip(c("snap.body_pct") + c("candle.pattern_body_direction"), -1.0, 1.0)
@@ -233,13 +246,13 @@ def build_entry_smc_liquidity_quality_layer(
     wick_ratio = _clip01(c("ctx_cont.wick_ratio"))
     upper_wick = _clip01(_pos(wick_asym) + 0.50 * wick_ratio + c("candle.pattern_upper_wick_share"))
     lower_wick = _clip01(_neg(wick_asym) + 0.50 * (1.0 - wick_ratio) + c("candle.pattern_lower_wick_share"))
-    close_near_high = _clip01(0.55 * (1.0 - wick_ratio) + 0.30 * clv_unit + 0.15 * c("candle.pattern_close_location", default=0.5))
-    close_near_low = _clip01(0.55 * wick_ratio + 0.30 * (1.0 - clv_unit) + 0.15 * (1.0 - c("candle.pattern_close_location", default=0.5)))
+    close_near_high = _clip01(0.55 * (1.0 - wick_ratio) + 0.30 * clv_unit + 0.15 * c("candle.pattern_close_location"))
+    close_near_low = _clip01(0.55 * wick_ratio + 0.30 * (1.0 - clv_unit) + 0.15 * (1.0 - c("candle.pattern_close_location")))
     wick_reject_long = _clip01(lower_wick * (0.50 + close_near_high + 0.25 * body_bull) * (0.75 + 0.25 * body_share))
     wick_reject_short = _clip01(upper_wick * (0.50 + close_near_low + 0.25 * body_bear) * (0.75 + 0.25 * body_share))
 
-    recent_swing_low = _recency(c("ctx_cont.bars_since_swing_low", default=96.0))
-    recent_swing_high = _recency(c("ctx_cont.bars_since_swing_high", default=96.0))
+    recent_swing_low = _recency(c("ctx_cont.bars_since_swing_low"))
+    recent_swing_high = _recency(c("ctx_cont.bars_since_swing_high"))
     near_swing_low = _prox_abs(c("ctx_cont.dist_last_swing_low_atr"))
     near_swing_high = _prox_abs(c("ctx_cont.dist_last_swing_high_atr"))
     support_sources = np.vstack(

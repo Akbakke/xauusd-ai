@@ -151,11 +151,22 @@ def _compute_exit_aug64(canonical_path: Path) -> "pd.DataFrame | None":
     if not canonical_path.exists():
         raise RuntimeError(f"[{ACTION}] GX1_EXIT_AUGMENT_64=1 but canonical tape missing: {canonical_path}")
     from gx1.features.volume_features import add_volume_features
+    from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
     from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
     tape = pd.read_parquet(canonical_path)  # full cols incl OHLC + volume + smc_swing_state
     tape["time"] = pd.to_datetime(tape["time"], utc=True)
+    required_source = ["open", "high", "low", "close", "volume", "smc_swing_state"]
+    missing_source = [name for name in required_source if name not in tape.columns]
+    if missing_source:
+        raise RuntimeError(f"[{ACTION}] canonical aug64 sources missing: {missing_source}")
+    mtf_source = tape.set_index("time")[required_source[:5]].copy()
+    multi_tf = build_multi_tf_per_bar_features_v2(mtf_source)
     tape = add_volume_features(tape)
-    tape = attach_group_a_dip_struct_ctx_columns(tape, journal_label="exit_aug64")
+    tape = attach_group_a_dip_struct_ctx_columns(
+        tape,
+        journal_label="exit_aug64",
+        multi_tf=multi_tf,
+    )
     missing = [c for c in NUMERIC_STATE_COLS_AUG64 if c not in tape.columns]
     if missing:
         raise RuntimeError(
@@ -520,7 +531,7 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
             parts.append(dummies)
             feature_names.extend(dummies.columns.tolist())
     # FAIL-CLOSED (2026-06-03 audit): missing required cols or >5% NaN = degraded substrate.
-    # Was print-only; now hard RuntimeError (mirrors materialize_build_entry_iql_v2). A clean
+    # Was print-only; now hard RuntimeError. A clean
     # build off the repaired substrate has neither, so this only fires on a bad dataset.
     if missing_cols:
         raise RuntimeError(

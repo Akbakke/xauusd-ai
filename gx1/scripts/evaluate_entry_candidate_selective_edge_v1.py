@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Evaluate selective edge for an Entry foundation candidate bundle.
+"""Evaluate selective edge for an exact model-native seq513 candidate bundle.
 
 This is a post-candidate evidence writer. It strict-loads the runtime bundle,
-runs val/test forward passes, ranks model trade candidates by directional edge
-score, and writes the selective-edge artifacts consumed by replay-readiness.
+runs val/test forward passes, ranks the model's own LONG/SHORT/FLAT choices by
+their selected-class probability, and writes evidence for replay-readiness.
 
 It never trains, promotes, shadows, starts live, or writes adapter artifacts.
 """
@@ -24,38 +24,42 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from gx1.contracts.signal_bridge_v3 import ORDERED_SEQ_FIELDS_V3
+from gx1.contracts.entry_model_native_signal_v1 import (
+    FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    INPUTS as DIRECTION_EVIDENCE_INPUTS,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
     required_training_specialists_for_mode,
     specialist_model_contract_for_mode,
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+    require_model_direction_decision_contract,
+)
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    atomic_write_parquet_immutable,
+    atomic_write_text,
+    build_prediction_evidence_declaration,
+)
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
-    DEFAULT_M5_PREBUILT,
-    DEFAULT_MTF_CACHE_DIR,
     _bundle_dataset_kwargs,
     _device_arg,
-    _parse_csv,
     _split_file,
 )
-from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
-
-
-DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1"
-SMART_SEQ520_DATASET_DIR = (
-    Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
-    / "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair"
-)
-SMART_SEQ520_OUT_DIR = DEFAULT_OUT_DIR / "smart_seq520_candidate"
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-SIDE_NAMES = {0: "LONG", 1: "SHORT"}
-CONTRACT_SIGNAL_DIMS = {
-    "foundation_seq146": 146,
-    "challenger_seq215": 215,
-    "smart_seq520_candidate": 520,
-}
-FEATURE_MASK_SCHEMA_VERSION = "entry_selective_edge_feature_mask_v1"
+SIDE_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+CONTRACT_SIGNAL_DIMS = {MODEL_NATIVE_CONTRACT_MODE: MODEL_NATIVE_SIGNAL_DIM}
+EVALUATION_SPLITS = ("val", "test")
+EVALUATION_TOP_FRACS = (0.05, 0.10)
+EVALUATION_MODEL_NAME = "candidate"
 SPECIALIST_MODEL_CONTRACT_FLAGS = (
     "specialist_model_contract_valid",
     "specialist_model_contract_set_exact",
@@ -64,73 +68,84 @@ SPECIALIST_MODEL_CONTRACT_FLAGS = (
     "specialist_model_contract_support_heads_match",
     "specialist_model_contract_model_roles_match",
 )
-SIGNAL_BRIDGE_NEUTRAL_VALUES = np.array(
-    [
-        1.0 / 3.0,  # p_long
-        1.0 / 3.0,  # p_short
-        1.0 / 3.0,  # p_flat
-        1.0 / 3.0,  # p_hat
-        2.0 / 3.0,  # uncertainty_score = 1 - p_hat
-        0.0,  # margin_top1_top2
-        math.log(3.0),  # entropy for a uniform 3-class distribution
-    ],
-    dtype=np.float32,
-)
-EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS = float(
-    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS", "15.0")
-)
-EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS = float(
-    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS", "5.0")
-)
-EXPECTED_UTILITY_RAIL_PENALTY_BPS = float(
-    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_RAIL_PENALTY_BPS", "25.0")
-)
-EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS = float(
-    os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS", "35.0")
-)
-
-
-def _env_selection_score_mode_default() -> str:
-    raw = str(os.environ.get("GX1_SMART_SELECTION_SCORE", "edge_score") or "edge_score").strip().lower()
-    if raw in {"expected_utility", "edge_score"}:
-        return raw
-    return "edge_score"
-
-
-def _env_selection_score_threshold_default() -> float | None:
-    raw = str(
-        os.environ.get(
+def _reject_retired_selection_environment() -> None:
+    retired = sorted(
+        name
+        for name in (
+            "GX1_SMART_SELECTION_SCORE",
             "GX1_SMART_SELECTION_SCORE_THRESHOLD",
-            os.environ.get("GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS", ""),
+            "GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS",
         )
-        or ""
-    ).strip()
-    if not raw:
-        return None
-    try:
-        return float(raw)
-    except ValueError:
-        return None
+        if name in os.environ
+    )
+    if retired:
+        raise RuntimeError(
+            "retired Entry selection environment is forbidden; "
+            f"present={retired}"
+        )
 
 
-def _effective_selection_score_mode(args: argparse.Namespace) -> str:
-    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", "foundation_seq146"))
-    if contract_mode == "smart_seq520_candidate":
-        return "expected_utility"
-    raw = str(getattr(args, "selection_score_mode", "") or _env_selection_score_mode_default()).strip().lower()
-    return raw if raw in {"expected_utility", "edge_score"} else "edge_score"
+def _require_model_direction_ssot(
+    out: dict[str, torch.Tensor],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return the sole public decision tensors or fail closed.
 
+    ``public_trade_flat_decision_logits`` must be derived by the model from the
+    final, calibrated three-class logits.  Rechecking the equality here keeps
+    candidate evidence on exactly the same surface as training gates and live.
+    """
 
-def _effective_selection_score_threshold(args: argparse.Namespace, mode: str) -> float | None:
-    raw = getattr(args, "selection_score_threshold", None)
-    if raw is not None:
-        return float(raw)
-    env_default = _env_selection_score_threshold_default()
-    if env_default is not None:
-        return float(env_default)
-    if str(mode) == "expected_utility":
-        return 0.0
-    return None
+    forbidden = sorted({"anchor_logits", "delta_logits", "anchor_gate"}.intersection(out))
+    if forbidden:
+        raise RuntimeError(
+            f"model-native direction output contains forbidden legacy keys: {forbidden}"
+        )
+    missing = [
+        key
+        for key in ("direction_logits", "public_trade_flat_decision_logits")
+        if key not in out
+    ]
+    if missing:
+        raise RuntimeError(
+            "model-native direction contract missing outputs: " + ",".join(missing)
+        )
+    direction_logits = out["direction_logits"]
+    public_pair_logits = out["public_trade_flat_decision_logits"]
+    if direction_logits.ndim != 2 or direction_logits.shape[1] != 3:
+        raise RuntimeError(
+            "direction_logits must have shape (B,3); "
+            f"got {tuple(direction_logits.shape)}"
+        )
+    if public_pair_logits.ndim != 2 or public_pair_logits.shape != (
+        direction_logits.shape[0],
+        2,
+    ):
+        raise RuntimeError(
+            "public_trade_flat_decision_logits must have shape (B,2); "
+            f"got {tuple(public_pair_logits.shape)}"
+        )
+    if not bool(torch.isfinite(direction_logits).all().item()) or not bool(
+        torch.isfinite(public_pair_logits).all().item()
+    ):
+        raise RuntimeError("model-native direction contract contains non-finite logits")
+    expected_pair = torch.stack(
+        (direction_logits[:, :2].amax(dim=1), direction_logits[:, 2]),
+        dim=1,
+    )
+    if not torch.equal(public_pair_logits, expected_pair):
+        max_delta = float((public_pair_logits - expected_pair).abs().max().item())
+        raise RuntimeError(
+            "public trade/FLAT logits do not match final direction logits; "
+            f"max_abs_delta={max_delta:.9g}"
+        )
+    direction_decision = torch.argmax(direction_logits, dim=1)
+    public_pair_decision = torch.argmax(public_pair_logits, dim=1)
+    expected_pair_decision = (direction_decision == 2).to(dtype=torch.long)
+    if not torch.equal(public_pair_decision, expected_pair_decision):
+        raise RuntimeError(
+            "public trade/FLAT argmax does not match final LONG/SHORT/FLAT argmax"
+        )
+    return direction_logits, public_pair_logits
 
 
 def _json_default(obj: Any) -> Any:
@@ -166,18 +181,72 @@ def _softmax_np(values: np.ndarray) -> np.ndarray:
     return (exp / denom).astype(np.float32)
 
 
-def _tensor_np(out: dict[str, torch.Tensor], key: str) -> np.ndarray | None:
+def _canonical_live_decision_evidence(
+    out: dict[str, torch.Tensor],
+) -> dict[str, np.ndarray]:
+    """Materialize the exact probability/argmax surface consumed by live."""
+    direction_logits_t, public_pair_logits_t = _require_model_direction_ssot(out)
+    direction_logits = direction_logits_t.detach().cpu().float().numpy()
+    public_pair_logits = public_pair_logits_t.detach().cpu().float().numpy()
+    direction_probs = _softmax_np(direction_logits)
+    public_pair_probs = _softmax_np(public_pair_logits)
+    direction_index = np.argmax(direction_probs, axis=1).astype(np.int64)
+    public_pair_index = np.argmax(public_pair_probs, axis=1).astype(np.int64)
+    expected_public_index = (direction_index == 2).astype(np.int64)
+    if not np.array_equal(public_pair_index, expected_public_index):
+        raise RuntimeError(
+            "canonical public TRADE/FLAT probability argmax does not match "
+            "final LONG/SHORT/FLAT probability argmax"
+        )
+    row_index = np.arange(direction_index.shape[0], dtype=np.int64)
+    selection_score = direction_probs[row_index, direction_index].astype(np.float32)
+    edge_score = (
+        np.maximum(direction_probs[:, 0], direction_probs[:, 1])
+        - direction_probs[:, 2]
+    ).astype(np.float32)
+    return {
+        "direction_logits": direction_logits,
+        "direction_probs": direction_probs,
+        "model_direction_index": direction_index,
+        "public_trade_flat_decision_logits": public_pair_logits,
+        "public_trade_flat_decision_probs": public_pair_probs,
+        "public_trade_flat_decision_index": public_pair_index,
+        "p_long": direction_probs[:, 0],
+        "p_short": direction_probs[:, 1],
+        "p_flat": direction_probs[:, 2],
+        "p_trade": public_pair_probs[:, 0],
+        "p_flat_hier": public_pair_probs[:, 1],
+        "edge_score": edge_score,
+        "selection_score": selection_score,
+    }
+
+
+def _tensor_np(
+    out: dict[str, torch.Tensor],
+    key: str,
+    *,
+    width: int,
+) -> np.ndarray:
     value = out.get(key)
-    if value is None:
-        return None
-    return value.detach().cpu().float().numpy()
+    if not isinstance(value, torch.Tensor):
+        raise RuntimeError(f"exact model-native bundle did not emit tensor {key}")
+    arr = value.detach().cpu().float().numpy()
+    if arr.ndim != 2 or arr.shape[1] != int(width) or not np.isfinite(arr).all():
+        raise RuntimeError(
+            f"exact model-native output {key} invalid: observed={arr.shape} "
+            f"expected=(*,{int(width)}) finite={np.isfinite(arr).all()}"
+        )
+    return arr
 
 
 def _normalize_contract_mode(value: Any) -> str:
-    mode = str(value or "foundation_seq146").strip()
-    if mode not in CONTRACT_SIGNAL_DIMS:
-        raise RuntimeError(f"unknown specialist contract mode: {mode}")
-    return mode
+    mode = str(value or MODEL_NATIVE_CONTRACT_MODE).strip()
+    if mode != MODEL_NATIVE_CONTRACT_MODE:
+        raise RuntimeError(
+            "retired candidate contract mode is forbidden: "
+            f"observed={mode!r} required={MODEL_NATIVE_CONTRACT_MODE!r}"
+        )
+    return MODEL_NATIVE_CONTRACT_MODE
 
 
 def _specialist_cfg_from_meta(meta: dict[str, Any]) -> dict[str, Any]:
@@ -223,10 +292,8 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
         failures.append(f"bundle snap_input_dim mismatch: observed={snap_dim} expected={expected_dim}")
     if not bool(cfg.get("enabled")):
         failures.append("bundle specialist_fusion.enabled is not true")
-    if observed_mode and observed_mode != contract_mode:
+    if observed_mode != contract_mode:
         failures.append(f"bundle specialist contract mode mismatch: observed={observed_mode} expected={contract_mode}")
-    if contract_mode != "foundation_seq146" and not observed_mode:
-        failures.append(f"{contract_mode} bundle must declare specialist_fusion.contract_mode")
 
     missing = sorted(set(expected_specialists) - set(observed_specialists))
     extra = sorted(set(observed_specialists) - set(expected_specialists))
@@ -234,10 +301,9 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
         failures.append(f"bundle specialist_fusion missing required specialists: {missing}")
     if extra:
         failures.append(f"bundle specialist_fusion has non-required specialists: {extra}")
-    if contract_mode != "foundation_seq146":
-        for required in ("chart_geometry_encoder", "price_action_candle_encoder"):
-            if required not in observed_specialists:
-                failures.append(f"{contract_mode} missing required specialist: {required}")
+    for required in ("chart_geometry_encoder", "price_action_candle_encoder"):
+        if required not in observed_specialists:
+            failures.append(f"{contract_mode} missing required specialist: {required}")
 
     expected_contract_keys = sorted(str(name) for name in expected_contract)
     observed_contract_keys = sorted(str(name) for name in observed_contract)
@@ -294,41 +360,45 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
 
 
 def _pnl_proxy_for_side(frame: pd.DataFrame) -> np.ndarray:
-    """Return a trade-side PnL proxy in bps for LONG/SHORT model decisions."""
-    side = frame["trade_side"].astype(int).to_numpy()
-    if {"y_long_path_utility_bps", "y_short_path_utility_bps"}.issubset(frame.columns):
-        long_score = pd.to_numeric(frame["y_long_path_utility_bps"], errors="coerce").fillna(0.0).to_numpy(
-            dtype=np.float64
-        )
-        short_score = pd.to_numeric(frame["y_short_path_utility_bps"], errors="coerce").fillna(0.0).to_numpy(
-            dtype=np.float64
-        )
-        return np.where(side == 0, long_score, short_score)
-    if {"y_direction_long_score_bps", "y_direction_short_score_bps"}.issubset(frame.columns):
-        long_score = pd.to_numeric(frame["y_direction_long_score_bps"], errors="coerce").fillna(0.0).to_numpy(
-            dtype=np.float64
-        )
-        short_score = pd.to_numeric(frame["y_direction_short_score_bps"], errors="coerce").fillna(0.0).to_numpy(
-            dtype=np.float64
-        )
-        return np.where(side == 0, long_score, short_score)
-    if "y_forecast_ret_K24" in frame.columns:
-        ret = pd.to_numeric(frame["y_forecast_ret_K24"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64)
-        return np.where(side == 0, ret, -ret)
+    """Score the final model argmax against the canonical two-sided utility target."""
 
-    label = frame["y_direction"].astype(int).to_numpy()
-    if "path_quality_bps" in frame.columns:
-        quality = pd.to_numeric(frame["path_quality_bps"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64)
-    else:
-        quality = np.zeros((len(frame),), dtype=np.float64)
-    abs_quality = np.abs(quality)
-    return np.where(label == side, abs_quality, np.where(label == 2, 0.0, -abs_quality))
+    required = {"pred_direction", "y_long_path_utility_bps", "y_short_path_utility_bps"}
+    missing = sorted(required - set(frame.columns))
+    if missing:
+        raise RuntimeError(
+            f"selective-edge frame lacks canonical utility evidence: {missing}"
+        )
+    side = pd.to_numeric(frame["pred_direction"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
+    long_score = pd.to_numeric(
+        frame["y_long_path_utility_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    short_score = pd.to_numeric(
+        frame["y_short_path_utility_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    if not np.isfinite(side).all() or not np.isfinite(long_score).all() or not np.isfinite(
+        short_score
+    ).all():
+        raise RuntimeError("canonical utility evidence contains non-finite values")
+    if not set(side.astype(np.int64)).issubset({0, 1, 2}) or not np.array_equal(
+        side, side.astype(np.int64)
+    ):
+        raise RuntimeError("pred_direction contains values outside LONG/SHORT/FLAT")
+    side_int = side.astype(np.int64)
+    return np.where(
+        side_int == 2,
+        0.0,
+        np.where(side_int == 0, long_score, short_score),
+    )
 
 
 def _direction_precision(frame: pd.DataFrame) -> float | None:
     if frame.empty:
         return None
-    return float((frame["trade_side"].astype(int) == frame["y_direction"].astype(int)).mean())
+    if "pred_direction" not in frame.columns:
+        raise RuntimeError("direction precision lacks final pred_direction")
+    return float((frame["pred_direction"].astype(int) == frame["y_direction"].astype(int)).mean())
 
 
 def _metrics_for_group(
@@ -373,7 +443,18 @@ def _metrics_for_group(
 
 
 def _selection_sort_column(frame: pd.DataFrame) -> str:
-    return "selection_score" if "selection_score" in frame.columns else "edge_score"
+    if "selection_score" not in frame.columns:
+        raise RuntimeError("selective-edge frame lacks model-native selection_score")
+    modes = (
+        sorted({str(value) for value in frame["selection_score_mode"].dropna()})
+        if "selection_score_mode" in frame.columns
+        else []
+    )
+    if modes != [MODEL_DIRECTION_SELECTION_MODE]:
+        raise RuntimeError(
+            f"selective-edge direction mode mismatch: observed={modes}"
+        )
+    return "selection_score"
 
 
 def _top_frame(frame: pd.DataFrame, top_frac: float) -> pd.DataFrame:
@@ -381,12 +462,6 @@ def _top_frame(frame: pd.DataFrame, top_frac: float) -> pd.DataFrame:
         return frame.copy()
     n = max(1, int(math.ceil(len(frame) * float(top_frac))))
     return frame.sort_values(_selection_sort_column(frame), ascending=False, kind="mergesort").head(n).copy()
-
-
-def _neutralize_signal_bridge(seq_x: torch.Tensor, snap_x: torch.Tensor) -> None:
-    values = torch.as_tensor(SIGNAL_BRIDGE_NEUTRAL_VALUES, dtype=seq_x.dtype, device=seq_x.device)
-    seq_x[..., : len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] = values
-    snap_x[..., : len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] = values.to(dtype=snap_x.dtype, device=snap_x.device)
 
 
 def _sha256_file(path: Path) -> str:
@@ -399,114 +474,22 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _read_signal_fields(dataset_dir: Path, splits: list[str]) -> tuple[list[str], str, str]:
-    candidates: list[Path] = []
-    for split in splits:
-        candidates.extend(sorted(dataset_dir.glob(f"*_{split}.manifest.json")))
-    candidates.extend(sorted(dataset_dir.glob("*.manifest.json")))
-    seen: set[Path] = set()
-    for path in candidates:
-        if path in seen:
-            continue
-        seen.add(path)
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
-        signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
-        fields = [str(value) for value in signal_bridge.get("fields", []) if str(value)]
-        if fields:
-            return fields, str(path), _sha256_file(path)
-    return [], "", ""
-
-
-def _load_feature_mask_spec(path_text: str, *, dataset_dir: Path, splits: list[str]) -> tuple[dict[str, Any], list[str]]:
-    path_text = str(path_text or "").strip()
-    if not path_text:
-        return {"enabled": False}, []
-    path = Path(path_text).expanduser().resolve()
-    failures: list[str] = []
-    if not path.exists() or not path.is_file():
-        return {"enabled": True, "path": str(path)}, [f"feature mask json missing: {path}"]
-    try:
-        spec = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        return {"enabled": True, "path": str(path)}, [f"feature mask json parse failed: {path}: {exc}"]
-    if not isinstance(spec, dict):
-        return {"enabled": True, "path": str(path)}, [f"feature mask json must be an object: {path}"]
-
-    signal_fields, manifest_path, manifest_sha = _read_signal_fields(dataset_dir, splits)
-    if not signal_fields:
-        failures.append(f"could not resolve signal fields from dataset manifests in {dataset_dir}")
-    field_to_idx = {name: idx for idx, name in enumerate(signal_fields)}
-    names = [str(value) for value in spec.get("zero_feature_names", []) if str(value)]
-    raw_indices = [int(value) for value in spec.get("zero_indices", []) if str(value).strip()]
-    missing_names = [name for name in names if name not in field_to_idx]
-    if missing_names:
-        failures.append(f"feature mask names not found in signal fields: {missing_names[:20]}")
-    name_indices = [field_to_idx[name] for name in names if name in field_to_idx]
-    all_indices = sorted(set(name_indices + raw_indices))
-    invalid_indices = [idx for idx in all_indices if idx < 0 or idx >= len(signal_fields)]
-    if invalid_indices:
-        failures.append(f"feature mask indices out of range: {invalid_indices[:20]}")
-    all_indices = [idx for idx in all_indices if 0 <= idx < len(signal_fields)]
-    if not all_indices:
-        failures.append("feature mask selects zero valid signal indices")
-    schema_version = str(spec.get("schema_version") or "")
-    if schema_version and schema_version != FEATURE_MASK_SCHEMA_VERSION:
-        failures.append(
-            f"feature mask schema_version mismatch: observed={schema_version} expected={FEATURE_MASK_SCHEMA_VERSION}"
-        )
-
-    normalized = {
-        "enabled": True,
-        "path": str(path),
-        "sha256": _sha256_file(path),
-        "schema_version": schema_version or FEATURE_MASK_SCHEMA_VERSION,
-        "mask_mode": str(spec.get("mask_mode") or "zero_seq_snap_features"),
-        "ablation_id": str(spec.get("ablation_id") or ""),
-        "model_name": str(spec.get("model_name") or ""),
-        "zero_value": float(spec.get("zero_value", 0.0)),
-        "zero_indices": all_indices,
-        "zero_feature_names": [signal_fields[idx] for idx in all_indices],
-        "requested_zero_feature_names": names,
-        "requested_zero_indices": raw_indices,
-        "signal_field_count": int(len(signal_fields)),
-        "signal_fields_manifest": manifest_path,
-        "signal_fields_manifest_sha256": manifest_sha,
-        "missing_feature_names": missing_names,
-        "invalid_indices": invalid_indices,
-    }
-    return normalized, failures
-
-
-def _apply_feature_mask(seq_x: torch.Tensor, snap_x: torch.Tensor, feature_mask: dict[str, Any] | None) -> None:
-    if not feature_mask or not bool(feature_mask.get("enabled")):
-        return
-    indices = [int(value) for value in feature_mask.get("zero_indices", [])]
-    if not indices:
-        return
-    index = torch.as_tensor(indices, dtype=torch.long, device=seq_x.device)
-    value = float(feature_mask.get("zero_value", 0.0))
-    seq_x.index_fill_(-1, index, value)
-    snap_x.index_fill_(-1, index, value)
-
-
 def build_metric_rows(
     predictions: pd.DataFrame,
     *,
     top_fracs: list[float],
     exclude_sessions: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
-    """Selection-policy note (2026-07-04, vedtak SMART_SEQ520_candidate_train_20260703):
-    exclude_sessions removes those sessions from the SELECTION POOL before the
-    top-frac ranking (the selection budget stays a fraction of the FULL split, so
-    excluded-session capacity redirects to sessions with proven tail precision).
-    SKIP_ASIA-precedent policy class; grounds: quiet-session memorized-confidence
-    (EU morning: 97% SHORT calls vs 61% FLAT truth, tail precision 0.08-0.26).
-    The policy is recorded in the summary and must be mirrored by the deploy
-    operating point."""
+    """Build diagnostic tail metrics without changing model direction.
+
+    Session exclusion is retained in the helper signature only to make stale
+    direct callers fail explicitly.  Session evidence belongs inside seq513.
+    """
+    if exclude_sessions:
+        raise RuntimeError(
+            "external session exclusion is forbidden; session evidence must be "
+            "fused into the model-native LONG/SHORT/FLAT decision"
+        )
     rows: list[dict[str, Any]] = []
     if predictions.empty:
         return rows
@@ -591,93 +574,40 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
     }
 
 
-def build_no_xgb_ablation_diagnostics(predictions: pd.DataFrame, *, model_name: str) -> dict[str, Any]:
-    no_xgb_model = f"{model_name}_no_xgb"
-    if predictions.empty or model_name not in set(predictions["model"].astype(str)) or no_xgb_model not in set(predictions["model"].astype(str)):
-        return {"available": False, "reason": "candidate or no-XGB predictions missing", "splits": {}}
-
-    split_rows: dict[str, Any] = {}
-    for split in sorted(str(x) for x in predictions["split"].dropna().unique()):
-        base = predictions[(predictions["split"].astype(str) == split) & (predictions["model"].astype(str) == model_name)].reset_index(drop=True)
-        ablation = predictions[
-            (predictions["split"].astype(str) == split) & (predictions["model"].astype(str) == no_xgb_model)
-        ].reset_index(drop=True)
-        if base.empty or ablation.empty or len(base) != len(ablation):
-            split_rows[split] = {
-                "rows_candidate": int(len(base)),
-                "rows_no_xgb": int(len(ablation)),
-                "comparable": False,
-            }
-            continue
-        prob_deltas = [(base[col].astype(float) - ablation[col].astype(float)).abs() for col in ("p_long", "p_short", "p_flat")]
-        edge_delta = (base["edge_score"].astype(float) - ablation["edge_score"].astype(float)).abs()
-        side_diff = base["trade_side"].astype(int) != ablation["trade_side"].astype(int)
-        pred_diff = base["pred_direction"].astype(int) != ablation["pred_direction"].astype(int)
-        time_match = True
-        if "time" in base.columns and "time" in ablation.columns:
-            time_match = bool(base["time"].equals(ablation["time"]))
-        split_rows[split] = {
-            "rows": int(len(base)),
-            "comparable": True,
-            "time_match": bool(time_match),
-            "max_abs_prob_delta": float(max(delta.max() for delta in prob_deltas)),
-            "mean_abs_prob_delta": float(np.mean([delta.mean() for delta in prob_deltas])),
-            "max_abs_edge_score_delta": float(edge_delta.max()),
-            "mean_abs_edge_score_delta": float(edge_delta.mean()),
-            "trade_side_diff_count": int(side_diff.sum()),
-            "pred_direction_diff_count": int(pred_diff.sum()),
-            "identical_predictions": bool(
-                max(delta.max() for delta in prob_deltas) == 0.0
-                and float(edge_delta.max()) == 0.0
-                and int(side_diff.sum()) == 0
-                and int(pred_diff.sum()) == 0
-            ),
-        }
-
-    return {
-        "available": True,
-        "candidate_model": model_name,
-        "no_xgb_model": no_xgb_model,
-        "splits": split_rows,
-    }
-
-
-def _dataset_signal_bridge_contract(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
+def _dataset_model_native_contract(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
     rows: dict[str, Any] = {}
+    reference_contract: dict[str, Any] | None = None
     for split in splits:
         matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
         if len(matches) != 1:
-            rows[split] = {
-                "manifest_path": "",
-                "manifest_count": int(len(matches)),
-                "neutral_xgb_bridge": None,
-                "bridge_source": "",
-                "fields": [],
-            }
-            continue
+            raise RuntimeError(
+                f"dataset split {split!r} must have exactly one manifest; got {len(matches)}"
+            )
         path = matches[0]
         data = json.loads(path.read_text(encoding="utf-8"))
         extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
-        inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
-        signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
-        fields = [str(x) for x in signal_bridge.get("fields", [])]
+        contract = extra.get("model_native_signal_contract")
+        if not isinstance(contract, dict):
+            raise RuntimeError(f"dataset split {split!r} lacks model_native_signal_contract")
+        require_model_native_signal_contract(
+            contract,
+            context=f"SELECTIVE_EDGE_DATASET_{split.upper()}",
+        )
+        if reference_contract is None:
+            reference_contract = dict(contract)
+        elif dict(contract) != reference_contract:
+            raise RuntimeError("dataset split model-native signal contracts differ")
         rows[split] = {
             "manifest_path": str(path),
+            "manifest_sha256": _sha256_file(path),
             "manifest_count": 1,
-            "neutral_xgb_bridge": bool(
-                extra.get("neutral_xgb_bridge", False)
-                or inputs.get("neutral_xgb_bridge", False)
-                or signal_bridge.get("neutral_xgb_bridge", False)
-            ),
-            "bridge_source": str(
-                extra.get("xgb_bridge_source") or inputs.get("xgb_bridge_source") or signal_bridge.get("bridge_source") or ""
-            ),
-            "seq_input_dim": int(signal_bridge.get("seq_input_dim") or 0),
-            "snap_input_dim": int(signal_bridge.get("snap_input_dim") or 0),
-            "fields": fields,
-            "bridge_fields": fields[: len(SIGNAL_BRIDGE_NEUTRAL_VALUES)],
+            "seq_input_dim": int(contract["seq_input_dim"]),
+            "snap_input_dim": int(contract["snap_input_dim"]),
+            "ordered_fields_sha256": str(contract["ordered_fields_sha256"]),
         }
-    return {"splits": rows}
+    if reference_contract is None:
+        raise RuntimeError("dataset has no model-native signal contract")
+    return {"contract": reference_contract, "splits": rows}
 
 
 def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
@@ -725,22 +655,17 @@ def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
         start = end
 
 
-# Audit 2026-07-07 fix (finding #5): the evaluator used to persist only the
-# direction/edge_score/path_quality/bad_path columns and threw away 13/16 active
-# head outputs. Persist ALL head outputs the bundle forward emits. Column names
-# mirror the legacy materializer (materialize_inference_batch_candidates_v3_v1.py
-# emit_candidates) so the columns stay one-truth across evaluation surfaces.
-# Presence-conditional: a head absent from the forward output (bundle without
-# that head) is simply skipped — existing columns keep name/dtype (backward
-# compatible).
+# Persist learned auxiliary-head outputs as parity diagnostics. They may
+# explain or audit the model, but none may rewrite the sole serving authority:
+# ``argmax(direction_logits)``.
 _EXTRA_SIGMOID_HEADS = {
     # forward-output key -> persisted probability column (sigmoid of raw logit)
     "tradable_logit": "tradable_prob",
+    "bad_path_logit": "bad_path_prob",
     "clean_edge_logit": "clean_edge_prob",
     "survival_logit": "survival_prob",
     "tf_agreement_logit": "tf_agreement_prob",
     "position_size_logit": "position_size_pred",
-    "hold_horizon_logit": "hold_horizon_pred",
 }
 _EXTRA_RAW_HEADS = {
     # forward-output key -> persisted raw-value column
@@ -749,7 +674,36 @@ _EXTRA_RAW_HEADS = {
 }
 # Multi-dim heads -> per-index columns <key>_{i} (widths: dip 18, forecast 4,
 # timing 12, tail_risk 6, vol_forecast 3 — taken from the tensor itself).
-_EXTRA_VECTOR_HEADS = ("dip_pred", "forecast_pred", "timing_pred", "tail_risk_pred", "vol_forecast_pred")
+_EXTRA_VECTOR_HEADS = {
+    "dip_pred": 18,
+    "forecast_pred": 4,
+    "timing_pred": 12,
+    "tail_risk_pred": 6,
+    "vol_forecast_pred": 3,
+}
+
+
+def _derived_serve_parity_outputs(
+    outputs: Mapping[str, torch.Tensor],
+) -> dict[str, np.ndarray]:
+    """Return exact derived tensors required by the live forward parity schema."""
+
+    path_log_var = _tensor_np(
+        outputs, "path_quality_log_var", width=1
+    ).reshape(-1)
+    path_std = np.exp(0.5 * path_log_var).astype(np.float32)
+    if not np.isfinite(path_std).all():
+        raise RuntimeError(
+            "path_quality_log_var produced non-finite path_quality_std"
+        )
+    mtf_logits = _tensor_np(outputs, "mtf_dir_logits", width=3)
+    mtf_probs = _softmax_np(mtf_logits).astype(np.float32)
+    if not np.isfinite(mtf_probs).all():
+        raise RuntimeError("mtf_dir_logits produced non-finite mtf_dir_probs")
+    return {
+        "path_quality_std": path_std,
+        "mtf_dir_probs": mtf_probs,
+    }
 
 
 def _predict_bundle(
@@ -761,22 +715,46 @@ def _predict_bundle(
     device: torch.device,
     batch_size: int,
     m5_prebuilt_path: Path,
-    neutralize_signal_bridge: bool = False,
-    feature_mask: dict[str, Any] | None = None,
     stream_chunk_rows: int = 0,
-    selection_score_mode: str = "edge_score",
-    selection_score_threshold: float | None = None,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
-    bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
+    bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device))
     model = bundle.transformer_model
     model.eval()
     meta = dict(bundle.metadata)
-    seq_len = int(meta.get("seq_len") or 96)
+    require_model_direction_decision_contract(
+        meta,
+        context=f"candidate bundle {Path(bundle_dir).expanduser().resolve()}",
+    )
+    signal_contract = meta.get("model_native_signal_contract")
+    if not isinstance(signal_contract, dict):
+        raise RuntimeError("candidate bundle lacks model_native_signal_contract")
+    require_model_native_signal_contract(
+        signal_contract,
+        context="SELECTIVE_EDGE_BUNDLE",
+    )
+    if int(meta.get("seq_input_dim") or -1) != MODEL_NATIVE_SIGNAL_DIM or int(
+        meta.get("snap_input_dim") or -1
+    ) != MODEL_NATIVE_SIGNAL_DIM:
+        raise RuntimeError(
+            "candidate bundle must expose exact seq/snap width "
+            f"{MODEL_NATIVE_SIGNAL_DIM}"
+        )
+    if "seq_len" not in meta or int(meta["seq_len"]) <= 0:
+        raise RuntimeError("candidate bundle lacks a positive contracted seq_len")
+    seq_len = int(meta["seq_len"])
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt_path)
     hier_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
-    utility_scale_bps = float(hier_meta.get("side_utility_scale_bps", 1.0) or 1.0)
-    mae_scale_bps = float(hier_meta.get("side_mae_scale_bps", 1.0) or 1.0)
+    utility_scale_bps = (
+        float(hier_meta["side_utility_scale_bps"])
+        if "side_utility_scale_bps" in hier_meta
+        else None
+    )
+    mae_scale_bps = (
+        float(hier_meta["side_mae_scale_bps"])
+        if "side_mae_scale_bps" in hier_meta
+        else None
+    )
     rows: list[pd.DataFrame] = []
 
     for split in splits:
@@ -786,7 +764,6 @@ def _predict_bundle(
                 dataset = EntryV10CtxDataset(
                     parquet_path=_chunk_path,
                     seq_len=seq_len,
-                    allow_constant_labels=True,
                     **dataset_kwargs,
                 )
                 loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -802,8 +779,7 @@ def _predict_bundle(
                     "path_quality_pred": [],
                     "bad_path_prob": [],
                 }
-                # Audit 2026-07-07 fix (finding #5): dynamic per-head buffers for
-                # every extra head the bundle forward emits.
+                # Dynamic per-head buffers retain learned auxiliary evidence.
                 extra_chunks: dict[str, list[np.ndarray]] = {}
                 with torch.no_grad():
                     for batch in loader:
@@ -811,9 +787,6 @@ def _predict_bundle(
                         snap_x = batch["snap_x"].to(device)
                         ctx_cat = batch["ctx_cat"].to(device)
                         ctx_cont = batch["ctx_cont"].to(device)
-                        if neutralize_signal_bridge:
-                            _neutralize_signal_bridge(seq_x, snap_x)
-                        _apply_feature_mask(seq_x, snap_x, feature_mask)
                         out = model(
                             seq_x,
                             snap_x,
@@ -824,208 +797,159 @@ def _predict_bundle(
                         for key, value in out.items():
                             if hasattr(value, "detach") and not bool(torch.isfinite(value).all().item()):
                                 failures.append(f"{model_name}/{split}: non-finite model output {key}")
-                        probs = torch.softmax(out["direction_logits"], dim=-1).detach().cpu().float().numpy()
-                        trade_side = np.where(probs[:, 0] >= probs[:, 1], 0, 1).astype(np.int64)
-                        edge_score = np.maximum(probs[:, 0], probs[:, 1]) - probs[:, 2]
-                        chunks["p_long"].append(probs[:, 0])
-                        chunks["p_short"].append(probs[:, 1])
-                        chunks["p_flat"].append(probs[:, 2])
-                        chunks["edge_score"].append(edge_score.astype(np.float32))
-                        chunks["trade_side"].append(trade_side)
-                        chunks["pred_direction"].append(probs.argmax(axis=1).astype(np.int64))
+                        forbidden_outputs = sorted(
+                            {"anchor_logits", "delta_logits", "anchor_gate"}.intersection(out)
+                        )
+                        if forbidden_outputs:
+                            raise RuntimeError(
+                                "model-native bundle emitted forbidden legacy direction "
+                                f"outputs: {forbidden_outputs}"
+                            )
+                        decision = _canonical_live_decision_evidence(out)
+                        pred_direction = decision["model_direction_index"]
+                        public_pair_decision = decision[
+                            "public_trade_flat_decision_index"
+                        ]
+                        chunks["p_long"].append(decision["p_long"])
+                        chunks["p_short"].append(decision["p_short"])
+                        chunks["p_flat"].append(decision["p_flat"])
+                        chunks["edge_score"].append(decision["edge_score"])
+                        chunks["trade_side"].append(pred_direction)
+                        chunks["pred_direction"].append(pred_direction)
                         chunks["y_direction"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
                         chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
                         chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
                         chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
                         extra_chunks.setdefault("direction_logits", []).append(
-                            out["direction_logits"].detach().cpu().float().numpy()
+                            decision["direction_logits"]
                         )
-                        for _vec_key in ("anchor_logits", "delta_logits", "anchor_gate"):
-                            _vec = _tensor_np(out, _vec_key)
-                            if _vec is not None:
-                                extra_chunks.setdefault(_vec_key, []).append(_vec)
-                                if _vec.shape[1] >= 2:
-                                    extra_chunks.setdefault(f"{_vec_key}_long_minus_short", []).append(
-                                        (_vec[:, 0] - _vec[:, 1]).astype(np.float32)
-                                    )
-                        if "anchor_logits" in out:
-                            _anchor_probs = _softmax_np(out["anchor_logits"].detach().cpu().float().numpy())
-                            extra_chunks.setdefault("anchor_p_long", []).append(_anchor_probs[:, 0])
-                            extra_chunks.setdefault("anchor_p_short", []).append(_anchor_probs[:, 1])
-                            extra_chunks.setdefault("anchor_p_flat", []).append(_anchor_probs[:, 2])
-                        # Audit 2026-07-07 fix (finding #5): persist all extra head outputs.
+                        extra_chunks.setdefault("direction_probs", []).append(
+                            decision["direction_probs"]
+                        )
+                        extra_chunks.setdefault("model_direction_index", []).append(
+                            decision["model_direction_index"]
+                        )
+                        extra_chunks.setdefault("public_trade_flat_decision_logits", []).append(
+                            decision["public_trade_flat_decision_logits"]
+                        )
+                        extra_chunks.setdefault("public_trade_flat_decision_probs", []).append(
+                            decision["public_trade_flat_decision_probs"]
+                        )
+                        extra_chunks.setdefault("public_trade_flat_decision_index", []).append(
+                            decision["public_trade_flat_decision_index"]
+                        )
+                        extra_chunks.setdefault("public_trade_probability", []).append(
+                            decision["p_trade"]
+                        )
+                        extra_chunks.setdefault("public_flat_probability", []).append(
+                            decision["p_flat_hier"]
+                        )
+                        extra_chunks.setdefault("public_trade_flat_margin", []).append(
+                            decision["public_trade_flat_decision_logits"][:, 0]
+                            - decision["public_trade_flat_decision_logits"][:, 1]
+                        )
+                        extra_chunks.setdefault("public_trade_flat_hard_decision", []).append(
+                            public_pair_decision
+                        )
+                        for _out_key, _width in (
+                            ("raw_direction_logits", 3),
+                            ("path_quality", 1),
+                            ("bad_path_logit", 1),
+                            *DIRECTION_EVIDENCE_INPUTS,
+                        ):
+                            extra_chunks.setdefault(_out_key, []).append(
+                                _tensor_np(out, _out_key, width=_width)
+                            )
+                        # Persist auxiliary-head diagnostics without composing
+                        # another direction decision.
                         for _out_key, _col in _EXTRA_SIGMOID_HEADS.items():
-                            if _out_key in out:
-                                extra_chunks.setdefault(_col, []).append(
-                                    torch.sigmoid(out[_out_key]).detach().cpu().float().numpy().reshape(-1)
-                                )
+                            _raw = _tensor_np(out, _out_key, width=1)
+                            extra_chunks.setdefault(_col, []).append(
+                                _sigmoid_np(_raw.reshape(-1))
+                            )
+                            if _out_key == "position_size_logit":
+                                extra_chunks.setdefault(
+                                    "position_size_logit", []
+                                ).append(_raw.reshape(-1))
                         for _out_key, _col in _EXTRA_RAW_HEADS.items():
-                            if _out_key in out:
-                                extra_chunks.setdefault(_col, []).append(
-                                    out[_out_key].detach().cpu().float().numpy().reshape(-1)
-                                )
-                        for _out_key in _EXTRA_VECTOR_HEADS:
-                            if _out_key in out:
-                                _vec = out[_out_key].detach().cpu().float().numpy()
-                                for _i in range(_vec.shape[1]):
-                                    extra_chunks.setdefault(f"{_out_key}_{_i}", []).append(_vec[:, _i])
-                        if "mtf_dir_logits" in out:
-                            _mtf_logits = out["mtf_dir_logits"].detach().cpu().float().numpy()
-                            extra_chunks.setdefault("mtf_dir_logits", []).append(_mtf_logits)
-                            extra_chunks.setdefault("mtf_long_minus_short", []).append(
-                                (_mtf_logits[:, 0] - _mtf_logits[:, 1]).astype(np.float32)
-                            )
-                            _mtf = _softmax_np(_mtf_logits)
-                            extra_chunks.setdefault("mtf_p_long", []).append(_mtf[:, 0])
-                            extra_chunks.setdefault("mtf_p_short", []).append(_mtf[:, 1])
-                            extra_chunks.setdefault("mtf_p_flat", []).append(_mtf[:, 2])
-                        trendline_rail_logits = _tensor_np(out, "trendline_rail_logits")
-                        if trendline_rail_logits is not None and trendline_rail_logits.shape[1] >= 4:
-                            trendline_rail_probs = _sigmoid_np(trendline_rail_logits)
-                            rail_anti_short_parts = [trendline_rail_probs[:, 0], trendline_rail_probs[:, 2]]
-                            rail_anti_long_parts = [trendline_rail_probs[:, 1], trendline_rail_probs[:, 3]]
-                            if trendline_rail_probs.shape[1] >= 6:
-                                rail_anti_short_parts.append(trendline_rail_probs[:, 4])
-                                rail_anti_long_parts.append(trendline_rail_probs[:, 5])
-                            rail_anti_short = np.maximum.reduce(rail_anti_short_parts)
-                            rail_anti_long = np.maximum.reduce(rail_anti_long_parts)
-                            extra_chunks.setdefault("trendline_rail_logits", []).append(trendline_rail_logits)
-                            extra_chunks.setdefault("trendline_rail_rising_support_prob", []).append(
-                                trendline_rail_probs[:, 0]
-                            )
-                            extra_chunks.setdefault("trendline_rail_falling_resistance_prob", []).append(
-                                trendline_rail_probs[:, 1]
-                            )
-                            extra_chunks.setdefault("trendline_rail_countertrend_short_trap_prob", []).append(
-                                trendline_rail_probs[:, 2]
-                            )
-                            extra_chunks.setdefault("trendline_rail_countertrend_long_trap_prob", []).append(
-                                trendline_rail_probs[:, 3]
-                            )
-                            if trendline_rail_probs.shape[1] >= 6:
-                                extra_chunks.setdefault("trendline_rail_short_early_failure_prob", []).append(
-                                    trendline_rail_probs[:, 4]
-                                )
-                                extra_chunks.setdefault("trendline_rail_long_early_failure_prob", []).append(
-                                    trendline_rail_probs[:, 5]
-                                )
-                        else:
-                            rail_anti_short = np.zeros(probs.shape[0], dtype=np.float32)
-                            rail_anti_long = np.zeros(probs.shape[0], dtype=np.float32)
-                        trade_logit = _tensor_np(out, "trade_logit")
-                        side_logits = _tensor_np(out, "side_logits")
-                        side_utility = _tensor_np(out, "side_utility")
-                        side_bad_path_logit = _tensor_np(out, "side_bad_path_logit")
-                        side_mae = _tensor_np(out, "side_mae")
-                        side_validity_logit = _tensor_np(out, "side_validity_logit")
-                        if trade_logit is not None:
-                            p_trade = _sigmoid_np(trade_logit.reshape(-1))
-                            extra_chunks.setdefault("p_trade", []).append(p_trade)
-                            extra_chunks.setdefault("p_flat_hier", []).append((1.0 - p_trade).astype(np.float32))
-                        else:
-                            p_trade = np.clip(probs[:, 0] + probs[:, 1], 0.0, 1.0).astype(np.float32)
-                        if side_logits is not None and side_logits.shape[1] >= 2:
-                            side_probs = _softmax_np(side_logits)
-                            extra_chunks.setdefault("side_logits", []).append(side_logits)
-                            extra_chunks.setdefault("p_long_given_trade", []).append(side_probs[:, 0])
-                            extra_chunks.setdefault("p_short_given_trade", []).append(side_probs[:, 1])
-                            side_uncertainty = (1.0 - np.maximum(side_probs[:, 0], side_probs[:, 1])).astype(np.float32)
-                            extra_chunks.setdefault("side_uncertainty", []).append(side_uncertainty)
-                            p_long_given_trade = side_probs[:, 0]
-                            p_short_given_trade = side_probs[:, 1]
-                        else:
-                            denom = np.maximum(probs[:, 0] + probs[:, 1], 1e-9)
-                            p_long_given_trade = (probs[:, 0] / denom).astype(np.float32)
-                            p_short_given_trade = (probs[:, 1] / denom).astype(np.float32)
-                            side_uncertainty = (1.0 - np.maximum(p_long_given_trade, p_short_given_trade)).astype(np.float32)
-                        if side_bad_path_logit is not None and side_bad_path_logit.shape[1] >= 2:
-                            side_bad = _sigmoid_np(side_bad_path_logit)
-                            extra_chunks.setdefault("side_bad_path_logit", []).append(side_bad_path_logit)
-                            extra_chunks.setdefault("long_bad_path_prob", []).append(side_bad[:, 0])
-                            extra_chunks.setdefault("short_bad_path_prob", []).append(side_bad[:, 1])
-                            long_bad_path_prob = side_bad[:, 0]
-                            short_bad_path_prob = side_bad[:, 1]
-                        else:
-                            classic_bad = torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1)
-                            long_bad_path_prob = classic_bad
-                            short_bad_path_prob = classic_bad
-                        if side_validity_logit is not None and side_validity_logit.shape[1] >= 2:
-                            side_validity = _sigmoid_np(side_validity_logit)
-                            extra_chunks.setdefault("side_validity_logit", []).append(side_validity_logit)
-                            extra_chunks.setdefault("long_validity_prob", []).append(side_validity[:, 0])
-                            extra_chunks.setdefault("short_validity_prob", []).append(side_validity[:, 1])
-                            long_validity_prob = side_validity[:, 0]
-                            short_validity_prob = side_validity[:, 1]
-                        else:
-                            long_validity_prob = np.ones(probs.shape[0], dtype=np.float32)
-                            short_validity_prob = np.ones(probs.shape[0], dtype=np.float32)
-                        if side_utility is not None and side_utility.shape[1] >= 2:
-                            extra_chunks.setdefault("side_utility_raw", []).append(side_utility)
-                            long_util = (side_utility[:, 0] * utility_scale_bps).astype(np.float32)
-                            short_util = (side_utility[:, 1] * utility_scale_bps).astype(np.float32)
-                            rail_long_penalty = (rail_anti_long * EXPECTED_UTILITY_RAIL_PENALTY_BPS).astype(np.float32)
-                            rail_short_penalty = (rail_anti_short * EXPECTED_UTILITY_RAIL_PENALTY_BPS).astype(np.float32)
-                            invalid_long_penalty = (
-                                (1.0 - long_validity_prob) * EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS
-                            ).astype(np.float32)
-                            invalid_short_penalty = (
-                                (1.0 - short_validity_prob) * EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS
-                            ).astype(np.float32)
-                            extra_chunks.setdefault("expected_utility_rail_penalty_bps", []).append(
-                                np.full(
-                                    probs.shape[0],
-                                    EXPECTED_UTILITY_RAIL_PENALTY_BPS,
-                                    dtype=np.float32,
-                                )
-                            )
-                            extra_chunks.setdefault("expected_utility_invalid_side_penalty_bps", []).append(
-                                np.full(
-                                    probs.shape[0],
-                                    EXPECTED_UTILITY_INVALID_SIDE_PENALTY_BPS,
-                                    dtype=np.float32,
-                                )
-                            )
-                            extra_chunks.setdefault("expected_utility_long_rail_penalty_bps", []).append(
-                                rail_long_penalty
-                            )
-                            extra_chunks.setdefault("expected_utility_short_rail_penalty_bps", []).append(
-                                rail_short_penalty
-                            )
-                            extra_chunks.setdefault("expected_utility_long_invalid_side_penalty_bps", []).append(
-                                invalid_long_penalty
-                            )
-                            extra_chunks.setdefault("expected_utility_short_invalid_side_penalty_bps", []).append(
-                                invalid_short_penalty
-                            )
-                            extra_chunks.setdefault("long_path_utility_pred_bps", []).append(long_util)
-                            extra_chunks.setdefault("short_path_utility_pred_bps", []).append(short_util)
-                            expected_long = (
-                                p_trade * p_long_given_trade * long_util
-                                - long_bad_path_prob * EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS
-                                - side_uncertainty * EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS
-                                - rail_long_penalty
-                                - invalid_long_penalty
-                            ).astype(np.float32)
-                            expected_short = (
-                                p_trade * p_short_given_trade * short_util
-                                - short_bad_path_prob * EXPECTED_UTILITY_BAD_PATH_PENALTY_BPS
-                                - side_uncertainty * EXPECTED_UTILITY_UNCERTAINTY_PENALTY_BPS
-                                - rail_short_penalty
-                                - invalid_short_penalty
-                            ).astype(np.float32)
-                            extra_chunks.setdefault("expected_utility_long_bps", []).append(expected_long)
-                            extra_chunks.setdefault("expected_utility_short_bps", []).append(expected_short)
-                            extra_chunks.setdefault("expected_utility_side", []).append(
-                                np.where(expected_long >= expected_short, 0, 1).astype(np.int64)
-                            )
-                        if side_mae is not None and side_mae.shape[1] >= 2:
-                            extra_chunks.setdefault("side_mae_raw", []).append(side_mae)
-                            extra_chunks.setdefault("long_expected_mae_bps", []).append(
-                                np.maximum(side_mae[:, 0] * mae_scale_bps, 0.0).astype(np.float32)
-                            )
-                            extra_chunks.setdefault("short_expected_mae_bps", []).append(
-                                np.maximum(side_mae[:, 1] * mae_scale_bps, 0.0).astype(np.float32)
-                            )
+                            _raw = _tensor_np(out, _out_key, width=1).reshape(-1)
+                            if _col != _out_key:
+                                extra_chunks.setdefault(_col, []).append(_raw)
+                        _derived_parity = _derived_serve_parity_outputs(out)
+                        extra_chunks.setdefault("path_quality_std", []).append(
+                            _derived_parity["path_quality_std"]
+                        )
+                        for _out_key, _width in _EXTRA_VECTOR_HEADS.items():
+                            _vec = _tensor_np(out, _out_key, width=_width)
+                            for _i in range(_width):
+                                extra_chunks.setdefault(f"{_out_key}_{_i}", []).append(_vec[:, _i])
+                        _mtf_logits = _tensor_np(out, "mtf_dir_logits", width=3)
+                        extra_chunks.setdefault("mtf_long_minus_short", []).append(
+                            (_mtf_logits[:, 0] - _mtf_logits[:, 1]).astype(np.float32)
+                        )
+                        _mtf = _derived_parity["mtf_dir_probs"]
+                        extra_chunks.setdefault("mtf_dir_probs", []).append(_mtf)
+                        extra_chunks.setdefault("mtf_p_long", []).append(_mtf[:, 0])
+                        extra_chunks.setdefault("mtf_p_short", []).append(_mtf[:, 1])
+                        extra_chunks.setdefault("mtf_p_flat", []).append(_mtf[:, 2])
+                        specialist_gate = _tensor_np(
+                            out,
+                            "specialist_gate",
+                            width=len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+                        )
+                        extra_chunks.setdefault("specialist_gate", []).append(
+                            specialist_gate
+                        )
+                        trendline_rail_logits = _tensor_np(out, "trendline_rail_logits", width=6)
+                        trendline_rail_probs = _sigmoid_np(trendline_rail_logits)
+                        extra_chunks.setdefault("trendline_rail_probs", []).append(
+                            trendline_rail_probs
+                        )
+                        for _name, _index in (
+                            ("trendline_rail_rising_support_prob", 0),
+                            ("trendline_rail_falling_resistance_prob", 1),
+                            ("trendline_rail_countertrend_short_trap_prob", 2),
+                            ("trendline_rail_countertrend_long_trap_prob", 3),
+                            ("trendline_rail_short_early_failure_prob", 4),
+                            ("trendline_rail_long_early_failure_prob", 5),
+                        ):
+                            extra_chunks.setdefault(_name, []).append(trendline_rail_probs[:, _index])
+                        trade_logit = _tensor_np(out, "trade_logit", width=1)
+                        side_logits = _tensor_np(out, "side_logits", width=2)
+                        side_utility = _tensor_np(out, "side_utility", width=2)
+                        side_bad_path_logit = _tensor_np(out, "side_bad_path_logit", width=2)
+                        side_mae = _tensor_np(out, "side_mae", width=2)
+                        side_validity_logit = _tensor_np(out, "side_validity_logit", width=2)
+                        extra_chunks.setdefault("p_trade", []).append(decision["p_trade"])
+                        extra_chunks.setdefault("p_flat_hier", []).append(
+                            decision["p_flat_hier"]
+                        )
+                        side_probs = _softmax_np(side_logits)
+                        extra_chunks.setdefault("side_probs", []).append(side_probs)
+                        extra_chunks.setdefault("p_long_given_trade", []).append(side_probs[:, 0])
+                        extra_chunks.setdefault("p_short_given_trade", []).append(side_probs[:, 1])
+                        side_uncertainty = (1.0 - np.maximum(side_probs[:, 0], side_probs[:, 1])).astype(np.float32)
+                        extra_chunks.setdefault("side_uncertainty", []).append(side_uncertainty)
+                        side_bad = _sigmoid_np(side_bad_path_logit)
+                        extra_chunks.setdefault("long_bad_path_prob", []).append(side_bad[:, 0])
+                        extra_chunks.setdefault("short_bad_path_prob", []).append(side_bad[:, 1])
+                        side_validity = _sigmoid_np(side_validity_logit)
+                        extra_chunks.setdefault("long_validity_prob", []).append(side_validity[:, 0])
+                        extra_chunks.setdefault("short_validity_prob", []).append(side_validity[:, 1])
+                        if utility_scale_bps is None or not np.isfinite(utility_scale_bps) or utility_scale_bps <= 0.0:
+                            raise RuntimeError("side_utility output lacks a finite positive contracted scale")
+                        long_util = (side_utility[:, 0] * utility_scale_bps).astype(np.float32)
+                        short_util = (side_utility[:, 1] * utility_scale_bps).astype(np.float32)
+                        extra_chunks.setdefault("long_path_utility_pred_bps", []).append(long_util)
+                        extra_chunks.setdefault("short_path_utility_pred_bps", []).append(short_util)
+                        if mae_scale_bps is None or not np.isfinite(mae_scale_bps) or mae_scale_bps <= 0.0:
+                            raise RuntimeError("side_mae output lacks a finite positive contracted scale")
+                        extra_chunks.setdefault("long_expected_mae_bps", []).append(
+                            np.maximum(side_mae[:, 0] * mae_scale_bps, 0.0).astype(np.float32)
+                        )
+                        extra_chunks.setdefault("short_expected_mae_bps", []).append(
+                            np.maximum(side_mae[:, 1] * mae_scale_bps, 0.0).astype(np.float32)
+                        )
 
                 arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
                 extra_arrays = {col: np.concatenate(vals, axis=0) for col, vals in extra_chunks.items()}
@@ -1044,44 +968,72 @@ def _predict_bundle(
                 frame["y_direction"] = arrays["y_direction"].astype(np.int64)
                 frame["path_quality_pred"] = arrays["path_quality_pred"]
                 frame["bad_path_prob"] = arrays["bad_path_prob"]
-                # Audit 2026-07-07 fix (finding #5): all extra head outputs as columns.
+                # Auxiliary outputs are evidence columns only.
                 for _col, _arr in extra_arrays.items():
-                    if _arr.ndim == 2:
+                    if _arr.ndim == 2 and _arr.shape[1] == 1:
+                        frame[_col] = _arr[:, 0].astype(np.float32)
+                    elif _arr.ndim == 2:
                         frame[_col] = [row.astype(np.float32).tolist() for row in _arr]
-                    elif _col.endswith("_side"):
+                    elif (
+                        _col.endswith("_side")
+                        or _col.endswith("_index")
+                        or _col == "public_trade_flat_hard_decision"
+                    ):
                         frame[_col] = _arr.astype(np.int64)
                     else:
                         frame[_col] = _arr.astype(np.float32)
-                mode = str(selection_score_mode or "edge_score")
-                if mode == "expected_utility":
-                    required_utility_cols = {"expected_utility_long_bps", "expected_utility_short_bps"}
-                    if required_utility_cols.issubset(frame.columns):
-                        effective_selection_threshold = (
-                            float(selection_score_threshold) if selection_score_threshold is not None else 0.0
-                        )
-                        expected_long = pd.to_numeric(
-                            frame["expected_utility_long_bps"], errors="coerce"
-                        ).fillna(-np.inf).to_numpy(dtype=np.float64)
-                        expected_short = pd.to_numeric(
-                            frame["expected_utility_short_bps"], errors="coerce"
-                        ).fillna(-np.inf).to_numpy(dtype=np.float64)
-                        frame["selection_score"] = np.maximum(expected_long, expected_short).astype(np.float32)
-                        frame["trade_side"] = np.where(expected_long >= expected_short, 0, 1).astype(np.int64)
-                        frame["selection_score_mode"] = "expected_utility"
-                        frame["selection_score_threshold"] = effective_selection_threshold
-                    else:
-                        failures.append(
-                            f"{model_name}/{split}: selection_score_mode=expected_utility requires "
-                            "expected_utility_long_bps and expected_utility_short_bps outputs"
-                        )
-                        frame["selection_score_mode"] = "edge_score"
-                        frame["selection_score"] = frame["edge_score"].astype(np.float32)
-                else:
-                    frame["selection_score_mode"] = "edge_score"
-                    frame["selection_score"] = frame["edge_score"].astype(np.float32)
-                frame["session"] = [SESSION_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in ctx_cat[:, 0]]
-                frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]] if ctx_cat.shape[1] > 1 else "UNKNOWN"
-                frame["side"] = [SIDE_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in frame["trade_side"].to_numpy()]
+                frame["selection_score_mode"] = MODEL_DIRECTION_SELECTION_MODE
+                direction_probabilities = frame[
+                    ["p_long", "p_short", "p_flat"]
+                ].to_numpy(dtype=np.float32)
+                direction_indices = frame["pred_direction"].to_numpy(dtype=np.int64)
+                if np.any((direction_indices < 0) | (direction_indices > 2)):
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid model direction index"
+                    )
+                frame["selection_score"] = direction_probabilities[
+                    np.arange(n, dtype=np.int64), direction_indices
+                ].astype(np.float32)
+                frame["model_direction"] = frame["pred_direction"].map(SIDE_NAMES)
+                frame["public_trade_flat_decision"] = np.where(
+                    frame["public_trade_flat_decision_index"].to_numpy(
+                        dtype=np.int64
+                    )
+                    == 0,
+                    "TRADE",
+                    "FLAT",
+                )
+                required_targets = {
+                    "y_long_path_utility_bps",
+                    "y_short_path_utility_bps",
+                    "path_quality_bps",
+                    "y_bad_path",
+                }
+                missing_targets = sorted(required_targets - set(frame.columns))
+                if missing_targets:
+                    raise RuntimeError(
+                        f"{model_name}/{split}: dataset lacks required target evidence: "
+                        f"{missing_targets}"
+                    )
+                if ctx_cat.ndim != 2 or ctx_cat.shape[1] < 2:
+                    raise RuntimeError(
+                        f"{model_name}/{split}: ctx_cat lacks session/vol-regime columns"
+                    )
+                session_ids = ctx_cat[:, 0].astype(np.int64)
+                unknown_sessions = sorted(set(session_ids) - set(SESSION_NAMES))
+                if unknown_sessions:
+                    raise RuntimeError(
+                        f"{model_name}/{split}: unknown session ids {unknown_sessions}"
+                    )
+                frame["session"] = [SESSION_NAMES[int(x)] for x in session_ids]
+                frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]]
+                direction_ids = frame["pred_direction"].to_numpy(dtype=np.int64)
+                if not set(direction_ids).issubset(SIDE_NAMES):
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid direction ids "
+                        f"{sorted(set(direction_ids) - set(SIDE_NAMES))}"
+                    )
+                frame["side"] = [SIDE_NAMES[int(x)] for x in direction_ids]
                 frame["pnl_proxy_bps"] = _pnl_proxy_for_side(frame)
                 keep_cols = [
                     "split",
@@ -1105,6 +1057,19 @@ def _predict_bundle(
                     "y_bad_path",
                     "pnl_proxy_bps",
                 ]
+                # Immutable smoke audit targets.  These remain evidence only;
+                # none is allowed to rewrite the model's final direction.
+                for target_col in (
+                    "mfe_first_n_bps",
+                    "y_tradable",
+                    "y_position_size_target",
+                ):
+                    if target_col not in frame.columns:
+                        raise RuntimeError(
+                            f"{model_name}/{split}: dataset lacks required smoke "
+                            f"target evidence {target_col}"
+                        )
+                    keep_cols.append(target_col)
                 if "y_forecast_ret_K24" in frame.columns:
                     keep_cols.append("y_forecast_ret_K24")
                 for utility_col in (
@@ -1115,11 +1080,7 @@ def _predict_bundle(
                 ):
                     if utility_col in frame.columns:
                         keep_cols.append(utility_col)
-                if "selection_score_threshold" in frame.columns:
-                    keep_cols.append("selection_score_threshold")
-                # Audit 2026-07-07 fix (finding #5): keep every persisted extra
-                # head column (appended AFTER the legacy columns so existing
-                # consumers see an unchanged prefix schema).
+                # Keep every persisted auxiliary evidence column.
                 keep_cols.extend(c for c in extra_arrays.keys() if c not in keep_cols)
                 rows.append(frame[[c for c in keep_cols if c in frame.columns]])
             finally:
@@ -1155,164 +1116,134 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     bundle_dir = Path(args.bundle_dir).expanduser().resolve()
-    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", "foundation_seq146"))
-    dataset_dir_raw = Path(args.dataset_dir).expanduser()
-    out_dir_raw = Path(args.out_dir).expanduser()
-    if contract_mode == "smart_seq520_candidate":
-        if dataset_dir_raw.resolve() == FOUNDATION_DATASET_DIR.expanduser().resolve():
-            dataset_dir_raw = SMART_SEQ520_DATASET_DIR
-        if out_dir_raw.resolve() == DEFAULT_OUT_DIR.expanduser().resolve():
-            out_dir_raw = SMART_SEQ520_OUT_DIR
-    dataset_dir = dataset_dir_raw.resolve()
-    out_dir = out_dir_raw.resolve()
+    contract_mode = MODEL_NATIVE_CONTRACT_MODE
+    dataset_dir = Path(args.dataset_dir).expanduser().resolve()
+    out_dir = Path(args.out_dir).expanduser().resolve()
     m5_prebuilt = Path(args.m5_prebuilt_path).expanduser().resolve()
-    mtf_cache_dir = Path(args.multi_tf_cache_dir).expanduser().resolve() if args.multi_tf_cache_dir else None
-    splits = _parse_csv(args.splits)
-    top_fracs = [float(x) for x in _parse_csv(args.top_fracs)]
+    mtf_cache_dir = Path(args.multi_tf_cache_dir).expanduser().resolve()
+    for label, path, expected_kind in (
+        ("bundle", bundle_dir, "dir"),
+        ("dataset", dataset_dir, "dir"),
+        ("M5 prebuilt", m5_prebuilt, "file"),
+        ("multi-TF cache", mtf_cache_dir, "dir"),
+    ):
+        valid = path.is_dir() if expected_kind == "dir" else path.is_file()
+        if not valid:
+            raise RuntimeError(f"explicit {label} artifact is missing: {path}")
+    splits = list(EVALUATION_SPLITS)
+    dataset_contract = _dataset_model_native_contract(dataset_dir, splits)
+    top_fracs = list(EVALUATION_TOP_FRACS)
     device = torch.device(_device_arg(args.device))
-    selection_score_mode = _effective_selection_score_mode(args)
-    selection_score_threshold = _effective_selection_score_threshold(args, selection_score_mode)
-    no_xgb_ablation_mode = str(getattr(args, "no_xgb_ablation_mode", "bundle")).strip()
-    if no_xgb_ablation_mode not in {"bundle", "neutralize_signal_bridge"}:
-        raise RuntimeError(f"invalid no-XGB ablation mode: {no_xgb_ablation_mode}")
+    _reject_retired_selection_environment()
+    selection_score_mode = MODEL_DIRECTION_SELECTION_MODE
+    exclude_sessions = tuple(
+        s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
+    )
+    if exclude_sessions:
+        raise RuntimeError(
+            "external session exclusion is forbidden; session evidence "
+            "must be fused into the model-native LONG/SHORT/FLAT decision"
+        )
+    if str(getattr(args, "no_xgb_bundle_dir", "") or "").strip() or hasattr(
+        args, "no_xgb_ablation_mode"
+    ):
+        raise RuntimeError(
+            "XGB/bridge ablation controls are retired for the model-native seq513 path"
+        )
     out_dir.mkdir(parents=True, exist_ok=True)
-    if mtf_cache_dir and mtf_cache_dir.exists():
-        os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
+    os.environ["GX1_V10_MULTI_TF_V2_CACHE_DIR"] = str(mtf_cache_dir)
 
     failures: list[str] = []
-    feature_mask, feature_mask_failures = _load_feature_mask_spec(
-        str(getattr(args, "feature_mask_json", "") or ""),
-        dataset_dir=dataset_dir,
-        splits=splits,
-    )
-    failures.extend(feature_mask_failures)
+    feature_mask = {"enabled": False}
     all_predictions: list[pd.DataFrame] = []
     bundle_meta: dict[str, Any] = {}
-    no_xgb_bundle_meta: dict[str, Any] = {}
     candidate, candidate_failures, bundle_meta = _predict_bundle(
         bundle_dir=bundle_dir,
         dataset_dir=dataset_dir,
         splits=splits,
-        model_name=str(args.model_name),
+        model_name=EVALUATION_MODEL_NAME,
         device=device,
         batch_size=int(args.batch_size),
         m5_prebuilt_path=m5_prebuilt,
-        feature_mask=feature_mask,
         stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
-        selection_score_mode=selection_score_mode,
-        selection_score_threshold=selection_score_threshold,
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
     bundle_specialist_contract = _specialist_contract_snapshot(bundle_meta, contract_mode)
     failures.extend([f"candidate bundle: {failure}" for failure in bundle_specialist_contract["failures"]])
-
-    no_xgb_bundle = str(args.no_xgb_bundle_dir or "").strip()
-    no_xgb_neutralize = False
-    no_xgb_bundle_specialist_contract: dict[str, Any] | None = None
-    if no_xgb_bundle:
-        no_xgb_bundle_path = Path(no_xgb_bundle).expanduser().resolve()
-        no_xgb_neutralize = no_xgb_ablation_mode == "neutralize_signal_bridge"
-        if no_xgb_bundle_path == bundle_dir and not no_xgb_neutralize:
-            failures.append(
-                "no-XGB bundle dir equals candidate bundle but mode=bundle; use "
-                "--no-xgb-ablation-mode neutralize_signal_bridge or provide a distinct ablation bundle"
-            )
-        ablation, ablation_failures, no_xgb_bundle_meta = _predict_bundle(
-            bundle_dir=no_xgb_bundle_path,
-            dataset_dir=dataset_dir,
-            splits=splits,
-            model_name=f"{args.model_name}_no_xgb",
-            device=device,
-            batch_size=int(args.batch_size),
-            m5_prebuilt_path=m5_prebuilt,
-            neutralize_signal_bridge=no_xgb_neutralize,
-            feature_mask=feature_mask,
-            stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
-            selection_score_mode=selection_score_mode,
-            selection_score_threshold=selection_score_threshold,
-        )
-        all_predictions.append(ablation)
-        failures.extend(ablation_failures)
-        no_xgb_bundle_specialist_contract = _specialist_contract_snapshot(no_xgb_bundle_meta, contract_mode)
-        failures.extend(
-            [f"no-XGB bundle: {failure}" for failure in no_xgb_bundle_specialist_contract["failures"]]
-        )
-    elif args.require_no_xgb_ablation:
-        failures.append("--no-xgb-bundle-dir is required to produce candidate_no_xgb ablation evidence")
+    if bundle_meta.get("model_native_signal_contract") != dataset_contract["contract"]:
+        failures.append("bundle and dataset model-native signal contracts are not exact-equal")
 
     predictions = pd.concat([df for df in all_predictions if not df.empty], ignore_index=True) if all_predictions else pd.DataFrame()
     if predictions.empty:
         failures.append("no selective-edge predictions were produced")
-    exclude_sessions = tuple(
-        s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
+    forbidden_prediction_columns = sorted(
+        set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
+        .union({"anchor_logits", "delta_logits", "anchor_gate"})
+        .intersection(predictions.columns)
     )
+    if forbidden_prediction_columns:
+        failures.append(
+            "prediction evidence contains forbidden legacy direction columns: "
+            f"{forbidden_prediction_columns}"
+        )
     metric_rows = build_metric_rows(predictions, top_fracs=top_fracs, exclude_sessions=exclude_sessions)
     metrics = pd.DataFrame(metric_rows)
     summary_payload = build_summary(predictions, metrics)
-    no_xgb_ablation_diagnostics = build_no_xgb_ablation_diagnostics(predictions, model_name=str(args.model_name))
-    input_bridge_contract = _dataset_signal_bridge_contract(dataset_dir, splits)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    event_created_utc = datetime.now(timezone.utc)
+    timestamp = event_created_utc.strftime("%Y%m%dT%H%M%S%fZ")
     ready = not failures
 
-    predictions_path = out_dir / "selective_edge_predictions.parquet"
-    metrics_path = out_dir / "selective_edge_metrics.csv"
-    summary_path = out_dir / "summary.json"
+    predictions_path = out_dir / f"selective_edge_predictions_{timestamp}.parquet"
+    metrics_path = out_dir / f"selective_edge_metrics_{timestamp}.csv"
+    summary_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_SUMMARY_{timestamp}.json"
     report_json_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{timestamp}.json"
     report_md_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{timestamp}.md"
+    prediction_evidence: dict[str, Any] = {}
     if not predictions.empty:
-        predictions.to_parquet(predictions_path, index=False)
-        if exclude_sessions:
-            # Policy artifact for the downstream trade-log/replay chain: the
-            # SAME selection policy (sessions excluded from the pool) applied to
-            # the predictions, so thresholds and trades are computed under the
-            # policy the deploy operating point will mirror.
-            policy_pred = predictions[~predictions["session"].astype(str).isin(exclude_sessions)]
-            policy_path = out_dir / "selective_edge_predictions_policy.parquet"
-            policy_pred.to_parquet(policy_path, index=False)
-    metrics.to_csv(metrics_path, index=False)
+        atomic_write_parquet_immutable(predictions, predictions_path)
+        prediction_evidence = build_prediction_evidence_declaration(
+            predictions_path=predictions_path,
+            bundle_dir=bundle_dir,
+            bundle_metadata=bundle_meta,
+            requested_splits=splits,
+        )
+    atomic_write_text(metrics_path, metrics.to_csv(index=False))
+    metrics_sha256 = _sha256_file(metrics_path)
+    direction_decision_contract = require_model_direction_decision_contract(
+        bundle_meta,
+        context=f"candidate evaluator report bundle {bundle_dir}",
+    )
     report = {
         "schema_version": "entry_candidate_selective_edge_v1",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "created_utc": event_created_utc.isoformat(),
         "decision": "PASS" if ready else "FAIL",
         "contract_mode": contract_mode,
         "bundle_dir": str(bundle_dir),
-        "no_xgb_bundle_dir": no_xgb_bundle or "",
-        "no_xgb_ablation": {
-            "required": bool(args.require_no_xgb_ablation),
-            "mode": no_xgb_ablation_mode if no_xgb_bundle else "",
-            "neutralize_signal_bridge": bool(no_xgb_neutralize),
-            "neutralized_fields": ORDERED_SEQ_FIELDS_V3[: len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] if no_xgb_neutralize else [],
-            "neutral_values": SIGNAL_BRIDGE_NEUTRAL_VALUES.tolist() if no_xgb_neutralize else [],
-        },
         "feature_mask_ablation": feature_mask,
         "dataset_dir": str(dataset_dir),
-        "input_bridge_contract": input_bridge_contract,
+        "model_native_signal_contract": dataset_contract["contract"],
+        "dataset_signal_contract": dataset_contract,
         "splits": summary_payload["splits"],
         "models": summary_payload["models"],
         "summaries": summary_payload["summaries"],
-        "no_xgb_ablation_diagnostics": no_xgb_ablation_diagnostics,
         "top_fracs": top_fracs,
         "selection_score_mode": selection_score_mode,
-        "selection_score_threshold": selection_score_threshold,
-        "selection_policy": {
-            "exclude_sessions": list(exclude_sessions),
-            "note": (
-                "sessions removed from the selection pool before top-frac ranking; "
-                "budget = frac of full split (capacity redirects to proven sessions); "
-                "deploy operating point must mirror this policy"
-            ) if exclude_sessions else "",
-        },
+        "direction_decision_contract": direction_decision_contract,
         "bundle_seq_len": int(bundle_meta.get("seq_len") or 0),
-        "bundle_seq_input_dim": int(bundle_meta.get("seq_input_dim") or bundle_meta.get("snap_input_dim") or 0),
-        "bundle_snap_input_dim": int(bundle_meta.get("snap_input_dim") or bundle_meta.get("seq_input_dim") or 0),
+        "bundle_seq_input_dim": int(bundle_meta["seq_input_dim"]),
+        "bundle_snap_input_dim": int(bundle_meta["snap_input_dim"]),
         "bundle_specialist_fusion_enabled": bool((bundle_meta.get("specialist_fusion") or {}).get("enabled")) if isinstance(bundle_meta.get("specialist_fusion"), dict) else False,
         "bundle_specialist_contract": bundle_specialist_contract,
-        "no_xgb_bundle_specialist_contract": no_xgb_bundle_specialist_contract,
         "trainer_started": False,
         "promotion_shadow_live_allowed": False,
         "predictions_path": str(predictions_path),
+        "prediction_evidence": prediction_evidence,
+        "bundle_metadata_path": str(bundle_dir / "bundle_metadata.json"),
+        "bundle_metadata_sha256": str(prediction_evidence.get("bundle_metadata_sha256") or ""),
+        "model_state_dict_sha256": str(prediction_evidence.get("model_state_dict_sha256") or ""),
         "metrics_path": str(metrics_path),
+        "metrics_sha256": metrics_sha256,
         "summary_path": str(summary_path),
         "json_path": str(report_json_path),
         "md_path": str(report_md_path),
@@ -1325,32 +1256,47 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "decision": report["decision"],
             "contract_mode": report["contract_mode"],
             "bundle_dir": report["bundle_dir"],
-            "no_xgb_bundle_dir": report["no_xgb_bundle_dir"],
-            "no_xgb_ablation": report["no_xgb_ablation"],
-            "no_xgb_ablation_diagnostics": report["no_xgb_ablation_diagnostics"],
             "feature_mask_ablation": report["feature_mask_ablation"],
             "dataset_dir": report["dataset_dir"],
-            "input_bridge_contract": report["input_bridge_contract"],
+            "model_native_signal_contract": report["model_native_signal_contract"],
+            "dataset_signal_contract": report["dataset_signal_contract"],
             "selection_score_mode": report["selection_score_mode"],
-            "selection_score_threshold": report["selection_score_threshold"],
-            "selection_policy": report["selection_policy"],
+            "direction_decision_contract": report["direction_decision_contract"],
             "bundle_seq_len": report["bundle_seq_len"],
             "bundle_seq_input_dim": report["bundle_seq_input_dim"],
             "bundle_snap_input_dim": report["bundle_snap_input_dim"],
             "bundle_specialist_fusion_enabled": report["bundle_specialist_fusion_enabled"],
             "bundle_specialist_contract": report["bundle_specialist_contract"],
-            "no_xgb_bundle_specialist_contract": report["no_xgb_bundle_specialist_contract"],
+            "prediction_evidence": report["prediction_evidence"],
+            "predictions_path": report["predictions_path"],
+            "prediction_report_json": report["json_path"],
+            "metrics_path": report["metrics_path"],
+            "metrics_sha256": report["metrics_sha256"],
+            "bundle_metadata_path": report["bundle_metadata_path"],
+            "bundle_metadata_sha256": report["bundle_metadata_sha256"],
+            "model_state_dict_sha256": report["model_state_dict_sha256"],
+            "authoritative": True,
+            "note": "immutable summary bound to the matching prediction report and parquet",
             "failures": failures,
         }
     )
-    summary_path.write_text(json.dumps(summary_payload, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
-    report_json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
-    _write_markdown(report_md_path, report)
-    latest_json = out_dir / "ENTRY_CANDIDATE_SELECTIVE_EDGE_latest.json"
-    latest_md = out_dir / "ENTRY_CANDIDATE_SELECTIVE_EDGE_latest.md"
-    latest_json.write_text(report_json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    latest_md.write_text(report_md_path.read_text(encoding="utf-8"), encoding="utf-8")
-
+    atomic_write_text(
+        summary_path,
+        json.dumps(summary_payload, indent=2, sort_keys=True, default=_json_default) + "\n",
+    )
+    atomic_write_text(
+        report_json_path,
+        json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n",
+    )
+    markdown_tmp = out_dir / f".{report_md_path.name}.render"
+    _write_markdown(markdown_tmp, report)
+    try:
+        atomic_write_text(
+            report_md_path,
+            markdown_tmp.read_text(encoding="utf-8"),
+        )
+    finally:
+        markdown_tmp.unlink(missing_ok=True)
     if not args.quiet:
         print(
             json.dumps(
@@ -1366,7 +1312,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 default=_json_default,
             )
         )
-    if args.fail_on_audit_fail and failures:
+    if failures:
         raise SystemExit(2)
     return report
 
@@ -1374,51 +1320,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bundle-dir", required=True)
-    ap.add_argument("--no-xgb-bundle-dir", default="")
-    ap.add_argument("--dataset-dir", default=str(FOUNDATION_DATASET_DIR))
-    ap.add_argument("--splits", default="val,test")
-    ap.add_argument("--top-fracs", default="0.05,0.10")
-    ap.add_argument(
-        "--exclude-sessions",
-        default="",
-        help=(
-            "Comma-separated sessions removed from the SELECTION pool before top-frac "
-            "ranking (selection-policy, SKIP_ASIA precedent class; recorded in the "
-            "summary as selection_policy and must be mirrored by the deploy operating "
-            "point). Empty = no policy."
-        ),
-    )
-    ap.add_argument("--model-name", default="candidate")
-    ap.add_argument(
-        "--selection-score-mode",
-        choices=("edge_score", "expected_utility"),
-        default=_env_selection_score_mode_default(),
-        help=(
-            "Ranking/selected-side surface to materialize. edge_score preserves legacy "
-            "p_long/p_short/p_flat behavior. expected_utility uses learned hierarchical "
-            "utility heads and writes trade_side from max(expected_utility_long_bps, "
-            "expected_utility_short_bps)."
-        ),
-    )
-    ap.add_argument(
-        "--selection-score-threshold",
-        type=float,
-        default=_env_selection_score_threshold_default(),
-        help=(
-            "Optional per-row selection threshold written to predictions. Useful with "
-            "--selection-score-mode expected_utility so downstream pocket audits select "
-            "positive learned utility instead of legacy edge threshold."
-        ),
-    )
-    ap.add_argument(
-        "--contract-mode",
-        choices=("foundation_seq146", "challenger_seq215", "smart_seq520_candidate"),
-        default="foundation_seq146",
-    )
-    ap.add_argument("--challenger-seq215", action="store_const", dest="contract_mode", const="challenger_seq215")
-    ap.add_argument("--smart-seq520", action="store_const", dest="contract_mode", const="smart_seq520_candidate")
-    ap.add_argument("--no-xgb-ablation-mode", choices=("bundle", "neutralize_signal_bridge"), default="bundle")
-    ap.add_argument("--feature-mask-json", default="")
+    ap.add_argument("--dataset-dir", required=True)
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument(
@@ -1432,11 +1334,9 @@ def build_parser() -> argparse.ArgumentParser:
             "390K-row dense train-window forward (~78GB unchunked)."
         ),
     )
-    ap.add_argument("--m5-prebuilt-path", default=str(DEFAULT_M5_PREBUILT))
-    ap.add_argument("--multi-tf-cache-dir", default=str(DEFAULT_MTF_CACHE_DIR))
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    ap.add_argument("--require-no-xgb-ablation", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--m5-prebuilt-path", required=True)
+    ap.add_argument("--multi-tf-cache-dir", required=True)
+    ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
 

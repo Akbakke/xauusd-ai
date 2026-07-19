@@ -1,4 +1,4 @@
-"""Entry candlestick-pattern challenger features.
+"""Canonical Entry candlestick-pattern features.
 
 The layer encodes single, double and triple candle patterns as continuous
 numeric scores. Outputs are shifted one bar so row t only sees patterns that
@@ -7,9 +7,12 @@ were fully closed before t.
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 
 
-CANDLESTICK_PATTERN_FEATURE_VERSION = "entry_candlestick_patterns_v1_20260630_closed_bar_numeric_patterns_smart3"
+CANDLESTICK_PATTERN_FEATURE_VERSION = (
+    "entry_candlestick_patterns_v1_20260717_closed_bar_numeric_patterns_failclosed"
+)
 CANDLESTICK_PATTERN_FEATURE_PREFIX = "candle.pattern_"
 CANDLESTICK_PATTERN_SOURCE_FIELDS = ("time", "open", "high", "low", "close")
 
@@ -23,11 +26,43 @@ def _arr(frame: object, name: str) -> np.ndarray:
         out = values.to_numpy(dtype=np.float64)
     else:
         out = np.asarray(values, dtype=np.float64)
-    return np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
+    if out.ndim != 1:
+        raise RuntimeError(f"candlestick source field is not 1D: {name} shape={out.shape}")
+    if out.size == 0:
+        raise RuntimeError(f"candlestick source field is empty: {name}")
+    if not np.isfinite(out).all():
+        bad = int(np.flatnonzero(~np.isfinite(out))[0])
+        raise RuntimeError(f"candlestick source field is non-finite: {name} row={bad}")
+    return out
+
+
+def _time_index(frame: object) -> pd.DatetimeIndex:
+    try:
+        values = frame["time"]  # type: ignore[index]
+    except Exception as exc:
+        raise RuntimeError("candlestick source field missing: time") from exc
+    try:
+        index = pd.DatetimeIndex(values)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("candlestick time source is invalid") from exc
+    if index.empty:
+        raise RuntimeError("candlestick time source is empty")
+    if index.hasnans:
+        raise RuntimeError("candlestick time source contains NaT")
+    if index.tz is None:
+        raise RuntimeError("candlestick time source must be timezone-aware UTC")
+    if str(index.tz) != "UTC":
+        raise RuntimeError(f"candlestick time source must use UTC: tz={index.tz}")
+    if not index.is_monotonic_increasing or not index.is_unique:
+        raise RuntimeError("candlestick time source must be strictly increasing and unique")
+    return index
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if values.ndim != 1 or not np.isfinite(values).all():
+        raise RuntimeError(f"candlestick derived value is invalid: shape={values.shape}")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -55,7 +90,9 @@ def _safe_div(num: np.ndarray, den: np.ndarray) -> np.ndarray:
 
 
 def _rolling_mean(arr: np.ndarray, window: int) -> np.ndarray:
-    values = np.nan_to_num(np.asarray(arr, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    values = np.asarray(arr, dtype=np.float64)
+    if values.ndim != 1 or not np.isfinite(values).all():
+        raise RuntimeError(f"candlestick rolling source is invalid: shape={values.shape}")
     if values.size == 0:
         return values.astype(np.float32, copy=False)
     width = max(int(window), 1)
@@ -77,18 +114,40 @@ def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray,
 
 
 def missing_candlestick_source_fields(columns: object) -> list[str]:
-    available = {str(name) for name in columns}
+    available = set(columns)
     return [name for name in CANDLESTICK_PATTERN_SOURCE_FIELDS if name not in available]
 
 
 def build_entry_candlestick_pattern_layer(frame: object) -> tuple[np.ndarray, list[str]]:
+    columns = getattr(frame, "columns", None)
+    if columns is None:
+        try:
+            columns = frame.keys()  # type: ignore[union-attr]
+        except Exception as exc:
+            raise RuntimeError("candlestick source does not expose canonical columns") from exc
+    missing = missing_candlestick_source_fields(columns)
+    if missing:
+        raise RuntimeError(f"CANDLESTICK_PATTERN_SOURCE_FIELDS_MISSING: {missing}")
+    times = _time_index(frame)
     open_ = _arr(frame, "open")
     high = _arr(frame, "high")
     low = _arr(frame, "low")
     close = _arr(frame, "close")
     n = len(close)
-    if not (len(open_) == len(high) == len(low) == n):
+    if not (len(times) == len(open_) == len(high) == len(low) == n):
         raise RuntimeError("candlestick source arrays have incompatible lengths")
+    if np.any(open_ <= 0.0) or np.any(high <= 0.0) or np.any(low <= 0.0) or np.any(close <= 0.0):
+        raise RuntimeError("candlestick OHLC source prices must be positive")
+    invalid_geometry = (
+        (high < low)
+        | (high < open_)
+        | (high < close)
+        | (low > open_)
+        | (low > close)
+    )
+    if invalid_geometry.any():
+        row = int(np.flatnonzero(invalid_geometry)[0])
+        raise RuntimeError(f"candlestick OHLC geometry is invalid: row={row}")
 
     raw_range = np.maximum(high - low, 1e-12)
     body_signed = close - open_
@@ -398,10 +457,13 @@ def build_entry_candlestick_pattern_layer(frame: object) -> tuple[np.ndarray, li
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((n, 0), dtype=np.float32)
     if not np.isfinite(out).all():
         raise RuntimeError("candlestick pattern layer contains non-finite values")
+    if len(names) != len(set(names)):
+        raise RuntimeError("candlestick pattern layer contains duplicate feature names")
     return out, names
 
 
 _toy = {
+    "time": pd.date_range("2000-01-01", periods=3, freq="5min", tz="UTC"),
     "open": np.asarray([1.0, 1.0, 1.2], dtype=np.float64),
     "high": np.asarray([1.2, 1.3, 1.4], dtype=np.float64),
     "low": np.asarray([0.9, 0.95, 1.1], dtype=np.float64),

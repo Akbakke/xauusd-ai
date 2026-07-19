@@ -1,0 +1,216 @@
+"""Immutable policy shared by every Entry foundation audit and consumer."""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+from collections.abc import Mapping
+from typing import Any
+
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
+
+
+FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v2"
+FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val", "test")
+FOUNDATION_AUDIT_SMOKE_SPLITS = ("val", "test")
+FOUNDATION_AUDIT_POLICY_SECTIONS = {
+    "feature": "feature_liveness",
+    "target": "target_quality",
+    "specialist": "specialist_liveness",
+}
+
+_MIN_SPECIALIST_SIGNAL_COUNTS = {
+    "structure_swing_encoder": 10,
+    "smc_liquidity_encoder": 8,
+    "trend_ema_encoder": 6,
+    "vol_compression_encoder": 6,
+    "momentum_flow_encoder": 3,
+    "session_regime_encoder": 6,
+    "chart_geometry_encoder": 8,
+    "price_action_candle_encoder": 6,
+}
+
+_FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
+    "schema_version": FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION,
+    "audit_data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+    "feature_liveness": {
+        "liveness_epsilon": 1e-7,
+        "near_constant_std": 1e-9,
+        "min_required_family_active_rate": 0.01,
+        "min_required_objective_active_rate": 0.01,
+        "min_required_source_active_rate": 0.0001,
+        "min_required_source_active_count": 1,
+        "parquet_batch_size": 4096,
+    },
+    "target_quality": {
+        "max_majority_rate": 0.90,
+        "min_tradable_rate": 0.01,
+        "max_tradable_rate": 0.99,
+        "direction_horizon_bars": 24,
+        "path_quality_horizon_bars": 10,
+        "xau_direction_repair_targets_required": True,
+        "all_active_head_targets_live_each_split": True,
+        "scalar_bad_path_path_quality_max_spearman_exclusive": 0.0,
+        "side_quality": {
+            "max_bad_path_vs_utility_spearman": -0.10,
+            "min_bad_path_vs_expected_mae_spearman": 0.10,
+            "require_bad_utility_below_clean": True,
+            "require_bad_mae_above_clean": True,
+        },
+        "position_size_target": {
+            "formula": (
+                "sigmoid((mfe_first_n_bps-mae_first_n_bps)/(2*atr_bps))"
+            ),
+            "mae_semantics": "non_negative_adverse_magnitude",
+            "atr_denominator_multiplier": 2.0,
+            "logit_clip_abs": 80.0,
+            "flat_direction_id": 2,
+            "flat_value": 0.5,
+            "atr_bps_min_exclusive": 0.0,
+            "max_abs_error": 1e-6,
+            "live_size_application_authority": False,
+        },
+    },
+    "specialist_liveness": {
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "liveness_epsilon": 1e-7,
+        "near_constant_std": 1e-9,
+        "min_feature_active_rate": 0.01,
+        "min_specialist_mean_active_rate": 0.01,
+        "min_signal_counts": dict(_MIN_SPECIALIST_SIGNAL_COUNTS),
+        "min_live_feature_counts": dict(_MIN_SPECIALIST_SIGNAL_COUNTS),
+    },
+    "smoke_edge_pockets": {
+        "evaluation_splits": list(FOUNDATION_AUDIT_SMOKE_SPLITS),
+        "min_direction_accuracy": 0.90,
+        "min_balanced_accuracy": 0.90,
+        "min_trade_direction_precision": 0.98,
+        "min_class_precision": 0.95,
+        # Point estimates alone can report perfect precision on negligible
+        # support.  Promotion therefore also requires fixed sample floors and
+        # one-sided evidence through the lower 95% Wilson bound.  These values
+        # are immutable policy, never caller- or environment-tunable.
+        "wilson_confidence_level": 0.95,
+        "wilson_z_score": 1.959963984540054,
+        "min_trade_rows": 200,
+        "min_prediction_rows_per_class": 100,
+        "min_trade_precision_wilson_lower": 0.95,
+        "min_class_precision_wilson_lower": 0.90,
+        "context_fields": ["session", "vol_regime"],
+        "expected_sessions": ["ASIA", "EU", "OVERLAP", "US"],
+        "min_rows_per_context_slice": 32,
+        "min_context_trade_direction_precision": 0.95,
+        "min_context_trade_rows": 32,
+        "min_context_trade_precision_wilson_lower": 0.85,
+        "min_specialist_mean_weight": 0.01,
+        "min_specialist_gate_entropy": 0.50,
+        "min_specialist_gate_std": 1e-6,
+    },
+}
+
+
+def _canonical_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+FOUNDATION_AUDIT_POLICY_SHA256 = _canonical_sha256(_FOUNDATION_AUDIT_POLICY)
+
+
+def foundation_audit_policy_metadata() -> dict[str, Any]:
+    """Return a defensive JSON-safe copy of the one accepted policy."""
+
+    return copy.deepcopy(_FOUNDATION_AUDIT_POLICY)
+
+
+def foundation_audit_policy_binding() -> dict[str, Any]:
+    return {
+        "foundation_audit_policy_schema_version": (
+            FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION
+        ),
+        "foundation_audit_policy_sha256": FOUNDATION_AUDIT_POLICY_SHA256,
+        "foundation_audit_policy": foundation_audit_policy_metadata(),
+    }
+
+
+def foundation_audit_policy_enforcement(audit_kind: str) -> dict[str, Any]:
+    kind = str(audit_kind)
+    section_name = FOUNDATION_AUDIT_POLICY_SECTIONS.get(kind)
+    if section_name is None:
+        raise ValueError(f"unknown foundation audit kind: {audit_kind!r}")
+    return {
+        "audit_kind": kind,
+        "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+        "policy_section_name": section_name,
+        "policy_section": copy.deepcopy(_FOUNDATION_AUDIT_POLICY[section_name]),
+    }
+
+
+def require_foundation_audit_policy_binding(
+    value: Any,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Require the embedded full policy and its canonical identity exactly."""
+
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_POLICY_BINDING_MISSING]")
+    schema = value.get("foundation_audit_policy_schema_version")
+    digest = str(value.get("foundation_audit_policy_sha256") or "").lower()
+    policy = value.get("foundation_audit_policy")
+    if schema != FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION:
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_POLICY_SCHEMA_INVALID]")
+    if not isinstance(policy, Mapping):
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_POLICY_MISSING]")
+    normalized_policy = dict(policy)
+    if normalized_policy != _FOUNDATION_AUDIT_POLICY:
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_POLICY_PAYLOAD_INVALID]")
+    if _canonical_sha256(normalized_policy) != FOUNDATION_AUDIT_POLICY_SHA256:
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_POLICY_CONTENT_HASH_INVALID]")
+    if digest != FOUNDATION_AUDIT_POLICY_SHA256:
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_POLICY_SHA256_INVALID]")
+    return foundation_audit_policy_binding()
+
+
+def require_foundation_audit_report_policy(
+    value: Any,
+    *,
+    audit_kind: str,
+    context: str,
+) -> dict[str, Any]:
+    """Require exact policy identity plus the section enforced by one audit."""
+
+    binding = require_foundation_audit_policy_binding(value, context=context)
+    expected_enforcement = foundation_audit_policy_enforcement(audit_kind)
+    if value.get("foundation_audit_policy_enforcement") != expected_enforcement:
+        raise RuntimeError(
+            f"[{context}_FOUNDATION_AUDIT_POLICY_ENFORCEMENT_INVALID]"
+        )
+    if tuple(value.get("data_splits") or ()) != FOUNDATION_AUDIT_DATA_SPLITS:
+        raise RuntimeError(f"[{context}_FOUNDATION_AUDIT_SPLITS_INVALID]")
+    return {
+        **binding,
+        "foundation_audit_policy_enforcement": expected_enforcement,
+        "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+    }
+
+
+__all__ = [
+    "FOUNDATION_AUDIT_DATA_SPLITS",
+    "FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION",
+    "FOUNDATION_AUDIT_POLICY_SECTIONS",
+    "FOUNDATION_AUDIT_POLICY_SHA256",
+    "FOUNDATION_AUDIT_SMOKE_SPLITS",
+    "foundation_audit_policy_binding",
+    "foundation_audit_policy_enforcement",
+    "foundation_audit_policy_metadata",
+    "require_foundation_audit_policy_binding",
+    "require_foundation_audit_report_policy",
+]

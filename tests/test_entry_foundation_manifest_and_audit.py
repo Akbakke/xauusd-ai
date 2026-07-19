@@ -1,10 +1,30 @@
-import argparse
 import pandas as pd
 import pytest
 import numpy as np
 import json
 
 import gx1.scripts.audit_entry_foundation_features_v1 as foundation_audit
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+    model_native_mandatory_full_stack_metadata,
+    model_native_signal_contract_metadata,
+)
+from gx1.contracts.entry_model_native_state_v2 import (
+    MODEL_NATIVE_HISTORY_MODE,
+    MODEL_NATIVE_RANK_TRANSFORM,
+    MODEL_NATIVE_STATE_SCHEMA_VERSION,
+    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+)
+from gx1.contracts.signal_bridge_v3 import (
+    ORDERED_CTX_CAT_NAMES_V3,
+    ORDERED_CTX_CONT_NAMES_V3,
+)
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
@@ -20,35 +40,72 @@ from gx1.scripts.audit_entry_foundation_features_v1 import (
     _required_family_liveness_failures,
     _required_source_field_liveness_failures,
     _is_neutral_constant_allowed,
+    _load_emitted_contract,
     _source_field_liveness_rows,
     _stats_rows,
     _stream_split_liveness_rows,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-    SIGNAL_FIELDS,
-    SIGNAL_BRIDGE_ID_V3,
     _build_inline_seq_structure_extension,
+    _normalize_time_utc,
     _resolve_seq_structure_extension,
     write_manifest,
 )
-from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import SMART_LAYER_SOURCE_CONTRACTS
-from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import SMART_LAYER_FEATURES
-from gx1.scripts.materialize_sequence_structure_features_v1 import _requested_features
-from gx1.scripts.repair_entry_seq215_manifest_provenance_v1 import run as run_seq215_manifest_repair
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
+)
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-def test_sequence_structure_manifest_request_includes_all_foundation_features_once() -> None:
-    requested, meta = _requested_features(
-        ["chart.foundation_hh_state", "chart.some_promoted_feature", "chart.some_promoted_feature"],
-        include_foundation_structure_features=True,
+def _selected_with_foundation(*, prefix: str) -> list[str]:
+    selected = list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    selected.extend(
+        name for name in FOUNDATION_STRUCTURE_FEATURE_NAMES if name not in set(selected)
+    )
+    selected.extend(
+        f"session_regime.{prefix}_{index:03d}"
+        for index in range(MODEL_NATIVE_SELECTED_FEATURE_COUNT - len(selected))
+    )
+    return selected
+
+
+def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) -> None:
+    selected = _selected_with_foundation(prefix="audit_selected")
+    signal_contract = model_native_signal_contract_metadata(selected)
+    parquet = tmp_path / "entry_train.parquet"
+    parquet.with_suffix(".manifest.json").write_text(
+        json.dumps(
+            {
+                "extra": {
+                    "neutral_xgb_bridge": False,
+                    "model_native_signal_contract": signal_contract,
+                    "signal_bridge": {
+                        "fields": signal_contract["fields"],
+                        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                        "seq_structure_extension_dim": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+                        "seq_structure_extension_v1": {
+                            "features": selected,
+                            "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
+                            "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
+                            "foundation_structure_all_required_selected": True,
+                        },
+                    },
+                    "ctx_contract": {
+                        "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
+                        "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
     )
 
-    assert requested[0] == "chart.foundation_hh_state"
-    assert requested[1] == "chart.some_promoted_feature"
-    assert len(requested) == len(set(requested))
-    assert set(FOUNDATION_STRUCTURE_FEATURE_NAMES).issubset(set(requested))
-    assert meta["foundation_structure_features_required"] is True
-    assert meta["foundation_structure_feature_count"] == len(FOUNDATION_STRUCTURE_FEATURE_NAMES)
+    emitted = _load_emitted_contract(parquet)
+
+    assert emitted["signal_fields"] == signal_contract["fields"]
+    assert emitted["seq_input_dim"] == MODEL_NATIVE_SIGNAL_DIM
+    assert emitted["seq_structure_extension_dim"] == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+    assert emitted["neutral_xgb_bridge"] is False
 
 
 def test_xau_regime_agreement_feature_can_be_split_constant() -> None:
@@ -57,25 +114,56 @@ def test_xau_regime_agreement_feature_can_be_split_constant() -> None:
 
 
 def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> None:
+    signal_contract = model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields()
+    )
     manifest_path = write_manifest(
         output_path=tmp_path / "sample_train.parquet",
         build_command=["builder"],
         base28_manifest=tmp_path / "base_manifest.json",
-        xgb_bundle=tmp_path / "xgb_bundle",
+        source_parquet_override=None,
         tape_root=tmp_path / "tape",
         extra={
+            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+            "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+            "neutral_xgb_bridge": False,
+            "model_native_signal_contract": signal_contract,
             "signal_bridge": {
-                "id": SIGNAL_BRIDGE_ID_V3,
-                "fields": ["p_long", "chart.foundation_hh_state"],
-                "contract_sha256": "abc123",
+                "id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+                "fields": list(signal_contract["fields"]),
+                "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                "bridge_dim": 0,
+                "bridge_source": None,
             },
             "ctx_contract": {
                 "tag": "CTX6CAT5",
                 "ctx_cont_dim": 142,
                 "ctx_cat_dim": 5,
-                "ctx_cont_base_dim": 6,
+                "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
+                "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
                 "ctx_cont_micro_features": ["micro_momentum_3"],
                 "ctx_cont_swing_features": ["dist_last_swing_high_atr"],
+            },
+            "model_native_state_contract": {
+                "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
+                "feature_history_start_utc": "2020-11-01T00:00:00Z",
+                "rank_fit_start_utc": "2020-11-09T00:00:00Z",
+                "rank_fit_end_utc": "2025-09-30T23:59:59Z",
+                "rank_reference_npz": "/immutable/rank_reference.npz",
+                "rank_reference_npz_sha256": "a" * 64,
+                "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+                "rank_reference_sidecar_json": "/immutable/rank_reference.npz.json",
+                "rank_reference_source_parquet": "/immutable/source.parquet",
+                "rank_reference_source_parquet_sha256": "b" * 64,
+                "rank_reference_fit_row_count": 123,
+                "normalization_fit_scope": "train_only",
+                "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
+                "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
+                "split_reset_allowed": False,
+                "post_fit_rows_in_rank_reference": False,
+                "runtime_rule_free": True,
+                "explicit_vedtak_id": "MODEL_NATIVE_FOUNDATION_MANIFEST_PYTEST",
             },
         },
     )
@@ -84,197 +172,18 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
     assert manifest["feature_contract"]["ctx_tag"] == "CTX6CAT5"
     assert manifest["feature_contract"]["ctx_cont_dim"] == 142
     assert manifest["feature_contract"]["ctx_cat_dim"] == 5
-    assert manifest["feature_contract"]["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
-    assert manifest["feature_contract"]["signal_bridge_contract_sha256"] == "abc123"
-    assert manifest["feature_contract"]["signal_bridge_fields"] == ["p_long", "chart.foundation_hh_state"]
+    assert manifest["feature_contract"]["signal_bridge_id"] == MODEL_NATIVE_SIGNAL_SCHEMA_VERSION
+    assert manifest["feature_contract"]["signal_bridge_contract_sha256"] == signal_contract["static_contract_sha256"]
+    assert manifest["feature_contract"]["signal_bridge_fields"] == signal_contract["fields"]
+    assert not any("xgb" in key.lower() for key in manifest["inputs"])
 
 
-def test_seq215_manifest_repair_updates_stale_top_level_contract(tmp_path) -> None:
-    dataset_dir = tmp_path / "dataset"
-    out_dir = tmp_path / "reports"
-    dataset_dir.mkdir()
-    manifest = {
-        "feature_contract": {
-            "ctx_tag": "CTX6CAT6",
-            "ctx_cont_dim": 142,
-            "ctx_cat_dim": 5,
-            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
-            "signal_bridge_contract_sha256": "abc123",
-        },
-        "extra": {
-            "signal_bridge": {
-                "id": SIGNAL_BRIDGE_ID_V3,
-                "fields": ["p_long"],
-                "contract_sha256": "abc123",
-            },
-            "ctx_contract": {
-                "tag": "CTX6CAT5",
-                "ctx_cont_dim": 142,
-                "ctx_cat_dim": 5,
-                "ctx_cont_names": ["spread_bps"],
-                "ctx_cat_names": ["spread_bucket"],
-            },
-        },
-    }
-    (dataset_dir / "sample_train.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
-        json.dumps(
-            {
-                "ctx_tag": "CTX6CAT6",
-                "ctx_cont_dim": 6,
-                "ctx_cat_dim": 6,
-                "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
-                "signal_bridge_contract_sha256": "abc123",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    report = run_seq215_manifest_repair(
-        argparse.Namespace(
-            dataset_dir=str(dataset_dir),
-            out_dir=str(out_dir),
-            apply=True,
-            quiet=True,
-        )
-    )
-
-    repaired = json.loads((dataset_dir / "sample_train.manifest.json").read_text(encoding="utf-8"))
-    proof = json.loads((dataset_dir / "DATASET_BUILD_PROOF.json").read_text(encoding="utf-8"))
-    assert report["decision"] == "APPLIED"
-    assert repaired["feature_contract"]["ctx_tag"] == "CTX6CAT5"
-    assert repaired["feature_contract"]["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
-    assert repaired["extra"]["signal_bridge"]["ctx_cont_dim"] == 142
-    assert proof["ctx_tag"] == "CTX6CAT5"
-    assert proof["ctx_cont_dim"] == 142
-    assert proof["ctx_cat_dim"] == 5
-
-
-def test_foundation_manifest_repair_updates_stale_top_level_contract_when_hash_consistent(tmp_path) -> None:
-    dataset_dir = tmp_path / "dataset"
-    out_dir = tmp_path / "reports"
-    dataset_dir.mkdir()
-    manifest = {
-        "feature_contract": {
-            "ctx_tag": "CTX6CAT6",
-            "ctx_cont_dim": 142,
-            "ctx_cat_dim": 5,
-            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
-            "signal_bridge_contract_sha256": "abc123",
-            "signal_bridge_fields": ["p_long"],
-        },
-        "extra": {
-            "signal_bridge": {
-                "id": SIGNAL_BRIDGE_ID_V3,
-                "fields": ["p_long", "chart.foundation_hh_state"],
-                "contract_sha256": "abc123",
-            },
-            "ctx_contract": {
-                "tag": "CTX6CAT5",
-                "ctx_cont_dim": 142,
-                "ctx_cat_dim": 5,
-                "ctx_cont_names": ["spread_bps"],
-                "ctx_cat_names": ["spread_bucket"],
-            },
-        },
-    }
-    (dataset_dir / "sample_train.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
-        json.dumps(
-            {
-                "ctx_tag": "CTX6CAT6",
-                "ctx_cont_dim": 6,
-                "ctx_cat_dim": 6,
-                "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
-                "signal_bridge_contract_sha256": "abc123",
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    report = run_seq215_manifest_repair(
-        argparse.Namespace(
-            dataset_kind="foundation_seq146",
-            dataset_dir=str(dataset_dir),
-            out_dir=str(out_dir),
-            apply=True,
-            quiet=True,
-        )
-    )
-
-    repaired = json.loads((dataset_dir / "sample_train.manifest.json").read_text(encoding="utf-8"))
-    proof = json.loads((dataset_dir / "DATASET_BUILD_PROOF.json").read_text(encoding="utf-8"))
-    assert report["schema_version"] == "entry_foundation_manifest_provenance_repair_v1"
-    assert report["dataset_kind"] == "foundation_seq146"
-    assert report["decision"] == "APPLIED"
-    assert report["parquet_data_modified"] is False
-    assert repaired["feature_contract"]["ctx_tag"] == "CTX6CAT5"
-    assert repaired["feature_contract"]["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
-    assert repaired["feature_contract"]["signal_bridge_contract_sha256"] == "abc123"
-    assert repaired["feature_contract"]["signal_bridge_fields"] == ["p_long", "chart.foundation_hh_state"]
-    assert proof["ctx_tag"] == "CTX6CAT5"
-    assert proof["ctx_cont_dim"] == 142
-    assert proof["ctx_cat_dim"] == 5
-    assert proof["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
-
-
-def test_manifest_repair_fails_closed_when_top_level_bridge_hash_disagrees(tmp_path) -> None:
-    dataset_dir = tmp_path / "dataset"
-    out_dir = tmp_path / "reports"
-    dataset_dir.mkdir()
-    manifest_path = dataset_dir / "sample_train.manifest.json"
-    manifest = {
-        "feature_contract": {
-            "ctx_tag": "CTX6CAT6",
-            "ctx_cont_dim": 142,
-            "ctx_cat_dim": 5,
-            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
-            "signal_bridge_contract_sha256": "stale_hash",
-        },
-        "extra": {
-            "signal_bridge": {
-                "id": SIGNAL_BRIDGE_ID_V3,
-                "fields": ["p_long"],
-                "contract_sha256": "abc123",
-            },
-            "ctx_contract": {
-                "tag": "CTX6CAT5",
-                "ctx_cont_dim": 142,
-                "ctx_cat_dim": 5,
-            },
-        },
-    }
-    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    before = manifest_path.read_text(encoding="utf-8")
-
-    with pytest.raises(SystemExit) as excinfo:
-        run_seq215_manifest_repair(
-            argparse.Namespace(
-                dataset_kind="foundation_seq146",
-                dataset_dir=str(dataset_dir),
-                out_dir=str(out_dir),
-                apply=True,
-                quiet=True,
-            )
-        )
-
-    report = json.loads(
-        (out_dir / "ENTRY_FOUNDATION_MANIFEST_PROVENANCE_REPAIR_latest.json").read_text(encoding="utf-8")
-    )
-    assert excinfo.value.code == 2
-    assert manifest_path.read_text(encoding="utf-8") == before
-    assert report["decision"] == "FAIL"
-    assert report["manifest_repairs"][0]["repair_allowed"] is False
-    assert report["manifest_repairs"][0]["changed"] is False
-    assert any("signal bridge contract sha mismatch" in failure for failure in report["failures"])
-
-
-def test_foundation_audit_stats_report_liveness_and_allow_neutral_bridge_constant() -> None:
+def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant() -> None:
     names = [
         "chart.foundation_hh_state",
         "chart.foundation_bos_up_age_bars",
         "chart.foundation_sweep_low_reclaim_up_proxy",
-        "p_long",
+        "session_regime.h4_d1_regime_sign_agreement",
     ]
     matrix = np.asarray(
         [
@@ -296,8 +205,9 @@ def test_foundation_audit_stats_report_liveness_and_allow_neutral_bridge_constan
     assert by_name["chart.foundation_hh_state"]["family"] == "foundation_hh_hl_lh_ll"
     assert by_name["chart.foundation_bos_up_age_bars"]["family"] == "foundation_bos_choch_age"
     assert by_name["chart.foundation_sweep_low_reclaim_up_proxy"]["family"] == "foundation_sweep_reclaim"
-    assert by_name["p_long"]["near_constant"] is True
-    assert by_name["p_long"]["constant_allowed"] is True
+    allowed = by_name["session_regime.h4_d1_regime_sign_agreement"]
+    assert allowed["near_constant"] is True
+    assert allowed["constant_allowed"] is True
 
     family_rows = _family_liveness(rows)
     families = {row["family"] for row in family_rows}
@@ -648,12 +558,12 @@ def test_foundation_objective_coverage_requires_exact_goal_features() -> None:
     assert any("foundation objective coverage missing session_x_structure" in item for item in bad_failures)
 
 
-def test_inline_seq_structure_extension_fails_on_missing_requested_feature() -> None:
+def test_inline_seq_structure_extension_requires_explicit_source_parquet() -> None:
     merged = pd.DataFrame({"time": pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC")})
-    for field in SIGNAL_FIELDS:
+    for field in MODEL_NATIVE_BASE_FIELDS:
         merged[field] = 0.0
 
-    with pytest.raises(RuntimeError, match="SEQ_STRUCTURE_INLINE_FEATURES_MISSING"):
+    with pytest.raises(RuntimeError, match="SEQ_STRUCTURE_INLINE_SOURCE_PARQUET_REQUIRED"):
         _build_inline_seq_structure_extension(
             merged,
             requested_features=["chart.foundation_hh_state", "chart.foundation_feature_that_does_not_exist"],
@@ -662,21 +572,27 @@ def test_inline_seq_structure_extension_fails_on_missing_requested_feature() -> 
         )
 
 
+def test_dataset_builder_time_normalization_rejects_duplicates() -> None:
+    duplicate = pd.DataFrame(
+        {
+            "time": [
+                "2026-01-01T00:00:00Z",
+                "2026-01-01T00:00:00Z",
+            ]
+        }
+    )
+    with pytest.raises(RuntimeError, match="TIME_DUPLICATE_ROWS"):
+        _normalize_time_utc(duplicate, "time")
+
+
 def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_path) -> None:
     periods = 12
     times = pd.date_range("2026-01-01", periods=periods, freq="5min", tz="UTC")
-    ctx_cont_names: set[str] = set()
-    ctx_cat_names: set[str] = set()
-    for contract in SMART_LAYER_SOURCE_CONTRACTS.values():
-        for raw_name in tuple(contract["required_source_fields"]) + tuple(contract["optional_source_fields"]):
-            name = str(raw_name)
-            if name.startswith("ctx_cont."):
-                ctx_cont_names.add(name.removeprefix("ctx_cont."))
-            elif name.startswith("ctx_cat."):
-                ctx_cat_names.add(name.removeprefix("ctx_cat."))
+    ctx_cont_names = set(ORDERED_CTX_CONT_NAMES_V3)
+    ctx_cat_names = set(ORDERED_CTX_CAT_NAMES_V3)
 
     data = {"time": times}
-    data.update({field: np.full(periods, 0.1, dtype=np.float32) for field in SIGNAL_FIELDS})
+    data.update({field: np.full(periods, 0.1, dtype=np.float32) for field in MODEL_NATIVE_BASE_FIELDS})
     data.update({field: np.full(periods, 0.2, dtype=np.float32) for field in ctx_cont_names})
     data.update({field: np.ones(periods, dtype=np.int64) for field in ctx_cat_names})
     merged = pd.DataFrame(data)
@@ -689,9 +605,14 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_pat
             "low": np.linspace(0.99, 1.09, periods),
             "close": np.linspace(1.005, 1.105, periods),
             "mid": np.linspace(1.005, 1.105, periods),
+            "_v1_atr14": np.full(periods, 0.01),
         }
     ).to_parquet(source)
-    requested = [name for _, features, _, _ in SMART_LAYER_FEATURES.values() for name in features]
+    requested = [
+        name
+        for _, features in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
+        for name in features
+    ]
 
     out, names, meta = _build_inline_seq_structure_extension(
         merged,
@@ -718,33 +639,33 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_pat
     }
 
 
-def test_manifest_only_seq_structure_resolves_for_inline_mode(tmp_path) -> None:
+def test_exact_model_native_manifest_resolves_mandatory_inline_mode(tmp_path) -> None:
+    selected = _selected_with_foundation(prefix="inline_selected")
     manifest = tmp_path / "sequence_structure_feature_layer_manifest.json"
     manifest.write_text(
         json.dumps(
             {
-                "schema_version": "sequence_structure_feature_layer_v1",
+                "schema_version": "entry_specialist_challenger_extension_manifest_v1",
+                "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+                "base_signal_feature_count": 34,
+                "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
                 "manifest_only": True,
                 "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
                 "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
                 "foundation_structure_missing_feature_count": 0,
                 "foundation_structure_all_required_selected": True,
-                "selected_features": ["chart.foundation_hh_state"],
-                "parquet_path": None,
+                "selected_features": selected,
+                "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
+                "model_native_signal_contract": model_native_signal_contract_metadata(selected),
             }
         ),
         encoding="utf-8",
     )
 
-    parquet_path, features, meta = _resolve_seq_structure_extension(
-        parquet_path=None,
-        manifest_path=manifest,
-        allow_manifest_only_inline=True,
-    )
+    features, meta = _resolve_seq_structure_extension(manifest_path=manifest)
 
-    assert parquet_path is None
-    assert features == ["chart.foundation_hh_state"]
-    assert meta["manifest_only"] is True
+    assert features == selected
+    assert meta["mode"] == "mandatory_inline_common_causal_history_v1"
     assert meta["foundation_structure_feature_version"] == FOUNDATION_STRUCTURE_FEATURE_VERSION
     assert meta["foundation_structure_feature_count"] == len(FOUNDATION_STRUCTURE_FEATURE_NAMES)
     assert meta["foundation_structure_missing_feature_count"] == 0

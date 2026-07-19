@@ -203,7 +203,7 @@ def main() -> None:
     # V2 fast-train extras
     parser.add_argument("--init-from-state-dict", type=str, default=None,
                         help="V2 warm-start: load .pt state_dict into model after construction "
-                             "(strict=False). Use scripts/warm_start_v3_v10_v2_from_v9.py to build. "
+                             "(strict=False); the supplied state must be separately provenance-bound. "
                              "For smoke-date filtering use --train-cutoff and --val-cutoff (existing).")
     parser.add_argument("--from-scratch", action="store_true",
                         help="Force a deliberate COLD start. By DEFAULT (no warm-start flag) the trainer "

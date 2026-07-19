@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """V3-style exit transformer trainer for the V5 thin-record dataset.
 
-Reads the thin-record dataset built by `materialize_build_v3_training_dataset_v1.py`,
-reconstructs (window_len=512, input_dim=89) io_features per sample via
+Reads the hash-bound legacy thin-record layout used by the admitted V3 artifact,
+reconstructs its io_features per sample via
 `ThinRecordDataset`, derives binary `should_exit` labels via the existing
 `_attach_labels_to_exit_records` from `gx1.policy.exit_transformer_v0`, and
 trains an `ExitTransformerV0` model.
 
 Saves the bundle to a directory compatible with the existing exit transformer
 loader (model_state_dict.pt + transformer_config.json + manifest.json).
+
+The historical dataset producer is retired because it selected Entry sides with
+threshold/fallback logic and had no mandatory ``--vedtak`` gate. Therefore a
+fresh Exit-V3 rebuild is BLOCKED_PENDING_NEW_EXACT_BUILDER. A replacement must
+consume admitted model-native LONG/SHORT/FLAT evidence, fail closed, and require
+an explicit user vedtak; this trainer is retained only as active-artifact
+label/loss/layout provenance until that replacement exists.
 """
 from __future__ import annotations
 

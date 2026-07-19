@@ -9,14 +9,15 @@
 #                                        → /home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_<DATE>.parquet
 #   2. v12_canonical_incremental loop — appends new M1 → canonical_v3 + BASE34 prebuilts
 #                                        (paper runner's PrebuiltStateLoader auto-detects + re-augments)
-#   3. v12_paper_runner               — SMART entry (smart_seq520 cand#4, contract-resolved,
-#                                        vedtak SMART_JOINT_POLICY_PROMOTION_20260708)
-#                                        + XGB-bridge → V3 → Exit-IQL exits → OANDA orders
-#                                        env GX1_PURE_PHASE6=1 = no live-only wrappers (1:1 joint replay)
+#   3. v12_paper_runner               — exact 513-signal model-native XAU entry
+#                                        → LONG/SHORT/FLAT model argmax; the separate
+#                                        Exit stack owns exits; immutable learned sizing
+#                                        and execution safety cannot rewrite direction
 #
 # Usage:
 #   bash scripts/launch_live_practice.sh           # idempotent, won't restart what's already up
-#   bash scripts/launch_live_practice.sh --force   # kill any running, then relaunch all
+#   bash scripts/launch_live_practice.sh --force   # kill any running, then relaunch all;
+#                                                  # a clean worktree is still mandatory
 #
 # Logs land under /tmp/gx1_live_practice/<component>.log
 # PID files persist under /home/andre2/GX1_DATA/reports/v12_paper_runs/
@@ -27,10 +28,28 @@ PY="$REPO/.venv/bin/python"
 DATA_DIR=/home/andre2/GX1_DATA
 PAPER_RUNS=$DATA_DIR/reports/v12_paper_runs
 LOG_DIR=/tmp/gx1_live_practice
-mkdir -p "$LOG_DIR" "$PAPER_RUNS/open_trades"
 
 cd "$REPO"
-# Load OANDA credentials into env (the collectors + runner all need OANDA_API_TOKEN + OANDA_ACCOUNT_ID).
+FORCE=0
+case "${1-}" in
+    "") ;;
+    --force) FORCE=1 ;;
+    *) echo "FATAL: unknown argument: ${1}" >&2; exit 2 ;;
+esac
+[[ $# -le 1 ]] || { echo "FATAL: unexpected extra arguments" >&2; exit 2; }
+
+# ── Rule 2: git-clean before the live launch (2026-06-13 audit gap) ──────────
+# Must run before any Python preflight, so a dirty tree cannot execute live code
+# and then abort later.
+if [[ -n "$(git -C "$REPO" status --short)" ]]; then
+    echo "FATAL: git tree is dirty — live source identity must be clean and cannot be overridden:"
+    git -C "$REPO" status --short
+    exit 1
+fi
+
+# No external directory is touched and no credentials are loaded before the
+# exact source-identity gate above passes.
+mkdir -p "$LOG_DIR" "$PAPER_RUNS/open_trades"
 if [[ -f .env ]]; then
     set -o allexport
     # shellcheck disable=SC1091
@@ -38,28 +57,19 @@ if [[ -f .env ]]; then
     set +o allexport
 fi
 
-FORCE=0
-[[ "${1-}" == "--force" ]] && FORCE=1
-
-# ── Rule 2: git-clean before the live launch (2026-06-13 audit gap) ──────────
-# Must run before any Python preflight, so a dirty tree cannot execute live code
-# and then abort later.
-if [[ "$FORCE" != "1" ]] && [[ -n "$(git -C "$REPO" status --short)" ]]; then
-    echo "FATAL: git tree is dirty — rule 2 (git-clean before any run, incl. live launch). Commit/stash, or pass --force to override deliberately:"
-    git -C "$REPO" status --short
-    exit 1
-fi
-
-# ── SMART-SERVING LAUNCH GATE (serving wave, vedtak SMART_JOINT_POLICY_PROMOTION_20260708) ──
+# ── MODEL-NATIVE XAU DIRECTION LAUNCH GATE ─────────────────────────────────
 # The legacy XGB->V10->Entry-IQL entry chain is RETIRED (bundles physically gone
-# 2026-07-07); the entry policy is the contract-ACTIVE smart_seq520 cand#4 served
+# 2026-07-07); an entry policy can be served only when the newest XAU direction
+# launch state admits the exact hashed model-native bundle served
 # by gx1/execution/v12_smart_entry_live (operating point read from the contract —
-# ONE truth, no env pins here). Launch is fail-closed on THREE artifacts:
-#   1. the TRAIN==SERVE parity gate PASS for the contract-ACTIVE bundle
-#      (gx1.scripts.verify_smart520_serve_parity_v1 -> SMART520_SERVE_PARITY_latest.json)
-#   2. the directional live-like pocket audit PASS for the contract-ACTIVE bundle
-#      (gx1.scripts.audit_smart_direction_live_like_pockets_v1 -> SMART_DIRECTION_LIVE_LIKE_POCKET_AUDIT_latest.json)
+# ONE truth, no env pins here). Launch is fail-closed on FOUR requirements:
+#   1. the immutable newest TRAIN==SERVE parity event PASS for the exact
+#      launch-bound model-native bundle and prediction-evidence SHA
+#   2. the immutable newest directional live-like pocket event PASS for the
+#      same launch-bound bundle and prediction-evidence SHA
 #   3. an explicit user LAUNCH VEDTAK id in GX1_SMART_LAUNCH_VEDTAK
+#   4. an exact rule-free operating point: selection_score plus execution
+#      max_trades; edge/utility thresholds and session allowlists are rejected
 # (This replaces the 20260627 legacy-ack block, which guarded — and referenced —
 # the retired chain.)
 if [[ -z "${GX1_SMART_LAUNCH_VEDTAK:-}" ]]; then
@@ -68,8 +78,8 @@ if [[ -z "${GX1_SMART_LAUNCH_VEDTAK:-}" ]]; then
     echo "        (demo/paper launch opens only after parity-gate PASS + preflight + vedtak)" >&2
     exit 2
 fi
-echo "[preflight] smart520 train==serve parity-gate check…"
-PYTHONPATH=$REPO "$PY" - <<'PYEOF' || { echo "FATAL: smart520 serve gate BLOCKED — rerun parity and directional pocket audit for the contract-ACTIVE bundle before relaunch." >&2; exit 2; }
+echo "[preflight] model-native train==serve parity-gate check…"
+PYTHONPATH=$REPO "$PY" - <<'PYEOF' || { echo "FATAL: model-native serve gate BLOCKED — rerun parity and directional pocket audit for the exact contract-bound bundle before relaunch." >&2; exit 2; }
 # ONE truth: the same assert the runner's own guard calls — launcher and
 # runner-direct cannot diverge (gx1/execution/v12_smart_entry_live.py).
 from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
@@ -84,12 +94,12 @@ PYEOF
 # the nohup FALLBACK collector in parity if systemd is ever not owning it.
 export GX1_COLLECTOR_POLL_SECONDS=${GX1_COLLECTOR_POLL_SECONDS:-15}
 
-# ── Regime-flag pins (2026-06-08 fase2b cement; top-level pin 2026-06-11) ────────────────
-# LIVE serves the fase2b/CLEAN cement (V10 regime-v4 ctx_cont=123, EXIT_IO_V8=173). Pinned ON
-# at top level so EVERY component launched from this script inherits the cemented flags (the
-# old =0 COSTFIX-era pins survived here while the paper-runner line overrode them inline —
-# stale narrative + a footgun for any future component that didn't override). Flags are
-# EXPLICIT here — never rely on code defaults for live (build==serve flag parity).
+# ── Regime-flag pins (historical fase2b-era pin; Entry surface superseded) ──────────────
+# NOTE: the ctx_cont=123 V10 entry surface from the original 2026-06 pin is RETIRED —
+# the active model-native Entry contract is 142 continuous + 5 categorical and Entry
+# launch is BLOCK, so this script cannot open Entry until a bundle is admitted. The
+# pins stay explicit for the separately retained Exit chain (EXIT_IO_V8=173) — never
+# rely on code defaults for live (build==serve flag parity).
 export GX1_REGIME_V4=1
 export GX1_TREND_REGIME_FROM_D1=1
 
@@ -135,20 +145,20 @@ export GX1_EXIT_LET_WINNERS_RUN=1
 export GX1_LWR_GIVEBACK_FRAC=0.30
 export GX1_LWR_MIN_PNL_BPS=15.0
 
-# ── ENTRY operating point (smart_seq520, vedtak SMART_JOINT_POLICY_PROMOTION_20260708) ──
-# The smart entry has NO env-pinned operating point: session gate (US+OVERLAP),
-# edge_score threshold and fill convention are read IN-PROCESS from
-# PROJECT_STATE_artifacts.json v10_entry.operating_point by the contract-resolved
-# adapter (v12_smart_entry_live.SmartEntryLiveInference.load) — ONE truth, no
-# launcher duplication. The retired entry_iql-era pins (GX1_CONVICTION_*,
-# GX1_SIZING_*, GX1_SKIP_ASIA, GX1_ENTRY_DIPFIX) are REMOVED with the legacy
-# chain: the joint replay evidence ran flat units, sessions gated in-adapter.
-# (History: see git — 2026-06-11 conviction-sizing pins through 2026-06-16 DIPFIX.)
+# ── ENTRY operating point (513 genuine signal fields; model-native) ──────────
+# Entry has no env-pinned direction operating point. The exact
+# model-direction argmax contract is read in-process and rejects edge/utility
+# thresholds and session allowlists. Trend/session/structure/liquidity/volatility/
+# momentum/price-action/path/utility evidence belongs inside the learned model;
+# the retired entry_iql-era pins (GX1_CONVICTION_*, GX1_SIZING_*, GX1_SKIP_ASIA,
+# GX1_ENTRY_DIPFIX) are rejected. Current launch requires the separate learned
+# sizing contract with fresh OOS, calibration and train==serve proof; historical
+# fixed_1x is not a live fallback.
 
 # ── CONTRACT OPERATING-POINT LAUNCH-ASSERT (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707) ──
 # For EVERY var in the contract's exit_iql.operating_point.live_env (dict), verify this launcher
-# actually exported it with the contract value — a contract-named-but-never-exported var (the
-# GX1_SIZING_MARGIN_REF class) is caught MECHANICALLY here instead of silently riding on a code
+# actually exported it with the contract value — a contract-named-but-never-exported Exit var
+# is caught MECHANICALLY here instead of silently riding on a code
 # default. ONE compare truth: gx1.execution.v12_exit_iql_live.exit_env_contract_diff (same
 # normalize as the runner's own fail-closed startup assert). The entry-side live_env leg was
 # REMOVED with the retired entry_iql chain (serving wave 2026-07-08): the smart entry consumes
@@ -190,28 +200,6 @@ echo "[preflight] rule-9 live-tail freeze-signature + continuity scan…"
 /home/andre2/src/GX1_ENGINE/.venv/bin/python -m gx1.audit.feature_liveness --live-tail --strict \
   || { echo "FATAL: rule-9 LIVE-TAIL/CONTINUITY check failed — frozen context or a fresh unknown gap in the live prebuilts. Fix the append wiring / backfill the gap (see gx1.audit.feature_liveness) before launching."; exit 1; }
 
-# ── Rule-9 DRIFT preflight (user-direktiv 2026-06-12: «sjekk drift + hull hver
-# gang vi starter på nytt») ──────────────────────────────────────────────────
-# KS distribution-drift: last 7 days of live entry-states vs the ACTIVE bundle's
-# training reference. ADVISORY by design (rule 3): market drift flags a retrain
-# VEDTAK, it must never block a launch — a bot that refuses to start in a new
-# regime is wrong; the hard catastrophe floors above (freeze/gaps) still block.
-# Structural reference problems (dim/name mismatch) surface here loudly too.
-echo "[preflight] rule-9 distribution-drift scan (advisory)…"
-DRIFT_REF=$(PYTHONPATH=/home/andre2/src/GX1_ENGINE /home/andre2/src/GX1_ENGINE/.venv/bin/python -c "
-from gx1_guards.artifacts import load_decision_artifact
-from pathlib import Path
-p = Path(load_decision_artifact('v10_entry')) / 'drift_reference_v1.parquet'
-print(p if p.is_file() else '')" 2>/dev/null || true)
-if [[ -n "$DRIFT_REF" ]]; then
-    PYTHONPATH=/home/andre2/src/GX1_ENGINE /home/andre2/src/GX1_ENGINE/.venv/bin/python \
-        -m gx1.audit.feature_liveness --distribution-drift \
-        --drift-reference "$DRIFT_REF" --journal-days 7 \
-        || echo "[preflight] ⚠ DRIFT-ALERT (advisory) — review the lines above; persistent drift = consider a retrain vedtak (rule 3: never auto)"
-else
-    echo "[preflight] ⚠ drift scan SKIPPED — ACTIVE entry bundle has no drift_reference_v1.parquet (generate via feature_liveness --write-drift-reference at next cement)"
-fi
-
 # is_alive <pidfile> → echoes the alive pid or empty
 is_alive() {
     local pf=$1
@@ -252,11 +240,11 @@ stop_if_running() {
 COLL_PID_FILE="$PAPER_RUNS/collector.pid"
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$COLL_PID_FILE"; fi
 if systemd_active gx1-collector.service; then
-    echo "[1/4] oanda_data_collector owned by systemd (gx1-collector.service ACTIVE) — skip (avoid double-spawn / torn parquet)"
+    echo "[1/3] oanda_data_collector owned by systemd (gx1-collector.service ACTIVE) — skip (avoid double-spawn / torn parquet)"
 elif pid=$(is_alive "$COLL_PID_FILE"); then
-    echo "[1/4] oanda_data_collector already RUNNING (PID $pid) — skip"
+    echo "[1/3] oanda_data_collector already RUNNING (PID $pid) — skip"
 else
-    echo "[1/4] launching v12_oanda_data_collector..."
+    echo "[1/3] launching v12_oanda_data_collector..."
     nohup "$PY" -m gx1.execution.v12_oanda_data_collector \
         > "$LOG_DIR/oanda_data_collector.log" 2>&1 &
     echo $! > "$COLL_PID_FILE"
@@ -267,11 +255,11 @@ fi
 CANON_PID_FILE="$PAPER_RUNS/canonical_incremental.pid"
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$CANON_PID_FILE"; fi
 if systemd_active gx1-canonical-incremental.service; then
-    echo "[2/4] canonical_incremental owned by systemd (gx1-canonical-incremental.service ACTIVE) — skip (avoid double-spawn / torn parquet)"
+    echo "[2/3] canonical_incremental owned by systemd (gx1-canonical-incremental.service ACTIVE) — skip (avoid double-spawn / torn parquet)"
 elif pid=$(is_alive "$CANON_PID_FILE"); then
-    echo "[2/4] canonical_incremental already RUNNING (PID $pid) — skip"
+    echo "[2/3] canonical_incremental already RUNNING (PID $pid) — skip"
 else
-    echo "[2/4] launching v12_canonical_incremental --loop --interval 60..."
+    echo "[2/3] launching v12_canonical_incremental --loop --interval 60..."
     nohup "$PY" -m gx1.execution.v12_canonical_incremental --loop --interval 60 \
         > "$LOG_DIR/canonical_incremental.log" 2>&1 &
     echo $! > "$CANON_PID_FILE"
@@ -281,15 +269,13 @@ fi
 # Give the collectors a head-start so the runner sees fresh data on first poll.
 sleep 3
 
-# 3. Paper runner (PURE_PHASE6 = Phase 6 OOT 1:1) ---------------------------
+# 3. Paper runner (exact model direction + execution safety) -----------------
 RUNNER_PID_FILE="$PAPER_RUNS/paper_runner.pid"
-UNITS=${GX1_PAPER_UNITS:-5}   # 2026-06-11: 10→5 with SIZING_MAX_MULT=2.0 — old-gate trades stay at 10 units (5×2.0)
-# max_trades=3 is the DD-VALIDATED portfolio cap (entry_iql.operating_point); the conviction-gate's
-# −201 DD was measured at this cap. Default was 100 (unbounded-risk footgun); pinned to 3 for live.
+# max_trades is an execution exposure cap verified against the exact model-
+# direction operating-point contract; it never selects direction.
 MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
-MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-smart520_cand4_usoverlap_latency90}   # 2026-07-09: no stale/backlog smart entries
-ENTRY_DECISION_LATENCY_SEC=${GX1_MAX_ENTRY_DECISION_LATENCY_SEC:-90}
+MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-7}
+SUFFIX=${GX1_PAPER_SUFFIX:-xau_model_direction_argmax_latency90}
 
 # Orphan-reaper (2026-06-13 audit): the spawn gate below only kill -0's the SINGLE pid in the
 # pid-file, so every relaunch that found that pid dead spawned a fresh runner ON TOP of still-alive
@@ -299,20 +285,18 @@ ENTRY_DECISION_LATENCY_SEC=${GX1_MAX_ENTRY_DECISION_LATENCY_SEC:-90}
 _keep=$(is_alive "$RUNNER_PID_FILE" || true)
 for _p in $(pgrep -f "gx1.execution.v12_paper_runner" 2>/dev/null || true); do
     if [[ "$_p" != "$_keep" ]]; then
-        echo "[3/4] reaping ORPHAN paper_runner PID $_p (not pid-file-tracked '${_keep:-none}') — prevents double-journal / multi-submit / stale code"
+        echo "[3/3] reaping ORPHAN paper_runner PID $_p (not pid-file-tracked '${_keep:-none}') — prevents double-journal / multi-submit / stale code"
         kill "$_p" 2>/dev/null || true
     fi
 done
 
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$RUNNER_PID_FILE"; fi
 if pid=$(is_alive "$RUNNER_PID_FILE"); then
-    echo "[3/4] paper_runner already RUNNING (PID $pid) — skip"
+    echo "[3/3] paper_runner already RUNNING (PID $pid) — skip"
 else
-    echo "[3/4] launching v12_paper_runner --units $UNITS --max-trades $MAX_TRADES ..."
-    GX1_PURE_PHASE6=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_EXIT_AUGMENT_64=1 \
-    GX1_MAX_ENTRY_DECISION_LATENCY_SEC="$ENTRY_DECISION_LATENCY_SEC" \
+    echo "[3/3] launching v12_paper_runner with proof-bound learned sizing --max-trades $MAX_TRADES ..."
+    GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_EXIT_AUGMENT_64=1 \
     nohup "$PY" -m gx1.execution.v12_paper_runner \
-        --units "$UNITS" \
         --max-trades "$MAX_TRADES" \
         --max-spread-bps "$MAX_SPREAD" \
         --journal-suffix "$SUFFIX" \
@@ -321,26 +305,11 @@ else
     echo "    PID=$(cat $RUNNER_PID_FILE), log=$LOG_DIR/paper_runner.log"
 fi
 
-# 4. Daily counterfactual daemon (auto-runs "skulle/skulle ikke" analysis on
-#    finished journals — replays + tags missed_opportunity + false_take per day)
-CF_PID_FILE="$PAPER_RUNS/counterfactual_daemon.pid"
-if [[ $FORCE -eq 1 ]]; then stop_if_running "$CF_PID_FILE"; fi
-if pid=$(is_alive "$CF_PID_FILE"); then
-    echo "[4/4] counterfactual_daemon already RUNNING (PID $pid) — skip"
-else
-    echo "[4/4] launching v12_daily_counterfactual --daemon..."
-    nohup bash "$REPO/gx1/execution/v12_daily_counterfactual.sh" --daemon \
-        > "$LOG_DIR/counterfactual_daemon.log" 2>&1 &
-    echo $! > "$CF_PID_FILE"
-    echo "    PID=$(cat $CF_PID_FILE), log=$LOG_DIR/counterfactual_daemon.log"
-fi
-
 echo ""
 echo "=== Live practice stack status ==="
 for label in "oanda_data_collector:$COLL_PID_FILE" \
              "canonical_incremental:$CANON_PID_FILE" \
-             "paper_runner:$RUNNER_PID_FILE" \
-             "counterfactual_daemon:$CF_PID_FILE"; do
+             "paper_runner:$RUNNER_PID_FILE"; do
     name=${label%%:*}
     pf=${label##*:}
     if pid=$(is_alive "$pf"); then

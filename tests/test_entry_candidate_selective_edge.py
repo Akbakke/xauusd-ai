@@ -1,63 +1,61 @@
-import argparse
 import json
 from pathlib import Path
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
+import numpy as np
 import pytest
 import torch
 
-from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
-    SIGNAL_BRIDGE_NEUTRAL_VALUES,
-    _effective_selection_score_mode,
-    _effective_selection_score_threshold,
-    _iter_split_chunks,
-    _neutralize_signal_bridge,
-    _pnl_proxy_for_side,
-    _specialist_contract_snapshot,
-    build_parser,
-    build_metric_rows,
-    build_no_xgb_ablation_diagnostics,
-    build_summary,
-    run,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_SIGNAL_DIM,
+    model_native_signal_contract_metadata,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     required_training_specialists_for_mode,
     specialist_model_contract_for_mode,
 )
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+)
+from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
+    _canonical_live_decision_evidence,
+    _dataset_model_native_contract,
+    _derived_serve_parity_outputs,
+    _normalize_contract_mode,
+    _require_model_direction_ssot,
+    _selection_sort_column,
+    _specialist_contract_snapshot,
+    build_metric_rows,
+    build_parser,
+)
+from gx1.execution.v12_smart_entry_live import _direction_ssot_from_logits
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-def _predictions() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "split": ["val"] * 6 + ["test"] * 6,
-            "model": ["candidate"] * 12,
-            "time": pd.date_range("2026-01-01", periods=12, freq="5min", tz="UTC"),
-            "y_direction": [0, 1, 0, 2, 1, 0, 0, 1, 2, 1, 0, 1],
-            "trade_side": [0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1],
-            "side": ["LONG", "SHORT", "LONG", "LONG", "SHORT", "SHORT"] * 2,
-            "session": ["EU", "EU", "US", "ASIA", "US", "OVERLAP"] * 2,
-            "vol_regime": ["1", "1", "2", "0", "2", "1"] * 2,
-            "edge_score": [0.90, 0.80, 0.70, 0.10, 0.60, 0.20, 0.95, 0.85, 0.05, 0.75, 0.65, 0.15],
-            "pnl_proxy_bps": [12.0, 10.0, 8.0, 0.0, 6.0, -5.0, 14.0, 11.0, 0.0, 7.0, 5.0, 3.0],
-            "bad_path_prob": [0.1] * 12,
-            "path_quality_pred": [1.0] * 12,
-        }
+def _signal_contract() -> dict:
+    return model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields(
+            remainder_prefix="session_regime.selective_edge_fixture"
+        )
     )
 
 
-def _bundle_meta_for_contract(mode: str) -> dict:
-    dim = 215 if mode == "challenger_seq215" else 146
-    specialists = required_training_specialists_for_mode(mode)
+def _bundle_metadata() -> dict:
+    specialists = required_training_specialists_for_mode(
+        MODEL_NATIVE_CONTRACT_MODE
+    )
     return {
-        "seq_input_dim": dim,
-        "snap_input_dim": dim,
+        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "model_native_signal_contract": _signal_contract(),
         "specialist_fusion": {
             "enabled": True,
-            "contract_mode": mode,
-            "input_indices": {name: [idx] for idx, name in enumerate(specialists)},
-            "specialist_model_contract": specialist_model_contract_for_mode(mode),
+            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+            "input_indices": {name: [index] for index, name in enumerate(specialists)},
+            "specialist_model_contract": specialist_model_contract_for_mode(
+                MODEL_NATIVE_CONTRACT_MODE
+            ),
             "specialist_model_contract_valid": True,
             "specialist_model_contract_set_exact": True,
             "specialist_model_contract_owned_objectives_match": True,
@@ -68,186 +66,289 @@ def _bundle_meta_for_contract(mode: str) -> dict:
     }
 
 
-def test_specialist_contract_snapshot_accepts_foundation_six_specialists() -> None:
-    snapshot = _specialist_contract_snapshot(_bundle_meta_for_contract("foundation_seq146"), "foundation_seq146")
+def _predictions() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "split": ["val"] * 6 + ["test"] * 6,
+            "model": ["candidate"] * 12,
+            "time": pd.date_range("2026-01-01", periods=12, freq="5min", tz="UTC"),
+            "y_direction": [0, 1, 0, 2, 1, 0, 0, 1, 2, 1, 0, 1],
+            "pred_direction": [0, 1, 0, 2, 1, 0, 0, 1, 2, 1, 0, 1],
+            "trade_side": [0, 1, 0, 2, 1, 0, 0, 1, 2, 1, 0, 1],
+            "side": ["LONG", "SHORT", "LONG", "FLAT", "SHORT", "LONG"] * 2,
+            "session": ["EU", "EU", "US", "ASIA", "US", "OVERLAP"] * 2,
+            "vol_regime": ["1", "1", "2", "0", "2", "1"] * 2,
+            "selection_score_mode": [MODEL_DIRECTION_SELECTION_MODE] * 12,
+            "selection_score": [
+                0.8,
+                0.8,
+                0.7,
+                0.8,
+                0.8,
+                0.7,
+                0.8,
+                0.8,
+                0.7,
+                0.8,
+                0.8,
+                0.7,
+            ],
+            "edge_score": [
+                0.9,
+                0.8,
+                0.7,
+                -0.2,
+                0.6,
+                0.5,
+                0.95,
+                0.85,
+                -0.1,
+                0.75,
+                0.65,
+                0.55,
+            ],
+            "p_long": [0.8, 0.1, 0.7, 0.1, 0.1, 0.7] * 2,
+            "p_short": [0.1, 0.8, 0.1, 0.1, 0.8, 0.1] * 2,
+            "p_flat": [0.1, 0.1, 0.2, 0.8, 0.1, 0.2] * 2,
+            "pnl_proxy_bps": [8.0, 7.0, 6.0, 0.0, 5.0, 4.0] * 2,
+            "bad_path_prob": [0.1] * 12,
+            "path_quality_pred": [1.0] * 12,
+        }
+    )
 
-    assert snapshot["failures"] == []
-    assert snapshot["expected_signal_dim"] == 146
-    assert snapshot["required_specialists_exact"] is True
-    assert snapshot["chart_geometry_present"] is False
-    assert snapshot["price_action_candle_present"] is False
+
+def test_contract_mode_accepts_only_exact_model_native_seq513() -> None:
+    assert _normalize_contract_mode(None) == MODEL_NATIVE_CONTRACT_MODE
+    assert _normalize_contract_mode(MODEL_NATIVE_CONTRACT_MODE) == MODEL_NATIVE_CONTRACT_MODE
+    for retired in ("foundation_seq146", "challenger_seq215", "smart_seq520_candidate"):
+        with pytest.raises(RuntimeError, match="retired"):
+            _normalize_contract_mode(retired)
 
 
-def test_specialist_contract_snapshot_accepts_challenger_seq215_eight_specialists() -> None:
-    snapshot = _specialist_contract_snapshot(_bundle_meta_for_contract("challenger_seq215"), "challenger_seq215")
-
-    assert snapshot["failures"] == []
-    assert snapshot["expected_signal_dim"] == 215
+def test_specialist_snapshot_requires_all_eight_model_native_specialists() -> None:
+    snapshot = _specialist_contract_snapshot(
+        _bundle_metadata(), MODEL_NATIVE_CONTRACT_MODE
+    )
+    assert snapshot["expected_signal_dim"] == 513
+    assert snapshot["bundle_seq_input_dim"] == 513
+    assert snapshot["bundle_snap_input_dim"] == 513
     assert snapshot["required_specialists_exact"] is True
     assert snapshot["chart_geometry_present"] is True
     assert snapshot["price_action_candle_present"] is True
+    assert snapshot["failures"] == []
 
 
-def test_specialist_contract_snapshot_blocks_seq215_foundation_fallback() -> None:
-    meta = _bundle_meta_for_contract("foundation_seq146")
-
-    snapshot = _specialist_contract_snapshot(meta, "challenger_seq215")
-
-    assert any("seq_input_dim mismatch" in failure for failure in snapshot["failures"])
-    assert any("contract mode mismatch" in failure for failure in snapshot["failures"])
-    assert any("chart_geometry_encoder" in failure for failure in snapshot["failures"])
-    assert any("price_action_candle_encoder" in failure for failure in snapshot["failures"])
-
-
-def test_parser_has_challenger_seq215_alias() -> None:
-    args = build_parser().parse_args(["--bundle-dir", "/tmp/bundle", "--challenger-seq215"])
-
-    assert args.contract_mode == "challenger_seq215"
-
-
-def test_selection_score_defaults_follow_expected_utility_env(monkeypatch) -> None:
-    monkeypatch.setenv("GX1_SMART_SELECTION_SCORE", "expected_utility")
-    monkeypatch.setenv("GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS", "2.5")
-
-    args = build_parser().parse_args(["--bundle-dir", "/tmp/bundle"])
-
-    assert args.selection_score_mode == "expected_utility"
-    assert args.selection_score_threshold == 2.5
-    assert _effective_selection_score_mode(args) == "expected_utility"
-    assert _effective_selection_score_threshold(args, "expected_utility") == 2.5
-
-
-def test_smart_seq520_selection_score_defaults_to_expected_utility_without_env(monkeypatch) -> None:
-    monkeypatch.delenv("GX1_SMART_SELECTION_SCORE", raising=False)
-    monkeypatch.delenv("GX1_ENTRY_EXPECTED_UTILITY_THRESHOLD_BPS", raising=False)
-
-    args = build_parser().parse_args(["--bundle-dir", "/tmp/bundle", "--smart-seq520"])
-
-    assert _effective_selection_score_mode(args) == "expected_utility"
-    assert _effective_selection_score_threshold(args, "expected_utility") == 0.0
-
-
-def test_metric_rows_include_required_replay_readiness_columns_and_session_slices() -> None:
-    rows = build_metric_rows(_predictions(), top_fracs=[0.5])
-    metrics = pd.DataFrame(rows)
-
-    required = {"split", "model", "scope", "top_frac", "group", "n", "mean_pnl_bps", "win_rate", "direction_precision"}
-    assert required.issubset(metrics.columns)
-    assert "session=EU" in set(metrics["group"])
-    assert "session=US" in set(metrics["group"])
-    all_val = metrics[(metrics["split"] == "val") & (metrics["group"] == "ALL")].iloc[0]
-    assert all_val["mean_pnl_bps"] > 0.0
-
-
-def test_summary_uses_top5_and_top10_all_metrics() -> None:
-    metrics = pd.DataFrame(build_metric_rows(_predictions(), top_fracs=[0.05, 0.10]))
-    summary = build_summary(_predictions(), metrics)
-
-    assert summary["splits"] == ["test", "val"]
-    rows = {(row["split"], row["model"]): row for row in summary["summaries"]}
-    assert rows[("val", "candidate")]["top5_all_mean_pnl_bps"] == 12.0
-    assert rows[("test", "candidate")]["top10_all_mean_pnl_bps"] == 14.0
-
-
-def test_pnl_proxy_prefers_side_utility_over_forecast_ret() -> None:
-    frame = pd.DataFrame(
+def test_direction_ssot_is_final_argmax_and_rejects_legacy_outputs() -> None:
+    direction = torch.tensor(
+        [[3.0, 1.0, 2.0], [0.0, 4.0, 1.0], [0.0, 1.0, 5.0]]
+    )
+    pair = torch.stack((direction[:, :2].amax(dim=1), direction[:, 2]), dim=1)
+    observed_direction, observed_pair = _require_model_direction_ssot(
         {
-            "trade_side": [0, 1],
-            "y_forecast_ret_K24": [-99.0, -99.0],
-            "y_long_path_utility_bps": [12.0, -7.0],
-            "y_short_path_utility_bps": [-4.0, 15.0],
+            "direction_logits": direction,
+            "public_trade_flat_decision_logits": pair,
+        }
+    )
+    assert torch.equal(torch.argmax(observed_direction, dim=1), torch.tensor([0, 1, 2]))
+    assert torch.equal(torch.argmax(observed_pair, dim=1), torch.tensor([0, 0, 1]))
+
+    with pytest.raises(RuntimeError, match="forbidden legacy"):
+        _require_model_direction_ssot(
+            {
+                "direction_logits": direction,
+                "public_trade_flat_decision_logits": pair,
+                "anchor_logits": direction,
+            }
+        )
+
+
+def test_candidate_decision_evidence_has_numeric_live_parity() -> None:
+    direction = torch.tensor(
+        [[3.0, 1.0, 2.0], [0.25, 4.0, 1.0], [0.0, 1.0, 5.0]],
+        dtype=torch.float32,
+    )
+    pair = torch.stack((direction[:, :2].amax(dim=1), direction[:, 2]), dim=1)
+    evidence = _canonical_live_decision_evidence(
+        {
+            "direction_logits": direction,
+            "public_trade_flat_decision_logits": pair,
+        }
+    )
+    for row in range(direction.shape[0]):
+        live = _direction_ssot_from_logits(
+            direction[row].numpy(),
+            pair[row].numpy(),
+            context="test",
+        )
+        assert np.allclose(
+            evidence["direction_probs"][row],
+            live["direction_probs"],
+            rtol=1e-6,
+            atol=1e-7,
+        )
+        assert np.allclose(
+            evidence["public_trade_flat_decision_probs"][row],
+            live["public_trade_flat_decision_probs"],
+            rtol=1e-6,
+            atol=1e-7,
+        )
+        direction_index = int(live["model_direction_index"])
+        assert evidence["model_direction_index"][row] == direction_index
+        assert evidence["selection_score"][row] == pytest.approx(
+            float(live["direction_probs"][direction_index]),
+            rel=1e-6,
+            abs=1e-7,
+        )
+        assert evidence["p_trade"][row] == pytest.approx(
+            float(live["public_trade_flat_decision_probs"][0]),
+            rel=1e-6,
+            abs=1e-7,
+        )
+    with pytest.raises(RuntimeError, match="do not match final direction logits"):
+        _require_model_direction_ssot(
+            {
+                "direction_logits": direction[:1],
+                "public_trade_flat_decision_logits": torch.tensor([[0.0, 9.0]]),
+            }
+        )
+
+
+def test_derived_serve_parity_outputs_are_exact_and_fail_closed() -> None:
+    path_log_var = torch.tensor(
+        [[0.0], [float(np.log(4.0))]], dtype=torch.float32
+    )
+    mtf_logits = torch.tensor(
+        [[2.0, 0.0, -1.0], [0.0, 1.0, 2.0]], dtype=torch.float32
+    )
+    observed = _derived_serve_parity_outputs(
+        {
+            "path_quality_log_var": path_log_var,
+            "mtf_dir_logits": mtf_logits,
         }
     )
 
-    assert _pnl_proxy_for_side(frame).tolist() == [12.0, 15.0]
-
-
-def test_neutralize_signal_bridge_sets_only_bridge_slots() -> None:
-    seq_x = torch.ones((2, 3, 10), dtype=torch.float32)
-    snap_x = torch.full((2, 10), 2.0, dtype=torch.float32)
-
-    _neutralize_signal_bridge(seq_x, snap_x)
-
-    expected = torch.as_tensor(SIGNAL_BRIDGE_NEUTRAL_VALUES, dtype=torch.float32)
-    assert torch.allclose(seq_x[..., : len(expected)], expected.view(1, 1, -1))
-    assert torch.allclose(snap_x[..., : len(expected)], expected.view(1, -1))
-    assert torch.equal(seq_x[..., len(expected) :], torch.ones((2, 3, 3), dtype=torch.float32))
-    assert torch.equal(snap_x[..., len(expected) :], torch.full((2, 3), 2.0, dtype=torch.float32))
-
-
-def test_stream_chunks_copy_manifest_for_signal_contract(tmp_path: Path) -> None:
-    parquet_path = tmp_path / "sample_test.parquet"
-    table = pa.table({"row_id": list(range(5)), "value": [float(x) for x in range(5)]})
-    pq.write_table(table, parquet_path, row_group_size=2)
-    manifest = {
-        "extra": {
-            "neutral_xgb_bridge": True,
-            "xgb_bridge_source": "neutral_uniform_proba",
-            "signal_bridge": {
-                "fields": ["signal_bridge_long_proba", "signal_bridge_short_proba", "signal_bridge_flat_proba"],
-                "seq_input_dim": 3,
-                "snap_input_dim": 3,
-                "neutral_xgb_bridge": True,
-                "bridge_source": "neutral_uniform_proba",
-            },
-        },
-    }
-    parquet_path.with_suffix(".manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-
-    chunks = _iter_split_chunks(parquet_path, stream_chunk_rows=2)
-    chunk_path, cleanup = next(chunks)
-    chunk_manifest = chunk_path.with_suffix(".manifest.json")
-    try:
-        assert chunk_manifest.exists()
-        assert json.loads(chunk_manifest.read_text(encoding="utf-8")) == manifest
-    finally:
-        cleanup()
-        chunks.close()
-
-    assert not chunk_path.exists()
-    assert not chunk_manifest.exists()
-
-
-def test_no_xgb_ablation_diagnostics_measure_prediction_delta() -> None:
-    predictions = pd.DataFrame(
-        {
-            "split": ["val", "val", "val", "val"],
-            "model": ["candidate", "candidate", "candidate_no_xgb", "candidate_no_xgb"],
-            "time": pd.date_range("2026-01-01", periods=2, freq="5min", tz="UTC").tolist() * 2,
-            "p_long": [0.7, 0.2, 0.6, 0.2],
-            "p_short": [0.2, 0.7, 0.3, 0.7],
-            "p_flat": [0.1, 0.1, 0.1, 0.1],
-            "edge_score": [0.6, 0.6, 0.5, 0.6],
-            "trade_side": [0, 1, 0, 1],
-            "pred_direction": [0, 1, 0, 1],
-        }
+    assert set(observed) == {"path_quality_std", "mtf_dir_probs"}
+    assert observed["path_quality_std"].shape == (2,)
+    assert observed["path_quality_std"].dtype == np.float32
+    assert np.allclose(observed["path_quality_std"], [1.0, 2.0])
+    assert observed["mtf_dir_probs"].shape == (2, 3)
+    assert observed["mtf_dir_probs"].dtype == np.float32
+    assert np.allclose(
+        observed["mtf_dir_probs"],
+        torch.softmax(mtf_logits, dim=1).numpy(),
+        rtol=1e-6,
+        atol=1e-7,
     )
+    assert np.allclose(observed["mtf_dir_probs"].sum(axis=1), 1.0)
 
-    diagnostics = build_no_xgb_ablation_diagnostics(predictions, model_name="candidate")
+    with pytest.raises(RuntimeError, match="path_quality_log_var invalid"):
+        _derived_serve_parity_outputs(
+            {
+                "path_quality_log_var": torch.tensor([[float("nan")]]),
+                "mtf_dir_logits": torch.zeros((1, 3)),
+            }
+        )
+    with pytest.raises(RuntimeError, match="mtf_dir_logits invalid"):
+        _derived_serve_parity_outputs(
+            {
+                "path_quality_log_var": torch.zeros((1, 1)),
+                "mtf_dir_logits": torch.tensor([[0.0, float("inf"), 0.0]]),
+            }
+        )
 
-    assert diagnostics["available"] is True
-    assert diagnostics["splits"]["val"]["comparable"] is True
-    assert diagnostics["splits"]["val"]["max_abs_prob_delta"] == pytest.approx(0.1)
-    assert diagnostics["splits"]["val"]["max_abs_edge_score_delta"] == pytest.approx(0.1)
+
+def test_dataset_contract_requires_exact_equal_34_plus_479_for_each_split(
+    tmp_path: Path,
+) -> None:
+    contract = _signal_contract()
+    assert contract["base_signal_dim"] == 34
+    assert contract["selected_feature_count"] == 479
+    for split in ("val", "test"):
+        (tmp_path / f"native_{split}.manifest.json").write_text(
+            json.dumps({"extra": {"model_native_signal_contract": contract}}),
+            encoding="utf-8",
+        )
+
+    observed = _dataset_model_native_contract(tmp_path, ["val", "test"])
+    assert observed["contract"] == contract
+    assert {row["seq_input_dim"] for row in observed["splits"].values()} == {513}
+
+    broken = json.loads(json.dumps(contract))
+    broken["bridge_dim"] = 7
+    (tmp_path / "native_test.manifest.json").write_text(
+        json.dumps({"extra": {"model_native_signal_contract": broken}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_SIGNAL_CONTRACT_INVALID"):
+        _dataset_model_native_contract(tmp_path, ["val", "test"])
 
 
-def test_selective_edge_requires_bundle_dir(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="ENTRY_V10_BUNDLE_MISSING"):
-        run(
-            argparse.Namespace(
-                bundle_dir=str(tmp_path / "missing"),
-                no_xgb_bundle_dir="",
-                dataset_dir="/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_smoke",
-                splits="val",
-                top_fracs="0.05,0.10",
-                model_name="candidate",
-                device="cpu",
-                batch_size=16,
-                m5_prebuilt_path="/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet",
-                multi_tf_cache_dir="",
-                out_dir=str(tmp_path),
-                require_no_xgb_ablation=True,
-                fail_on_audit_fail=False,
-                quiet=True,
-            )
+def test_selection_metrics_never_accept_session_filter_or_score_fallback() -> None:
+    frame = _predictions()
+    assert _selection_sort_column(frame) == "selection_score"
+    rows = build_metric_rows(frame, top_fracs=[0.05, 0.10])
+    assert rows
+    assert {row["split"] for row in rows} == {"val", "test"}
+
+    with pytest.raises(RuntimeError, match="session exclusion"):
+        build_metric_rows(frame, top_fracs=[0.10], exclude_sessions=("ASIA",))
+    with pytest.raises(RuntimeError, match="lacks model-native selection_score"):
+        _selection_sort_column(frame.drop(columns=["selection_score"]))
+
+
+def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flags() -> None:
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args([])
+    args = parser.parse_args(
+        [
+            "--bundle-dir",
+            "/tmp/bundle",
+            "--dataset-dir",
+            "/tmp/dataset",
+            "--m5-prebuilt-path",
+            "/tmp/m5.parquet",
+            "--multi-tf-cache-dir",
+            "/tmp/mtf",
+            "--out-dir",
+            "/tmp/out",
+        ]
+    )
+    assert not hasattr(args, "contract_mode")
+    assert not hasattr(args, "splits")
+    assert not hasattr(args, "top_fracs")
+    assert not hasattr(args, "model_name")
+    assert not hasattr(args, "selection_score_mode")
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--bundle-dir",
+                "/tmp/bundle",
+                "--dataset-dir",
+                "/tmp/dataset",
+                "--m5-prebuilt-path",
+                "/tmp/m5.parquet",
+                "--multi-tf-cache-dir",
+                "/tmp/mtf",
+                "--out-dir",
+                "/tmp/out",
+                "--selection-score-mode",
+                MODEL_DIRECTION_SELECTION_MODE,
+            ]
+        )
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--bundle-dir",
+                "/tmp/bundle",
+                "--dataset-dir",
+                "/tmp/dataset",
+                "--m5-prebuilt-path",
+                "/tmp/m5.parquet",
+                "--multi-tf-cache-dir",
+                "/tmp/mtf",
+                "--out-dir",
+                "/tmp/out",
+                "--smart-seq520",
+            ]
         )

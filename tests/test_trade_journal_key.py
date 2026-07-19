@@ -13,23 +13,27 @@ from gx1.monitoring.trade_journal import TradeJournal
 
 
 class TestTradeJournalKey(unittest.TestCase):
-    """Test TradeJournal key normalization and backward compatibility."""
+    """Test strict TradeJournal identifier normalization."""
     
     def setUp(self):
         """Create temporary journal for testing."""
         self.tmpdir = tempfile.mkdtemp()
-        self.journal = TradeJournal(Path(self.tmpdir), 'test_run', enabled=True)
+        self.journal = TradeJournal(
+            Path(self.tmpdir),
+            'EXEC_SMOKE_KEY_TEST',
+            header={"meta": {"role": "TEST", "test_mode": True}},
+            enabled=True,
+        )
     
     def test_key_prefers_uid(self):
         """Test that trade_uid is preferred over trade_id."""
         key = self.journal._key(trade_uid='run1:chunk0:000001:abc123', trade_id='SIM-123')
         self.assertEqual(key, 'run1:chunk0:000001:abc123')
     
-    def test_key_legacy_trade_id(self):
-        """Test that legacy trade_id is wrapped with LEGACY: prefix."""
+    def test_key_namespaces_trade_id(self):
+        """Broker/display IDs are explicitly namespaced."""
         key = self.journal._key(trade_id='SIM-456')
-        self.assertTrue(key.startswith('LEGACY:'), f'Expected LEGACY: prefix, got {key}')
-        self.assertEqual(key, 'LEGACY:SIM-456')
+        self.assertEqual(key, 'TRADE:SIM-456')
     
     def test_key_raises_if_neither(self):
         """Test that _key raises ValueError if neither trade_uid nor trade_id provided."""
@@ -43,6 +47,7 @@ class TestTradeJournalKey(unittest.TestCase):
             instrument='XAUUSD',
             side='long',
             entry_price=2000.0,
+            model_evidence={},
             trade_uid='run1:chunk0:000001:abc123',
             trade_id='SIM-123-000001'
         )
@@ -54,24 +59,41 @@ class TestTradeJournalKey(unittest.TestCase):
         self.assertEqual(trade_journal['trade_uid'], 'run1:chunk0:000001:abc123')
         self.assertEqual(trade_journal['trade_id'], 'SIM-123-000001')
     
-    def test_log_entry_snapshot_legacy(self):
-        """Test log_entry_snapshot with trade_id only (backward compatibility)."""
+    def test_log_entry_snapshot_with_trade_id(self):
+        """Test log_entry_snapshot with a broker/display trade ID."""
         self.journal.log_entry_snapshot(
             entry_time='2025-01-01T00:00:00Z',
             instrument='XAUUSD',
             side='long',
             entry_price=2000.0,
-            trade_id='SIM-123-000001'  # Old API
+            model_evidence={},
+            trade_id='SIM-123-000001',
         )
-        
-        # Verify journal was created with LEGACY: prefix
+
         key = self.journal._key(trade_id='SIM-123-000001')
         self.assertIn(key, self.journal._trade_journals)
         trade_journal = self.journal._trade_journals[key]
         self.assertIsNone(trade_journal['trade_uid'])
         self.assertEqual(trade_journal['trade_id'], 'SIM-123-000001')
 
+    def test_empty_model_evidence_is_rejected_outside_explicit_smoke(self):
+        live_journal = TradeJournal(
+            Path(self.tmpdir) / "live",
+            "LIVE_RUN",
+            header={"meta": {"role": "LIVE", "test_mode": False}},
+            enabled=True,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "ENTRY_EVIDENCE_FAILED"):
+            live_journal.log_entry_snapshot(
+                entry_time="2026-07-16T12:00:00Z",
+                instrument="XAU_USD",
+                side="long",
+                entry_price=3300.0,
+                model_evidence={},
+                trade_id="LIVE-EMPTY-EVIDENCE",
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
-

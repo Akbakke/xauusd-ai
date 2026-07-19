@@ -10,8 +10,8 @@ V10 training uses this as an aux label. During training:
   loss_direction *= (1 + lambda * (1 - tf_agreement_score))
 i.e., wrong-direction loss is amplified when TF-disagreement is high.
 
-At inference: V10's predicted tf_agreement_score is exposed in
-v10_snapshot so the live runner / Entry-IQL can gate entries on it.
+At inference, the predicted score is model-native evidence in the Entry
+snapshot; it is not a post-model direction gate.
 
 Live observation that motivated this (2026-05-18):
   D1_dist_from_ema200_atr = +6.42 (strong D1 uptrend)
@@ -42,6 +42,29 @@ MICRO_MOM_NEG_THRESHOLD = 0.0
 #   1 → neutral (rare)
 #   2 → bullish
 H4_CAT_TO_SIGN = {0: -1, 1: 0, 2: 1}
+TF_AGREEMENT_SOURCE_FIELDS = (
+    "D1_dist_from_ema200_atr",
+    "H4_trend_sign_cat",
+    "H1_range_compression_ratio",
+    "M15_range_compression_ratio",
+    "micro_momentum_3",
+)
+
+
+def _numeric_source(df: pd.DataFrame, name: str) -> pd.Series:
+    if name not in df.columns:
+        raise RuntimeError(f"TF_AGREEMENT_SOURCE_MISSING: {name}")
+    if list(df.columns).count(name) != 1:
+        raise RuntimeError(f"TF_AGREEMENT_SOURCE_DUPLICATE: {name}")
+    try:
+        values = pd.to_numeric(df[name], errors="raise").to_numpy(dtype=np.float64)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError(f"TF_AGREEMENT_SOURCE_NOT_NUMERIC: {name}") from exc
+    if values.shape != (len(df),):
+        raise RuntimeError(f"TF_AGREEMENT_SOURCE_SHAPE_INVALID: {name} shape={values.shape}")
+    if not np.isfinite(values).all():
+        raise RuntimeError(f"TF_AGREEMENT_SOURCE_NONFINITE: {name}")
+    return pd.Series(values, index=df.index, dtype=np.float64)
 
 
 def _continuous_to_sign(values: pd.Series, pos_thr: float, neg_thr: float) -> pd.Series:
@@ -67,24 +90,38 @@ def compute_tf_agreement_score(df: pd.DataFrame) -> pd.Series:
     Score = fraction of non-D1 TFs whose sign agrees with D1's sign.
     If D1 sign is 0 (neutral), score is mean(|other TF signs|==0).
     """
+    if len(df) == 0:
+        raise RuntimeError("TF_AGREEMENT_SOURCE_EMPTY")
+    sources = {name: _numeric_source(df, name) for name in TF_AGREEMENT_SOURCE_FIELDS}
+
     # D1 reference sign
     d1_sign = _continuous_to_sign(
-        df["D1_dist_from_ema200_atr"],
+        sources["D1_dist_from_ema200_atr"],
         D1_DIST_POS_THRESHOLD, D1_DIST_NEG_THRESHOLD,
     )
 
     # Other TF signs
-    h4_sign = df["H4_trend_sign_cat"].map(H4_CAT_TO_SIGN).fillna(0).astype(np.int8)
+    h4_raw = sources["H4_trend_sign_cat"].to_numpy(dtype=np.float64)
+    if not np.equal(h4_raw, np.floor(h4_raw)).all():
+        raise RuntimeError("TF_AGREEMENT_H4_CATEGORY_NONINTEGER")
+    h4_categories = h4_raw.astype(np.int64)
+    invalid_h4 = sorted(set(h4_categories.tolist()) - set(H4_CAT_TO_SIGN))
+    if invalid_h4:
+        raise RuntimeError(f"TF_AGREEMENT_H4_CATEGORY_INVALID: {invalid_h4}")
+    h4_sign = pd.Series(
+        np.asarray([H4_CAT_TO_SIGN[int(value)] for value in h4_categories], dtype=np.int8),
+        index=df.index,
+    )
     h1_sign = _continuous_to_sign(
-        df["H1_range_compression_ratio"],
+        sources["H1_range_compression_ratio"],
         H1_COMP_POS_THRESHOLD, H1_COMP_NEG_THRESHOLD,
     )
     m15_sign = _continuous_to_sign(
-        df["M15_range_compression_ratio"],
+        sources["M15_range_compression_ratio"],
         M15_COMP_POS_THRESHOLD, M15_COMP_NEG_THRESHOLD,
     )
     m5_sign = _continuous_to_sign(
-        df["micro_momentum_3"],
+        sources["micro_momentum_3"],
         MICRO_MOM_POS_THRESHOLD, MICRO_MOM_NEG_THRESHOLD,
     )
 
@@ -96,7 +133,12 @@ def compute_tf_agreement_score(df: pd.DataFrame) -> pd.Series:
     # If D1 is 0 (neutral), agreement = count where other is also 0
     matches = other_signs.apply(lambda col: col == d1_sign).sum(axis=1)
     score = matches / other_signs.shape[1]
-    return score.astype(np.float32)
+    out = score.astype(np.float32)
+    if out.shape != (len(df),) or not np.isfinite(out.to_numpy()).all():
+        raise RuntimeError("TF_AGREEMENT_OUTPUT_INVALID")
+    if ((out < 0.0) | (out > 1.0)).any():
+        raise RuntimeError("TF_AGREEMENT_OUTPUT_OUT_OF_RANGE")
+    return out
 
 
 def summarize(df: pd.DataFrame, score: pd.Series) -> dict:

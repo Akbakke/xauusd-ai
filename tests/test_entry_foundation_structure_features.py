@@ -1,11 +1,15 @@
 import numpy as np
+import pytest
 
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
     build_entry_foundation_structure_layer,
     missing_foundation_structure_source_fields,
 )
-from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import _build_chart_layer
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    CHART_LAYER_SOURCE_FIELDS,
+    build_chart_layer,
+)
 
 
 def _matrix(names: list[str], n: int = 8) -> np.ndarray:
@@ -194,20 +198,43 @@ def test_foundation_structure_source_dependency_contract_is_explicit() -> None:
     assert missing == ["snap.smc_bos_up"]
 
 
-def test_chart_layer_includes_foundation_features() -> None:
-    names = [
-        "snap.smc_swing_state",
-        "snap.smc_bos_up",
-        "snap.smc_bos_down",
-        "snap.smc_choch",
-        "ctx_cont.dist_last_swing_high_atr",
-        "ctx_cont.dist_last_swing_low_atr",
-        "ctx_cont.bars_since_swing_high",
-        "ctx_cont.bars_since_swing_low",
-        "ctx_cont.is_ASIA",
+def test_foundation_structure_layer_fails_closed_on_missing_or_nonfinite_sources() -> None:
+    missing_names = [
+        name for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS if name != "snap.smc_bos_up"
     ]
+    with pytest.raises(RuntimeError, match="FOUNDATION_STRUCTURE_SOURCE_FIELDS_MISSING"):
+        build_entry_foundation_structure_layer(
+            np.zeros((3, len(missing_names)), dtype=np.float32),
+            missing_names,
+        )
+
+    names = list(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
+    for value in (np.nan, np.inf, -np.inf):
+        x = _matrix(names)
+        x[2, names.index("ctx_cont.sr_support_proximity_exp")] = value
+        with pytest.raises(RuntimeError, match="FOUNDATION_STRUCTURE_SOURCE_NONFINITE"):
+            build_entry_foundation_structure_layer(x, names)
+
+
+def test_foundation_structure_layer_rejects_duplicate_or_misaligned_names() -> None:
+    names = list(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
+    duplicate_names = [*names, names[0]]
+    with pytest.raises(RuntimeError, match="FOUNDATION_STRUCTURE_FEATURE_NAMES_DUPLICATE"):
+        build_entry_foundation_structure_layer(
+            np.zeros((2, len(duplicate_names)), dtype=np.float32),
+            duplicate_names,
+        )
+    with pytest.raises(RuntimeError, match="FOUNDATION_STRUCTURE_FEATURE_NAME_COUNT_MISMATCH"):
+        build_entry_foundation_structure_layer(
+            np.zeros((2, len(names) + 1), dtype=np.float32),
+            names,
+        )
+
+
+def test_chart_layer_includes_foundation_features() -> None:
+    names = list(CHART_LAYER_SOURCE_FIELDS)
     x = _matrix(names)
-    chart_x, chart_names = _build_chart_layer(x, names)
+    chart_x, chart_names = build_chart_layer(x, names)
 
     assert chart_x.shape[0] == x.shape[0]
     assert "chart.foundation_hh_state" in chart_names

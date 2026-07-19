@@ -10,7 +10,7 @@ from gx1.features.entry_chart_geometry_v1 import (
     missing_chart_geometry_source_fields,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
-from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import _add_feature
+from gx1.features.entry_model_native_feature_layers_v1 import add_chart_feature
 
 
 EXPECTED_CHART_GEOMETRY_FEATURE_COUNT = 58
@@ -152,19 +152,35 @@ def test_chart_geometry_source_contract_and_specialist_routing() -> None:
     assert classify_entry_specialist_feature("chart.geometry_rising_support_rail_short_trap_pressure") == "chart_geometry_encoder"
 
 
-def test_chart_geometry_strict_mode_rejects_missing_source_fields() -> None:
+def test_chart_geometry_always_rejects_missing_source_fields() -> None:
     names = [name for name in CHART_GEOMETRY_SOURCE_FIELDS if name != "ctx_cont.dist_to_R1_atr"]
     x = np.zeros((3, len(names)), dtype=np.float32)
 
     with pytest.raises(RuntimeError, match="CHART_GEOMETRY_SOURCE_FIELDS_MISSING"):
-        build_entry_chart_geometry_layer(x, names, strict_sources=True)
+        build_entry_chart_geometry_layer(x, names)
+
+
+def test_chart_geometry_rejects_nonfinite_sources_and_duplicate_names() -> None:
+    names = list(CHART_GEOMETRY_SOURCE_FIELDS)
+    for value in (np.nan, np.inf, -np.inf):
+        x = _matrix(names)
+        x[1, names.index("ctx_cont.dist_to_R1_atr")] = value
+        with pytest.raises(RuntimeError, match="CHART_GEOMETRY_SOURCE_NONFINITE"):
+            build_entry_chart_geometry_layer(x, names)
+
+    duplicate_names = [*names, names[0]]
+    with pytest.raises(RuntimeError, match="CHART_GEOMETRY_FEATURE_NAMES_DUPLICATE"):
+        build_entry_chart_geometry_layer(
+            np.zeros((2, len(duplicate_names)), dtype=np.float32),
+            duplicate_names,
+        )
 
 
 def test_generated_chart_features_keep_constant_columns_for_manifest_contract() -> None:
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    _add_feature(arrays, names, "lh_x_ema50_200", np.zeros(6, dtype=np.float32))
+    add_chart_feature(arrays, names, "lh_x_ema50_200", np.zeros(6, dtype=np.float32))
 
     assert names == ["chart.lh_x_ema50_200"]
     assert len(arrays) == 1

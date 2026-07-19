@@ -235,10 +235,11 @@ def replay_exit_chain_forward(
     try:
         trade = __import__(
             "gx1.execution.v12_trade_state", fromlist=["TradeState"]
-        ).TradeState.open(
+        ).TradeState.open_unit_normalized_research(
             entry_ts=ent_min, side=side,
             entry_bid=float(entry_bid), entry_ask=float(entry_ask),
-            v10_snapshot=v10_snapshot or {}, trade_id=trade_id, units=1)
+            v10_snapshot=v10_snapshot or {}, trade_id=trade_id,
+            normalization_contract="unit_normalized_direction_exit_research_v1")
     except Exception as exc:
         return dict(status=f"open_err:{exc}", net_bps=None, exit_bar=None,
                     exit_reason=None, n_bars=0)

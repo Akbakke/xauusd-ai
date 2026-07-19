@@ -107,10 +107,11 @@ def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
 
 
 # Fail-closed guard (finding C, 2026-05-26): proba_to_signal_bridge_v1 emits a
-# FIXED 7-field order. The live/batch paths set GX1_SIGNAL_BRIDGE_VERSION=3 but
-# this builder is version-agnostic — it works ONLY because the active (v3) bridge
-# field order is identical. If a future bridge reorders fields, this assert fails
-# loudly at import instead of silently feeding V10/V3 a permuted bridge.
+# FIXED 7-field order. The active bridge contract is signal_bridge_v3 (the old
+# env selector GX1_SIGNAL_BRIDGE_VERSION and its reader are deleted) — this
+# builder works ONLY because the active (v3) bridge field order is identical.
+# If a future bridge reorders fields, this assert fails loudly at import
+# instead of silently feeding V10/V3 a permuted bridge.
 _BRIDGE_ORDER_V1 = ["p_long", "p_short", "p_flat", "p_hat",
                     "uncertainty_score", "margin_top1_top2", "entropy"]
 try:

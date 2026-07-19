@@ -219,34 +219,3 @@ def test_apply_baseline_unknown_id_raises() -> None:
     per_bar = _make_synthetic_per_bar()
     with pytest.raises(RuntimeError, match="UNKNOWN_BASELINE_ID"):
         gate._apply_baseline(per_bar, "BOGUS")
-
-
-def test_write_artifacts_produces_required_outputs(tmp_path: Path) -> None:
-    out_root = tmp_path / "EXIT_OFF_POLICY_EVAL_HARNESS_V1_20260429T999999Z_LOCK"
-    result = gate.write_artifacts(out_root=out_root, built_at_utc="20260429T999999Z")
-    artifact_root = Path(result["artifact_root"])
-    assert artifact_root == out_root
-    for required in [
-        "manifest_v1.json",
-        "summary_v1.json",
-        "status_v1.json",
-        "report_v1.md",
-        "exit_off_policy_eval_harness_go_no_go_v1.json",
-        "input_manifest_v1.json",
-        "baseline_definitions_v1.json",
-        "metric_definitions_v1.json",
-        "baseline_metrics_per_split_v1.json",
-        "baseline_metrics_per_split_v1.csv",
-        "eval_harness_audits_v1.json",
-        "reproducibility_audit_v1.json",
-    ]:
-        assert (artifact_root / required).exists(), f"missing {required}"
-    summary = json.loads((artifact_root / "summary_v1.json").read_text())
-    assert summary["final_status_v1"] in gate.ALLOWED_FINAL_STATUSES
-    assert summary["next_action_v1"] in gate.ALLOWED_NEXT_ACTIONS
-    assert summary["training_blocked_v1"] is True
-    assert summary["baseline_count_v1"] == 6
-    assert summary["metric_count_v1"] == 8
-    audits = json.loads((artifact_root / "eval_harness_audits_v1.json").read_text())
-    for a in audits["audits_v1"]:
-        assert a["status_v1"] == "PASS", f"audit failed: {a}"

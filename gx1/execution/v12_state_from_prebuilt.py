@@ -49,12 +49,9 @@ that exist in both prebuilts (i.e. before the staleness cutoff).
 from __future__ import annotations
 
 import logging
-import os
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-
 import numpy as np
 import pandas as pd
 
@@ -84,12 +81,13 @@ def _mp_v2_mtf_worker(cv3: pd.DataFrame) -> pd.DataFrame:
     NB: the augmenter mutates cv3 in-place and returns the same object, so we
     must snapshot the column set BEFORE the call to compute the new-cols delta.
     """
-    cols_before = set(cv3.columns)
     loader = PrebuiltStateLoader()
     augmented = loader._augment_cv3_with_v2_mtf_scalars(cv3)
-    new_cols = [c for c in augmented.columns
-                if c.endswith("_v2") and c not in cols_before]
-    return augmented[new_cols].copy()
+    expected = loader._expected_v2_mtf_columns()
+    missing = [name for name in expected if name not in augmented.columns]
+    if missing:
+        raise RuntimeError(f"parallel V2 MTF worker output missing: {missing}")
+    return augmented[expected].copy()
 
 
 def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
@@ -100,12 +98,13 @@ def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
         ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
         ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
     )
-    cols_before = set(cv3.columns)
     loader = PrebuiltStateLoader()
     augmented = loader._augment_cv3_with_group_a_and_dip_struct(cv3)
-    new_cols = [c for c in (list(_GROUP_A) + list(_DIP_STRUCT))
-                if c in augmented.columns and c not in cols_before]
-    return augmented[new_cols].copy()
+    expected = list(_GROUP_A) + list(_DIP_STRUCT)
+    missing = [name for name in expected if name not in augmented.columns]
+    if missing:
+        raise RuntimeError(f"parallel group-A worker output missing: {missing}")
+    return augmented[expected].copy()
 
 CANONICAL_V3_PREBUILT = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
@@ -237,8 +236,9 @@ class PrebuiltStateLoader:
             # heavy augmenters which spend their time in Python-level pandas
             # glue). Multiprocessing with fork() gives true parallelism — cv3
             # is inherited via copy-on-write (zero IPC for input), only the
-            # new columns are pickled back (small payload). Falls back to
-            # sequential on any multiprocessing error so the runner stays up.
+            # new columns are pickled back (small payload). Any multiprocessing
+            # failure aborts the refresh; a different execution path is not an
+            # admissible train≠serve substitute.
             if new_cv3 is not None and (cv3_advanced or b28_advanced):
                 t_aug = pd.Timestamp.utcnow()
                 # Fast augmenters in main thread (~3s total)
@@ -246,7 +246,6 @@ class PrebuiltStateLoader:
                 new_cv3 = self._augment_cv3_with_v1_legacy(new_cv3)
 
                 # Heavy augmenters in 2 subprocesses (~95s wall, was 180s sequential)
-                used_mp = False
                 try:
                     import multiprocessing as _mp
                     from concurrent.futures import ProcessPoolExecutor
@@ -258,29 +257,26 @@ class PrebuiltStateLoader:
                         grp_new = f_grp.result(timeout=600)
                     # Merge new cols back
                     for col in mtf_new.columns:
-                        if col not in new_cv3.columns:
-                            new_cv3[col] = mtf_new[col].values
+                        new_cv3[col] = mtf_new[col].values
                     for col in grp_new.columns:
-                        if col not in new_cv3.columns:
-                            new_cv3[col] = grp_new[col].values
-                    # V1/R10 completion (2026-06-04): the parallel-augment SUCCESS path was missing the
-                    # regime_v4 augmenter (only the sync load paths + the sequential fallback had it). At
-                    # GX1_REGIME_V4=1 the live async hot-refresh would drop the 16 EXIT_IO_V8 regime cols ->
+                        new_cv3[col] = grp_new[col].values
+                    # V1/R10 completion: run regime_v4 only after the exact
+                    # multiprocessing outputs have been merged. At
+                    # the live async hot-refresh would otherwise drop the active regime columns ->
                     # v12_v3_live.build_window fail-closed guard crashes the regime exit serve on first refresh.
                     # Runs AFTER the mtf merge above (supplies the 12 {tf}_*_v2 sources); joins D1_dist + is a
                     # no-op at flag=0 (cement bit-identical).
                     new_cv3 = self._augment_cv3_with_regime_v4(new_cv3)
-                    used_mp = True
                 except Exception as exc:
-                    LOG.warning(f"[parallel-augment] subprocess augment failed "
-                                f"({exc}); falling back to sequential")
-                    new_cv3 = self._augment_cv3_with_v2_mtf_scalars(new_cv3)
-                    new_cv3 = self._augment_cv3_with_group_a_and_dip_struct(new_cv3)
-                    new_cv3 = self._augment_cv3_with_regime_v4(new_cv3)  # V1/R10: after v2_mtf (sources)
+                    raise RuntimeError(
+                        "parallel augment failed; refusing a second transform path"
+                    ) from exc
 
                 aug_took = (pd.Timestamp.utcnow() - t_aug).total_seconds()
-                LOG.info(f"[parallel-augment] full pipeline finished in {aug_took:.1f}s "
-                         f"(method={'multiprocessing' if used_mp else 'sequential-fallback'})")
+                LOG.info(
+                    f"[parallel-augment] full pipeline finished in {aug_took:.1f}s "
+                    "(method=multiprocessing)"
+                )
 
             # Joint cutoff
             if new_cv3 is not None and new_b28 is not None:
@@ -366,7 +362,7 @@ class PrebuiltStateLoader:
         self._augment_cv3_with_v2_mtf_scalars()
         self._augment_cv3_with_group_a_and_dip_struct()
         self._augment_cv3_with_v1_legacy()
-        self._augment_cv3_with_regime_v4()  # V1/R10: after v2_mtf (sources); gated GX1_REGIME_V4
+        self._augment_cv3_with_regime_v4()  # after v2_mtf sources; immutable active transform
 
     # ── V2 multi-TF scalar augmentation (XGB v7 base80) ───────────────
     # XGB v7 expects 31 V2-suffixed columns per row (M15/H1/H4/D1 × 7-8 each).
@@ -379,39 +375,47 @@ class PrebuiltStateLoader:
     _V2_MTF_TFS = REGIME_V4_V2_MTF_TFS
     _V2_MTF_SKIP = REGIME_V4_V2_MTF_SKIP
 
+    @classmethod
+    def _expected_v2_mtf_columns(cls) -> list[str]:
+        return [
+            f"{tf}_{live_frag}_v2"
+            for tf in cls._V2_MTF_TFS
+            for live_frag, _source_col in cls._V2_MTF_PER_TF
+            if (tf, live_frag) not in cls._V2_MTF_SKIP
+        ]
+
     # ── V1 / R10 (2026-06-04): REGIME_V4 exit-context augmentation ────────
     def _augment_cv3_with_regime_v4(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
-        """Compute the 16 REGIME_V4 EXIT_IO_V8 features on the FULL cv3 — ONE-truth add_regime_v4_features,
-        the SAME call the V3 builder uses (materialize_build_v3_training_dataset_v2.py:330-340). Gated by
-        GX1_REGIME_V4 so cement (flag=0 / EXIT_IO_V7) stays bit-identical. MUST run AFTER
+        """Compute the 16 REGIME_V4 EXIT_IO_V8 features on the FULL cv3 through
+        the canonical `add_regime_v4_features` owner. Any future V3 dataset
+        builder must call the same owner and prove parity. This immutable active
+        transform MUST run AFTER
         _augment_cv3_with_v2_mtf_scalars (supplies the 12 {tf}_*_v2 source cols) and on the FULL frame
         (F4 d1_dist_roc_288 / F9 bars_since_d1_regime_change need >=288-bar D1 history; a 96-bar window
         would clip them to 0 = a second-order skew). Fail-closed: raises on a missing source col.
         """
-        if os.environ.get("GX1_REGIME_V4", "0").strip().lower() not in ("1", "true", "yes", "on"):
-            return cv3 if cv3 is not None else self._cv3
         in_place = cv3 is None
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
-            return None
+            raise RuntimeError("REGIME_V4 augmentation requires a loaded canonical_v3 frame")
         from gx1.features.regime_v4_features import (
-            REGIME_V4_FEATURE_NAMES as _RV4_NAMES,
             add_regime_v4_features as _add_rv4,
         )
-        if all(c in target.columns for c in _RV4_NAMES):
-            return target
         # D1_dist_from_ema200_atr is the ONLY REGIME_V4 source not emitted by _augment_cv3_with_v2_mtf_scalars
         # (which supplies the 12 {tf}_*_v2). Join it from base28 (capital-D1) by timestamp before computing.
-        if "D1_dist_from_ema200_atr" not in target.columns:
-            if self._base28 is not None and "D1_dist_from_ema200_atr" in self._base28.columns:
-                target["D1_dist_from_ema200_atr"] = (
-                    self._base28["D1_dist_from_ema200_atr"].reindex(target.index, method="ffill")
-                )
-            else:
-                raise RuntimeError(
-                    "[REGIME_V4_SERVE] D1_dist_from_ema200_atr missing from base28 — cannot compute the "
-                    "EXIT_IO_V8 REGIME_V4 tail at serve (would be train!=serve). Provide it on the prebuilt."
-                )
+        if self._base28 is None or "D1_dist_from_ema200_atr" not in self._base28.columns:
+            raise RuntimeError(
+                "[REGIME_V4_SERVE] D1_dist_from_ema200_atr missing from base28 — cannot compute the "
+                "EXIT_IO_V8 REGIME_V4 tail at serve (would be train!=serve). Provide it on the prebuilt."
+            )
+        source = self._base28["D1_dist_from_ema200_atr"]
+        missing_index = target.index[~target.index.isin(source.index)]
+        if len(missing_index):
+            raise RuntimeError(
+                "[REGIME_V4_SERVE] exact D1 distance timestamps missing: "
+                f"count={len(missing_index)} first={missing_index[0]}"
+            )
+        target["D1_dist_from_ema200_atr"] = source.loc[target.index]
         # add_regime_v4_features needs time-ascending order (shift/run-length); cv3 is sorted at load.
         _add_rv4(target)  # in-place; one-truth; raises on any missing {tf}_*_v2 source col
         if in_place:
@@ -433,17 +437,16 @@ class PrebuiltStateLoader:
         in_place = cv3 is None
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
-            return None
+            raise RuntimeError("group-A augmentation requires a loaded canonical_v3 frame")
         from gx1.contracts.signal_bridge_v3 import (
             ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
             ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
         )
-        need = list(_GROUP_A) + list(_DIP_STRUCT)
-        if all(c in target.columns for c in need):
-            return target
-        if any(c not in target.columns for c in ("high", "low", "close")):
-            LOG.warning("group_a/dip_struct augment skipped: cv3 missing OHLC")
-            return target
+        missing_ohlc = [c for c in ("open", "high", "low", "close", "volume") if c not in target.columns]
+        if missing_ohlc:
+            raise RuntimeError(
+                f"group-A augmentation requires exact canonical OHLCV sources: {missing_ohlc}"
+            )
         LOG.info(f"augmenting canonical_v3 with {len(_GROUP_A)} GROUP-A + "
                  f"{len(_DIP_STRUCT)} DIP/STRUCT ctx_cont cols "
                  f"(~10-20 min for {len(target):,} M5 rows)...")
@@ -459,16 +462,15 @@ class PrebuiltStateLoader:
         # last live disk-cache dependency. Same builder + same bars as the disk cache (which
         # prebuild_multi_tf_cache_v2 also makes via build_multi_tf_per_bar_features_v2), and
         # the features are causal/asof → bit-identical at every decision ts (train==serve).
-        try:
-            mtf_in_mem = build_multi_tf_per_bar_features_v2(target)
-        except Exception as exc:
-            LOG.warning(f"group_a/dip_struct: in-memory multi-TF build failed ({exc}); "
-                        f"falling back to on-disk cache")
-            mtf_in_mem = None
+        mtf_in_mem = build_multi_tf_per_bar_features_v2(target)
         # The helper mutates in place via the returned DataFrame; rebind to be safe.
         target = attach_group_a_dip_struct_ctx_columns(
             target, journal_label="live_costfix", multi_tf=mtf_in_mem,
         )
+        need = list(_GROUP_A) + list(_DIP_STRUCT)
+        missing = [name for name in need if name not in target.columns]
+        if missing:
+            raise RuntimeError(f"group-A augmentation output contract incomplete: {missing}")
         if in_place:
             self._cv3 = target
         LOG.info(f"  group_a/dip_struct augment done: cv3 now {len(target.columns)} cols")
@@ -492,13 +494,13 @@ class PrebuiltStateLoader:
         in_place = cv3 is None
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
-            return None
+            raise RuntimeError("legacy feature augmentation requires a loaded canonical_v3 frame")
         cv3 = target
-        if all(c in cv3.columns for c in self._V1_LEGACY_FEATURES):
-            return cv3
-        if any(c not in cv3.columns for c in ("open", "high", "low", "close", "volume")):
-            LOG.warning("v1 legacy augment skipped: cv3 lacks full OHLCV")
-            return cv3
+        missing_ohlcv = [
+            c for c in ("open", "high", "low", "close", "volume") if c not in cv3.columns
+        ]
+        if missing_ohlcv:
+            raise RuntimeError(f"legacy feature augmentation missing exact OHLCV: {missing_ohlcv}")
         LOG.info(f"augmenting canonical_v3 with {len(self._V1_LEGACY_FEATURES)} "
                  f"legacy canonical_v1 features (atr/std50/roc20/vwap_drifts)")
 
@@ -522,7 +524,7 @@ class PrebuiltStateLoader:
         }
 
         # E2 (2026-06-04 train==serve parity): std50 / _v1_vwap_drift48 / _v1h1_vwap_drift MUST equal the
-        # BUILD truth (augment_canonical_v3_with_missing_features == v12_canonical_incremental._compute_plus5).
+        # BUILD truth (v12_canonical_incremental._compute_plus5_features).
         # The old serve math diverged (std50 min_periods 10 vs 2; vwap48 /close vs /vwap48 + min_periods 12
         # vs 1; h1 calendar-resample vs rolling-288) -> a retrain on the PLUS5 parquet would learn values
         # serve could not reproduce. Byte-aligned to the build formulas below (atr + roc20 already matched).
@@ -567,21 +569,20 @@ class PrebuiltStateLoader:
         """
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
-            return None
+            raise RuntimeError("volume augmentation requires a loaded canonical_v3 frame")
         from gx1.features.volume_features import (
             compute_volume_features, VOLUME_FEATURE_NAMES,
         )
-        if all(c in target.columns for c in VOLUME_FEATURE_NAMES):
-            return target
         if "volume" not in target.columns or "close" not in target.columns:
-            LOG.warning("volume features augment skipped: cv3 lacks volume/close")
-            return target
+            raise RuntimeError("volume augmentation requires exact volume and close sources")
         LOG.info(f"augmenting canonical_v3 with {len(VOLUME_FEATURE_NAMES)} "
                  f"volume features (vol_z_20, vol_ratio_5_20, ...)")
         feats = compute_volume_features(target[["volume", "close"]])
+        missing = [name for name in VOLUME_FEATURE_NAMES if name not in feats]
+        if missing:
+            raise RuntimeError(f"volume feature owner output incomplete: {missing}")
         for name in VOLUME_FEATURE_NAMES:
-            if name not in target.columns and name in feats:
-                target[name] = feats[name]
+            target[name] = feats[name]
         LOG.info(f"  volume features added: cv3 now {len(target.columns)} cols")
         return target
 
@@ -592,21 +593,17 @@ class PrebuiltStateLoader:
         """
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
-            return None
-        # Idempotency check — any expected col present means we've augmented.
-        probe = f"{self._V2_MTF_TFS[0]}_{self._V2_MTF_PER_TF[0][0]}_v2"
-        if probe in target.columns:
-            return target
+            raise RuntimeError("V2 MTF augmentation requires a loaded canonical_v3 frame")
         from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars
         cv3 = target
         ohlc = ["open", "high", "low", "close"]
-        if any(c not in cv3.columns for c in ohlc):
-            LOG.warning("V2 mtf augment skipped: canonical_v3 missing OHLC cols")
-            return cv3
+        missing_ohlcv = [c for c in (*ohlc, "volume") if c not in cv3.columns]
+        if missing_ohlcv:
+            raise RuntimeError(f"V2 MTF augmentation missing exact OHLCV: {missing_ohlcv}")
         m5_df = cv3[ohlc].copy()
         for c in ohlc:
             m5_df[c] = m5_df[c].astype(np.float64)
-        m5_df["volume"] = cv3["volume"].astype(np.float64) if "volume" in cv3.columns else 1.0
+        m5_df["volume"] = cv3["volume"].astype(np.float64)
         LOG.info(f"augmenting canonical_v3 with V2 multi-TF scalar features "
                  f"(31 cols expected) — {len(m5_df):,} M5 rows...")
         # V2 (2026-06-04 one-truth): per-bar projection now lives in the SHARED
@@ -614,14 +611,14 @@ class PrebuiltStateLoader:
         # MULTI_TF_SHIFT only-closed-bars searchsorted) so the V3 exit builder produces the
         # IDENTICAL {tf}_*_v2 cols (was an inline loop here -> the builder's stale join drifted to
         # 88-95% match). Byte-identical to the prior loop.
-        try:
-            cv3_ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
-            _v2cols = attach_v2_mtf_per_bar_scalars(
-                m5_df, cv3_ts_ns, self._V2_MTF_PER_TF, self._V2_MTF_TFS, self._V2_MTF_SKIP,
-            )
-        except Exception as exc:
-            LOG.warning(f"V2 mtf build failed: {exc} — XGB feature gap will surface")
-            return cv3
+        cv3_ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
+        _v2cols = attach_v2_mtf_per_bar_scalars(
+            m5_df, cv3_ts_ns, self._V2_MTF_PER_TF, self._V2_MTF_TFS, self._V2_MTF_SKIP,
+        )
+        expected = self._expected_v2_mtf_columns()
+        missing = [name for name in expected if name not in _v2cols]
+        if missing:
+            raise RuntimeError(f"V2 MTF feature owner output incomplete: {missing}")
         for _col, _vals in _v2cols.items():
             cv3[_col] = _vals
         LOG.info(f"  V2 mtf augment done: +{len(_v2cols)} cols  "
@@ -661,23 +658,18 @@ class PrebuiltStateLoader:
         if self._base28 is None:
             return cv3_win
 
-        # Fallback: join BASE28 augmented columns at exact timestamps
+        # Join BASE28 augmented columns at exact timestamps. Missing timestamps
+        # are unavailable evidence; they may not be reconstructed from a later
+        # M1 row inside the bucket.
         b28_cols = [c for c in self._base28.columns if c not in cv3_win.columns]
         if b28_cols:
-            # 2026-06-15 weekend-open boundary fix: the FIRST M5 bar after a market gap
-            # (e.g. Sun 22:00) exists in cv3, but its :00 minute is missing from base28
-            # (OANDA's first post-open M1 bar lands at :04), so an exact reindex(method=
-            # None) left ALL base28 cols NaN on that ONE context bar -> the fail-closed
-            # XGB sanitizer (and session_id.astype(int)) refused EVERY decision for the
-            # ~8h that bar stays in the 96-bar window = live fully blocked at every Sunday
-            # open. Fill ONLY that gap from the next M1 bar WITHIN THE SAME M5 bucket
-            # (tolerance=5min). Verified: exact-matched bars (= every bar training saw)
-            # are returned BIT-IDENTICALLY (train==serve preserved); the cap at end_bucket
-            # prevents any future leak; the decision bar itself is always present in
-            # base28 (cutoff = min(cv3,base28)) so it is never fabricated.
-            b28_slice = self._base28.loc[:end_bucket, b28_cols].reindex(
-                cv3_win.index, method="bfill", tolerance=pd.Timedelta("5min"),
-            )
+            missing_index = cv3_win.index[~cv3_win.index.isin(self._base28.index)]
+            if len(missing_index):
+                raise RuntimeError(
+                    "BASE28 exact timestamp contract missing rows: "
+                    f"count={len(missing_index)} first={missing_index[0]}"
+                )
+            b28_slice = self._base28.loc[cv3_win.index, b28_cols]
             joined = pd.concat([cv3_win, b28_slice], axis=1)
         else:
             joined = cv3_win.copy()
@@ -712,14 +704,11 @@ class PrebuiltStateLoader:
             build_multi_tf_per_bar_features_v2, MULTI_TF_SHIFT,
         )
         ohlc_cols = ["open", "high", "low", "close"]
-        missing = [c for c in ohlc_cols if c not in source.columns]
+        missing = [c for c in (*ohlc_cols, "volume") if c not in source.columns]
         if missing:
-            raise RuntimeError(f"canonical_v3 missing OHLC cols: {missing}")
+            raise RuntimeError(f"canonical_v3 missing exact OHLCV cols: {missing}")
         m5_df = source[ohlc_cols].copy()
-        if "volume" in source.columns:
-            m5_df["volume"] = source["volume"].astype(np.float64)
-        else:
-            m5_df["volume"] = 1.0
+        m5_df["volume"] = source["volume"].astype(np.float64)
         LOG.info(f"building multi-TF V2 features (M5/M15/H1/H4/D1, 25 dim each) "
                  f"from {len(m5_df):,} M5 bars...")
         feats_dict = build_multi_tf_per_bar_features_v2(m5_df)
@@ -759,10 +748,3 @@ class PrebuiltStateLoader:
             )
             for tf, feats in self._multi_tf_feats.items()
         }
-
-    def get_latest_row(self, end_ts: pd.Timestamp) -> pd.Series | None:
-        """Convenience: get only the M5-bucket row at end_ts (joined). None if missing."""
-        win = self.get_window(end_ts, n_bars=1)
-        if win.empty:
-            return None
-        return win.iloc[-1]

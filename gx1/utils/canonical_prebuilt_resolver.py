@@ -33,7 +33,6 @@ def resolve_base28_canonical_from_manifest(manifest_path: str) -> Dict[str, obje
     parquet_path = Path(obj.get("parquet_path") or "").expanduser().resolve()
     parquet_sha = obj.get("parquet_sha256") or ""
     cols_total = obj.get("cols_total")
-    rows = obj.get("rows")
 
     if not parquet_path.exists():
         raise RuntimeError(f"BASE28_PARQUET_NOT_FOUND: {parquet_path}")
@@ -76,60 +75,4 @@ def resolve_base28_canonical_from_manifest(manifest_path: str) -> Dict[str, obje
         "parquet_sha256": actual_sha,
         "rows": num_rows,
         "cols_total": cols,
-    }
-
-
-def assert_canonical_v2_schema(parquet_path: str) -> Dict[str, object]:
-    """Verify a canonical_v2 prebuilt parquet has the V2 contract columns.
-
-    Required columns (from gx1.contracts.signal_bridge_v2):
-      - 30 PER_BAR_PRICE_STATE_FIELDS_V2 (per-bar SEQ extensions)
-      - 22 ORDERED_CTX_CONT_V2_EXTENSION (multi-TF macro context)
-      - 21 ORDERED_CTX_CONT_V1_PREFIX (still required for ctx_cont prefix)
-      - 6 ORDERED_CTX_CAT_NAMES_V2
-
-    Used by the v2 runtime (GX1_SIGNAL_BRIDGE_VERSION=2) to fail fast if the
-    prebuilt parquet is missing any column the v2 transformer expects.
-    """
-    from gx1.contracts.signal_bridge_v2 import (
-        PER_BAR_PRICE_STATE_FIELDS_V2,
-        ORDERED_CTX_CONT_V1_PREFIX,
-        ORDERED_CTX_CONT_V2_EXTENSION,
-        ORDERED_CTX_CAT_NAMES_V2,
-    )
-
-    pp = Path(parquet_path).expanduser().resolve()
-    if not pp.exists():
-        raise RuntimeError(f"CANONICAL_V2_SCHEMA_FAIL: parquet not found: {pp}")
-    schema_names = set(pq.ParquetFile(pp).schema_arrow.names)
-
-    # Some v2 ctx_cont fields are derivable from other columns at runtime — don't
-    # require them in the parquet itself. Today: `is_ASIA` is derived from
-    # `session_id` (== 0) when missing.
-    DERIVABLE = {"is_ASIA": ("session_id",)}
-
-    required = (
-        list(PER_BAR_PRICE_STATE_FIELDS_V2)
-        + list(ORDERED_CTX_CONT_V1_PREFIX)
-        + list(ORDERED_CTX_CONT_V2_EXTENSION)
-        + list(ORDERED_CTX_CAT_NAMES_V2)
-    )
-    missing = []
-    for col in required:
-        if col in schema_names:
-            continue
-        deps = DERIVABLE.get(col)
-        if deps and all(d in schema_names for d in deps):
-            continue
-        missing.append(col)
-    if missing:
-        raise RuntimeError(
-            f"CANONICAL_V2_SCHEMA_FAIL: parquet {pp} missing v2 columns "
-            f"(no derivation path either): {missing}"
-        )
-    return {
-        "parquet_path": str(pp),
-        "n_required_v2_cols": len(required),
-        "n_present": len([c for c in required if c in schema_names]),
-        "n_columns_total": len(schema_names),
     }

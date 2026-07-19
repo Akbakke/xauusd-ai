@@ -43,8 +43,8 @@ def load_run_header(run_dir: Path) -> Optional[Dict[str, Any]]:
 
 
 def load_trade_journal_index(run_dir: Path) -> Optional[pd.DataFrame]:
-    """Load trade journal index CSV."""
-    index_path = run_dir / "trade_journal" / "trade_journal_index.csv"
+    """Load the sole model-native trade journal index CSV."""
+    index_path = run_dir / "trade_journal" / "trade_journal_index_model_native_v1.csv"
     if not index_path.exists():
         logger.warning(f"Trade journal index not found: {index_path}")
         return None

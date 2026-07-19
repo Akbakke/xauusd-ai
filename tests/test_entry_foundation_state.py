@@ -1,232 +1,275 @@
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
-from gx1.features.entry_foundation_structure_v1 import FOUNDATION_STRUCTURE_SOURCE_FIELDS
-from gx1.features.entry_specialist_feature_groups_v1 import FOUNDATION_OBJECTIVE_SPECIALISTS
-from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
-from gx1.scripts.verify_entry_foundation_state_v1 import run
+import pytest
 
-
-REPO = Path("/home/andre2/src/GX1_ENGINE")
-AUDIT_DOC = REPO / "docs/ENTRY_FOUNDATION_AUDIT_20260628.md"
-CANDIDATE_FEATURE_AUDIT = Path(
-    "/home/andre2/GX1_DATA/reports/entry_feature_foundation_audit_20260628_v1/"
-    "foundation_seq146_20260629_directional_smc/ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json"
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    model_native_signal_contract_metadata,
 )
-CANDIDATE_SPECIALIST_AUDIT = Path(
-    "/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/"
-    "foundation_seq146_20260629_directional_smc/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.scripts.verify_entry_foundation_state_v1 import (
+    EVIDENCE_SPECS,
+    STATE_BLOCKED_DECISION,
+    STATE_EVENT_PREFIX,
+    STATE_PROVEN_DECISION,
+    build_parser,
+    run,
 )
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
-    verifier = (REPO / "gx1/scripts/verify_entry_foundation_state_v1.py").read_text(encoding="utf-8")
-
-    assert "entry_foundation_smoke_train_manifests_20260628_v1" in verifier
-    assert "entry_foundation_candidate_train_manifests_20260628_v1" in verifier
-    assert "entry_seq215_manifest_provenance_repair_20260630_v1" in verifier
-    assert "entry_foundation_manifest_provenance_repair_20260701_v1" in verifier
-    assert "entry_candidate_bundle_audit_20260628_v1" in verifier
-    assert "entry_candidate_replay_trade_log_20260628_v1" in verifier
-    assert "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120" in verifier
-    assert "entry_pocket_audit_20260713" in verifier
-    assert "entry_selective_edge_20260713" in verifier
-    assert "entry_iql_student_trade_log_20260628_v1" in verifier
-    assert "entry_iql_replay_slice_audit_20260628_v1" in verifier
-    assert "entry_exit_per_bar_handoff_20260630_v1" in verifier
-    assert "entry_exit_handoff_readiness_20260630_v1" in verifier
-    assert "entry_exit_per_bar_reconstruction_audit_20260630_v1" in verifier
-    assert "entry_exit_state_reward_contract_20260630_v1" in verifier
-    assert "entry_exit_split_leakage_audit_20260630_v1" in verifier
-    assert "entry_exit_model_dataset_readiness_20260630_v1" in verifier
-    assert "entry_exit_feature_alignment_20260630_v1" in verifier
-    assert "entry_exit_transformer_architecture_readiness_20260630_v1" in verifier
-    assert "entry_exit_transformer_training_plan_readiness_20260630_v1" in verifier
-    assert "entry_exit_transformer_trainer_wrapper_readiness_20260630_v1" in verifier
-    assert "entry_exit_transformer_pretrain_manifest_20260630_v1" in verifier
-    assert "entry_exit_model_dataset_slice_robustness_20260630_v1" in verifier
-    assert "entry_exit_transformer_train_execution_review_20260630_v1" in verifier
-    assert "entry_exit_transformer_post_train_contract_20260630_v1" in verifier
-    assert "entry_exit_transformer_train_enablement_20260701_v1" in verifier
-    assert "entry_smart_seq520_smoke_train_enablement_20260715_v1" in verifier
-    assert "entry_smart_ablation_replay_matrix_20260701_v1" in verifier
-    assert "entry_smart_ablation_replay_matrix_gate_20260701_v1" in verifier
-    assert "entry_smart_feature_mask_specs_20260701_v1" in verifier
-    assert "entry_trend_ema_extension_manifest_20260630_v1" in verifier
-    assert "entry_smc_liquidity_quality_manifest_20260630_v1" in verifier
-    assert "entry_momentum_flow_challenger_manifest_20260630_v1" in verifier
-    assert "entry_session_regime_interaction_manifest_20260630_v1" in verifier
+REPO = Path(__file__).resolve().parents[1]
 
 
-def _args(*, selftest: bool) -> argparse.Namespace:
-    return argparse.Namespace(
-        audit_doc=str(AUDIT_DOC),
-        out="",
-        quiet=True,
-        selftest=selftest,
+def _sha256_json(value: object) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _contract() -> dict:
+    return model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields(
+            remainder_prefix="session_regime.foundation_state_fixture"
+        )
     )
 
 
-def _run_or_active_stale(*, selftest: bool) -> tuple[dict, str]:
-    try:
-        return run(_args(selftest=selftest)), ""
-    except RuntimeError as exc:
-        error = str(exc)
-        if (
-            "feature foundation audit requires PASS" in error
-            and "decision=FAIL" in error
-            and "entry_foundation_structure_v1_20260629_directional_smc_pressure" in error
-        ):
-            return {}, error
-        raise
-
-
-def test_foundation_state_verify_requires_exact_objective_coverage() -> None:
-    report, active_stale_error = _run_or_active_stale(selftest=False)
-
-    if active_stale_error:
-        assert "foundation feature count None != 57" in active_stale_error
-        feature_audit = json.loads(CANDIDATE_FEATURE_AUDIT.read_text(encoding="utf-8"))
-        specialist_audit = json.loads(CANDIDATE_SPECIALIST_AUDIT.read_text(encoding="utf-8"))
-        assert feature_audit["decision"] == "PASS"
-        assert feature_audit["failures"] == []
-        assert specialist_audit["decision"] == "PASS"
-        assert specialist_audit["failures"] == []
-    else:
-        feature_audit = report["feature_audit_latest"]
-        specialist_audit = report["specialist_audit_latest"]
-    coverage = {
-        row["objective"]: row
-        for row in feature_audit["foundation_objective_coverage"]
+def _publish(root: Path, prefix: str, payload: dict) -> Path:
+    payload = {
+        "created_utc": "2026-07-16T12:00:00.123456+00:00",
+        **payload,
     }
-    objective_liveness = {
-        (row["split"], row["objective"]): row
-        for row in feature_audit["foundation_objective_liveness"]
+    path, _ = write_immutable_json_event(root, prefix, payload)
+    return path
+
+
+def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[str, Path]:
+    contract = _contract()
+    preflight_contract = {
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "direction_logit_mode": "model_native",
+        "seq_input_dim": 513,
+        "snap_input_dim": 513,
+        "seq_len": 96,
+        "ctx_cont_dim": 142,
+        "ctx_cat_dim": 5,
+        "base_signal_dim": 34,
+        "selected_feature_count": 479,
+        "bridge_dim": 0,
+        "bridge_source": None,
+        "anchor_source": None,
     }
-    source_liveness = {
-        (row["split"], row["source_field"]): row
-        for row in feature_audit["foundation_source_field_liveness"]
+    if broken_preflight:
+        preflight_contract["contract_mode"] = "foundation_seq146"
+    preflight = _publish(
+        tmp_path / "preflight",
+        "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
+        {
+            "schema_version": "entry_model_native_seq513_rebuild_preflight_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW",
+            "report_only": True,
+            "side_effects_started": {"dataset_rebuild": False, "training": False},
+            "failures": [],
+            "required_model_native_contract": preflight_contract,
+            "rebuild_command_contract": {
+                "model_native_signal_contract": contract,
+            },
+        },
+    )
+
+    smoke_manifest_payload = {
+        "model_native_signal_contract": contract,
+    }
+    post_rebuild = {"path": "/immutable/post-rebuild.json", "sha256": "a" * 64}
+    specialist = {"path": "/immutable/specialist.json", "sha256": "b" * 64}
+    split_artifacts = {
+        "train": {"model_native_signal_contract": contract},
+        "val": {"model_native_signal_contract": contract},
+        "test": {"model_native_signal_contract": contract},
+    }
+    smoke_manifest = _publish(
+        tmp_path / "smoke_manifest",
+        "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST",
+        {
+            "schema_version": "entry_model_native_seq513_smoke_manifest_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
+            "report_only": True,
+            "side_effects_started": {"training": False, "replay": False},
+            "failures": [],
+            "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_seq_snap_width": 513,
+            "smoke_manifest": smoke_manifest_payload,
+            "manifest_sha256": _sha256_json(smoke_manifest_payload),
+            "post_rebuild_readiness": post_rebuild,
+            "specialist_audit": specialist,
+            "split_artifacts": split_artifacts,
+            "evidence_binding_sha256": _sha256_json(
+                {
+                    "post_rebuild_readiness": post_rebuild,
+                    "specialist_audit": specialist,
+                    "split_artifacts": split_artifacts,
+                }
+            ),
+        },
+    )
+
+    smoke_inputs = {"manifest": {"path": str(smoke_manifest), "sha256": "c" * 64}}
+    smoke_readiness = _publish(
+        tmp_path / "smoke_readiness",
+        "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS",
+        {
+            "schema_version": "entry_model_native_seq513_smoke_readiness_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
+            "report_only": True,
+            "side_effects_started": {"training": False, "live": False},
+            "failures": [],
+            "smart_candidate": {
+                "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+                "specialist_contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+                "expected_signal_dim": 513,
+                "expected_selected_feature_count": 479,
+            },
+            "inputs": smoke_inputs,
+            "evidence_binding_sha256": _sha256_json(smoke_inputs),
+        },
+    )
+
+    trainability_inputs = {
+        "smoke_readiness": {"path": str(smoke_readiness), "sha256": "d" * 64}
+    }
+    trainability = _publish(
+        tmp_path / "trainability",
+        "ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS",
+        {
+            "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
+            "report_only": True,
+            "side_effects_started": {"training": False, "live": False},
+            "failures": [],
+            "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_signal_dim": 513,
+            "inputs": trainability_inputs,
+            "evidence_binding_sha256": _sha256_json(trainability_inputs),
+        },
+    )
+
+    source = tmp_path / "candidate-source.json"
+    source.write_text('{"proof":true}\n', encoding="utf-8")
+    candidate = _publish(
+        tmp_path / "candidate",
+        "ENTRY_CANDIDATE_READINESS",
+        {
+            "schema_version": "entry_candidate_readiness_model_native_v1",
+            "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+            "failures": [],
+            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_signal_dim": 513,
+            "edge_test_scope": "strict",
+            "promotion_shadow_live_allowed": False,
+            "artifact_fingerprints": {
+                "proof": {
+                    "path": str(source),
+                    "exists": True,
+                    "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                }
+            },
+        },
+    )
+    return {
+        "rebuild_preflight": preflight,
+        "smoke_manifest": smoke_manifest,
+        "smoke_readiness": smoke_readiness,
+        "trainability_readiness": trainability,
+        "candidate_readiness": candidate,
     }
 
-    assert feature_audit["foundation_objective_coverage_all_present"] is True
-    assert feature_audit["foundation_objective_liveness_all_live"] is True
-    assert feature_audit["foundation_source_field_liveness_all_live"] is True
-    assert set(coverage) == set(REQUIRED_FOUNDATION_OBJECTIVE_FEATURES)
-    for objective, required in REQUIRED_FOUNDATION_OBJECTIVE_FEATURES.items():
-        assert coverage[objective]["required_count"] == len(required)
-        assert coverage[objective]["present_count"] == len(required)
-        assert coverage[objective]["missing_count"] == 0
-        assert coverage[objective]["missing"] == []
-        for split in ("train", "val", "test"):
-            row = objective_liveness[(split, objective)]
-            assert row["required_count"] == len(required)
-            assert row["observed_count"] == len(required)
-            assert row["missing_count"] == 0
-            assert row["nonfinite_count"] == 0
-            assert row["near_constant_count"] == 0
-            assert row["mean_active_rate"] >= feature_audit["min_required_objective_active_rate"]
 
-    for split, contract in feature_audit["emitted_contracts"].items():
-        assert contract["foundation_structure_source_field_count"] == len(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
-        assert contract["foundation_structure_source_missing_count"] == 0
-        assert contract["foundation_structure_source_missing"] == []
-    assert len(source_liveness) == len(FOUNDATION_STRUCTURE_SOURCE_FIELDS) * 3
-    for split in ("train", "val", "test"):
-        for source_field in FOUNDATION_STRUCTURE_SOURCE_FIELDS:
-            row = source_liveness[(split, source_field)]
-            assert row["observed"] is True
-            assert row["nonfinite_count"] == 0
-            assert row["near_constant"] is False
-            assert row["active_count"] >= feature_audit["min_required_source_active_count"]
-            assert row["active_rate"] >= feature_audit["min_required_source_active_rate"]
-
-    if report:
-        assert "feature foundation audit objective coverage is all-present" in report["checks"]
-        assert "feature foundation audit objective liveness is all-live" in report["checks"]
-        assert "feature foundation audit source-field liveness is all-live" in report["checks"]
-        assert "feature audit default out-dir matches active seq146 latest path" in report["checks"]
-        assert "target audit default out-dir matches active seq146 latest path" in report["checks"]
-        assert "train foundation source fields are all present" in report["checks"]
-        assert "val foundation source fields are all present" in report["checks"]
-        assert "test foundation source fields are all present" in report["checks"]
-
-    specialist_routing = {
-        row["objective"]: row
-        for row in specialist_audit["foundation_objective_routing"]
-    }
-    specialist_liveness = {
-        (row["split"], row["specialist"]): row
-        for row in specialist_audit["specialist_input_liveness"]
-    }
-    assert specialist_audit["specialist_input_liveness_all_live"] is True
-    for split in ("train", "val", "test"):
-        for specialist in (
-            "structure_swing_encoder",
-            "smc_liquidity_encoder",
-            "trend_ema_encoder",
-            "vol_compression_encoder",
-            "momentum_flow_encoder",
-            "session_regime_encoder",
-        ):
-            row = specialist_liveness[(split, specialist)]
-            assert row["live_feature_count"] >= row["min_required_live_feature_count"]
-            assert row["nonfinite_count"] == 0
-            assert row["mean_active_rate"] > 0.0
-    assert specialist_audit["foundation_objective_routing_all_present_and_expected"] is True
-    assert set(specialist_routing) == set(FOUNDATION_OBJECTIVE_SPECIALISTS)
-    for objective, expected_specialist in FOUNDATION_OBJECTIVE_SPECIALISTS.items():
-        assert specialist_routing[objective]["expected_specialist"] == expected_specialist
-        assert specialist_routing[objective]["all_present_and_routed_to_expected"] is True
-    if report:
-        assert "specialist audit exact foundation objective routing is all-present" in report["checks"]
-        assert "specialist audit input liveness is all-live" in report["checks"]
+def _args(events: dict[str, Path], tmp_path: Path) -> argparse.Namespace:
+    return argparse.Namespace(
+        rebuild_preflight_json=str(events["rebuild_preflight"]),
+        smoke_manifest_json=str(events["smoke_manifest"]),
+        smoke_readiness_json=str(events["smoke_readiness"]),
+        trainability_readiness_json=str(events["trainability_readiness"]),
+        candidate_readiness_json=str(events["candidate_readiness"]),
+        out_dir=str(tmp_path / "state"),
+        selftest=False,
+        quiet=True,
+    )
 
 
-def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
-    report, active_stale_error = _run_or_active_stale(selftest=True)
-    if active_stale_error:
-        assert "feature foundation audit requires PASS" in active_stale_error
-        assert "decision=FAIL" in active_stale_error
-        return
+def _run_blocked(args: argparse.Namespace) -> dict:
+    with pytest.raises(SystemExit) as exc_info:
+        run(args)
+    assert exc_info.value.code == 2
+    paths = list(Path(args.out_dir).glob(f"{STATE_EVENT_PREFIX}_*.json"))
+    assert len(paths) == 1
+    return json.loads(paths[0].read_text(encoding="utf-8"))
 
-    checks = set(report["checks"])
 
-    assert "control surface supports non-refreshing readiness policy snapshot" in checks
-    assert "control surface separates fast readiness light refresh from snapshot and explicit full refresh" in checks
-    assert "control surface reports critical gate path coverage" in checks
-    assert "handover viewer points at active XAU direction-repair handover" in checks
-    assert "XAU handover blocks non-XAU artifacts" in checks
-    assert "XAU handover keeps live promotion closed until fresh proof gates pass" in checks
-    assert "XAU handover keeps pocket audit as promotion gate only" in checks
-    assert "foundation guardrail verifier uses readiness policy snapshot" in checks
-    assert "foundation guardrail verifier reports readiness policy checks" in checks
-    assert "control surface exposes IQL replay slice audit" in checks
-    assert "IQL slice audit requires supported edge robustness" in checks
-    assert "IQL slice audit compares diagnostic tail slices" in checks
-    assert "control surface exposes Entry-to-Exit handoff audit" in checks
-    assert "Entry-to-Exit handoff audit blocks missing exit substrate" in checks
-    assert "control surface exposes Entry-bound Exit per-bar materializer" in checks
-    assert "Entry-bound Exit per-bar materializer uses handoff substrate contract" in checks
-    assert "control surface exposes active Exit per-bar reconstruction audit" in checks
-    assert "Entry Exit per-bar reconstruction audit requires live ATR" in checks
-    assert "control surface exposes active Exit state/reward contract" in checks
-    assert "Entry Exit state/reward contract checks HOLD transition pointers" in checks
-    assert "control surface exposes active Exit split/leakage audit" in checks
-    assert "Entry Exit split/leakage audit checks HOLD next-row split leakage" in checks
-    assert "control surface exposes active Exit model dataset readiness" in checks
-    assert "Entry Exit model dataset readiness uses train-only normalization" in checks
-    assert "control surface exposes active Exit Transformer architecture readiness" in checks
-    assert "Entry Exit Transformer architecture readiness locks model family" in checks
-    assert "foundation guardrail verifier blocks candidate train in readiness policy" in checks
-    assert "foundation guardrail verifier blocks IQL in readiness policy" in checks
-    assert "foundation guardrail verifier blocks live in readiness policy" in checks
-    assert "train readiness gate requires guardrail readiness policy proof" in checks
-    assert "foundation smoke train manifest records critical gate path review" in checks
-    assert "smoke bundle audit validates pretrain critical gate path review" in checks
-    assert "candidate readiness gate requires smoke worktree critical gate proof" in checks
-    assert "candidate train wrapper preserves smoke worktree critical gate proof" in checks
-    assert "replay readiness gate requires candidate smoke worktree critical gate proof" in checks
-    assert "IQL distillation contract preserves smoke worktree critical gate proof" in checks
-    assert "worktree hygiene audit has critical gate path contract" in checks
-    assert "worktree hygiene audit reports critical gate path review" in checks
+def test_state_proves_exact_seq513_but_never_launches(tmp_path: Path) -> None:
+    report = run(_args(_evidence_events(tmp_path), tmp_path))
+    assert report["decision"] == STATE_PROVEN_DECISION
+    assert report["model_native_evidence_ready"] is True
+    assert report["expected_signal_dim"] == 513
+    assert report["launch_allowed"] is False
+    assert report["promotion_shadow_live_allowed"] is False
+    assert Path(report["json_path"]).name.startswith("ENTRY_MODEL_NATIVE_SEQ513_STATE_")
+    assert all(row["ready"] for row in report["evidence"])
+
+
+def test_state_fails_closed_on_retired_contract_or_missing_events(tmp_path: Path) -> None:
+    report = _run_blocked(
+        _args(_evidence_events(tmp_path, broken_preflight=True), tmp_path)
+    )
+    assert report["decision"] == STATE_BLOCKED_DECISION
+    assert report["launch_allowed"] is False
+    assert any("exact seq513 contract mismatch" in row["failure"] for row in report["failures"])
+
+    parser_args = build_parser().parse_args(
+        ["--out-dir", str(tmp_path / "missing_state"), "--quiet"]
+    )
+    missing = _run_blocked(parser_args)
+    assert missing["decision"] == STATE_BLOCKED_DECISION
+    assert len(missing["failures"]) == len(EVIDENCE_SPECS)
+
+
+def test_state_rejects_mutable_latest_and_retired_cli_aliases(tmp_path: Path) -> None:
+    events = _evidence_events(tmp_path)
+    latest = events["candidate_readiness"].with_name(
+        "ENTRY_CANDIDATE_READINESS_latest.json"
+    )
+    latest.write_bytes(events["candidate_readiness"].read_bytes())
+    events["candidate_readiness"] = latest
+    report = _run_blocked(_args(events, tmp_path))
+    assert report["decision"] == STATE_BLOCKED_DECISION
+    assert any("newest immutable" in row["failure"] for row in report["failures"])
+
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--foundation-seq146"])
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--challenger-seq215"])
+    assert "fail-on-not-ready" not in parser.format_help()
+
+
+def test_state_selftest_and_control_routes_are_model_native() -> None:
+    report = run(argparse.Namespace(selftest=True, quiet=True))
+    assert report["decision"] == "MODEL_NATIVE_SEQ513_STATE_SELFTEST_PASS"
+    assert report["launch_allowed"] is False
+
+    control = (REPO / "scripts/entry_next_edge_control.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "  model-native-state)" in control
+    assert "  model-native-state-selftest)" in control
+    assert "verify_entry_foundation_state_v1 --selftest" in control
+    assert "verify|state)" not in control
+    assert "readiness-report" not in control

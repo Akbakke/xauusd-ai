@@ -1,1256 +1,482 @@
-import argparse
+from __future__ import annotations
+
+import copy
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
-from gx1.scripts.verify_entry_candidate_readiness_v1 import (
-    _mode_candidate_train_command,
-    _mode_out_dir,
-    _mode_smoke_bundle_audit_path,
-    _mode_smoke_train_command,
-    _smoke_edge_checks,
-    _smart_smoke_benchmark_checks,
-    run,
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_enforcement,
+    foundation_audit_policy_metadata,
 )
-from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAINING_HEADS, EXPECTED_BLOCKED_HEADS
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_REQUIRED_SPECIALISTS,
+    model_native_readiness_contract_metadata,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+    model_native_signal_contract_metadata,
+)
+from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    require_smoke_bundle_audit_contract,
+)
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    MODEL_NATIVE_RECIPE_ENV_KEYS,
+    RECIPE_AUDIT_SCHEMA,
+)
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    REQUIRED_POSITIVE_LOSS_WEIGHTS,
+    SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
+    training_objective_contract_metadata,
+)
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.models.entry_v10.direction_decision_contract import (
+    model_direction_decision_contract_metadata,
+)
+from gx1.scripts import verify_entry_candidate_readiness_v1 as readiness
+from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-SEQ146_SMOKE_DATASET = (
-    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_smoke"
-)
-SEQ215_SMOKE_DATASET = (
-    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_smoke_20260630"
-)
-SMART_SEQ520_SMOKE_DATASET = (
-    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260626_spreadfix/v10_dataset_6yr_smartctx_xau_direction_repair_smoke"
-)
-SEQ146_SPECIALISTS = [
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
-]
-SEQ215_SPECIALISTS = [*SEQ146_SPECIALISTS, "chart_geometry_encoder", "price_action_candle_encoder"]
+STAMP_TIME = datetime(2026, 7, 16, 12, 0, 0, 123456, tzinfo=timezone.utc)
 
 
-def _add_smart_public_trade_flat_margin_contract(contract: dict) -> None:
-    contract.update(
-        {
-            "hier_public_trade_flat_margin_weight": 6.00,
-            "hier_public_trade_flat_margin": 0.10,
-            "hier_public_trade_flat_margin_min_label_rate": 0.10,
-            "hier_slice_public_trade_flat_margin_weight": 6.00,
-            "hier_slice_public_trade_flat_margin": 0.10,
-            "hier_slice_public_trade_flat_margin_min_label_rate": 0.10,
-            "hier_slice_public_trade_flat_margin_min_rows": 8,
-            "public_trade_flat_hard_rate_guard_required": True,
-            "best_public_trade_flat_hard_rate_guard_ok": True,
-        }
+def _write_json(path: Path, payload: dict) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path.resolve()
+
+
+def _objective() -> dict:
+    return training_objective_contract_metadata(
+        {key: 1.0 for key in REQUIRED_POSITIVE_LOSS_WEIGHTS}
     )
 
 
-def test_candidate_readiness_seq215_defaults_are_isolated_from_seq146_latest() -> None:
-    smoke_path = _mode_smoke_bundle_audit_path("challenger_seq215")
-    out_dir = _mode_out_dir("challenger_seq215")
-
-    assert "challenger_seq215_20260630" in str(smoke_path)
-    assert "challenger_seq215_20260630" in str(out_dir)
-    assert smoke_path.name == "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
-    assert out_dir.name == "challenger_seq215_20260630"
-    assert _mode_smoke_train_command("challenger_seq215") == (
-        "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
-    )
-    assert _mode_candidate_train_command("challenger_seq215") == (
-        "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>"
+def _signal_contract() -> dict:
+    return model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields(
+            remainder_prefix="session_regime.candidate_readiness_fixture"
+        )
     )
 
 
-def _passing_smoke_audit(
+def _event(
+    root: Path,
+    prefix: str,
+    payload: dict,
     *,
-    contract_mode: str = "foundation_seq146",
-    dataset_dir: str = SEQ146_SMOKE_DATASET,
-    signal_dim: int = 146,
-    specialists: list[str] | None = None,
-) -> dict:
-    groups = list(specialists or SEQ146_SPECIALISTS)
-    weight = round(1.0 / len(groups), 4)
-    active_heads = list(EXPECTED_ACTIVE_TRAINING_HEADS)
-    if contract_mode == "smart_seq520_candidate":
-        active_heads.extend(["trade_side_hierarchy", "trendline_rail", "side_validity"])
-    split = {
-        "rows": 128,
-        "direction": {
-            "rows": 128,
-            "accuracy": 0.46,
-            "majority_baseline_accuracy": 0.34,
-            "beats_majority_baseline": True,
-            "label_counts": {"LONG": 43, "SHORT": 41, "FLAT": 44},
-            "prediction_counts": {"LONG": 48, "SHORT": 44, "FLAT": 36},
-        },
-        "direction_slice_contract": {
-            "decision": "PASS",
-            "min_rows": 64,
-            "ctx_cat_names": ["session_id", "vol_regime_id"],
-            "audited_slice_count": 2,
-            "skipped_slice_count": 0,
-            "fields": {
-                "session_id": {
-                    "finite": True,
-                    "slice_count": 1,
-                    "slices": {
-                        "1": {
-                            "decision": "PASS",
-                            "rows": 128,
-                            "accuracy": 0.46,
-                            "majority_baseline_accuracy": 0.34,
-                            "beats_majority_baseline": True,
-                            "failures": [],
-                        }
-                    },
-                },
-                "vol_regime_id": {
-                    "finite": True,
-                    "slice_count": 1,
-                    "slices": {
-                        "2": {
-                            "decision": "PASS",
-                            "rows": 128,
-                            "accuracy": 0.46,
-                            "majority_baseline_accuracy": 0.34,
-                            "beats_majority_baseline": True,
-                            "failures": [],
-                        }
-                    },
-                },
-            },
-            "failures": [],
-        },
-        "bad_path": {"prob_vs_path_quality_spearman": -0.22},
-        "specialist_gate": {
-            "finite": True,
-            "row_sum_max_abs_error": 1e-7,
-            "active_specialist_count_gt_1pct": len(groups),
-            "entropy_mean": 1.0,
-            "mean_weight": {group: weight for group in groups},
-        },
+    offset_seconds: int = 0,
+) -> tuple[Path, dict]:
+    created = STAMP_TIME.replace(second=STAMP_TIME.second + offset_seconds)
+    return write_immutable_json_event(
+        root,
+        prefix,
+        {**payload, "created_utc": created.isoformat()},
+    )
+
+
+def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
+    bundle = (tmp_path / "bundle").resolve()
+    dataset = (tmp_path / "dataset").resolve()
+    evidence = (tmp_path / "evidence").resolve()
+    bundle.mkdir()
+    dataset.mkdir()
+    evidence.mkdir()
+
+    objective = _objective()
+    signal = _signal_contract()
+    metadata = {
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "seq_len": 96,
+        "model_native_signal_contract": signal,
+        "model_native_training_objective": objective,
+        "direction_decision_contract": model_direction_decision_contract_metadata(),
     }
-    report = {
+    lock = {
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "model_native_signal_contract": signal,
+        "model_native_training_objective": objective,
+    }
+    metadata_path = _write_json(bundle / "bundle_metadata.json", metadata)
+    lock_path = _write_json(bundle / "MASTER_TRANSFORMER_LOCK.json", lock)
+    state_path = bundle / "model_state_dict.pt"
+    state_path.write_bytes(b"exact model state")
+
+    specialist_payload = {
+        "schema_version": "entry_specialist_feature_group_audit_v1",
+        **foundation_audit_policy_binding(),
+        "foundation_audit_policy_enforcement": (
+            foundation_audit_policy_enforcement("specialist")
+        ),
         "decision": "PASS",
         "failures": [],
-        "dataset_dir": dataset_dir,
-        "require_edge": True,
-        "require_specialist_fusion": True,
-        "required_training_specialists": groups,
-        "min_active_specialists": len(groups),
-        "min_gate_entropy": 0.05,
-        "require_head_contract": True,
+        "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "signal_field_count": MODEL_NATIVE_SIGNAL_DIM,
+        "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+        "required_training_specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "specialist_model_contract_valid": True,
+        "signal_routing_all_mapped": True,
+        "specialist_input_liveness_all_live": True,
+    }
+    specialist_path, specialist_event = _event(
+        evidence,
+        "ENTRY_SPECIALIST_AUDIT",
+        specialist_payload,
+    )
+    target_path = _write_json(
+        evidence / "ENTRY_TARGET_AUDIT_20260716T115959123456Z.json",
+        {
+            "schema_version": "entry_target_foundation_audit_v1",
+            **foundation_audit_policy_binding(),
+            "foundation_audit_policy_enforcement": (
+                foundation_audit_policy_enforcement("target")
+            ),
+            "decision": "PASS",
+            "failures": [],
+            "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+        },
+    )
+    pretrain_path = _write_json(
+        evidence / "XAU_PRETRAIN_AUDIT_20260716T115958123456Z.json",
+        {
+            "schema_version": "xau_direction_repair_pretrain_audit_v1",
+            "decision": "PASS",
+            "failures": [],
+        },
+    )
+    prediction_report = _write_json(
+        evidence / "ENTRY_CANDIDATE_SELECTIVE_EDGE_20260716T120002123456Z.json",
+        {"fixture": True},
+    )
+
+    def binding(path: Path) -> dict[str, str]:
+        return readiness._artifact_binding(path)
+
+    report = {
+        "schema_version": "entry_foundation_smoke_bundle_audit_v1",
+        **foundation_audit_policy_binding(),
+        "decision": "PASS",
+        "failures": [],
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "sequence_length": 96,
+        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "bundle_dir": str(bundle),
+        "dataset_dir": str(dataset),
+        "data_splits": ["val", "test"],
+        "model_native_readiness_contract": model_native_readiness_contract_metadata(),
+        "direction_decision_contract": model_direction_decision_contract_metadata(),
+        "bundle_artifacts": {
+            "bundle_metadata": binding(metadata_path),
+            "master_transformer_lock": binding(lock_path),
+            "model_state_dict": binding(state_path),
+        },
+        "input_audits": {
+            "target": {
+                **binding(target_path),
+                **foundation_audit_policy_binding(),
+                "foundation_audit_policy_enforcement": (
+                    foundation_audit_policy_enforcement("target")
+                ),
+                "schema_version": "entry_target_foundation_audit_v1",
+                "decision": "PASS",
+                "failures": [],
+                "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            },
+            "specialist": {
+                **binding(specialist_path),
+                **foundation_audit_policy_binding(),
+                "foundation_audit_policy_enforcement": (
+                    foundation_audit_policy_enforcement("specialist")
+                ),
+                "schema_version": "entry_specialist_feature_group_audit_v1",
+                "decision": "PASS",
+                "failures": [],
+                "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            },
+            "pretrain": {
+                **binding(pretrain_path),
+                "schema_version": "xau_direction_repair_pretrain_audit_v1",
+                "decision": "PASS",
+                "failures": [],
+            },
+        },
+        "model_native_training_objective_contract": {
+            "decision": "PASS",
+            "failures": [],
+            "meta_lock_exact": True,
+            "objective": objective,
+            "metadata_path": str(metadata_path),
+            "metadata_sha256": binding(metadata_path)["sha256"],
+            "lock_path": str(lock_path),
+            "lock_sha256": binding(lock_path)["sha256"],
+        },
         "head_contract": {
             "decision": "PASS",
             "failures": [],
-            "active_training_heads": active_heads,
-            "blocked_heads": list(EXPECTED_BLOCKED_HEADS),
+            "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
+            "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
         },
-        "pretrain_manifest_contract": {
+        "specialist_contract": {
             "decision": "PASS",
             "failures": [],
-            "feature_objective_coverage_all_present": True,
-            "feature_objective_liveness_all_live": True,
-            "feature_source_field_liveness_all_live": True,
-            "specialist_objective_routing_all_present_and_expected": True,
-            "specialist_input_liveness_all_live": True,
-            "specialist_active_heads_match_target": True,
-            "specialist_blocked_heads_match_target": True,
-            "specialist_required_training_set_exact": True,
-            "specialist_trainable_set_exact": True,
-            "specialist_model_contract_valid": True,
-            "specialist_model_contract_set_exact": True,
-            "specialist_model_contract_owned_objectives_match": True,
-            "smoke_dataset_audit_provenance_all_artifacts_present": True,
-            "smoke_dataset_audit_provenance_all_artifact_hashes_present": True,
-            "worktree_critical_gate_review_ok": True,
+            "specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            "gate_liveness_proven": True,
         },
-        "path_calibration_recipe_contract": {
+        "liveness_contract": {
             "decision": "PASS",
-            "active_heads": ["bad_path", "direction", "path_quality"],
-            "path_quality_active": True,
-            "bad_path_active": True,
-            "path_quality_rank_full_batch": True,
-            "path_quality_rank_weight": 2.0,
-            "path_quality_rank_margin": 0.25,
-            "path_quality_rank_quantile": 0.25,
-            "bad_path_quality_rank_weight": 2.0,
-            "bad_path_quality_rank_margin": 0.25,
-            "bad_path_quality_rank_quantile": 0.25,
             "failures": [],
+            "all_active_heads_live": True,
+            "all_specialists_live": True,
+            "full_stack_live": True,
+            "zero_init_pass_through_absent": True,
         },
-        "direction_balance_recipe_contract": {
+        "edge_contract": {
             "decision": "PASS",
-            "active_heads": ["bad_path", "direction", "path_quality"],
-            "direction_active": True,
-            "pred_balance_alpha": 0.05,
-            "pred_balance_target": "label",
-            "pred_balance_class_weights": [1.0, 1.0, 1.0],
-            "direction_ce_scale": 1.30,
-            "ckpt_monitor": "dir_acc",
-            "ckpt_class_balance_guard_weight": 0.0,
-            "ckpt_class_balance_min_pred_to_label": 0.0,
-            "ckpt_class_balance_min_pred_rate": 0.0,
             "failures": [],
+            "direction_edge_proven": True,
+            "context_slice_edge_proven": True,
+            "path_quality_edge_proven": True,
+            "bad_path_edge_proven": True,
         },
-        "tail_direction_recipe_contract": {
-            "decision": "PASS",
-            "active_heads": ["bad_path", "direction", "path_quality"],
-            "direction_active": True,
-            "tail_direction_ce_weight": 0.35,
-            "tail_direction_quality_quantile": 0.70,
-            "tail_direction_min_batch": 8,
-            "tail_direction_mask": "directional_tradable_clean_path_top_quality",
-            "failures": [],
+        "splits": passing_smoke_audit_splits(),
+        "prediction_evidence": {
+            "schema_version": "entry_candidate_model_direction_prediction_evidence_v1",
+            "authoritative": True,
+            "path": str(evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"),
         },
-        "symmetric_validation_recipe_contract": {
-            "decision": "PASS",
-            "active_heads": ["bad_path", "direction", "path_quality"],
-            "contract_mode": contract_mode,
-            "symmetric_negatives": True,
-            "selector_masked_aux": True,
-            "validation_objective_matches_train": True,
-            "aux_selector_mode": "long_short_union",
-            "clean_edge_target_mode": "bidir",
-            "survival_target_mode": "bidir",
-            "bad_path_ce_in_direction_loss": True,
-            "bad_path_prob_penalty_in_validation": True,
-            "symmetric_short_prob_penalties": True,
-            "symmetric_clean_edge_rank": True,
-            "failures": [],
-        },
-        "bundle_specialist_model_contract": {
-            "decision": "PASS",
-            "valid": True,
-            "set_exact": True,
-            "owned_objectives_match": True,
-            "support_heads_match": True,
-            "signal_families_match": True,
-            "model_roles_match": True,
-            "failures": [],
-        },
-        "data_splits": ["val", "test"],
-        "bundle_summary": {
-            "sanity_bundle": False,
-            "seq_input_dim": signal_dim,
-            "snap_input_dim": signal_dim,
-            "multi_tf_enabled": True,
-            "specialist_fusion_enabled": True,
-            "specialist_model_contract_declared_valid": True,
-            "specialist_model_contract_valid": True,
-            "specialist_model_contract_set_exact": True,
-            "specialist_model_contract_owned_objectives_match": True,
-            "specialist_model_contract_support_heads_match": True,
-            "specialist_model_contract_signal_families_match": True,
-            "specialist_model_contract_model_roles_match": True,
-            "specialist_groups": groups,
-        },
-        "splits": {"val": split, "test": split},
+        "prediction_report_json": str(prediction_report),
+        "prediction_report_sha256": binding(prediction_report)["sha256"],
+        "promotion_shadow_live_allowed": False,
+        "activation_authority": False,
     }
-    if contract_mode != "foundation_seq146":
-        report["specialist_contract_mode"] = contract_mode
-        report["pretrain_manifest_contract"]["specialist_contract_mode"] = contract_mode
-        report["bundle_summary"]["specialist_contract_mode"] = contract_mode
-    return report
-
-
-def test_smoke_edge_checks_pass_on_actual_edge_contract() -> None:
-    checks = _smoke_edge_checks(_passing_smoke_audit())
-
-    assert all(check["ok"] for check in checks)
-
-
-def test_smoke_edge_checks_pass_on_challenger_seq215_contract() -> None:
-    report = _passing_smoke_audit(
-        contract_mode="challenger_seq215",
-        dataset_dir=SEQ215_SMOKE_DATASET,
-        signal_dim=215,
-        specialists=SEQ215_SPECIALISTS,
-    )
-
-    checks = _smoke_edge_checks(report, contract_mode="challenger_seq215", min_active_specialists=8)
-
-    assert all(check["ok"] for check in checks)
-
-
-def test_smoke_edge_checks_reject_seq215_without_challenger_contract() -> None:
-    report = _passing_smoke_audit(
-        dataset_dir=SEQ215_SMOKE_DATASET,
-        signal_dim=215,
-        specialists=SEQ215_SPECIALISTS,
-    )
-
-    checks = _smoke_edge_checks(report, contract_mode="challenger_seq215", min_active_specialists=8)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit specialist contract mode is challenger_seq215" in failed
-
-
-def test_smoke_edge_checks_reject_sanity_plumbing_audit() -> None:
-    report = _passing_smoke_audit()
-    report["bundle_summary"]["sanity_bundle"] = True
-    report["require_edge"] = False
-    report["splits"]["val"]["direction"]["beats_majority_baseline"] = False
-    report["splits"]["val"]["bad_path"]["prob_vs_path_quality_spearman"] = 0.1
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit is from actual train output, not sanity bundle" in failed
-    assert "smoke bundle audit was run with require_edge" in failed
-    assert "direction beats majority on all audited splits" in failed
-    assert "bad_path probability ranks worse path quality higher" in failed
-
-
-def test_smoke_edge_checks_reject_missing_head_contract() -> None:
-    report = _passing_smoke_audit()
-    report["require_head_contract"] = False
-    report["head_contract"] = {"decision": "FAIL", "failures": ["missing tf_agreement"]}
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit was run with require_head_contract" in failed
-    assert "smoke bundle head contract PASS" in failed
-
-
-def test_smoke_edge_checks_reject_missing_path_calibration_contract() -> None:
-    report = _passing_smoke_audit()
-    report["path_calibration_recipe_contract"] = {
-        "decision": "FAIL",
-        "path_quality_rank_full_batch": False,
-        "path_quality_rank_weight": 0.0,
-        "bad_path_quality_rank_weight": 2.0,
-        "failures": ["path_quality active head requires path_quality_rank_full_batch=true"],
+    paths = {
+        "bundle": bundle,
+        "dataset": dataset,
+        "evidence": evidence,
+        "specialist": specialist_path,
     }
+    return report, paths
 
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
 
-    assert "smoke bundle audit path calibration recipe contract PASS" in failed
-
-
-def test_smoke_edge_checks_reject_missing_direction_balance_contract() -> None:
-    report = _passing_smoke_audit()
-    report["direction_balance_recipe_contract"] = {
-        "decision": "FAIL",
-        "direction_active": True,
-        "pred_balance_alpha": 0.0,
-        "pred_balance_target": "uniform",
-        "direction_ce_scale": 1.30,
-        "ckpt_monitor": "val_loss",
-        "failures": ["direction active head requires pred_balance_alpha >= 0.05"],
-    }
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit direction balance recipe contract PASS" in failed
-
-
-def test_smoke_edge_checks_require_stronger_smart_direction_balance_contract() -> None:
-    report = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-
-    checks = _smoke_edge_checks(
-        report,
-        contract_mode="smart_seq520_candidate",
-        expected_smoke_dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-    )
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit direction balance recipe contract PASS" in failed
-
-
-def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() -> None:
-    report = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.50
-    report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
-    report["direction_balance_recipe_contract"]["direction_ce_scale"] = 2.00
-    report["direction_balance_recipe_contract"]["hierarchical_entry_heads_enabled"] = True
-    report["direction_balance_recipe_contract"]["side_validity_head_enabled"] = True
-    report["direction_balance_recipe_contract"]["hier_side_validity_weight"] = 1.50
-    report["direction_balance_recipe_contract"]["hier_side_validity_min_utility_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["hier_side_validity_pos_weight_cap"] = 8.0
-    report["direction_balance_recipe_contract"]["trendline_rail_head_enabled"] = True
-    report["direction_balance_recipe_contract"]["trendline_rail_aux_weight"] = 1.00
-    report["direction_balance_recipe_contract"]["trendline_rail_wrong_side_weight"] = 1.50
-    report["direction_balance_recipe_contract"]["hier_legacy_ce_mult"] = 1.00
-    report["direction_balance_recipe_contract"]["anchor_gate_enabled"] = True
-    report["direction_balance_recipe_contract"]["anchor_gate_init"] = 0.0
-    report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
-    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
-    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
-    report["direction_balance_recipe_contract"]["direction_slice_accuracy_edge_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_slice_accuracy_edge_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["direction_slice_confusion_pair_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_slice_confusion_pair_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_utility_margin_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_utility_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_utility_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_side_utility_conviction_weight"] = 6.00
-    report["direction_balance_recipe_contract"]["direction_side_utility_conviction_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_side_utility_conviction_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_min_utility_bps"] = 0.0
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_max_bad_path"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_utility_bps"] = 0.0
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_max_bad_path"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_class_weight_cap"] = 4.0
-    report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
-    report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
-    report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
-    report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
-    report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_maxnorm_confidence"
-    report["direction_balance_recipe_contract"]["hier_public_direction_detach_side_grad"] = True
-    report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
-    report["direction_balance_recipe_contract"]["hier_public_flat_head"] = True
-    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge"] = True
-    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_cap"] = 0.25
-    report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
-    report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge"] = True
-    report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge_cap"] = 0.25
-    report["direction_balance_recipe_contract"]["hier_public_side_head_residual_cap_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["hier_public_side_head_residual_cap"] = 0.20
-    report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
-    report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration"] = True
-    report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration_cap"] = 0.35
-    report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["hier_slice_trade_accuracy_edge_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_trade_accuracy_edge_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_flat_logit_margin_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["hier_flat_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_flat_logit_margin_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["hier_public_flat_consistency_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_public_flat_consistency_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_rows"] = 8
-    _add_smart_public_trade_flat_margin_contract(report["direction_balance_recipe_contract"])
-    report["direction_balance_recipe_contract"]["hier_side_global_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_side_global_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_side_global_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_side_accuracy_edge_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_side_accuracy_edge_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_fraction"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_floor"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
-    report["direction_balance_recipe_contract"]["public_trade_flat_hard_rate_guard_required"] = True
-    report["direction_balance_recipe_contract"]["best_public_trade_flat_hard_rate_guard_ok"] = True
-
-    checks = _smoke_edge_checks(
-        report,
-        contract_mode="smart_seq520_candidate",
-        expected_smoke_dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-    )
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit direction balance recipe contract PASS" not in failed
-
-
-def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() -> None:
-    report = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.50
-    report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
-    report["direction_balance_recipe_contract"]["direction_ce_scale"] = 2.00
-    report["direction_balance_recipe_contract"]["hierarchical_entry_heads_enabled"] = True
-    report["direction_balance_recipe_contract"]["side_validity_head_enabled"] = True
-    report["direction_balance_recipe_contract"]["hier_side_validity_weight"] = 1.50
-    report["direction_balance_recipe_contract"]["hier_side_validity_min_utility_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["hier_side_validity_pos_weight_cap"] = 8.0
-    report["direction_balance_recipe_contract"]["trendline_rail_head_enabled"] = True
-    report["direction_balance_recipe_contract"]["trendline_rail_aux_weight"] = 1.00
-    report["direction_balance_recipe_contract"]["trendline_rail_wrong_side_weight"] = 1.50
-    report["direction_balance_recipe_contract"]["hier_legacy_ce_mult"] = 1.00
-    report["direction_balance_recipe_contract"]["anchor_gate_enabled"] = True
-    report["direction_balance_recipe_contract"]["anchor_gate_init"] = 0.0
-    report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
-    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
-    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
-    report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
-    report["direction_balance_recipe_contract"]["direction_slice_accuracy_edge_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_slice_accuracy_edge_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["direction_slice_confusion_pair_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_slice_confusion_pair_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_utility_margin_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["direction_utility_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_utility_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_side_utility_conviction_weight"] = 6.00
-    report["direction_balance_recipe_contract"]["direction_side_utility_conviction_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_side_utility_conviction_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_min_utility_bps"] = 0.0
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_max_bad_path"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_gap_bps"] = 15.0
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_utility_bps"] = 0.0
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_max_bad_path"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_utility_triad_ce_class_weight_cap"] = 4.0
-    report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
-    report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
-    report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
-    report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
-    report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_maxnorm_confidence"
-    report["direction_balance_recipe_contract"]["hier_public_direction_detach_side_grad"] = True
-    report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
-    report["direction_balance_recipe_contract"]["hier_public_flat_head"] = True
-    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge"] = True
-    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_cap"] = 0.25
-    report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
-    report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge"] = True
-    report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge_cap"] = 0.25
-    report["direction_balance_recipe_contract"]["hier_public_side_head_residual_cap_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["hier_public_side_head_residual_cap"] = 0.20
-    report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
-    report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration"] = True
-    report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration_scale"] = 0.50
-    report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration_cap"] = 0.35
-    report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["hier_slice_trade_accuracy_edge_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_trade_accuracy_edge_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_flat_logit_margin_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["hier_flat_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_flat_logit_margin_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["hier_public_flat_consistency_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_public_flat_consistency_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_rows"] = 8
-    _add_smart_public_trade_flat_margin_contract(report["direction_balance_recipe_contract"])
-    report["direction_balance_recipe_contract"]["hier_side_global_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_side_global_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_side_global_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_side_accuracy_edge_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_side_accuracy_edge_margin"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_weight"] = 4.00
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_tolerance"] = 0.02
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_weight"] = 8.00
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_min_label_rate"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_min_rows"] = 8
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_fraction"] = 0.50
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_floor"] = 0.10
-    report["direction_balance_recipe_contract"]["direction_flat_starvation_logit_margin"] = 0.10
-    report["symmetric_validation_recipe_contract"] = {
-        "decision": "FAIL",
-        "active_heads": ["bad_path", "direction", "path_quality"],
-        "symmetric_negatives": True,
-        "selector_masked_aux": True,
-        "validation_objective_matches_train": False,
-        "aux_selector_mode": "long_only",
-        "clean_edge_target_mode": "long",
-        "survival_target_mode": "long",
-        "bad_path_ce_in_direction_loss": True,
-        "bad_path_prob_penalty_in_validation": False,
-        "symmetric_short_prob_penalties": False,
-        "failures": ["smart symmetric validation requires validation_objective_matches_train=true"],
-    }
-
-    checks = _smoke_edge_checks(
-        report,
-        contract_mode="smart_seq520_candidate",
-        expected_smoke_dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-    )
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit symmetric validation recipe contract PASS" in failed
-
-
-def test_smart_smoke_benchmark_checks_accept_matching_baselines() -> None:
-    smart = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    foundation = _passing_smoke_audit()
-    seq215 = _passing_smoke_audit(
-        contract_mode="challenger_seq215",
-        dataset_dir=SEQ215_SMOKE_DATASET,
-        signal_dim=215,
-        specialists=SEQ215_SPECIALISTS,
-    )
-
-    checks = _smart_smoke_benchmark_checks(
-        smart,
-        foundation_report=foundation,
-        seq215_report=seq215,
-    )
-
-    assert all(check["ok"] for check in checks)
-
-
-def test_smart_smoke_benchmark_checks_reject_direction_and_balance_regression() -> None:
-    smart = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    for split in smart["splits"].values():
-        split["direction"]["accuracy"] = 0.35
-        split["direction"]["prediction_counts"] = {"LONG": 80, "SHORT": 44, "FLAT": 4}
-    foundation = _passing_smoke_audit()
-    seq215 = _passing_smoke_audit(
-        contract_mode="challenger_seq215",
-        dataset_dir=SEQ215_SMOKE_DATASET,
-        signal_dim=215,
-        specialists=SEQ215_SPECIALISTS,
-    )
-
-    checks = _smart_smoke_benchmark_checks(
-        smart,
-        foundation_report=foundation,
-        seq215_report=seq215,
-    )
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smart smoke direction accuracy does not regress versus foundation/seq215" in failed
-    assert "smart smoke class-balance drift does not regress versus foundation/seq215" in failed
-
-
-def test_smart_smoke_benchmark_checks_reject_non_strict_scope() -> None:
-    smart = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    foundation = _passing_smoke_audit()
-    seq215 = _passing_smoke_audit(
-        contract_mode="challenger_seq215",
-        dataset_dir=SEQ215_SMOKE_DATASET,
-        signal_dim=215,
-        specialists=SEQ215_SPECIALISTS,
-    )
-
-    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
-        _smart_smoke_benchmark_checks(
-            smart,
-            foundation_report=foundation,
-            seq215_report=seq215,
-            edge_test_scope="smoke",
-        )
-
-
-def test_smoke_edge_checks_reject_missing_tail_direction_contract() -> None:
-    report = _passing_smoke_audit()
-    report["tail_direction_recipe_contract"] = {
-        "decision": "FAIL",
-        "direction_active": True,
-        "tail_direction_ce_weight": 0.0,
-        "tail_direction_quality_quantile": 0.70,
-        "tail_direction_min_batch": 8,
-        "tail_direction_mask": "directional_tradable_clean_path_top_quality",
-        "failures": ["direction active head requires positive tail_direction_ce_weight"],
-    }
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit tail direction recipe contract PASS" in failed
-
-
-def test_smoke_edge_checks_reject_direction_distribution_collapse() -> None:
-    report = _passing_smoke_audit()
-    report["splits"]["test"]["direction"]["label_counts"] = {"LONG": 42, "SHORT": 40, "FLAT": 46}
-    report["splits"]["test"]["direction"]["prediction_counts"] = {"LONG": 70, "SHORT": 54, "FLAT": 4}
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "direction distribution covers active LONG/SHORT/FLAT classes" in failed
-
-
-def test_smoke_edge_checks_reject_direction_slice_failure() -> None:
-    report = _passing_smoke_audit()
-    report["splits"]["val"]["direction_slice_contract"] = {
-        "decision": "FAIL",
-        "audited_slice_count": 1,
-        "failures": ["session_id=2: accuracy=0.300000 does not beat majority=0.500000"],
-    }
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "direction context slices pass session/regime bucket diagnostics" in failed
-
-
-def test_smoke_edge_checks_reject_non_strict_scope() -> None:
-    report = _passing_smoke_audit()
-
-    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
-        _smoke_edge_checks(report, edge_test_scope="smoke")
-
-
-def test_smoke_edge_checks_reject_missing_pretrain_manifest_contract() -> None:
-    report = _passing_smoke_audit()
-    report["pretrain_manifest_contract"] = {
-        "decision": "FAIL",
-        "failures": ["artifact hash mismatch"],
-        "feature_objective_coverage_all_present": True,
-        "feature_objective_liveness_all_live": True,
-        "feature_source_field_liveness_all_live": True,
-        "specialist_objective_routing_all_present_and_expected": True,
-        "specialist_input_liveness_all_live": True,
-        "specialist_active_heads_match_target": True,
-        "specialist_blocked_heads_match_target": True,
-        "smoke_dataset_audit_provenance_all_artifacts_present": False,
-        "smoke_dataset_audit_provenance_all_artifact_hashes_present": False,
-        "worktree_critical_gate_review_ok": False,
-    }
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit validated pre-train manifest provenance" in failed
-
-
-def test_smoke_edge_checks_reject_missing_pretrain_specialist_model_contract() -> None:
-    report = _passing_smoke_audit()
-    report["pretrain_manifest_contract"]["specialist_model_contract_valid"] = False
-    report["pretrain_manifest_contract"]["specialist_model_contract_set_exact"] = False
-    report["pretrain_manifest_contract"]["specialist_model_contract_owned_objectives_match"] = False
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit validated pre-train manifest provenance" in failed
-
-
-def test_smoke_edge_checks_reject_missing_pretrain_exact_trainable_specialist_set() -> None:
-    report = _passing_smoke_audit(
-        contract_mode="challenger_seq215",
-        dataset_dir=SEQ215_SMOKE_DATASET,
-        signal_dim=215,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    report["pretrain_manifest_contract"]["specialist_required_training_set_exact"] = False
-    report["pretrain_manifest_contract"]["specialist_trainable_set_exact"] = False
-
-    checks = _smoke_edge_checks(report, contract_mode="challenger_seq215", min_active_specialists=8)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit validated pre-train manifest provenance" in failed
-
-
-def test_smoke_edge_checks_reject_missing_bundle_specialist_model_contract() -> None:
-    report = _passing_smoke_audit()
-    report["bundle_summary"]["specialist_model_contract_valid"] = False
-    report["bundle_specialist_model_contract"]["support_heads_match"] = False
-    report["bundle_specialist_model_contract"]["failures"] = ["support heads mismatch"]
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle specialist model contract is preserved in bundle metadata" in failed
-
-
-def test_smoke_edge_checks_reject_missing_worktree_critical_gate_proof() -> None:
-    report = _passing_smoke_audit()
-    report["pretrain_manifest_contract"]["worktree_critical_gate_review_ok"] = False
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit validated pre-train manifest provenance" in failed
-
-
-def test_smoke_edge_checks_rejects_partial_active_head_contract() -> None:
-    report = _passing_smoke_audit()
-    report["head_contract"]["active_training_heads"] = ["direction", "path_quality", "tf_agreement"]
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle head contract PASS" in failed
-
-
-def test_smoke_edge_checks_reject_loose_specialist_gate_contract() -> None:
-    report = _passing_smoke_audit()
-    report["require_specialist_fusion"] = False
-    report["min_active_specialists"] = 3
-    report["min_gate_entropy"] = 0.0
-    report["splits"]["val"]["specialist_gate"]["active_specialist_count_gt_1pct"] = 3
-    report["splits"]["val"]["specialist_gate"]["entropy_mean"] = 0.0
-    report["splits"]["val"]["specialist_gate"]["mean_weight"]["momentum_flow_encoder"] = 0.0
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit was run with specialist-fusion gate contract" in failed
-    assert "specialist gate is finite, normalized, non-collapsed, and entropic" in failed
-    assert "each required specialist has non-collapsed gate weight" in failed
-
-
-def test_smoke_edge_checks_rejects_extra_specialist_group() -> None:
-    report = _passing_smoke_audit()
-    report["required_training_specialists"].append("price_action_candle_encoder")
-    report["bundle_summary"]["specialist_groups"].append("price_action_candle_encoder")
-    for split in report["splits"].values():
-        split["specialist_gate"]["mean_weight"]["price_action_candle_encoder"] = 0.05
-
-    checks = _smoke_edge_checks(report)
-    failed = {check["name"] for check in checks if not check["ok"]}
-
-    assert "smoke bundle audit was run with specialist-fusion gate contract" in failed
-    assert "smoke bundle has exact specialist groups" in failed
-
-
-def test_candidate_readiness_seq215_requires_challenger_contract_and_clean_gates(tmp_path: Path, monkeypatch) -> None:
-    train_readiness_path = tmp_path / "train_readiness.json"
-    train_readiness_path.write_text(
-        json.dumps(
-            {
-                "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
-                "candidate_training_allowed": False,
-                "promotion_shadow_live_allowed": False,
-                "failures": [],
-            }
-        ),
-        encoding="utf-8",
-    )
-    specialist_path = tmp_path / "specialist_audit.json"
-    specialist_path.write_text(json.dumps({"decision": "PASS"}), encoding="utf-8")
-
-    def fake_train_readiness(_args):
-        return {
-            "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
-            "candidate_training_allowed": False,
-            "promotion_shadow_live_allowed": False,
-            "failures": [],
-            "json_path": str(train_readiness_path),
-        }
-
-    monkeypatch.setattr("gx1.scripts.verify_entry_candidate_readiness_v1.run_train_readiness", fake_train_readiness)
-    smoke_path = tmp_path / "seq215_smoke_audit.json"
-    smoke_path.write_text(
-        json.dumps(
-            _passing_smoke_audit(
-                contract_mode="challenger_seq215",
-                dataset_dir=SEQ215_SMOKE_DATASET,
-                signal_dim=215,
-                specialists=SEQ215_SPECIALISTS,
-            )
-        ),
-        encoding="utf-8",
-    )
-
-    report = run(
-        argparse.Namespace(
-            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
-            smoke_bundle_audit_json=str(smoke_path),
-            specialist_audit_json=str(specialist_path),
-            contract_mode="challenger_seq215",
-            out_dir=str(tmp_path / "out"),
-            min_active_specialists=8,
-            fail_on_not_ready=False,
-            quiet=True,
-        )
-    )
-
-    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
-    assert report["contract_mode"] == "challenger_seq215"
-    assert report["expected_signal_dim"] == 215
-    assert report["required_specialist_groups"] == SEQ215_SPECIALISTS
-    assert report["candidate_training_allowed_with_explicit_vedtak"] is True
-    assert report["promotion_shadow_live_allowed"] is False
-    assert report["next_required_gate"] == (
-        "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id> then post-train replay gates"
-    )
-
-    smoke_path.write_text(
-        json.dumps(
-            _passing_smoke_audit(
-                contract_mode="foundation_seq146",
-                dataset_dir=SEQ215_SMOKE_DATASET,
-                signal_dim=215,
-                specialists=SEQ215_SPECIALISTS,
-            )
-        ),
-        encoding="utf-8",
-    )
-    blocked = run(
-        argparse.Namespace(
-            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
-            smoke_bundle_audit_json=str(smoke_path),
-            specialist_audit_json=str(specialist_path),
-            contract_mode="challenger_seq215",
-            out_dir=str(tmp_path / "blocked"),
-            min_active_specialists=8,
-            fail_on_not_ready=False,
-            quiet=True,
-        )
-    )
-
-    assert blocked["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
-    assert blocked["candidate_training_allowed_with_explicit_vedtak"] is False
-    failed = {failure["check"] for failure in blocked["failures"]}
-    assert "smoke bundle audit specialist contract mode is challenger_seq215" in failed
-
-
-def test_candidate_readiness_seq215_missing_smoke_audit_reports_not_ready(tmp_path: Path, monkeypatch) -> None:
-    train_readiness_path = tmp_path / "train_readiness.json"
-    train_readiness_path.write_text(
-        json.dumps(
-            {
-                "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
-                "candidate_training_allowed": False,
-                "promotion_shadow_live_allowed": False,
-                "failures": [],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    def fake_train_readiness(_args):
-        return {
-            "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
-            "candidate_training_allowed": False,
-            "promotion_shadow_live_allowed": False,
-            "failures": [],
-            "json_path": str(train_readiness_path),
-        }
-
-    monkeypatch.setattr("gx1.scripts.verify_entry_candidate_readiness_v1.run_train_readiness", fake_train_readiness)
-    missing_smoke_path = tmp_path / "missing_seq215_smoke_audit.json"
-    report = run(
-        argparse.Namespace(
-            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
-            smoke_bundle_audit_json=str(missing_smoke_path),
-            specialist_audit_json=None,
-            contract_mode="challenger_seq215",
-            out_dir=str(tmp_path / "out_missing"),
-            min_active_specialists=8,
-            fail_on_not_ready=False,
-            quiet=True,
-        )
-    )
-
-    assert report["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
-    assert report["candidate_training_allowed_with_explicit_vedtak"] is False
-    assert report["next_required_gate"] == (
-        "run scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
-    )
-    assert report["smoke_bundle_audit_json"] == str(missing_smoke_path.resolve())
-    assert "missing JSON artifact" in str(report["smoke_bundle_audit_load_error"])
-    failed = {failure["check"] for failure in report["failures"]}
-    assert "smoke bundle audit JSON exists and is readable" in failed
-    assert Path(report["json_path"]).exists()
-
-
-def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidence(
-    tmp_path: Path, monkeypatch
+def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
+    tmp_path: Path,
 ) -> None:
-    trainability_path = tmp_path / "smart_trainability.json"
-    trainability_path.write_text(
-        json.dumps(
-            {
-                "decision": "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW",
-                "candidate_training_allowed": False,
-                "promotion_shadow_live_allowed": False,
-                "failures": [],
-            }
+    report, _ = _fixture(tmp_path)
+
+    normalized = require_smoke_bundle_audit_contract(report, context="TEST")
+
+    assert normalized["contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
+    assert normalized["sequence_length"] == 96
+    assert normalized["signal_dim"] == 513
+    assert normalized["model_native_training_objective_contract"][
+        "meta_lock_exact"
+    ] is True
+    policy = foundation_audit_policy_metadata()["smoke_edge_pockets"]
+    assert set(normalized["splits"]) == {"val", "test"}
+    for split in normalized["splits"].values():
+        direction = split["direction"]
+        assert direction["support_scope"] == "global"
+        assert direction["minimum_trade_rows"] == policy["min_trade_rows"]
+        assert direction["minimum_prediction_rows_per_class"] == policy[
+            "min_prediction_rows_per_class"
+        ]
+        assert direction["minimum_trade_precision_wilson_lower"] == policy[
+            "min_trade_precision_wilson_lower"
+        ]
+        assert direction["minimum_class_precision_wilson_lower"] == policy[
+            "min_class_precision_wilson_lower"
+        ]
+        context_contract = split["context_slice_contract"]
+        assert context_contract["minimum_trade_rows_per_slice"] == policy[
+            "min_context_trade_rows"
+        ]
+        assert context_contract["minimum_trade_precision_wilson_lower"] == policy[
+            "min_context_trade_precision_wilson_lower"
+        ]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda report: report.update({"contract_mode": "smart_seq520_candidate"}),
+        lambda report: report.update({"sequence_length": 30}),
+        lambda report: report["head_contract"]["active_heads"].pop(),
+        lambda report: report["specialist_contract"].update(
+            {"gate_liveness_proven": False}
         ),
-        encoding="utf-8",
-    )
-    specialist_path = tmp_path / "specialist_audit.json"
-    specialist_path.write_text(json.dumps({"decision": "PASS"}), encoding="utf-8")
-    smoke_path = tmp_path / "smart_smoke_audit.json"
-    smart_smoke_report = _passing_smoke_audit(
-        contract_mode="smart_seq520_candidate",
-        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-        signal_dim=520,
-        specialists=SEQ215_SPECIALISTS,
-    )
-    smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_ce_scale"] = 2.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hierarchical_entry_heads_enabled"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["side_validity_head_enabled"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_validity_weight"] = 1.50
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_validity_min_utility_bps"] = 15.0
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_validity_pos_weight_cap"] = 8.0
-    smart_smoke_report["direction_balance_recipe_contract"]["trendline_rail_head_enabled"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["trendline_rail_aux_weight"] = 1.00
-    smart_smoke_report["direction_balance_recipe_contract"]["trendline_rail_wrong_side_weight"] = 1.50
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_legacy_ce_mult"] = 1.00
-    smart_smoke_report["direction_balance_recipe_contract"]["anchor_gate_enabled"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["anchor_gate_init"] = 0.0
-    smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
-    smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_slice_accuracy_edge_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_slice_accuracy_edge_margin"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_slice_confusion_pair_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_slice_confusion_pair_margin"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_margin_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_min_gap_bps"] = 15.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_logit_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_side_utility_conviction_weight"] = 6.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_side_utility_conviction_min_gap_bps"] = 15.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_side_utility_conviction_logit_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_weight"] = 8.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_min_gap_bps"] = 15.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_min_utility_bps"] = 0.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_max_bad_path"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_trade_conviction_logit_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_weight"] = 8.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_gap_bps"] = 15.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_min_utility_bps"] = 0.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_max_bad_path"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_utility_triad_ce_class_weight_cap"] = 4.0
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_hierarchical_composition"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_residual_logit_cap"] = 0.18
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_residual_side_neutral"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_compose_public_flat_from_trade"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_direction_composition"] = "margin_maxnorm_confidence"
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_direction_detach_side_grad"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_head"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_flat_head"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_scale"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_trade_dir_margin_bridge_cap"] = 0.25
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_head"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge_scale"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_dir_margin_bridge_cap"] = 0.25
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_head_residual_cap_weight"] = 8.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_side_head_residual_cap"] = 0.20
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_prior_adapter_scale"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration_scale"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_ctx_direction_calibration_cap"] = 0.35
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_tolerance"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_trade_global_prior_match_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_tolerance"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_trade_prior_match_min_rows"] = 8
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_trade_accuracy_edge_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_trade_accuracy_edge_margin"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_flat_logit_margin_weight"] = 8.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_flat_logit_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_flat_logit_margin_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_weight"] = 8.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_flat_logit_margin_min_rows"] = 8
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_flat_consistency_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_public_flat_consistency_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"][
-        "hier_slice_public_flat_consistency_min_label_rate"
-    ] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_public_flat_consistency_min_rows"] = 8
-    _add_smart_public_trade_flat_margin_contract(
-        smart_smoke_report["direction_balance_recipe_contract"]
-    )
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_global_prior_match_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_global_prior_match_tolerance"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_side_global_prior_match_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_side_accuracy_edge_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_side_accuracy_edge_margin"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_weight"] = 4.00
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_tolerance"] = 0.02
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["hier_slice_side_prior_match_min_rows"] = 8
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_weight"] = 8.00
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_min_label_rate"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_min_rows"] = 8
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_fraction"] = 0.50
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_pred_floor"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["direction_flat_starvation_logit_margin"] = 0.10
-    smart_smoke_report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["public_trade_flat_hard_rate_guard_required"] = True
-    smart_smoke_report["direction_balance_recipe_contract"]["best_public_trade_flat_hard_rate_guard_ok"] = True
-    smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
-    foundation_smoke_path = tmp_path / "foundation_smoke_audit.json"
-    foundation_smoke_path.write_text(json.dumps(_passing_smoke_audit()), encoding="utf-8")
-    seq215_smoke_path = tmp_path / "seq215_smoke_audit.json"
-    seq215_smoke_path.write_text(
-        json.dumps(
-            _passing_smoke_audit(
-                contract_mode="challenger_seq215",
-                dataset_dir=SEQ215_SMOKE_DATASET,
-                signal_dim=215,
-                specialists=SEQ215_SPECIALISTS,
-            )
+        lambda report: report["liveness_contract"].update(
+            {"zero_init_pass_through_absent": False}
         ),
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(
-        "gx1.scripts.verify_entry_candidate_readiness_v1.SMART_SEQ520_TRAINABILITY_READINESS_LATEST",
-        trainability_path,
-    )
-    monkeypatch.setattr(
-        "gx1.scripts.verify_entry_candidate_readiness_v1.SMOKE_BUNDLE_AUDIT_LATEST",
-        foundation_smoke_path,
-    )
-    monkeypatch.setattr(
-        "gx1.scripts.verify_entry_candidate_readiness_v1.CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST",
-        seq215_smoke_path,
-    )
+        lambda report: report["edge_contract"].update(
+            {"direction_edge_proven": False}
+        ),
+        lambda report: report["splits"].pop("test"),
+        lambda report: report["splits"]["val"]["direction"].update(
+            {"minimum_trade_rows": 1}
+        ),
+        lambda report: report["splits"]["test"]["direction"].update(
+            {"trade_direction_precision_wilson_lower": 1.0}
+        ),
+        lambda report: report["splits"]["val"]["context_slice_contract"].update(
+            {"minimum_trade_rows_per_slice": 1}
+        ),
+    ],
+)
+def test_exact_smoke_consumer_contract_rejects_soft_or_missing_proof(
+    tmp_path: Path,
+    mutation,
+) -> None:
+    report, _ = _fixture(tmp_path)
+    mutation(report)
 
-    report = run(
-        argparse.Namespace(
-            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
-            smoke_bundle_audit_json=str(smoke_path),
-            specialist_audit_json=str(specialist_path),
-            contract_mode="smart_seq520_candidate",
-            out_dir=str(tmp_path / "out_smart"),
-            min_active_specialists=8,
-            fail_on_not_ready=False,
-            quiet=True,
-        )
-    )
-
-    assert report["readiness_checks_pass"] is True
-    assert report["training_allowed_by_contract"] is True
-    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
-    assert report["candidate_training_allowed_with_explicit_vedtak"] is True
-    assert report["next_required_gate"] == "scripts/entry_next_edge_control.sh candidate-train-smart --vedtak <id> then post-train replay gates"
-    assert report["failures"] == []
+    with pytest.raises(RuntimeError):
+        require_smoke_bundle_audit_contract(report, context="TEST")
 
 
-def test_candidate_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> None:
-    report = run(
-        argparse.Namespace(
-            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
-            smoke_bundle_audit_json="/home/andre2/GX1_DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json",
-            specialist_audit_json=None,
-            contract_mode="foundation_seq146",
-            out_dir=str(tmp_path),
-            min_active_specialists=3,
-            fail_on_not_ready=False,
-            quiet=True,
-        )
-    )
+def test_bundle_rehash_rejects_objective_meta_lock_split_brain(tmp_path: Path) -> None:
+    report, paths = _fixture(tmp_path)
+    normalized = require_smoke_bundle_audit_contract(report, context="TEST")
+    assert readiness._bundle_file_check(normalized)["ok"] is True
 
-    assert report["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
-    assert report["candidate_training_allowed_with_explicit_vedtak"] is False
-    assert report["promotion_shadow_live_allowed"] is False
-    assert set(report["artifact_fingerprints"]) == set(report["artifacts"])
-    artifact_gate = next(gate for gate in report["gates"] if gate["name"] == "artifact_provenance")
-    assert artifact_gate["decision"] == "PASS"
-    for name, row in report["artifact_fingerprints"].items():
-        assert row["path"] == report["artifacts"][name]
-        assert row["exists"] is True
-        assert row["size_bytes"] > 0
-        assert len(row["sha256"]) == 64
-    failed = {failure["check"] for failure in report["failures"]}
-    assert failed
-    readiness_blockers = {
-        "foundation train-readiness is green",
-        "smoke bundle audit PASS",
-        "smoke bundle audit has zero failures",
-        "smoke bundle audit is from actual train output, not sanity bundle",
-        "smoke bundle audit was run with require_edge",
-        "direction beats majority on all audited splits",
-        "direction distribution covers active LONG/SHORT/FLAT classes",
-        "direction context slices pass session/regime bucket diagnostics",
+    lock_path = paths["bundle"] / "MASTER_TRANSFORMER_LOCK.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["model_native_training_objective"]["configurable_positive_loss_weights"][
+        REQUIRED_POSITIVE_LOSS_WEIGHTS[0]
+    ] = 0.0
+    lock_path.write_text(json.dumps(lock), encoding="utf-8")
+
+    assert readiness._bundle_file_check(normalized)["ok"] is False
+
+
+def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    smoke, paths = _fixture(tmp_path)
+    smoke_path, _ = _event(
+        paths["evidence"],
+        "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT",
+        smoke,
+        offset_seconds=3,
+    )
+    future = {
+        "control_route": "model-native-smoke-train",
+        "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
+        "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
+        "training_objective_schema": TRAINING_OBJECTIVE_SCHEMA,
+        "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
+        "required_positive_loss_weights": list(REQUIRED_POSITIVE_LOSS_WEIGHTS),
     }
-    assert failed & readiness_blockers
-    assert Path(report["json_path"]).exists()
+    trainability_path, _ = _event(
+        paths["evidence"],
+        "ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS",
+        {
+            "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
+            "failures": [],
+            "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "required_training_specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            "future_train_contract": future,
+        },
+        offset_seconds=4,
+    )
+    monkeypatch.setattr(
+        readiness,
+        "_prediction_evidence_check",
+        lambda contract: readiness._check(
+            "immutable prediction evidence rehashes and is model-native", True
+        ),
+    )
 
-
-def test_candidate_readiness_rejects_non_strict_edge_scope(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
-        run(
-            argparse.Namespace(
-                audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
-                smoke_bundle_audit_json=str(tmp_path / "smoke.json"),
-                specialist_audit_json=None,
-                contract_mode="smart_seq520_candidate",
-                edge_test_scope="smoke",
-                out_dir=str(tmp_path / "out"),
-                min_active_specialists=8,
-                fail_on_not_ready=False,
-                quiet=True,
-            )
+    report = readiness.run(
+        readiness.build_parser().parse_args(
+            [
+                "--smoke-bundle-audit-json",
+                str(smoke_path),
+                "--specialist-audit-json",
+                str(paths["specialist"]),
+                "--trainability-readiness-json",
+                str(trainability_path),
+                "--expected-smoke-dataset-dir",
+                str(paths["dataset"]),
+                "--out-dir",
+                str(tmp_path / "out"),
+                "--quiet",
+            ]
         )
+    )
+
+    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+    assert report["failures"] == []
+    assert report["candidate_training_allowed_with_explicit_vedtak"] is True
+    assert report["promotion_shadow_live_allowed"] is False
+    assert Path(report["json_path"]).is_file()
+
+
+def test_parser_rejects_generic_upstream_and_retired_aliases() -> None:
+    parser = readiness.build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args([])
+    args = parser.parse_args(
+        [
+            "--smoke-bundle-audit-json",
+            "/tmp/smoke.json",
+            "--specialist-audit-json",
+            "/tmp/specialist.json",
+            "--trainability-readiness-json",
+            "/tmp/trainability.json",
+            "--expected-smoke-dataset-dir",
+            "/tmp/dataset",
+            "--out-dir",
+            "/tmp/out",
+        ]
+    )
+    assert args.trainability_readiness_json == "/tmp/trainability.json"
+    assert not hasattr(args, "fail_on_not_ready")
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--smoke-bundle-audit-json",
+                "/tmp/smoke.json",
+                "--specialist-audit-json",
+                "/tmp/specialist.json",
+                "--trainability-readiness-json",
+                "/tmp/trainability.json",
+                "--expected-smoke-dataset-dir",
+                "/tmp/dataset",
+                "--out-dir",
+                "/tmp/out",
+                "--fail-on-not-ready",
+            ]
+        )
+    for stale in ("--upstream-readiness-json", "--challenger-seq215"):
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                [
+                    "--smoke-bundle-audit-json",
+                    "/tmp/smoke.json",
+                    "--specialist-audit-json",
+                    "/tmp/specialist.json",
+                    "--trainability-readiness-json",
+                    "/tmp/trainability.json",
+                    "--expected-smoke-dataset-dir",
+                    "/tmp/dataset",
+                    "--out-dir",
+                    "/tmp/out",
+                    stale,
+                    "/tmp/stale.json",
+                ]
+            )

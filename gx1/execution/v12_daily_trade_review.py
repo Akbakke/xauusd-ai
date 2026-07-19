@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""V12 daily trade review — turn structured trade journal into actionable insight.
+"""V12 daily trade review for the strict model-native Entry journal.
 
 For each completed (and still-open) trade in the trade journal, reconstructs the
-full narrative: entry context → bar-by-bar trajectory → key moments → exit.
+full narrative: immutable model evidence → bar trajectory → exit.
 Outputs:
 
   - REVIEW.md        : day-level markdown with summary tables + per-trade rows
@@ -13,14 +13,16 @@ Designed to be cron-friendly: idempotent rebuild of today's review every N min.
 
 Inputs:
   - /home/andre2/GX1_DATA/reports/v12_paper_runs/trade_journal/trades/*.json
-  - /home/andre2/GX1_DATA/reports/v12_paper_runs/trade_journal/trade_journal_index.csv
-  - /home/andre2/GX1_DATA/reports/v12_paper_runs/v12_paper_journal_<DATE>_<SUFFIX>.jsonl
-    (optional, used for pre-entry context if present)
-  - /home/andre2/GX1_DATA/reports/v12_paper_runs/counterfactual_reports/*.jsonl
-    (optional, used to cross-reference SKIPs ≥25h ago)
+  - /home/andre2/GX1_DATA/reports/v12_paper_runs/trade_journal/
+    trade_journal_index_model_native_v1.csv
+
+There is deliberately no compatibility read from ``entry_score``, SMART/XGB
+overlays, Entry-IQL Q values, an old index, or recovered open-trade state.  A
+trade whose immutable model-native evidence is absent or malformed fails the
+review closed.
 
 Run:
-  python3 gx1/execution/v12_daily_trade_review.py [--date 20260512] [--suffix live]
+  python3 gx1/execution/v12_daily_trade_review.py [--date 20260708]
 """
 from __future__ import annotations
 
@@ -28,60 +30,227 @@ import argparse
 import csv
 import json
 import logging
-import sys
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
+    MODEL_NATIVE_RUNTIME_POLICY,
+    ModelNativeRuntimeEvidenceError,
+    require_model_native_entry_time,
+    require_model_native_runtime_evidence,
+)
+from gx1.contracts.entry_model_native_sizing_authority_v1 import (
+    require_model_native_sizing_application_record,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
+)
 
 LOG = logging.getLogger("v12_review")
 
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 TRADE_JSON_DIR = JOURNAL_DIR / "trade_journal" / "trades"
-INDEX_CSV = JOURNAL_DIR / "trade_journal" / "trade_journal_index.csv"
-OPEN_TRADES_DIR = JOURNAL_DIR / "open_trades"
+INDEX_CSV = (
+    JOURNAL_DIR
+    / "trade_journal"
+    / "trade_journal_index_model_native_v1.csv"
+)
 REVIEW_BASE = JOURNAL_DIR / "daily_reviews"
 
 
-def _load_state(trade_id: str) -> dict | None:
-    """Read the runner's persisted TradeState for an open trade (if present)."""
-    p = OPEN_TRADES_DIR / f"open_trade_{trade_id}.json"
-    if not p.is_file():
-        return None
+class ModelNativeTradeReviewError(RuntimeError):
+    """The journal cannot prove a model-native Entry decision."""
+
+
+def _fail(field: str, detail: str = "missing or invalid") -> None:
+    raise ModelNativeTradeReviewError(
+        f"[DAILY_REVIEW_MODEL_NATIVE_EVIDENCE_INVALID] {field}: {detail}"
+    )
+
+
+def _finite_scalar(values: dict[str, Any], key: str) -> float:
+    if key not in values:
+        _fail(key, "missing")
+    value = values[key]
+    if isinstance(value, bool):
+        _fail(key, "boolean is not numeric evidence")
     try:
-        return json.loads(p.read_text())
-    except Exception:
-        return None
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ModelNativeTradeReviewError(
+            f"[DAILY_REVIEW_MODEL_NATIVE_EVIDENCE_INVALID] {key}: {value!r}"
+        ) from exc
+    if not math.isfinite(parsed):
+        _fail(key, f"non-finite value {value!r}")
+    return parsed
 
 
-def _backfill_entry_from_state(trade_id: str) -> dict | None:
-    """For trades that were already open when TradeJournal was retrofitted,
-    entry_snapshot will be None. Pull what we have from open_trade_<id>.json
-    (the runner's persisted TradeState) — it preserves side/entry/v10_snapshot.
-    """
-    s = _load_state(trade_id)
-    if s is None:
-        return None
-    v10 = s.get("v10_snapshot") or {}
-    dp = v10.get("direction_probs") or [0.0, 0.0, 0.0]
-    return {
-        "trade_id": trade_id,
-        "entry_time": s.get("entry_ts"),
-        "side": s.get("side"),
-        "entry_price": s.get("entry_ask") if s.get("side") == "long" else s.get("entry_bid"),
-        "entry_bid": s.get("entry_bid"),
-        "entry_ask": s.get("entry_ask"),
-        "entry_spread_bps": s.get("entry_spread_bps"),
-        "entry_score": {
-            "v10_p_long": dp[0] if len(dp) > 0 else 0.0,
-            "v10_p_short": dp[1] if len(dp) > 1 else 0.0,
-            "v10_path_quality_pred": v10.get("path_quality"),
-            "v10_mfe_pred_at_entry": v10.get("mfe_first_n"),
-            "v10_tradable_prob": v10.get("tradable_prob"),
-            "v10_bad_path_prob": v10.get("bad_path_prob"),
-            "decision_ts": v10.get("decision_ts"),
-        },
-        "_backfilled_from_state": True,
+def _finite_vector(values: dict[str, Any], key: str, size: int) -> tuple[float, ...]:
+    if key not in values or isinstance(values[key], (str, bytes, dict)):
+        _fail(key, f"expected finite vector[{size}]")
+    try:
+        raw = list(values[key])
+    except TypeError as exc:
+        raise ModelNativeTradeReviewError(
+            f"[DAILY_REVIEW_MODEL_NATIVE_EVIDENCE_INVALID] {key}: expected vector[{size}]"
+        ) from exc
+    if len(raw) != size:
+        _fail(key, f"size={len(raw)} expected={size}")
+    parsed: list[float] = []
+    for value in raw:
+        if isinstance(value, bool):
+            _fail(key, "boolean element")
+        try:
+            item = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ModelNativeTradeReviewError(
+                f"[DAILY_REVIEW_MODEL_NATIVE_EVIDENCE_INVALID] {key}: non-numeric element"
+            ) from exc
+        if not math.isfinite(item):
+            _fail(key, "non-finite element")
+        parsed.append(item)
+    return tuple(parsed)
+
+
+def _require_utc_timestamp(values: dict[str, Any], key: str) -> str:
+    value = values.get(key)
+    if not isinstance(value, str) or not value.strip():
+        _fail(key, "missing")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ModelNativeTradeReviewError(
+            f"[DAILY_REVIEW_MODEL_NATIVE_EVIDENCE_INVALID] {key}: invalid ISO timestamp"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        _fail(key, "must be timezone-aware UTC")
+    return value
+
+
+def _require_model_evidence(entry: dict[str, Any]) -> dict[str, Any]:
+    evidence = entry.get("model_evidence")
+    if not isinstance(evidence, dict) or not evidence:
+        _fail("entry_snapshot.model_evidence", "missing or empty")
+    try:
+        validated = require_model_native_runtime_evidence(
+            evidence,
+            context="DAILY_REVIEW",
+        )
+    except ModelNativeRuntimeEvidenceError as exc:
+        raise ModelNativeTradeReviewError(
+            str(exc)
+        ) from exc
+    if not MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS.issubset(validated):
+        _fail(
+            "entry_snapshot.model_evidence timing",
+            "complete executable timing evidence is required",
+        )
+    return validated
+
+
+def _require_entry_snapshot(trade_json: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    entry = trade_json.get("entry_snapshot")
+    if not isinstance(entry, dict):
+        _fail("entry_snapshot", "missing")
+    evidence = _require_model_evidence(entry)
+
+    for key in ("entry_time", "instrument", "side", "session", "model_policy"):
+        value = entry.get(key)
+        if not isinstance(value, str) or not value.strip():
+            _fail(f"entry_snapshot.{key}", "missing")
+    _require_utc_timestamp(entry, "entry_time")
+    try:
+        require_model_native_entry_time(
+            evidence,
+            entry["entry_time"],
+            context="DAILY_REVIEW_ENTRY",
+        )
+    except ModelNativeRuntimeEvidenceError as exc:
+        raise ModelNativeTradeReviewError(str(exc)) from exc
+    if (
+        entry["model_policy"] != MODEL_NATIVE_RUNTIME_POLICY
+        or entry["model_policy"] != evidence["model_policy"]
+    ):
+        _fail(
+            "entry_snapshot.model_policy",
+            f"{entry['model_policy']!r} != snapshot {evidence['model_policy']!r} ",
+        )
+    if entry["session"] != evidence["session"]:
+        _fail(
+            "entry_snapshot.session",
+            f"{entry['session']!r} != snapshot {evidence['session']!r}",
+        )
+    expected_side = str(evidence["model_direction"]).lower()
+    if entry["side"] != expected_side or expected_side not in ("long", "short"):
+        _fail(
+            "entry_snapshot.side",
+            f"{entry['side']!r} != model direction {expected_side!r}",
+        )
+
+    market = {
+        key: _finite_scalar(entry, key)
+        for key in (
+            "entry_price",
+            "entry_bid",
+            "entry_ask",
+            "entry_spread_bps",
+            "atr_bps",
+        )
     }
+    if (
+        market["entry_price"] <= 0.0
+        or market["entry_bid"] <= 0.0
+        or market["entry_ask"] < market["entry_bid"]
+        or market["entry_spread_bps"] < 0.0
+        or market["atr_bps"] <= 0.0
+    ):
+        _fail("entry_snapshot market evidence", f"range violation: {market}")
+    if not math.isclose(
+        market["atr_bps"],
+        float(evidence["atr_bps"]),
+        rel_tol=1e-6,
+        abs_tol=1e-7,
+    ):
+        _fail("entry_snapshot.atr_bps", "model evidence parity mismatch")
+
+    try:
+        sizing_application = require_model_native_sizing_application_record(
+            entry.get("sizing_application"),
+            context="V12_DAILY_TRADE_REVIEW",
+        )
+    except RuntimeError as exc:
+        _fail("entry_snapshot sizing authority", str(exc))
+    sizing_parity = {
+        "capacity_units": entry.get("capacity_units"),
+        "reference_pre_round_units": entry.get("reference_pre_round_units"),
+        "pre_round_units": entry.get("pre_round_units"),
+        "units": entry.get("units"),
+        "applied_size_multiplier": entry.get("applied_size_multiplier"),
+        "model_direction": evidence["model_direction"],
+        "position_size_logit": evidence["position_size_logit"],
+        "sizing_authority_contract": evidence["sizing_authority_contract"],
+    }
+    mismatched_sizing = sorted(
+        key
+        for key, value in sizing_parity.items()
+        if sizing_application.get(key) != value
+    )
+    if mismatched_sizing:
+        _fail(
+            "entry_snapshot sizing parity",
+            ",".join(mismatched_sizing),
+        )
+    checks = entry.get("execution_checks")
+    if (
+        not isinstance(checks, list)
+        or not checks
+        or any(not isinstance(item, str) or not item.strip() for item in checks)
+    ):
+        _fail("entry_snapshot.execution_checks", "missing")
+    return entry, evidence
 
 
 # ── trade analysis ─────────────────────────────────────────────────────────
@@ -107,8 +276,8 @@ def _bar_metrics(bars: list[dict]) -> dict[str, Any]:
     v3_max_prob = max(v3_probs) if v3_probs else 0.0
     v3_first_alarm_bar = next((i for i, p in enumerate(v3_probs) if p > 0.5), -1)
 
-    # IQL held while V3 alarmed (≥3 bars)
-    iql_held_through_v3 = sum(
+    # Exit-IQL held while the V3 exit model alarmed.
+    exit_iql_held_through_v3 = sum(
         1 for b in bars
         if (b.get("v3_should_exit_prob") or 0) > 0.5 and b.get("iql_action") != "EXIT_NOW"
     )
@@ -132,7 +301,7 @@ def _bar_metrics(bars: list[dict]) -> dict[str, Any]:
         "mae_worst_bar": mae_worst_bar,
         "v3_max_prob": v3_max_prob,
         "v3_first_alarm_bar": v3_first_alarm_bar,
-        "iql_held_through_v3_count": iql_held_through_v3,
+        "exit_iql_held_through_v3_count": exit_iql_held_through_v3,
         "mfe_giveback_bps": giveback_bps,
         "mfe_giveback_pct": giveback_pct,
         "pnl_zero_crossings": jojo,
@@ -162,82 +331,129 @@ def _classify_pattern(metrics: dict, exit_summary: dict | None) -> list[str]:
         tags.append("RECOVERY_FROM_DEEP_MAE")
     if mae <= -20 and final <= mae * 0.8:
         tags.append("RAN_TO_STOP")
-    if metrics.get("iql_held_through_v3_count", 0) >= 5:
-        tags.append("IQL_HELD_THROUGH_V3_ALARM")
+    if metrics.get("exit_iql_held_through_v3_count", 0) >= 5:
+        tags.append("EXIT_IQL_HELD_THROUGH_V3_ALARM")
     if metrics.get("pnl_zero_crossings", 0) >= 4:
         tags.append("JOJO_4PLUS")
     return tags
 
 
-def _score_value(score: dict, key: str, legacy_key: str | None = None, default: Any = "") -> Any:
-    value = score.get(key, None)
-    if value is None and legacy_key:
-        value = score.get(legacy_key, None)
-    return default if value is None else value
-
-
-def _fmt_score(value: Any, fmt: str, default: str = "?") -> str:
-    try:
-        if value == "":
-            return default
-        return format(float(value), fmt)
-    except Exception:
-        return default
-
-
 # ── trade JSON → summary row ───────────────────────────────────────────────
 
 def trade_summary_row(trade_json: dict) -> dict[str, Any]:
-    """Flatten a trade journal into a single-row metrics dict."""
-    entry = trade_json.get("entry_snapshot") or {}
+    """Flatten one proven model-native trade into a metrics row.
+
+    Required Entry evidence is never defaulted. Any missing or inconsistent
+    field raises :class:`ModelNativeTradeReviewError` before a row is emitted.
+    """
+    entry, evidence = _require_entry_snapshot(trade_json)
     exit_s = trade_json.get("exit_summary")
     bars = trade_json.get("v12_bar_decisions") or []
-    entry_score = entry.get("entry_score") or {}
 
     metrics = _bar_metrics(bars)
     tags = _classify_pattern(metrics, exit_s)
+    direction_logits = _finite_vector(evidence, "direction_logits", 3)
+    direction_probs = _finite_vector(evidence, "direction_probs", 3)
+    public_logits = _finite_vector(
+        evidence, "public_trade_flat_decision_logits", 2
+    )
+    public_probs = _finite_vector(
+        evidence, "public_trade_flat_decision_probs", 2
+    )
+    mtf_logits = _finite_vector(evidence, "mtf_dir_logits", 3)
+    mtf_probs = _finite_vector(evidence, "mtf_dir_probs", 3)
+    side_utility = _finite_vector(evidence, "side_utility", 2)
+    side_bad_logits = _finite_vector(evidence, "side_bad_path_logit", 2)
+    side_validity_logits = _finite_vector(evidence, "side_validity_logit", 2)
+    side_mae = _finite_vector(evidence, "side_mae", 2)
+    specialist_gate = _finite_vector(
+        evidence,
+        "specialist_gate",
+        len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+    )
 
-    return {
-        "trade_id": trade_json.get("trade_id") or "",
-        "side": entry.get("side", ""),
-        "entry_time": entry.get("entry_time", ""),
-        "entry_price": entry.get("entry_price", ""),
-        "entry_spread_bps": entry.get("entry_spread_bps", ""),
-        "decision_ts": entry_score.get("decision_ts", ""),
-        "v10_p_long": entry_score.get("v10_p_long", ""),
-        "v10_p_short": entry_score.get("v10_p_short", ""),
-        "v10_path_quality": entry_score.get("v10_path_quality_pred", ""),
-        "v10_mfe_pred": entry_score.get("v10_mfe_pred_at_entry", ""),
-        "v10_tradable": entry_score.get("v10_tradable_prob", ""),
-        "v10_bad_path": entry_score.get("v10_bad_path_prob", ""),
-        "smart_p_long": _score_value(entry_score, "smart_p_long", "v10_p_long"),
-        "smart_p_short": _score_value(entry_score, "smart_p_short", "v10_p_short"),
-        "smart_p_flat": _score_value(entry_score, "smart_p_flat"),
-        "smart_p_trade": _score_value(entry_score, "smart_p_trade"),
-        "smart_p_long_given_trade": _score_value(entry_score, "smart_p_long_given_trade"),
-        "smart_p_short_given_trade": _score_value(entry_score, "smart_p_short_given_trade"),
-        "smart_expected_utility_long_bps": _score_value(entry_score, "smart_expected_utility_long_bps"),
-        "smart_expected_utility_short_bps": _score_value(entry_score, "smart_expected_utility_short_bps"),
-        "smart_long_bad_path_prob": _score_value(entry_score, "smart_long_bad_path_prob"),
-        "smart_short_bad_path_prob": _score_value(entry_score, "smart_short_bad_path_prob"),
-        "smart_geometry_rising_support_rail_long_pressure": _score_value(
-            entry_score, "smart_geometry_rising_support_rail_long_pressure"
+    row: dict[str, Any] = {
+        "trade_id": trade_json.get("trade_id") or trade_json.get("trade_key") or "",
+        "side": entry["side"],
+        "entry_time": entry["entry_time"],
+        "entry_price": _finite_scalar(entry, "entry_price"),
+        "entry_spread_bps": _finite_scalar(entry, "entry_spread_bps"),
+        "atr_bps": _finite_scalar(entry, "atr_bps"),
+        "session": entry["session"],
+        "model_policy": entry["model_policy"],
+        "runtime_evidence_schema_version": evidence[
+            "runtime_evidence_schema_version"
+        ],
+        "session_id": evidence["session_id"],
+        "execution_checks": json.dumps(
+            entry["execution_checks"], separators=(",", ":")
         ),
-        "smart_geometry_rising_support_rail_short_trap_pressure": _score_value(
-            entry_score, "smart_geometry_rising_support_rail_short_trap_pressure"
+        "capacity_units": int(_finite_scalar(entry, "capacity_units")),
+        "reference_pre_round_units": _finite_scalar(
+            entry, "reference_pre_round_units"
         ),
-        "smart_geometry_falling_resistance_rail_short_pressure": _score_value(
-            entry_score, "smart_geometry_falling_resistance_rail_short_pressure"
+        "pre_round_units": _finite_scalar(entry, "pre_round_units"),
+        "units": int(_finite_scalar(entry, "units")),
+        "applied_size_multiplier": _finite_scalar(
+            entry, "applied_size_multiplier"
         ),
-        "smart_geometry_falling_resistance_rail_long_trap_pressure": _score_value(
-            entry_score, "smart_geometry_falling_resistance_rail_long_trap_pressure"
+        "decision_ts": evidence["decision_ts"],
+        "model_direction": evidence["model_direction"],
+        "model_direction_index": evidence["model_direction_index"],
+        "direction_logit_long": direction_logits[0],
+        "direction_logit_short": direction_logits[1],
+        "direction_logit_flat": direction_logits[2],
+        "direction_p_long": direction_probs[0],
+        "direction_p_short": direction_probs[1],
+        "direction_p_flat": direction_probs[2],
+        "public_trade_flat_decision": evidence["public_trade_flat_decision"],
+        "public_trade_flat_decision_index": evidence[
+            "public_trade_flat_decision_index"
+        ],
+        "public_logit_trade": public_logits[0],
+        "public_logit_flat": public_logits[1],
+        "p_trade": public_probs[0],
+        "p_flat_hier": public_probs[1],
+        "p_long_given_trade": _finite_scalar(evidence, "p_long_given_trade"),
+        "p_short_given_trade": _finite_scalar(evidence, "p_short_given_trade"),
+        "path_quality": _finite_scalar(evidence, "path_quality"),
+        "path_quality_log_var": _finite_scalar(
+            evidence, "path_quality_log_var"
         ),
-        "smart_trendline_rail_long_minus_short": _score_value(entry_score, "smart_trendline_rail_long_minus_short"),
-        "smart_mtf_trend_evidence": _score_value(entry_score, "smart_mtf_trend_evidence"),
-        "q_take_long": entry_score.get("q_take_long", ""),
-        "q_take_short": entry_score.get("q_take_short", ""),
-        "q_skip": entry_score.get("q_skip", ""),
-        "q_advantage_at_entry": entry_score.get("advantage_over_skip", ""),
+        "path_quality_std": _finite_scalar(evidence, "path_quality_std"),
+        "mfe_first_n": _finite_scalar(evidence, "mfe_first_n"),
+        "tradable_prob": _finite_scalar(evidence, "tradable_prob"),
+        "bad_path_prob": _finite_scalar(evidence, "bad_path_prob"),
+        "clean_edge_prob": _finite_scalar(evidence, "clean_edge_prob"),
+        "survival_prob": _finite_scalar(evidence, "survival_prob"),
+        "tf_agreement_logit": _finite_scalar(evidence, "tf_agreement_logit"),
+        "tf_agreement_pred": _finite_scalar(evidence, "tf_agreement_pred"),
+        "position_size_logit": _finite_scalar(evidence, "position_size_logit"),
+        "position_size_pred": _finite_scalar(evidence, "position_size_pred"),
+        "side_utility_long_raw": side_utility[0],
+        "side_utility_short_raw": side_utility[1],
+        "side_bad_path_logit_long": side_bad_logits[0],
+        "side_bad_path_logit_short": side_bad_logits[1],
+        "long_bad_path_prob": _finite_scalar(evidence, "long_bad_path_prob"),
+        "short_bad_path_prob": _finite_scalar(evidence, "short_bad_path_prob"),
+        "side_validity_logit_long": side_validity_logits[0],
+        "side_validity_logit_short": side_validity_logits[1],
+        "long_validity_prob": _finite_scalar(evidence, "long_validity_prob"),
+        "short_validity_prob": _finite_scalar(evidence, "short_validity_prob"),
+        "side_mae_long_raw": side_mae[0],
+        "side_mae_short_raw": side_mae[1],
+        "mtf_logit_long": mtf_logits[0],
+        "mtf_logit_short": mtf_logits[1],
+        "mtf_logit_flat": mtf_logits[2],
+        "mtf_p_long": mtf_probs[0],
+        "mtf_p_short": mtf_probs[1],
+        "mtf_p_flat": mtf_probs[2],
+        "mtf_trend_evidence": _finite_scalar(evidence, "mtf_trend_evidence"),
+        "specialist_names": json.dumps(
+            list(MODEL_NATIVE_TRAINING_SPECIALISTS), separators=(",", ":")
+        ),
+        "specialist_gate": json.dumps(specialist_gate, separators=(",", ":")),
+        "calibration_version": evidence["calibration_version"],
         # Outcome
         "exit_time": (exit_s or {}).get("exit_time", ""),
         "exit_price": (exit_s or {}).get("exit_price", ""),
@@ -253,88 +469,210 @@ def trade_summary_row(trade_json: dict) -> dict[str, Any]:
         "mfe_giveback_pct": metrics.get("mfe_giveback_pct", 0.0),
         "v3_max_prob": metrics.get("v3_max_prob", 0.0),
         "v3_first_alarm_bar": metrics.get("v3_first_alarm_bar", -1),
-        "iql_held_through_v3_count": metrics.get("iql_held_through_v3_count", 0),
+        "exit_iql_held_through_v3_count": metrics.get(
+            "exit_iql_held_through_v3_count", 0
+        ),
         "pnl_zero_crossings": metrics.get("pnl_zero_crossings", 0),
         "tags": ",".join(tags),
     }
+    for specialist, weight in zip(
+        MODEL_NATIVE_TRAINING_SPECIALISTS,
+        specialist_gate,
+        strict=True,
+    ):
+        row[f"specialist_gate_{specialist}"] = weight
+    return row
 
 
 # ── per-trade detail markdown ──────────────────────────────────────────────
 
 def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None:
-    entry = trade_json.get("entry_snapshot") or {}
+    entry, evidence = _require_entry_snapshot(trade_json)
     exit_s = trade_json.get("exit_summary")
     bars = trade_json.get("v12_bar_decisions") or []
-    score = entry.get("entry_score") or {}
-    tid = trade_json.get("trade_id") or "?"
+    tid = trade_json.get("trade_id") or trade_json.get("trade_key") or "?"
+    direction_logits = _finite_vector(evidence, "direction_logits", 3)
+    direction_probs = _finite_vector(evidence, "direction_probs", 3)
+    public_logits = _finite_vector(
+        evidence, "public_trade_flat_decision_logits", 2
+    )
+    public_probs = _finite_vector(
+        evidence, "public_trade_flat_decision_probs", 2
+    )
+    specialist_gate = _finite_vector(
+        evidence,
+        "specialist_gate",
+        len(MODEL_NATIVE_TRAINING_SPECIALISTS),
+    )
+    mtf_logits = _finite_vector(evidence, "mtf_dir_logits", 3)
+    mtf_probs = _finite_vector(evidence, "mtf_dir_probs", 3)
+    side_utility = _finite_vector(evidence, "side_utility", 2)
+    rail_logits = _finite_vector(evidence, "trendline_rail_logits", 6)
+    rail_probs = _finite_vector(evidence, "trendline_rail_probs", 6)
 
     lines: list[str] = []
     lines.append(f"# Trade #{tid}\n")
     lines.append(f"**Tags:** `{summary['tags']}`\n")
 
     lines.append("## Entry\n")
-    lines.append(f"- **Time:** {entry.get('entry_time')}")
-    lines.append(f"- **Side:** {entry.get('side')}  ·  **Price:** {entry.get('entry_price')}  ·  **Spread:** {entry.get('entry_spread_bps'):.2f} bps")
-    lines.append(f"- **Decision M5 bucket:** {score.get('decision_ts')}")
+    lines.append(f"- **Time:** {entry['entry_time']}")
+    lines.append(
+        f"- **Side:** {entry['side']}  ·  **Price:** "
+        f"{float(entry['entry_price']):.2f}  ·  **Spread:** "
+        f"{float(entry['entry_spread_bps']):.2f} bps  ·  **ATR:** "
+        f"{float(entry['atr_bps']):.2f} bps"
+    )
+    lines.append(
+        f"- **Decision M5 bucket:** {evidence['decision_ts']}  ·  "
+        f"**Session:** {entry['session']}  ·  **Policy:** {entry['model_policy']}"
+    )
+    lines.append(
+        "- **Execution checks:** " + ", ".join(entry["execution_checks"])
+    )
     lines.append("")
-    lines.append("### V10 outputs at entry")
-    lines.append(f"- p_long: **{score.get('v10_p_long', 0):.3f}**  ·  p_short: {score.get('v10_p_short', 0):.3f}")
-    lines.append(f"- path_quality: {score.get('v10_path_quality_pred', 0):.3f}  ·  mfe_pred: {score.get('v10_mfe_pred_at_entry', 0):.2f} bps")
-    lines.append(f"- tradable_prob: {score.get('v10_tradable_prob', 0):.3f}  ·  bad_path_prob: {score.get('v10_bad_path_prob', 0):.3f}")
+
+    lines.append("### Model-native direction (sole Entry authority)")
+    lines.append(
+        f"- **Decision:** {evidence['model_direction']} "
+        f"(index {evidence['model_direction_index']})"
+    )
+    lines.append(
+        "- calibrated logits LONG/SHORT/FLAT: "
+        f"{direction_logits[0]:+.4f} / {direction_logits[1]:+.4f} / "
+        f"{direction_logits[2]:+.4f}"
+    )
+    lines.append(
+        "- calibrated probabilities LONG/SHORT/FLAT: "
+        f"{direction_probs[0]:.4f} / {direction_probs[1]:.4f} / "
+        f"{direction_probs[2]:.4f}"
+    )
     lines.append("")
-    if any(str(k).startswith("smart_") for k in score):
-        lines.append("### SMART entry outputs")
-        lines.append(
-            "- p_long: **"
-            + _fmt_score(score.get("smart_p_long"), ".3f")
-            + "**  ·  p_short: "
-            + _fmt_score(score.get("smart_p_short"), ".3f")
-            + "  ·  p_flat: "
-            + _fmt_score(score.get("smart_p_flat"), ".3f")
-        )
-        lines.append(
-            "- p_trade: "
-            + _fmt_score(score.get("smart_p_trade"), ".3f")
-            + "  ·  p_long|trade: "
-            + _fmt_score(score.get("smart_p_long_given_trade"), ".3f")
-            + "  ·  p_short|trade: "
-            + _fmt_score(score.get("smart_p_short_given_trade"), ".3f")
-        )
-        lines.append(
-            "- expected utility L/S: "
-            + _fmt_score(score.get("smart_expected_utility_long_bps"), "+.2f")
-            + " / "
-            + _fmt_score(score.get("smart_expected_utility_short_bps"), "+.2f")
-            + " bps  ·  bad-path L/S: "
-            + _fmt_score(score.get("smart_long_bad_path_prob"), ".3f")
-            + " / "
-            + _fmt_score(score.get("smart_short_bad_path_prob"), ".3f")
-        )
-        lines.append(
-            "- trendline rail L-S: **"
-            + _fmt_score(score.get("smart_trendline_rail_long_minus_short"), "+.3f")
-            + "**  ·  rising-support long/trap: "
-            + _fmt_score(score.get("smart_geometry_rising_support_rail_long_pressure"), ".3f")
-            + " / "
-            + _fmt_score(score.get("smart_geometry_rising_support_rail_short_trap_pressure"), ".3f")
-        )
-        lines.append(
-            "- falling-resistance short/trap: "
-            + _fmt_score(score.get("smart_geometry_falling_resistance_rail_short_pressure"), ".3f")
-            + " / "
-            + _fmt_score(score.get("smart_geometry_falling_resistance_rail_long_trap_pressure"), ".3f")
-            + "  ·  mtf_trend: "
-            + _fmt_score(score.get("smart_mtf_trend_evidence"), "+.3f")
-        )
-        lines.append("")
-    lines.append("### Entry-IQL Q-values")
-    lines.append(f"- Q_take_long: **{score.get('q_take_long', 0):+.2f}**  ·  Q_take_short: {score.get('q_take_short', 0):+.2f}  ·  Q_skip: {score.get('q_skip', 0):+.4f}")
-    lines.append(f"- Advantage over skip: **{score.get('advantage_over_skip', 0):+.2f}** bps  (long: {score.get('advantage_over_skip_long', 0):+.2f}, short: {score.get('advantage_over_skip_short', 0):+.2f})")
+
+    lines.append("### Public TRADE/FLAT hierarchy")
+    lines.append(
+        f"- **Decision:** {evidence['public_trade_flat_decision']} "
+        f"(index {evidence['public_trade_flat_decision_index']})"
+    )
+    lines.append(
+        f"- logits TRADE/FLAT: {public_logits[0]:+.4f} / {public_logits[1]:+.4f}"
+    )
+    lines.append(
+        f"- probabilities TRADE/FLAT: {public_probs[0]:.4f} / "
+        f"{public_probs[1]:.4f}"
+    )
+    lines.append(
+        "- conditional side probabilities LONG|TRADE / SHORT|TRADE: "
+        f"{float(evidence['p_long_given_trade']):.4f} / "
+        f"{float(evidence['p_short_given_trade']):.4f}"
+    )
+    lines.append("")
+
+    lines.append("### Learned path, quality and agreement evidence")
+    lines.append(
+        f"- path_quality: {float(evidence['path_quality']):+.4f}  ·  "
+        f"std: {float(evidence['path_quality_std']):.4f}  ·  "
+        f"log_var: {float(evidence['path_quality_log_var']):+.4f}"
+    )
+    lines.append(
+        f"- MFE first-N: {float(evidence['mfe_first_n']):+.3f}  ·  "
+        f"tradable: {float(evidence['tradable_prob']):.4f}  ·  "
+        f"bad-path: {float(evidence['bad_path_prob']):.4f}"
+    )
+    lines.append(
+        f"- clean-edge: {float(evidence['clean_edge_prob']):.4f}  ·  "
+        f"survival: {float(evidence['survival_prob']):.4f}  ·  "
+        f"TF agreement: {float(evidence['tf_agreement_pred']):.4f} "
+        f"(logit {float(evidence['tf_agreement_logit']):+.4f})"
+    )
+    lines.append("")
+
+    lines.append("### Side utility diagnostics (evidence only)")
+    lines.append(
+        f"- raw utility LONG/SHORT: {side_utility[0]:+.4f} / "
+        f"{side_utility[1]:+.4f}"
+    )
+    lines.append(
+        "- bad-path probability LONG/SHORT: "
+        f"{float(evidence['long_bad_path_prob']):.4f} / "
+        f"{float(evidence['short_bad_path_prob']):.4f}"
+    )
+    lines.append(
+        "- validity probability LONG/SHORT: "
+        f"{float(evidence['long_validity_prob']):.4f} / "
+        f"{float(evidence['short_validity_prob']):.4f}"
+    )
+    side_mae = _finite_vector(evidence, "side_mae", 2)
+    lines.append(
+        f"- raw MAE LONG/SHORT: {side_mae[0]:+.4f} / {side_mae[1]:+.4f}"
+    )
+    lines.append("")
+
+    lines.append("### Specialist fusion")
+    lines.append("| specialist | learned gate weight |")
+    lines.append("|---|---:|")
+    for specialist, weight in zip(
+        MODEL_NATIVE_TRAINING_SPECIALISTS,
+        specialist_gate,
+        strict=True,
+    ):
+        lines.append(f"| {specialist} | {weight:.6f} |")
+    lines.append("")
+
+    lines.append("### MTF trend and geometry evidence")
+    lines.append(
+        "- MTF logits LONG/SHORT/FLAT: "
+        f"{mtf_logits[0]:+.4f} / {mtf_logits[1]:+.4f} / {mtf_logits[2]:+.4f}"
+    )
+    lines.append(
+        "- MTF probabilities LONG/SHORT/FLAT: "
+        f"{mtf_probs[0]:.4f} / {mtf_probs[1]:.4f} / {mtf_probs[2]:.4f}  ·  "
+        f"trend evidence: {float(evidence['mtf_trend_evidence']):+.4f}"
+    )
+    lines.append(
+        "- channel-edge / rising-support L / rising-support short-trap: "
+        f"{float(evidence['geometry_channel_edge_pressure']):+.4f} / "
+        f"{float(evidence['geometry_rising_support_rail_long_pressure']):+.4f} / "
+        f"{float(evidence['geometry_rising_support_rail_short_trap_pressure']):+.4f}"
+    )
+    lines.append(
+        "- falling-resistance S / falling-resistance long-trap: "
+        f"{float(evidence['geometry_falling_resistance_rail_short_pressure']):+.4f} / "
+        f"{float(evidence['geometry_falling_resistance_rail_long_trap_pressure']):+.4f}"
+    )
+    lines.append(
+        "- learned rail logits: " + " / ".join(f"{value:+.4f}" for value in rail_logits)
+    )
+    lines.append(
+        "- learned rail probabilities: "
+        + " / ".join(f"{value:.4f}" for value in rail_probs)
+    )
+    lines.append("")
+
+    lines.append("### Learned sizing evidence vs applied exposure")
+    lines.append(
+        f"- learned position_size_pred: **{float(evidence['position_size_pred']):.4f}** "
+        f"(logit {float(evidence['position_size_logit']):+.4f})"
+    )
+    lines.append(
+        f"- applied_size_multiplier: **{float(entry['applied_size_multiplier']):.4f}** "
+        f"· capacity units: {int(entry['capacity_units'])} "
+        f"· reference units (pre-round): {float(entry['reference_pre_round_units']):.4f} "
+        f"· learned units (pre-round): {float(entry['pre_round_units']):.4f} "
+        f"· applied integer units: {int(entry['units'])}"
+    )
+    lines.append(
+        "- The adopted TRAIN/VAL calibration maps the model logit monotonically to "
+        "a broker-capacity fraction; the journaled integer units are its exact output."
+    )
+    lines.append(
+        "- dynamic sizing authorized: **true** only under the SHA-bound newest "
+        "learned_calibrated adoption and recomputed TEST/OOS proof recorded above."
+    )
     lines.append("")
 
     if bars:
         lines.append("## In-trade trajectory\n")
-        lines.append("| bar | time | bid | pnl | mfe | mae | dd_from_peak | v3_prob | v3_consec | iql | source |")
+        lines.append("| bar | time | bid | pnl | mfe | mae | dd_from_peak | v3_prob | v3_consec | exit_action | exit_source |")
         lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
         # Sample at most ~30 bars across the trade for readability
         n = len(bars)
@@ -388,15 +726,18 @@ def render_trade_detail(trade_json: dict, summary: dict, out_path: Path) -> None
     if "MFE_GIVEBACK_50PCT" in tags:
         lines.append(f"- ⚠️ **Giveback ≥50%** — MFE peak {summary['max_mfe_bps']:.1f} bps → final {summary['realized_pnl_bps']:+.1f} bps (giveback {summary['mfe_giveback_pct']*100:.0f}%).")
     if "RECOVERY_FROM_DEEP_MAE" in tags:
-        lines.append(f"- ✅ **Recovery fra deep MAE** — bunn {summary['max_mae_bps']:.1f} bps → final {summary['realized_pnl_bps']:+.1f}. IQL holdt rett.")
-    if "IQL_HELD_THROUGH_V3_ALARM" in tags:
-        lines.append(f"- 🟡 **IQL ignored V3** — V3 sa exit i {summary['iql_held_through_v3_count']} bars, IQL holdt. Verifiser om dette var riktig (Phase 6 sa NO_TRAIL er edge).")
+        lines.append(f"- ✅ **Recovery fra deep MAE** — bunn {summary['max_mae_bps']:.1f} bps → final {summary['realized_pnl_bps']:+.1f}. Exit-IQL holdt rett.")
+    if "EXIT_IQL_HELD_THROUGH_V3_ALARM" in tags:
+        lines.append(
+            f"- 🟡 **Exit-IQL ignored V3** — V3 sa exit i "
+            f"{summary['exit_iql_held_through_v3_count']} bars; Exit-IQL holdt."
+        )
     if "JOJO_4PLUS" in tags:
         lines.append(f"- ⚠️ **{summary['pnl_zero_crossings']} svingninger** rundt break-even — roller-coaster mønster.")
     if "RAN_TO_STOP" in tags:
-        lines.append(f"- 🔴 **Løp til stop-like deep MAE** — IQL holdt for lenge i tap, eller markedet snudde aldri.")
+        lines.append("- 🔴 **Løp til stop-like deep MAE** — Exit-IQL holdt for lenge i tap, eller markedet snudde aldri.")
     if not any(t in tags for t in ["MFE_GIVEBACK_50PCT", "MFE_HIT_BUT_NEGATIVE_EXIT", "RECOVERY_FROM_DEEP_MAE",
-                                    "IQL_HELD_THROUGH_V3_ALARM", "JOJO_4PLUS", "RAN_TO_STOP"]):
+                                    "EXIT_IQL_HELD_THROUGH_V3_ALARM", "JOJO_4PLUS", "RAN_TO_STOP"]):
         lines.append("- (Ingen patologiske mønstre flagget)")
     lines.append("")
 
@@ -444,7 +785,9 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
     if rows:
         mfes = [float(r["max_mfe_bps"] or 0) for r in rows]
         maes = [float(r["max_mae_bps"] or 0) for r in rows]
-        med = lambda xs: sorted(xs)[len(xs) // 2] if xs else 0
+        def med(xs: list[float]) -> float:
+            return sorted(xs)[len(xs) // 2] if xs else 0.0
+
         lines.append(f"- **Median MFE peak:** {med(mfes):.1f} bps  ·  **Median MAE worst:** {med(maes):.1f} bps")
         lines.append(f"- **Trades with MFE peak ≥20 bps:** {sum(1 for m in mfes if m >= 20)}")
         lines.append(f"- **Trades with MAE ≤-20 bps:** {sum(1 for m in maes if m <= -20)}")
@@ -464,7 +807,7 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
 
     # Per-trade table
     lines.append("## Per-trade summary\n")
-    lines.append("| id | side | entry | bars | MFE | MAE | giveback% | V3 max | realized | tags |")
+    lines.append("| id | model direction | public | p(L/S/F) | size learned/applied | bars | MFE | MAE | realized | tags |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|")
     for r in rows:
         entry_t = (r["entry_time"] or "")[11:16] if r["entry_time"] else "?"
@@ -472,10 +815,12 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
         rea_str = f"{float(rea):+.1f}" if rea != "" and rea is not None else "?"
         tag_short = r["tags"].replace(",", " · ")[:60]
         lines.append(
-            f"| {r['trade_id']} | {r['side']} | {entry_t} | {r['n_bars']} | "
+            f"| {r['trade_id']} ({entry_t}) | {r['model_direction']} | "
+            f"{r['public_trade_flat_decision']} | "
+            f"{r['direction_p_long']:.2f}/{r['direction_p_short']:.2f}/"
+            f"{r['direction_p_flat']:.2f} | {r['position_size_pred']:.3f}/"
+            f"{r['applied_size_multiplier']:.3f} | {r['n_bars']} | "
             f"{float(r['max_mfe_bps'] or 0):.1f} | {float(r['max_mae_bps'] or 0):.1f} | "
-            f"{float(r['mfe_giveback_pct'] or 0)*100:.0f}% | "
-            f"{float(r['v3_max_prob'] or 0):.2f} | "
             f"{rea_str} | {tag_short} |"
         )
     lines.append("")
@@ -486,7 +831,7 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
         "MFE_GIVEBACK_50PCT": [],
         "MFE_HIT_BUT_NEGATIVE_EXIT": [],
         "RECOVERY_FROM_DEEP_MAE": [],
-        "IQL_HELD_THROUGH_V3_ALARM": [],
+        "EXIT_IQL_HELD_THROUGH_V3_ALARM": [],
         "JOJO_4PLUS": [],
         "RAN_TO_STOP": [],
     }
@@ -507,8 +852,14 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
     lines.append("")
 
     lines.append("---\n")
-    lines.append("_Datakilder: `trade_journal/trades/*.json`, `trade_journal_index.csv`._\n")
-    lines.append("_Bruk denne reviewen til å seede retraining data for IQL — patologiske mønstre er retraining-signal._\n")
+    lines.append(
+        "_Datakilder: `trade_journal/trades/*.json`, "
+        f"`{INDEX_CSV.name}`._\n"
+    )
+    lines.append(
+        "_Entry-feltene er validerte model-native bevis; Exit-feltene er "
+        "observerte bane- og exitdata._\n"
+    )
 
     (out_dir / "REVIEW.md").write_text("\n".join(lines))
 
@@ -516,74 +867,63 @@ def render_day_review(rows: list[dict], date_str: str, out_dir: Path) -> None:
 # ── main ───────────────────────────────────────────────────────────────────
 
 def _generate_review(date_str: str, out_dir: Path) -> int:
-    (out_dir / "trades").mkdir(parents=True, exist_ok=True)
     LOG.info(f"Reading trade journals from {TRADE_JSON_DIR}")
-    rows = []
+    rows: list[dict[str, Any]] = []
+    reviewed: list[tuple[dict[str, Any], dict[str, Any]]] = []
     files = sorted(TRADE_JSON_DIR.glob("*.json"))
     iso_date = _to_iso_date(date_str)
     for jf in files:
         try:
             data = json.loads(jf.read_text())
         except Exception as e:
-            LOG.warning(f"failed to parse {jf.name}: {e}")
+            raise ModelNativeTradeReviewError(
+                f"[DAILY_REVIEW_JOURNAL_PARSE_FAILED] {jf.name}"
+            ) from e
+        if not isinstance(data, dict):
+            raise ModelNativeTradeReviewError(
+                f"[DAILY_REVIEW_JOURNAL_INVALID] {jf.name}: expected object"
+            )
+        entry = data.get("entry_snapshot")
+        if not isinstance(entry, dict):
+            raise ModelNativeTradeReviewError(
+                f"[DAILY_REVIEW_ENTRY_SNAPSHOT_MISSING] {jf.name}"
+            )
+        entry_t = entry.get("entry_time")
+        if not isinstance(entry_t, str) or not entry_t.strip():
+            raise ModelNativeTradeReviewError(
+                f"[DAILY_REVIEW_ENTRY_TIME_MISSING] {jf.name}"
+            )
+        if not entry_t.startswith(iso_date):
             continue
-        # If entry_snapshot is missing (trade resumed before TradeJournal retrofit),
-        # backfill from the runner's persisted TradeState (open_trade_<id>.json).
-        if data.get("entry_snapshot") is None:
-            bf = _backfill_entry_from_state(data.get("trade_id") or "")
-            if bf is not None:
-                data["entry_snapshot"] = bf
-        # Filter to today's trades. Prefer entry_snapshot.entry_time, fall back to
-        # first bar timestamp.
-        entry_t = (data.get("entry_snapshot") or {}).get("entry_time", "")
-        if not entry_t and data.get("v12_bar_decisions"):
-            entry_t = data["v12_bar_decisions"][0].get("timestamp", "")
-        if not entry_t or not entry_t.startswith(iso_date):
-            continue
-        s = trade_summary_row(data)
-        if not s["entry_time"]:
-            s["entry_time"] = entry_t
-        # For open trades, override journal-derived metrics with the runner's
-        # cumulative TradeState (it preserves the full pre-retrofit history).
-        if s["exit_reason"] == "STILL_OPEN":
-            state = _load_state(data.get("trade_id") or "")
-            if state is not None:
-                s["n_bars"] = int(state.get("bars_in_trade") or s["n_bars"])
-                s["max_mfe_bps"] = float(state.get("cum_mfe_bps") or s["max_mfe_bps"])
-                s["max_mae_bps"] = float(state.get("cum_mae_bps") or s["max_mae_bps"])
-                s["realized_pnl_bps"] = float(state.get("current_pnl_bps") or s["realized_pnl_bps"])
-                s["v3_max_prob"] = float(state.get("v3_max_prob_in_trade") or s["v3_max_prob"])
-                # Recompute giveback against the corrected MFE peak
-                final = float(s["realized_pnl_bps"] or 0)
-                mfe = float(s["max_mfe_bps"] or 0)
-                s["mfe_giveback_bps"] = mfe - final if mfe > 0 else 0.0
-                s["mfe_giveback_pct"] = (mfe - final) / mfe if mfe > 0 else 0.0
-                # Re-classify tags after metric correction
-                s["tags"] = ",".join(_classify_pattern(
-                    {
-                        "max_mfe_bps": s["max_mfe_bps"],
-                        "max_mae_bps": s["max_mae_bps"],
-                        "final_pnl_bps": s["realized_pnl_bps"],
-                        "mfe_giveback_pct": s["mfe_giveback_pct"],
-                        "iql_held_through_v3_count": s["iql_held_through_v3_count"],
-                        "pnl_zero_crossings": s["pnl_zero_crossings"],
-                    },
-                    None,   # still open
-                ))
+        try:
+            s = trade_summary_row(data)
+        except ModelNativeTradeReviewError as exc:
+            raise ModelNativeTradeReviewError(
+                f"[DAILY_REVIEW_TRADE_BLOCKED] {jf.name}: {exc}"
+            ) from exc
         rows.append(s)
-        render_trade_detail(data, s, out_dir / "trades" / f"{data.get('trade_id')}.md")
+        reviewed.append((data, s))
 
     rows.sort(key=lambda r: r["entry_time"] or "")
+    reviewed.sort(key=lambda pair: pair[1]["entry_time"])
     LOG.info(f"  {len(rows)} trades from {date_str}")
 
+    trades_out = out_dir / "trades"
+    trades_out.mkdir(parents=True, exist_ok=True)
+    for data, summary in reviewed:
+        trade_id = data.get("trade_id") or data.get("trade_key")
+        render_trade_detail(data, summary, trades_out / f"{trade_id}.md")
+
     # Write CSV
+    csv_path = out_dir / "trades_metrics.csv"
     if rows:
-        csv_path = out_dir / "trades_metrics.csv"
-        with csv_path.open("w", newline="") as f:
+        with csv_path.open("w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
             w.writeheader()
             w.writerows(rows)
         LOG.info(f"  wrote {csv_path}")
+    else:
+        csv_path.unlink(missing_ok=True)
 
     # Day review
     render_day_review(rows, date_str, out_dir)

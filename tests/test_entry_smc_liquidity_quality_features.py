@@ -1,7 +1,3 @@
-import argparse
-import json
-from pathlib import Path
-
 import numpy as np
 import pytest
 
@@ -12,7 +8,6 @@ from gx1.features.entry_smc_liquidity_quality_v1 import (
     missing_smc_liquidity_quality_source_fields,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
-from gx1.scripts.materialize_entry_smc_liquidity_quality_manifest_v1 import run as run_manifest
 
 
 EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT = 24
@@ -81,12 +76,7 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
 
 
 def test_smc_liquidity_quality_layer_builds_directional_closed_bar_features() -> None:
-    names = list(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS) + [
-        "chart.foundation_sweep_low_reclaim_up_proxy",
-        "chart.foundation_sweep_high_reclaim_down_proxy",
-        "chart.foundation_false_breakout_low_followthrough_up_proxy",
-        "chart.foundation_false_breakout_high_followthrough_down_proxy",
-    ]
+    names = list(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS)
     x = _matrix(names)
     out, out_names = build_entry_smc_liquidity_quality_layer(x, names)
     idx = {name: i for i, name in enumerate(out_names)}
@@ -119,23 +109,15 @@ def test_smc_liquidity_quality_layer_builds_directional_closed_bar_features() ->
     assert out[4, idx["chart.smc_liquidity_continuation_pressure_short"]] > out[0, idx["chart.smc_liquidity_continuation_pressure_short"]]
 
 
-def test_smc_liquidity_quality_layer_sanitizes_nonfinite_inputs() -> None:
-    names = list(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS) + [
-        "chart.foundation_sweep_low_reclaim_up_proxy",
-        "chart.foundation_sweep_high_reclaim_down_proxy",
-        "chart.foundation_false_breakout_low_followthrough_up_proxy",
-        "chart.foundation_false_breakout_high_followthrough_down_proxy",
-    ]
+def test_smc_liquidity_quality_layer_rejects_nonfinite_inputs() -> None:
+    names = list(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS)
     x = _matrix(names)
     x[1, names.index("snap.smc_sweep_size_atr")] = np.nan
     x[2, names.index("ctx_cont.sr_support_proximity_exp")] = np.inf
     x[4, names.index("ctx_cont.sr_resistance_proximity_exp")] = -np.inf
 
-    out, out_names = build_entry_smc_liquidity_quality_layer(x, names)
-
-    assert len(out_names) == EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT
-    assert out.shape == (6, EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT)
-    assert np.isfinite(out).all()
+    with pytest.raises(RuntimeError, match="SMC_LIQUIDITY_QUALITY_SOURCE_NONFINITE"):
+        build_entry_smc_liquidity_quality_layer(x, names)
 
 
 def test_smc_liquidity_quality_layer_fails_closed_on_missing_required_sources() -> None:
@@ -167,18 +149,3 @@ def test_smc_liquidity_quality_contract_routes_to_smc_specialist() -> None:
     assert {classify_entry_specialist_feature(name) for name in SMC_LIQUIDITY_QUALITY_FEATURE_NAMES} == {
         "smc_liquidity_encoder"
     }
-
-
-def test_smc_liquidity_quality_manifest_is_report_only(tmp_path: Path) -> None:
-    report = run_manifest(argparse.Namespace(out_dir=str(tmp_path)))
-
-    assert report["decision"] == "READY_FOR_FEATURE_AUDIT_REVIEW"
-    assert report["training_allowed"] is False
-    assert report["replay_allowed"] is False
-    assert report["iql_allowed"] is False
-    assert report["side_effects_started"] is False
-    assert report["candidate_feature_count"] == len(SMC_LIQUIDITY_QUALITY_FEATURE_NAMES)
-    assert set(report["feature_counts_by_specialist"]) == {"smc_liquidity_encoder"}
-    assert (tmp_path / "ENTRY_SMC_LIQUIDITY_QUALITY_MANIFEST_latest.json").exists()
-    latest = json.loads((tmp_path / "ENTRY_SMC_LIQUIDITY_QUALITY_MANIFEST_latest.json").read_text(encoding="utf-8"))
-    assert latest["selected_features"] == list(SMC_LIQUIDITY_QUALITY_FEATURE_NAMES)

@@ -72,7 +72,7 @@ def test_trade_journal_basic():
         journal.close()
         
         # Verify journal file exists
-        journal_path = run_dir / "journal" / "trade_journal.jsonl"
+        journal_path = run_dir / "trade_journal" / "trade_journal.jsonl"
         assert journal_path.exists(), "Journal file should exist"
         
         # Read and verify events
@@ -110,4 +110,3 @@ if __name__ == "__main__":
     test_trade_journal_basic()
     test_account_id_masking()
     print("✅ All tests passed")
-

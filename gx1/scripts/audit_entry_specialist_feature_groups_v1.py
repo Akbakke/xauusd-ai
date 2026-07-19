@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit Entry seq146 specialist feature grouping before specialist training."""
+"""Audit the exact model-native seq513 specialist feature contract."""
 from __future__ import annotations
 
 import argparse
@@ -13,46 +13,54 @@ import numpy as np
 import pandas as pd
 
 from gx1.audit.entry_transformer_feature_audit import _stack_list_column
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_enforcement,
+    foundation_audit_policy_metadata,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+    model_native_mandatory_full_stack_metadata,
+    require_model_native_manifest,
+    require_model_native_signal_contract,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    FORBIDDEN_LEGACY_BRIDGE_SPECIALIST,
     FOUNDATION_OBJECTIVE_SPECIALISTS,
     FOUNDATION_REQUIREMENT_PATTERNS,
-    SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT,
-    SMART_SEQ520_EXPECTED_SIGNAL_DIM,
-    SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT,
-    SPECIALIST_AUDIT_CONTRACT_MODES,
-    SPECIALIST_CONTRACT_MODES,
+    MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
+    MODEL_NATIVE_SMART_FAMILY_CONTRACT,
+    MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
     group_features_by_specialist,
-    required_training_specialists_for_mode,
-    smart_family_contract_for_mode,
-    specialist_contract_training_allowed_for_mode,
-    specialist_model_contract_for_mode,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
-from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT, SEQ_STRUCTURE_MANIFEST
 
-
-DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_specialist_feature_group_audit_20260628_v1"
-
-MIN_SIGNAL_COUNTS = {
-    "structure_swing_encoder": 10,
-    "smc_liquidity_encoder": 8,
-    "trend_ema_encoder": 6,
-    "vol_compression_encoder": 6,
-    "momentum_flow_encoder": 3,
-    "session_regime_encoder": 6,
-    "chart_geometry_encoder": 8,
-    "price_action_candle_encoder": 6,
-}
-
-MIN_LIVE_FEATURE_COUNTS = dict(MIN_SIGNAL_COUNTS)
-MIN_SPECIALIST_MEAN_ACTIVE_RATE = 0.01
-MIN_FEATURE_ACTIVE_RATE = 0.01
-LIVENESS_EPSILON = 1e-7
-NEAR_CONSTANT_STD = 1e-9
+_SPECIALIST_AUDIT_POLICY = foundation_audit_policy_metadata()[
+    "specialist_liveness"
+]
+MIN_SIGNAL_COUNTS = dict(_SPECIALIST_AUDIT_POLICY["min_signal_counts"])
+MIN_LIVE_FEATURE_COUNTS = dict(
+    _SPECIALIST_AUDIT_POLICY["min_live_feature_counts"]
+)
+MIN_SPECIALIST_MEAN_ACTIVE_RATE = float(
+    _SPECIALIST_AUDIT_POLICY["min_specialist_mean_active_rate"]
+)
+MIN_FEATURE_ACTIVE_RATE = float(
+    _SPECIALIST_AUDIT_POLICY["min_feature_active_rate"]
+)
+LIVENESS_EPSILON = float(_SPECIALIST_AUDIT_POLICY["liveness_epsilon"])
+NEAR_CONSTANT_STD = float(_SPECIALIST_AUDIT_POLICY["near_constant_std"])
+SPECIALIST_CONTRACT_MODE = str(_SPECIALIST_AUDIT_POLICY["contract_mode"])
 
 
 def _json_default(obj: Any) -> Any:
@@ -65,10 +73,6 @@ def _json_default(obj: Any) -> Any:
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     return str(obj)
-
-
-def _parse_csv(raw: str) -> list[str]:
-    return [p.strip() for p in str(raw or "").split(",") if p.strip()]
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -102,8 +106,24 @@ def _load_split_signal_fields(dataset_dir: Path, splits: list[str]) -> dict[str,
     for split in splits:
         path = _split_manifest_path(dataset_dir, split)
         manifest = _read_json(path)
-        signal_bridge = ((manifest.get("extra") or {}).get("signal_bridge") or {})
+        extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+        signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+        model_native_signal_contract = (
+            extra.get("model_native_signal_contract")
+            if isinstance(extra.get("model_native_signal_contract"), dict)
+            else None
+        )
+        if model_native_signal_contract is None:
+            raise RuntimeError(f"{split}: split manifest lacks model_native_signal_contract: {path}")
+        require_model_native_signal_contract(
+            model_native_signal_contract,
+            context=f"SPECIALIST_AUDIT_{split.upper()}",
+        )
         fields = [str(x) for x in signal_bridge.get("fields", []) if str(x).strip()]
+        if fields != list(model_native_signal_contract["fields"]):
+            raise RuntimeError(
+                f"{split}: signal_bridge fields differ from model_native_signal_contract fields"
+            )
         extension = signal_bridge.get("seq_structure_extension_v1") or {}
         extension_features = [str(x) for x in extension.get("features", []) if str(x).strip()]
         out[split] = {
@@ -114,6 +134,7 @@ def _load_split_signal_fields(dataset_dir: Path, splits: list[str]) -> dict[str,
             "extension_feature_count": len(extension_features),
             "seq_input_dim": int(signal_bridge.get("seq_input_dim") or 0),
             "snap_input_dim": int(signal_bridge.get("snap_input_dim") or 0),
+            "model_native_signal_contract": model_native_signal_contract,
         }
     return out
 
@@ -187,22 +208,22 @@ def _context_routing_rows(context_contracts: dict[str, dict[str, Any]]) -> list[
     return rows
 
 
-def _context_routing_failures(rows: list[dict[str, Any]], *, contract_mode: str) -> list[str]:
+def _context_routing_failures(rows: list[dict[str, Any]]) -> list[str]:
     unmapped = [row for row in rows if str(row.get("specialist")) == "unmapped"]
     if unmapped:
         return [
-            f"{contract_mode} context routing has unmapped fields: "
+            f"{MODEL_NATIVE_CONTRACT_MODE} context routing has unmapped fields: "
             + ", ".join(str(row.get("feature")) for row in unmapped[:40])
             + f" total={len(unmapped)}"
         ]
     return []
 
 
-def _contract_training_surface(contract_mode: str) -> dict[str, Any]:
+def _contract_training_surface() -> dict[str, Any]:
     return {
-        "contract_mode": contract_mode,
-        "registered_for_training_surfaces": contract_mode in SPECIALIST_CONTRACT_MODES,
-        "training_allowed_by_contract_mode": specialist_contract_training_allowed_for_mode(contract_mode),
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "registered_for_training_surfaces": True,
+        "training_allowed_by_contract_mode": True,
         "training_allowed_by_this_audit": False,
         "training_allowed": False,
         "requires_separate_readiness_gate": True,
@@ -210,33 +231,47 @@ def _contract_training_surface(contract_mode: str) -> dict[str, Any]:
 
 
 def _smart_family_contract_rows(
-    seq_manifest: dict[str, Any],
-    *,
-    contract_mode: str,
+    selected_features: list[str],
+    signal_fields: list[str],
 ) -> list[dict[str, Any]]:
-    family_contract = smart_family_contract_for_mode(contract_mode)
-    if not family_contract:
-        return []
-    manifest_counts = (
-        seq_manifest.get("smart_layer_feature_counts")
-        if isinstance(seq_manifest.get("smart_layer_feature_counts"), dict)
-        else {}
-    )
+    selected_set = set(selected_features)
+    signal_set = set(signal_fields)
     rows: list[dict[str, Any]] = []
-    for label, spec in family_contract.items():
+    for (label, expected_features), (contract_label, spec) in zip(
+        MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+        MODEL_NATIVE_SMART_FAMILY_CONTRACT.items(),
+        strict=True,
+    ):
+        if label != contract_label:
+            raise RuntimeError(
+                "MODEL_NATIVE_SMART_FAMILY_REGISTRY_ORDER_MISMATCH: "
+                f"registry={label!r} specialist_contract={contract_label!r}"
+            )
         expected_specialist_counts = {
             str(k): int(v)
             for k, v in (spec.get("expected_specialist_counts") or {}).items()
         }
-        expected_feature_count = int(spec.get("expected_feature_count") or sum(expected_specialist_counts.values()))
-        observed = manifest_counts.get(label)
+        expected_feature_count = len(expected_features)
+        selected_members = [name for name in expected_features if name in selected_set]
+        signal_members = [name for name in expected_features if name in signal_set]
+        missing_selected = [name for name in expected_features if name not in selected_set]
+        missing_signal = [name for name in expected_features if name not in signal_set]
         rows.append(
             {
                 "family": label,
                 "purpose": spec.get("purpose"),
                 "expected_feature_count": expected_feature_count,
-                "observed_feature_count": int(observed) if observed is not None else None,
-                "feature_count_matches": observed is not None and int(observed) == expected_feature_count,
+                "observed_feature_count": len(selected_members),
+                "selected_feature_count": len(selected_members),
+                "emitted_signal_feature_count": len(signal_members),
+                "missing_selected_features": missing_selected,
+                "missing_emitted_signal_features": missing_signal,
+                "feature_count_matches": (
+                    len(selected_members) == expected_feature_count
+                    and len(signal_members) == expected_feature_count
+                    and not missing_selected
+                    and not missing_signal
+                ),
                 "expected_specialist_counts": expected_specialist_counts,
                 "owned_specialists": list(spec.get("owned_specialists") or ()),
             }
@@ -247,55 +282,100 @@ def _smart_family_contract_rows(
 def _smart_contract_failures(
     seq_manifest: dict[str, Any],
     *,
-    contract_mode: str,
     signal_field_count: int,
     selected_feature_count: int,
     smart_family_rows: list[dict[str, Any]],
 ) -> list[str]:
-    if contract_mode != "smart_seq520_candidate":
-        return []
-
     failures: list[str] = []
     manifest_variant = str(seq_manifest.get("manifest_variant") or "")
-    if manifest_variant != "smart_seq520_candidate":
-        failures.append(f"smart_seq520 manifest_variant mismatch: observed={manifest_variant!r}")
-    if signal_field_count != SMART_SEQ520_EXPECTED_SIGNAL_DIM:
+    if manifest_variant != MODEL_NATIVE_CONTRACT_MODE:
+        failures.append(f"model-native smart manifest_variant mismatch: observed={manifest_variant!r}")
+    if signal_field_count != MODEL_NATIVE_SIGNAL_DIM:
         failures.append(
-            f"smart_seq520 signal width mismatch: observed={signal_field_count} "
-            f"expected={SMART_SEQ520_EXPECTED_SIGNAL_DIM}"
+            f"model-native smart signal width mismatch: observed={signal_field_count} "
+            f"expected={MODEL_NATIVE_SIGNAL_DIM}"
         )
-    if selected_feature_count != SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT:
+    if selected_feature_count != MODEL_NATIVE_SELECTED_FEATURE_COUNT:
         failures.append(
-            f"smart_seq520 selected feature count mismatch: observed={selected_feature_count} "
-            f"expected={SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT}"
+            f"model-native smart selected feature count mismatch: observed={selected_feature_count} "
+            f"expected={MODEL_NATIVE_SELECTED_FEATURE_COUNT}"
         )
     if seq_manifest.get("smart_layers_included") is not True:
-        failures.append("smart_seq520 manifest does not declare smart_layers_included=true")
+        failures.append("model-native smart manifest does not declare smart_layers_included=true")
     if seq_manifest.get("dataset_rebuild_required_before_training") is not True:
-        failures.append("smart_seq520 manifest must preserve dataset_rebuild_required_before_training=true")
+        failures.append("model-native smart manifest must preserve dataset_rebuild_required_before_training=true")
     if seq_manifest.get("training_allowed") is not False:
-        failures.append("smart_seq520 manifest must keep training_allowed=false")
+        failures.append("model-native smart manifest must keep training_allowed=false")
+    try:
+        require_model_native_manifest(seq_manifest, context="SPECIALIST_AUDIT")
+    except RuntimeError as exc:
+        failures.append(str(exc))
 
     source_counts = (
         seq_manifest.get("source_feature_counts")
         if isinstance(seq_manifest.get("source_feature_counts"), dict)
         else {}
     )
+    expected_source_counts = {
+        "smart_candidate_layers": MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
+        "mandatory_full_stack": MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
+        "ranked_remainder": (
+            MODEL_NATIVE_SELECTED_FEATURE_COUNT
+            - MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT
+        ),
+    }
     observed_smart_count = int(source_counts.get("smart_candidate_layers") or 0)
-    if observed_smart_count != SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT:
+    if observed_smart_count != MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT:
         failures.append(
-            "smart_seq520 smart layer source count mismatch: "
+            "model-native smart layer source count mismatch: "
             f"observed={source_counts.get('smart_candidate_layers')} "
-            f"expected={SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT}"
+            f"expected={MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT}"
+        )
+    if source_counts != expected_source_counts:
+        failures.append(
+            "model-native source feature count metadata stale: "
+            f"declared={source_counts} expected={expected_source_counts}"
         )
     if len(smart_family_rows) != 10:
-        failures.append(f"smart_seq520 smart family contract must have exactly 10 families: {len(smart_family_rows)}")
+        failures.append(f"model-native smart family contract must have exactly 10 families: {len(smart_family_rows)}")
     for row in smart_family_rows:
         if row.get("feature_count_matches") is not True:
             failures.append(
-                f"smart_seq520 family count mismatch: {row.get('family')} "
+                f"model-native smart family count mismatch: {row.get('family')} "
                 f"observed={row.get('observed_feature_count')} expected={row.get('expected_feature_count')}"
             )
+    recomputed_family_counts = {
+        str(row["family"]): int(row["selected_feature_count"])
+        for row in smart_family_rows
+    }
+    expected_family_counts = {
+        family: len(features)
+        for family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
+    }
+    declared_family_counts = seq_manifest.get("smart_layer_feature_counts")
+    if not isinstance(declared_family_counts, dict):
+        failures.append("model-native mandatory family count metadata missing")
+    elif declared_family_counts != expected_family_counts:
+        failures.append(
+            "model-native mandatory family count metadata stale: "
+            f"declared={declared_family_counts} recomputed={recomputed_family_counts} "
+            f"expected={expected_family_counts}"
+        )
+    declared_mandatory = seq_manifest.get("mandatory_full_stack")
+    expected_mandatory = model_native_mandatory_full_stack_metadata()
+    if not isinstance(declared_mandatory, dict):
+        failures.append("model-native mandatory_full_stack metadata missing")
+    elif declared_mandatory != expected_mandatory:
+        failures.append("model-native mandatory_full_stack metadata stale")
+    observed_mandatory_count = sum(
+        int(row["selected_feature_count"]) for row in smart_family_rows
+    )
+    if observed_mandatory_count != MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+        failures.append(
+            "model-native mandatory selected feature count mismatch: "
+            f"observed={observed_mandatory_count} "
+            f"expected={MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT}"
+        )
     return failures
 
 
@@ -530,7 +610,7 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
             "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
-            "distillation_path": "specialist_transformer_teacher -> offline replay scoring -> IQL entry policy student",
+            "direction_path": "sole learned specialist fusion -> calibrated LONG/SHORT/FLAT argmax",
         },
     }
 
@@ -607,10 +687,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     seq_manifest_path = Path(args.seq_structure_manifest).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    splits = _parse_csv(args.data_splits)
-    contract_mode = str(getattr(args, "contract_mode", "foundation_seq146") or "foundation_seq146").strip()
-    required_training_specialists = required_training_specialists_for_mode(contract_mode)
-    specialist_model_contract = specialist_model_contract_for_mode(contract_mode)
+    splits = list(FOUNDATION_AUDIT_DATA_SPLITS)
+    contract_mode = SPECIALIST_CONTRACT_MODE
+    required_training_specialists = MODEL_NATIVE_TRAINING_SPECIALISTS
+    specialist_model_contract = MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
 
     failures: list[str] = []
     seq_manifest = _read_json(seq_manifest_path)
@@ -637,8 +717,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if missing_ext:
             failures.append(f"{split}: selected extension features missing from signal fields: {missing_ext[:30]} total={len(missing_ext)}")
 
+    signal_owner_by_field = {
+        feature: classify_entry_specialist_feature(feature)
+        for feature in signal_fields
+    }
+    forbidden_bridge_fields = [
+        feature
+        for feature, owner in signal_owner_by_field.items()
+        if owner == FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
+    ]
+    if forbidden_bridge_fields:
+        failures.append(
+            "forbidden legacy bridge fields present in model-native signal surface: "
+            f"{forbidden_bridge_fields}"
+        )
     signal_unmapped_fields = [
-        feature for feature in signal_fields if classify_entry_specialist_feature(feature) == "unmapped"
+        feature
+        for feature, owner in signal_owner_by_field.items()
+        if owner not in SPECIALIST_GROUPS
     ]
     if signal_unmapped_fields:
         failures.append(f"unmapped signal fields: {signal_unmapped_fields[:30]} total={len(signal_unmapped_fields)}")
@@ -672,7 +768,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for row in context_routing_rows
         if str(row.get("specialist")) == "unmapped"
     ]
-    context_routing_failures = _context_routing_failures(context_routing_rows, contract_mode=contract_mode)
+    context_routing_failures = _context_routing_failures(context_routing_rows)
     failures.extend(context_routing_failures)
 
     foundation_rows = _foundation_requirement_rows(selected_features)
@@ -696,12 +792,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         required_training_specialists,
     )
     failures.extend(specialist_model_contract_failures)
-    contract_training_surface = _contract_training_surface(contract_mode)
-    smart_family_contract = smart_family_contract_for_mode(contract_mode)
-    smart_family_rows = _smart_family_contract_rows(seq_manifest, contract_mode=contract_mode)
+    contract_training_surface = _contract_training_surface()
+    smart_family_contract = MODEL_NATIVE_SMART_FAMILY_CONTRACT
+    smart_family_rows = _smart_family_contract_rows(
+        selected_features,
+        signal_fields,
+    )
     smart_contract_failures = _smart_contract_failures(
         seq_manifest,
-        contract_mode=contract_mode,
         signal_field_count=len(signal_fields),
         selected_feature_count=len(selected_features),
         smart_family_rows=smart_family_rows,
@@ -713,6 +811,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": "entry_specialist_feature_group_audit_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
+        **foundation_audit_policy_binding(),
+        "foundation_audit_policy_enforcement": (
+            foundation_audit_policy_enforcement("specialist")
+        ),
         "report_only": True,
         "training_allowed": False,
         "training_allowed_with_explicit_vedtak": False,
@@ -725,6 +827,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "signal_field_count": int(len(signal_fields)),
         "signal_unmapped_count": int(len(signal_unmapped_fields)),
         "signal_unmapped_fields": signal_unmapped_fields,
+        "forbidden_legacy_bridge_field_count": int(len(forbidden_bridge_fields)),
+        "forbidden_legacy_bridge_fields": forbidden_bridge_fields,
         "signal_routing_all_mapped": not signal_unmapped_fields,
         "selected_feature_count": int(len(selected_features)),
         "selected_features_present_in_signal_count": int(len(selected_set & signal_set)),
@@ -775,15 +879,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     json_path = out_dir / f"ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_{timestamp}.json"
     md_path = out_dir / f"ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_{timestamp}.md"
+    if json_path.exists() or md_path.exists():
+        raise RuntimeError(
+            "SPECIALIST_AUDIT_IMMUTABLE_EVENT_EXISTS: "
+            f"json={json_path} md={md_path}"
+        )
     report["json_path"] = str(json_path)
     report["md_path"] = str(md_path)
     json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     _write_markdown(md_path, report)
-    latest_json = out_dir / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
-    latest_md = out_dir / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.md"
-    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
-
     if not args.quiet:
         print(
             json.dumps(
@@ -800,19 +904,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 default=_json_default,
             )
         )
-    if args.fail_on_audit_fail and failures:
+    if failures:
         raise SystemExit(2)
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset-dir", default=str(FOUNDATION_DATASET_DIR))
-    ap.add_argument("--seq-structure-manifest", default=str(SEQ_STRUCTURE_MANIFEST))
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    ap.add_argument("--data-splits", default="train,val,test")
-    ap.add_argument("--contract-mode", choices=SPECIALIST_AUDIT_CONTRACT_MODES, default="foundation_seq146")
-    ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--dataset-dir", required=True)
+    ap.add_argument("--seq-structure-manifest", required=True)
+    ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
 

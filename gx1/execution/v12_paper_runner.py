@@ -1,38 +1,41 @@
 #!/usr/bin/env python3
-"""V12 paper-trade runner — production live deployment.
+"""GX1 XAUUSD model-native paper/live execution runner.
 
-Status: V12.4 CEMENTED 2026-05-16. Full V12Pipeline (XGB v5 + V10 multi-TF +
-Entry-IQL v2 + V3 v9 multi-TF + Exit-IQL R_V12 + V12.4 Strategy-F overlay)
-is loaded and wired via `pipeline.make_entry_decision()` / `.make_exit_decision()`.
+Entry direction is the calibrated model-native XAU model's exact
+LONG/SHORT/FLAT argmax.
+The runner may fail closed for execution safety, but it has no session, trend,
+utility, confidence, sizing, or threshold rule that can rewrite model direction.
 
 Modus operandi:
     1. Wait for next M1 candle close (poll OANDA every 5-10s).
     2. Pre-trade spread check: skip if (ask-bid)/bid > spread_threshold_bps.
-    3. Make V12.4 decision via V12Pipeline.
-    4. If TAKE: place market order via OANDA (no SL/TP per V12 mandate).
+    3. Make the contract-bound model-direction decision via V12Pipeline.
+    4. If model direction is LONG/SHORT and execution safety admits it, place a
+       learned, proof-bound integer-unit market order via OANDA.
     5. Catch MARKET_ORDER_REJECT_TRANSACTION; log reason + spread + time.
     6. If trade open: per-bar V3 v9 + V12.4 overlay → close order on EXIT_NOW.
     7. Log everything to daily journal for replay/comparison vs Phase 6 baseline.
 
 Run (live demo on OANDA practice):
     PYTHONPATH=/home/andre2/src/GX1_ENGINE python3 \\
-        gx1/execution/v12_paper_runner.py --max-trades 5 --units 1
+        gx1/execution/v12_paper_runner.py --max-trades 5
 
-We trade year-round, all sessions (Asia included) — session is a learned
-feature, not a hardcoded skip. Strategy-F overlay is ABLATABLE via
-GX1_STRATEGY_F_ENABLED / GX1_MFE_GIVEBACK_* env vars (default = cemented values);
-set GX1_STRATEGY_F_ENABLED=0 for the pure Exit-IQL policy.
+We trade year-round, all sessions (Asia included): session, structure, trend,
+liquidity, volatility, momentum, price action, path quality, and utility are
+model inputs/evidence, never post-model direction overrides.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import logging
+import math
 import os
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pandas as pd
@@ -40,6 +43,27 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (  # noqa: E402
+    MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
+    MODEL_NATIVE_RUNTIME_POLICY,
+    RETIRED_RUNTIME_EVIDENCE_FRAGMENTS,
+    require_model_native_entry_time,
+    require_model_native_runtime_evidence,
+)
+from gx1.contracts.entry_model_native_sizing_authority_v1 import (  # noqa: E402
+    MODEL_NATIVE_SIZING_MODE_LEARNED,
+    ModelNativeSizingUnavailable,
+    ValidatedLearnedSizingAuthority,
+    apply_model_native_sizing,
+    prepare_model_native_sizing_authority,
+    require_model_native_sizing_authority_contract,
+)
+from gx1.models.entry_v10.direction_decision_contract import (  # noqa: E402
+    MODEL_DIRECTION_SELECTION_MODE,
+)
 
 ENV_FILE = REPO_ROOT / ".env"
 if ENV_FILE.is_file():
@@ -52,9 +76,6 @@ if ENV_FILE.is_file():
 
 LOG = logging.getLogger("v12_paper")
 INSTRUMENT = "XAU_USD"
-REGIME_RECAL_ON = False
-TREND_REGIMES: set[str] = set()
-_REGIME_RECAL_TRACKER = None
 _RUNTIME_DEPS_LOADED = False
 
 
@@ -62,71 +83,83 @@ def _load_runtime_dependencies() -> None:
     """Import artifact-touching runtime dependencies only after the Entry guard."""
     global _RUNTIME_DEPS_LOADED
     global OandaClient, OandaClientConfig, load_oanda_credentials
-    global LiveFeatureBuilder, V12Pipeline, TradeState, TradeJournal
-    global REGIME_RECAL_ON, TREND_REGIMES, _REGIME_RECAL_TRACKER
+    global EntryDecisionUnavailable, ExitDecisionUnavailable, V12Pipeline, TradeState, TradeJournal
     if _RUNTIME_DEPS_LOADED:
         return
 
     from gx1.execution.oanda_client import OandaClient as _OandaClient
     from gx1.execution.oanda_client import OandaClientConfig as _OandaClientConfig
     from gx1.execution.oanda_credentials import load_oanda_credentials as _load_oanda_credentials
-    from gx1.execution.v12_live_features import LiveFeatureBuilder as _LiveFeatureBuilder
-    from gx1.execution.v12_pipeline import V12Pipeline as _V12Pipeline
+    from gx1.execution.v12_pipeline import (
+        EntryDecisionUnavailable as _EntryDecisionUnavailable,
+        ExitDecisionUnavailable as _ExitDecisionUnavailable,
+        V12Pipeline as _V12Pipeline,
+    )
     from gx1.execution.v12_trade_state import TradeState as _TradeState
-    from gx1.features.regime_adaptive_sizing_v1 import REGIME_RECAL_ON as _REGIME_RECAL_ON
-    from gx1.features.regime_adaptive_sizing_v1 import TREND_REGIMES as _TREND_REGIMES
-    from gx1.features.regime_adaptive_sizing_v1 import build_live_tracker
     from gx1.monitoring.trade_journal import TradeJournal as _TradeJournal
 
     OandaClient = _OandaClient
     OandaClientConfig = _OandaClientConfig
     load_oanda_credentials = _load_oanda_credentials
-    LiveFeatureBuilder = _LiveFeatureBuilder
+    EntryDecisionUnavailable = _EntryDecisionUnavailable
+    ExitDecisionUnavailable = _ExitDecisionUnavailable
     V12Pipeline = _V12Pipeline
     TradeState = _TradeState
     TradeJournal = _TradeJournal
-    REGIME_RECAL_ON = bool(_REGIME_RECAL_ON)
-    TREND_REGIMES = set(_TREND_REGIMES)
-    _REGIME_RECAL_TRACKER = build_live_tracker(REGIME_RECAL_STATE_PATH)
-    if REGIME_RECAL_ON:
-        LOG.warning(
-            "[REGIME_RECAL] regime-adaptive LONG de-sizing OVERLAY active (reversible) "
-            "k=%d base=%.2f floor=%.2f",
-            _REGIME_RECAL_TRACKER.k,
-            _REGIME_RECAL_TRACKER.base,
-            _REGIME_RECAL_TRACKER.floor,
-        )
     _RUNTIME_DEPS_LOADED = True
 
-# 2026-05-29: when env var GX1_PURE_PHASE6=1, every runtime wrapper filter
-# (adaptive_min_adv, regime block, portfolio caps, low-confidence,
-# TIME_OF_DAY_EXIT, spread cap) is bypassed so live runtime matches the
-# Phase 6 OOT simulation 1:1. Used after the COSTFIX cement to verify live
-# PnL tracks the +136 bps/take Phase 6 number.
-PURE_PHASE6 = bool(int(os.environ.get("GX1_PURE_PHASE6", "0")))
-if PURE_PHASE6:
-    LOG.warning("[GX1_PURE_PHASE6] all runtime wrappers DISABLED — runner = Phase 6 OOT 1:1")
-# 2026-06-10: GX1_SKIP_ASIA=1 blocks ASIA-session entries (gx1.time.session_detector, ASIA=22:00-07:00 UTC).
-# REQUIRED with the conviction-gate (GX1_CONVICTION_GATE) to clear the per-year win floor (gate-validated:
-# blanket 2026 win 0.840 FAILs, skip-ASIA 0.851 PASSes). Applies even under PURE_PHASE6 (it IS the gated arm).
-SKIP_ASIA = bool(int(os.environ.get("GX1_SKIP_ASIA", "0")))
-if SKIP_ASIA:
-    LOG.warning("[GX1_SKIP_ASIA] ASIA-session entries blocked (conviction-gate per-year floor requirement)")
+# These legacy variables used to arm live-only direction gates or post-model
+# sizing. Their code paths are deleted. Presence is rejected at startup so a
+# stale shell/.env cannot silently imply an operating point that no longer exists.
+RETIRED_ENTRY_OVERRIDE_ENV = (
+    "GX1_PURE_PHASE6",
+    "GX1_SKIP_ASIA",
+    "GX1_ADAPTIVE_MIN_ADV_ATR_MULT",
+    "GX1_ADAPTIVE_MIN_ADV_FLOOR_BPS",
+    "GX1_POSITION_CONFIDENCE_MIN",
+    "GX1_SIZING_MODE",
+    "GX1_SIZING_MAX_MULT",
+    "GX1_SIZING_MIN_MULT",
+    "GX1_SIZING_CONV_LO",
+    "GX1_SIZING_CONV_HI",
+    "GX1_SIZING_CONV_SRC",
+    "GX1_SIZING_MARGIN_POW",
+    "GX1_SIZING_MARGIN_REF",
+    "GX1_SIZING_ATR_REF_BPS",
+    "GX1_SIZING_ATR_FLOOR_BPS",
+    "GX1_DYNAMIC_SIZING",
+    "GX1_POSITION_SIZE_MULTIPLIER",
+    "GX1_POSITION_SIZE_FROM_MODEL",
+    "GX1_REGIME_SIZE_MULTIPLIER",
+    "GX1_SESSION_SIZE_MULTIPLIER",
+    "GX1_TREND_SIZE_MULTIPLIER",
+    "GX1_UTILITY_SIZE_MULTIPLIER",
+    "GX1_CONVICTION_SIZE_MULTIPLIER",
+    "GX1_REGIME_RECAL",
+    "GX1_MAX_ENTRY_DECISION_LATENCY_SEC",
+    "GX1_SMART_CTX_MTF_INCREMENTAL",
+    "GX1_SMART_CTX_MTF_WARMUP_M5",
+    "GX1_MODEL_NATIVE_CTX_MTF_WARMUP_M5",
+    "GX1_SMART_PARITY_GATE_MAX_AGE_HOURS",
+    "GX1_SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS",
+    "GX1_SMART_DIRECTION_AUDIT_MAX_AGE_HOURS",
+    "GX1_SMART_CTX_MAX_STALENESS_M5",
+)
+RETIRED_ENTRY_SIZING_ENV_PREFIXES = (
+    "GX1_SIZING_",
+    "GX1_DYNAMIC_SIZING",
+    "GX1_POSITION_SIZE_",
+    "GX1_REGIME_SIZE_",
+    "GX1_SESSION_SIZE_",
+    "GX1_TREND_SIZE_",
+    "GX1_UTILITY_SIZE_",
+    "GX1_CONVICTION_SIZE_",
+)
 
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
-COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
-CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
 TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # LEGACY single-trade marker (migrated on startup)
 TRADE_STATE_DIR = JOURNAL_DIR / "open_trades"             # one JSON file per open virtual trade
 TRADE_ALERTS_FILE = Path("/home/andre2/TRADES_ALERTS.txt")  # easy-to-tail alerts file
-ENTRY_NEXT_EDGE_SHADOW_ACK_REQUIRED = "20260627_ENTRY_NO_XGB_LIVE_SHADOW"
-# (legacy runner-ack constant removed 2026-07-08 — smart serving gate replaces it)
-ENTRY_NEXT_EDGE_SHADOW_RUNNER_ACK_REQUIRED = "20260627_ENTRY_NEXT_EDGE_SHADOW_RUNNER"
-ENTRY_NEXT_EDGE_SHADOW_MANIFEST_REQUIRED = Path(
-    "/home/andre2/GX1_DATA/reports/entry_tabular_no_xgb_candidates/"
-    "entry_tabular_no_xgb_top5_v1_20260627/candidate_manifest.json"
-)
-ENTRY_NEXT_EDGE_SHADOW_THRESHOLD_REQUIRED = 0.39048198845884335
 
 
 def write_trade_alert(line: str) -> None:
@@ -152,9 +185,10 @@ def _float_or_none(value: Any) -> float | None:
     try:
         if value is None:
             return None
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         return None
+    return parsed if math.isfinite(parsed) else None
 
 
 def _fmt_optional_float(value: Any, spec: str) -> str:
@@ -166,10 +200,179 @@ DEFAULT_MAX_SPREAD_BPS = 7.0           # 2026-05-20 tightening: was 10.0, but
                                         # news-spike spreads at 8-10 bps ate
                                         # entry edge. Backtest data had clean
                                         # OANDA M5 spreads typically 1-3 bps.
-DEFAULT_DEFAULT_UNITS = 1              # smallest position size for paper-trade
 DEFAULT_POLL_SECONDS = 10              # how often to check for new M1 close
 DEFAULT_QUOTE_MAX_AGE_SEC = 90.0       # treat quote as stale (market closed/halted) if older
 DEFAULT_MAX_TRADES = 1                 # max concurrent virtual trades held simultaneously
+_EXECUTABLE_SNAPSHOT_ONLY_FIELDS = frozenset(
+    {
+        "runtime_evidence_schema_version",
+        "model_policy",
+        "atr_bps",
+    }
+)
+MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS = frozenset(
+    (
+        MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
+        - _EXECUTABLE_SNAPSHOT_ONLY_FIELDS
+    )
+    | MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS
+    | {
+        "action",
+        "action_id",
+        "edge_score",
+        "selection_score_mode",
+        "selection_score",
+        "session",
+        "p_long",
+        "p_short",
+        "p_flat",
+        "v10_path_quality_pred",
+        "v10_mfe_pred_at_entry",
+        "v10_tradable_prob",
+        "v10_bad_path_prob",
+        "_v10_snapshot",
+        "policy",
+        "stub",
+        "entry_signal_latency_min",
+        "entry_signal_latency_cap_sec",
+        "entry_signal_stale",
+        "context_refresh_in_flight",
+        "context_mtf_incremental",
+    }
+)
+
+
+def _same_runtime_value(left: Any, right: Any) -> bool:
+    """Exact envelope parity without allowing array-style truth ambiguity."""
+
+    try:
+        result = left == right
+    except Exception:
+        return False
+    return result if isinstance(result, bool) else False
+
+
+def require_executable_model_native_entry_decision(
+    decision: dict[str, Any],
+    entry_time: Any,
+) -> dict[str, Any]:
+    """Validate the complete live decision envelope before any order is sent.
+
+    SmartEntry validates its pure model snapshot first; the pipeline then adds
+    the complete timing evidence.  This runner boundary validates both again,
+    requires an exact outer schema, and proves that the action/policy/timing
+    envelope is identical to the frozen snapshot consumed by TradeState and the
+    journal.
+    """
+
+    if not isinstance(decision, dict) or not decision:
+        raise RuntimeError("[RUNNER_MODEL_NATIVE_DECISION_INVALID] missing decision")
+    retired = sorted(
+        key
+        for key in decision
+        if any(fragment in str(key).lower() for fragment in RETIRED_RUNTIME_EVIDENCE_FRAGMENTS)
+    )
+    if retired:
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] retired fields=" + repr(retired)
+        )
+    observed_fields = set(decision)
+    if observed_fields != set(MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS):
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] exact schema mismatch "
+            f"missing={sorted(MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS - observed_fields)} "
+            f"unexpected={sorted(observed_fields - MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS)}"
+        )
+    snapshot_raw = decision.get("_v10_snapshot")
+    if not isinstance(snapshot_raw, dict):
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] _v10_snapshot missing"
+        )
+    snapshot = require_model_native_runtime_evidence(
+        snapshot_raw,
+        context="V12_PAPER_RUNNER_PRE_ORDER",
+    )
+    if not MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS.issubset(snapshot):
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] complete timing evidence missing"
+        )
+    require_model_native_entry_time(
+        snapshot,
+        entry_time,
+        context="V12_PAPER_RUNNER_PRE_ORDER",
+    )
+    if (
+        decision.get("policy") != MODEL_NATIVE_RUNTIME_POLICY
+        or snapshot["model_policy"] != decision["policy"]
+    ):
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] model policy mismatch"
+        )
+
+    shared_fields = (
+        MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
+        - _EXECUTABLE_SNAPSHOT_ONLY_FIELDS
+    ) | MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS
+    mismatched = sorted(
+        field
+        for field in shared_fields
+        if not _same_runtime_value(decision[field], snapshot[field])
+    )
+    if mismatched:
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] snapshot parity mismatch "
+            f"fields={mismatched}"
+        )
+
+    direction_index = snapshot["model_direction_index"]
+    expected_action = ("TAKE_LONG_NOW", "TAKE_SHORT_NOW", "SKIP")[direction_index]
+    expected_action_id = (1, 2, 0)[direction_index]
+    if decision["action"] != expected_action or decision["action_id"] != expected_action_id:
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] action/direction parity mismatch"
+        )
+    if decision["selection_score_mode"] != MODEL_DIRECTION_SELECTION_MODE:
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] selection mode mismatch"
+        )
+    probabilities = snapshot["direction_probs"]
+    expected_edge = max(probabilities[0], probabilities[1]) - probabilities[2]
+    expected_selection = probabilities[direction_index]
+    for field, expected in (
+        ("edge_score", expected_edge),
+        ("selection_score", expected_selection),
+        ("p_long", probabilities[0]),
+        ("p_short", probabilities[1]),
+        ("p_flat", probabilities[2]),
+    ):
+        observed = _float_or_none(decision[field])
+        if observed is None or not math.isclose(
+            observed,
+            float(expected),
+            rel_tol=1e-6,
+            abs_tol=1e-7,
+        ):
+            raise RuntimeError(
+                f"[RUNNER_MODEL_NATIVE_DECISION_INVALID] {field} parity mismatch"
+            )
+    latency_sec = float(snapshot["entry_signal_latency_sec"])
+    latency_min = _float_or_none(decision["entry_signal_latency_min"])
+    latency_cap = _float_or_none(decision["entry_signal_latency_cap_sec"])
+    if (
+        latency_min is None
+        or not math.isclose(latency_min, latency_sec / 60.0, rel_tol=1e-6, abs_tol=1e-7)
+        or latency_cap != MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC
+        or latency_sec > MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC
+        or decision["entry_signal_stale"] is not False
+    ):
+        raise RuntimeError(
+            "[RUNNER_MODEL_NATIVE_DECISION_INVALID] latency contract mismatch"
+        )
+    if decision["stub"] is not False:
+        raise RuntimeError("[RUNNER_MODEL_NATIVE_DECISION_INVALID] stub decision forbidden")
+    if decision["session"] not in {"ASIA", "EU", "OVERLAP", "US"}:
+        raise RuntimeError("[RUNNER_MODEL_NATIVE_DECISION_INVALID] session missing")
+    return snapshot
 
 
 class StaleQuoteError(RuntimeError):
@@ -196,111 +399,240 @@ def get_current_spread_bps(client: OandaClient,
     than max_age_sec (market closed). Raises ValueError on invalid bid."""
     pricing = client.get_pricing([INSTRUMENT])
     quote = pricing["prices"][0]
-    quote_time_str = quote.get("time", "")
-    if quote_time_str:
-        quote_time = pd.to_datetime(quote_time_str, utc=True)
-        now = pd.Timestamp(now_utc) if now_utc is not None else pd.Timestamp.now(tz="UTC")
-        age_sec = (now - quote_time).total_seconds()
-        if age_sec > max_age_sec:
-            raise StaleQuoteError(age_sec, quote_time_str)
+    quote_time_str = str(quote.get("time") or "").strip()
+    if not quote_time_str:
+        raise ValueError("quote_time_missing")
+    quote_time = pd.to_datetime(quote_time_str, utc=True, errors="raise")
+    now = pd.Timestamp(now_utc) if now_utc is not None else pd.Timestamp.now(tz="UTC")
+    if now.tzinfo is None:
+        now = now.tz_localize("UTC")
+    else:
+        now = now.tz_convert("UTC")
+    age_sec = (now - quote_time).total_seconds()
+    if age_sec > max_age_sec:
+        raise StaleQuoteError(age_sec, quote_time_str)
     bid = float(quote["bids"][0]["price"])
     ask = float(quote["asks"][0]["price"])
-    if bid <= 0:
-        raise ValueError(f"Invalid bid: {bid}")
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask <= bid:
+        raise ValueError(f"invalid_quote_prices bid={bid} ask={ask}")
     spread_bps = (ask - bid) / bid * 10000.0
     return spread_bps, bid, ask
 
 
 def can_trade_now(spread_bps: float, *, max_spread_bps: float,
                    now_utc: datetime) -> tuple[bool, str]:
-    """Pre-trade gating — SPREAD SAFETY ONLY. We trade year-round, all sessions
-    (incl. Asia): session is a learned feature the Entry-IQL policy decides on,
-    not a hardcoded skip. `now_utc` kept for future safety gates.
+    """Operational spread safety only; never a session/direction policy.
 
-    PURE_PHASE6: spread cap bypassed (Phase 6 OOT did not model spread filtering).
-    GX1_SKIP_ASIA still applies (it is the gate-validated arm, not a discretionary wrapper).
+    Session evidence is model input. `now_utc` stays in the stable call contract,
+    but no hand-written time/session rule may turn a model trade into FLAT. A
+    wide spread blocks execution without changing the reported model direction.
     """
-    # skip-ASIA: block ASIA-session entries (same session_detector SSoT the offline gate used →
-    # test==serve). Applies even under PURE_PHASE6 — it is the conviction-gate's per-year-floor requirement.
-    if SKIP_ASIA:
-        from gx1.time.session_detector import get_session
-        if get_session(pd.Timestamp(now_utc)) == "ASIA":
-            return False, "skip_asia"
-    if PURE_PHASE6:
-        return True, "ok_pure_phase6"
+    del now_utc
     if spread_bps > max_spread_bps:
         return False, f"spread_too_wide ({spread_bps:.1f} > {max_spread_bps})"
     return True, "ok"
-
-
-# ── Execution safety invariant (2026-06-03) ───────────────────────────────
-
-
-def evaluate_entry_safety(side: str, n_same_side: int, n_opposing: int,
-                          hard_max_same_side: int) -> tuple[bool, str, int]:
-    """Pure no-short-in-long + no-pile-up entry-safety decision.
-
-    Always-on execution invariant, independent of PURE_PHASE6. The counts passed in
-    MUST already be reconciled against broker truth by the caller. Returns
-    (allowed, reason, detail). On violation the caller SKIPs the entry — it never
-    flattens existing trades (that would deadlock with the per-trade M1 exit
-    lifecycle). Opposing-side is checked first: never open a short while a long is
-    open (or vice-versa); then the same-side hard cap (the -2000 06-02 pile-up fix).
-
-    2026-06-04: delegates to the ONE-TRUTH circuit-breaker (gx1.portfolio.
-    circuit_breaker_v1.evaluate_same_opp_cap) so live and the offline harness share
-    the exact same admission logic. Behavior-identical (golden parity test
-    tests/test_circuit_breaker_parity.py + pinned by test_entry_safety_invariant.py).
-    """
-    from gx1.portfolio.circuit_breaker_v1 import evaluate_same_opp_cap
-    return evaluate_same_opp_cap(side, n_same_side, n_opposing, hard_max_same_side)
 
 
 # ── V12 decision (wired in sesjon 1-5) ────────────────────────────────────
 
 
 def make_v12_decision(pipeline: V12Pipeline, now_minute: datetime,
-                      bid: float, ask: float,
-                      open_trades: list | None = None) -> dict[str, Any]:
-    """Run the full V12 entry stack: XGB v5 → V10 v3 → Entry-IQL v2.
+                      bid: float, ask: float) -> dict[str, Any]:
+    """Run the model-native SMART LONG/SHORT/FLAT entry stack.
 
-    Returns dict with action + Q-trio + V10 outputs + XGB outputs +
-    decision timestamp. Pipeline maintains caches so per-M5 cold-build
-    cost is amortized across all M1 ticks in that bucket.
+    Returns the model argmax action plus diagnostics and timestamp. Pipeline
+    caches state so each newly closed M5 row is decided exactly once.
 
-    `open_trades` is the runner's list of currently-open TradeState objects.
-    Aggregated into portfolio_state and passed to Entry-IQL so model sees
-    current portfolio context (#1 improvement 2026-05-21).
+    Portfolio/exposure state is execution admission, not a hidden parallel
+    direction input. The model receives only its explicit hashed input contract.
     """
-    portfolio_state = None
-    if open_trades:
-        n_long = sum(1 for t in open_trades if t.side == "long")
-        n_short = sum(1 for t in open_trades if t.side == "short")
-        combined_pnl = sum(t.current_pnl_bps for t in open_trades)
-        latest_entry = max(t.entry_ts for t in open_trades) if open_trades else None
-        if latest_entry is not None:
-            # now_minute may already be tz-aware; pandas refuses tz= kwarg in that case.
-            ts_now = pd.Timestamp(now_minute)
-            if ts_now.tz is None:
-                ts_now = ts_now.tz_localize("UTC")
-            time_since_last = (ts_now - latest_entry).total_seconds() / 60.0
-            time_since_last = max(0.0, min(240.0, time_since_last))
-        else:
-            time_since_last = 240.0
-        portfolio_state = {
-            "n_open_long": float(n_long),
-            "n_open_short": float(n_short),
-            "combined_pnl_bps": float(combined_pnl),
-            "time_since_last_entry_min": float(time_since_last),
-        }
-    return pipeline.make_entry_decision(
-        pd.Timestamp(now_minute), bid, ask, portfolio_state=portfolio_state,
+    return pipeline.make_entry_decision(pd.Timestamp(now_minute), bid, ask)
+
+
+def learned_sizing_runtime_constraints(
+    client: OandaClient,
+    *,
+    bid: float,
+    ask: float,
+    validated_authority: ValidatedLearnedSizingAuthority,
+) -> dict[str, Any]:
+    """Read fresh broker-truth account, instrument, and XAU exposure facts.
+
+    These are facts, not knobs: the learned calibration rejects any value that
+    differs from its immutable instrument contract.  Missing, fractional, or
+    ambiguous broker fields raise and therefore authorize no order.
+    """
+
+    parsed_bid = _float_or_none(bid)
+    parsed_ask = _float_or_none(ask)
+    if (
+        parsed_bid is None
+        or parsed_ask is None
+        or parsed_bid <= 0.0
+        or parsed_ask < parsed_bid
+    ):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] invalid live XAU quote"
+        )
+    if not isinstance(validated_authority, ValidatedLearnedSizingAuthority):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] startup-validated authority missing"
+        )
+    instrument_contract = validated_authority.calibration["instrument_constraints"]
+    account_payload = client.get_account_summary()
+    account_observed_utc = datetime.now(timezone.utc).isoformat()
+    account = account_payload.get("account") if isinstance(account_payload, dict) else None
+    if not isinstance(account, dict):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] account summary missing account"
+        )
+    if account.get("hedgingEnabled") is not True:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] account must prove hedgingEnabled=true"
+        )
+    instrument_payload = client.get_account_instruments([INSTRUMENT])
+    instrument_observed_utc = datetime.now(timezone.utc).isoformat()
+    rows = (
+        instrument_payload.get("instruments")
+        if isinstance(instrument_payload, dict)
+        else None
     )
+    matches = [
+        row
+        for row in (rows if isinstance(rows, list) else [])
+        if isinstance(row, dict) and row.get("name") == INSTRUMENT
+    ]
+    if len(matches) != 1:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] exact XAU instrument row missing"
+        )
+    instrument = matches[0]
+    exposure_payload = client.get_open_trades()
+    exposure_observed_utc = datetime.now(timezone.utc).isoformat()
+    broker_trades = (
+        exposure_payload.get("trades")
+        if isinstance(exposure_payload, dict)
+        else None
+    )
+    if not isinstance(broker_trades, list):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] open-trades exposure missing"
+        )
+    try:
+        precision = int(instrument["tradeUnitsPrecision"])
+        minimum_units_float = float(instrument["minimumTradeSize"])
+        broker_maximum_units_float = float(instrument["maximumOrderUnits"])
+        margin_rate = float(instrument["marginRate"])
+        equity = float(account["NAV"])
+        balance = float(account["balance"])
+        margin_available = float(account["marginAvailable"])
+        margin_used = float(account["marginUsed"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker sizing field invalid"
+        ) from exc
+    if precision != 0:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] XAU units must be integer precision"
+        )
+    minimum_units = int(minimum_units_float)
+    broker_maximum_units = int(broker_maximum_units_float)
+    if (
+        minimum_units_float != minimum_units
+        or broker_maximum_units_float != broker_maximum_units
+        or not all(
+            math.isfinite(value)
+            for value in (
+                margin_rate,
+                equity,
+                balance,
+                margin_available,
+                margin_used,
+                minimum_units_float,
+                broker_maximum_units_float,
+            )
+        )
+    ):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] non-exact broker unit constraints"
+        )
+    current_xau_abs_units = 0
+    for row in broker_trades:
+        if not isinstance(row, dict) or row.get("instrument") != INSTRUMENT:
+            continue
+        try:
+            units_float = float(row["currentUnits"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ModelNativeSizingUnavailable(
+                "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] XAU exposure units invalid"
+            ) from exc
+        units = int(units_float)
+        if not math.isfinite(units_float) or units_float != units:
+            raise ModelNativeSizingUnavailable(
+                "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] XAU exposure units not exact integer"
+            )
+        current_xau_abs_units += abs(units)
+    maximum_gross_units = int(instrument_contract["maximum_gross_xau_units"])
+    if broker_maximum_units < maximum_gross_units:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker maximum is below immutable gross cap"
+        )
+    if (
+        account.get("currency") != instrument_contract["account_currency"]
+        or margin_rate != instrument_contract["margin_rate"]
+        or minimum_units != instrument_contract["minimum_order_units"]
+    ):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker facts differ from adopted instrument contract"
+        )
+    transaction_ids: dict[str, str] = {}
+    for name, payload in (
+        ("account", account_payload),
+        ("instrument", instrument_payload),
+        ("exposure", exposure_payload),
+    ):
+        raw = payload.get("lastTransactionID") if isinstance(payload, dict) else None
+        if not isinstance(raw, str) or not raw.strip():
+            raise ModelNativeSizingUnavailable(
+                f"[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] {name} lastTransactionID missing"
+            )
+        transaction_ids[name] = raw.strip()
+    if len(set(transaction_ids.values())) != 1:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker facts span different lastTransactionID snapshots"
+        )
+    decision_utc = datetime.now(timezone.utc).isoformat()
+    account_floating_drawdown_bps = max(
+        0.0, (balance - equity) / balance * 10_000.0
+    ) if balance > 0.0 else float("nan")
+    return {
+        "instrument": INSTRUMENT,
+        "account_currency": account.get("currency"),
+        "account_equity": equity,
+        "account_balance": balance,
+        "account_floating_drawdown_bps": account_floating_drawdown_bps,
+        "margin_available": margin_available,
+        "margin_used": margin_used,
+        "mark_price": (parsed_bid + parsed_ask) / 2.0,
+        "margin_rate": margin_rate,
+        "unit_step": 1,
+        "minimum_order_units": minimum_units,
+        "maximum_gross_xau_units": maximum_gross_units,
+        "current_xau_abs_units": current_xau_abs_units,
+        "sizing_decision_utc": decision_utc,
+        "account_observed_utc": account_observed_utc,
+        "instrument_observed_utc": instrument_observed_utc,
+        "exposure_observed_utc": exposure_observed_utc,
+        "account_last_transaction_id": transaction_ids["account"],
+        "instrument_last_transaction_id": transaction_ids["instrument"],
+        "exposure_last_transaction_id": transaction_ids["exposure"],
+        "fact_provenance_mode": "broker_live",
+    }
 
 
 def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
                             now_minute: datetime, bid: float, ask: float,
-                            m1_close: float) -> dict[str, Any]:
+                            m1_close: float | None = None) -> dict[str, Any]:
     """Run Exit-IQL V12.1 for one M1 bar on an open trade.
 
     Advances trade-state (PnL/MFE/MAE) and queries the Exit-IQL adapter.
@@ -311,100 +643,8 @@ def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
 # ── Order execution + reject handling ────────────────────────────────────
 
 
-# Serve-time position SIZING overlay (2026-06-11, reversible — like the conviction-gate). DEFAULT OFF
-# (GX1_SIZING_MODE=off OR max_mult=1.0) == flat units, byte-identical to cement. Scales OANDA units by
-# conviction (raw_adv) and/or inverse-ATR (vol-target), clamped. No dim, no retrain, instant rollback.
-SIZING_MODE = os.environ.get("GX1_SIZING_MODE", "off")                       # off|conviction|voltarget|both
-SIZING_MAX_MULT = float(os.environ.get("GX1_SIZING_MAX_MULT", "1.0"))        # 1.0 = overlay disarmed
-SIZING_MIN_MULT = float(os.environ.get("GX1_SIZING_MIN_MULT", "1.0"))
-SIZING_CONV_LO = float(os.environ.get("GX1_SIZING_CONV_LO", os.environ.get("GX1_CONVICTION_THR", "-34.2")))
-SIZING_CONV_HI = float(os.environ.get("GX1_SIZING_CONV_HI", "40.0"))
-# 2026-06-13: conviction-sizing SOURCE. raw_adv (the IQL advantage, DEFAULT) was proven a DEAD sizing
-# signal on May/Jun (corr(raw_adv,realized)=+0.04; raw_adv-sizing only +2%). The XGB/V10 entry-confidence
-# `margin` (= p_hat top1−top2 ≈ 1−uncertainty_score) correlates +0.36 with realized PnL → mean-preserving
-# size~margin^POW gained +22% (margin^2) on the actual realized-bps A/B. Opt-in + reversible; set
-# GX1_SIZING_CONV_SRC=margin (+ GX1_SIZING_MIN_MULT=0.5, MAX_MULT=2.0) to arm the A/B winner.
-SIZING_CONV_SRC = os.environ.get("GX1_SIZING_CONV_SRC", "raw_adv")            # raw_adv | margin
-SIZING_MARGIN_POW = float(os.environ.get("GX1_SIZING_MARGIN_POW", "2.0"))     # margin^POW
-SIZING_MARGIN_REF = float(os.environ.get("GX1_SIZING_MARGIN_REF", "0.3318"))  # full-history mean(margin^2) = mean-preserving norm
-SIZING_ATR_REF = float(os.environ.get("GX1_SIZING_ATR_REF_BPS", "18.0"))
-SIZING_ATR_FLOOR = float(os.environ.get("GX1_SIZING_ATR_FLOOR_BPS", "6.0"))
-if SIZING_MODE != "off" and SIZING_MAX_MULT != 1.0:
-    LOG.warning("[GX1_SIZING] mode=%s max_mult=%.2f — position sizing OVERLAY active (reversible)", SIZING_MODE, SIZING_MAX_MULT)
-
-# Regime-adaptive LONG-sizing recalibration (2026-06-25, reversible, DEFAULT-OFF).
-# De-sizes LONGs by the recent realized long-win in the CURRENT trend_regime — the
-# causal lever that corrects V10 down-regime long-overconfidence. The tracker
-# ACCUMULATES matured-long outcomes even when the overlay is OFF (so the rolling
-# window stays warm + we journal the would-be multiplier as live shadow evidence);
-# it only SCALES units when GX1_REGIME_RECAL=1. State persists across restarts so a
-# runner restart keeps a warm window. ONE TRUTH = gx1.features.regime_adaptive_sizing_v1
-# (the same class the offline phase6/gate replay imports → train==serve).
-REGIME_RECAL_STATE_PATH = JOURNAL_DIR / "regime_recal_state.json"
-
-
-def size_units(base_units: int, raw_adv: float, atr_bps_now: float, margin: float | None = None):
-    """Serve-time conviction/vol position sizing. DEFAULT-OFF (or max_mult=1.0) == flat units (cement path)."""
-    if SIZING_MODE == "off" or SIZING_MAX_MULT == 1.0:
-        return base_units, 1.0
-    m = 1.0
-    if SIZING_MODE in ("conviction", "both"):
-        if SIZING_CONV_SRC == "margin" and margin is not None:
-            # mean-preserving margin^POW (the +22% A/B winner): size~ margin^POW / mean(margin^POW),
-            # so the average trade sizes ~1× (clamp [MIN,MAX] handles the tails). margin is the
-            # XGB/V10 entry confidence (corr 0.36 w/ realized vs raw_adv's 0.04).
-            m *= (max(float(margin), 0.0) ** SIZING_MARGIN_POW) / max(SIZING_MARGIN_REF, 1e-9)
-        else:
-            span = max(SIZING_CONV_HI - SIZING_CONV_LO, 1e-6)
-            frac = min(max((raw_adv - SIZING_CONV_LO) / span, 0.0), 1.0)
-            m *= 1.0 + (SIZING_MAX_MULT - 1.0) * frac
-    if SIZING_MODE in ("voltarget", "both"):
-        # 2026-06-11 FAIL-CLOSED fix: atr_bps_now <= 0 means NO vol data (live_feats={} on any
-        # feature_builder failure / short M1 window) — the old floor-clamp mapped exactly that
-        # case to the MAXIMUM vol-target multiplier (ref/floor, e.g. 18/6 = 3×). Missing data
-        # must size FLAT, never UP.
-        if atr_bps_now <= 0.0:
-            LOG.warning("[GX1_SIZING] voltarget requested but atr_bps_now=%.3f (missing vol data) "
-                        "— sizing FLAT (multiplier 1.0) for this trade", atr_bps_now)
-            return base_units, 1.0
-        m *= SIZING_ATR_REF / max(atr_bps_now, SIZING_ATR_FLOOR)
-    m = min(max(m, SIZING_MIN_MULT), SIZING_MAX_MULT)
-    return max(1, int(round(base_units * m))), m
-
-
-def units_from_position_size_pred(base_units: int, position_size_pred: float,
-                                    max_multiplier: float = 1.0) -> tuple[int, float]:
-    """Map V10 v3+ position_size_pred ∈ [0,1] to actual units.
-
-    Returns (units, applied_multiplier). Multiplier mapping:
-      pred < 0.3 → 0.25×
-      0.3-0.5    → 0.5×
-      0.5-0.7    → 1.0×
-      > 0.7      → 2.0×
-
-    Falls back to plain base_units when:
-      - pred is invalid (-1.0 sentinel from legacy bundles)
-      - max_multiplier == 1.0 (feature disabled)
-    Multiplier is clamped at max_multiplier so the runner can disable
-    high-conviction sizing while still allowing reductions.
-    """
-    if position_size_pred < 0.0 or max_multiplier == 1.0:
-        return base_units, 1.0
-    if position_size_pred < 0.3:
-        mult = 0.25
-    elif position_size_pred < 0.5:
-        mult = 0.5
-    elif position_size_pred < 0.7:
-        mult = 1.0
-    else:
-        mult = 2.0
-    mult = min(mult, float(max_multiplier))
-    units = max(1, int(round(base_units * mult)))   # never below 1 unit
-    return units, mult
-
-
 def attempt_market_entry(client: OandaClient, side: str,
-                         units: int = DEFAULT_DEFAULT_UNITS) -> dict[str, Any]:
+                         units: int) -> dict[str, Any]:
     """Submit market order. Returns dict with status + reason if rejected.
 
     OANDA returns MARKET_ORDER_REJECT_TRANSACTION on rejection. Common reasons:
@@ -413,7 +653,12 @@ def attempt_market_entry(client: OandaClient, side: str,
     """
     if side not in ("long", "short"):
         return {"status": "skipped", "reason": f"invalid_side {side}"}
-    signed_units = abs(units) if side == "long" else -abs(units)
+    if isinstance(units, bool) or not isinstance(units, int) or units <= 0:
+        return {
+            "status": "skipped",
+            "reason": "units must be an exact positive learned-sizing integer",
+        }
+    signed_units = units if side == "long" else -units
     client_order_id = f"v12_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}_{side}"
 
     try:
@@ -448,6 +693,38 @@ def attempt_market_entry(client: OandaClient, side: str,
         or (fill.get("tradesClosed") or [{}])[0].get("tradeID")
         or fill.get("id")
     )
+    raw_fill_units = fill.get("units")
+    try:
+        fill_units_float = float(raw_fill_units)
+        signed_fill_units = int(fill_units_float)
+    except (TypeError, ValueError, OverflowError):
+        signed_fill_units = None
+    fill_units_exact = bool(
+        signed_fill_units is not None
+        and math.isfinite(fill_units_float)
+        and fill_units_float == signed_fill_units
+        and signed_fill_units == signed_units
+    )
+    trade_opened = fill.get("tradeOpened")
+    raw_opened_units = (
+        trade_opened.get("units") if isinstance(trade_opened, dict) else None
+    )
+    try:
+        opened_units_float = float(raw_opened_units)
+        signed_opened_units = int(opened_units_float)
+    except (TypeError, ValueError, OverflowError):
+        signed_opened_units = None
+    pure_trade_open = bool(
+        isinstance(trade_opened, dict)
+        and isinstance(trade_opened.get("tradeID"), str)
+        and trade_opened["tradeID"].strip()
+        and signed_opened_units is not None
+        and math.isfinite(opened_units_float)
+        and opened_units_float == signed_opened_units
+        and signed_opened_units == signed_units
+        and not fill.get("tradesClosed")
+        and not fill.get("tradeReduced")
+    )
     if not fill.get("tradeOpened", {}).get("tradeID"):
         # Audit log when we fall back to non-tradeOpened parsing (was the
         # 2026-05-20 phantom-LONG bug — OANDA netted the longs against existing
@@ -457,9 +734,41 @@ def attempt_market_entry(client: OandaClient, side: str,
             f"{'tradeReduced' if fill.get('tradeReduced') else 'tradesClosed' if fill.get('tradesClosed') else 'fill.id'}. "
             f"Raw orderFillTransaction keys: {sorted(fill.keys())}"
         )
-    LOG.info(f"FILLED side={side} units={signed_units}  price={fill.get('price')}  trade_id={trade_id}")
-    return {"status": "filled",
-             "fill_price": float(fill.get("price", 0)),
+    status = (
+        "filled"
+        if fill_units_exact and pure_trade_open
+        else "filled_structure_mismatch"
+        if fill_units_exact
+        else "filled_units_mismatch"
+    )
+    if status != "filled":
+        LOG.error(
+            "FILL CONTRACT MISMATCH status=%s side=%s requested=%s fill=%r "
+            "tradeOpened=%r closed=%r reduced=%r trade_id=%s",
+            status,
+            side,
+            signed_units,
+            raw_fill_units,
+            raw_opened_units,
+            fill.get("tradesClosed"),
+            fill.get("tradeReduced"),
+            trade_id,
+        )
+    else:
+        LOG.info(
+            "FILLED side=%s units=%s price=%s trade_id=%s",
+            side,
+            signed_fill_units,
+            fill.get("price"),
+            trade_id,
+        )
+    return {"status": status,
+             "fill_price": _float_or_none(fill.get("price")),
+             "requested_signed_units": signed_units,
+             "filled_signed_units": signed_fill_units,
+             "trade_opened_signed_units": signed_opened_units,
+             "fill_units_exact": fill_units_exact,
+             "pure_trade_open": pure_trade_open,
              "fill_time": fill.get("time"),
              "oanda_transaction_id": fill.get("id"),
              "oanda_order_id": fill.get("orderID"),
@@ -479,8 +788,8 @@ def attempt_close_trade(client: OandaClient, trade: TradeState) -> dict[str, Any
     missing (e.g. virtual dry-run trade) — best-effort, may net incorrectly
     if multiple same-direction trades are open.
     """
-    if trade.trade_id is None:
-        LOG.warning(f"close_trade: trade has no OANDA tradeID — using counter-market fallback")
+    if not trade.trade_id:
+        LOG.warning("close_trade: trade has no OANDA tradeID — using counter-market fallback")
         close_side = "short" if trade.side == "long" else "long"
         return attempt_market_entry(client, close_side, units=trade.units)
     try:
@@ -514,6 +823,24 @@ def daily_journal_path(suffix: str = "") -> Path:
     return JOURNAL_DIR / f"v12_paper_journal_{today}{suf}.jsonl"
 
 
+def assert_no_retired_entry_overrides() -> None:
+    """Reject every legacy post-model entry knob, including disabled values."""
+    present = sorted(
+        name
+        for name in os.environ
+        if name in RETIRED_ENTRY_OVERRIDE_ENV
+        or any(
+            name.startswith(prefix)
+            for prefix in RETIRED_ENTRY_SIZING_ENV_PREFIXES
+        )
+    )
+    if present:
+        raise SystemExit(
+            "[SMART_GATE] retired entry override environment variables are forbidden; "
+            "remove them instead of relying on disabled/no-op values: " + ", ".join(present)
+        )
+
+
 def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
     """Fail closed: the runner serves the SMART entry chain (vedtak
     SMART_JOINT_POLICY_PROMOTION_20260708). A direct start requires
@@ -522,21 +849,21 @@ def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
         contract-ACTIVE bundle) — the same gate launch_live_practice.sh
         enforces, so runner-direct cannot bypass the launcher's floor.
     The 20260627 legacy foundation-freeze ack is RETIRED with the legacy chain."""
+    assert_no_retired_entry_overrides()
     vedtak = os.environ.get("GX1_SMART_LAUNCH_VEDTAK", "").strip()
     if vedtak:
         from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
         from gx1_guards.artifacts import load_decision_entry
+        from gx1.models.entry_v10.direction_decision_contract import (
+            require_model_direction_operating_point,
+        )
 
         rep = assert_smart_serving_gate()   # raises loud on any violation
         entry = load_decision_entry("v10_entry")
-        op = entry.get("operating_point") or {}
-        if "max_trades" not in op:
-            raise SystemExit("[SMART_GATE] v10_entry.operating_point.max_trades missing")
-        expected_max_trades = int(op.get("max_trades"))
-        if os.environ.get("GX1_PURE_PHASE6", "0") != "1":
-            raise SystemExit(
-                "[SMART_GATE] GX1_PURE_PHASE6=1 required for replay-equivalent live runner"
-            )
+        op = require_model_direction_operating_point(
+            entry.get("operating_point"), context="paper runner v10_entry"
+        )
+        expected_max_trades = int(op["max_trades"])
         if int(args.max_trades) != expected_max_trades:
             raise SystemExit(
                 f"[SMART_GATE] --max-trades {args.max_trades} != contract v10_entry.operating_point.max_trades "
@@ -552,7 +879,7 @@ def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
                 "Smart serving gate blocks direct v12_paper_runner use.",
                 "Demo/paper start requires the parity gate + an explicit launch vedtak:",
                 "  1. scripts/gx1_capped_run.sh --mem 34G -- .venv/bin/python -m "
-                "gx1.scripts.verify_smart520_serve_parity_v1   (must PASS)",
+                "gx1.scripts.verify_model_native_serve_parity_v1   (must PASS)",
                 "  2. GX1_SMART_LAUNCH_VEDTAK=<vedtak-id> bash scripts/launch_live_practice.sh",
                 "(The legacy XGB->V10->Entry-IQL chain is RETIRED; its 20260627 ack no longer opens anything.)",
             ]
@@ -566,14 +893,8 @@ def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="V12 paper-trade runner (skeleton)")
+    p = argparse.ArgumentParser(description="GX1 XAUUSD model-direction runner")
     p.add_argument("--max-spread-bps", type=float, default=DEFAULT_MAX_SPREAD_BPS)
-    p.add_argument("--units", type=int, default=DEFAULT_DEFAULT_UNITS,
-                   help="Base unit size per trade. If V10 v3+ position_size_pred is "
-                        "available, actual order is units × multiplier (clamped via --max-units-multiplier).")
-    p.add_argument("--max-units-multiplier", type=float, default=1.0,
-                   help="Cap on position_size multiplier from V10 v3+ pred. "
-                        "1.0 = ignore prediction (use plain --units). 2.0 = allow up to 2× units.")
     p.add_argument("--max-trades", type=int, default=DEFAULT_MAX_TRADES,
                    help="Max concurrent virtual trades held simultaneously (default: 1)")
     p.add_argument("--poll-seconds", type=int, default=DEFAULT_POLL_SECONDS)
@@ -583,9 +904,6 @@ def main() -> int:
                    help="Observation-only mode: requires --dry-run, logs decisions, never opens virtual trades or writes trade state.")
     p.add_argument("--journal-suffix", type=str, default="",
                    help="Suffix for journal filename (e.g. 'live' or 'shadow') to allow parallel runners")
-    p.add_argument("--allow-stub", action="store_true",
-                   help="Permit running with stubbed V12 decision/exit logic. Required for shadow-mode "
-                        "smoke-tests; refuses live orders unless --dry-run.")
     args = p.parse_args()
     if args.shadow_only and not args.dry_run:
         raise SystemExit("--shadow-only requires --dry-run")
@@ -594,31 +912,36 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
                         datefmt="%Y-%m-%dT%H:%M:%SZ")
-    # Suppress noisy "Using legacy trade_id" warnings (we intentionally use trade_id mode).
-    logging.getLogger("gx1.monitoring.trade_journal").setLevel(logging.ERROR)
     _load_runtime_dependencies()
 
     creds = load_oanda_credentials()
     client = OandaClient(OandaClientConfig(api_key=creds.api_token,
                                             account_id=creds.account_id,
                                             env=creds.env))
-    feature_builder = LiveFeatureBuilder(
-        collector_dir=COLLECTOR_DIR,
-        canonical_m1_dir=CANONICAL_M1_DIR,
-    )
     LOG.info(f"V12 paper runner starting  env={creds.env}  account={creds.account_id}")
     LOG.info(f"  max_spread_bps={args.max_spread_bps}  (year-round, all sessions)  "
-             f"units={args.units}  max_trades={args.max_trades}  dry_run={args.dry_run}")
-    LOG.info(f"  feature_builder: 26-feature live snapshot (Phase A)")
+             f"max_trades={args.max_trades}  dry_run={args.dry_run}")
+    LOG.info("  entry: exact model direction; immutable learned calibrated sizing")
 
-    # Load full V12 pipeline (XGB v5 + V10 v3 + Entry-IQL v2 + Exit-IQL V12.1)
-    LOG.info("loading V12Pipeline (XGB + V10 + Entry-IQL + Exit-IQL)...")
+    # Load model-native Entry plus the separately admitted Exit stack.
+    LOG.info("loading V12Pipeline (model-native Entry + Exit stack)...")
     pipeline = V12Pipeline.load_default()
+    if pipeline.smart_entry is None:
+        raise SystemExit("model-native learned sizing requires loaded smart_entry")
+    runtime_sizing_authority = require_model_native_sizing_authority_contract(
+        getattr(pipeline.smart_entry, "_sizing_authority", None),
+        context="V12_PAPER_RUNNER_STARTUP",
+        required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
+    )
+    validated_sizing_authority = prepare_model_native_sizing_authority(
+        runtime_sizing_authority,
+        context="V12_PAPER_RUNNER_STARTUP",
+    )
     LOG.info("✓ V12 entry+exit stacks loaded — runner is live-wired")
 
     # Structured trade journal — per-trade JSON + aggregate index CSV.
-    # Captures: entry_snapshot (V10/XGB context), feature_context,
-    # per-bar v12_bar_decisions (IQL+V3), execution_events (OANDA fills),
+    # Captures: exact model-native entry evidence, applied learned sizing,
+    # per-bar exit decisions, execution events (OANDA fills),
     # exit_summary (realized PnL, MFE/MAE peaks).
     journal = TradeJournal(
         run_dir=JOURNAL_DIR,
@@ -626,17 +949,12 @@ def main() -> int:
         header={"runner": "v12_paper_runner",
                 "env": creds.env,
                 "max_trades": args.max_trades,
-                "units": args.units,
                 "max_spread_bps": args.max_spread_bps,
                 "dry_run": args.dry_run,
                 "shadow_only": args.shadow_only,
-                "entry_tabular_no_xgb_shadow_manifest": os.environ.get("GX1_ENTRY_TABULAR_NO_XGB_SHADOW_MANIFEST", ""),
-                "entry_tabular_no_xgb_shadow_threshold": os.environ.get("GX1_ENTRY_TABULAR_NO_XGB_SHADOW_THRESHOLD", ""),
-                # B4 fix (2026-06-04): record the env flags that change live decisions, so a
-                # journal can be reconciled against the Phase-6 config post-hoc ("which config ran?").
-                "pure_phase6": PURE_PHASE6,
-                "cluster1_disable": bool(int(os.environ.get("GX1_CLUSTER1_DISABLE", "0"))),
-                "regime_v4": bool(int(os.environ.get("GX1_REGIME_V4", "0")))},
+                "entry_direction_mode": "model_direction_argmax",
+                "entry_units_mode": MODEL_NATIVE_SIZING_MODE_LEARNED,
+                "sizing_authority_contract": runtime_sizing_authority},
     )
     LOG.info(f"  trade journal: {journal.journal_dir}")
 
@@ -688,101 +1006,88 @@ def main() -> int:
                 spread_bps, max_spread_bps=args.max_spread_bps, now_utc=now_utc,
             )
 
-            # Build live feature snapshot (Phase A: counterfactual context).
-            # Failure is non-fatal — log warning, journal still has core fields.
-            try:
-                live_feats = feature_builder.compute(
-                    pd.Timestamp(current_minute),
-                    bid=bid, ask=ask, spread_bps=spread_bps,
-                )
-            except Exception as exc:
-                LOG.warning(f"feature_builder failed at {current_minute}: {exc}")
-                live_feats = {}
-
-            # MULTI-TF TREND ENRICHMENT (2026-05-22): LiveFeatureBuilder is M5-only,
-            # but canonical_v3 prebuilt has per-TF EMA trend signals baked in via the
-            # offline augmenter. Pull the latest row's per-TF trend features so the
-            # entry gates and shadow filters can see H1/H4/D1 trend state, not just M5.
-            try:
-                cv3 = pipeline.prebuilt_loader._cv3
-                if cv3 is not None and len(cv3) > 0:
-                    last_row = cv3.iloc[-1]
-                    for col in (
-                        "_v1_ema_diff",            # M5 EMA distance (price units)
-                        "_v1h1_ema_diff",          # H1 EMA distance
-                        "_v1h4_ema_diff",          # H4 EMA distance
-                        "pos_vs_ema200",           # M5 position vs EMA200 (bps)
-                        "d1_ema_slope_20_canon_v2",  # D1 EMA20 slope
-                        "ema20_slope",             # M5 EMA20 slope
-                        "ema100_slope",            # M5 EMA100 slope
-                    ):
-                        if col in cv3.columns:
-                            try: live_feats[col] = float(last_row[col])
-                            except (TypeError, ValueError) as exc:
-                                # Silent-skip historically hid stale cv3 columns;
-                                # 2026-06-01 audit flagged that → log it so we
-                                # catch feature gaps early instead of decisions
-                                # silently running with 0.0 fallback.
-                                LOG.warning(f"[multi-TF trend] col={col} cast failed: {exc} — "
-                                            f"shadow filter for this col will see default 0.0")
-            except Exception as exc:
-                LOG.warning(f"multi-TF trend enrichment failed: {exc}")
-
             event = {
                 "ts_utc": current_minute.isoformat(),
                 "bid": bid, "ask": ask, "spread_bps": spread_bps,
                 "allowed": allowed, "gate_reason": reason,
-                "features": live_feats,
                 "n_open_trades": len(open_trades),
                 "max_trades": args.max_trades,
                 "has_open_trade": len(open_trades) > 0,   # back-compat for analytics
             }
 
             # ── EXIT branch: iterate all open trades, evaluate each per M1 ──
-            # H4 fix 2026-05-19: use the LAST CLOSED M1 bar's (bid_close+ask_close)/2
-            # from the data collector parquet. Tick-mid (bid+ask)/2 at decision time
-            # is biased — the bar hasn't closed yet, so we'd be using a mid-bar
-            # snapshot when training used the M1 bar's actual close. Falls back to
-            # tick-mid if the parquet read fails.
-            m1_close = (bid + ask) / 2.0   # tick-mid fallback
-            try:
-                from pathlib import Path
-                _day = current_minute.strftime("%Y%m%d")
-                _p = Path(f"/home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_{_day}.parquet")
-                if _p.exists():
-                    _df = pd.read_parquet(_p, columns=["time", "ask_close", "bid_close"]).tail(1)
-                    if len(_df) > 0:
-                        _row = _df.iloc[-1]
-                        m1_close = float((_row["ask_close"] + _row["bid_close"]) / 2.0)
-            except Exception:
-                pass
-            # TIME-OF-DAY EXIT (2026-05-21 audit improvement #19): force-close
-            # all open trades by 21:00 UTC daily (US close) to avoid holding
-            # through low-liquidity overnight chop. Soft session limit — trades
-            # opened in EU/US must be resolved within session.
-            DAILY_FORCE_EXIT_HOUR_UTC = 21
-            # PURE_PHASE6: never force-exit; let Exit-IQL alone decide.
-            force_exit_active = (not PURE_PHASE6) and now_utc.hour >= DAILY_FORCE_EXIT_HOUR_UTC and open_trades
-            if force_exit_active:
-                LOG.info(
-                    f"[TIME_OF_DAY_EXIT] hour={now_utc.hour} >= {DAILY_FORCE_EXIT_HOUR_UTC} UTC, "
-                    f"closing {len(open_trades)} open trade(s)"
-                )
+            # The pipeline owns the unique exact-closed-M1 contract.  The runner
+            # must not manufacture that state from a tick midpoint/latest-row read.
             per_trade_records: list[dict[str, Any]] = []
             survivors: list[TradeState] = []
+            exit_decision_unavailable = False
+            exit_execution_unresolved = False
             for trade in open_trades:
-                if force_exit_active:
-                    # Force EXIT_NOW; bypass Exit-IQL decision
-                    close_result = attempt_close_trade(client, trade)
-                    LOG.info(
-                        f"[TIME_OF_DAY_EXIT] closed {trade.side} trade_id={trade.trade_id} "
-                        f"pnl={trade.current_pnl_bps:+.2f}bps  status={close_result.get('status')}"
+                try:
+                    exit_decision = make_v12_exit_decision(
+                        pipeline, trade, current_minute, bid, ask,
                     )
-                    trade.delete_state_file(TRADE_STATE_DIR)
+                except ExitDecisionUnavailable as exc:
+                    exit_decision_unavailable = True
+                    record = {
+                        "trade_id": trade.trade_id,
+                        "side": trade.side,
+                        "entry_ts": trade.entry_ts.isoformat(),
+                        "bars_in_trade": trade.bars_in_trade,
+                        "units": trade.units,
+                        "pnl_bps": trade.current_pnl_bps,
+                        "peak_bps": trade.cum_mfe_bps,
+                        "mae_bps": trade.cum_mae_bps,
+                        "exit_decision": None,
+                        "exit_decision_unavailable_reason": exc.reason,
+                        "exit_decision_unavailable_evidence": exc.evidence,
+                        "order_status": "EXIT_MODEL_DECISION_UNAVAILABLE",
+                    }
+                    LOG.error(
+                        "[EXIT_MODEL_DECISION_UNAVAILABLE] trade_id=%s reason=%s evidence=%s",
+                        trade.trade_id,
+                        exc.reason,
+                        exc.evidence,
+                    )
+                    if trade.trade_id:
+                        journal.log(
+                            event_type="EXIT_MODEL_DECISION_UNAVAILABLE",
+                            trade_id=trade.trade_id,
+                            payload={
+                                "timestamp": current_minute.isoformat(),
+                                "reason": exc.reason,
+                                "evidence": exc.evidence,
+                                "bars_in_trade": int(trade.bars_in_trade),
+                                "current_pnl_bps": float(trade.current_pnl_bps),
+                            },
+                        )
+
+                    # Preserve the independent 24h execution-safety close.  It
+                    # reduces an existing exposure; it does not invent HOLD/EXIT
+                    # model authority or permit a new Entry decision this minute.
+                    if trade.bars_in_trade >= 1440:
+                        LOG.warning(
+                            "24h cap reached while Exit model unavailable for trade %s — forced close",
+                            trade.trade_id,
+                        )
+                        record["order_status"] = "FORCED_CLOSE_24H"
+                        if args.dry_run:
+                            trade.delete_state_file(TRADE_STATE_DIR)
+                        else:
+                            close_result = attempt_close_trade(client, trade)
+                            record["close_order_details"] = close_result
+                            if close_result.get("status") in ("closed", "filled"):
+                                trade.delete_state_file(TRADE_STATE_DIR)
+                            else:
+                                exit_execution_unresolved = True
+                                record["order_status"] = "FORCED_CLOSE_24H_FAILED"
+                                trade.save(TRADE_STATE_DIR)
+                                survivors.append(trade)
+                    else:
+                        trade.save(TRADE_STATE_DIR)
+                        survivors.append(trade)
+                    per_trade_records.append(record)
                     continue
-                exit_decision = make_v12_exit_decision(
-                    pipeline, trade, current_minute, bid, ask, m1_close,
-                )
                 record = {
                     "trade_id": trade.trade_id,
                     "side": trade.side,
@@ -806,16 +1111,36 @@ def main() -> int:
                     if args.dry_run:
                         LOG.info(f"[DRY] EXIT_NOW trade_id={trade.trade_id} after {trade.bars_in_trade} bars  "
                                   f"pnl={trade.current_pnl_bps:+.1f} bps  side={trade.side}")
+                        trade.delete_state_file(TRADE_STATE_DIR)
                     else:
                         close_result = attempt_close_trade(client, trade)
                         record["close_order_details"] = close_result
-                    trade.delete_state_file(TRADE_STATE_DIR)
+                        if close_result.get("status") in ("closed", "filled"):
+                            trade.delete_state_file(TRADE_STATE_DIR)
+                        else:
+                            exit_execution_unresolved = True
+                            record["order_status"] = "EXIT_CLOSE_FAILED"
+                            trade.save(TRADE_STATE_DIR)
+                            survivors.append(trade)
+                            write_trade_alert(
+                                f"EXIT CLOSE FAILED trade_id={trade.trade_id} side={trade.side} "
+                                f"status={close_result.get('status')} reason={close_result.get('reason')}"
+                            )
                 elif trade.bars_in_trade >= 1440:   # 24h hard cap
                     LOG.warning(f"24h cap reached for trade {trade.trade_id} — forced close")
                     record["order_status"] = "FORCED_CLOSE_24H"
-                    if not args.dry_run:
-                        attempt_close_trade(client, trade)
-                    trade.delete_state_file(TRADE_STATE_DIR)
+                    if args.dry_run:
+                        trade.delete_state_file(TRADE_STATE_DIR)
+                    else:
+                        close_result = attempt_close_trade(client, trade)
+                        record["close_order_details"] = close_result
+                        if close_result.get("status") in ("closed", "filled"):
+                            trade.delete_state_file(TRADE_STATE_DIR)
+                        else:
+                            exit_execution_unresolved = True
+                            record["order_status"] = "FORCED_CLOSE_24H_FAILED"
+                            trade.save(TRADE_STATE_DIR)
+                            survivors.append(trade)
                 else:
                     record["order_status"] = "HOLDING_TRADE"
                     trade.save(TRADE_STATE_DIR)
@@ -851,12 +1176,13 @@ def main() -> int:
                         exit_price = float(close_result.get("fill_price", 0.0) or
                                             (bid if trade.side == "long" else ask))
                         realized_pnl = float(close_result.get("realized_pl", 0.0))
-                        journal.log_oanda_trade_update(
-                            trade_id=trade.trade_id,
-                            event_type="TRADE_CLOSED_OANDA",
-                            oanda_trade_id=trade.trade_id,
-                            price=exit_price, units=trade.units, pl=realized_pnl,
-                        )
+                        if not args.dry_run:
+                            journal.log_oanda_trade_update(
+                                trade_id=trade.trade_id,
+                                event_type="TRADE_CLOSED_OANDA",
+                                oanda_trade_id=trade.trade_id,
+                                price=exit_price, units=trade.units, pl=realized_pnl,
+                            )
                         journal.log_exit_summary(
                             trade_id=trade.trade_id,
                             exit_time=current_minute.isoformat(),
@@ -869,18 +1195,6 @@ def main() -> int:
                             max_mae_bps=float(trade.cum_mae_bps),
                             intratrade_drawdown_bps=float(trade.cum_mfe_bps - trade.current_pnl_bps),
                         )
-                        # Regime-recal: record the matured LONG outcome into the rolling
-                        # per-regime win window. ALWAYS (even when the overlay is OFF) so
-                        # the deque stays warm + the would-be multiplier is honest shadow
-                        # evidence. win = exit-stack realized pnl_bps > 0 (NOT K96 terminal
-                        # — this is the exit-realized basis the gate-fix replay must match).
-                        try:
-                            _entry_reg = str((trade.v10_snapshot or {}).get("entry_trend_regime", ""))
-                            if trade.side == "long" and _entry_reg in TREND_REGIMES:
-                                _REGIME_RECAL_TRACKER.record(
-                                    _entry_reg, float(trade.current_pnl_bps) > 0.0)
-                        except Exception as exc:
-                            LOG.warning(f"[REGIME_RECAL] outcome-record failed: {exc}")
                 per_trade_records.append(record)
             open_trades = survivors
             event["open_trade_records"] = per_trade_records
@@ -896,7 +1210,27 @@ def main() -> int:
                 event["trade_mae_bps"] = r0["mae_bps"]
                 event["order_status"] = r0["order_status"]
 
-            # ── ENTRY branch: if room for more trades, evaluate XGB→V10→Entry-IQL ──
+            # An unavailable Exit contract is neither HOLD nor permission to
+            # evaluate/open a new trade. Persist evidence and end this M1 step.
+            if exit_decision_unavailable:
+                event["order_status"] = "EXIT_MODEL_DECISION_UNAVAILABLE"
+                event["exit_model_decision_unavailable"] = True
+                log_journal_event(daily_journal_path(args.journal_suffix), event)
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
+
+            if exit_execution_unresolved:
+                event["order_status"] = "EXIT_EXECUTION_UNRESOLVED"
+                event["exit_execution_unresolved"] = True
+                log_journal_event(daily_journal_path(args.journal_suffix), event)
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
+
+            # ── ENTRY branch: evaluate the admitted model-native XAU model ──
             if len(open_trades) >= args.max_trades:
                 event.setdefault("order_status", "AT_MAX_TRADES")
                 log_journal_event(daily_journal_path(args.journal_suffix), event)
@@ -905,8 +1239,48 @@ def main() -> int:
                 time.sleep(args.poll_seconds)
                 continue
 
-            decision = make_v12_decision(pipeline, current_minute, bid, ask, open_trades=open_trades)
+            try:
+                decision = make_v12_decision(
+                    pipeline,
+                    datetime.now(timezone.utc),
+                    bid,
+                    ask,
+                )
+            except EntryDecisionUnavailable as exc:
+                event["order_status"] = "MODEL_DECISION_UNAVAILABLE"
+                event["model_decision_unavailable_reason"] = exc.reason
+                event["model_decision_unavailable_evidence"] = exc.evidence
+                log_journal_event(daily_journal_path(args.journal_suffix), event)
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
+            decision["_v10_snapshot"] = require_executable_model_native_entry_decision(
+                decision,
+                current_minute,
+            )
             event["v12_decision"] = decision
+            direction_to_action = {
+                "LONG": (0, "TAKE_LONG_NOW"),
+                "SHORT": (1, "TAKE_SHORT_NOW"),
+                "FLAT": (2, "SKIP"),
+            }
+            model_direction = str(decision.get("model_direction") or "")
+            if model_direction not in direction_to_action:
+                raise RuntimeError(
+                    f"model decision lacks exact LONG/SHORT/FLAT direction: {model_direction!r}"
+                )
+            expected_index, expected_action = direction_to_action[model_direction]
+            if decision.get("model_direction_index") != expected_index:
+                raise RuntimeError(
+                    "model direction index disagrees with model direction: "
+                    f"{decision.get('model_direction_index')!r} != {expected_index}"
+                )
+            if decision.get("action") != expected_action:
+                raise RuntimeError(
+                    "runner action disagrees with model direction argmax: "
+                    f"{decision.get('action')!r} != {expected_action!r}"
+                )
             if args.shadow_only:
                 event["order_status"] = "SHADOW_ONLY_NO_ORDER"
                 event["shadow_only"] = True
@@ -917,387 +1291,306 @@ def main() -> int:
                 continue
 
             if not allowed:
-                # Gate blocked the order (spread/asia) — but log V12's intent for counterfactual analysis
-                event["order_status"] = "BLOCKED_BY_GATE"
-                adv_long = float(decision.get("advantage_over_skip_long", 0.0))
-                adv_short = float(decision.get("advantage_over_skip_short", 0.0))
-                event["high_conviction_blocked"] = (adv_long >= 50.0 or adv_short >= 50.0)
+                # Execution safety blocks the order without rewriting the model direction.
+                event["order_status"] = "BLOCKED_BY_EXECUTION_SPREAD"
                 log_journal_event(daily_journal_path(args.journal_suffix), event)
                 last_decision_minute = current_minute
                 consecutive_errors = 0
                 time.sleep(args.poll_seconds)
                 continue
 
-            if decision["action"] in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
-                side = "long" if decision["action"] == "TAKE_LONG_NOW" else "short"
+            if expected_action in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
+                side = "long" if model_direction == "LONG" else "short"
                 # NETTING-guard removed 2026-05-20: account migrated to HEDGING
                 # (101-004-31061417-002). Each market order now opens a separate
                 # trade regardless of existing positions on the same instrument,
                 # so opposite-side entries no longer net against existing trades.
                 # If you reinstate a NETTING account, restore the guard from git.
 
-                # ─── ALWAYS-ON EXECUTION SAFETY INVARIANTS (2026-06-03, vedtak
-                # _execution_safety_invariants) — NOT gated on PURE_PHASE6. The
-                # -2000 incident (06-02) was a SAME-SIDE pile-up: 16 shorts stacked
-                # because the same-side cap was disabled by PURE_PHASE6=1. These are
-                # hard, always-on, and reconciled against BROKER TRUTH (the runner
-                # otherwise trusts only local TradeState, which can desync and blind
-                # an otherwise-correct guard). Fail-CLOSED on broker fetch error.
-                HARD_MAX_SAME_SIDE = int(os.environ.get("GX1_HARD_MAX_SAME_SIDE", "2"))
-                opp_side = "short" if side == "long" else "long"
-                n_same = sum(1 for t in open_trades if t.side == side)
-                n_opp = sum(1 for t in open_trades if t.side == opp_side)
-                if not args.dry_run:
-                    try:
-                        _bt = client.get_open_trades().get("trades", [])
-                        _b_long = sum(1 for t in _bt if t.get("instrument") == "XAU_USD"
-                                      and float(t.get("currentUnits", 0) or 0) > 0)
-                        _b_short = sum(1 for t in _bt if t.get("instrument") == "XAU_USD"
-                                       and float(t.get("currentUnits", 0) or 0) < 0)
-                        # Trust the LARGER of local/broker per side (defensive vs desync).
-                        n_same = max(n_same, _b_long if side == "long" else _b_short)
-                        n_opp = max(n_opp, _b_short if side == "long" else _b_long)
-                    except Exception as exc:  # noqa: BLE001 — fail-closed on broker error
-                        LOG.error(f"[SAFETY_RECONCILE] broker get_open_trades failed: {exc} "
-                                  f"— fail-closed SKIP of {side} entry")
-                        event["order_status"] = "blocked_broker_reconcile_fail"
-                        log_journal_event(daily_journal_path(args.journal_suffix), event)
-                        last_decision_minute = current_minute
-                        consecutive_errors = 0
-                        time.sleep(args.poll_seconds)
-                        continue
-                # No-short-in-long + no-pile-up via the pure, unit-tested helper.
-                # SKIP on violation — never flatten-first (no deadlock).
-                _safe_ok, _safe_reason, _safe_detail = evaluate_entry_safety(
-                    side, n_same, n_opp, HARD_MAX_SAME_SIDE)
-                if not _safe_ok:
-                    LOG.warning(f"[SAFETY] blocking {side} entry — {_safe_reason} "
-                                f"(same={n_same}, opp={n_opp}, hard_cap={HARD_MAX_SAME_SIDE})")
-                    event["order_status"] = _safe_reason
-                    event["safety_n_same_side"] = n_same
-                    event["safety_n_opposing"] = n_opp
+                try:
+                    sizing_constraints = learned_sizing_runtime_constraints(
+                        client,
+                        bid=bid,
+                        ask=ask,
+                        validated_authority=validated_sizing_authority,
+                    )
+                    decision_sizing_authority = require_model_native_sizing_authority_contract(
+                        decision["_v10_snapshot"]["sizing_authority_contract"],
+                        context="V12_PAPER_RUNNER_DECISION_SIZING_AUTHORITY",
+                        required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
+                    )
+                    if decision_sizing_authority != runtime_sizing_authority:
+                        raise ModelNativeSizingUnavailable(
+                            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] decision/startup adoption mismatch"
+                        )
+                    sizing_application = apply_model_native_sizing(
+                        validated_authority=validated_sizing_authority,
+                        position_size_logit=decision["_v10_snapshot"][
+                            "position_size_logit"
+                        ],
+                        model_direction=model_direction,
+                        runtime_constraints=sizing_constraints,
+                        context="V12_PAPER_RUNNER_ENTRY",
+                    )
+                except (ModelNativeSizingUnavailable, RuntimeError) as exc:
+                    LOG.error("[SIZING_UNAVAILABLE] no order: %s", exc)
+                    event["order_status"] = "SIZING_UNAVAILABLE_NO_ORDER"
+                    event["sizing_unavailable_evidence"] = str(exc)
                     log_journal_event(daily_journal_path(args.journal_suffix), event)
                     last_decision_minute = current_minute
                     consecutive_errors = 0
                     time.sleep(args.poll_seconds)
                     continue
-
-                # ADAPTIVE MIN-ADVANTAGE (2026-05-21, loosened 2026-05-22): scale
-                # min_adv with current M5 ATR. Reduced from 0.5 → 0.35 to increase
-                # trade-flow so we accumulate post-PLUS5 trades for N≥30 analysis
-                # faster. Shadow filter still logs would-block flags for retrospective
-                # A/B. Floor raised slightly (2 → 1.5) to keep accepting low-vol signals.
-                # Env-var GX1_ADAPTIVE_MIN_ADV_ATR_MULT overrides for quick tuning.
-                ADAPTIVE_MIN_ADV_ATR_MULT = float(
-                    os.environ.get("GX1_ADAPTIVE_MIN_ADV_ATR_MULT", "0.35")
-                )
-                ADAPTIVE_MIN_ADV_FLOOR_BPS = float(
-                    os.environ.get("GX1_ADAPTIVE_MIN_ADV_FLOOR_BPS", "1.5")
-                )
-                atr_bps_now = float(live_feats.get("atr14_m5_bps", 0.0) or 0.0)
-                adaptive_min_adv = max(ADAPTIVE_MIN_ADV_FLOOR_BPS, ADAPTIVE_MIN_ADV_ATR_MULT * atr_bps_now)
-                adv_taken = float(decision.get(
-                    "advantage_over_skip_long" if side == "long" else "advantage_over_skip_short", 0.0
-                ))
-
-                # SHADOW FILTERS (2026-05-21): compute candidate gates that the
-                # root-cause analysis on 137 pre-PLUS5 trades suggests would have
-                # blocked deep-MAE entries. These are LOGGED ONLY — they do NOT
-                # alter the actual decision. After N=30 post-PLUS5 trades we can
-                # A/B-compare: would-block flags vs realized PnL/MAE per trade.
-                dist_ema200_sh = float(live_feats.get("dist_to_ema200_bps", 0.0) or 0.0)
-                ema_stack_aligned_sh = int(live_feats.get("ema_stack_aligned", 0) or 0)
-                spread_z_sh = float(live_feats.get("spread_z_24h", 0.0) or 0.0)
-                mins_to_sess_sh = float(live_feats.get("minutes_to_session_change", 0.0) or 0.0)
-                q_long_sh = float(decision.get("q_take_long", 0.0) or 0.0)
-                q_short_sh = float(decision.get("q_take_short", 0.0) or 0.0)
-                q_chosen_sh = q_long_sh if side == "long" else q_short_sh
-                # Multi-TF trend signals (2026-05-22: user-requested per-TF gates).
-                # All values are price-units except pos_vs_ema200 (bps) and slopes.
-                # Sign convention: NEGATIVE = downtrend on that TF.
-                h1_diff = float(live_feats.get("_v1h1_ema_diff", 0.0) or 0.0)
-                h4_diff = float(live_feats.get("_v1h4_ema_diff", 0.0) or 0.0)
-                d1_slope = float(live_feats.get("d1_ema_slope_20_canon_v2", 0.0) or 0.0)
-                m5_pos_ema200 = float(live_feats.get("pos_vs_ema200", 0.0) or 0.0)
-                ema100_slope_v = float(live_feats.get("ema100_slope", 0.0) or 0.0)
-                # Per-TF counter-trend: LONG when TF is in downtrend; SHORT when uptrend
-                # Thresholds picked from observed ranges (small ε keeps "neutral" trades).
-                h1_counter = (side == "long" and h1_diff < -0.3) or (side == "short" and h1_diff > 0.3)
-                h4_counter = (side == "long" and h4_diff < -5.0) or (side == "short" and h4_diff > 5.0)
-                d1_counter = (side == "long" and d1_slope < -10.0) or (side == "short" and d1_slope > 10.0)
-                m5_ema200_counter = (side == "long" and m5_pos_ema200 < -5.0) or (side == "short" and m5_pos_ema200 > 5.0)
-                ema100_counter = (side == "long" and ema100_slope_v < -0.5) or (side == "short" and ema100_slope_v > 0.5)
-                event["shadow_filters"] = {
-                    # ORIGINAL 5 shadow gates (kept for retrospective continuity)
-                    "would_block_strict_trend": bool(
-                        (side == "long" and dist_ema200_sh < -10.0) or
-                        (side == "short" and dist_ema200_sh > +10.0)
-                    ),
-                    "would_block_ema_stack_misaligned": bool(ema_stack_aligned_sh != 1),
-                    "would_block_spread_wide": bool(spread_z_sh > 0.0),
-                    "would_block_midsession_dead": bool(mins_to_sess_sh > 280.0),
-                    "would_block_q_overconfident": bool(abs(q_chosen_sh) > 200.0),
-                    # NEW (2026-05-22): per-TF counter-trend gates from M5-cadence
-                    # multi-TF features baked into canonical_v3 prebuilt.
-                    "would_block_M5_ema200_counter": bool(m5_ema200_counter),
-                    "would_block_M5_ema100_slope_counter": bool(ema100_counter),
-                    "would_block_H1_counter": bool(h1_counter),
-                    "would_block_H4_counter": bool(h4_counter),
-                    "would_block_D1_counter": bool(d1_counter),
-                    # Combined: ANY higher-TF (H1/H4/D1) disagrees with side
-                    "would_block_any_higher_tf_counter": bool(h1_counter or h4_counter or d1_counter),
-                    # Strict: ALL TFs must agree (TYPICAL TRADER RULE — every TF in trend direction)
-                    "would_block_unless_all_tfs_agree": bool(
-                        h1_counter or h4_counter or d1_counter or m5_ema200_counter or ema100_counter
-                    ),
-                    # raw diagnostic values
-                    "shadow_dist_ema200_bps": dist_ema200_sh,
-                    "shadow_ema_stack_aligned": ema_stack_aligned_sh,
-                    "shadow_spread_z_24h": spread_z_sh,
-                    "shadow_minutes_to_session_change": mins_to_sess_sh,
-                    "shadow_q_chosen": q_chosen_sh,
-                    "shadow_h1_ema_diff": h1_diff,
-                    "shadow_h4_ema_diff": h4_diff,
-                    "shadow_d1_ema_slope": d1_slope,
-                    "shadow_m5_pos_ema200": m5_pos_ema200,
-                    "shadow_ema100_slope": ema100_slope_v,
-                }
-                event["shadow_filters"]["would_block_any"] = any(
-                    v for k, v in event["shadow_filters"].items() if k.startswith("would_block_")
-                )
-                if (not PURE_PHASE6) and adv_taken < adaptive_min_adv:
-                    LOG.info(
-                        f"[ADAPTIVE_MIN_ADV] blocking {side} entry — adv={adv_taken:+.2f} "
-                        f"< adaptive_min={adaptive_min_adv:.2f} (ATR={atr_bps_now:.1f}, mult={ADAPTIVE_MIN_ADV_ATR_MULT})"
-                    )
-                    event["order_status"] = "blocked_adaptive_min_adv"
-                    event["adaptive_min_adv_threshold"] = adaptive_min_adv
-                    event["adaptive_min_adv_atr_bps"] = atr_bps_now
+                event["sizing_application"] = sizing_application
+                if not sizing_application["authorized_order"]:
+                    event["order_status"] = "MODEL_NATIVE_SIZING_NO_ORDER"
+                    event["sizing_no_order_reason"] = sizing_application[
+                        "no_order_reason"
+                    ]
                     log_journal_event(daily_journal_path(args.journal_suffix), event)
                     last_decision_minute = current_minute
                     consecutive_errors = 0
                     time.sleep(args.poll_seconds)
                     continue
-
-                # REGIME-AWARE FILTER (2026-05-21): counterfactual replay on
-                # 2026-05-20 journal showed Entry-IQL SHORTs lost 100% of the
-                # time (mean -52 bps) in a strong uptrend (dist_to_ema200 > 50),
-                # while LONGs won 88.7% (+43 bps 4h terminal). Block counter-trend
-                # entries when price is far from EMA200. Asymmetric threshold so
-                # we don't kill all entries during chop.
-                REGIME_DIST_THRESHOLD_BPS = 50.0
-                dist_ema200 = float(live_feats.get("dist_to_ema200_bps", 0.0) or 0.0)
-                if (not PURE_PHASE6) and dist_ema200 > REGIME_DIST_THRESHOLD_BPS and side == "short":
-                    LOG.info(
-                        f"[REGIME_FILTER] blocking SHORT — dist_to_ema200={dist_ema200:+.1f} bps "
-                        f"> +{REGIME_DIST_THRESHOLD_BPS} (strong uptrend, counter-trend shorts lose)"
-                    )
-                    event["order_status"] = "blocked_regime_uptrend"
-                    event["regime_dist_ema200_bps"] = dist_ema200
-                    log_journal_event(daily_journal_path(args.journal_suffix), event)
-                    last_decision_minute = current_minute
-                    consecutive_errors = 0
-                    time.sleep(args.poll_seconds)
-                    continue
-                if (not PURE_PHASE6) and dist_ema200 < -REGIME_DIST_THRESHOLD_BPS and side == "long":
-                    LOG.info(
-                        f"[REGIME_FILTER] blocking LONG — dist_to_ema200={dist_ema200:+.1f} bps "
-                        f"< -{REGIME_DIST_THRESHOLD_BPS} (strong downtrend, counter-trend longs lose)"
-                    )
-                    event["order_status"] = "blocked_regime_downtrend"
-                    event["regime_dist_ema200_bps"] = dist_ema200
-                    log_journal_event(daily_journal_path(args.journal_suffix), event)
-                    last_decision_minute = current_minute
-                    consecutive_errors = 0
-                    time.sleep(args.poll_seconds)
-                    continue
-
-                # PORTFOLIO-AWARE OVERLAY (2026-05-20): Entry-IQL was trained on
-                # independent single-step candidates with NO portfolio state. In
-                # live, repeated same-side entries during prolonged drawdowns
-                # stack losses. These hardcoded rules approximate a portfolio-
-                # aware policy until proper retrain with portfolio features.
-                # Same-side pile-up cap moved to the ALWAYS-ON safety invariant above
-                # (HARD_MAX_SAME_SIDE). The old PURE_PHASE6-gated MAX_SAME_SIDE_OPEN=10
-                # guard was removed 2026-06-03 — it was disabled live (PURE_PHASE6=1)
-                # and let 16 shorts stack on 06-02 (-2000). Drawdown-block below is
-                # now also always-on (un-gated from PURE_PHASE6).
-                DRAWDOWN_BLOCK_BPS = float(os.environ.get("GX1_DRAWDOWN_BLOCK_BPS", "-100.0"))
-                combined_pnl = sum(t.current_pnl_bps for t in open_trades)
-                if combined_pnl < DRAWDOWN_BLOCK_BPS:
-                    LOG.info(
-                        f"[PORTFOLIO_GUARD] blocking {side} entry — combined unrealized "
-                        f"PnL {combined_pnl:+.1f} bps < {DRAWDOWN_BLOCK_BPS} threshold"
-                    )
-                    event["order_status"] = "blocked_portfolio_drawdown"
-                    event["portfolio_combined_pnl_bps"] = combined_pnl
-                    log_journal_event(daily_journal_path(args.journal_suffix), event)
-                    last_decision_minute = current_minute
-                    consecutive_errors = 0
-                    time.sleep(args.poll_seconds)
-                    continue
-                # V10 v3+ Target 3: position_size_pred — model's confidence the
-                # trade is worth taking at full size. Default behaviour: drive
-                # ADAPTIVE sizing (units × multiplier, below) and let the learned
-                # Entry-IQL policy decide whether to enter — no hardcoded skip.
-                # The old hard-cutoff is ablatable via GX1_POSITION_CONFIDENCE_MIN
-                # (default -1.0 = disabled). Set e.g. 0.6 to re-enable the cutoff.
-                POSITION_CONFIDENCE_MIN = float(os.environ.get("GX1_POSITION_CONFIDENCE_MIN", "-1.0"))
-                pos_pred = float(decision.get("v10_position_size_pred", -1.0))
-                if (not PURE_PHASE6) and pos_pred >= 0.0 and pos_pred < POSITION_CONFIDENCE_MIN:
-                    LOG.info(
-                        f"[CONFIDENCE_FILTER] blocking {side} entry — "
-                        f"position_size_pred={pos_pred:.3f} < {POSITION_CONFIDENCE_MIN}"
-                    )
-                    event["order_status"] = "blocked_low_confidence"
-                    event["position_size_pred"] = pos_pred
-                    log_journal_event(daily_journal_path(args.journal_suffix), event)
-                    last_decision_minute = current_minute
-                    consecutive_errors = 0
-                    time.sleep(args.poll_seconds)
-                    continue
-                if SIZING_MODE != "off":
-                    # reversible serve-time sizing: conviction = best-side advantage_over_skip (≈ raw_adv);
-                    # vol-target = inverse live M5 ATR. DEFAULT-OFF path below is byte-identical to cement.
-                    raw_adv = max(float(decision.get("advantage_over_skip_long", 0.0)),
-                                  float(decision.get("advantage_over_skip_short", 0.0)))
-                    _atr_bps = float(live_feats.get("atr14_m5_bps", 0.0) or 0.0)
-                    # margin = XGB/V10 entry confidence (p_hat top1−top2 ≈ 1−uncertainty); the +22% A/B
-                    # sizing source when GX1_SIZING_CONV_SRC=margin (raw_adv stays the default).
-                    _margin = decision.get("margin", decision.get("margin_top1_top2"))
-                    _margin = float(_margin) if _margin is not None else None
-                    trade_units, units_mult = size_units(args.units, raw_adv, _atr_bps, margin=_margin)
-                    event["sizing_mode"] = SIZING_MODE
-                    event["sizing_conv_src"] = SIZING_CONV_SRC
-                    event["sizing_raw_adv"] = raw_adv
-                    event["sizing_margin"] = _margin
-                    event["sizing_atr_bps"] = _atr_bps
-                else:
-                    trade_units, units_mult = units_from_position_size_pred(
-                        args.units, pos_pred, max_multiplier=args.max_units_multiplier,
-                    )
-                # Regime-adaptive LONG de-sizing (reversible, default-OFF). Reads the
-                # current trend_regime (surfaced from the candidate) + the recent
-                # realized long-win rolling window; SCALES units ONLY for LONGs when
-                # GX1_REGIME_RECAL=1. ALWAYS journals the would-be multiplier (shadow
-                # evidence) even when off. The deque is updated at trade-close below.
-                _regime = str(decision.get("trend_regime", ""))
-                _recal_mult = (_REGIME_RECAL_TRACKER.multiplier(_regime)
-                               if side == "long" else 1.0)
-                _recal_nobs = _REGIME_RECAL_TRACKER.n_obs(_regime) if _regime in TREND_REGIMES else 0
-                event["regime_recal_trend_regime"] = _regime
-                event["regime_recal_mult_would_be"] = _recal_mult
-                event["regime_recal_n_obs"] = _recal_nobs
-                event["regime_recal_armed"] = bool(REGIME_RECAL_ON)
-                if REGIME_RECAL_ON and side == "long" and _recal_mult != 1.0:
-                    trade_units = max(1, int(round(trade_units * _recal_mult)))
-                    units_mult *= _recal_mult
-                    LOG.info("[REGIME_RECAL] long in %s recent-win de-size ×%.3f → %du (n_obs=%d)",
-                             _regime, _recal_mult, trade_units, _recal_nobs)
-                # stash entry regime onto the per-trade snapshot dict (no schema change)
-                # so the close-hook can attribute the matured outcome to its entry regime.
-                _snap = decision.get("_v10_snapshot")
-                if isinstance(_snap, dict):
-                    _snap["entry_trend_regime"] = _regime
-                event["units_multiplier_applied"] = units_mult
-                event["position_size_pred"] = pos_pred
-                if units_mult != 1.0:
-                    LOG.info(f"adaptive units: pos_size_pred={pos_pred:.3f} → mult={units_mult}× → {trade_units}u (base={args.units})")
+                trade_units = int(sizing_application["units"])
+                event["units_mode"] = MODEL_NATIVE_SIZING_MODE_LEARNED
+                event["units"] = trade_units
+                event["sizing_authority_contract"] = sizing_application[
+                    "sizing_authority_contract"
+                ]
                 if args.dry_run:
                     event["order_status"] = "DRY_RUN"
                     virtual_id = f"virtual_{current_minute.strftime('%Y%m%dT%H%M%S')}"
                     new_trade = TradeState.open(
                         entry_ts=pd.Timestamp(current_minute),
                         side=side, entry_bid=bid, entry_ask=ask,
-                        v10_snapshot=decision.get("_v10_snapshot", {}),
-                        trade_id=virtual_id, units=trade_units,
+                        v10_snapshot=decision["_v10_snapshot"],
+                        trade_id=virtual_id,
+                        units=trade_units,
+                        sizing_application=sizing_application,
+                        fill_transaction_id=f"virtual:{virtual_id}",
+                        execution_mode="learned_virtual_dry_run",
+                    )
+                    journal.log_entry_snapshot(
+                        trade_id=virtual_id,
+                        entry_time=current_minute.isoformat(),
+                        instrument=INSTRUMENT,
+                        side=side,
+                        entry_price=ask if side == "long" else bid,
+                        model_evidence=dict(decision["_v10_snapshot"]),
+                        entry_bid=bid,
+                        entry_ask=ask,
+                        entry_spread_bps=new_trade.entry_spread_bps,
+                        session=str(decision["session"]),
+                        model_policy=str(decision["policy"]),
+                        execution_checks=[
+                            "fresh_quote",
+                            "spread_within_execution_cap",
+                            "exposure_safety_admitted",
+                            "virtual_dry_run",
+                            "learned_sizing_proof_bound",
+                        ],
+                        capacity_units=sizing_application["capacity_units"],
+                        reference_pre_round_units=sizing_application[
+                            "reference_pre_round_units"
+                        ],
+                        pre_round_units=sizing_application["pre_round_units"],
+                        units=trade_units,
+                        applied_size_multiplier=sizing_application[
+                            "applied_size_multiplier"
+                        ],
+                        sizing_application=sizing_application,
+                        atr_bps=decision["_v10_snapshot"]["atr_bps"],
                     )
                     new_trade.save(TRADE_STATE_DIR)
                     open_trades.append(new_trade)
-                    try:
-                        decision_ts_str = decision.get("decision_ts")
-                        if decision_ts_str:
-                            pipeline.record_entry_for_cluster(
-                                side, pd.Timestamp(decision_ts_str),
-                            )
-                    except Exception:
-                        pass
                     LOG.info(f"[DRY] virtual trade opened  side={side}  id={virtual_id}")
                 else:
                     order_result = attempt_market_entry(client, side, units=trade_units)
                     event["order_status"] = order_result["status"]
                     event["order_details"] = order_result
-                    if order_result.get("status") == "filled":
-                        # NETTING-mode detection: if OANDA closed/reduced existing
-                        # opposite-side trades (instead of opening a new one), we
-                        # must NOT register a new TradeState. Drop the closed
-                        # TradeState(s) from our internal list to match broker
-                        # reality (2026-05-20 phantom-LONG bug).
-                        raw_fill = order_result.get("raw", {}).get("orderFillTransaction", {})
-                        had_open = bool(raw_fill.get("tradeOpened", {}).get("tradeID"))
-                        closed_ids = [t.get("tradeID") for t in (raw_fill.get("tradesClosed") or [])]
-                        reduced_id = raw_fill.get("tradeReduced", {}).get("tradeID")
-                        netting_ids = [tid for tid in (closed_ids + [reduced_id]) if tid]
-                        if not had_open and netting_ids:
-                            # OANDA netted: remove matched open trades, do NOT open new.
-                            LOG.warning(
-                                f"[NETTING] {side} fill {trade_units}u netted against existing "
-                                f"opposite-side trades {netting_ids} — no new TradeState created"
+                    if order_result.get("status") in {
+                        "filled_units_mismatch",
+                        "filled_structure_mismatch",
+                    }:
+                        structure_mismatch = (
+                            order_result.get("status")
+                            == "filled_structure_mismatch"
+                        )
+                        mismatch_trade_id = str(
+                            order_result.get("trade_id") or ""
+                        ).strip()
+                        observed_signed_units = order_result.get(
+                            "filled_signed_units"
+                        )
+                        recovery_trade = SimpleNamespace(
+                            trade_id=mismatch_trade_id or None,
+                            side=side,
+                            units=(
+                                abs(int(observed_signed_units))
+                                if isinstance(observed_signed_units, int)
+                                and observed_signed_units != 0
+                                else trade_units
+                            ),
+                        )
+                        if not mismatch_trade_id:
+                            event["order_status"] = "FILL_CONTRACT_UNTRACKED_FATAL"
+                            log_journal_event(
+                                daily_journal_path(args.journal_suffix), event
                             )
-                            survivors_after_net: list[TradeState] = []
-                            removed = 0
-                            for t in open_trades:
-                                if t.trade_id and t.trade_id in netting_ids:
-                                    t.delete_state_file(TRADE_STATE_DIR)
-                                    removed += 1
-                                else:
-                                    survivors_after_net.append(t)
-                            open_trades[:] = survivors_after_net
-                            event["netting_removed_n"] = removed
-                            event["netting_trade_ids"] = netting_ids
-                            event["order_status"] = "netted"
+                            raise SystemExit(
+                                "[BROKER_EXPOSURE_UNTRACKED] anomalous fill lacks "
+                                "an exact tradeID; counter-order recovery is forbidden"
+                            )
+                        recovery_result = attempt_close_trade(client, recovery_trade)
+                        event["order_status"] = "FILL_CONTRACT_MISMATCH_RECOVERY"
+                        event["fill_units_mismatch_recovery"] = recovery_result
+                        write_trade_alert(
+                            "FILL UNITS MISMATCH "
+                            f"requested={order_result.get('requested_signed_units')} "
+                            f"observed={observed_signed_units!r} "
+                            f"trade_id={mismatch_trade_id or '(missing)'} "
+                            f"recovery={recovery_result.get('status')}"
+                        )
+                        log_journal_event(
+                            daily_journal_path(args.journal_suffix), event
+                        )
+                        if structure_mismatch:
+                            journal.log(
+                                event_type="BROKER_RECONCILIATION_REQUIRED",
+                                trade_id=mismatch_trade_id,
+                                payload={
+                                    "ts_utc": current_minute.isoformat(),
+                                    "reason": "unexpected netting/fill structure on hedging account",
+                                    "order_result": order_result,
+                                    "best_effort_recovery": recovery_result,
+                                },
+                            )
+                            raise SystemExit(
+                                "[BROKER_RECONCILIATION_REQUIRED] unexpected fill "
+                                "structure invalidated local trade state; operator "
+                                "reconciliation is mandatory"
+                            )
+                        if recovery_result.get("status") not in ("closed", "filled"):
+                            raise SystemExit(
+                                "[BROKER_EXPOSURE_UNTRACKED] exact fill units differed "
+                                "from learned sizing and recovery failed"
+                            )
+                        last_decision_minute = current_minute
+                        consecutive_errors = 0
+                        time.sleep(args.poll_seconds)
+                        continue
+                    if order_result.get("status") == "filled":
+                        filled_trade_units = abs(
+                            int(order_result["filled_signed_units"])
+                        )
+                        if filled_trade_units != trade_units:
+                            raise SystemExit(
+                                "[BROKER_FILL_UNITS_CONTRACT_BROKEN] filled status without exact units"
+                            )
+                        event["filled_units"] = filled_trade_units
+                        raw_fill = order_result.get("raw", {}).get("orderFillTransaction", {})
+                        if (
+                            not raw_fill.get("tradeOpened", {}).get("tradeID")
+                            or raw_fill.get("tradesClosed")
+                            or raw_fill.get("tradeReduced")
+                        ):
+                            raise SystemExit(
+                                "[BROKER_FILL_STRUCTURE_CONTRACT_BROKEN] filled status "
+                                "contained netting/reduction legs"
+                            )
+                        fill_price = _float_or_none(order_result.get("fill_price"))
+                        fill_trade_id = str(order_result.get("trade_id") or "").strip()
+                        fill_transaction_id = str(
+                            order_result.get("oanda_transaction_id") or ""
+                        ).strip()
+                        observed_bid = _float_or_none(bid)
+                        observed_ask = _float_or_none(ask)
+                        state_entry_bid = observed_bid
+                        state_entry_ask = observed_ask
+                        if fill_price is not None and fill_price > 0.0:
+                            if side == "long":
+                                state_entry_ask = fill_price
+                            else:
+                                state_entry_bid = fill_price
+                        paired_entry_state_valid = bool(
+                            state_entry_bid is not None
+                            and state_entry_ask is not None
+                            and state_entry_bid > 0.0
+                            and state_entry_ask > state_entry_bid
+                        )
+                        if (
+                            fill_price is None
+                            or fill_price <= 0.0
+                            or not fill_trade_id
+                            or not fill_transaction_id
+                            or not paired_entry_state_valid
+                        ):
+                            # The broker has accepted/filled an order, but the
+                            # authoritative entry state needed by TradeState is
+                            # incomplete. Never substitute the polling quote and
+                            # then let Exit decisioning run on a fabricated entry.
+                            # Immediately reduce/close the already-created exposure.
+                            recovery_trade = SimpleNamespace(
+                                trade_id=fill_trade_id or None,
+                                side=side,
+                                units=filled_trade_units,
+                            )
+                            recovery_result = attempt_close_trade(client, recovery_trade)
+                            event["order_status"] = "FILLED_STATE_UNAVAILABLE_RECOVERY"
+                            event["filled_state_unavailable"] = {
+                                "fill_price": fill_price,
+                                "trade_id": fill_trade_id or None,
+                                "fill_transaction_id": fill_transaction_id or None,
+                                "observed_bid": observed_bid,
+                                "observed_ask": observed_ask,
+                                "paired_entry_state_valid": paired_entry_state_valid,
+                            }
+                            event["filled_state_recovery"] = recovery_result
+                            write_trade_alert(
+                                f"FILL STATE UNAVAILABLE side={side} units={trade_units} "
+                                f"trade_id={fill_trade_id or '(missing)'} — recovery={recovery_result.get('status')}"
+                            )
+                            journal.log(
+                                event_type="FILLED_STATE_UNAVAILABLE_RECOVERY",
+                                trade_id=fill_trade_id or None,
+                                payload={
+                                    "ts_utc": current_minute.isoformat(),
+                                    "side": side,
+                                    "units": trade_units,
+                                    "fill_price": fill_price,
+                                    "observed_bid": observed_bid,
+                                    "observed_ask": observed_ask,
+                                    "paired_entry_state_valid": paired_entry_state_valid,
+                                    "recovery": recovery_result,
+                                },
+                            )
                             log_journal_event(daily_journal_path(args.journal_suffix), event)
+                            if recovery_result.get("status") not in ("closed", "filled"):
+                                raise SystemExit(
+                                    "[BROKER_EXPOSURE_UNTRACKED] filled order lacked authoritative "
+                                    "TradeState inputs and immediate close/reduce recovery failed"
+                                )
                             last_decision_minute = current_minute
                             consecutive_errors = 0
                             time.sleep(args.poll_seconds)
                             continue
-                        fill_price = float(order_result.get("fill_price") or 0.0)
-                        spread_abs = max(float(ask) - float(bid), max(float(bid), 1.0) * 1e-6)
-                        state_entry_bid = float(bid)
-                        state_entry_ask = float(ask)
-                        if fill_price > 0.0:
-                            if side == "long":
-                                state_entry_ask = fill_price
-                                state_entry_bid = min(float(bid), fill_price - spread_abs)
-                            else:
-                                state_entry_bid = fill_price
-                                state_entry_ask = max(float(ask), fill_price + spread_abs)
                         new_trade = TradeState.open(
                             entry_ts=pd.Timestamp(current_minute),
                             side=side, entry_bid=state_entry_bid, entry_ask=state_entry_ask,
-                            v10_snapshot=decision.get("_v10_snapshot", {}),
-                            trade_id=str(order_result.get("trade_id") or ""),
-                            units=trade_units,
+                            v10_snapshot=decision["_v10_snapshot"],
+                            trade_id=fill_trade_id,
+                            units=filled_trade_units,
+                            sizing_application=sizing_application,
+                            fill_transaction_id=fill_transaction_id,
+                            execution_mode="learned_broker_fill",
                         )
                         new_trade.save(TRADE_STATE_DIR)
                         open_trades.append(new_trade)
-                        # Audit 3 C-3 fix 2026-05-20: only advance cluster-state
-                        # AFTER trade is actually opened. Previously the pipeline
-                        # advanced state on TAKE_*_NOW recommendation regardless
-                        # of downstream gate/portfolio rejection.
-                        try:
-                            decision_ts_str = decision.get("decision_ts")
-                            if decision_ts_str:
-                                pipeline.record_entry_for_cluster(
-                                    side, pd.Timestamp(decision_ts_str),
-                                )
-                        except Exception as exc:
-                            LOG.warning(f"cluster-state record failed: {exc}")
 
                         # ── TradeJournal: log entry lifecycle ──
                         if new_trade.trade_id:
-                            v10 = decision.get("_v10_snapshot") or {}
-                            xgb_scores = decision.get("xgb") or {}
+                            v10 = dict(decision["_v10_snapshot"])
                             journal.log_order_submitted(
                                 trade_id=new_trade.trade_id,
                                 instrument=INSTRUMENT, side=side,
@@ -1310,148 +1603,75 @@ def main() -> int:
                                 oanda_trade_id=new_trade.trade_id,
                                 oanda_order_id=order_result.get("oanda_order_id"),
                                 oanda_transaction_id=order_result.get("oanda_transaction_id"),
-                                fill_price=fill_price if fill_price > 0.0 else None,
-                                fill_units=trade_units,
+                                fill_price=fill_price,
+                                fill_units=filled_trade_units,
                                 ts_oanda=order_result.get("fill_time"),
                             )
                             journal.log_entry_snapshot(
                                 trade_id=new_trade.trade_id,
                                 entry_time=current_minute.isoformat(),
-                                instrument=INSTRUMENT, side=side,
-                                entry_price=fill_price if fill_price > 0.0 else (ask if side == "long" else bid),
-                                entry_bid=state_entry_bid, entry_ask=state_entry_ask,
+                                instrument=INSTRUMENT,
+                                side=side,
+                                entry_price=fill_price,
+                                model_evidence=v10,
+                                entry_bid=state_entry_bid,
+                                entry_ask=state_entry_ask,
                                 entry_spread_bps=new_trade.entry_spread_bps,
-                                session=decision.get("session"),
-                                trend_regime=(str(decision.get("trend_regime") or "") or None),
-                                entry_model_version=str(decision.get("policy", "smart_seq520_candidate_v1")),
-                                entry_score={
-                                    "policy": str(decision.get("policy", "")),
-                                    "smart_p_long": _as_float(decision.get("p_long")),
-                                    "smart_p_short": _as_float(decision.get("p_short")),
-                                    "smart_p_flat": _as_float(decision.get("p_flat")),
-                                    "smart_edge_score": _as_float(decision.get("edge_score")),
-                                    "smart_edge_score_threshold": _as_float(decision.get("edge_score_threshold")),
-                                    "smart_selection_score_mode": str(decision.get("selection_score_mode", "")),
-                                    "smart_selection_score": _as_float(decision.get("selection_score")),
-                                    "smart_selection_score_threshold": _as_float(decision.get("selection_score_threshold")),
-                                    "smart_legacy_trade_side": _float_or_none(decision.get("legacy_trade_side")),
-                                    "smart_expected_utility_side": _float_or_none(decision.get("expected_utility_side")),
-                                    "smart_selected_side": _float_or_none(decision.get("selected_side")),
-                                    "smart_p_trade": _as_float(decision.get("p_trade")),
-                                    "smart_p_flat_hier": _as_float(decision.get("p_flat_hier")),
-                                    "smart_p_long_given_trade": _as_float(decision.get("p_long_given_trade")),
-                                    "smart_p_short_given_trade": _as_float(decision.get("p_short_given_trade")),
-                                    "smart_expected_utility_long_bps": _float_or_none(decision.get("expected_utility_long_bps")),
-                                    "smart_expected_utility_short_bps": _float_or_none(decision.get("expected_utility_short_bps")),
-                                    "smart_expected_utility_bad_path_penalty_bps": _float_or_none(decision.get("expected_utility_bad_path_penalty_bps")),
-                                    "smart_expected_utility_uncertainty_penalty_bps": _float_or_none(decision.get("expected_utility_uncertainty_penalty_bps")),
-                                    "smart_expected_utility_rail_penalty_bps": _float_or_none(decision.get("expected_utility_rail_penalty_bps")),
-                                    "smart_expected_utility_long_rail_penalty_bps": _float_or_none(decision.get("expected_utility_long_rail_penalty_bps")),
-                                    "smart_expected_utility_short_rail_penalty_bps": _float_or_none(decision.get("expected_utility_short_rail_penalty_bps")),
-                                    "smart_expected_utility_invalid_side_penalty_bps": _float_or_none(decision.get("expected_utility_invalid_side_penalty_bps")),
-                                    "smart_expected_utility_long_invalid_side_penalty_bps": _float_or_none(decision.get("expected_utility_long_invalid_side_penalty_bps")),
-                                    "smart_expected_utility_short_invalid_side_penalty_bps": _float_or_none(decision.get("expected_utility_short_invalid_side_penalty_bps")),
-                                    "smart_long_path_utility_pred_bps": _float_or_none(decision.get("long_path_utility_pred_bps")),
-                                    "smart_short_path_utility_pred_bps": _float_or_none(decision.get("short_path_utility_pred_bps")),
-                                    "smart_long_bad_path_prob": _float_or_none(decision.get("long_bad_path_prob")),
-                                    "smart_short_bad_path_prob": _float_or_none(decision.get("short_bad_path_prob")),
-                                    "smart_side_validity_logit": decision.get("side_validity_logit"),
-                                    "smart_long_validity_prob": _float_or_none(decision.get("long_validity_prob")),
-                                    "smart_short_validity_prob": _float_or_none(decision.get("short_validity_prob")),
-                                    "smart_long_expected_mae_bps": _float_or_none(decision.get("long_expected_mae_bps")),
-                                    "smart_short_expected_mae_bps": _float_or_none(decision.get("short_expected_mae_bps")),
-                                    "smart_anchor_logits": decision.get("anchor_logits"),
-                                    "smart_anchor_probs": decision.get("anchor_probs"),
-                                    "smart_delta_logits": decision.get("delta_logits"),
-                                    "smart_mtf_dir_logits": decision.get("mtf_dir_logits"),
-                                    "smart_mtf_dir_probs": decision.get("mtf_dir_probs"),
-                                    "smart_anchor_gate": decision.get("anchor_gate"),
-                                    "smart_geometry_support_evidence": _float_or_none(decision.get("geometry_support_evidence")),
-                                    "smart_geometry_resistance_evidence": _float_or_none(decision.get("geometry_resistance_evidence")),
-                                    "smart_geometry_channel_edge_pressure": _float_or_none(decision.get("geometry_channel_edge_pressure")),
-                                    "smart_geometry_rising_support_rail_long_pressure": _float_or_none(decision.get("geometry_rising_support_rail_long_pressure")),
-                                    "smart_geometry_rising_support_rail_short_trap_pressure": _float_or_none(decision.get("geometry_rising_support_rail_short_trap_pressure")),
-                                    "smart_geometry_falling_resistance_rail_short_pressure": _float_or_none(decision.get("geometry_falling_resistance_rail_short_pressure")),
-                                    "smart_geometry_falling_resistance_rail_long_trap_pressure": _float_or_none(decision.get("geometry_falling_resistance_rail_long_trap_pressure")),
-                                    "smart_trendline_rail_long_evidence": _float_or_none(decision.get("trendline_rail_long_evidence")),
-                                    "smart_trendline_rail_short_evidence": _float_or_none(decision.get("trendline_rail_short_evidence")),
-                                    "smart_trendline_rail_long_minus_short": _float_or_none(decision.get("trendline_rail_long_minus_short")),
-                                    "smart_mtf_trend_evidence": _float_or_none(decision.get("mtf_trend_evidence")),
-                                    "smart_calibration_version": str(decision.get("calibration_version", "")),
-                                    "smart_direction_calibration_enabled": decision.get("direction_calibration_enabled"),
-                                    "smart_direction_calibration_temperature": _float_or_none(decision.get("direction_calibration_temperature")),
-                                    "smart_direction_calibration_bias": decision.get("direction_calibration_bias"),
-                                    "smart_path_calibration_enabled": decision.get("path_calibration_enabled"),
-                                    "smart_path_calibration": decision.get("path_calibration"),
-                                    "smart_anchored_entry_enabled": decision.get("anchored_entry_enabled"),
-                                    "smart_anchor_source": decision.get("anchor_source"),
-                                    "entry_signal_latency_sec": _float_or_none(decision.get("entry_signal_latency_sec")),
-                                    "entry_signal_latency_min": _float_or_none(decision.get("entry_signal_latency_min")),
-                                    "entry_signal_latency_cap_sec": _float_or_none(decision.get("entry_signal_latency_cap_sec")),
-                                    "decision_available_ts": str(decision.get("decision_available_ts", "")),
-                                    "context_age_m5_bars": _float_or_none(decision.get("context_age_m5_bars")),
-                                    "context_cutoff_ts": str(decision.get("context_cutoff_ts", "")),
-                                    "xgb_p_long": _as_float(xgb_scores.get("p_long")),
-                                    "xgb_p_short": _as_float(xgb_scores.get("p_short")),
-                                    "xgb_p_flat": _as_float(xgb_scores.get("p_flat")),
-                                    "q_take_long": _as_float(decision.get("q_take_long")),
-                                    "q_take_short": _as_float(decision.get("q_take_short")),
-                                    "q_skip": _as_float(decision.get("q_skip")),
-                                    "advantage_over_skip": _as_float(decision.get("advantage_over_skip")),
-                                    "advantage_over_skip_long": _as_float(decision.get("advantage_over_skip_long")),
-                                    "advantage_over_skip_short": _as_float(decision.get("advantage_over_skip_short")),
-                                    "v10_path_quality_pred": _as_float(decision.get("v10_path_quality_pred")),
-                                    "v10_mfe_pred_at_entry": _as_float(decision.get("v10_mfe_pred_at_entry")),
-                                    "v10_tradable_prob": _as_float(decision.get("v10_tradable_prob")),
-                                    "v10_bad_path_prob": _as_float(decision.get("v10_bad_path_prob")),
-                                    "decision_ts": str(decision.get("decision_ts", "")),
-                                },
-                                entry_filters_passed=["spread_ok", "v12_take"],
-                                base_units=args.units, units=trade_units,
-                                atr_bps=v10.get("atr_bps"),
-                                spread_bps=spread_bps,
-                            )
-                            journal.log_feature_context(
-                                trade_id=new_trade.trade_id,
-                                spread_pct=spread_bps / 10000.0,
-                                candle_close=(bid + ask) / 2.0,
+                                session=str(decision["session"]),
+                                model_policy=str(decision["policy"]),
+                                execution_checks=[
+                                    "fresh_quote",
+                                    "spread_within_execution_cap",
+                                    "broker_state_reconciled",
+                                    "exposure_safety_admitted",
+                                    "learned_sizing_proof_bound",
+                                ],
+                                capacity_units=sizing_application["capacity_units"],
+                                reference_pre_round_units=sizing_application[
+                                    "reference_pre_round_units"
+                                ],
+                                pre_round_units=sizing_application["pre_round_units"],
+                                units=filled_trade_units,
+                                applied_size_multiplier=sizing_application[
+                                    "applied_size_multiplier"
+                                ],
+                                sizing_application=sizing_application,
+                                atr_bps=v10["atr_bps"],
                             )
                             journal.log_oanda_trade_update(
                                 trade_id=new_trade.trade_id,
                                 event_type="TRADE_OPENED_OANDA",
                                 oanda_trade_id=new_trade.trade_id,
                                 price=float(order_result.get("fill_price") or ask),
-                                units=trade_units,
+                                units=filled_trade_units,
                             )
 
                         write_trade_alert(
                             f"OPEN  trade_id={new_trade.trade_id}  side={side}  "
                             f"entry={ask if side=='long' else bid:.2f}  "
-                            f"spread={spread_bps:.1f}bps  units={args.units}  "
+                            f"spread={spread_bps:.1f}bps  units={trade_units}  "
                             f"open_count={len(open_trades)}/{args.max_trades}  "
+                            f"direction={model_direction}  "
                             f"p_long={_as_float(decision.get('p_long')):.3f}  "
                             f"p_short={_as_float(decision.get('p_short')):.3f}  "
+                            f"p_flat={_as_float(decision.get('p_flat')):.3f}  "
                             f"edge={_as_float(decision.get('edge_score')):+.3f}  "
-                            f"mode={decision.get('selection_score_mode','edge_score')}  "
+                            f"mode={decision.get('selection_score_mode','')}  "
                             f"score={_fmt_optional_float(decision.get('selection_score'), '+.2f')}  "
                             f"p_trade={_as_float(decision.get('p_trade')):.3f}  "
-                            f"euL={_fmt_optional_float(decision.get('expected_utility_long_bps'), '+.1f')}  "
-                            f"euS={_fmt_optional_float(decision.get('expected_utility_short_bps'), '+.1f')}  "
-                            f"railLS={_fmt_optional_float(decision.get('trendline_rail_long_minus_short'), '+.2f')}  "
                             f"lat={_fmt_optional_float(decision.get('entry_signal_latency_sec'), '.0f')}s"
                         )
                         LOG.info(f"opened trade  id={new_trade.trade_id}  side={side}  "
                                   f"entry={ask if side=='long' else bid}  "
                                   f"open_count={len(open_trades)}/{args.max_trades}  "
+                                  f"direction={model_direction}  "
                                   f"p_long={_as_float(decision.get('p_long')):.3f}  "
                                   f"p_short={_as_float(decision.get('p_short')):.3f}  "
+                                  f"p_flat={_as_float(decision.get('p_flat')):.3f}  "
                                   f"edge={_as_float(decision.get('edge_score')):+.3f}  "
-                                  f"mode={decision.get('selection_score_mode','edge_score')}  "
+                                  f"mode={decision.get('selection_score_mode','')}  "
                                   f"score={_fmt_optional_float(decision.get('selection_score'), '+.2f')}  "
                                   f"p_trade={_as_float(decision.get('p_trade')):.3f}  "
-                                  f"euL={_fmt_optional_float(decision.get('expected_utility_long_bps'), '+.1f')}  "
-                                  f"euS={_fmt_optional_float(decision.get('expected_utility_short_bps'), '+.1f')}  "
-                                  f"railLS={_fmt_optional_float(decision.get('trendline_rail_long_minus_short'), '+.2f')}  "
                                   f"entry_latency={_fmt_optional_float(decision.get('entry_signal_latency_sec'), '.0f')}s")
                     elif order_result.get("status") in ("rejected", "api_error"):
                         # Reject without a trade_id — log via run-level JSONL so reject stream
@@ -1461,22 +1681,21 @@ def main() -> int:
                             payload={
                                 "ts_utc": current_minute.isoformat(),
                                 "side": side,
-                                "units": args.units,
+                                "units": trade_units,
                                 "reason": order_result.get("reason"),
                                 "client_order_id": order_result.get("client_order_id"),
-                                "v12_action": decision.get("action"),
-                                "advantage_over_skip": float(decision.get("advantage_over_skip", 0.0)),
-                                "v10_p_long": float(decision.get("v10_p_long", 0.0)),
+                                "model_action": expected_action,
+                                "model_direction": model_direction,
+                                "model_direction_index": expected_index,
+                                "direction_probs": decision.get("direction_probs"),
                                 "bid": bid, "ask": ask,
                                 "n_open_trades": len(open_trades),
                             },
                         )
             else:
-                # SKIP — flag if V12 would have had >50 bps Q-advantage on either side
-                adv_long = float(decision.get("advantage_over_skip_long", 0.0))
-                adv_short = float(decision.get("advantage_over_skip_short", 0.0))
-                event["order_status"] = "SKIP"
-                event["high_conviction_skip"] = (adv_long >= 50.0 or adv_short >= 50.0)
+                event["order_status"] = "MODEL_DIRECTION_FLAT"
+                event["units_mode"] = MODEL_NATIVE_SIZING_MODE_LEARNED
+                event["units"] = 0
 
             log_journal_event(daily_journal_path(args.journal_suffix), event)
             last_decision_minute = current_minute

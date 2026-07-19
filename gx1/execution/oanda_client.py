@@ -607,6 +607,21 @@ class OandaClient:
     def get_account_summary(self) -> Dict[str, Any]:
         """Retrieve account summary (balance, NAV, PnL etc.)."""
         return self._request("GET", f"/accounts/{self.account_id}/summary")
+
+    def get_account_instruments(self, instruments: list[str]) -> Dict[str, Any]:
+        """Retrieve account-specific immutable execution constraints.
+
+        Learned sizing uses this endpoint for broker truth about margin rate,
+        minimum trade size, maximum order units, and unit precision.  An empty
+        request is rejected rather than widened to the full instrument set.
+        """
+        if not instruments:
+            raise ValueError("instruments must be non-empty")
+        return self._request(
+            "GET",
+            f"/accounts/{self.account_id}/instruments",
+            params={"instruments": ",".join(instruments)},
+        )
     
     def get_pricing(self, instruments: list[str]) -> Dict[str, Any]:
         """

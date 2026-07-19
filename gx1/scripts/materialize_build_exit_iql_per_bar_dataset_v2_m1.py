@@ -82,9 +82,7 @@ if str(REPO_ROOT) not in sys.path:
 from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
     compute_m5_phase_index,
 )
-from gx1.scripts import (
-    materialize_build_iql_offline_data_contract_research_only_v1 as contract_gate,
-)
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
 from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
 from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as v1_pipe
 

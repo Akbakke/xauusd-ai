@@ -1,10 +1,4 @@
-"""Entry session/regime interaction features.
-
-This layer derives causal session, spread-cost and regime-state interaction
-signals from already-materialized closed-bar ``snap.*`` and ``ctx_cont.*``
-fields. It is intentionally dormant until a later manifest/rebuild gate wires
-the features into a challenger dataset.
-"""
+"""Strict causal session/regime interaction features for model-native Entry."""
 from __future__ import annotations
 
 from typing import Iterable
@@ -12,13 +6,90 @@ from typing import Iterable
 import numpy as np
 
 
-SESSION_REGIME_INTERACTION_FEATURE_VERSION = "entry_session_regime_interactions_v1_20260630_asia_quiet_permission"
+SESSION_REGIME_INTERACTION_FEATURE_VERSION = (
+    "entry_session_regime_interactions_v1_20260717_exact_sources_fail_closed"
+)
 SESSION_REGIME_INTERACTION_FEATURE_PREFIX = "session_regime."
 
+SESSION_REGIME_INTERACTION_FEATURE_SUFFIXES = (
+    "session_opening_risk",
+    "session_boundary_risk",
+    "session_mid_age_stability",
+    "session_age_progress_norm",
+    "session_boundary_transition_pressure",
+    "asia_eu_overlap_transition_pressure",
+    "eu_us_overlap_momentum_continuation",
+    "eu_us_overlap_divergence_risk",
+    "asia_open_boundary_fade_risk",
+    "asia_mid_session_low_cost_permission",
+    "eu_opening_structure_break_risk",
+    "us_close_boundary_spread_tail_risk",
+    "spread_cost_ratio",
+    "spread_cost_pressure",
+    "spread_cost_x_boundary_risk",
+    "spread_cost_x_vol_expansion",
+    "spread_cost_x_overlap_risk",
+    "spread_bucket_high_pressure",
+    "spread_bucket_low_cost_permission",
+    "atr_bucket_high_pressure",
+    "spread_atr_bucket_joint_pressure",
+    "spread_atr_boundary_abstain_score",
+    "low_spread_mid_atr_execution_permission",
+    "vol_regime_high_pressure",
+    "vol_regime_extreme_tail_pressure",
+    "regime_persistence_score",
+    "regime_change_pressure",
+    "regime_change_x_session_boundary",
+    "mtf_regime_agreement_pressure",
+    "mtf_regime_divergence_pressure",
+    "mtf_regime_class_vote_agreement",
+    "mtf_regime_short_long_mismatch",
+    "regime_stack_bull_trend_pressure",
+    "regime_stack_bear_trend_pressure",
+    "regime_stack_chop_pressure",
+    "h4_d1_regime_sign_agreement",
+    "h4_d1_regime_sign_mismatch",
+    "h4_d1_trend_stack_score",
+    "h4_d1_stack_bull_pressure",
+    "h4_d1_stack_bear_pressure",
+    "h4_d1_trend_age_exhaustion_pressure",
+    "h4_d1_d1_roc_reversal_pressure",
+    "regime_transition_abstain_score",
+    "regime_transition_tail_risk",
+    "regime_transition_x_overlap_risk",
+    "asia_range_liquidity_reversal_pressure",
+    "eu_structure_breakout_readiness",
+    "us_momentum_followthrough_pressure",
+    "overlap_liquidity_sweep_risk",
+    "session_vol_spread_breakout_readiness",
+    "session_vol_spread_tail_risk",
+    "session_structure_regime_alignment",
+    "session_structure_regime_conflict",
+    "asia_momentum_fade_pressure",
+    "eu_signed_momentum_followthrough",
+    "us_signed_momentum_followthrough",
+    "overlap_momentum_vol_spread_risk",
+    "asia_structure_mean_reversion_pressure",
+    "eu_structure_regime_continuation_bias",
+    "us_late_session_structure_chase_risk",
+    "session_momentum_structure_alignment_score",
+    "asia_h4_d1_liquidity_reversal_risk",
+    "eu_h4_d1_structure_continuation_long",
+    "eu_h4_d1_structure_continuation_short",
+    "us_h4_d1_momentum_followthrough",
+    "overlap_h4_d1_liquidity_tail_risk",
+    "session_trend_structure_liquidity_long_score",
+    "session_trend_structure_liquidity_short_score",
+)
+SESSION_REGIME_INTERACTION_FEATURE_NAMES = tuple(
+    f"{SESSION_REGIME_INTERACTION_FEATURE_PREFIX}{suffix}"
+    for suffix in SESSION_REGIME_INTERACTION_FEATURE_SUFFIXES
+)
+
 SESSION_REGIME_INTERACTION_SOURCE_FIELDS = (
-    "ret_1",
-    "ret_5",
-    "ret_20",
+    "snap.ret_1",
+    "snap.ret_5",
+    "snap.ret_20",
     "ctx_cont.minutes_since_session_open",
     "ctx_cont.minutes_to_next_session_boundary",
     "ctx_cont.session_change_flag",
@@ -70,110 +141,30 @@ SESSION_REGIME_INTERACTION_SOURCE_FIELDS = (
     "chart.foundation_pullback_depth_norm",
 )
 
-_SOURCE_ALIASES: dict[str, tuple[str, ...]] = {
-    "ret_1": ("snap.ret_1", "ret_1"),
-    "ret_5": ("snap.ret_5", "ret_5"),
-    "ret_20": ("snap.ret_20", "ret_20"),
-    "ctx_cont.minutes_since_session_open": ("ctx_cont.minutes_since_session_open", "minutes_since_session_open"),
-    "ctx_cont.minutes_to_next_session_boundary": (
-        "ctx_cont.minutes_to_next_session_boundary",
-        "minutes_to_next_session_boundary",
-    ),
-    "ctx_cont.session_change_flag": ("ctx_cont.session_change_flag", "session_change_flag"),
-    "ctx_cont.session_tradable": ("ctx_cont.session_tradable", "session_tradable"),
-    "ctx_cont.is_ASIA": ("ctx_cont.is_ASIA", "is_ASIA"),
-    "ctx_cont.is_asia_eu_overlap": ("ctx_cont.is_asia_eu_overlap", "is_asia_eu_overlap"),
-    "ctx_cont.is_eu_us_overlap": ("ctx_cont.is_eu_us_overlap", "is_eu_us_overlap"),
-    "ctx_cont.is_eu_only": ("ctx_cont.is_eu_only", "is_eu_only"),
-    "ctx_cont.is_us_only": ("ctx_cont.is_us_only", "is_us_only"),
-    "ctx_cont.spread_bps": ("ctx_cont.spread_bps", "spread_bps"),
-    "ctx_cont.atr_bps": ("ctx_cont.atr_bps", "atr_bps"),
-    "ctx_cont.micro_momentum_3": ("ctx_cont.micro_momentum_3", "micro_momentum_3"),
-    "ctx_cont.micro_momentum_5": ("ctx_cont.micro_momentum_5", "micro_momentum_5"),
-    "ctx_cont.micro_acceleration": ("ctx_cont.micro_acceleration", "micro_acceleration"),
-    "ctx_cont.vol_pct_m5_1yr": ("ctx_cont.vol_pct_m5_1yr", "vol_pct_m5_1yr"),
-    "ctx_cont.vol_pct_h1_1yr": ("ctx_cont.vol_pct_h1_1yr", "vol_pct_h1_1yr"),
-    "ctx_cont.D1_atr_percentile_252": ("ctx_cont.D1_atr_percentile_252", "D1_atr_percentile_252"),
-    "ctx_cat.vol_regime_id": ("ctx_cat.vol_regime_id", "vol_regime_id"),
-    "ctx_cat.spread_bucket": ("ctx_cat.spread_bucket", "spread_bucket"),
-    "ctx_cat.atr_bucket": ("ctx_cat.atr_bucket", "atr_bucket"),
-    "ctx_cat.H4_trend_sign_cat": ("ctx_cat.H4_trend_sign_cat", "H4_trend_sign_cat", "h4_trend_sign_cat"),
-    "ctx_cont.atr_ratio_m5_m15": ("ctx_cont.atr_ratio_m5_m15", "atr_ratio_m5_m15"),
-    "ctx_cont.atr_ratio_m15_d1": ("ctx_cont.atr_ratio_m15_d1", "atr_ratio_m15_d1"),
-    "ctx_cont.atr_ratio_h1_d1": ("ctx_cont.atr_ratio_h1_d1", "atr_ratio_h1_d1"),
-    "ctx_cont._v1h4_ema_diff": ("ctx_cont._v1h4_ema_diff", "_v1h4_ema_diff"),
-    "ctx_cont._v1h4_slope5": ("ctx_cont._v1h4_slope5", "_v1h4_slope5"),
-    "ctx_cont.d1_ema_slope_20_canon_v2": (
-        "ctx_cont.d1_ema_slope_20_canon_v2",
-        "d1_ema_slope_20_canon_v2",
-    ),
-    "ctx_cont.regime_tf_agreement_v3": ("ctx_cont.regime_tf_agreement_v3", "regime_tf_agreement_v3"),
-    "ctx_cont.regime_stack_sum_v3": ("ctx_cont.regime_stack_sum_v3", "regime_stack_sum_v3"),
-    "ctx_cont.regime_divergence_flag_v3": (
-        "ctx_cont.regime_divergence_flag_v3",
-        "regime_divergence_flag_v3",
-    ),
-    "ctx_cont.d1_dist_to_boundary_v3": ("ctx_cont.d1_dist_to_boundary_v3", "d1_dist_to_boundary_v3"),
-    "ctx_cont.d1_dist_roc_288_v3": ("ctx_cont.d1_dist_roc_288_v3", "d1_dist_roc_288_v3"),
-    "ctx_cont.d1_regime_changed_flag_v3": (
-        "ctx_cont.d1_regime_changed_flag_v3",
-        "d1_regime_changed_flag_v3",
-    ),
-    "ctx_cont.bars_since_d1_regime_change_v3": (
-        "ctx_cont.bars_since_d1_regime_change_v3",
-        "bars_since_d1_regime_change_v3",
-    ),
-    "ctx_cont.d1_trend_age_mature_flag_v3": (
-        "ctx_cont.d1_trend_age_mature_flag_v3",
-        "d1_trend_age_mature_flag_v3",
-    ),
-    "ctx_cont.m5_regime_class_id_v2": ("ctx_cont.m5_regime_class_id_v2", "m5_regime_class_id_v2"),
-    "ctx_cont.m15_regime_class_id_v2": ("ctx_cont.m15_regime_class_id_v2", "m15_regime_class_id_v2"),
-    "ctx_cont.h1_regime_class_id_v2": ("ctx_cont.h1_regime_class_id_v2", "h1_regime_class_id_v2"),
-    "ctx_cont.h4_regime_class_id_v2": ("ctx_cont.h4_regime_class_id_v2", "h4_regime_class_id_v2"),
-    "ctx_cont.d1_regime_class_id_v2": ("ctx_cont.d1_regime_class_id_v2", "d1_regime_class_id_v2"),
-    "ctx_cont.h4_trend_age_bars_norm_v2": (
-        "ctx_cont.h4_trend_age_bars_norm_v2",
-        "h4_trend_age_bars_norm_v2",
-    ),
-    "ctx_cont.d1_trend_age_bars_norm_v2": (
-        "ctx_cont.d1_trend_age_bars_norm_v2",
-        "d1_trend_age_bars_norm_v2",
-    ),
-}
-
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
-
-
-def _aliases(name: str) -> tuple[str, ...]:
-    return _SOURCE_ALIASES.get(name, (name,))
-
-
-def _has(index: dict[str, int], name: str) -> bool:
-    return any(alias in index for alias in _aliases(name))
+    return {name: i for i, name in enumerate(names)}
 
 
 def missing_session_regime_interaction_source_fields(feature_names: Iterable[str]) -> list[str]:
-    available = {str(name) for name in feature_names}
-    return [
-        name
-        for name in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
-        if not any(alias in available for alias in _aliases(name))
-    ]
+    available = set(feature_names)
+    return [name for name in SESSION_REGIME_INTERACTION_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
-    for alias in _aliases(name):
-        if alias in index:
-            arr = np.asarray(x[:, index[alias]], dtype=np.float32)
-            return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
-    return np.full(x.shape[0], float(default), dtype=np.float32)
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    if name not in index:
+        raise RuntimeError(f"ENTRY_SESSION_REGIME_INTERACTION_SOURCE_FIELD_MISSING: {name}")
+    arr = np.asarray(x[:, index[name]], dtype=np.float32)
+    if not np.isfinite(arr).all():
+        raise RuntimeError(f"ENTRY_SESSION_REGIME_INTERACTION_SOURCE_NONFINITE: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if not np.isfinite(values).all():
+        raise RuntimeError("ENTRY_SESSION_REGIME_INTERACTION_DERIVATION_NONFINITE")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -205,20 +196,20 @@ def _lag1(arr: np.ndarray) -> np.ndarray:
 
 
 def _bucket_ge(arr: np.ndarray, threshold: int) -> np.ndarray:
-    return (np.rint(np.nan_to_num(arr, nan=0.0)) >= int(threshold)).astype(np.float32)
+    return (np.rint(arr) >= int(threshold)).astype(np.float32)
 
 
 def _bucket_le(arr: np.ndarray, threshold: int) -> np.ndarray:
-    return (np.rint(np.nan_to_num(arr, nan=0.0)) <= int(threshold)).astype(np.float32)
+    return (np.rint(arr) <= int(threshold)).astype(np.float32)
 
 
 def _regime_class_sign(arr: np.ndarray) -> np.ndarray:
-    ids = np.rint(np.nan_to_num(arr, nan=0.0)).astype(np.int16, copy=False)
+    ids = np.rint(arr).astype(np.int16, copy=False)
     return np.where(np.isin(ids, (1, 2)), 1.0, np.where(np.isin(ids, (3, 4)), -1.0, 0.0)).astype(np.float32)
 
 
 def _h4_trend_cat_sign(arr: np.ndarray) -> np.ndarray:
-    ids = np.rint(np.nan_to_num(arr, nan=1.0)).astype(np.int16, copy=False)
+    ids = np.rint(arr).astype(np.int16, copy=False)
     return np.where(ids >= 2, 1.0, np.where(ids <= 0, -1.0, 0.0)).astype(np.float32)
 
 
@@ -227,9 +218,6 @@ def _class_vote_agreement(
     idx: dict[str, int],
     names: tuple[str, str, str, str, str],
 ) -> tuple[np.ndarray, np.ndarray]:
-    if not all(_has(idx, name) for name in names):
-        zeros = np.zeros(x.shape[0], dtype=np.float32)
-        return zeros, zeros
     m5, m15, h1, h4, d1 = (np.rint(_col(x, idx, name)).astype(np.int16, copy=False) for name in names)
     stack = np.vstack([m5, m15, h1, h4])
     vote_agreement = (stack == d1).mean(axis=0).astype(np.float32)
@@ -250,28 +238,52 @@ def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray,
 def build_entry_session_regime_interaction_layer(
     x: np.ndarray,
     feature_names: list[str],
-    *,
-    fail_on_missing_sources: bool = True,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build causal session/regime interaction candidates from current fields."""
+    """Build causal session/regime interactions from the exact canonical surface."""
     x = np.asarray(x, dtype=np.float32)
     if x.ndim != 2:
-        raise RuntimeError(f"session/regime input matrix must be 2D, got {x.shape}")
+        raise RuntimeError(f"ENTRY_SESSION_REGIME_INTERACTION_INPUT_NOT_2D: shape={x.shape}")
+    if x.shape[0] == 0 or x.shape[1] == 0:
+        raise RuntimeError(f"ENTRY_SESSION_REGIME_INTERACTION_INPUT_EMPTY: shape={x.shape}")
+    if x.shape[1] != len(feature_names):
+        raise RuntimeError(
+            "ENTRY_SESSION_REGIME_INTERACTION_FEATURE_NAME_DIM_MISMATCH: "
+            f"cols={x.shape[1]} names={len(feature_names)}"
+        )
+    if any(not isinstance(name, str) or not name for name in feature_names):
+        raise RuntimeError("ENTRY_SESSION_REGIME_INTERACTION_FEATURE_NAME_INVALID")
+    if len(feature_names) != len(set(feature_names)):
+        seen: set[str] = set()
+        duplicates = sorted(
+            {name for name in feature_names if name in seen or seen.add(name)}
+        )
+        raise RuntimeError(
+            f"ENTRY_SESSION_REGIME_INTERACTION_DUPLICATE_FEATURE_NAMES: {duplicates[:20]}"
+        )
     idx = _name_index(feature_names)
     missing = missing_session_regime_interaction_source_fields(feature_names)
-    if fail_on_missing_sources and missing:
+    if missing:
         raise RuntimeError(
             "ENTRY_SESSION_REGIME_INTERACTION_MISSING_SOURCE_FIELDS: "
             f"{missing[:30]} total={len(missing)}"
         )
+    if not np.isfinite(x).all():
+        bad_rows, bad_cols = np.where(~np.isfinite(x))
+        examples = [
+            {"row": int(row), "feature": feature_names[int(col)]}
+            for row, col in zip(bad_rows[:10], bad_cols[:10])
+        ]
+        raise RuntimeError(
+            f"ENTRY_SESSION_REGIME_INTERACTION_SOURCE_NONFINITE: {examples}"
+        )
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
-    minutes_since_open = _clip(c("ctx_cont.minutes_since_session_open", default=1440.0), 0.0, 1440.0)
-    minutes_to_boundary = _clip(c("ctx_cont.minutes_to_next_session_boundary", default=1440.0), 0.0, 1440.0)
+    minutes_since_open = _clip(c("ctx_cont.minutes_since_session_open"), 0.0, 1440.0)
+    minutes_to_boundary = _clip(c("ctx_cont.minutes_to_next_session_boundary"), 0.0, 1440.0)
     session_change = _clip01(c("ctx_cont.session_change_flag"))
     session_tradable = _clip01(c("ctx_cont.session_tradable"))
     open_risk = _clip01(np.exp(-minutes_since_open / 30.0).astype(np.float32) + session_change)
@@ -288,7 +300,7 @@ def build_entry_session_regime_interaction_layer(
     overlap = _clip01(asia_eu + eu_us)
     active_session = _clip01(asia + eu + us)
 
-    spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps", default=1.0)), 0.0, 5.0)
+    spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps")), 0.0, 5.0)
     spread_pressure = _clip01(_tanh(spread_ratio, scale=0.15))
     spread_bucket = c("ctx_cat.spread_bucket")
     spread_bucket_high = _bucket_ge(spread_bucket, 2)
@@ -308,7 +320,7 @@ def build_entry_session_regime_interaction_layer(
     vol_m5 = _clip01(c("ctx_cont.vol_pct_m5_1yr"))
     vol_h1 = _clip01(c("ctx_cont.vol_pct_h1_1yr"))
     d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252"))
-    vol_regime = c("ctx_cat.vol_regime_id", default=1.0)
+    vol_regime = c("ctx_cat.vol_regime_id")
     vol_regime_high = _bucket_ge(vol_regime, 2)
     vol_regime_extreme = _bucket_ge(vol_regime, 3)
     vol_pressure = _clip01(0.45 * vol_m5 + 0.35 * vol_h1 + 0.20 * d1_atr_pct)
@@ -323,10 +335,10 @@ def build_entry_session_regime_interaction_layer(
     regime_agreement = _clip01(c("ctx_cont.regime_tf_agreement_v3"))
     regime_stack_signed = _tanh(c("ctx_cont.regime_stack_sum_v3"), scale=3.0)
     regime_divergence = _clip01(c("ctx_cont.regime_divergence_flag_v3"))
-    regime_boundary_pressure = _clip01(1.0 - c("ctx_cont.d1_dist_to_boundary_v3", default=1.0))
+    regime_boundary_pressure = _clip01(1.0 - c("ctx_cont.d1_dist_to_boundary_v3"))
     d1_dist_roc = _tanh(c("ctx_cont.d1_dist_roc_288_v3"), scale=2.0)
     d1_regime_changed = _clip01(c("ctx_cont.d1_regime_changed_flag_v3"))
-    bars_since_change_norm = _clip01(c("ctx_cont.bars_since_d1_regime_change_v3", default=1.0))
+    bars_since_change_norm = _clip01(c("ctx_cont.bars_since_d1_regime_change_v3"))
     d1_trend_mature = _clip01(c("ctx_cont.d1_trend_age_mature_flag_v3"))
     regime_change_pressure = _clip01(
         d1_regime_changed
@@ -355,7 +367,7 @@ def build_entry_session_regime_interaction_layer(
 
     h4_regime_sign = _regime_class_sign(c("ctx_cont.h4_regime_class_id_v2"))
     d1_regime_sign = _regime_class_sign(c("ctx_cont.d1_regime_class_id_v2"))
-    h4_trend_cat_sign = _h4_trend_cat_sign(c("ctx_cat.H4_trend_sign_cat", default=1.0))
+    h4_trend_cat_sign = _h4_trend_cat_sign(c("ctx_cat.H4_trend_sign_cat"))
     h4_ema = _tanh(c("ctx_cont._v1h4_ema_diff"), scale=2.0)
     h4_slope = _tanh(c("ctx_cont._v1h4_slope5"), scale=2.0)
     d1_slope = _tanh(c("ctx_cont.d1_ema_slope_20_canon_v2"), scale=2.0)
@@ -411,9 +423,9 @@ def build_entry_session_regime_interaction_layer(
     pullback_depth = _clip01(c("chart.foundation_pullback_depth_norm"))
     structure_alignment = _clip(structure_bias * regime_stack_signed * mtf_agreement_pressure, -1.0, 1.0)
     structure_conflict = _clip01(np.abs(structure_bias) * mtf_divergence_pressure)
-    ret1 = _tanh(c("ret_1"), scale=10.0)
-    ret5 = _tanh(c("ret_5"), scale=20.0)
-    ret20 = _tanh(c("ret_20"), scale=40.0)
+    ret1 = _tanh(c("snap.ret_1"), scale=10.0)
+    ret5 = _tanh(c("snap.ret_5"), scale=20.0)
+    ret20 = _tanh(c("snap.ret_20"), scale=40.0)
     micro3 = _tanh(c("ctx_cont.micro_momentum_3"), scale=1.0)
     micro5 = _tanh(c("ctx_cont.micro_momentum_5"), scale=1.0)
     micro_accel = _tanh(c("ctx_cont.micro_acceleration"), scale=1.0)
@@ -542,14 +554,6 @@ def build_entry_session_regime_interaction_layer(
     if len(set(names)) != len(names):
         dupes = sorted({name for name in names if names.count(name) > 1})
         raise RuntimeError(f"session/regime interaction layer has duplicate names: {dupes[:10]}")
+    if tuple(names) != SESSION_REGIME_INTERACTION_FEATURE_NAMES:
+        raise RuntimeError("ENTRY_SESSION_REGIME_INTERACTION_FEATURE_NAME_DRIFT")
     return out, names
-
-
-SESSION_REGIME_INTERACTION_FEATURE_NAMES = tuple(
-    name
-    for name in build_entry_session_regime_interaction_layer(
-        np.zeros((1, 0), dtype=np.float32),
-        [],
-        fail_on_missing_sources=False,
-    )[1]
-)

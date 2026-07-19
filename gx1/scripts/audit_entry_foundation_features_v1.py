@@ -12,6 +12,17 @@ import numpy as np
 import pyarrow.parquet as pq
 
 from gx1.audit.entry_transformer_feature_audit import _stack_list_column
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_enforcement,
+    foundation_audit_policy_metadata,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_manifest,
+    require_model_native_signal_contract,
+)
 from gx1.contracts.signal_bridge_v3 import (
     ORDERED_CTX_CAT_NAMES_V3,
     ORDERED_CTX_CONT_NAMES_V3,
@@ -23,30 +34,7 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
     missing_foundation_structure_source_fields,
 )
-from gx1.scripts.evaluate_entry_selective_edge_v1 import _split_files
-from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import (
-    DEFAULT_SOURCE_PARQUET,
-)
-
-
-DEFAULT_FOUNDATION_DATASET_DIR = Path(
-    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral"
-)
-DEFAULT_SEQ_STRUCTURE_MANIFEST = Path(
-    "/home/andre2/GX1_DATA/reports/sequence_structure_feature_layer_20260628_v1/"
-    "sequence_structure_feature_layer_manifest.json"
-)
-DEFAULT_OUT_DIR = Path("/home/andre2/GX1_DATA/reports/entry_feature_foundation_audit_20260628_v1/foundation_seq146")
-
-NEUTRAL_CONSTANT_ALLOWLIST = {
-    "p_long",
-    "p_short",
-    "p_flat",
-    "p_hat",
-    "uncertainty_score",
-    "margin_top1_top2",
-    "entropy",
+SPLIT_CONSTANT_ALLOWLIST = {
     # XAU direction repair uses this as a regime-context bit. It can be
     # constant inside short val/test windows while still being live in train.
     "session_regime.h4_d1_regime_sign_agreement",
@@ -54,6 +42,23 @@ NEUTRAL_CONSTANT_ALLOWLIST = {
 KNOWN_SPARSE_SOURCE_FIELDS = {
     "snap.smc_choch",
 }
+
+_FEATURE_AUDIT_POLICY = foundation_audit_policy_metadata()["feature_liveness"]
+LIVENESS_EPSILON = float(_FEATURE_AUDIT_POLICY["liveness_epsilon"])
+NEAR_CONSTANT_STD = float(_FEATURE_AUDIT_POLICY["near_constant_std"])
+MIN_REQUIRED_FAMILY_ACTIVE_RATE = float(
+    _FEATURE_AUDIT_POLICY["min_required_family_active_rate"]
+)
+MIN_REQUIRED_OBJECTIVE_ACTIVE_RATE = float(
+    _FEATURE_AUDIT_POLICY["min_required_objective_active_rate"]
+)
+MIN_REQUIRED_SOURCE_ACTIVE_RATE = float(
+    _FEATURE_AUDIT_POLICY["min_required_source_active_rate"]
+)
+MIN_REQUIRED_SOURCE_ACTIVE_COUNT = int(
+    _FEATURE_AUDIT_POLICY["min_required_source_active_count"]
+)
+PARQUET_BATCH_SIZE = int(_FEATURE_AUDIT_POLICY["parquet_batch_size"])
 
 REQUIRED_FOUNDATION_LIVENESS_FAMILIES = (
     "foundation_hh_hl_lh_ll",
@@ -134,8 +139,19 @@ def _json_default(obj: Any) -> Any:
     return str(obj)
 
 
-def _parse_csv(raw: str) -> list[str]:
-    return [p.strip() for p in str(raw or "").split(",") if p.strip()]
+def _split_files(dataset_dir: Path, splits: list[str]) -> dict[str, Path]:
+    if not dataset_dir.is_dir():
+        raise RuntimeError(f"model-native dataset directory missing: {dataset_dir}")
+    files: dict[str, Path] = {}
+    for split in splits:
+        matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"model-native split parquet is not exact: split={split} "
+                f"matches={[str(path) for path in matches]}"
+            )
+        files[split] = matches[0]
+    return files
 
 
 def _strip_feature_prefix(name: str) -> str:
@@ -172,32 +188,33 @@ def _feature_family(name: str) -> str:
         return "momentum_trend"
     if any(k in n for k in ("session", "hour", "dow", "is_asia", "is_eu", "is_us", "overlap")):
         return "session_time"
-    if _strip_feature_prefix(name) in NEUTRAL_CONSTANT_ALLOWLIST:
-        return "neutral_xgb_bridge"
+    if _strip_feature_prefix(name) in SPLIT_CONSTANT_ALLOWLIST:
+        return "allowed_split_constant"
     return "other"
 
 
 def _is_neutral_constant_allowed(name: str) -> bool:
     stripped = _strip_feature_prefix(name)
-    return stripped in NEUTRAL_CONSTANT_ALLOWLIST or stripped.startswith(("p_", "margin_", "uncertainty", "entropy"))
+    return stripped in SPLIT_CONSTANT_ALLOWLIST
 
 
 def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any]]:
     if path is None:
-        return list(FOUNDATION_STRUCTURE_FEATURE_NAMES), {
-            "manifest_path": None,
-            "selected_features_source": "foundation_structure_defaults",
-        }
+        raise RuntimeError("model-native selection manifest is required")
+    if not path.is_file():
+        raise RuntimeError(f"model-native selection manifest missing: {path}")
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    features = [str(x).strip() for x in manifest.get("selected_features", []) if str(x).strip()]
-    if not features:
-        raise RuntimeError(f"manifest has no selected_features: {path}")
+    if not isinstance(manifest, dict):
+        raise RuntimeError(f"model-native selection manifest root is invalid: {path}")
+    contract = require_model_native_manifest(manifest, context="FOUNDATION_FEATURE_AUDIT")
+    features = list(contract["selected_fields"])
     return features, {
         "manifest_path": str(path),
-        "selected_features_source": "sequence_structure_manifest",
+        "selected_features_source": "exact_model_native_selection_manifest",
         "manifest_schema_version": manifest.get("schema_version"),
         "manifest_selected_feature_count": len(features),
         "manifest_foundation_all_required_selected": manifest.get("foundation_structure_all_required_selected"),
+        "model_native_signal_contract": contract,
     }
 
 
@@ -223,7 +240,7 @@ def _split_schema(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
             "snap_dim_observed": int(len(snap0)),
             "ctx_cont_dim_observed": int(len(ctx0)),
             "ctx_cat_dim_observed": int(len(cat0)),
-            "seq_contract_dim_v3": int(len(ORDERED_SEQ_FIELDS_V3)),
+            "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "ctx_cont_contract_dim_v3": int(len(ORDERED_CTX_CONT_NAMES_V3)),
             "ctx_cat_contract_dim_v3": int(len(ORDERED_CTX_CAT_NAMES_V3)),
         }
@@ -239,29 +256,57 @@ def _load_emitted_contract(parquet_path: Path) -> dict[str, Any]:
     if not manifest_path.exists():
         raise RuntimeError(f"split manifest missing: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    extra = manifest.get("extra") or {}
-    signal_bridge = extra.get("signal_bridge") or {}
-    ctx_contract = extra.get("ctx_contract") or {}
-    signal_fields = [str(x) for x in signal_bridge.get("fields", [])]
-    ctx_cont_names = [str(x) for x in ctx_contract.get("ctx_cont_names", [])]
-    ctx_cat_names = [str(x) for x in ctx_contract.get("ctx_cat_names", [])]
-    if not signal_fields:
-        raise RuntimeError(f"signal fields missing from split manifest: {manifest_path}")
+    if not isinstance(manifest, dict):
+        raise RuntimeError(f"split manifest root invalid: {manifest_path}")
+    extra = manifest.get("extra")
+    if not isinstance(extra, dict):
+        raise RuntimeError(f"split manifest extra contract missing: {manifest_path}")
+    signal_contract = extra.get("model_native_signal_contract")
+    if not isinstance(signal_contract, dict):
+        raise RuntimeError(f"model-native signal contract missing: {manifest_path}")
+    require_model_native_signal_contract(
+        signal_contract,
+        context="FOUNDATION_FEATURE_AUDIT_SPLIT",
+    )
+    signal_bridge = extra.get("signal_bridge")
+    ctx_contract = extra.get("ctx_contract")
+    if not isinstance(signal_bridge, dict) or not isinstance(ctx_contract, dict):
+        raise RuntimeError(f"split signal/context surface missing: {manifest_path}")
+    signal_fields = list(signal_contract["fields"])
+    if list(signal_bridge.get("fields") or []) != signal_fields:
+        raise RuntimeError(f"split signal surface order mismatch: {manifest_path}")
+    ctx_cont_names = list(ctx_contract.get("ctx_cont_names") or [])
+    ctx_cat_names = list(ctx_contract.get("ctx_cat_names") or [])
+    if ctx_cont_names != list(ORDERED_CTX_CONT_NAMES_V3):
+        raise RuntimeError(f"split ctx_cont order mismatch: {manifest_path}")
+    if ctx_cat_names != list(ORDERED_CTX_CAT_NAMES_V3):
+        raise RuntimeError(f"split ctx_cat order mismatch: {manifest_path}")
+    extension = signal_bridge.get("seq_structure_extension_v1")
+    if not isinstance(extension, dict):
+        raise RuntimeError(f"split seq513 extension contract missing: {manifest_path}")
+    extension_dim = signal_bridge.get("seq_structure_extension_dim")
+    if not isinstance(extension_dim, int):
+        raise RuntimeError(f"split seq513 extension dim missing: {manifest_path}")
     return {
         "manifest_path": str(manifest_path),
         "signal_fields": signal_fields,
         "ctx_cont_names": ctx_cont_names,
         "ctx_cat_names": ctx_cat_names,
-        "neutral_xgb_bridge": bool(signal_bridge.get("neutral_xgb_bridge") or extra.get("neutral_xgb_bridge")),
-        "seq_input_dim": int(signal_bridge.get("seq_input_dim") or len(signal_fields)),
-        "seq_structure_extension_dim": int(signal_bridge.get("seq_structure_extension_dim") or 0),
-        "seq_structure_extension_v1": signal_bridge.get("seq_structure_extension_v1") or {},
+        "neutral_xgb_bridge": extra.get("neutral_xgb_bridge"),
+        "seq_input_dim": signal_bridge.get("seq_input_dim"),
+        "seq_structure_extension_dim": extension_dim,
+        "seq_structure_extension_v1": extension,
+        "model_native_signal_contract": signal_contract,
     }
 
 
 def _audit_features_for_contract(selected_features: list[str], signal_fields: list[str]) -> list[str]:
-    bridge = [name for name in signal_fields[:7] if _is_neutral_constant_allowed(name)]
-    return list(dict.fromkeys(bridge + selected_features))
+    missing = [name for name in selected_features if name not in set(signal_fields)]
+    if missing:
+        raise RuntimeError(
+            f"model-native selected audit features missing: {missing[:30]} total={len(missing)}"
+        )
+    return list(selected_features)
 
 
 def _contract_features(contract: dict[str, Any]) -> list[str]:
@@ -958,12 +1003,11 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
-    source_parquet = Path(args.source_parquet).expanduser().resolve()
     manifest_path = Path(args.seq_structure_manifest).expanduser().resolve() if args.seq_structure_manifest else None
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    splits = _parse_csv(args.data_splits)
+    splits = list(FOUNDATION_AUDIT_DATA_SPLITS)
     selected_features, manifest_meta = _load_manifest_features(manifest_path)
     foundation_required = list(FOUNDATION_STRUCTURE_FEATURE_NAMES)
     foundation_missing_from_manifest = [name for name in foundation_required if name not in set(selected_features)]
@@ -1045,8 +1089,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 failures.append(
                     f"{split}: seq_structure_extension_dim {contract.get('seq_structure_extension_dim')} != selected feature count {len(selected_features)}"
                 )
-            if not bool(contract.get("neutral_xgb_bridge")):
-                failures.append(f"{split}: neutral_xgb_bridge is not true in emitted split manifest")
+            if contract.get("neutral_xgb_bridge") is not False:
+                failures.append(
+                    f"{split}: retired bridge negative proof is not false in emitted split manifest"
+                )
 
             contract_missing = [name for name in selected_features if name not in contract_feature_set]
             if contract_missing:
@@ -1072,11 +1118,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     signal_fields=signal_fields,
                     ctx_cont_names=ctx_cont_names,
                     audit_features=audit_features,
-                    batch_size=int(args.parquet_batch_size),
-                    liveness_epsilon=float(args.liveness_epsilon),
-                    near_constant_std=float(args.near_constant_std),
-                    min_source_active_rate=float(args.min_required_source_active_rate),
-                    min_source_active_count=int(args.min_required_source_active_count),
+                    batch_size=PARQUET_BATCH_SIZE,
+                    liveness_epsilon=LIVENESS_EPSILON,
+                    near_constant_std=NEAR_CONSTANT_STD,
+                    min_source_active_rate=MIN_REQUIRED_SOURCE_ACTIVE_RATE,
+                    min_source_active_count=MIN_REQUIRED_SOURCE_ACTIVE_COUNT,
                 )
             except _SplitMatrixShapeError as exc:
                 failures.append(exc.message)
@@ -1118,7 +1164,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             family_liveness,
             splits=splits,
             required_families=REQUIRED_FOUNDATION_LIVENESS_FAMILIES,
-            min_mean_active_rate=float(args.min_required_family_active_rate),
+            min_mean_active_rate=MIN_REQUIRED_FAMILY_ACTIVE_RATE,
         )
     )
     objective_liveness = _objective_liveness(stats)
@@ -1126,15 +1172,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         objective_liveness,
         splits=splits,
         required_objectives=tuple(REQUIRED_FOUNDATION_OBJECTIVE_FEATURES),
-        min_mean_active_rate=float(args.min_required_objective_active_rate),
+        min_mean_active_rate=MIN_REQUIRED_OBJECTIVE_ACTIVE_RATE,
     )
     failures.extend(objective_liveness_failures)
     source_liveness_failures = _required_source_field_liveness_failures(
         source_field_liveness,
         splits=splits,
         required_source_fields=FOUNDATION_STRUCTURE_SOURCE_FIELDS,
-        min_active_rate=float(args.min_required_source_active_rate),
-        min_active_count=int(args.min_required_source_active_count),
+        min_active_rate=MIN_REQUIRED_SOURCE_ACTIVE_RATE,
+        min_active_count=MIN_REQUIRED_SOURCE_ACTIVE_COUNT,
     )
     failures.extend(source_liveness_failures)
 
@@ -1145,11 +1191,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": "entry_feature_foundation_audit_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": decision,
+        **foundation_audit_policy_binding(),
+        "foundation_audit_policy_enforcement": (
+            foundation_audit_policy_enforcement("feature")
+        ),
         "dataset_dir": str(dataset_dir),
-        "source_parquet": str(source_parquet),
         "data_splits": splits,
-        "include_price_ema_features": bool(args.include_price_ema_features),
-        "base_seq_dim_v3": int(len(ORDERED_SEQ_FIELDS_V3)),
+        "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "base_signal_dim": int(len(ORDERED_SEQ_FIELDS_V3)),
         "ctx_cont_dim_v3": int(len(ORDERED_CTX_CONT_NAMES_V3)),
         "ctx_cat_dim_v3": int(len(ORDERED_CTX_CAT_NAMES_V3)),
         "selected_feature_count": int(len(selected_features)),
@@ -1170,10 +1219,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "failures": failures,
         "stats": stats,
         "required_foundation_liveness_families": list(REQUIRED_FOUNDATION_LIVENESS_FAMILIES),
-        "min_required_family_active_rate": float(args.min_required_family_active_rate),
-        "min_required_objective_active_rate": float(args.min_required_objective_active_rate),
-        "min_required_source_active_rate": float(args.min_required_source_active_rate),
-        "min_required_source_active_count": int(args.min_required_source_active_count),
+        "min_required_family_active_rate": MIN_REQUIRED_FAMILY_ACTIVE_RATE,
+        "min_required_objective_active_rate": MIN_REQUIRED_OBJECTIVE_ACTIVE_RATE,
+        "min_required_source_active_rate": MIN_REQUIRED_SOURCE_ACTIVE_RATE,
+        "min_required_source_active_count": MIN_REQUIRED_SOURCE_ACTIVE_COUNT,
         "family_liveness": family_liveness,
         "distribution_drift_top20": drift[:20],
         **manifest_meta,
@@ -1181,38 +1230,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     json_path = out_dir / f"ENTRY_FEATURE_FOUNDATION_AUDIT_{timestamp}.json"
     md_path = out_dir / f"ENTRY_FEATURE_FOUNDATION_AUDIT_{timestamp}.md"
+    if json_path.exists() or md_path.exists():
+        raise RuntimeError(
+            f"FOUNDATION_AUDIT_IMMUTABLE_EVENT_EXISTS: json={json_path} md={md_path}"
+        )
     report["json_path"] = str(json_path)
     report["md_path"] = str(md_path)
     json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     _write_markdown(md_path, report)
-    latest_json = out_dir / "ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json"
-    latest_md = out_dir / "ENTRY_FEATURE_FOUNDATION_AUDIT_latest.md"
-    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
 
     if not args.quiet:
         print(json.dumps({k: report[k] for k in ["decision", "selected_feature_count", "foundation_required_feature_count", "failures", "json_path", "md_path"]}, indent=2, default=_json_default))
-    if args.fail_on_audit_fail and failures:
+    if failures:
         raise SystemExit(2)
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset-dir", default=str(DEFAULT_FOUNDATION_DATASET_DIR))
-    ap.add_argument("--source-parquet", default=str(DEFAULT_SOURCE_PARQUET))
-    ap.add_argument("--seq-structure-manifest", default=str(DEFAULT_SEQ_STRUCTURE_MANIFEST))
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    ap.add_argument("--data-splits", default="train,val,test")
-    ap.add_argument("--include-price-ema-features", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--liveness-epsilon", type=float, default=1e-7)
-    ap.add_argument("--near-constant-std", type=float, default=1e-9)
-    ap.add_argument("--min-required-family-active-rate", type=float, default=0.01)
-    ap.add_argument("--min-required-objective-active-rate", type=float, default=0.01)
-    ap.add_argument("--min-required-source-active-rate", type=float, default=0.0001)
-    ap.add_argument("--min-required-source-active-count", type=int, default=1)
-    ap.add_argument("--parquet-batch-size", type=int, default=4096)
-    ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--dataset-dir", required=True)
+    ap.add_argument("--seq-structure-manifest", required=True)
+    ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
 

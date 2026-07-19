@@ -4,7 +4,7 @@ EXIT_TRANSFORMER_V0 – ML-only exit transformer (no rules/router/critic).
 Provides:
 - ExitTransformerV0 (PyTorch model)
 - ExitTransformerDecider (inference)
-- train_from_exits_jsonl (training utility; used by run_truth_e2e_sanity --train_exit_transformer_v0_from_last_go)
+- train_from_exits_jsonl (retained Exit training utility)
 - save/load artifacts (model/config/sha)
 
 Hard gates:

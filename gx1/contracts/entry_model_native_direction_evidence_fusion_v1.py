@@ -1,0 +1,102 @@
+"""Exact sole learned direction-evidence fusion contract."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Any, Mapping
+
+
+SCHEMA_VERSION = "entry_model_native_direction_evidence_fusion_v1"
+FUSION_MODE = "sole_learned_acyclic_75x128x3"
+CLASS_ORDER = ("LONG", "SHORT", "FLAT")
+INPUT_DIM = 75
+HIDDEN_DIM = 128
+OUTPUT_DIM = 3
+INPUTS = (
+    ("model_native_logits", 3),
+    ("mtf_dir_logits", 3),
+    ("path_quality_raw", 1),
+    ("path_quality_log_var", 1),
+    ("mfe_first_n", 1),
+    ("tradable_logit", 1),
+    ("bad_path_logit_raw", 1),
+    ("clean_edge_logit", 1),
+    ("survival_logit", 1),
+    ("trade_logit", 1),
+    ("side_logits", 2),
+    ("side_utility", 2),
+    ("side_bad_path_logit", 2),
+    ("side_mae", 2),
+    ("side_validity_logit", 2),
+    ("trendline_rail_logits", 6),
+    ("tf_agreement_logit", 1),
+    ("position_size_logit", 1),
+    ("dip_pred", 18),
+    ("forecast_pred", 4),
+    ("timing_pred", 12),
+    ("tail_risk_pred", 6),
+    ("vol_forecast_pred", 3),
+)
+
+
+def _ordered_input_layout() -> list[dict[str, Any]]:
+    layout: list[dict[str, Any]] = []
+    start = 0
+    for name, width in INPUTS:
+        stop = start + width
+        layout.append(
+            {"name": name, "width": width, "start": start, "stop": stop}
+        )
+        start = stop
+    if start != INPUT_DIM:
+        raise RuntimeError(f"direction evidence fusion width={start} expected={INPUT_DIM}")
+    return layout
+
+
+ORDERED_INPUT_LAYOUT = _ordered_input_layout()
+_HASH_PAYLOAD = {
+    "schema_version": SCHEMA_VERSION,
+    "mode": FUSION_MODE,
+    "class_order": list(CLASS_ORDER),
+    "inputs": ORDERED_INPUT_LAYOUT,
+}
+INPUTS_SHA256 = hashlib.sha256(
+    json.dumps(
+        _HASH_PAYLOAD,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+).hexdigest()
+
+
+def direction_evidence_fusion_metadata() -> dict[str, Any]:
+    return {
+        **_HASH_PAYLOAD,
+        "inputs_sha256": INPUTS_SHA256,
+        "input_dim": INPUT_DIM,
+        "hidden_dim": HIDDEN_DIM,
+        "output_dim": OUTPUT_DIM,
+        "normalization": "LayerNorm",
+        "activation": "GELU",
+        "raw_pre_aux_calibration": True,
+        "no_direction_derived_inputs": True,
+        "no_detach": True,
+        "sole_direction_path": True,
+        "additive_direction_overrides": False,
+        "residual_direction_path": False,
+        "manual_direction_cap": False,
+        "raw_output": "raw_direction_logits",
+        "calibrated_output": "direction_logits",
+    }
+
+
+def require_direction_evidence_fusion_metadata(
+    value: Mapping[str, Any],
+    *,
+    context: str,
+) -> dict[str, Any]:
+    expected = direction_evidence_fusion_metadata()
+    if not isinstance(value, Mapping) or dict(value) != expected:
+        raise RuntimeError(f"[{context}_DIRECTION_EVIDENCE_FUSION_INVALID]")
+    return expected

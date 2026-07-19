@@ -47,4 +47,4 @@ else
 fi
 echo
 echo "### Handover"
-sed -n '1,380p' "$HANDOVER"
+cat -- "$HANDOVER"

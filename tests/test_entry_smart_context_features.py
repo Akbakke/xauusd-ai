@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CONT_NAMES_V3
 from gx1.features.entry_smart_context import (
@@ -89,3 +90,38 @@ def test_entry_smart_context_formulas_match_audit_candidates() -> None:
     np.testing.assert_allclose(row["dip_confirmed_mean_5tf"], 0.5)
     np.testing.assert_allclose(row["dip_proximity_mean_h1h4d1"], 0.25)
 
+
+def test_entry_smart_context_rejects_missing_or_duplicate_sources() -> None:
+    missing = _base_frame().drop(columns=["smc_bos_up"])
+    with pytest.raises(RuntimeError, match="ENTRY_SMART_CONTEXT_SOURCE_MISSING: smc_bos_up"):
+        add_entry_smart_context_features(missing)
+
+    duplicate = _base_frame()
+    duplicate.insert(1, "smc_bos_up", 0.0, allow_duplicates=True)
+    with pytest.raises(RuntimeError, match="ENTRY_SMART_CONTEXT_SOURCE_DUPLICATE: smc_bos_up"):
+        add_entry_smart_context_features(duplicate)
+
+
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf, "not-a-number"])
+def test_entry_smart_context_rejects_invalid_source_values(value: object) -> None:
+    frame = _base_frame()
+    if isinstance(value, str):
+        frame["smc_sweep_size_atr"] = frame["smc_sweep_size_atr"].astype(object)
+    frame.loc[3, "smc_sweep_size_atr"] = value
+    expected = (
+        "ENTRY_SMART_CONTEXT_SOURCE_INVALID"
+        if isinstance(value, str)
+        else "ENTRY_SMART_CONTEXT_SOURCE_NONFINITE"
+    )
+    with pytest.raises(RuntimeError, match=expected):
+        add_entry_smart_context_features(frame)
+
+
+def test_entry_smart_context_rejects_empty_or_precomputed_output() -> None:
+    with pytest.raises(RuntimeError, match="ENTRY_SMART_CONTEXT_SOURCE_EMPTY"):
+        add_entry_smart_context_features(_base_frame(0))
+
+    precomputed = _base_frame()
+    precomputed[ENTRY_SMART_CTX_FEATURE_NAMES[0]] = 0.0
+    with pytest.raises(RuntimeError, match="ENTRY_SMART_CONTEXT_OUTPUT_ALREADY_PRESENT"):
+        add_entry_smart_context_features(precomputed)

@@ -1691,7 +1691,7 @@ def build_basic_v1(df):
     # Del 3: Batch quantiles disabled in replay (incremental path used instead)
     if os.environ.get("GX1_REPLAY_INCREMENTAL_FEATURES") == "1":
         # In replay mode, quantiles are computed incrementally per bar
-        # Skip batch quantile computation (quantiles injected by build_live_entry_features)
+        # Skip batch quantile computation; the caller supplies the immutable quantile contract.
         pass
     elif "close" in df.columns:
         # Batch path (offline/backtest only)

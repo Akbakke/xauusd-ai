@@ -9,7 +9,7 @@ Wraps ExitDeciderV12Adapter (cemented V12.1.1 NO_TRAIL config) with a
 state-builder that converts:
   - TradeState running stats
   - V10 entry-snapshot (frozen at trade open)
-  - V3 v8 outputs at this bar (currently STUBBED — see scope note)
+  - exact V3 v8 outputs at this bar
   - Augmented canonical_v3 features at this bar
   - One-hot side flags (long/short)
 
@@ -34,11 +34,19 @@ from per-bar V3 v9 inference. Q-values match training distribution.
 Usage:
     exit_iql = ExitIQLLiveInference.load_default()
     # On each new M1 bar while a trade is open:
-    trade.update_bar(bid=bid, ask=ask, m1_close=m1_close)
+    trade.update_bar(
+        bid=bid,
+        ask=ask,
+        m1_close=m1_close,
+        bid_high=bid_high,
+        bid_low=bid_low,
+        ask_high=ask_high,
+        ask_low=ask_low,
+    )
     rec = exit_iql.decide_for_trade(
         trade,
         canonical_v3_row=augmented_cv3.iloc[-1],
-        v3_v8_out=None,    # None → stubbed-to-zero
+        v3_v8_out=v3_v8_out,
     )
     if rec.action_id_v1 == 1:  # EXIT_NOW
         ...
@@ -65,7 +73,15 @@ from gx1.runtime.exit_decider_v12_adapter import (
     ExitDeciderV12Adapter,
     ExitDeciderV12Recommendation,
 )
-from gx1.execution.v12_trade_state import TradeState, DEFAULT_V3_FEATURES
+from gx1.execution.v12_trade_state import TradeState
+
+
+REQUIRED_V3_STATE_FEATURES = (
+    "v3_v8_should_exit_prob",
+    "v3_v8_profit_protect_prob",
+    "v3_v8_family_argmax",
+    "v3_v8_family_logit_max",
+)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -164,8 +180,8 @@ def strategy_f_decision(
     """ONE-TRUTH Strategy-F overlay decision (the 4-rule post-IQL exit override).
 
     Returns (force_exit_now, reason). reason ∈ {'', 'HOLD_HORIZON_EXPIRED', 'BREAKEVEN_CUT',
-    'MFE_GIVEBACK_OVERRIDE'}. Shared by the LIVE exit (build_bar_state_and_decide) AND the Phase-6
-    gate (v12_phase6_joint_validation.simulate_one_candidate) so the gate scores the +Strategy-F
+    'MFE_GIVEBACK_OVERRIDE'}. The live exit calls this one implementation; admitted
+    replay must import it rather than copy the rules so it scores the +Strategy-F
     policy live actually runs (2026-06-13 vedtak L7A — the cement had been gated on pure Exit-IQL +
     v3-override, but live forces ~55% of exits through this overlay). `enabled` lets a caller request
     a pure-IQL replay arm without the global GX1_STRATEGY_F_ENABLED switch.
@@ -253,7 +269,7 @@ def _normalize_env_value(raw: object) -> str:
     """Canonicalize an env/contract value for comparison: '80'=='80.0',
     '0.30'=='0.3', 'true'=='1'=='on' (mirrors _env_bool's truthy set). None
     (unset) → '<unset>', which never equals a pinned value — a contract-named
-    but UNexported var (the GX1_SIZING_MARGIN_REF class) is a mismatch."""
+    but UNexported contract variable is a mismatch."""
     if raw is None:
         return "<unset>"
     s = str(raw).strip()
@@ -370,7 +386,6 @@ def _exit_rec_with_distilled_q(rec, v3_v8_out: dict[str, float]):
     from the distilled Q (argmax). A V3_OVERRIDE source is preserved — we only
     swap the underlying iql_rec for diagnostic visibility.
     """
-    from gx1.runtime.exit_iql_v2_adapter import ExitRecommendation
     q_hold = float(v3_v8_out["v3_q_hold_v1"])
     q_exit = float(v3_v8_out["v3_q_exit_v1"])
     q_vec = np.asarray([q_hold, q_exit], dtype=np.float32)
@@ -464,12 +479,10 @@ class ExitIQLLiveInference:
         LOG.info(f"  feature_names: {len(feature_names)}")
         # 2026-06-02 fix (audit MEDIUM-#3): validate that Exit-IQL's expected
         # feature_names include the V3-block keys we'll feed at decision time.
-        # Without this, a retrained bundle that drops/renames V3 features would
-        # silently 0-fill them via DEFAULT_V3_FEATURES (used when v3_v8_out=None
-        # or when V3 inference fails). The check below catches contract drift
-        # at load rather than surfacing it as silent train/serve skew.
+        # The check below catches a retrained bundle that drops or renames the
+        # required V3 state before it can become train/serve skew.
         feat_set = set(feature_names)
-        v3_block_keys = set(DEFAULT_V3_FEATURES.keys())
+        v3_block_keys = set(REQUIRED_V3_STATE_FEATURES)
         missing_v3 = v3_block_keys - feat_set
         if missing_v3:
             LOG.warning(
@@ -483,9 +496,9 @@ class ExitIQLLiveInference:
         missing_track = v3_track_keys - feat_set
         if missing_track == v3_track_keys:
             LOG.warning(
-                f"[EXIT_IQL_V3_TRACKING_MISSING] none of the V3-tracking features "
-                f"(v3_max_prob_in_trade_v1 etc.) are in adapter — bundle was trained "
-                f"without V3 tracking. Check materialize_build_exit_iql_v3_m1 version."
+                "[EXIT_IQL_V3_TRACKING_MISSING] none of the V3-tracking features "
+                "(v3_max_prob_in_trade_v1 etc.) are in adapter — bundle was trained "
+                "without V3 tracking. Check materialize_build_exit_iql_v3_m1 version."
             )
         return cls(decider=decider, feature_names=feature_names)
 
@@ -508,7 +521,7 @@ class ExitIQLLiveInference:
         Combines:
           - trade-state running stats (13)
           - V10 entry-snapshot (10)
-          - V3 v8 outputs at this bar (4) — stubbed to 0 if v3_v8_out=None
+          - exact V3 v8 outputs at this bar (4 required features)
           - augmented canonical_v3 features at this bar (~170)
           - side one-hot (2)
           - categorical one-hots (4)
@@ -547,8 +560,26 @@ class ExitIQLLiveInference:
             "mfe_first_n_pred": float(s.get("mfe_first_n", 0.0)),
             "path_quality_pred": float(s.get("path_quality", 0.0)),
         })
-        # V3 v8 outputs (stubbed if not provided)
-        v3_block = v3_v8_out if v3_v8_out is not None else DEFAULT_V3_FEATURES
+        # Exact V3 v8 state. The active pipeline validates the richer output
+        # contract before this call; direct callers still fail closed instead
+        # of manufacturing the old all-zero block.
+        if not isinstance(v3_v8_out, dict):
+            raise RuntimeError("EXIT_IQL_V3_STATE_MISSING")
+        missing_v3 = [name for name in REQUIRED_V3_STATE_FEATURES if name not in v3_v8_out]
+        if missing_v3:
+            raise RuntimeError(f"EXIT_IQL_V3_STATE_FIELDS_MISSING: {missing_v3}")
+        invalid_v3: list[str] = []
+        for name in REQUIRED_V3_STATE_FEATURES:
+            try:
+                value = float(v3_v8_out[name])
+            except (TypeError, ValueError):
+                invalid_v3.append(name)
+                continue
+            if not np.isfinite(value):
+                invalid_v3.append(name)
+        if invalid_v3:
+            raise RuntimeError(f"EXIT_IQL_V3_STATE_NONFINITE: {invalid_v3}")
+        v3_block = v3_v8_out
         bar_state.update({k: float(v) for k, v in v3_block.items()})
         # V3-tracking running stats — Exit-IQL training expects 7 features:
         # v3_should_exit_decision_v1, v3_decision_confidence_v1,
@@ -616,9 +647,8 @@ class ExitIQLLiveInference:
         for s in ("ASIA", "EU", "OVERLAP", "US"):
             bar_state.setdefault(f"session_{s}", 0.0)
         # vol_regime / trend_regime — real per-bar regime when GX1_REGIME_V4=1 (gap-register H6,
-        # exit side: Exit-IQL was regime-blind via these const placeholders). Mirror of the
-        # Entry-IQL H6 mappings (materialize_inference_batch_candidates_v3_v1). Else cement
-        # placeholder. Per-bar regime from canonical_v3_row (Exit ALWAYS M1, per-bar conditioning).
+        # exit side: Exit-IQL was regime-blind via these const placeholders).
+        # Per-bar regime comes from canonical_v3_row (Exit is always M1).
         if os.environ.get("GX1_REGIME_V4", "0") == "1":
             # NaN-safe coercion (2026-06-13 audit): the old `... or 1` / `... or 2`
             # truthiness-coerced a VALID id 0 to the default — trend_regime_id=0

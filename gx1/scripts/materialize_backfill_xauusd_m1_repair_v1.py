@@ -48,9 +48,7 @@ from gx1.execution.oanda_credentials import load_oanda_credentials
 from gx1.scripts import (
     materialize_backfill_xauusd_m1_2020_2024_v1 as v1_gate,
 )
-from gx1.scripts import (
-    materialize_build_iql_offline_data_contract_research_only_v1 as contract_gate,
-)
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
 from gx1.utils.env_loader import load_dotenv_if_present
 
 

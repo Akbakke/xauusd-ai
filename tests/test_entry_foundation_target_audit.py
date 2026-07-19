@@ -2,21 +2,16 @@ import numpy as np
 import pandas as pd
 
 from gx1.scripts.audit_entry_foundation_targets_v1 import (
-    DEFAULT_OUT_DIR,
     EXPECTED_ACTIVE_OPTIONAL_HEADS,
     EXPECTED_BLOCKED_OPTIONAL_HEADS,
     XAU_DIRECTION_REPAIR_TARGET_COLUMNS,
     _drift,
     _head_contract,
+    _position_size_target_contract,
     _target_metrics,
     _xau_direction_repair_side_quality_contract,
     _xau_direction_repair_liveness,
 )
-
-
-def test_target_audit_default_out_dir_is_foundation_seq146() -> None:
-    assert DEFAULT_OUT_DIR.name == "foundation_seq146"
-    assert DEFAULT_OUT_DIR.parent.name == "entry_target_foundation_audit_20260628_v1"
 
 
 def test_target_metrics_capture_bad_path_negative_path_quality_relation() -> None:
@@ -26,7 +21,7 @@ def test_target_metrics_capture_bad_path_negative_path_quality_relation() -> Non
             "y_tradable": [1, 1, 0, 1, 0],
             "y_bad_path": [0, 0, 1, 1, 1],
             "path_quality_bps": [20.0, 15.0, -10.0, -15.0, -20.0],
-            "mae_first_n_bps": [-2.0, -3.0, -12.0, -15.0, -20.0],
+            "mae_first_n_bps": [2.0, 3.0, 12.0, 15.0, 20.0],
             "mfe_first_n_bps": [25.0, 18.0, 5.0, 2.0, 1.0],
             "y_clean_edge_bidir": [1, 1, 0, 0, 0],
             "y_survival_bidir": [1, 1, 0, 0, 0],
@@ -167,3 +162,39 @@ def test_xau_direction_repair_side_quality_replaces_scalar_bad_path_monotonicity
     assert contract["enabled"] is True
     assert contract["all_side_quality_checks_pass"] is True
     assert not contract["failures"]
+
+
+def test_position_size_target_requires_exact_formula_and_positive_mae_magnitude() -> None:
+    direction = np.asarray([0, 1, 2], dtype=np.int64)
+    mfe = np.asarray([10.0, 2.0, 0.0], dtype=np.float64)
+    mae = np.asarray([2.0, 6.0, 0.0], dtype=np.float64)
+    atr = np.asarray([4.0, 4.0, 4.0], dtype=np.float64)
+    expected = 1.0 / (1.0 + np.exp(-((mfe - mae) / (2.0 * atr))))
+    expected[direction == 2] = 0.5
+    frame = pd.DataFrame(
+        {
+            "split": ["train"] * 3,
+            "y_direction": direction,
+            "mfe_first_n_bps": mfe,
+            "mae_first_n_bps": mae,
+            "atr_bps": atr,
+            "y_position_size_target": expected.astype(np.float32),
+        }
+    )
+
+    passed = _position_size_target_contract([frame])
+    assert passed["decision"] == "PASS"
+    assert passed["mae_semantics"] == "non_negative_adverse_magnitude"
+    assert passed["live_size_application_authority"] is False
+
+    negative_mae = frame.copy()
+    negative_mae.loc[0, "mae_first_n_bps"] = -2.0
+    failed_mae = _position_size_target_contract([negative_mae])
+    assert failed_mae["decision"] == "FAIL"
+    assert any("non-negative adverse-magnitude" in row for row in failed_mae["failures"])
+
+    wrong_formula = frame.copy()
+    wrong_formula.loc[0, "y_position_size_target"] = 0.5
+    failed_formula = _position_size_target_contract([wrong_formula])
+    assert failed_formula["decision"] == "FAIL"
+    assert any("formula mismatch" in row for row in failed_formula["failures"])

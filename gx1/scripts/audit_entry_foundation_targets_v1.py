@@ -6,22 +6,45 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3
-from gx1.scripts.evaluate_entry_selective_edge_v1 import CLASS_NAMES, SESSION_NAMES, _split_files
-
-
-DEFAULT_FOUNDATION_DATASET_DIR = Path(
-    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral"
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_enforcement,
+    foundation_audit_policy_metadata,
 )
-DEFAULT_OUT_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/entry_target_foundation_audit_20260628_v1/foundation_seq146"
+from gx1.contracts.signal_bridge_v3 import (
+    ORDERED_CTX_CAT_NAMES_V3,
+    ORDERED_CTX_CONT_NAMES_V3,
+)
+
+
+SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
+CLASS_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+
+_TARGET_AUDIT_POLICY = foundation_audit_policy_metadata()["target_quality"]
+MAX_MAJORITY_RATE = float(_TARGET_AUDIT_POLICY["max_majority_rate"])
+MIN_TRADABLE_RATE = float(_TARGET_AUDIT_POLICY["min_tradable_rate"])
+MAX_TRADABLE_RATE = float(_TARGET_AUDIT_POLICY["max_tradable_rate"])
+DIRECTION_HORIZON_BARS = int(_TARGET_AUDIT_POLICY["direction_horizon_bars"])
+PATH_QUALITY_HORIZON_BARS = int(
+    _TARGET_AUDIT_POLICY["path_quality_horizon_bars"]
+)
+SCALAR_BAD_PATH_MAX_SPEARMAN_EXCLUSIVE = float(
+    _TARGET_AUDIT_POLICY["scalar_bad_path_path_quality_max_spearman_exclusive"]
+)
+_SIDE_QUALITY_POLICY = _TARGET_AUDIT_POLICY["side_quality"]
+_POSITION_SIZE_TARGET_POLICY = _TARGET_AUDIT_POLICY["position_size_target"]
+MAX_BAD_PATH_VS_UTILITY_SPEARMAN = float(
+    _SIDE_QUALITY_POLICY["max_bad_path_vs_utility_spearman"]
+)
+MIN_BAD_PATH_VS_EXPECTED_MAE_SPEARMAN = float(
+    _SIDE_QUALITY_POLICY["min_bad_path_vs_expected_mae_spearman"]
 )
 
 BASE_TARGET_COLUMNS = [
@@ -92,6 +115,13 @@ ALL_TARGET_COLUMNS = list(dict.fromkeys(
     + list(DEEP_AUX_TARGET_COLUMNS)
     + XAU_DIRECTION_REPAIR_TARGET_COLUMNS
 ))
+REQUIRED_TARGET_COLUMNS = tuple(
+    dict.fromkeys(
+        BASE_TARGET_COLUMNS
+        + XAU_DIRECTION_REPAIR_TARGET_COLUMNS
+        + ["y_position_size_target", "ctx_cat", "ctx_cont"]
+    )
+)
 
 BASE_ACTIVE_TRAINING_HEADS = (
     "direction",
@@ -143,8 +173,19 @@ def _json_default(obj: Any) -> Any:
     return str(obj)
 
 
-def _parse_csv(raw: str) -> list[str]:
-    return [p.strip() for p in str(raw or "").split(",") if p.strip()]
+def _split_files(dataset_dir: Path, splits: Iterable[str]) -> dict[str, Path]:
+    if not dataset_dir.is_dir():
+        raise RuntimeError(f"model-native dataset directory missing: {dataset_dir}")
+    out: dict[str, Path] = {}
+    for split in splits:
+        matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"model-native split parquet is not exact: split={split} "
+                f"matches={[str(path) for path in matches]}"
+            )
+        out[split] = matches[0]
+    return out
 
 
 def _safe_rate(series: pd.Series, value: int | float | bool) -> float | None:
@@ -200,39 +241,192 @@ def _safe_spearman(df: pd.DataFrame, a: str, b: str) -> float | None:
 
 
 def _ctx_cat_frame(ctx_cat: pd.Series) -> pd.DataFrame:
-    arr = np.stack(ctx_cat.to_list()).astype(np.int64, copy=False)
-    out: dict[str, np.ndarray] = {}
-    for i, name in enumerate(ORDERED_CTX_CAT_NAMES_V3):
-        if i < arr.shape[1]:
-            out[name] = arr[:, i]
+    raw = np.stack(ctx_cat.to_list()).astype(np.float64, copy=False)
+    expected_shape = (len(ctx_cat), len(ORDERED_CTX_CAT_NAMES_V3))
+    if raw.shape != expected_shape:
+        raise RuntimeError(
+            f"model-native ctx_cat shape mismatch: {raw.shape} != {expected_shape}"
+        )
+    if not np.isfinite(raw).all():
+        raise RuntimeError("model-native ctx_cat contains non-finite values")
+    if not np.equal(raw, np.rint(raw)).all():
+        raise RuntimeError("model-native ctx_cat contains non-integer values")
+    arr = raw.astype(np.int64, copy=False)
+    out = {
+        name: arr[:, i]
+        for i, name in enumerate(ORDERED_CTX_CAT_NAMES_V3)
+    }
     df = pd.DataFrame(out)
-    if "session_id" in df:
-        df["session"] = df["session_id"].map(SESSION_NAMES).fillna("UNKNOWN")
-    else:
-        df["session"] = "UNKNOWN"
-    if "vol_regime_id" in df:
-        df["vol_regime"] = df["vol_regime_id"].astype(str)
-    else:
-        df["vol_regime"] = "UNKNOWN"
-    if "H4_trend_sign_cat" in df:
-        df["h4_trend_regime"] = df["H4_trend_sign_cat"].astype(str)
-    else:
-        df["h4_trend_regime"] = "UNKNOWN"
+    unknown_sessions = sorted(set(df["session_id"].unique()) - set(SESSION_NAMES))
+    if unknown_sessions:
+        raise RuntimeError(f"model-native session_id out of contract: {unknown_sessions}")
+    df["session"] = df["session_id"].map(SESSION_NAMES)
+    df["vol_regime"] = df["vol_regime_id"].astype(str)
+    df["h4_trend_regime"] = df["H4_trend_sign_cat"].astype(str)
     return df
+
+
+def _ctx_cont_frame(ctx_cont: pd.Series) -> pd.DataFrame:
+    raw = np.stack(ctx_cont.to_list()).astype(np.float64, copy=False)
+    expected_shape = (len(ctx_cont), len(ORDERED_CTX_CONT_NAMES_V3))
+    if raw.shape != expected_shape:
+        raise RuntimeError(
+            f"model-native ctx_cont shape mismatch: {raw.shape} != {expected_shape}"
+        )
+    if not np.isfinite(raw).all():
+        raise RuntimeError("model-native ctx_cont contains non-finite values")
+    atr_index = list(ORDERED_CTX_CONT_NAMES_V3).index("atr_bps")
+    return pd.DataFrame({"atr_bps": raw[:, atr_index]})
 
 
 def _load_split(path: Path, split: str) -> tuple[pd.DataFrame, list[str]]:
     schema = pq.read_schema(path)
     available = set(schema.names)
-    required = set(BASE_TARGET_COLUMNS) | {"ctx_cat"}
+    required = set(REQUIRED_TARGET_COLUMNS)
     missing_required = sorted(required - available)
-    cols = [c for c in ALL_TARGET_COLUMNS + ["ctx_cat"] if c in available]
+    cols = [
+        c
+        for c in ALL_TARGET_COLUMNS + ["ctx_cat", "ctx_cont"]
+        if c in available
+    ]
     df = pd.read_parquet(path, columns=cols)
+    for column in (
+        name for name in cols if name not in {"ctx_cat", "ctx_cont"}
+    ):
+        values = pd.to_numeric(df[column], errors="raise").to_numpy(dtype=np.float64)
+        if not np.isfinite(values).all():
+            raise RuntimeError(f"{split}: target column contains non-finite values: {column}")
     df["split"] = split
     if "ctx_cat" in df:
         ctx = _ctx_cat_frame(df["ctx_cat"])
         df = pd.concat([df.drop(columns=["ctx_cat"]).reset_index(drop=True), ctx.reset_index(drop=True)], axis=1)
+    if "ctx_cont" in df:
+        ctx_cont = _ctx_cont_frame(df["ctx_cont"])
+        df = pd.concat(
+            [
+                df.drop(columns=["ctx_cont"]).reset_index(drop=True),
+                ctx_cont.reset_index(drop=True),
+            ],
+            axis=1,
+        )
     return df, missing_required
+
+
+def _position_size_target_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
+    policy = dict(_POSITION_SIZE_TARGET_POLICY)
+    tolerance = float(policy["max_abs_error"])
+    flat_id = int(policy["flat_direction_id"])
+    flat_value = float(policy["flat_value"])
+    atr_floor = float(policy["atr_bps_min_exclusive"])
+    atr_multiplier = float(policy["atr_denominator_multiplier"])
+    logit_clip_abs = float(policy["logit_clip_abs"])
+    rows: list[dict[str, Any]] = []
+    failures: list[str] = []
+    for df in frames:
+        split = str(df["split"].iloc[0]) if "split" in df and len(df) else "UNKNOWN"
+        required = (
+            "y_direction",
+            "mfe_first_n_bps",
+            "mae_first_n_bps",
+            "atr_bps",
+            "y_position_size_target",
+        )
+        missing = [name for name in required if name not in df.columns]
+        row_failures: list[str] = []
+        max_abs_error: float | None = None
+        negative_mae_count = 0
+        nonpositive_atr_count = 0
+        flat_error: float | None = None
+        if missing:
+            row_failures.append(f"missing sizing target inputs: {missing}")
+        else:
+            direction = pd.to_numeric(df["y_direction"], errors="coerce").to_numpy(
+                dtype=np.float64
+            )
+            mfe = pd.to_numeric(df["mfe_first_n_bps"], errors="coerce").to_numpy(
+                dtype=np.float64
+            )
+            mae = pd.to_numeric(df["mae_first_n_bps"], errors="coerce").to_numpy(
+                dtype=np.float64
+            )
+            atr = pd.to_numeric(df["atr_bps"], errors="coerce").to_numpy(
+                dtype=np.float64
+            )
+            observed = pd.to_numeric(
+                df["y_position_size_target"], errors="coerce"
+            ).to_numpy(dtype=np.float64)
+            finite = (
+                np.isfinite(direction)
+                & np.isfinite(mfe)
+                & np.isfinite(mae)
+                & np.isfinite(atr)
+                & np.isfinite(observed)
+            )
+            if not bool(finite.all()):
+                row_failures.append("sizing target inputs or outputs are non-finite")
+            negative_mae_count = int(np.count_nonzero(mae < 0.0))
+            if negative_mae_count:
+                row_failures.append(
+                    "mae_first_n_bps violates non-negative adverse-magnitude semantics: "
+                    f"count={negative_mae_count}"
+                )
+            nonpositive_atr_count = int(np.count_nonzero(atr <= atr_floor))
+            if nonpositive_atr_count:
+                row_failures.append(
+                    f"atr_bps must be positive: count={nonpositive_atr_count}"
+                )
+            unknown_direction_count = int(
+                np.count_nonzero(~np.isin(direction, (0.0, 1.0, float(flat_id))))
+            )
+            if unknown_direction_count:
+                row_failures.append(
+                    f"y_direction outside LONG/SHORT/FLAT contract: count={unknown_direction_count}"
+                )
+            if not row_failures:
+                logit = np.clip(
+                    (mfe - mae) / (atr_multiplier * atr),
+                    -logit_clip_abs,
+                    logit_clip_abs,
+                )
+                expected = 1.0 / (1.0 + np.exp(-logit))
+                flat_mask = direction == float(flat_id)
+                expected[flat_mask] = flat_value
+                max_abs_error = float(np.max(np.abs(observed - expected))) if len(df) else 0.0
+                flat_error = (
+                    float(np.max(np.abs(observed[flat_mask] - flat_value)))
+                    if bool(flat_mask.any())
+                    else 0.0
+                )
+                if max_abs_error > tolerance:
+                    row_failures.append(
+                        "position-size target formula mismatch: "
+                        f"max_abs_error={max_abs_error:.12g} tolerance={tolerance:.12g}"
+                    )
+        failures.extend(f"{split}: {failure}" for failure in row_failures)
+        rows.append(
+            {
+                "split": split,
+                "n": int(len(df)),
+                "missing_columns": missing,
+                "negative_mae_count": negative_mae_count,
+                "nonpositive_atr_count": nonpositive_atr_count,
+                "max_abs_error": max_abs_error,
+                "flat_max_abs_error": flat_error,
+                "decision": "PASS" if not row_failures else "FAIL",
+                "failures": row_failures,
+            }
+        )
+    return {
+        "policy": policy,
+        "formula": policy["formula"],
+        "mae_semantics": policy["mae_semantics"],
+        "live_size_application_authority": bool(
+            policy["live_size_application_authority"]
+        ),
+        "rows": rows,
+        "decision": "PASS" if rows and not failures else "FAIL",
+        "failures": failures or ([] if rows else ["no split frames loaded"]),
+    }
 
 
 def _column_liveness(df: pd.DataFrame, col: str) -> dict[str, Any]:
@@ -399,8 +593,8 @@ def _xau_side_quality_row(df: pd.DataFrame, *, split: str, side: str) -> dict[st
             and bad_live
             and utility_corr is not None
             and mae_corr is not None
-            and float(utility_corr) <= -0.10
-            and float(mae_corr) >= 0.10
+            and float(utility_corr) <= MAX_BAD_PATH_VS_UTILITY_SPEARMAN
+            and float(mae_corr) >= MIN_BAD_PATH_VS_EXPECTED_MAE_SPEARMAN
             and len(utility_bad) > 0
             and len(utility_clean) > 0
             and float(utility_bad.mean()) < float(utility_clean.mean())
@@ -423,6 +617,7 @@ def _xau_direction_repair_side_quality_contract(frames: list[pd.DataFrame]) -> d
             rows.append(_xau_side_quality_row(df, split=split, side=side))
     return {
         "enabled": bool(enabled),
+        "thresholds": dict(_SIDE_QUALITY_POLICY),
         "description": (
             "XAU direction repair validates side-specific bad-path targets against "
             "side utility and expected MAE. Scalar y_bad_path is selected-side sparse "
@@ -575,7 +770,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    splits = _parse_csv(args.data_splits)
+    splits = list(FOUNDATION_AUDIT_DATA_SPLITS)
 
     failures: list[str] = []
     frames: list[pd.DataFrame] = []
@@ -590,14 +785,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for split in splits:
         path = files.get(split)
         if path is None:
-            missing_required_by_split[split] = list(BASE_TARGET_COLUMNS)
+            missing_required_by_split[split] = list(REQUIRED_TARGET_COLUMNS)
             continue
         split_paths[split] = str(path)
         try:
             df, missing = _load_split(path, split)
         except Exception as exc:
             failures.append(f"{split}: target load failed: {exc}")
-            missing_required_by_split[split] = list(BASE_TARGET_COLUMNS)
+            missing_required_by_split[split] = list(REQUIRED_TARGET_COLUMNS)
             continue
         missing_required_by_split[split] = missing
         if missing:
@@ -614,38 +809,49 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         path_quality_horizons[split] = _unique_numeric(df, "path_quality_horizon_bars")
 
     for split, values in label_horizons.items():
-        if values != [24.0]:
-            failures.append(f"{split}: label_horizon_bars expected [24], observed {values}")
+        if values != [float(DIRECTION_HORIZON_BARS)]:
+            failures.append(
+                f"{split}: label_horizon_bars expected "
+                f"[{DIRECTION_HORIZON_BARS}], observed {values}"
+            )
     for split, values in path_quality_horizons.items():
-        if values != [10.0]:
-            failures.append(f"{split}: path_quality_horizon_bars expected [10], observed {values}")
+        if values != [float(PATH_QUALITY_HORIZON_BARS)]:
+            failures.append(
+                f"{split}: path_quality_horizon_bars expected "
+                f"[{PATH_QUALITY_HORIZON_BARS}], observed {values}"
+            )
     xau_side_quality_contract = _xau_direction_repair_side_quality_contract(frames)
+    position_size_target_contract = _position_size_target_contract(frames)
+    failures.extend(position_size_target_contract["failures"])
     for row in metrics:
         if row["scope"] == "split":
             corr = row.get("bad_path_vs_path_quality_spearman")
             if not xau_side_quality_contract["enabled"]:
                 if corr is None:
                     failures.append(f"{row['split']}: y_bad_path/path_quality correlation unavailable")
-                elif float(corr) >= 0.0:
+                elif float(corr) >= SCALAR_BAD_PATH_MAX_SPEARMAN_EXCLUSIVE:
                     failures.append(f"{row['split']}: y_bad_path should be negatively related to path_quality_bps, got {corr}")
             majority = row.get("majority_label_baseline_acc")
-            if majority is not None and float(majority) > float(args.max_majority_rate):
+            if majority is not None and float(majority) > MAX_MAJORITY_RATE:
                 failures.append(f"{row['split']}: y_direction majority label collapsed: {majority}")
             tradable = row.get("y_tradable_rate")
-            if tradable is not None and (float(tradable) < 0.01 or float(tradable) > 0.99):
+            if tradable is not None and (
+                float(tradable) < MIN_TRADABLE_RATE
+                or float(tradable) > MAX_TRADABLE_RATE
+            ):
                 failures.append(f"{row['split']}: y_tradable near-constant: {tradable}")
 
     target_head_contract = _head_contract(frames)
     head_liveness = target_head_contract["head_target_liveness"]
     xau_repair_liveness = _xau_direction_repair_liveness(frames)
-    if xau_repair_liveness["enabled"] and not xau_repair_liveness["all_expected_columns_present_all_splits"]:
+    if not xau_repair_liveness["all_expected_columns_present_all_splits"]:
         failures.append(
-            "xau direction-repair target columns are present but missing expected columns in at least one split: "
+            "xau direction-repair target columns are mandatory and missing in at least one split: "
             f"{xau_repair_liveness.get('missing_columns_any_split')}"
         )
-    if xau_repair_liveness["enabled"] and not xau_repair_liveness["live_all_expected_columns_all_splits"]:
-        failures.append("xau direction-repair target columns are present but not live in all splits")
-    if xau_side_quality_contract["enabled"] and not xau_side_quality_contract["all_side_quality_checks_pass"]:
+    if not xau_repair_liveness["live_all_expected_columns_all_splits"]:
+        failures.append("xau direction-repair target columns are not live in all splits")
+    if not xau_side_quality_contract["all_side_quality_checks_pass"]:
         failures.extend(xau_side_quality_contract["failures"])
     for head in EXPECTED_ACTIVE_OPTIONAL_HEADS:
         if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
@@ -658,19 +864,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     target_contract = {
         "direction_target": "H=24 direction label; threshold bps must remain explicit in dataset builder/config before training",
-        "direction_horizon_expected_bars": 24,
-        "path_quality_horizon_expected_bars": 10,
+        "direction_horizon_expected_bars": DIRECTION_HORIZON_BARS,
+        "path_quality_horizon_expected_bars": PATH_QUALITY_HORIZON_BARS,
         "bad_path_role": "separate head plus sizing/gating diagnostic; do not fold into direction accuracy",
         "trading_objective": "offline replay/PnL/drawdown/tail-risk, not validation accuracy alone",
         "active_training_heads": target_head_contract["active_training_heads"],
         "blocked_heads": target_head_contract["blocked_heads"],
         "xau_direction_repair_side_quality_contract": xau_side_quality_contract,
+        "position_size_target_contract": position_size_target_contract,
         "approval_status": "MACHINE_AUDITED_NOT_HUMAN_APPROVED",
     }
     report = {
         "schema_version": "entry_target_foundation_audit_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
+        **foundation_audit_policy_binding(),
+        "foundation_audit_policy_enforcement": (
+            foundation_audit_policy_enforcement("target")
+        ),
         "dataset_dir": str(dataset_dir),
         "data_splits": splits,
         "split_paths": split_paths,
@@ -681,6 +892,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "target_head_contract": target_head_contract,
         "xau_direction_repair_target_liveness": xau_repair_liveness,
         "xau_direction_repair_side_quality_contract": xau_side_quality_contract,
+        "position_size_target_contract": position_size_target_contract,
         "metrics": metrics,
         "drift": drift,
         "failures": failures,
@@ -688,29 +900,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     json_path = out_dir / f"ENTRY_TARGET_FOUNDATION_AUDIT_{timestamp}.json"
     md_path = out_dir / f"ENTRY_TARGET_FOUNDATION_AUDIT_{timestamp}.md"
+    if json_path.exists() or md_path.exists():
+        raise RuntimeError(
+            "TARGET_AUDIT_IMMUTABLE_EVENT_EXISTS: "
+            f"json={json_path} md={md_path}"
+        )
     report["json_path"] = str(json_path)
     report["md_path"] = str(md_path)
     json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     _write_markdown(md_path, report)
-    latest_json = out_dir / "ENTRY_TARGET_FOUNDATION_AUDIT_latest.json"
-    latest_md = out_dir / "ENTRY_TARGET_FOUNDATION_AUDIT_latest.md"
-    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
-
     if not args.quiet:
         print(json.dumps({k: report[k] for k in ["decision", "failures", "json_path", "md_path"]}, indent=2, default=_json_default))
-    if args.fail_on_audit_fail and failures:
+    if failures:
         raise SystemExit(2)
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset-dir", default=str(DEFAULT_FOUNDATION_DATASET_DIR))
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    ap.add_argument("--data-splits", default="train,val,test")
-    ap.add_argument("--max-majority-rate", type=float, default=0.90)
-    ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--dataset-dir", required=True)
+    ap.add_argument("--out-dir", required=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
 

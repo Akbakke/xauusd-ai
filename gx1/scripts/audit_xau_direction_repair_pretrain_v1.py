@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Fail-closed XAU direction-repair dataset audit before smart training."""
+"""Fail-closed XAU future-outcome target audit before model-native training."""
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,19 +10,27 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from gx1.contracts.entry_model_native_signal_v1 import (
+    FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    model_native_signal_contract_failures,
+)
+from gx1.contracts.entry_model_native_state_v2 import (
+    validate_state_contract_metadata_v2,
+)
+from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    V12_DIRECTION_UTILITY_MAE_WEIGHT,
+    V12_DIRECTION_UTILITY_MFE_WEIGHT,
+    V12_DIRECTION_UTILITY_MIN_BPS,
+    V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS,
+    V12_DIRECTION_UTILITY_PATH_WEIGHT,
+)
 import pyarrow.parquet as pq
 
 
-DEFAULT_DATASET_DIR = Path(
-    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
-    "v10_6yr_rebuild_20260626_spreadfix/"
-    "v10_dataset_6yr_smartctx_xau_direction_repair"
-)
 DEFAULT_STEM = "v10_6yr_dataset__HOLD_03B"
-DEFAULT_OUT_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/xau_direction_repair_pretrain_audit_20260713_v1"
-)
-
 CHANNEL_POSITION_FEATURE = "chart.geometry_channel_position_low_to_high"
 SUPPORT_STACK_FEATURE = "chart.geometry_support_line_proximity_stack"
 RESISTANCE_STACK_FEATURE = "chart.geometry_resistance_line_proximity_stack"
@@ -56,6 +63,13 @@ REQUIRED_XAU_TARGET_COLUMNS = (
     "mae_long_first_n_bps",
     "mfe_short_first_n_bps",
     "mae_short_first_n_bps",
+    "bad_path_long_first_n",
+    "bad_path_short_first_n",
+    "y_long_final_pnl_at_direction_horizon_bps",
+    "y_short_final_pnl_at_direction_horizon_bps",
+    "y_direction_target_mode_id",
+    "y_direction_long_score_bps",
+    "y_direction_short_score_bps",
     "y_long_path_utility_bps",
     "y_short_path_utility_bps",
     "y_long_bad_path",
@@ -71,18 +85,7 @@ REQUIRED_XAU_TARGET_COLUMNS = (
     "y_long_high_mae_low_mfe_early_failure",
     "y_short_high_mae_low_mfe_early_failure",
 )
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-OPTIONAL_XAU_AUDIT_COLUMNS = (
-    "y_direction_long_score_bps",
-    "y_direction_short_score_bps",
-)
+TARGET_CONTRACT_IDENTITY_COLUMNS = frozenset({"y_direction_target_mode_id"})
 
 
 def _json_default(obj: Any) -> Any:
@@ -134,8 +137,9 @@ def _seq_structure_mode(manifest: dict[str, Any]) -> str | None:
 
 def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
     extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+    inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), dict) else {}
     bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
-    state_contract = extra.get("smart520_state_contract")
+    state_contract = extra.get("model_native_state_contract")
     return {
         "neutral_xgb_bridge": bool(
             manifest.get("neutral_xgb_bridge", False)
@@ -147,82 +151,31 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
             or extra.get("xgb_bridge_source")
             or ""
         ),
-        "tape_root": str(manifest.get("tape_root") or extra.get("tape_root") or ""),
-        "smart520_state_contract": dict(state_contract) if isinstance(state_contract, dict) else {},
+        "tape_root": str(
+            manifest.get("tape_root")
+            or extra.get("tape_root")
+            or inputs.get("tape_root")
+            or ""
+        ),
+        "contract_mode": str(extra.get("contract_mode") or ""),
+        "direction_logit_mode": str(extra.get("direction_logit_mode") or ""),
+        "model_native_signal_contract": extra.get("model_native_signal_contract"),
+        "fields": list(bridge.get("fields") or []),
+        "splits": manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {},
+        "model_native_state_contract": (
+            dict(state_contract) if isinstance(state_contract, dict) else {}
+        ),
     }
 
 
 def _state_contract_failures(contract: dict[str, Any], *, split: str) -> list[str]:
-    failures: list[str] = []
-    required = {
-        "schema_version",
-        "frame_anchor_utc",
-        "model_range_start_utc",
-        "rank_reference_end_utc",
-        "rank_reference_npz",
-        "rank_reference_npz_sha256",
-    }
     if not isinstance(contract, dict) or not contract:
-        return [f"{split}: XAU repair requires smart520_state_contract provenance"]
-    missing = sorted(required - set(contract))
-    if missing:
-        failures.append(f"{split}: smart520_state_contract missing fields: {','.join(missing)}")
-    if str(contract.get("schema_version") or "") != "smart520_state_contract_v1":
-        failures.append(
-            f"{split}: smart520_state_contract schema_version invalid: {contract.get('schema_version')!r}"
-        )
-    rank_ref = str(contract.get("rank_reference_npz") or "").strip()
-    rank_ref_low = rank_ref.lower()
-    if not rank_ref:
-        failures.append(f"{split}: smart520_state_contract rank_reference_npz missing")
-    elif not Path(rank_ref).expanduser().is_file():
-        failures.append(f"{split}: smart520_state_contract rank_reference_npz missing on disk: {rank_ref}")
-    else:
-        rank_ref_path = Path(rank_ref).expanduser()
-        expected_sha = str(contract.get("rank_reference_npz_sha256") or "").strip().lower()
-        actual_sha = _sha256_file(rank_ref_path)
-        if expected_sha != actual_sha:
-            failures.append(
-                f"{split}: smart520_state_contract rank_reference_npz_sha256 mismatch: "
-                f"metadata={expected_sha!r} actual={actual_sha} path={rank_ref}"
-            )
-        sidecar_path = rank_ref_path.with_suffix(rank_ref_path.suffix + ".json")
-        if not sidecar_path.is_file():
-            failures.append(f"{split}: smart520_state_contract rank reference sidecar missing: {sidecar_path}")
-        else:
-            try:
-                sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
-                sidecar_sha = str(sidecar.get("out_npz_sha256") or "").strip().lower()
-                if sidecar_sha != expected_sha:
-                    failures.append(
-                        f"{split}: smart520_state_contract sidecar out_npz_sha256 mismatch: "
-                        f"sidecar={sidecar_sha!r} metadata={expected_sha!r}"
-                    )
-            except Exception as exc:
-                failures.append(f"{split}: smart520_state_contract rank reference sidecar unreadable: {sidecar_path}: {exc}")
-    for marker in ("julyext", "smart_candidate_20260630", "utilityrepair", "20260710"):
-        if marker in rank_ref_low:
-            failures.append(
-                f"{split}: smart520_state_contract rank_reference_npz references stale marker "
-                f"{marker!r}: {rank_ref}"
-            )
-    parsed_ts: dict[str, pd.Timestamp] = {}
-    for key in ("frame_anchor_utc", "model_range_start_utc", "rank_reference_end_utc"):
-        try:
-            ts = pd.to_datetime(str(contract.get(key) or ""), utc=True, errors="coerce")
-            if pd.isna(ts):
-                raise ValueError("NaT")
-            parsed_ts[key] = ts
-        except Exception:
-            failures.append(f"{split}: smart520_state_contract {key} is not a valid timestamp")
-    if {"frame_anchor_utc", "model_range_start_utc", "rank_reference_end_utc"} <= set(parsed_ts):
-        if parsed_ts["frame_anchor_utc"] < parsed_ts["model_range_start_utc"]:
-            failures.append(f"{split}: smart520_state_contract frame_anchor_utc precedes model_range_start_utc")
-        if parsed_ts["rank_reference_end_utc"] < parsed_ts["model_range_start_utc"]:
-            failures.append(f"{split}: smart520_state_contract rank_reference_end_utc precedes model_range_start_utc")
-        if parsed_ts["frame_anchor_utc"] > parsed_ts["rank_reference_end_utc"]:
-            failures.append(f"{split}: smart520_state_contract frame_anchor_utc exceeds rank_reference_end_utc")
-    return failures
+        return [f"{split}: XAU repair requires model_native_state_contract provenance"]
+    try:
+        validate_state_contract_metadata_v2(contract, require_artifact=True)
+    except (RuntimeError, TypeError, ValueError, OSError) as exc:
+        return [f"{split}: model_native_state_contract v2 invalid: {exc}"]
+    return []
 
 
 def _split_artifacts(dataset_dir: Path, stem: str, split: str) -> tuple[Path, Path]:
@@ -245,29 +198,9 @@ def _stem_from_split_filename(name: str, *, split: str, suffix: str) -> str | No
 
 def _resolve_stem(dataset_dir: Path, requested_stem: str, splits: list[str]) -> str:
     requested = str(requested_stem or "").strip()
-    if requested and requested.lower() != "auto":
-        return requested
-    candidates: set[str] | None = None
-    for split in splits:
-        parquet_stems = {
-            stem
-            for path in dataset_dir.glob(f"*_{split}.parquet")
-            if (stem := _stem_from_split_filename(path.name, split=split, suffix=".parquet"))
-        }
-        manifest_stems = {
-            stem
-            for path in dataset_dir.glob(f"*_{split}.manifest.json")
-            if (stem := _stem_from_split_filename(path.name, split=split, suffix=".manifest.json"))
-        }
-        split_candidates = parquet_stems & manifest_stems
-        candidates = split_candidates if candidates is None else candidates & split_candidates
-    resolved = sorted(candidates or [])
-    if len(resolved) != 1:
-        raise RuntimeError(
-            "auto stem resolution expected exactly one common train/val/test stem under "
-            f"{dataset_dir}, got {resolved}"
-        )
-    return resolved[0]
+    if not requested or requested.lower() == "auto":
+        raise RuntimeError("an explicit immutable --stem is required; discovery is forbidden")
+    return requested
 
 
 def _column_liveness(values: np.ndarray) -> dict[str, Any]:
@@ -373,7 +306,6 @@ def _audit_split(
     sample_columns = (
         ["snap"]
         + [name for name in REQUIRED_XAU_TARGET_COLUMNS if name in schema_names]
-        + [name for name in OPTIONAL_XAU_AUDIT_COLUMNS if name in schema_names]
     )
     sample = _read_sample(
         parquet_path,
@@ -419,7 +351,7 @@ def _audit_split(
     target_liveness = {
         name: _column_liveness(np.asarray(sample[name]))
         for name in REQUIRED_XAU_TARGET_COLUMNS
-        if name in sample
+        if name in sample and name not in TARGET_CONTRACT_IDENTITY_COLUMNS
     }
     y_direction = np.asarray(sample.get("y_direction", np.empty((0,), dtype=np.int32)), dtype=np.int32)
     y_trade = np.asarray(sample.get("y_trade", np.empty((0,), dtype=np.float32)), dtype=np.float32)
@@ -440,6 +372,20 @@ def _audit_split(
     mae_long = np.asarray(sample.get("mae_long_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
     mfe_short = np.asarray(sample.get("mfe_short_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
     mae_short = np.asarray(sample.get("mae_short_first_n_bps", np.empty((0,), dtype=np.float32)), dtype=np.float32)
+    raw_long_bad = np.asarray(sample.get("bad_path_long_first_n", np.empty((0,), dtype=np.float32)), dtype=np.float32)
+    raw_short_bad = np.asarray(sample.get("bad_path_short_first_n", np.empty((0,), dtype=np.float32)), dtype=np.float32)
+    pnl_long = np.asarray(
+        sample.get("y_long_final_pnl_at_direction_horizon_bps", np.empty((0,), dtype=np.float32)),
+        dtype=np.float32,
+    )
+    pnl_short = np.asarray(
+        sample.get("y_short_final_pnl_at_direction_horizon_bps", np.empty((0,), dtype=np.float32)),
+        dtype=np.float32,
+    )
+    target_mode_id = np.asarray(
+        sample.get("y_direction_target_mode_id", np.empty((0,), dtype=np.float32)),
+        dtype=np.float32,
+    )
     y_position_size = np.asarray(sample.get("y_position_size_target", np.empty((0,), dtype=np.float32)), dtype=np.float32)
     y_direction_long_score = np.asarray(
         sample.get("y_direction_long_score_bps", np.empty((0,), dtype=np.float32)),
@@ -470,35 +416,57 @@ def _audit_split(
         and mae_long.size == y_direction.size
         and mfe_short.size == y_direction.size
         and mae_short.size == y_direction.size
+        and raw_long_bad.size == y_direction.size
+        and raw_short_bad.size == y_direction.size
+        and pnl_long.size == y_direction.size
+        and pnl_short.size == y_direction.size
+        and target_mode_id.size == y_direction.size
         and y_position_size.size == y_direction.size
     ):
-        anti_short = np.zeros_like(y_direction, dtype=bool)
-        anti_long = np.zeros_like(y_direction, dtype=bool)
-        for name in (
-            "y_rising_channel_support_touch",
-            "y_support_retest_continuation",
-            "y_countertrend_short_trap",
-            "y_short_high_mae_low_mfe_early_failure",
-        ):
-            if name in sample:
-                anti_short |= np.asarray(sample[name], dtype=np.float32) > 0.5
-        for name in (
-            "y_falling_channel_resistance_touch",
-            "y_resistance_retest_continuation",
-            "y_countertrend_long_trap",
-            "y_long_high_mae_low_mfe_early_failure",
-        ):
-            if name in sample:
-                anti_long |= np.asarray(sample[name], dtype=np.float32) > 0.5
-        anti_short_only = anti_short & (~anti_long)
-        anti_long_only = anti_long & (~anti_short)
-        conflict_rows = anti_short & anti_long
-        repaired_scalar_bad = np.zeros_like(y_bad_path, dtype=np.float32)
+        rounded_mode = np.rint(target_mode_id)
+        invalid_mode = (
+            ~np.isfinite(target_mode_id)
+            | (np.abs(target_mode_id - 1.0) > 1e-6)
+        )
+        mode_contract_valid = bool((~invalid_mode).all() and np.unique(rounded_mode).size == 1)
+        expected_long_utility = (
+            pnl_long
+            + float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * mfe_long
+            - float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * mae_long
+            + float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * (mfe_long - mae_long)
+        ).astype(np.float32)
+        expected_short_utility = (
+            pnl_short
+            + float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * mfe_short
+            - float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * mae_short
+            + float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * (mfe_short - mae_short)
+        ).astype(np.float32)
+        utility_margin = expected_long_utility - expected_short_utility
+        tradable_long = (
+            mode_contract_valid
+            & (expected_long_utility >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+            & (utility_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+        )
+        tradable_short = (
+            mode_contract_valid
+            & (expected_short_utility >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+            & ((-utility_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+        )
+        expected_direction = np.full_like(y_direction, 2)
+        only_long = tradable_long & (~tradable_short)
+        only_short = tradable_short & (~tradable_long)
+        both = tradable_long & tradable_short
+        expected_direction[only_long] = 0
+        expected_direction[only_short] = 1
+        expected_direction[both & (expected_long_utility >= expected_short_utility)] = 0
+        expected_direction[both & (expected_short_utility > expected_long_utility)] = 1
+
+        expected_scalar_bad = np.zeros_like(y_bad_path, dtype=np.float32)
         long_rows = (y_trade > 0.5) & (y_side == 0)
         short_rows = (y_trade > 0.5) & (y_side == 1)
         flat_rows = y_trade <= 0.5
-        repaired_scalar_bad[long_rows] = y_long_bad_path[long_rows]
-        repaired_scalar_bad[short_rows] = y_short_bad_path[short_rows]
+        expected_scalar_bad[long_rows] = y_long_bad_path[long_rows]
+        expected_scalar_bad[short_rows] = y_short_bad_path[short_rows]
         expected_mfe = np.zeros_like(mfe_first, dtype=np.float32)
         expected_mae = np.zeros_like(mae_first, dtype=np.float32)
         expected_mfe[long_rows] = mfe_long[long_rows]
@@ -506,7 +474,7 @@ def _audit_split(
         expected_mfe[short_rows] = mfe_short[short_rows]
         expected_mae[short_rows] = mae_short[short_rows]
         expected_path = (expected_mfe - expected_mae).astype(np.float32)
-        bad_path_mismatch = np.abs(y_bad_path - repaired_scalar_bad) > 1e-5
+        bad_path_mismatch = np.abs(y_bad_path - expected_scalar_bad) > 1e-5
         tradable_mismatch = np.abs(y_tradable - y_trade) > 1e-5
         mfe_mismatch = np.abs(mfe_first - expected_mfe) > 1e-5
         mae_mismatch = np.abs(mae_first - expected_mae) > 1e-5
@@ -533,57 +501,26 @@ def _audit_split(
             "flat_position_size_neutral_rate": float(1.0 - np.mean(flat_size_mismatch)) if flat_size_mismatch.size else None,
             "flat_position_size_mismatch_count": int(flat_size_mismatch.sum()),
             "flat_rows": int(flat_rows.sum()),
-            "anti_short_only_rows": int(anti_short_only.sum()),
-            "anti_long_only_rows": int(anti_long_only.sum()),
-            "conflict_rows": int(conflict_rows.sum()),
-            "anti_short_direction_short_count": int(np.sum(anti_short_only & (y_direction == 1))),
-            "anti_long_direction_long_count": int(np.sum(anti_long_only & (y_direction == 0))),
-            "anti_short_masked_short_count": int(np.sum(anti_short_only & (y_side_mask > 0.5) & (y_side == 1))),
-            "anti_long_masked_long_count": int(np.sum(anti_long_only & (y_side_mask > 0.5) & (y_side == 0))),
-            "conflict_not_flat_count": int(
-                np.sum(conflict_rows & ((y_direction != 2) | (y_trade > 0.5) | (y_side_mask > 0.5)))
+            "target_mode_contract_invalid_count": int((~np.isfinite(rounded_mode) | invalid_mode).sum())
+            + int(np.unique(rounded_mode).size != 1),
+            "direction_outcome_mismatch_count": int(np.sum(y_direction != expected_direction)),
+            "long_utility_formula_mismatch_count": int(
+                np.sum(np.abs(y_long_utility - expected_long_utility) > 1e-4)
             ),
-            "anti_short_short_utility_favorable_count": int(
-                np.sum(anti_short_only & (y_short_utility >= y_long_utility))
+            "short_utility_formula_mismatch_count": int(
+                np.sum(np.abs(y_short_utility - expected_short_utility) > 1e-4)
             ),
-            "anti_long_long_utility_favorable_count": int(
-                np.sum(anti_long_only & (y_long_utility >= y_short_utility))
+            "long_bad_path_raw_mismatch_count": int(
+                np.sum(np.abs(y_long_bad_path - raw_long_bad) > 1e-5)
             ),
-            "anti_short_short_bad_path_not_forced_count": int(
-                np.sum(anti_short_only & (y_short_bad_path < 0.999))
+            "short_bad_path_raw_mismatch_count": int(
+                np.sum(np.abs(y_short_bad_path - raw_short_bad) > 1e-5)
             ),
-            "anti_long_long_bad_path_not_forced_count": int(
-                np.sum(anti_long_only & (y_long_bad_path < 0.999))
-            ),
-            "anti_short_short_mae_not_higher_count": int(
-                np.sum(anti_short_only & (y_short_mae <= y_long_mae))
-            ),
-            "anti_long_long_mae_not_higher_count": int(
-                np.sum(anti_long_only & (y_long_mae <= y_short_mae))
-            ),
+            "long_mae_raw_mismatch_count": int(np.sum(np.abs(y_long_mae - mae_long) > 1e-5)),
+            "short_mae_raw_mismatch_count": int(np.sum(np.abs(y_short_mae - mae_short) > 1e-5)),
             "direction_long_score_alias_mismatch_count": int(long_alias_mismatch.sum()),
             "direction_short_score_alias_mismatch_count": int(short_alias_mismatch.sum()),
         }
-    anti_short = np.zeros_like(y_direction, dtype=bool)
-    anti_long = np.zeros_like(y_direction, dtype=bool)
-    for name in (
-        "y_rising_channel_support_touch",
-        "y_support_retest_continuation",
-        "y_countertrend_short_trap",
-        "y_short_high_mae_low_mfe_early_failure",
-    ):
-        if name in sample:
-            anti_short |= np.asarray(sample[name], dtype=np.float32) > 0.5
-    for name in (
-        "y_falling_channel_resistance_touch",
-        "y_resistance_retest_continuation",
-        "y_countertrend_long_trap",
-        "y_long_high_mae_low_mfe_early_failure",
-    ):
-        if name in sample:
-            anti_long |= np.asarray(sample[name], dtype=np.float32) > 0.5
-    anti_short_wrong_rate = _safe_rate((y_direction == 1) & anti_short) if y_direction.size else None
-    anti_long_wrong_rate = _safe_rate((y_direction == 0) & anti_long) if y_direction.size else None
 
     return {
         "split": split,
@@ -618,10 +555,7 @@ def _audit_split(
         },
         "target_liveness": target_liveness,
         "target_consistency": target_consistency,
-        "anti_wrong_side_rates": {
-            "anti_short_rows_labeled_short_rate_all_rows": anti_short_wrong_rate,
-            "anti_long_rows_labeled_long_rate_all_rows": anti_long_wrong_rate,
-        },
+        "core_target_policy": "future_path_and_utility_outcomes_only",
     }
 
 
@@ -663,7 +597,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             except Exception as exc:
                 failures.append(f"{split}: audit failed: {exc}")
 
-    if args.require_rail_features and missing_rail_features:
+    if missing_rail_features:
         failures.append(f"missing required XAU rail features in manifest: {missing_rail_features}")
 
     stale_markers = ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext")
@@ -672,43 +606,91 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if marker in dataset_dir_text:
             failures.append(f"dataset_dir contains known stale XAU repair marker {marker!r}: {dataset_dir}")
 
-    require_inline_seq_structure = bool(getattr(args, "require_inline_seq_structure", True))
-    require_xau_provenance = bool(getattr(args, "require_xau_provenance", True))
     for row in split_reports:
         split = str(row.get("split"))
         seq_mode = row.get("seq_structure_extension_mode")
-        if require_inline_seq_structure and seq_mode != "inline_from_merged3":
+        if seq_mode != "mandatory_inline_common_causal_history_v1":
             failures.append(
                 f"{split}: XAU repair requires inline seq-structure features; observed mode={seq_mode}"
             )
         provenance = row.get("provenance") if isinstance(row.get("provenance"), dict) else {}
-        if require_xau_provenance:
-            if provenance.get("neutral_xgb_bridge") is not True:
-                failures.append(f"{split}: XAU repair requires neutral_xgb_bridge=true provenance")
-            if str(provenance.get("xgb_bridge_source") or "") != "neutral_uniform_proba":
-                failures.append(
-                    f"{split}: XAU repair requires xgb_bridge_source=neutral_uniform_proba; "
-                    f"observed={provenance.get('xgb_bridge_source')!r}"
-                )
-            tape_root = str(provenance.get("tape_root") or "").lower()
-            if "xauusd" not in tape_root:
-                failures.append(f"{split}: XAU repair requires XAUUSD tape_root provenance; observed={tape_root!r}")
-            failures.extend(
-                _state_contract_failures(
-                    provenance.get("smart520_state_contract") if isinstance(provenance.get("smart520_state_contract"), dict) else {},
-                    split=split,
-                )
+        if provenance.get("neutral_xgb_bridge") is not False:
+            failures.append(f"{split}: neutral_xgb_bridge must be false")
+        if provenance.get("xgb_bridge_source") not in {None, ""}:
+            failures.append(
+                f"{split}: XAU repair forbids xgb_bridge_source; "
+                f"observed={provenance.get('xgb_bridge_source')!r}"
             )
+        if str(provenance.get("contract_mode") or "") != MODEL_NATIVE_CONTRACT_MODE:
+            failures.append(f"{split}: contract_mode must be {MODEL_NATIVE_CONTRACT_MODE}")
+        if (
+            str(provenance.get("direction_logit_mode") or "")
+            != MODEL_NATIVE_DIRECTION_LOGIT_MODE
+        ):
+            failures.append(
+                f"{split}: direction_logit_mode must be {MODEL_NATIVE_DIRECTION_LOGIT_MODE}"
+            )
+        signal_contract = provenance.get("model_native_signal_contract")
+        signal_failures = model_native_signal_contract_failures(
+            signal_contract if isinstance(signal_contract, dict) else {}
+        )
+        failures.extend(f"{split}: {failure}" for failure in signal_failures)
+        forbidden = sorted(
+            set(provenance.get("fields") or ()) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
+        )
+        if forbidden:
+            failures.append(f"{split}: forbidden legacy bridge fields: {forbidden}")
+        tape_root = str(provenance.get("tape_root") or "").lower()
+        if "xauusd" not in tape_root:
+            failures.append(
+                f"{split}: XAU repair requires XAUUSD tape_root provenance; observed={tape_root!r}"
+            )
+        failures.extend(
+            _state_contract_failures(
+                provenance.get("model_native_state_contract")
+                if isinstance(provenance.get("model_native_state_contract"), dict)
+                else {},
+                split=split,
+            )
+        )
+        state_contract = provenance.get("model_native_state_contract")
+        splits_contract = provenance.get("splits")
+        train_window = (
+            splits_contract.get("train")
+            if isinstance(splits_contract, dict)
+            and isinstance(splits_contract.get("train"), dict)
+            else {}
+        )
+        if not train_window:
+            failures.append(f"{split}: manifest missing exact TRAIN split window")
+        elif isinstance(state_contract, dict):
+            try:
+                train_start = pd.Timestamp(pd.to_datetime(train_window.get("start"), utc=True))
+                train_end = pd.Timestamp(pd.to_datetime(train_window.get("end"), utc=True))
+                rank_fit_start = pd.Timestamp(
+                    pd.to_datetime(state_contract.get("rank_fit_start_utc"), utc=True)
+                )
+                rank_fit_end = pd.Timestamp(
+                    pd.to_datetime(state_contract.get("rank_fit_end_utc"), utc=True)
+                )
+            except Exception:
+                failures.append(f"{split}: TRAIN/state rank-fit timestamps are invalid")
+            else:
+                if rank_fit_start != train_start or rank_fit_end != train_end:
+                    failures.append(
+                        f"{split}: TRAIN-only rank fit {rank_fit_start}..{rank_fit_end} "
+                        f"does not equal TRAIN window {train_start}..{train_end}"
+                    )
         for name in row.get("missing_polarity_features") or []:
             failures.append(f"{split}: missing channel-polarity feature: {name}")
         for name in row.get("missing_target_columns") or []:
-            failures.append(f"{split}: missing XAU repair target column: {name}")
+            failures.append(f"{split}: missing XAU future-outcome target column: {name}")
         for name, live in (row.get("target_liveness") or {}).items():
             if not bool(live.get("live")):
-                failures.append(f"{split}: XAU repair target column is not live: {name}")
+                failures.append(f"{split}: XAU future-outcome target column is not live: {name}")
         consistency = row.get("target_consistency") if isinstance(row.get("target_consistency"), dict) else {}
         if not bool(consistency.get("available")):
-            failures.append(f"{split}: XAU repair target consistency audit unavailable")
+            failures.append(f"{split}: XAU future-outcome target consistency audit unavailable")
         else:
             if int(consistency.get("bad_path_side_mismatch_count") or 0):
                 failures.append(
@@ -721,19 +703,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     f"mismatches={consistency.get('flat_position_size_mismatch_count')}"
                 )
             hard_consistency_checks = (
-                ("anti_short_direction_short_count", "anti-short structural rows still labeled SHORT"),
-                ("anti_long_direction_long_count", "anti-long structural rows still labeled LONG"),
-                ("anti_short_masked_short_count", "anti-short structural rows still teach SHORT through side mask"),
-                ("anti_long_masked_long_count", "anti-long structural rows still teach LONG through side mask"),
-                ("conflict_not_flat_count", "conflict structural rows are not FLAT/no-trade"),
-                ("anti_short_short_utility_favorable_count", "anti-short structural rows still have SHORT utility >= LONG utility"),
-                ("anti_long_long_utility_favorable_count", "anti-long structural rows still have LONG utility >= SHORT utility"),
-                ("anti_short_short_bad_path_not_forced_count", "anti-short structural rows do not force SHORT bad-path target"),
-                ("anti_long_long_bad_path_not_forced_count", "anti-long structural rows do not force LONG bad-path target"),
-                ("anti_short_short_mae_not_higher_count", "anti-short structural rows do not make SHORT expected MAE worse"),
-                ("anti_long_long_mae_not_higher_count", "anti-long structural rows do not make LONG expected MAE worse"),
-                ("direction_long_score_alias_mismatch_count", "y_direction_long_score_bps mismatches repaired long utility"),
-                ("direction_short_score_alias_mismatch_count", "y_direction_short_score_bps mismatches repaired short utility"),
+                ("target_mode_contract_invalid_count", "direction target mode contract is invalid/mixed"),
+                ("direction_outcome_mismatch_count", "y_direction mismatches future outcome side selection"),
+                ("long_utility_formula_mismatch_count", "long utility is not the declared future-outcome formula"),
+                ("short_utility_formula_mismatch_count", "short utility is not the declared future-outcome formula"),
+                ("long_bad_path_raw_mismatch_count", "long bad-path target differs from raw future outcome"),
+                ("short_bad_path_raw_mismatch_count", "short bad-path target differs from raw future outcome"),
+                ("long_mae_raw_mismatch_count", "long expected MAE differs from raw future MAE"),
+                ("short_mae_raw_mismatch_count", "short expected MAE differs from raw future MAE"),
+                ("direction_long_score_alias_mismatch_count", "y_direction_long_score_bps mismatches outcome long utility"),
+                ("direction_short_score_alias_mismatch_count", "y_direction_short_score_bps mismatches outcome short utility"),
                 ("tradable_trade_mismatch_count", "y_tradable mismatches y_trade"),
                 ("selected_mfe_mismatch_count", "mfe_first_n_bps mismatches selected side-specific MFE"),
                 ("selected_mae_mismatch_count", "mae_first_n_bps mismatches selected side-specific MAE"),
@@ -765,7 +744,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 f"expected <= {args.max_channel_position_support_corr}, got {corr}"
             )
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    split_state_contracts: dict[str, dict[str, Any]] = {}
+    for row in split_reports:
+        provenance = row.get("provenance") if isinstance(row.get("provenance"), dict) else {}
+        contract = provenance.get("model_native_state_contract")
+        if isinstance(contract, dict) and contract:
+            split_state_contracts[str(row.get("split"))] = contract
+    if len(split_state_contracts) > 1:
+        baseline_split = next(iter(split_state_contracts))
+        baseline = split_state_contracts[baseline_split]
+        for split, contract in split_state_contracts.items():
+            if contract != baseline:
+                failures.append(
+                    f"{split}: model_native_state_contract differs from {baseline_split}; "
+                    "TRAIN/VAL/TEST must share one immutable common-history/TRAIN-rank contract"
+                )
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     report = {
         "schema_version": "xau_direction_repair_pretrain_audit_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
@@ -774,9 +769,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "requested_stem": requested_stem,
         "stem": str(stem or requested_stem),
         "data_splits": splits,
-        "require_rail_features": bool(args.require_rail_features),
-        "require_inline_seq_structure": require_inline_seq_structure,
-        "require_xau_provenance": require_xau_provenance,
+        "require_rail_features": True,
+        "require_inline_seq_structure": True,
+        "require_xau_provenance": True,
         "required_rail_features": list(REQUIRED_RAIL_FEATURES),
         "missing_rail_features": missing_rail_features,
         "required_xau_target_columns": list(REQUIRED_XAU_TARGET_COLUMNS),
@@ -790,11 +785,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "failures": failures,
     }
     json_path = out_dir / f"XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_{timestamp}.json"
-    latest_path = out_dir / "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_latest.json"
     report["json_path"] = str(json_path)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
-    latest_path.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    report["latest_json_path"] = str(latest_path)
+    with json_path.open("x", encoding="utf-8") as handle:
+        handle.write(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n")
 
     if not args.quiet:
         print(
@@ -803,22 +796,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "decision": report["decision"],
                     "failures": failures,
                     "json_path": str(json_path),
-                    "latest_json_path": str(latest_path),
                 },
                 indent=2,
                 default=_json_default,
             )
         )
-    if args.fail_on_audit_fail and failures:
+    if failures:
         raise SystemExit(2)
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset-dir", default=str(DEFAULT_DATASET_DIR))
-    parser.add_argument("--stem", default=DEFAULT_STEM, help="Dataset split stem, or 'auto' to discover it.")
-    parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
+    parser.add_argument(
+        "--dataset-dir",
+        required=True,
+        help="Explicit exact model-native XAU dataset directory; no stale default is allowed.",
+    )
+    parser.add_argument("--stem", required=True, help="Explicit immutable dataset split stem; discovery is forbidden.")
+    parser.add_argument("--out-dir", required=True)
     parser.add_argument("--data-splits", default="train,val,test")
     parser.add_argument("--max-rows-per-split", type=int, default=25000)
     parser.add_argument("--max-row-groups-per-split", type=int, default=5)
@@ -826,10 +822,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-pocket-rows", type=int, default=30)
     parser.add_argument("--min-channel-position-delta", type=float, default=0.05)
     parser.add_argument("--max-channel-position-support-corr", type=float, default=-0.05)
-    parser.add_argument("--require-rail-features", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--require-inline-seq-structure", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--require-xau-provenance", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--quiet", action="store_true")
     return parser
 

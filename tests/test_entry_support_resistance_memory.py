@@ -1,9 +1,9 @@
 import numpy as np
+import pytest
 
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
 from gx1.features.entry_support_resistance_memory_v1 import (
     SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES,
-    SUPPORT_RESISTANCE_MEMORY_OPTIONAL_FIELDS,
     SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS,
     build_entry_support_resistance_memory_layer,
     missing_support_resistance_memory_source_fields,
@@ -76,7 +76,7 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
 
 
 def test_support_resistance_memory_layer_builds_causal_level_features() -> None:
-    names = list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS) + list(SUPPORT_RESISTANCE_MEMORY_OPTIONAL_FIELDS)
+    names = list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS)
     x = _matrix(names)
     out, out_names = build_entry_support_resistance_memory_layer(x, names)
     idx = {name: i for i, name in enumerate(out_names)}
@@ -103,18 +103,24 @@ def test_support_resistance_memory_layer_builds_causal_level_features() -> None:
     assert out[6, idx["chart.sr_memory_liquidity_resistance_break_continuation_long"]] > out[0, idx["chart.sr_memory_liquidity_resistance_break_continuation_long"]]
 
 
-def test_support_resistance_memory_layer_sanitizes_nonfinite_inputs() -> None:
-    names = list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS) + list(SUPPORT_RESISTANCE_MEMORY_OPTIONAL_FIELDS)
-    x = _matrix(names)
-    x[1, names.index("ctx_cont.sr_support_proximity_exp")] = np.nan
-    x[2, names.index("ctx_cont.dist_to_h1_lo_atr")] = np.inf
-    x[5, names.index("ctx_cont.dist_to_h1_hi_atr")] = -np.inf
+def test_support_resistance_memory_layer_rejects_nonfinite_inputs() -> None:
+    names = list(SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS)
+    for field, value in (
+        ("ctx_cont.sr_support_proximity_exp", np.nan),
+        ("ctx_cont.dist_to_h1_lo_atr", np.inf),
+        ("ctx_cont.dist_to_h1_hi_atr", -np.inf),
+    ):
+        x = _matrix(names)
+        x[2, names.index(field)] = value
+        with pytest.raises(RuntimeError, match="SUPPORT_RESISTANCE_MEMORY_SOURCE_NONFINITE"):
+            build_entry_support_resistance_memory_layer(x, names)
 
-    out, out_names = build_entry_support_resistance_memory_layer(x, names)
 
-    assert len(out_names) == EXPECTED_SUPPORT_RESISTANCE_MEMORY_FEATURE_COUNT
-    assert out.shape == (8, EXPECTED_SUPPORT_RESISTANCE_MEMORY_FEATURE_COUNT)
-    assert np.isfinite(out).all()
+def test_support_resistance_memory_layer_rejects_missing_generated_evidence() -> None:
+    missing_field = "chart.geometry_support_line_proximity_stack"
+    names = [name for name in SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS if name != missing_field]
+    with pytest.raises(RuntimeError, match="SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS_MISSING"):
+        build_entry_support_resistance_memory_layer(_matrix(names), names)
 
 
 def test_support_resistance_memory_layer_is_future_row_invariant() -> None:
@@ -137,6 +143,8 @@ def test_support_resistance_memory_source_contract_and_routing() -> None:
     assert missing_support_resistance_memory_source_fields(["ctx_cont.sr_nearest_pivot_abs_atr"])[:1] == [
         "ctx_cont.sr_support_proximity_exp"
     ]
+    assert "chart.geometry_support_line_proximity_stack" in SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS
+    assert "chart.smc_liquidity_reclaim_confirmation_long" in SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS
 
     routing = {name: classify_entry_specialist_feature(name) for name in SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES}
     routing_gaps = {

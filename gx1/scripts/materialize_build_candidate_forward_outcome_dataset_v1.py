@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build candidate-level forward-outcome dataset across all 282 weekly XAUUSD replays.
+"""Historical candidate forward-path utilities retained for Exit materializers.
+
+The filename and standalone dataset narrative are historical. Current callers
+are the separately retained Exit-IQL v1/v2/v3 materializers, which import the
+causal tape loaders, identity columns and forward-window math. This module has
+no Entry direction, launch, sizing or override authority.
 
 Mission
 -------
@@ -7,12 +12,10 @@ For every XGB+V10 candidate (decision moment) across 2020-2026, compute what
 the market actually did over the following K M5-bars — for BOTH long and short
 directions, and for both immediate-entry and delayed-entry (WAIT) scenarios.
 
-The output is the training substrate for entry-IQL (the RL "smart head" that
-supervises and overrides the entry transformer). Entry-IQL learns: given
-candidate state s and action a in {SKIP, TAKE_LONG_NOW, TAKE_SHORT_NOW,
-WAIT_LONG, WAIT_SHORT}, what reward (MFE-based) is observable from the
-forward path? Because forward bars are known offline, every candidate has
-fully-observable counterfactual rewards for every action.
+The historical standalone output represented counterfactual forward paths for
+candidate actions. It is not an admitted current Entry dataset: Entry-IQL and
+all claims that it may supervise or override Entry are retired. Only the
+neutral offline path utilities imported by active Exit builders are retained.
 
 Scope
 -----
@@ -77,9 +80,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.scripts import (
-    materialize_build_iql_offline_data_contract_research_only_v1 as contract_gate,
-)
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
 
 
 ACTION = "BUILD_CANDIDATE_FORWARD_OUTCOME_DATASET_V1"

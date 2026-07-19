@@ -1,25 +1,28 @@
-"""Entry feature-to-specialist grouping contract.
+"""Exact model-native seq513 feature-to-specialist contract.
 
-The goal is to make the sequential specialist-AI design operational before
-training: every emitted seq/snap field gets one primary encoder group, and the
-foundation structure families are explicitly assigned to the specialist that
-should learn that market mechanism.
+Every seq/snap field is owned by one of eight trainable evidence specialists.
+The retired seven-field XGBoost bridge is detected only to fail closed; it is
+never an encoder group, model input, prior, or compatibility route.
 """
 from __future__ import annotations
 
 from collections import OrderedDict
 from typing import Iterable
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+)
+
 
 SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
     [
-        (
-            "neutral_bridge_anchor",
-            {
-                "encoder": "neutral_bridge_anchor",
-                "role": "Frozen/allowlisted neutral XGB bridge priors until a new bridge is approved.",
-            },
-        ),
         (
             "structure_swing_encoder",
             {
@@ -66,7 +69,7 @@ SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
             "chart_geometry_encoder",
             {
                 "encoder": "chart_geometry_encoder",
-                "role": "Research challenger for numeric trendlines, support/resistance channels, Fibonacci zones, EMA crosses and chart patterns.",
+                "role": "Numeric trendlines, support/resistance channels, Fibonacci zones, EMA crosses and chart patterns.",
             },
         ),
         (
@@ -79,26 +82,22 @@ SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
     ]
 )
 
-
-REQUIRED_TRAINING_SPECIALISTS = (
+MODEL_NATIVE_TRAINING_SPECIALISTS = (
     "structure_swing_encoder",
     "smc_liquidity_encoder",
     "trend_ema_encoder",
     "vol_compression_encoder",
     "momentum_flow_encoder",
     "session_regime_encoder",
-)
-
-CHALLENGER_SEQ215_TRAINING_SPECIALISTS = (
-    *REQUIRED_TRAINING_SPECIALISTS,
     "chart_geometry_encoder",
     "price_action_candle_encoder",
 )
 
-SMART_SEQ520_CANDIDATE_SPECIALISTS = CHALLENGER_SEQ215_TRAINING_SPECIALISTS
-SMART_SEQ520_EXPECTED_SIGNAL_DIM = 520
-SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT = 479
-SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT = 305
+MODEL_NATIVE_EXPECTED_SIGNAL_DIM = MODEL_NATIVE_SIGNAL_DIM
+MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT = MODEL_NATIVE_SELECTED_FEATURE_COUNT
+MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT = (
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+)
 
 SPECIALIST_FUSION_ACTIVE_HEADS = (
     "direction",
@@ -121,17 +120,15 @@ SPECIALIST_FUSION_ACTIVE_HEADS = (
 
 SPECIALIST_FUSION_BLOCKED_HEADS = ("hold_horizon",)
 
-NEUTRAL_BRIDGE_FIELDS = {
-    "p_long",
-    "p_short",
-    "p_flat",
-    "p_hat",
-    "uncertainty_score",
-    "margin_top1_top2",
-    "entropy",
-}
+FORBIDDEN_LEGACY_BRIDGE_SPECIALIST = "forbidden_legacy_bridge"
+_FORBIDDEN_LEGACY_BRIDGE_FIELDS = frozenset(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
 
 CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
+    # Distance from the D1 EMA200 is trend alignment evidence.  The ``_atr``
+    # suffix denotes normalization only and must not transfer semantic
+    # ownership to the volatility specialist.
+    "ctx_cont.d1_dist_from_ema200_atr": "trend_ema_encoder",
+    "d1_dist_from_ema200_atr": "trend_ema_encoder",
     "ctx_cont.spread_bps": "session_regime_encoder",
     "ctx_cat.spread_bucket": "session_regime_encoder",
     "spread_bps": "session_regime_encoder",
@@ -240,7 +237,7 @@ FOUNDATION_OBJECTIVE_SPECIALISTS = OrderedDict(
     ]
 )
 
-SPECIALIST_MODEL_CONTRACT = OrderedDict(
+MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
     [
         (
             "structure_swing_encoder",
@@ -332,12 +329,6 @@ SPECIALIST_MODEL_CONTRACT = OrderedDict(
                 "supports_heads": ("tradable", "timing", "bad_path", "survival", "position_size"),
             },
         ),
-    ]
-)
-
-CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT = OrderedDict(
-    [
-        *SPECIALIST_MODEL_CONTRACT.items(),
         (
             "chart_geometry_encoder",
             {
@@ -372,9 +363,7 @@ CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT = OrderedDict(
     ]
 )
 
-SMART_SEQ520_SPECIALIST_MODEL_CONTRACT = CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT
-
-SMART_SEQ520_SMART_FAMILY_CONTRACT = OrderedDict(
+MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
     [
         (
             "trend_ema_smart_layer",
@@ -436,7 +425,7 @@ SMART_SEQ520_SMART_FAMILY_CONTRACT = OrderedDict(
                 "expected_feature_count": 13,
                 "expected_specialist_counts": {"chart_geometry_encoder": 13},
                 "owned_specialists": ("chart_geometry_encoder",),
-                "purpose": "Curated Smart520 trendline/channel/Fibonacci geometry fields, including rising-support and falling-resistance rail trap evidence.",
+                "purpose": "Curated model-native trendline/channel/Fibonacci geometry fields, including rising-support and falling-resistance rail-trap evidence.",
             },
         ),
         (
@@ -445,7 +434,7 @@ SMART_SEQ520_SMART_FAMILY_CONTRACT = OrderedDict(
                 "expected_feature_count": 32,
                 "expected_specialist_counts": {"price_action_candle_encoder": 32},
                 "owned_specialists": ("price_action_candle_encoder",),
-                "purpose": "Smart3 closed-bar candle body/wick/reversal/continuation pattern fields.",
+                "purpose": "Closed-bar candle body/wick/reversal/continuation pattern fields.",
             },
         ),
         (
@@ -481,52 +470,63 @@ SMART_SEQ520_SMART_FAMILY_CONTRACT = OrderedDict(
     ]
 )
 
-TRAINABLE_SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215", "smart_seq520_candidate")
-SPECIALIST_CONTRACT_MODES = TRAINABLE_SPECIALIST_CONTRACT_MODES
-SPECIALIST_AUDIT_CONTRACT_MODES = SPECIALIST_CONTRACT_MODES
-SPECIALIST_CONTRACT_TRAINING_ALLOWED = {
-    "foundation_seq146": True,
-    "challenger_seq215": True,
-    "smart_seq520_candidate": True,
-}
+if tuple(SPECIALIST_GROUPS) != MODEL_NATIVE_TRAINING_SPECIALISTS:
+    raise RuntimeError("MODEL_NATIVE_SPECIALIST_GROUP_ORDER_MISMATCH")
+if tuple(MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT) != MODEL_NATIVE_TRAINING_SPECIALISTS:
+    raise RuntimeError("MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT_ORDER_MISMATCH")
+if sum(
+    int(spec["expected_feature_count"])
+    for spec in MODEL_NATIVE_SMART_FAMILY_CONTRACT.values()
+) != MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT:
+    raise RuntimeError("MODEL_NATIVE_SPECIALIST_FEATURE_COUNT_MISMATCH")
+if tuple(MODEL_NATIVE_SMART_FAMILY_CONTRACT) != tuple(
+    family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
+):
+    raise RuntimeError("MODEL_NATIVE_SPECIALIST_FAMILY_REGISTRY_ORDER_MISMATCH")
+for _family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES:
+    if int(MODEL_NATIVE_SMART_FAMILY_CONTRACT[_family]["expected_feature_count"]) != len(
+        _features
+    ):
+        raise RuntimeError(
+            f"MODEL_NATIVE_SPECIALIST_FAMILY_COUNT_MISMATCH: {_family}"
+        )
+
+SPECIALIST_CONTRACT_MODES = (MODEL_NATIVE_CONTRACT_MODE,)
 
 
-def required_training_specialists_for_mode(mode: str = "foundation_seq146") -> tuple[str, ...]:
-    normalized = str(mode or "foundation_seq146").strip()
-    if normalized == "foundation_seq146":
-        return REQUIRED_TRAINING_SPECIALISTS
-    if normalized == "challenger_seq215":
-        return CHALLENGER_SEQ215_TRAINING_SPECIALISTS
-    if normalized == "smart_seq520_candidate":
-        return SMART_SEQ520_CANDIDATE_SPECIALISTS
-    raise ValueError(f"unknown specialist contract mode: {mode}")
+def require_model_native_specialist_contract_mode(mode: object) -> str:
+    """Return the exact active mode or reject historical/blank aliases."""
+
+    if not isinstance(mode, str) or mode != MODEL_NATIVE_CONTRACT_MODE:
+        raise ValueError(
+            "model-native specialist contract mode required: "
+            f"observed={mode!r} expected={MODEL_NATIVE_CONTRACT_MODE!r}"
+        )
+    return mode
 
 
-def specialist_model_contract_for_mode(mode: str = "foundation_seq146") -> "OrderedDict[str, dict[str, object]]":
-    normalized = str(mode or "foundation_seq146").strip()
-    if normalized == "foundation_seq146":
-        return SPECIALIST_MODEL_CONTRACT
-    if normalized == "challenger_seq215":
-        return CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT
-    if normalized == "smart_seq520_candidate":
-        return SMART_SEQ520_SPECIALIST_MODEL_CONTRACT
-    raise ValueError(f"unknown specialist contract mode: {mode}")
+def required_training_specialists_for_mode(mode: str) -> tuple[str, ...]:
+    require_model_native_specialist_contract_mode(mode)
+    return MODEL_NATIVE_TRAINING_SPECIALISTS
 
 
-def specialist_contract_training_allowed_for_mode(mode: str = "foundation_seq146") -> bool:
-    normalized = str(mode or "foundation_seq146").strip()
-    if normalized not in SPECIALIST_AUDIT_CONTRACT_MODES:
-        raise ValueError(f"unknown specialist contract mode: {mode}")
-    return bool(SPECIALIST_CONTRACT_TRAINING_ALLOWED.get(normalized, False))
+def specialist_model_contract_for_mode(
+    mode: str,
+) -> "OrderedDict[str, dict[str, object]]":
+    require_model_native_specialist_contract_mode(mode)
+    return MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
 
 
-def smart_family_contract_for_mode(mode: str = "foundation_seq146") -> "OrderedDict[str, dict[str, object]]":
-    normalized = str(mode or "foundation_seq146").strip()
-    if normalized == "smart_seq520_candidate":
-        return SMART_SEQ520_SMART_FAMILY_CONTRACT
-    if normalized in SPECIALIST_CONTRACT_MODES:
-        return OrderedDict()
-    raise ValueError(f"unknown specialist contract mode: {mode}")
+def specialist_contract_training_allowed_for_mode(mode: str) -> bool:
+    require_model_native_specialist_contract_mode(mode)
+    return True
+
+
+def smart_family_contract_for_mode(
+    mode: str,
+) -> "OrderedDict[str, dict[str, object]]":
+    require_model_native_specialist_contract_mode(mode)
+    return MODEL_NATIVE_SMART_FAMILY_CONTRACT
 
 
 def _norm(name: str) -> str:
@@ -547,8 +547,8 @@ def classify_entry_specialist_feature(name: str) -> str:
             bare = bare[len(prefix) :]
             break
 
-    if bare in NEUTRAL_BRIDGE_FIELDS:
-        return "neutral_bridge_anchor"
+    if bare in _FORBIDDEN_LEGACY_BRIDGE_FIELDS:
+        return FORBIDDEN_LEGACY_BRIDGE_SPECIALIST
     if n.startswith("momentum.flow_") or bare.startswith("momentum.flow_"):
         return "momentum_flow_encoder"
     if n in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
@@ -732,8 +732,33 @@ def classify_entry_specialist_feature(name: str) -> str:
 
 def group_features_by_specialist(features: Iterable[str]) -> dict[str, list[str]]:
     grouped: dict[str, list[str]] = {name: [] for name in SPECIALIST_GROUPS}
+    grouped[FORBIDDEN_LEGACY_BRIDGE_SPECIALIST] = []
     grouped["unmapped"] = []
     for feature in features:
         group = classify_entry_specialist_feature(str(feature))
         grouped.setdefault(group, []).append(str(feature))
     return grouped
+
+
+for _family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES:
+    _observed_specialist_counts: dict[str, int] = {}
+    for _feature in _features:
+        _specialist = classify_entry_specialist_feature(_feature)
+        _observed_specialist_counts[_specialist] = (
+            _observed_specialist_counts.get(_specialist, 0) + 1
+        )
+    _expected_specialist_counts = {
+        str(name): int(count)
+        for name, count in (
+            MODEL_NATIVE_SMART_FAMILY_CONTRACT[_family].get(
+                "expected_specialist_counts"
+            )
+            or {}
+        ).items()
+    }
+    if _observed_specialist_counts != _expected_specialist_counts:
+        raise RuntimeError(
+            "MODEL_NATIVE_MANDATORY_FAMILY_SPECIALIST_ROUTING_MISMATCH: "
+            f"family={_family} observed={_observed_specialist_counts} "
+            f"expected={_expected_specialist_counts}"
+        )

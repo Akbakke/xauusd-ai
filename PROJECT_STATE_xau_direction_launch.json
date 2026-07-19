@@ -1,0 +1,33 @@
+{
+  "schema_version": "gx1_xau_direction_launch_state_v1",
+  "project": "XAUUSD",
+  "updated_utc": "2026-07-17T14:38:13Z",
+  "decision": "BLOCK",
+  "latest_terminal_event_id": "SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716",
+  "latest_terminal_event_decision": "FAIL",
+  "decision_surface": "model_direction_argmax",
+  "public_trade_flat_surface": "public_trade_flat_decision_logits",
+  "required_contract_mode": "xau_seq513_model_native_direction_v1",
+  "required_signal_dim": 513,
+  "required_base_signal_dim": 34,
+  "required_selected_feature_count": 479,
+  "required_mandatory_causal_layer_feature_count": 305,
+  "required_train_ranked_remainder_feature_count": 174,
+  "required_mandatory_causal_layer_count": 10,
+  "required_ctx_cont_dim": 142,
+  "required_ctx_cat_dim": 5,
+  "accepted_bundle_dir": null,
+  "bundle_metadata_sha256": null,
+  "dataset_event_id": "v10_6yr_rebuild_20260716_fresh_xau_direction_repair",
+  "accepted_via_vedtak": null,
+  "blockers": [
+    "No accepted fresh XAU transformer bundle exists.",
+    "No fresh immutable 305-mandatory-plus-174-TRAIN-ranked seq513 signal manifest or dataset exists; source contracts alone do not prove edge.",
+    "The 20260716 520-wide dataset contains seven constant neutral-XGB bridge fields and is rejected by the exact 513 model-native contract; a fresh rebuild is required.",
+    "Latest bounded fresh smoke hard-red-stopped with zero FLAT predictions and 30 direction-slice failures.",
+    "The July-06/July-08 smart candidate is historical and is not launch-valid under the active XAU direction repair.",
+    "No canonical joint Entry plus adopted active Exit-V3/Exit-IQL/Strategy-F sizing-only TEST replay proof exists; label-horizon sizing evidence is diagnostic only.",
+    "No fresh post-adoption broker runtime sizing parity evidence exists.",
+    "Candidate, replay, Entry-IQL, shadow, demo, live, and promotion remain closed."
+  ]
+}

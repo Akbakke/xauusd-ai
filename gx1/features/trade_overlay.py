@@ -3,9 +3,9 @@
 
 The V3 exit transformer's in-trade window has 19 trade-state slots that are
 OVERLAID onto the canonical feature window (0 pre-trade). This module is the
-single source of truth for how those 19 slots are computed, so the train
-builder (materialize_build_v3_training_dataset_v2.py) and the live serve path
-(gx1.execution.v12_trade_state.TradeState.build_v3_overlay) are bit-identical.
+single source of truth for how those 19 slots are computed. The live serve path
+(`gx1.execution.v12_trade_state.TradeState.build_v3_overlay`) calls it directly;
+any future V3 training builder must call this same function and prove parity.
 
 Basis: INTRABAR favorable/adverse excursion. The caller supplies, per in-trade
 bar:
@@ -49,9 +49,9 @@ def compute_trade_overlay(
 ) -> np.ndarray:
     """Return the (n, 19) float32 trade-state overlay.
 
-    All math is verbatim from materialize_build_v3_training_dataset_v2.py
-    (the authoritative train builder). cols 0-4 = entry-snapshot constants,
-    cols 5-18 = per-bar trade-state.
+    This function now owns the exact math. cols 0-4 = entry-snapshot constants,
+    cols 5-18 = per-bar trade-state. A dataset implementation may consume this
+    helper, but may not duplicate or reinterpret it.
     """
     peak = np.asarray(peak, dtype=np.float64)
     trough = np.asarray(trough, dtype=np.float64)
@@ -62,11 +62,11 @@ def compute_trade_overlay(
     if n == 0:
         return overlay
 
-    # cum MFE/MAE from INTRABAR peak/trough (train v2.py:457-458)
+    # cum MFE/MAE from INTRABAR peak/trough
     cum_peak = np.maximum.accumulate(peak)
     cum_trough = np.minimum.accumulate(trough)
 
-    # arg_peak: index of the running max of peak[0..t] (train v2.py:460-467)
+    # arg_peak: index of the running max of peak[0..t]
     arg_peak = np.zeros(n, dtype=np.int32)
     running_max = -np.inf
     running_max_idx = 0
@@ -76,7 +76,7 @@ def compute_trade_overlay(
             running_max_idx = i
         arg_peak[i] = running_max_idx
 
-    # pnl velocity / acceleration (train v2.py:469-474)
+    # pnl velocity / acceleration
     pnl_vel = np.zeros(n, dtype=np.float64)
     pnl_acc = np.zeros(n, dtype=np.float64)
     if n >= 2:

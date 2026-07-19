@@ -25,14 +25,6 @@ reports/replay_eval/**/intratrade/
 reports/replay_eval/**/raw/
 reports/replay_eval/**/perf_*.json
 reports/replay_eval/**/trade_journal/
-# Keep SSoT reports (explicit exceptions)
-!reports/replay_eval/TRIAL160_YEARLY/*/RUN_IDENTITY.json
-!reports/replay_eval/TRIAL160_YEARLY/*/FULLYEAR_TRIAL160_REPORT_*.md
-!reports/replay_eval/TRIAL160_YEARLY/*/FULLYEAR_TRIAL160_METRICS_*.json
-!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/MULTIYEAR_SUMMARY.md
-!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/MULTIYEAR_METRICS.json
-!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/MULTIYEAR_PARALLEL_STATUS.json
-!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/FULLSTENDIG_SAMMENDRAG.md
 
 # Large binary files (permanent exclusion)
 *.parquet

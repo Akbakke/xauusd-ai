@@ -31,16 +31,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
-
-# Force signal_bridge_v3 — same as inference_batch_v3_v1 default
-os.environ.setdefault("GX1_SIGNAL_BRIDGE_VERSION", "3")
 
 from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel, proba_to_signal_bridge_v1
 from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer

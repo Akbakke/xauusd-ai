@@ -49,6 +49,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
+from gx1.exits.contracts.exit_io_v1_ctx36 import compute_feature_names_hash
 from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES as V6_FEATURES,
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT as V6_FEATURE_COUNT,
@@ -91,6 +92,36 @@ DEFAULT_PER_BAR_DIR = Path(
     "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/EXIT_IQL_PER_BAR_DATASET_V2_M1"
 )
 WINDOW_LEN = 512
+
+
+def _model_contract_manifest_fields(
+    bundle_dir: Path,
+    model: ExitTransformerV0,
+) -> dict[str, Any]:
+    """Bind scorer output to the contract actually loaded by the model."""
+
+    cfg = json.loads((Path(bundle_dir) / "transformer_config.json").read_text())
+    io_version = str(cfg.get("exit_ml_io_version") or "")
+    if io_version not in SUPPORTED_CONTRACTS:
+        raise RuntimeError(f"unsupported V3 scorer contract {io_version!r}")
+    features, feature_count = SUPPORTED_CONTRACTS[io_version]
+    model_input_dim = int(model.input_dim)
+    model_window_len = int(model.window_len)
+    if model_input_dim != int(feature_count):
+        raise RuntimeError(
+            f"loaded V3 model input_dim={model_input_dim} does not match "
+            f"{io_version} feature_count={feature_count}"
+        )
+    if int(cfg.get("input_dim") or -1) != model_input_dim:
+        raise RuntimeError("V3 bundle config/model input_dim mismatch")
+    if int(cfg.get("window_len") or -1) != model_window_len:
+        raise RuntimeError("V3 bundle config/model window_len mismatch")
+    return {
+        "v3_exit_io_version": io_version,
+        "v3_v8_input_dim": model_input_dim,
+        "v3_v8_window_len": model_window_len,
+        "v3_feature_names_hash": compute_feature_names_hash(features),
+    }
 
 # V6 trade-state feature names → per-bar parquet column names
 TRADE_STATE_FEATURE_NAMES_V6 = [
@@ -570,8 +601,7 @@ def main() -> None:
         "total_rows": int(total_rows),
         "total_skipped_oob": int(total_skipped),
         "total_trades": int(total_trades),
-        "v3_v8_input_dim": V6_FEATURE_COUNT,
-        "v3_v8_window_len": WINDOW_LEN,
+        **_model_contract_manifest_fields(bundle, model),
         "added_columns": [
             "v3_v8_should_exit_prob",
             "v3_v8_profit_protect_prob",

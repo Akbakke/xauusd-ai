@@ -22,7 +22,8 @@ Why
 V3 had only 11 multi-TF ctx features (D1×2, H1×1, M15×1, micro/swing/session).
 The 2026-Q2 audit found this is sparse vs the 84 features available in
 canonical_features_v2. By adding the same 22 explicit H1/H4/D1/M15 indicators
-as V10 v2 (signal_bridge_v2), the exit transformer gets symmetric multi-TF
+as the historical V10 v2 bridge (signal_bridge_v2 — retired module, list is
+self-contained below), the exit transformer gets symmetric multi-TF
 context for the trade-decision moment.
 """
 
@@ -41,8 +42,9 @@ from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
 EXIT_IO_V4_CTX_EXTENDED_M1L512_IO_VERSION = "EXIT_IO_V4_CTX_EXTENDED_M1L512"
 EXIT_IO_V4_CTX_EXTENDED_M1L512_DEFAULT_WINDOW_LEN = 512
 
-# Same 22 extension features as signal_bridge_v2's CTX_CONT V2 extension.
-# Order MUST match signal_bridge_v2.ORDERED_CTX_CONT_V2_EXTENSION for cross-stack consistency.
+# Same 22 extension features as the retired signal_bridge_v2 CTX_CONT V2
+# extension (module deleted; this list is the self-contained owner of the
+# exact order — do not reorder).
 EXIT_IO_V4_CTX_EXTENSION_FEATURES: List[str] = [
     # H1 (6)
     "_v1h1_ema_diff",

@@ -2,7 +2,8 @@
 GX1 gate guard — explicit green-gate enforcement.
 
 Covers two guardrails that cost real money / GPU time if they slip:
-  - NEVER auto-retrain: a retrain requires an explicit, dated vedtak.
+  - NEVER auto-rebuild/retrain: every writing build/train entrypoint requires
+    an explicit, auditable vedtak.
   - No R6 / freeze / promo / live / package build without a green gate.
 
 A "gate" is just a small JSON file under gates/ that you create deliberately.
@@ -12,6 +13,7 @@ No file -> the operation aborts. This is fail-closed by construction.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -61,15 +63,23 @@ def require_gate(stage: str) -> dict:
 
 def require_retrain_vedtak(vedtak_id: str | None) -> str:
     """
-    Call at the top of every retrain entrypoint. NEVER auto-retrain.
+    Call at the top of every writing rebuild/retrain entrypoint.
     Pass the --vedtak argument through here; missing/empty aborts the run.
     """
-    if not vedtak_id or not vedtak_id.strip():
+    value = str(vedtak_id or "").strip()
+    if not value:
         raise GateError(
-            "Retrain blocked: no --vedtak provided. "
-            "Retraining requires an explicit user decision. NEVER auto-retrain."
+            "Training/rebuild blocked: no --vedtak provided. "
+            "Writing model artifacts requires an explicit user decision."
         )
-    return vedtak_id.strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{7,127}", value):
+        raise GateError(
+            "Training/rebuild blocked: --vedtak must be an explicit 8-128 character decision ID "
+            "using only letters, digits, dot, underscore, colon, or hyphen."
+        )
+    if value.upper() in {"TODO", "TBD", "PLACEHOLDER", "EXPLICIT_VEDTAK_ID"}:
+        raise GateError("Training/rebuild blocked: placeholder --vedtak values are forbidden.")
+    return value
 
 
 if __name__ == "__main__":

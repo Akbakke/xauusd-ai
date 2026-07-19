@@ -6,12 +6,10 @@ Test Execution Smoke Test Trade Journal Schema.
 Verifies that a "test trade" JSON has test_mode=true, execution_events
 are appended in correct order, and client_ext_id format is correct.
 """
-import json
-import csv
+import math
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import sys
 
@@ -19,6 +17,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gx1.monitoring.trade_journal import TradeJournal
+from tests.model_native_sizing_support import unverified_learned_sizing_authority
 
 
 class TestExecSmokeTradeJournalSchema(unittest.TestCase):
@@ -55,61 +54,23 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
-    def test_test_mode_flag_in_entry_snapshot(self):
-        """Test that entry_snapshot has test_mode=true."""
-        # Log entry snapshot
+    def test_execution_smoke_snapshot_has_no_direction_substitute(self):
+        """A broker smoke record may be explicit, but cannot fake model evidence."""
         self.trade_journal.log_entry_snapshot(
             trade_id=self.trade_id,
             entry_time="2025-01-01T00:00:00Z",
             instrument="XAU_USD",
             side="long",
             entry_price=2000.0,
-            session=None,
-            regime=None,
-            entry_model_version=None,
-            entry_score=None,
-            entry_filters_passed=[],
-            entry_filters_blocked=[],
+            model_evidence={},
         )
-        
-        # Mark as test mode
+
         journal_data = self.trade_journal._get_trade_journal(self.trade_id)
-        journal_data["entry_snapshot"]["test_mode"] = True
-        journal_data["entry_snapshot"]["reason"] = "EXECUTION_SMOKE_TEST"
-        self.trade_journal._write_trade_json(self.trade_id)
-        
-        # Verify
-        journal_data = self.trade_journal._get_trade_journal(self.trade_id)
-        self.assertTrue(journal_data["entry_snapshot"]["test_mode"])
-        self.assertEqual(journal_data["entry_snapshot"]["reason"], "EXECUTION_SMOKE_TEST")
-        self.assertIsNone(journal_data["entry_snapshot"]["entry_model_version"])
-    
-    def test_test_mode_flag_in_feature_context(self):
-        """Test that feature_context has test_mode=true."""
-        # Log feature context
-        self.trade_journal.log_feature_context(
-            trade_id=self.trade_id,
-            atr_bps=None,
-            atr_price=None,
-            atr_percentile=None,
-            range_pos=None,
-            distance_to_range=None,
-            range_edge_dist_atr=None,
-            spread_price=None,
-            spread_pct=None,
-            candle_close=None,
-            candle_high=None,
-            candle_low=None,
-        )
-        
-        # Mark as test mode
-        journal_data = self.trade_journal._get_trade_journal(self.trade_id)
-        journal_data["feature_context"]["test_mode"] = True
-        self.trade_journal._write_trade_json(self.trade_id)
-        
-        # Verify
-        journal_data = self.trade_journal._get_trade_journal(self.trade_id)
-        self.assertTrue(journal_data["feature_context"]["test_mode"])
+        entry = journal_data["entry_snapshot"]
+        self.assertEqual(entry["model_evidence"], {})
+        self.assertNotIn("entry_score", entry)
+        self.assertNotIn("entry_filters_passed", entry)
+        self.assertNotIn("test_mode", entry)
     
     def test_execution_events_order(self):
         """Test that execution events are appended in correct order."""
@@ -176,60 +137,151 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
         self.assertEqual(events[0]["event_type"], "ORDER_SUBMITTED")
         self.assertEqual(events[0]["client_extensions"]["id"], client_ext_id)
 
-    def test_index_preserves_smart_trendline_rail_fields(self):
-        """Test that SMART trendline fields are preserved in the index CSV."""
-        self.trade_journal.log_entry_snapshot(
-            trade_id=self.trade_id,
-            entry_time="2026-07-08T18:00:00Z",
-            instrument="XAU_USD",
-            side="short",
-            entry_price=2360.0,
-            session="US",
-            entry_model_version="smart_seq520_candidate_v1",
-            entry_score={
-                "smart_p_long": 0.61,
-                "smart_p_short": 0.24,
-                "smart_p_flat": 0.15,
-                "smart_p_trade": 0.83,
-                "smart_p_long_given_trade": 0.72,
-                "smart_p_short_given_trade": 0.28,
-                "smart_expected_utility_long_bps": 18.5,
-                "smart_expected_utility_short_bps": -7.0,
-                "smart_geometry_rising_support_rail_long_pressure": 0.81,
-                "smart_geometry_rising_support_rail_short_trap_pressure": 0.77,
-                "smart_trendline_rail_long_minus_short": 0.42,
-                "smart_mtf_trend_evidence": 0.69,
-                "smart_calibration_version": "dircal_v2",
-                "smart_direction_calibration_enabled": True,
-                "smart_direction_calibration_temperature": 1.15,
-                "smart_direction_calibration_bias": [0.1, -0.1, 0.0],
-                "smart_path_calibration_enabled": True,
+    def test_journal_rejects_unadopted_model_native_sizing_evidence(self):
+        """Complete Entry evidence cannot invent executable sizing authority."""
+        logits = [2.0, 0.2, -1.0]
+
+        def softmax(values):
+            shifted = [value - max(values) for value in values]
+            exp_values = [math.exp(value) for value in shifted]
+            total = sum(exp_values)
+            return [value / total for value in exp_values]
+
+        def sigmoid(value):
+            return 1.0 / (1.0 + math.exp(-value))
+
+        def logit(value):
+            return math.log(value / (1.0 - value))
+
+        direction_probs = softmax(logits)
+        public_logits = [2.0, -1.0]
+        public_probs = softmax(public_logits)
+        side_logits = [1.0, -0.5]
+        side_probs = softmax(side_logits)
+        side_bad_path_logits = [-2.0, 0.2]
+        side_validity_logits = [1.2, -0.4]
+        mtf_logits = [1.0, -0.2, 0.1]
+        rail_logits = [0.1, 0.2, -0.1, 0.3, -0.2, 0.4]
+        tf_logit = -0.2
+        size_logit = 0.4
+        path_log_var = -0.3
+        evidence = {
+            "decision_ts": "2026-07-08T17:55:00Z",
+            "runtime_evidence_schema_version": "entry_model_native_runtime_evidence_v1",
+            "model_policy": "xau_seq513_model_native_direction_argmax_v1",
+            "session_id": 3,
+            "session": "US",
+            "decision_available_ts": "2026-07-08T18:00:00Z",
+            "entry_signal_latency_sec": 0.0,
+            "context_cutoff_ts": "2026-07-08T17:55:00Z",
+            "context_age_m5_bars": 0,
+            "raw_direction_logits": [2.185, 0.345, -1.15],
+            "direction_logits": logits,
+            "direction_probs": direction_probs,
+            "model_direction_index": 0,
+            "model_direction": "LONG",
+            "selected_side": 0,
+            "public_trade_flat_decision_logits": public_logits,
+            "public_trade_flat_decision_probs": public_probs,
+            "public_trade_flat_decision_index": 0,
+            "public_trade_flat_decision": "TRADE",
+            "model_native_logits": [0.5, -0.25, 0.1],
+            "path_quality_raw": 1.25,
+            "path_quality": 1.25,
+            "path_quality_pred": 1.25,
+            "mfe_first_n": 7.0,
+            "mfe_first_n_pred": 7.0,
+            "tradable_logit": logit(0.81),
+            "tradable_prob": 0.81,
+            "trade_logit": 0.7,
+            "bad_path_logit_raw": logit(0.09),
+            "bad_path_logit": logit(0.09),
+            "bad_path_prob": 0.09,
+            "clean_edge_logit": logit(0.76),
+            "clean_edge_prob": 0.76,
+            "survival_logit": logit(0.68),
+            "survival_prob": 0.68,
+            "dip_pred": [0.0] * 18,
+            "forecast_pred": [0.0] * 4,
+            "timing_pred": [0.0] * 12,
+            "tail_risk_pred": [0.0] * 6,
+            "vol_forecast_pred": [0.0] * 3,
+            "p_trade": public_probs[0],
+            "p_flat_hier": public_probs[1],
+            "atr_bps": 12.5,
+            "tf_agreement_logit": tf_logit,
+            "tf_agreement_pred": 1.0 / (1.0 + math.exp(-tf_logit)),
+            "path_quality_log_var": path_log_var,
+            "path_quality_std": math.exp(0.5 * path_log_var),
+            "position_size_logit": size_logit,
+            "position_size_pred": sigmoid(size_logit),
+            "sizing_authority_contract": unverified_learned_sizing_authority(),
+            "p_long_given_trade": side_probs[0],
+            "p_short_given_trade": side_probs[1],
+            "side_logits": side_logits,
+            "side_probs": side_probs,
+            "side_utility": [18.5, -7.0],
+            "side_bad_path_logit": side_bad_path_logits,
+            "long_bad_path_prob": sigmoid(side_bad_path_logits[0]),
+            "short_bad_path_prob": sigmoid(side_bad_path_logits[1]),
+            "side_validity_logit": side_validity_logits,
+            "long_validity_prob": sigmoid(side_validity_logits[0]),
+            "short_validity_prob": sigmoid(side_validity_logits[1]),
+            "side_mae": [4.0, 11.0],
+            "mtf_dir_logits": mtf_logits,
+            "mtf_dir_probs": softmax(mtf_logits),
+            "mtf_trend_evidence": 0.69,
+            "specialist_names": [
+                "structure_swing_encoder",
+                "smc_liquidity_encoder",
+                "trend_ema_encoder",
+                "vol_compression_encoder",
+                "momentum_flow_encoder",
+                "session_regime_encoder",
+                "chart_geometry_encoder",
+                "price_action_candle_encoder",
+            ],
+            "specialist_gate": [0.125] * 8,
+            "trendline_rail_logits": rail_logits,
+            "trendline_rail_probs": [sigmoid(value) for value in rail_logits],
+            "geometry_channel_edge_pressure": 0.42,
+            "geometry_rising_support_rail_long_pressure": 0.81,
+            "geometry_rising_support_rail_short_trap_pressure": 0.77,
+            "geometry_falling_resistance_rail_short_pressure": 0.02,
+            "geometry_falling_resistance_rail_long_trap_pressure": 0.03,
+            "calibration_version": "dircal_v2",
+            "direction_calibration_enabled": True,
+            "direction_calibration_temperature": 1.15,
+            "direction_calibration_bias": [0.1, -0.1, 0.0],
+            "path_calibration_enabled": True,
+            "path_calibration": {
+                "enabled": True,
+                "version": "path-cal-v1",
+                "path_quality_scale": 1.0,
+                "path_quality_shift": 0.0,
+                "bad_path_temperature": 1.0,
+                "bad_path_bias": 0.0,
             },
-        )
-        self.trade_journal.log_exit_summary(
-            trade_id=self.trade_id,
-            exit_time="2026-07-08T18:20:00Z",
-            exit_price=2365.0,
-            exit_reason="SL",
-            realized_pnl_bps=-21.0,
-        )
-
-        with self.trade_journal.index_path.open(newline="", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-
-        self.assertEqual(len(rows), 1)
-        row = rows[0]
-        self.assertEqual(row["smart_p_long"], "0.61")
-        self.assertEqual(row["smart_p_short"], "0.24")
-        self.assertEqual(row["instrument"], "XAU_USD")
-        self.assertEqual(row["smart_geometry_rising_support_rail_long_pressure"], "0.81")
-        self.assertEqual(row["smart_geometry_rising_support_rail_short_trap_pressure"], "0.77")
-        self.assertEqual(row["smart_trendline_rail_long_minus_short"], "0.42")
-        self.assertEqual(row["smart_calibration_version"], "dircal_v2")
-        self.assertEqual(row["smart_direction_calibration_enabled"], "True")
-        self.assertEqual(row["smart_direction_calibration_temperature"], "1.15")
-        self.assertEqual(row["smart_path_calibration_enabled"], "True")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        }
+        with self.assertRaisesRegex(RuntimeError, "TRADE_JOURNAL_ENTRY"):
+            self.trade_journal.log_entry_snapshot(
+                trade_id=self.trade_id,
+                entry_time="2026-07-08T18:00:00Z",
+                instrument="XAU_USD",
+                side="long",
+                entry_price=2360.2,
+                model_evidence=evidence,
+                entry_bid=2360.0,
+                entry_ask=2360.2,
+                entry_spread_bps=0.85,
+                session="US",
+                model_policy="xau_seq513_model_native_direction_argmax_v1",
+                execution_checks=["fresh_quote", "learned_sizing_proof_bound"],
+                capacity_units=1,
+                reference_pre_round_units=1.0,
+                pre_round_units=1.0,
+                units=1,
+                applied_size_multiplier=1.0,
+                sizing_application={},
+                atr_bps=12.5,
+            )

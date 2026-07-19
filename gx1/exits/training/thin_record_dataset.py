@@ -1,5 +1,12 @@
-"""ThinRecordDataset — PyTorch Dataset for the V5 thin-record exit-transformer
-training dataset produced by `materialize_build_v3_training_dataset_v1.py`.
+"""ThinRecordDataset — reader for the admitted V3 artifact's legacy thin-record
+exit-transformer dataset layout.
+
+The original producer is retired: it used non-model-native Entry side fallback
+and lacked the required user-vedtak write gate. This module preserves exact
+layout/reconstruction provenance for auditing the active artifact; it is not an
+authority to create a fresh dataset. Fresh V3 rebuilding remains
+``BLOCKED_PENDING_NEW_EXACT_BUILDER`` until a model-native, fail-closed,
+vedtak-gated producer is implemented.
 
 Background
 ----------

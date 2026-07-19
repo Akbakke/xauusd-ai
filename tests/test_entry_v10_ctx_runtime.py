@@ -18,6 +18,11 @@ import numpy as np
 import pytest
 import torch
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+)
+
 # Add project root to path
 script_dir = Path(__file__).parent
 project_root = script_dir.parent
@@ -54,8 +59,8 @@ class TestEntryV10CtxLoader:
         # Verify metadata
         metadata = bundle.metadata or {}
         assert metadata.get("supports_context_features") is True
-        assert metadata.get("expected_ctx_cat_dim") == 5
-        assert metadata.get("expected_ctx_cont_dim") == 2
+        assert metadata.get("expected_ctx_cat_dim") == MODEL_NATIVE_CTX_CAT_DIM
+        assert metadata.get("expected_ctx_cont_dim") == MODEL_NATIVE_CTX_CONT_DIM
         assert metadata.get("model_variant") == "v10_ctx"
         
         # Verify model is EntryV10CtxHybridTransformer
@@ -80,13 +85,11 @@ class TestEntryV10CtxProof:
     """Test 3: Proof test - same sample, ctx vs permuted ctx → output differs."""
     
     def test_ctx_consumption_proof(self):
-        """Test that ctx can affect output once the residual head has learned weights.
-
-        The production model intentionally zero-inits head_direction so a cold-start
-        bundle equals the XGB anchor before training. This proof should test the ctx
-        path itself, not fail on that safe initialization.
-        """
-        from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+        """Test that ctx affects the direct model-native direction output."""
+        from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+            EXACT_SPECIALIST_NAMES,
+            EntryV10CtxHybridTransformer,
+        )
 
         torch.manual_seed(1337)
         # Create model
@@ -94,27 +97,38 @@ class TestEntryV10CtxProof:
             seq_input_dim=16,
             snap_input_dim=88,
             seq_len=30,
+            m5_seq_dim=3,
+            m15_seq_dim=3,
+            h1_seq_dim=3,
+            h4_seq_dim=3,
+            d1_seq_dim=3,
+            m5_seq_len=30,
+            m15_seq_len=30,
+            h1_seq_len=30,
+            h4_seq_len=30,
+            d1_seq_len=30,
+            specialist_input_indices={
+                name: [index] for index, name in enumerate(EXACT_SPECIALIST_NAMES)
+            },
         )
-        with torch.no_grad():
-            torch.manual_seed(20260626)
-            model.head_direction.weight.normal_(mean=0.0, std=0.05)
-            model.head_direction.bias.zero_()
         model.eval()
-        
-        # Create dummy inputs
+
+        # Create dummy inputs (multi-TF windows held fixed so only ctx varies)
         batch_size = 1
         seq_x = torch.randn(batch_size, 30, 16)  # [1, 30, 16]
-        snap_x = torch.zeros(batch_size, 88)  # [1, 88]
-        from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS
-        for field in ("p_long", "p_short", "p_flat"):
-            snap_x[:, ORDERED_FIELDS.index(field)] = 1.0 / 3.0
-        session_id = torch.LongTensor([1])  # [1]
-        vol_regime_id = torch.LongTensor([1])  # [1]
-        trend_regime_id = torch.LongTensor([1])  # [1]
-        
+        snap_x = torch.randn(batch_size, 88)  # [1, 88]
+        mtf_inputs = {
+            f"seq_{tf}": torch.randn(batch_size, 30, 3)
+            for tf in ("m5", "m15", "h1", "h4", "d1")
+        }
+
         # Pass A: Real ctx
-        ctx_cat_A = torch.LongTensor([[0, 1, 2, 3, 4, 5]])  # [1, 6]
-        ctx_cont_A = torch.FloatTensor([[50.0, 10.0, 0.0, 1.0, 0.5, 1.0]])  # [1, 6]
+        ctx_cat_A = torch.arange(MODEL_NATIVE_CTX_CAT_DIM).reshape(1, -1)
+        ctx_cont_A = torch.linspace(
+            -1.0,
+            1.0,
+            MODEL_NATIVE_CTX_CONT_DIM,
+        ).reshape(1, -1)
         
         with torch.no_grad():
             outputs_A = model(
@@ -122,6 +136,7 @@ class TestEntryV10CtxProof:
                 snap_x=snap_x,
                 ctx_cat=ctx_cat_A,
                 ctx_cont=ctx_cont_A,
+                **mtf_inputs,
             )
             prob_long_A = torch.softmax(outputs_A["direction_logits"], dim=1)[0, 0].item()
         
@@ -135,6 +150,7 @@ class TestEntryV10CtxProof:
                 snap_x=snap_x,
                 ctx_cat=ctx_cat_B,
                 ctx_cont=ctx_cont_B,
+                **mtf_inputs,
             )
             prob_long_B = torch.softmax(outputs_B["direction_logits"], dim=1)[0, 0].item()
         

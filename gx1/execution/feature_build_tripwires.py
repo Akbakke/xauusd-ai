@@ -2,7 +2,7 @@
 PREBUILT-safe feature build call counter for tripwire checks.
 
 This module is safe to import in PREBUILT mode because it does NOT import
-any feature-building modules (basic_v1, live_features, etc.).
+any feature-building modules such as basic_v1.
 
 Builders call bump_feature_build_call_count() to increment the counter.
 PREBUILT checks read FEATURE_BUILD_CALL_COUNT to verify no feature-building occurred.

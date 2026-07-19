@@ -1,532 +1,268 @@
 #!/usr/bin/env python3
-"""
-Unit tests for the active ENTRY_V10_CTX shape contract.
-
-This smoke reflects the active signal_bridge_v3 contract instead of a stale
-lane-specific hardcode.
-
-The test is intentionally simple: prove the model loads and the active
-context shapes are wired correctly without depending on any stale helper class.
-"""
+"""Shape and gradient proofs for the one exact ENTRY model-native architecture."""
 
 from __future__ import annotations
 
-import torch
-import pytest
+import inspect
 
-from gx1.contracts.signal_bridge_v3 import (
-    DEFAULT_SEQ_LEN_V3,
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
-    ORDERED_SEQ_FIELDS_V3,
+import pytest
+import torch
+
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
 )
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import INPUTS
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
 )
 
-SEQ_DIM = len(ORDERED_SEQ_FIELDS_V3)
-CTX_CONT_DIM = len(ORDERED_CTX_CONT_NAMES_V3)
-CTX_CAT_DIM = len(ORDERED_CTX_CAT_NAMES_V3)
-SEQ_LEN = DEFAULT_SEQ_LEN_V3
+
+SEQ_DIM = 16
+SEQ_LEN = 4
+TF_DIM = 3
 
 
-def _make_model() -> EntryV10CtxHybridTransformer:
-    return EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
+def _specialist_indices() -> dict[str, list[int]]:
+    return {name: [index] for index, name in enumerate(EXACT_SPECIALIST_NAMES)}
+
+
+def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
+    kwargs = {
+        "seq_input_dim": SEQ_DIM,
+        "snap_input_dim": SEQ_DIM,
+        "seq_len": SEQ_LEN,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "m5_seq_dim": TF_DIM,
+        "m15_seq_dim": TF_DIM,
+        "h1_seq_dim": TF_DIM,
+        "h4_seq_dim": TF_DIM,
+        "d1_seq_dim": TF_DIM,
+        "m5_seq_len": SEQ_LEN,
+        "m15_seq_len": SEQ_LEN,
+        "h1_seq_len": SEQ_LEN,
+        "h4_seq_len": SEQ_LEN,
+        "d1_seq_len": SEQ_LEN,
+        "specialist_input_indices": _specialist_indices(),
+    }
+    kwargs.update(overrides)
+    return EntryV10CtxHybridTransformer(**kwargs)
+
+
+def _make_inputs(batch_size: int = 2) -> tuple:
+    return (
+        torch.randn(batch_size, SEQ_LEN, SEQ_DIM),
+        torch.randn(batch_size, SEQ_DIM),
+        torch.randint(0, 4, (batch_size, MODEL_NATIVE_CTX_CAT_DIM)),
+        torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM),
+        {
+            f"seq_{tf}": torch.randn(batch_size, SEQ_LEN, TF_DIM)
+            for tf in ("m5", "m15", "h1", "h4", "d1")
+        },
     )
 
 
-def _make_inputs(batch_size: int = 4):
-    seq_x = torch.randn(batch_size, SEQ_LEN, SEQ_DIM, dtype=torch.float32)
-    snap_x = torch.randn(batch_size, SEQ_DIM, dtype=torch.float32)
-    ctx_cat = torch.randint(0, 4, (batch_size, CTX_CAT_DIM), dtype=torch.int64)
-    ctx_cont = torch.randn(batch_size, CTX_CONT_DIM, dtype=torch.float32)
-    return seq_x, snap_x, ctx_cat, ctx_cont
+def _forward(model: EntryV10CtxHybridTransformer, batch_size: int = 2) -> dict:
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size)
+    return model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
 
-def test_entry_v10_ctx_forward_pass_v13_contract():
+def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> None:
     model = _make_model().eval()
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
+    out = _forward(model, batch_size=2)
+    widths = {
+        "direction_logits": 3,
+        "raw_direction_logits": 3,
+        "model_native_logits": 3,
+        "mtf_dir_logits": 3,
+        "path_quality_raw": 1,
+        "path_quality": 1,
+        "mfe_first_n": 1,
+        "tradable_logit": 1,
+        "bad_path_logit_raw": 1,
+        "bad_path_logit": 1,
+        "clean_edge_logit": 1,
+        "survival_logit": 1,
+        "specialist_gate": 8,
+        "trade_logit": 1,
+        "side_logits": 2,
+        "side_utility": 2,
+        "side_bad_path_logit": 2,
+        "side_mae": 2,
+        "side_validity_logit": 2,
+        "trendline_rail_logits": 6,
+        "tf_agreement_logit": 1,
+        "path_quality_log_var": 1,
+        "position_size_logit": 1,
+        "dip_pred": 18,
+        "forecast_pred": 4,
+        "timing_pred": 12,
+        "tail_risk_pred": 6,
+        "vol_forecast_pred": 3,
+        "public_trade_flat_decision_logits": 2,
+    }
+    for name, width in widths.items():
+        assert out[name].shape == (2, width), name
+        assert torch.isfinite(out[name]).all(), name
 
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
 
-    assert out["direction_logits"].shape == (2, 3)
-    assert out["path_quality"].shape == (2, 1)
-    assert out["mfe_first_n"].shape == (2, 1)
-    assert out["tradable_logit"].shape == (2, 1)
-    assert out["bad_path_logit"].shape == (2, 1)
-    assert out["clean_edge_logit"].shape == (2, 1)
-    assert out["survival_logit"].shape == (2, 1)
-
-    for key, tensor in out.items():
-        assert torch.isfinite(tensor).all(), f"{key} contains NaN/Inf"
-
-
-def test_entry_v10_ctx_fail_fast_wrong_ctx_cat_dim():
+def test_public_trade_flat_decision_is_post_calibration_argmax_ssot() -> None:
     model = _make_model().eval()
-    seq_x, snap_x, _, ctx_cont = _make_inputs(batch_size=2)
-    bad_ctx_cat = torch.randint(0, 4, (2, CTX_CAT_DIM + 1), dtype=torch.int64)
-
-    with pytest.raises(RuntimeError, match="CTX_CAT_DIM_MISMATCH"):
-        model(seq_x, snap_x, ctx_cat=bad_ctx_cat, ctx_cont=ctx_cont)
-
-
-def test_entry_v10_ctx_fail_fast_wrong_ctx_cont_dim():
-    model = _make_model().eval()
-    seq_x, snap_x, ctx_cat, _ = _make_inputs(batch_size=2)
-    bad_ctx_cont = torch.randn(2, CTX_CONT_DIM + 1, dtype=torch.float32)
-
-    with pytest.raises(RuntimeError, match="CTX_CONT_DIM_MISMATCH"):
-        model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=bad_ctx_cont)
-
-
-def test_entry_v10_ctx_multi_tf_requires_multi_tf_tensors():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_multi_tf=True,
-        m15_seq_dim=3,
-        h1_seq_dim=3,
-        h4_seq_dim=3,
-        d1_seq_dim=3,
-    ).eval()
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    with pytest.raises(RuntimeError, match="MULTI_TF_INPUTS_MISSING"):
-        model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-
-def test_entry_v10_ctx_eval_mode_is_deterministic():
-    model = _make_model().eval()
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=1)
-
-    out1 = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-    out2 = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    for key in ("direction_logits", "path_quality", "mfe_first_n", "tradable_logit"):
-        assert torch.allclose(out1[key], out2[key]), f"{key} should be deterministic in eval mode"
-
-
-def test_entry_v10_ctx_direction_repair_heads_shape_contract():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_anchor_gate=True,
-        enable_hierarchical_entry_heads=True,
-        enable_side_validity_head=True,
-        enable_trendline_rail_head=True,
-    ).eval()
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=3)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    assert out["anchor_gate"].shape == (3, 3)
-    assert out["trade_logit"].shape == (3, 1)
-    assert out["side_logits"].shape == (3, 2)
-    assert out["side_utility"].shape == (3, 2)
-    assert out["side_bad_path_logit"].shape == (3, 2)
-    assert out["side_mae"].shape == (3, 2)
-    assert out["side_validity_logit"].shape == (3, 2)
-    assert out["trendline_rail_logits"].shape == (3, 4)
-    assert torch.all((out["anchor_gate"] >= 0.0) & (out["anchor_gate"] <= 1.0))
-    for key in (
-        "trade_logit",
-        "side_logits",
-        "side_utility",
-        "side_bad_path_logit",
-        "side_mae",
-        "side_validity_logit",
-        "trendline_rail_logits",
-    ):
-        assert torch.isfinite(out[key]).all(), f"{key} contains NaN/Inf"
-
-
-def test_entry_v10_ctx_hierarchical_direction_ctx_calibration_shape_contract():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-        enable_hierarchical_ctx_direction_calibration=True,
-        hierarchical_ctx_direction_calibration_scale=0.50,
-        hierarchical_ctx_direction_calibration_cap=0.35,
-    ).eval()
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=3)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    assert out["direction_logits"].shape == (3, 3)
-    assert out["public_trade_logit"].shape == (3, 1)
-    assert out["public_side_logits"].shape == (3, 2)
-    assert out["hierarchical_ctx_direction_calibration_logits"].shape == (3, 3)
-    assert "head_public_trade.weight" in model.state_dict()
-    assert "head_public_side.weight" in model.state_dict()
-    assert "hierarchical_ctx_direction_calibration.weight" in model.state_dict()
-    assert torch.isfinite(out["public_trade_logit"]).all()
-    assert torch.isfinite(out["public_side_logits"]).all()
-    assert torch.isfinite(out["hierarchical_ctx_direction_calibration_logits"]).all()
-
-
-def test_entry_v10_ctx_hierarchical_public_direction_margin_composition():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(0.2)
-        model.head_public_side.bias.copy_(torch.tensor([0.3, -0.1]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    expected = torch.tensor([[0.5, 0.1, -0.2], [0.5, 0.1, -0.2]], dtype=out["direction_logits"].dtype)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
-    assert torch.all(out["hierarchical_public_direction_composition_margin"] == 1.0)
-
-
-def test_entry_v10_ctx_hierarchical_public_direction_margin_centered_composition():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_centered",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(0.2)
-        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    expected = torch.tensor([[0.4, 0.0, -0.2], [0.4, 0.0, -0.2]], dtype=out["direction_logits"].dtype)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
-    assert torch.all(out["hierarchical_public_direction_composition_margin"] == 1.0)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_centered"] == 1.0)
-
-
-def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_composition():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(0.2)
-        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    expected = torch.tensor([[0.2, -0.2, -0.2], [0.2, -0.2, -0.2]], dtype=out["direction_logits"].dtype)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
-    assert torch.all(out["hierarchical_public_direction_composition_margin"] == 1.0)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
-
-
-def test_entry_v10_ctx_hierarchical_public_flat_head_keeps_independent_flat_margin():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_flat_head=True,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(0.2)
-        model.head_public_flat.bias.fill_(0.7)
-        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    expected = torch.tensor([[0.2, -0.2, 0.7], [0.2, -0.2, 0.7]], dtype=out["direction_logits"].dtype)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.all(out["direction_logits"].argmax(dim=1) == 2)
-    assert out["public_flat_logit"].shape == (2, 1)
-    assert torch.all(out["hierarchical_public_flat_head"] == 1.0)
-    assert "head_public_flat.weight" in model.state_dict()
-
-
-def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_keeps_flat_threshold():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(-0.1)
-        model.head_public_side.bias.copy_(torch.tensor([10.0, -10.0]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    expected = torch.tensor([[-0.1, -20.1, 0.1], [-0.1, -20.1, 0.1]], dtype=out["direction_logits"].dtype)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.all(out["direction_logits"].argmax(dim=1) == 2)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
-
-
-def test_entry_v10_ctx_hierarchical_public_direction_margin_maxnorm_confidence_abstains_on_uncertain_side():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm_confidence",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(0.02)
-        model.head_public_side.bias.copy_(torch.tensor([0.0, 0.0]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    trade_margin = 0.02 - 0.08
-    expected = torch.tensor(
-        [
-            [trade_margin, trade_margin, -trade_margin],
-            [trade_margin, trade_margin, -trade_margin],
-        ],
-        dtype=out["direction_logits"].dtype,
+    model.set_direction_calibration(
+        2.0,
+        torch.tensor([1.25, -0.75, 0.40], dtype=torch.float32),
     )
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.all(out["direction_logits"].argmax(dim=1) == 2)
-    assert torch.all(out["hierarchical_public_direction_composition_margin"] == 1.0)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm_confidence"] == 1.0)
-
-
-def test_entry_v10_ctx_hierarchical_public_direction_can_detach_side_gradient():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm_confidence",
-        hierarchical_public_direction_detach_side_grad=True,
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
+    out = _forward(model, batch_size=4)
+    final_logits = out["direction_logits"]
+    expected_final = out["raw_direction_logits"] / 2.0 + torch.tensor(
+        [1.25, -0.75, 0.40], dtype=final_logits.dtype
     )
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_public_trade.bias.fill_(0.25)
-        model.head_public_side.bias.copy_(torch.tensor([0.4, -0.1]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-    model.zero_grad(set_to_none=True)
+    expected_pair = torch.stack(
+        (final_logits[:, :2].max(dim=1).values, final_logits[:, 2]), dim=1
+    )
+    assert torch.allclose(final_logits, expected_final, atol=1e-6)
+    assert torch.allclose(out["public_trade_flat_decision_logits"], expected_pair, atol=1e-6)
+    assert torch.equal(
+        out["public_trade_flat_decision_logits"].argmax(dim=1) == 0,
+        final_logits.argmax(dim=1) != 2,
+    )
 
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-    loss = out["direction_logits"][:, 0].sum()
+
+def test_public_direction_gradient_reaches_every_fused_evidence_head() -> None:
+    model = _make_model().train()
+    out = _forward(model, batch_size=4)
+    loss = torch.nn.functional.cross_entropy(
+        out["direction_logits"],
+        torch.tensor([0, 1, 2, 0]),
+    )
     loss.backward()
+    for parameter in (
+        model.head_direction.weight,
+        model.head_mtf_direction.weight,
+        model.head_path_quality.weight,
+        model.head_path_quality_log_var.weight,
+        model.head_mfe_first_n.weight,
+        model.head_tradable.weight,
+        model.head_bad_path.weight,
+        model.head_clean_edge.weight,
+        model.head_survival.weight,
+        model.head_trade.weight,
+        model.head_side.weight,
+        model.head_side_utility.weight,
+        model.head_side_bad_path.weight,
+        model.head_side_mae.weight,
+        model.head_side_validity.weight,
+        model.head_trendline_rail.weight,
+        model.head_tf_agreement.weight,
+        model.head_position_size.weight,
+        model.head_dip.weight,
+        model.head_forecast.weight,
+        model.head_timing.weight,
+        model.head_tail_risk.weight,
+        model.head_vol_forecast.weight,
+        model.evidence_fusion_in.weight,
+        model.evidence_fusion_out.weight,
+        model.regime_film[-1].weight,
+        model.cross_tf_out.weight,
+        model.specialist_out.weight,
+    ):
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all()
+        assert parameter.grad.abs().sum().item() > 0.0
 
-    assert torch.all(out["hierarchical_public_direction_detach_side_grad"] == 1.0)
-    assert model.head_public_trade.bias.grad is not None
-    assert torch.any(model.head_public_trade.bias.grad != 0.0)
-    side_grad = model.head_public_side.bias.grad
-    assert side_grad is None or torch.all(side_grad == 0.0)
 
-
-def test_entry_v10_ctx_public_trade_dir_margin_bridge_feeds_trade_flat_only():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        residual_scale=1.0,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_trade_dir_margin_bridge=True,
-        hierarchical_public_trade_dir_margin_bridge_scale=0.50,
-        hierarchical_public_trade_dir_margin_bridge_cap=0.25,
-        enable_hierarchical_public_side_head=True,
-    ).eval()
+def test_each_of_23_evidence_groups_changes_a_direction_class_margin() -> None:
+    torch.manual_seed(90210)
+    model = _make_model().eval()
     with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_direction.bias.copy_(torch.tensor([0.4, 0.2, -0.2]))
-        model.head_public_trade.bias.fill_(0.1)
-        model.head_public_side.bias.copy_(torch.tensor([1.3, 0.9]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-    snap_x.zero_()
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    bridge = torch.tensor(0.25 * torch.tanh(torch.tensor(1.0)).item(), dtype=out["direction_logits"].dtype)
-    expected_trade = 0.1 + bridge
-    expected = torch.tensor(
-        [
-            [expected_trade.item(), (expected_trade - 0.4).item(), (-expected_trade).item()],
-            [expected_trade.item(), (expected_trade - 0.4).item(), (-expected_trade).item()],
-        ],
-        dtype=out["direction_logits"].dtype,
-    )
-    assert torch.allclose(
-        out["public_trade_dir_margin_bridge"],
-        torch.full((2, 1), bridge.item(), dtype=out["direction_logits"].dtype),
-        atol=1e-6,
-    )
-    assert torch.allclose(out["public_trade_logit"], torch.full((2, 1), expected_trade.item()), atol=1e-6)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.all(out["hierarchical_public_trade_dir_margin_bridge"] == 1.0)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
+        out = _forward(model, batch_size=3)
+        evidence = {name: out[name] for name, _ in INPUTS}
+        baseline = model._fuse_direction_evidence(evidence)
+        baseline_centered = baseline - baseline.mean(dim=1, keepdim=True)
+        assert len(INPUTS) == 23
+        for name, _ in INPUTS:
+            ablated = dict(evidence)
+            ablated[name] = torch.zeros_like(evidence[name])
+            changed = model._fuse_direction_evidence(ablated)
+            changed_centered = changed - changed.mean(dim=1, keepdim=True)
+            assert not torch.allclose(
+                baseline_centered,
+                changed_centered,
+                atol=1e-9,
+                rtol=1e-7,
+            ), name
 
 
-def test_entry_v10_ctx_public_side_dir_margin_bridge_feeds_public_side_logits():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        residual_scale=1.0,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_public_flat_from_trade=True,
-        hierarchical_public_direction_composition="margin_maxnorm",
-        enable_hierarchical_public_trade_head=True,
-        enable_hierarchical_public_side_head=True,
-        enable_hierarchical_public_side_dir_margin_bridge=True,
-        hierarchical_public_side_dir_margin_bridge_scale=0.50,
-        hierarchical_public_side_dir_margin_bridge_cap=0.25,
-    ).eval()
+def test_report_only_path_calibration_cannot_change_direction_fusion() -> None:
+    model = _make_model().eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=3)
     with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-        model.head_direction.bias.copy_(torch.tensor([0.6, -0.2, 0.0]))
-        model.head_public_trade.bias.fill_(0.3)
-        model.head_public_side.bias.copy_(torch.tensor([0.0, 0.0]))
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=2)
-    snap_x.zero_()
-
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    bridge = torch.tensor(0.25 * torch.tanh(torch.tensor(0.8)).item(), dtype=out["direction_logits"].dtype)
-    expected_side_logits = torch.tensor(
-        [[bridge.item(), -bridge.item()], [bridge.item(), -bridge.item()]],
-        dtype=out["direction_logits"].dtype,
-    )
-    expected_base = torch.tensor(
-        [
-            [0.3, (0.3 - 2.0 * bridge).item(), -0.3],
-            [0.3, (0.3 - 2.0 * bridge).item(), -0.3],
-        ],
-        dtype=out["direction_logits"].dtype,
-    )
-    assert torch.allclose(out["public_side_dir_margin_bridge"], expected_side_logits, atol=1e-6)
-    assert torch.allclose(out["public_side_logits"], expected_side_logits, atol=1e-6)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected_base, atol=1e-6)
-    assert torch.all(out["hierarchical_public_side_dir_margin_bridge"] == 1.0)
-    assert torch.all(out["hierarchical_public_direction_composition_margin_maxnorm"] == 1.0)
+        before = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+        model.set_path_calibration(1.7, 0.4, 2.3, -0.6)
+        after = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+    assert torch.equal(before["path_quality_raw"], after["path_quality_raw"])
+    assert torch.equal(before["bad_path_logit_raw"], after["bad_path_logit_raw"])
+    assert torch.equal(before["raw_direction_logits"], after["raw_direction_logits"])
+    assert torch.equal(before["direction_logits"], after["direction_logits"])
+    assert not torch.equal(before["path_quality"], after["path_quality"])
+    assert not torch.equal(before["bad_path_logit"], after["bad_path_logit"])
 
 
-def test_entry_v10_ctx_side_validity_requires_hierarchy():
-    with pytest.raises(RuntimeError, match="SIDE_VALIDITY_HEAD_REQUIRES_HIERARCHICAL_ENTRY_HEADS"):
-        EntryV10CtxHybridTransformer(
-            seq_input_dim=SEQ_DIM,
-            snap_input_dim=SEQ_DIM,
-            seq_len=SEQ_LEN,
-            ctx_cont_dim=CTX_CONT_DIM,
-            ctx_cat_dim=CTX_CAT_DIM,
-            enable_side_validity_head=True,
-        )
+@pytest.mark.parametrize(
+    "scale_name",
+    (
+        "multi_tf_scale",
+        "specialist_fusion_scale",
+        "tf_input_scale_init_m5",
+        "tf_input_scale_init_m15",
+        "tf_input_scale_init_h1",
+        "tf_input_scale_init_h4",
+        "tf_input_scale_init_d1",
+    ),
+)
+def test_exact_architecture_rejects_zero_representation_scale(scale_name: str) -> None:
+    with pytest.raises(RuntimeError, match="MANDATORY_REPRESENTATION_SCALE_INVALID"):
+        _make_model(**{scale_name: 0.0})
 
 
-def test_entry_v10_ctx_trendline_rail_can_emit_early_failure_pockets():
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_DIM,
-        snap_input_dim=SEQ_DIM,
-        seq_len=SEQ_LEN,
-        ctx_cont_dim=CTX_CONT_DIM,
-        ctx_cat_dim=CTX_CAT_DIM,
-        enable_trendline_rail_head=True,
-        trendline_rail_output_dim=6,
-    ).eval()
-    seq_x, snap_x, ctx_cat, ctx_cont = _make_inputs(batch_size=3)
+def test_exact_architecture_requires_all_five_tf_inputs() -> None:
+    model = _make_model().eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs()
+    del mtf["seq_h4"]
+    with pytest.raises(TypeError, match="seq_h4"):
+        model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
 
-    assert out["trendline_rail_logits"].shape == (3, 6)
+@pytest.mark.parametrize(
+    "bad_key",
+    ("ctx_cat", "ctx_cont"),
+)
+def test_exact_architecture_rejects_wrong_context_width(bad_key: str) -> None:
+    model = _make_model().eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs()
+    if bad_key == "ctx_cat":
+        ctx_cat = torch.zeros(2, MODEL_NATIVE_CTX_CAT_DIM + 1, dtype=torch.long)
+        pattern = "CTX_CAT_DIM_MISMATCH"
+    else:
+        ctx_cont = torch.zeros(2, MODEL_NATIVE_CTX_CONT_DIM + 1)
+        pattern = "CTX_CONT_DIM_MISMATCH"
+    with pytest.raises(RuntimeError, match=pattern):
+        model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+
+
+def test_exact_architecture_eval_is_deterministic() -> None:
+    model = _make_model().eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=1)
+    first = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+    second = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+    for key in first:
+        assert torch.allclose(first[key], second[key]), key
+
+
+def test_model_and_config_expose_no_architecture_disable_switches() -> None:
+    model_parameters = inspect.signature(EntryV10CtxHybridTransformer).parameters
+    assert not [name for name in model_parameters if name.startswith("enable_")]
+    config_fields = EntryV10CtxHybridTransformer.__init__.__annotations__
+    assert not [name for name in config_fields if name.startswith("enable_")]

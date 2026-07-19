@@ -1,6 +1,7 @@
 from collections import Counter
 
 import numpy as np
+import pytest
 
 from gx1.features.entry_mtf_confluence_v1 import (
     MTF_CONFLUENCE_FEATURE_NAMES,
@@ -171,20 +172,30 @@ def test_mtf_confluence_layer_builds_family_agreement_features() -> None:
     assert out[4, idx["session_regime.mtf_confluence_abstain_score"]] > out[2, idx["session_regime.mtf_confluence_abstain_score"]]
 
 
-def test_mtf_confluence_layer_sanitizes_nonfinite_inputs() -> None:
+def test_mtf_confluence_layer_rejects_nonfinite_inputs() -> None:
     names = list(MTF_CONFLUENCE_SOURCE_FIELDS)
-    x = _matrix(names)
-    source_idx = {name: i for i, name in enumerate(names)}
-    x[1, source_idx["snap._v1_ema_diff"]] = np.nan
-    x[2, source_idx["ctx_cont._v1h1_ema_diff"]] = np.inf
-    x[3, source_idx["ctx_cont.spread_bps"]] = -np.inf
-    x[4, source_idx["ctx_cont.atr_bps"]] = 0.0
+    for field, value in (
+        ("snap._v1_ema_diff", np.nan),
+        ("ctx_cont._v1h1_ema_diff", np.inf),
+        ("ctx_cont.spread_bps", -np.inf),
+    ):
+        x = _matrix(names)
+        x[2, names.index(field)] = value
+        with pytest.raises(RuntimeError, match="MTF_CONFLUENCE_SOURCE_NONFINITE"):
+            build_entry_mtf_confluence_layer(x, names)
 
-    out, out_names = build_entry_mtf_confluence_layer(x, names)
 
-    assert tuple(out_names) == EXPECTED_MTF_CONFLUENCE_FEATURE_NAMES
-    assert out.shape == (8, 32)
-    assert np.isfinite(out).all()
+def test_mtf_confluence_layer_rejects_invalid_atr_and_spread() -> None:
+    names = list(MTF_CONFLUENCE_SOURCE_FIELDS)
+    zero_atr = _matrix(names)
+    zero_atr[4, names.index("ctx_cont.atr_bps")] = 0.0
+    with pytest.raises(RuntimeError, match="MTF_CONFLUENCE_ATR_BPS_NOT_POSITIVE"):
+        build_entry_mtf_confluence_layer(zero_atr, names)
+
+    negative_spread = _matrix(names)
+    negative_spread[4, names.index("ctx_cont.spread_bps")] = -0.1
+    with pytest.raises(RuntimeError, match="MTF_CONFLUENCE_SPREAD_BPS_NEGATIVE"):
+        build_entry_mtf_confluence_layer(negative_spread, names)
 
 
 def test_mtf_confluence_layer_does_not_read_future_rows() -> None:
@@ -200,9 +211,9 @@ def test_mtf_confluence_layer_does_not_read_future_rows() -> None:
         np.testing.assert_allclose(mutated[:future_start], baseline[:future_start], rtol=0.0, atol=0.0)
 
 
-def test_mtf_confluence_source_contract_aliases_and_routing() -> None:
+def test_mtf_confluence_source_contract_requires_exact_names_and_routes_outputs() -> None:
     assert missing_mtf_confluence_source_fields(MTF_CONFLUENCE_SOURCE_FIELDS) == []
-    assert missing_mtf_confluence_source_fields(
+    alias_substitutions = missing_mtf_confluence_source_fields(
         [
             "spread_bps" if name == "ctx_cont.spread_bps" else
             "spread_bucket" if name == "ctx_cat.spread_bucket" else
@@ -210,7 +221,21 @@ def test_mtf_confluence_source_contract_aliases_and_routing() -> None:
             name
             for name in MTF_CONFLUENCE_SOURCE_FIELDS
         ]
-    ) == []
+    )
+    assert set(alias_substitutions) == {
+        "snap._v1_ema_diff",
+        "ctx_cont.spread_bps",
+        "ctx_cat.spread_bucket",
+    }
+    alias_names = [
+        "spread_bps" if name == "ctx_cont.spread_bps" else name
+        for name in MTF_CONFLUENCE_SOURCE_FIELDS
+    ]
+    with pytest.raises(RuntimeError, match="MTF_CONFLUENCE_SOURCE_FIELDS_MISSING"):
+        build_entry_mtf_confluence_layer(
+            _matrix(list(MTF_CONFLUENCE_SOURCE_FIELDS)),
+            alias_names,
+        )
     missing = missing_mtf_confluence_source_fields(
         name for name in MTF_CONFLUENCE_SOURCE_FIELDS if name != "ctx_cont._v1h4_slope5"
     )

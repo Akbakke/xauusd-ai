@@ -1,7 +1,8 @@
 """
 XGB_SIGNAL_BRIDGE_V3 contract (SSoT for V10 v3 entry transformer + XGB v5).
 
-Built on signal_bridge_v2, adapted for canonical_v3:
+Historically derived from the retired signal_bridge_v2 (module deleted; git
+history retains it), adapted for canonical_v3:
 
   Δ vs v2 — ctx_cont (V10 macro context):
     DROP from v2 (3 features pruned in canonical_v3):
@@ -39,13 +40,13 @@ Hard rules (unchanged from v1/v2):
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import dataclass
 from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 
 from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
+from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 
 
 SIGNAL_BRIDGE_ID_V3 = "XGB_SIGNAL_BRIDGE_V3"
@@ -225,11 +226,9 @@ ORDERED_CTX_CONT_GROUP_A_PARITY: List[str] = [
     "dist_to_d1_hi_atr", "dist_to_d1_lo_atr",
 ]
 
-# 2026-05-26 — DIP/STRUCT parity extension (36). Gives V10 the SAME explicit
-# entry-structure features the Entry-IQL acts on (dip-confirmed/proximity per TF +
-# HH/HL/LH/LL continuation/pullback/bounce/depth + cross-TF combos), computed by the
-# SAME augment_forward_outcome_v2._dip_struct_5tf — full V10↔IQL symmetry. Names +
-# subset MUST match materialize_build_entry_iql_v2.NUMERIC_STATE_COLS_DIP/STRUCT.
+# DIP/STRUCT parity extension (36). Gives model-native Entry explicit
+# dip/proximity and HH/HL/LH/LL continuation/pullback/bounce/depth evidence,
+# plus cross-TF combinations, from augment_forward_outcome_v2._dip_struct_5tf.
 ORDERED_CTX_CONT_DIP_STRUCT: List[str] = [
     # DIP (8) — dip_proximity_m5/m15 dropped (saturated); confirmed kept for all 5
     "dip_confirmed_m5_v3", "dip_confirmed_m15_v3",
@@ -259,20 +258,9 @@ ORDERED_CTX_CONT_DIP_STRUCT: List[str] = [
 # gx1.features.entry_smart_context in builder + batch/live inference.
 ORDERED_CTX_CONT_ENTRY_SMART_DERIVED: List[str] = list(ENTRY_SMART_CTX_FEATURE_NAMES)
 
-# REGIME_V4 tail (2026-06-03 regime-everywhere wave): 18 multi-TF regime CONDITIONING +
-# regime-CHANGE-DETECTION features (gx1.features.regime_v4_features — the SAME list the exit
-# EXIT_IO_V8 uses; one truth). ENV-CONDITIONAL: appended when GX1_REGIME_V4=1. Phase 0a/P1
-# (2026-06-04, O3=A): DEFAULT FLIPPED "0"->"1" — regime is now part of the STANDARD contract
-# for every new build/retrain. Set GX1_REGIME_V4=0 ONLY to reproduce the regime-off dim
-# cement EXACTLY (the prebuilt carries the REGIME_V4 cols only when the same flag is set, so the
-# default-ON + this escape-hatch keeps old contract variants reproducible). The V10 loader is
-# bundle-meta-driven (uses each bundle's own ctx_cont_dim), so prior and current contract dims
-# coexist when loaded with their matching code/artifacts.
-if os.environ.get("GX1_REGIME_V4", "1") == "1":
-    from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES as _REGIME_V4_NAMES
-    ORDERED_CTX_CONT_REGIME_V4: List[str] = list(_REGIME_V4_NAMES)
-else:
-    ORDERED_CTX_CONT_REGIME_V4 = []
+# REGIME_V4 tail: 18 multi-TF regime conditioning/change-detection features.
+# This is mandatory in the active contract and shares its exact owner with EXIT_IO_V8.
+ORDERED_CTX_CONT_REGIME_V4: List[str] = list(REGIME_V4_FEATURE_NAMES)
 
 ORDERED_CTX_CONT_NAMES_V3: List[str] = (
     ORDERED_CTX_CONT_V1_PREFIX
@@ -283,7 +271,7 @@ ORDERED_CTX_CONT_NAMES_V3: List[str] = (
     + ORDERED_CTX_CONT_ENTRY_SMART_DERIVED
     + ORDERED_CTX_CONT_REGIME_V4
 )
-CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # 124 (regime-off) or 142 (GX1_REGIME_V4=1)
+CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # exact active contract: 142
 
 
 # ---------------------------------------------------------------------------
@@ -303,13 +291,11 @@ _CTX_CAT_ALL_V3: List[str] = [
 # D1_dist_from_ema200_atr (ctx_cont) + the 18 MULTI-TF REGIME_V4 features (per-TF regime class
 # m15/h1/h4/d1 + trend-age + cross-TF agreement) — "all smart, no hardcoded bucket". Multi-TF is
 # UNAFFECTED (ctx_cat is a separate shared-vocab embedding from the seq branches; REGIME_V4 adds
-# per-TF regime). Gated on the SAME GX1_REGIME_V4 flag as the ctx_cont append so the 6-cat cement
-# (flag=0, launcher-pinned for live) stays reproducible + no relaunch dim-mismatch. ctx_cat 6->5.
-if os.environ.get("GX1_REGIME_V4", "1") == "1":
-    ORDERED_CTX_CAT_NAMES_V3: List[str] = [c for c in _CTX_CAT_ALL_V3 if c != "trend_regime_id"]
-else:
-    ORDERED_CTX_CAT_NAMES_V3 = list(_CTX_CAT_ALL_V3)
-CTX_CAT_DIM_V3 = len(ORDERED_CTX_CAT_NAMES_V3)  # 5 (GX1_REGIME_V4=1) or 6 (cement)
+# per-TF regime). The degenerate legacy trend bucket is never part of the active contract.
+ORDERED_CTX_CAT_NAMES_V3: List[str] = [
+    c for c in _CTX_CAT_ALL_V3 if c != "trend_regime_id"
+]
+CTX_CAT_DIM_V3 = len(ORDERED_CTX_CAT_NAMES_V3)  # exact active contract: 5
 
 
 # ---------------------------------------------------------------------------
@@ -453,16 +439,11 @@ CONTRACT = SignalBridgeContract(
 )
 
 
-def _is_truth_or_smoke() -> bool:
-    mode = os.getenv("GX1_RUN_MODE", "").upper()
-    return os.getenv("GX1_TRUTH_MODE", "0") == "1" or mode in {"TRUTH", "SMOKE"}
-
-
 def validate_seq_signal(seq_x: np.ndarray, *, context: str = "unknown") -> None:
     if seq_x is None:
         raise RuntimeError(f"[SIGNAL_BRIDGE_FAIL_V3] seq_x is None (context={context})")
     arr = np.asarray(seq_x)
-    if _is_truth_or_smoke() and arr.dtype not in (np.float32, np.float64):
+    if arr.dtype not in (np.float32, np.float64):
         raise RuntimeError(
             f"[SIGNAL_BRIDGE_FAIL_V3] seq_x invalid dtype={arr.dtype} (context={context})"
         )
@@ -487,7 +468,7 @@ def validate_snap_signal(snap_x: np.ndarray, *, context: str = "unknown") -> Non
     if snap_x is None:
         raise RuntimeError(f"[SIGNAL_BRIDGE_FAIL_V3] snap_x is None (context={context})")
     arr = np.asarray(snap_x)
-    if _is_truth_or_smoke() and arr.dtype not in (np.float32, np.float64):
+    if arr.dtype not in (np.float32, np.float64):
         raise RuntimeError(
             f"[SIGNAL_BRIDGE_FAIL_V3] snap_x invalid dtype={arr.dtype} (context={context})"
         )
@@ -509,8 +490,6 @@ def validate_snap_signal(snap_x: np.ndarray, *, context: str = "unknown") -> Non
 
 
 def validate_contract_in_truth() -> None:
-    if not _is_truth_or_smoke():
-        return
     if not ORDERED_FIELDS or len(set(ORDERED_FIELDS)) != len(ORDERED_FIELDS):
         raise RuntimeError("[SIGNAL_BRIDGE_FAIL_V3] ORDERED_FIELDS invalid")
     if SEQ_SIGNAL_DIM <= 0 or SNAP_SIGNAL_DIM <= 0:
@@ -550,8 +529,6 @@ def validate_bundle_ctx_contract_in_strict(
     *,
     context: str = "bundle_meta",
 ) -> None:
-    if not _is_truth_or_smoke():
-        return
     if expected_ctx_cont_dim != N_CTX_CONT_EXTENDED:
         raise RuntimeError(
             f"[SIGNAL_BRIDGE_FAIL_V3] {context} expected_ctx_cont_dim={expected_ctx_cont_dim} "

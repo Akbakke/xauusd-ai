@@ -54,6 +54,10 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from gx1.features.model_native_market_context_v1 import (
+    derive_observed_spread_bps,
+)
+
 from gx1.contracts.signal_bridge_v1 import (
     ORDERED_CTX_CONT_NAMES_EXTENDED,
     ORDERED_CTX_CAT_NAMES_EXTENDED,
@@ -108,11 +112,8 @@ def get_prebuilt_ctx_contract_columns(
             f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
         )
     # ctx_cat ONE-TRUTH with signal_bridge_v3 (the V10/V3 builders' + live serve contract).
-    # Under GX1_REGIME_V4=1 the cat set DROPS the degenerate trend_regime_id and KEEPS
-    # H4_trend_sign_cat (5 names). signal_bridge_v1's EXTENDED[:5] does the OPPOSITE (keeps
-    # trend_regime_id, drops H4) → the V10 builder fail-closes CTX_CAT_MISSING_IN_BASE28:
-    # 'H4_trend_sign_cat'. Pull the v3 contract list directly so build==train==serve.
-    if os.environ.get("GX1_REGIME_V4", "1") == "1" and ctx_cat_dim == 5:
+    # The active five-cat surface is immutable and comes from signal_bridge_v3.
+    if ctx_cat_dim == 5:
         from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3 as _CAT_V3
         required_cat = list(_CAT_V3)
     else:
@@ -236,7 +237,7 @@ def _resample_ohlc(df: pd.DataFrame, rule: str) -> pd.DataFrame:
 def _align_last_closed(ts_m5: pd.DatetimeIndex, series_htf: pd.Series, shift: pd.Timedelta) -> pd.Series:
     """
     Align HTF series to M5 timestamps with no lookahead:
-      value(t) = HTF value at the last HTF timestamp <= (t - shift)
+      value(t) = HTF value at the last HTF timestamp <= (t + 5min - shift)
     """
     if ts_m5.empty:
         return pd.Series(dtype=float)
@@ -244,8 +245,10 @@ def _align_last_closed(ts_m5: pd.DatetimeIndex, series_htf: pd.Series, shift: pd
     if series_htf is None or len(series_htf) == 0:
         return pd.Series(index=ts_m5, dtype=float)
 
-    # left: t - shift
-    left_ts = (ts_m5.to_series(index=ts_m5) - shift).rename("_left")
+    # M5 timestamps label the bar start; the decision observes its close at t+5min.
+    left_ts = (
+        ts_m5.to_series(index=ts_m5) + pd.Timedelta(minutes=5) - shift
+    ).rename("_left")
     left_df = pd.DataFrame({"_left": left_ts, "_orig": ts_m5.to_series(index=ts_m5)}, index=ts_m5)
     left_df = left_df.sort_values("_left")
 
@@ -272,26 +275,9 @@ def _finite_or_fail(arr: np.ndarray, *, label: str) -> None:
 
 
 def _derive_spread_bps_from_available(df: pd.DataFrame) -> np.ndarray:
-    """Derive at-bar spread bps from the best causal fields available."""
-    if "spread_bps" in df.columns:
-        spread_bps = df["spread_bps"].to_numpy(dtype=float)
-        _finite_or_fail(spread_bps, label="spread_bps(existing)")
-        return np.maximum(spread_bps, 0.0).astype(float)
-    if "bid_close" in df.columns and "ask_close" in df.columns:
-        bid = df["bid_close"].to_numpy(dtype=float)
-        ask = df["ask_close"].to_numpy(dtype=float)
-        bid = np.where(bid > 0, bid, np.nan)
-        spread_bps = (ask - bid) / bid * 1e4
-        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
-        return np.maximum(spread_bps, 0.0).astype(float)
-    if "spread" in df.columns and "close" in df.columns:
-        close = df["close"].to_numpy(dtype=float)
-        close = np.where(close > 0, close, np.nan)
-        spread = df["spread"].to_numpy(dtype=float)
-        spread_bps = (spread / close) * 1e4
-        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
-        return np.maximum(spread_bps, 0.0).astype(float)
-    return np.zeros(len(df), dtype=float)
+    """Backward import name for the strict shared model-native primitive."""
+
+    return derive_observed_spread_bps(df)
 
 
 def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
@@ -327,6 +313,7 @@ def run_add_ctx_cont_columns(
     ctx_cont_dim: int = 4,
     ctx_cat_dim: int = 5,
     tape_root: Optional[Path] = None,
+    cv3_cross_source: Optional[Path] = None,
     diagnostics_path: Optional[Path] = None,
 ) -> None:
     """
@@ -348,6 +335,9 @@ def run_add_ctx_cont_columns(
     prebuilt_path = Path(prebuilt_path).resolve()
     output_parquet = Path(output_parquet).resolve()
     raw_m5_paths = [Path(p).resolve() for p in (raw_m5_paths or [])]
+    cv3_cross_source = (
+        Path(cv3_cross_source).resolve() if cv3_cross_source is not None else None
+    )
 
     if not prebuilt_path.exists():
         raise RuntimeError(f"[CTX_INPUT_FAIL] prebuilt not found: {prebuilt_path}")
@@ -370,11 +360,8 @@ def run_add_ctx_cont_columns(
             f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
         )
     # ctx_cat ONE-TRUTH with signal_bridge_v3 (the V10/V3 builders' + live serve contract).
-    # Under GX1_REGIME_V4=1 the cat set DROPS the degenerate trend_regime_id and KEEPS
-    # H4_trend_sign_cat (5 names). signal_bridge_v1's EXTENDED[:5] does the OPPOSITE (keeps
-    # trend_regime_id, drops H4) → the V10 builder fail-closes CTX_CAT_MISSING_IN_BASE28:
-    # 'H4_trend_sign_cat'. Pull the v3 contract list directly so build==train==serve.
-    if os.environ.get("GX1_REGIME_V4", "1") == "1" and ctx_cat_dim == 5:
+    # The active five-cat surface is immutable and comes from signal_bridge_v3.
+    if ctx_cat_dim == 5:
         from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3 as _CAT_V3
         required_cat = list(_CAT_V3)
     else:
@@ -390,6 +377,10 @@ def run_add_ctx_cont_columns(
     pre_end = df_pre.index.max()
     warmup_start = pre_start - pd.Timedelta(days=400)
 
+    # volume is carried through because the REGIME_V4 block requires the exact
+    # raw M5 OHLCV surface; _resample_ohlc aggregates an explicit OHLC dict, so
+    # the extra column is inert for the HTF paths.
+    _raw_m5_required = ["open", "high", "low", "close", "volume"]
     raws = []
     for p in raw_m5_paths:
         if p.is_dir():
@@ -397,14 +388,14 @@ def run_add_ctx_cont_columns(
                 tape_root=p,
                 t_min=warmup_start,
                 t_max=pre_end,
-                required_cols=["open", "high", "low", "close"],
+                required_cols=_raw_m5_required,
             )
             df = _ensure_dt_index(df, name=f"raw_m5_dir:{p.name}")
         else:
             df = pd.read_parquet(p)
             df = _ensure_dt_index(df, name=f"raw_m5:{p.name}")
-        _require_cols(df, ["open", "high", "low", "close"], name=f"raw_m5:{p.name}")
-        raws.append(df[["open", "high", "low", "close"]])
+        _require_cols(df, _raw_m5_required, name=f"raw_m5:{p.name}")
+        raws.append(df[_raw_m5_required])
     df_m5 = pd.concat(raws, axis=0).sort_index()
 
     log.info(
@@ -451,7 +442,7 @@ def run_add_ctx_cont_columns(
     # CONT: HTF core (D1_dist_from_ema200_atr, H1_range_compression_ratio)
     # ------------------------------------------------------------
     df_d1 = _resample_ohlc(df_m5, "1D")
-    df_h1 = _resample_ohlc(df_m5, "1H")
+    df_h1 = _resample_ohlc(df_m5, "1h")
 
     if len(df_d1) < 220:
         raise RuntimeError("[CTX_WARMUP_FAIL] insufficient D1 bars for EMA200 warmup")
@@ -462,10 +453,12 @@ def run_add_ctx_cont_columns(
     d1_ema200 = _ema(d1_mid, 200)
     d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14).ffill()
     d1_dist = (d1_mid - d1_ema200) / np.maximum(d1_atr14, ATR_EPS)
+    d1_dist.iloc[:219] = np.nan
 
     h1_atr14 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 14).ffill()
     h1_atr100 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 100).ffill()
     h1_comp = h1_atr14 / np.maximum(h1_atr100, ATR_EPS)
+    h1_comp.iloc[:119] = np.nan
 
     # no lookahead alignment
     d1_aligned = _align_last_closed(df_pre.index, d1_dist, pd.Timedelta(days=1))
@@ -498,6 +491,7 @@ def run_add_ctx_cont_columns(
 
         atr_pctl252 = d1_atr14_for_pctl.rolling(252, min_periods=252).apply(_pctl_last, raw=True)
         atr_pctl252 = atr_pctl252.ffill()
+        atr_pctl252.iloc[:269] = np.nan
         atr_pctl_aligned = _align_last_closed(df_pre.index, atr_pctl252, pd.Timedelta(days=1))
         if atr_pctl_aligned.isna().any():
             raise RuntimeError("[CTX_ALIGN_FAIL] D1_atr_percentile_252 has NaN after alignment")
@@ -510,6 +504,7 @@ def run_add_ctx_cont_columns(
         m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14).ffill()
         m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100).ffill()
         m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
+        m15_comp.iloc[:199] = np.nan
         m15_aligned = _align_last_closed(df_pre.index, m15_comp, pd.Timedelta(minutes=15))
         if m15_aligned.isna().any():
             raise RuntimeError("[CTX_ALIGN_FAIL] M15_range_compression_ratio has NaN after alignment")
@@ -678,28 +673,13 @@ def run_add_ctx_cont_columns(
     # Tradable flag (policy can still restrict to EU/OVERLAP/US)
     df_pre["session_tradable"] = (df_pre["session_id"] != 0).astype(np.int64)
 
-    # trend_regime_id: 3-bin trend regime.
-    # 2026-06-03 (BIG-8): the price_vs_ema50_atr basis was DEGENERATE — constant=1 across all
-    # 332k BASE80 rows (price_vs_ema50_atr absent/always in-band) -> regime-conditioning was a
-    # no-op. GX1_TREND_REGIME_FROM_D1=1 buckets by the TRUE D1 trend/overextension signal
-    # D1_dist_from_ema200_atr (one-truth: computed identically in build + v12_ctx_augment_live),
-    # which actually varies and captures the strong-uptrend overextension that drove the -2000.
-    # Phase 0a/E5 (2026-06-04, O3=A): DEFAULT FLIPPED "0"->"1" — the D1-based trend regime
-    # is now PERMANENT for every new build/retrain (the degenerate price_vs_ema50_atr basis is
-    # retired). Set GX1_TREND_REGIME_FROM_D1=0 ONLY to reproduce the 105-dim cement (whose
-    # ctx_cat embedding was trained on the old values). Mirror EXACTLY in v12_ctx_augment_live.py
-    # (serve) at the regime-robust retrain's cement (P3, post-cement).
-    import os as _os
-    if _os.environ.get("GX1_TREND_REGIME_FROM_D1", "1") == "1" and "D1_dist_from_ema200_atr" in df_pre.columns:
-        d = df_pre["D1_dist_from_ema200_atr"].to_numpy(dtype=float)
-        d = np.where(np.isfinite(d), d, 0.0)
-        trend_regime_id = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
-    elif "price_vs_ema50_atr" in df_pre.columns:
-        p = df_pre["price_vs_ema50_atr"].to_numpy(dtype=float)
-        p = np.where(np.isfinite(p), p, 0.0)
-        trend_regime_id = np.where(p < -0.5, 0, np.where(p <= 0.5, 1, 2)).astype(np.int64)
-    else:
-        trend_regime_id = np.ones(len(df_pre), dtype=np.int64)
+    # Legacy trend_regime_id has one immutable source: exact D1 distance.
+    # price_vs_ema50_atr remains separate continuous learned evidence.
+    if "D1_dist_from_ema200_atr" not in df_pre.columns:
+        raise RuntimeError("[CTX_TREND_REGIME] exact D1_dist_from_ema200_atr source missing")
+    d = df_pre["D1_dist_from_ema200_atr"].to_numpy(dtype=float)
+    _finite_or_fail(d, label="trend_regime_id.D1_dist_from_ema200_atr")
+    trend_regime_id = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
     df_pre["trend_regime_id"] = trend_regime_id
 
     # vol_regime_id / atr_bucket: 0..4 from atr_bps percentile rank
@@ -713,32 +693,27 @@ def run_add_ctx_cont_columns(
 
     # H4_trend_sign_cat (optional): sign(mid - ema50) on H4, mapped to {0,1,2} for {-1,0,+1}
     # R4 (2026-06-04): compute H4_trend_sign_cat whenever it's in the (possibly trend_regime_id-
-    # dropped) ctx_cat contract — NOT a hardcoded `ctx_cat_dim == 6`. When GX1_REGIME_V4=1 the
+    # dropped) ctx_cat contract — NOT a hardcoded `ctx_cat_dim == 6`. The active
     # contract is 5 names (trend_regime_id dropped) but H4 is STILL required (it's the 5th), so a
     # 5-dim build must still compute it. Contract-driven, robust to the dim change.
     if CTX_CAT_COL_H4_TREND_SIGN in required_cat:
-        df_h4 = _resample_ohlc(df_m5, "4H")
+        df_h4 = _resample_ohlc(df_m5, "4h")
         if len(df_h4) < 80:
             raise RuntimeError("[CTX_WARMUP_FAIL] insufficient H4 bars for EMA50 warmup")
         h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
         h4_ema50 = _ema(h4_mid, 50)
-        diff = (h4_mid - h4_ema50).to_numpy(dtype=float)
-        sign = np.sign(np.where(np.isfinite(diff), diff, 0.0)).astype(np.int64)  # -1/0/+1
-        # convert to 0/1/2
-        sign_cat = (sign + 1).astype(np.int64)
-        sign_series = pd.Series(sign_cat, index=df_h4.index, dtype="int64")
+        diff = h4_mid - h4_ema50
+        sign_series = (np.sign(diff) + 1.0).astype(np.float64)
+        sign_series.iloc[:79] = np.nan
         h4_aligned = _align_last_closed(df_pre.index, sign_series, pd.Timedelta(hours=4))
         if h4_aligned.isna().any():
             raise RuntimeError("[CTX_ALIGN_FAIL] H4_trend_sign_cat has NaN after alignment")
         df_pre[CTX_CAT_COL_H4_TREND_SIGN] = h4_aligned.to_numpy(dtype=np.int64)
 
-    # Ensure cat columns are int and non-NaN
-    for c in ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim]:
-        if c not in df_pre.columns:
-            continue
-        if df_pre[c].isna().any():
-            # This should not happen, but TRUTH style: hard-fill to 0 then cast.
-            df_pre[c] = df_pre[c].fillna(0)
+    # Ensure the exact active categorical contract is observed and integral.
+    for c in required_cat:
+        if c not in df_pre.columns or df_pre[c].isna().any():
+            raise RuntimeError(f"[PREBUILT_CTX_CAT] exact finite categorical source missing: {c}")
         df_pre[c] = df_pre[c].astype(np.int64)
 
     # ------------------------------------------------------------
@@ -753,74 +728,77 @@ def run_add_ctx_cont_columns(
 
     log.info("[PREBUILT_CTX_CONT_PROOF] ctx_cont_dim=%d names=%s", ctx_cont_dim, required_cont)
 
-    # REGIME_V4 (2026-06-03): emit multi-TF regime CONDITIONING + 'regime is shifting'
-    # CHANGE-DETECTION features. Reuse-first — per-TF regime classes / trend-age / ema-stack are
-    # already in the prebuilt (htf_features), this derives the cross-TF + transition signals on
-    # top. ONE-TRUTH: identical gx1.features.regime_v4_features.add_regime_v4_features is called
-    # live in v12_ctx_augment_live.py (cannot drift). Phase 0a/E5 (2026-06-04, O3=A): DEFAULT
-    # FLIPPED "0"->"1" — REGIME_V4 is emitted on every new build/retrain. The cols are inert
-    # until the contract bump (P1: ctx_cont 105->121) + V10 retrain pick them up. Set
-    # GX1_REGIME_V4=0 ONLY to reproduce the 105-dim cement. Fail-closed (raises on missing sources).
-    _regime_v4_emitted = _os.environ.get("GX1_REGIME_V4", "1") == "1"
-    if _regime_v4_emitted:
-        from gx1.features.regime_v4_features import add_regime_v4_features
-        df_pre = df_pre.sort_index()  # shift()/run-length require time-ascending order
-        # One-truth (2026-06-05): SELF-ATTACH the 12 {tf}_*_v2 REGIME_V4 SOURCE cols FRESH via the SHARED
-        # htf_features.attach_v2_mtf_per_bar_scalars — the SAME projection the V3 builder
-        # (materialize_build_v3_training_dataset_v2.py:336-353) + live serve
-        # (v12_state_from_prebuilt._augment_cv3_with_v2_mtf_scalars) use → build==serve by construction.
-        # Uses df_m5 (FULL raw M5 incl. the 400-day HTF warmup) projected onto df_pre's timestamps.
-        # Without this, add_regime_v4_features raises [REGIME_V4 missing sources] (add_ctx_cont used to
-        # assume a prior step provided them — the 2026-06-05 rebuild gap).
-        from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
-        _rv4_m5 = df_m5[["open", "high", "low", "close"]].astype(np.float64).copy()
-        _rv4_m5["volume"] = (df_m5["volume"].astype(np.float64) if "volume" in df_m5.columns else 1.0)
-        # FULL 9-source per-TF map (2026-06-05): mirrors the base80 builder's self-attach so the
-        # output carries EVERY {tf}_*_v2 the base80 XGB contract needs (the downstream V10/V3 builders
-        # run XGB inference on THIS parquet -> fail-closed SOURCE_FEATURES_MISSING without them). The
-        # regime features (regime_class_id/trend_age_bars_norm/ema_stack_aligned) are a subset; add the
-        # 6 non-regime sources (ema20_slope_atr/mom_5_atr/mom_20_atr/rsi14_centered/atr_bps_14/lower_wick_pct).
-        _rv4_src_map = [
-            ("ema20_slope_atr", "ema20_slope_atr"),
-            ("ema_stack_aligned", "ema_stack_aligned_v2"),
-            ("regime_class_id", "regime_class_id"),
-            ("trend_age_bars_norm", "trend_age_bars_norm"),
-            ("mom_5_atr", "mom_5_atr"),
-            ("mom_20_atr", "mom_20_atr"),
-            ("rsi14_centered", "rsi14_centered"),
-            ("atr_bps_14", "atr_bps_14"),
-            ("lower_wick_pct", "lower_wick_pct"),
-        ]
-        _rv4_ts_ns = df_pre.index.values.astype("datetime64[ns]").astype(np.int64)
-        _attached = _attach_v2(_rv4_m5, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1", "m5"),
-                               frozenset({("d1", "lower_wick_pct")}))  # m5 ADDED 2026-06-05 (regime all-5; m5_regime_class_id_v2 etc.)
-        for _c, _v in _attached.items():
-            df_pre[_c] = _v
-        log.info("[REGIME_V4] self-attached %d {tf}_*_v2 sources fresh (one-truth w/ V3 builder + serve)", len(_attached))
-        add_regime_v4_features(df_pre)
-        log.info("[REGIME_V4] build-side: emitted multi-TF regime + change-detection features")
+    # REGIME_V4 is an immutable active transform, never an environment-selected surface.
+    from gx1.features.regime_v4_features import (
+        REGIME_V4_DERIVED_COLS,
+        REGIME_V4_SOURCE_COLS,
+        add_regime_v4_features,
+    )
+    df_pre = df_pre.sort_index()
+    from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
+    _rv4_required = ["open", "high", "low", "close", "volume"]
+    _rv4_missing = [name for name in _rv4_required if name not in df_m5.columns]
+    if _rv4_missing:
+        raise RuntimeError(f"[REGIME_V4] exact raw M5 OHLCV source missing: {_rv4_missing}")
+    _rv4_m5 = df_m5[_rv4_required].astype(np.float64).copy()
+    _rv4_src_map = [
+        ("ema20_slope_atr", "ema20_slope_atr"),
+        ("ema_stack_aligned", "ema_stack_aligned_v2"),
+        ("regime_class_id", "regime_class_id"),
+        ("trend_age_bars_norm", "trend_age_bars_norm"),
+        ("mom_5_atr", "mom_5_atr"),
+        ("mom_20_atr", "mom_20_atr"),
+        ("rsi14_centered", "rsi14_centered"),
+        ("atr_bps_14", "atr_bps_14"),
+        ("lower_wick_pct", "lower_wick_pct"),
+    ]
+    _attached = _attach_v2(
+        _rv4_m5,
+        df_pre.index.asi8,
+        _rv4_src_map,
+        ("m15", "h1", "h4", "d1", "m5"),
+        frozenset({("d1", "lower_wick_pct")}),
+    )
+    for _c, _v in _attached.items():
+        df_pre[_c] = _v
+    add_regime_v4_features(df_pre)
+    _regime_trim_required = list(REGIME_V4_SOURCE_COLS) + list(REGIME_V4_DERIVED_COLS)
+    _regime_v4_emitted = True
+    log.info("[REGIME_V4] emitted immutable causal regime features")
 
-        # cv3-augment cross/cyclic feats the base80 contract needs but canonical_v2 lacks
-        # (smc_premium_state, m5h1_momentum, hour/dow cyclic). One-truth: merge the values from the
-        # pinned clean cv3 (recomputing risks a formula mismatch vs train==serve), keyed on time.
-        _need_cross = ["hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state", "m5h1_momentum"]
-        _cv3_cross = _os.environ.get(
-            "GX1_XGB_CV3_FOR_CROSSFEATS",
-            "/home/andre2/GX1_DATA/data/data/prebuilt/_PINNED_FASE2B_20260605/xauusd_m5_CANONICAL_V3_2020_2026.parquet")
-        if Path(_cv3_cross).exists() and any(_n not in df_pre.columns for _n in _need_cross):
-            import pyarrow.parquet as _pq
-            _cv3_schema_cols = set(_pq.read_schema(_cv3_cross).names)
-            _read_cols = (["time"] + _need_cross) if "time" in _cv3_schema_cols else _need_cross
-            _cv3x = pd.read_parquet(_cv3_cross, columns=_read_cols)
-            if "time" not in _cv3x.columns:  # time stored as the parquet index
-                _cv3x = _cv3x.reset_index().rename(columns={(_cv3x.index.name or "index"): "time"})
-            _cv3x["time"] = pd.to_datetime(_cv3x["time"], utc=True)
-            _idx_time = pd.to_datetime(df_pre.index, utc=True)
-            _merged_cross = pd.DataFrame({"time": _idx_time}).merge(_cv3x, on="time", how="left")
-            for _n in _need_cross:
-                if _n not in df_pre.columns:
-                    df_pre[_n] = _merged_cross[_n].to_numpy()
-            log.info("[REGIME_V4] merged %d cv3 cross/cyclic feats (smc_premium_state/m5h1_momentum/hour/dow)", len(_need_cross))
+    # Cross/cyclic sources must belong to this exact prebuilt. The retired
+    # pinned-20260605 side-load could silently inject stale rows.
+    _need_cross = ["hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state", "m5h1_momentum"]
+    _missing_cross = [name for name in _need_cross if name not in df_pre.columns]
+    if _missing_cross:
+        if cv3_cross_source is None or not cv3_cross_source.is_file():
+            raise RuntimeError(
+                "[CTX_CROSS_SOURCE] active prebuilt cross sources missing and no explicit "
+                f"--cv3-cross-source supplied: {_missing_cross}"
+            )
+        import pyarrow.parquet as _pq
+        schema_columns = set(_pq.read_schema(cv3_cross_source).names)
+        read_columns = ["time"] + _missing_cross
+        if "time" not in schema_columns:
+            read_columns = _missing_cross
+        cross = pd.read_parquet(cv3_cross_source, columns=read_columns)
+        if "time" not in cross.columns:
+            index_column = cross.index.name or "index"
+            cross = cross.reset_index().rename(columns={index_column: "time"})
+        cross["time"] = pd.to_datetime(cross["time"], utc=True, errors="coerce")
+        if cross["time"].isna().any() or cross["time"].duplicated().any():
+            raise RuntimeError("[CTX_CROSS_SOURCE] timestamps must be finite and unique")
+        merged = pd.DataFrame({"time": pd.DatetimeIndex(df_pre.index)}).merge(
+            cross[["time"] + _missing_cross],
+            on="time",
+            how="left",
+            validate="one_to_one",
+        )
+        if merged[_missing_cross].isna().any().any():
+            raise RuntimeError("[CTX_CROSS_SOURCE] exact timestamp coverage missing")
+        for name in _missing_cross:
+            df_pre[name] = merged[name].to_numpy()
+    _finite_or_fail(df_pre[_need_cross].to_numpy(dtype=np.float64), label="exact cross sources")
 
     # B2 train==serve (2026-06-05, XGB-audit): bake the SHIFTED _v1_is_EU/_v1_is_US (np.roll by 1, [0]=0).
     # The V10 build (source-parquet-override) + candidate batch run XGB INFERENCE on THIS parquet, and the
@@ -846,6 +824,13 @@ def run_add_ctx_cont_columns(
                             ("_v1_int_slope_h1_us", "_v1h1_slope3")):
         if _usname not in df_pre.columns and _ussrc in df_pre.columns:
             df_pre[_usname] = df_pre[_ussrc].to_numpy(dtype=np.float64) * _is_us_b2
+
+    from gx1.scripts.augment_forward_outcome_v2 import trim_causal_context_warmup_prefix
+    df_pre = trim_causal_context_warmup_prefix(df_pre, _regime_trim_required)
+    _finite_or_fail(
+        df_pre[_regime_trim_required].to_numpy(dtype=np.float64),
+        label="immutable REGIME_V4 output",
+    )
 
     # ------------------------------------------------------------
     # Write outputs
@@ -886,6 +871,9 @@ def run_add_ctx_cont_columns(
                     "ctx_contract_missing": [],
                     "n_rows": int(len(df_pre)),
                     "tape_root": str(tape_root) if tape_root is not None else None,
+                    "cv3_cross_source": (
+                        str(cv3_cross_source) if cv3_cross_source is not None else None
+                    ),
                 },
                 indent=2,
             ),
@@ -961,6 +949,12 @@ def main() -> int:
         default=None,
         help="Canonical tape root for micro/swing features (required for ctx_cont_dim>=11).",
     )
+    ap.add_argument(
+        "--cv3-cross-source",
+        type=Path,
+        default=None,
+        help="Explicit current cv3 parquet used only when cross/cyclic columns are absent.",
+    )
     args = ap.parse_args()
 
     raw = args.raw_m5_parquet
@@ -980,6 +974,7 @@ def main() -> int:
             ctx_cont_dim=int(args.ctx_cont_dim),
             ctx_cat_dim=int(args.ctx_cat_dim),
             tape_root=args.tape_root,
+            cv3_cross_source=args.cv3_cross_source,
             diagnostics_path=diag,
         )
     except Exception as e:

@@ -54,10 +54,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from sklearn.model_selection import GroupShuffleSplit, StratifiedShuffleSplit
 
-from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core
-from gx1.scripts import (
-    materialize_build_iql_offline_data_contract_research_only_v1 as contract_gate,
-)
+from gx1.scripts import exit_iql_multi_head_gpu_core_v1 as iql_core
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
 from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as exit_pipe
 
 
@@ -863,7 +861,7 @@ def evaluate_one_fold(
     print(f"[{ACTION}] {fold_id_v1} {variant} train={len(X_train)} val={len(X_val)} test={len(X_test)} "
           f"val_action_counts={val_action_counts} guard={val_class_guard_status}", flush=True)
 
-    model = iql_core.train_multi_head_entry_iql(
+    model = iql_core.train_multi_head_exit_iql(
         X_train, R_train,
         k_horizons=K_HORIZONS,
         n_actions=N_ACTIONS_EXIT,
@@ -1018,7 +1016,7 @@ def write_artifacts(
         }
 
     # V2: load pre-built state + reward cache via env GX1_EXIT_IQL_V2_STATE_CACHE.
-    # Cache built by scripts/prep_exit_iql_v2_state_cache.py with per-trade stratified sampling.
+    # Built by gx1/scripts/prep_exit_iql_v2_state_cache.py with stratified sampling.
     import os as _os
     _state_cache_dir = _os.environ.get("GX1_EXIT_IQL_V2_STATE_CACHE", "").strip()
     if _state_cache_dir:

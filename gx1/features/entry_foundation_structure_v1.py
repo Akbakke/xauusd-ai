@@ -1,7 +1,7 @@
 """Explicit Entry foundation structure features.
 
 This layer turns the existing causal ``snap.*`` and ``ctx_cont.*`` fields into
-first-class sequence candidates for the Entry foundation rebuild. It does not
+first-class model-native sequence evidence. It does not
 read future prices and it intentionally keeps proxy names explicit where the
 current contract does not expose the exact raw event.
 """
@@ -12,7 +12,9 @@ from typing import Iterable
 import numpy as np
 
 
-FOUNDATION_STRUCTURE_FEATURE_VERSION = "entry_foundation_structure_v1_20260629_directional_smc_pressure"
+FOUNDATION_STRUCTURE_FEATURE_VERSION = (
+    "entry_foundation_structure_v1_20260717_directional_smc_pressure_failclosed"
+)
 FOUNDATION_STRUCTURE_FEATURE_PREFIX = "chart.foundation_"
 FOUNDATION_STRUCTURE_REQUIRED_FAMILIES = (
     "hh_hl_lh_ll_state",
@@ -73,23 +75,71 @@ FOUNDATION_STRUCTURE_SOURCE_FIELDS = (
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
+    values = list(names)
+    invalid = [name for name in values if not isinstance(name, str) or not name]
+    if invalid:
+        raise RuntimeError(f"FOUNDATION_STRUCTURE_FEATURE_NAMES_INVALID: {invalid[:10]}")
+    duplicates = sorted({name for name in values if values.count(name) > 1})
+    if duplicates:
+        raise RuntimeError(f"FOUNDATION_STRUCTURE_FEATURE_NAMES_DUPLICATE: {duplicates[:10]}")
+    return {name: i for i, name in enumerate(values)}
 
 
 def missing_foundation_structure_source_fields(feature_names: Iterable[str]) -> list[str]:
-    available = {str(name) for name in feature_names}
+    available = set(feature_names)
     return [name for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
-    if name not in index:
-        return np.full(x.shape[0], float(default), dtype=np.float32)
-    arr = np.asarray(x[:, index[name]], dtype=np.float32)
-    return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
+def _require_source_matrix(
+    x: np.ndarray,
+    feature_names: list[str],
+) -> tuple[np.ndarray, dict[str, int]]:
+    try:
+        matrix = np.asarray(x, dtype=np.float32)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("FOUNDATION_STRUCTURE_INPUT_NOT_NUMERIC") from exc
+    if matrix.ndim != 2:
+        raise RuntimeError(f"FOUNDATION_STRUCTURE_INPUT_NOT_2D: shape={matrix.shape}")
+    if matrix.shape[0] == 0:
+        raise RuntimeError("FOUNDATION_STRUCTURE_INPUT_EMPTY")
+    if len(feature_names) != matrix.shape[1]:
+        raise RuntimeError(
+            "FOUNDATION_STRUCTURE_FEATURE_NAME_COUNT_MISMATCH: "
+            f"names={len(feature_names)} columns={matrix.shape[1]}"
+        )
+    index = _name_index(feature_names)
+    missing = missing_foundation_structure_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(
+            "FOUNDATION_STRUCTURE_SOURCE_FIELDS_MISSING: "
+            f"{missing[:30]} total={len(missing)}"
+        )
+    if not np.isfinite(matrix).all():
+        bad = np.argwhere(~np.isfinite(matrix))[0]
+        row, column = int(bad[0]), int(bad[1])
+        raise RuntimeError(
+            "FOUNDATION_STRUCTURE_SOURCE_NONFINITE: "
+            f"row={row} field={feature_names[column]}"
+        )
+    return matrix, index
+
+
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    try:
+        column = index[name]
+    except KeyError as exc:
+        raise RuntimeError(f"FOUNDATION_STRUCTURE_SOURCE_FIELD_MISSING: {name}") from exc
+    arr = np.asarray(x[:, column], dtype=np.float32)
+    if arr.ndim != 1 or not np.isfinite(arr).all():
+        raise RuntimeError(f"FOUNDATION_STRUCTURE_SOURCE_FIELD_INVALID: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if values.ndim != 1 or not np.isfinite(values).all():
+        raise RuntimeError(f"FOUNDATION_STRUCTURE_DERIVED_VALUE_INVALID: shape={values.shape}")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -153,14 +203,13 @@ def build_entry_foundation_structure_layer(
     x: np.ndarray,
     feature_names: list[str],
 ) -> tuple[np.ndarray, list[str]]:
-    """Build explicit foundation structure candidates from current contract fields."""
-    x = np.asarray(x, dtype=np.float32)
-    idx = _name_index(feature_names)
+    """Build explicit foundation structure evidence from exact contract fields."""
+    x, idx = _require_source_matrix(x, feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     h1_trend = _tanh(c("ctx_cont._v1h1_ema_diff"))
     h4_trend = _tanh(c("ctx_cont._v1h4_ema_diff"))
@@ -178,7 +227,7 @@ def build_entry_foundation_structure_layer(
     high_context = _clip01(near_high * (0.50 + recent_high))
     low_context = _clip01(near_low * (0.50 + recent_low))
 
-    swing_state = c("snap.smc_swing_state", default=4.0)
+    swing_state = c("snap.smc_swing_state")
     clean_up = _state_eq(swing_state, 0)
     up_bias = _state_eq(swing_state, 1)
     down_bias = _state_eq(swing_state, 2)
@@ -224,7 +273,7 @@ def build_entry_foundation_structure_layer(
     sweep_bull_pressure48 = c("ctx_cont.smc_sweep_bull_pressure_last48")
     sweep_up = _clip01(c("snap.smc_sweep_up") + 0.5 * _neg(sweep_bull_pressure12) + 0.25 * _neg(sweep_bull_pressure48))
     sweep_down = _clip01(c("snap.smc_sweep_down") + 0.5 * _pos(sweep_bull_pressure12) + 0.25 * _pos(sweep_bull_pressure48))
-    sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep", default=96.0)) + c("ctx_cont.smc_sweep_recency_tau24"))
+    sweep_recent = _clip01(_recency(c("snap.smc_bars_since_sweep")) + c("ctx_cont.smc_sweep_recency_tau24"))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
     wick_level = _clip01(c("ctx_cont.wick_ratio") + np.abs(c("snap.wick_asym")))
     support_prox = _clip01(c("ctx_cont.sr_support_proximity_exp"))
@@ -305,5 +354,9 @@ def build_entry_foundation_structure_layer(
 
 
 FOUNDATION_STRUCTURE_FEATURE_NAMES = tuple(
-    name for name in build_entry_foundation_structure_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
+    name
+    for name in build_entry_foundation_structure_layer(
+        np.zeros((1, len(FOUNDATION_STRUCTURE_SOURCE_FIELDS)), dtype=np.float32),
+        list(FOUNDATION_STRUCTURE_SOURCE_FIELDS),
+    )[1]
 )

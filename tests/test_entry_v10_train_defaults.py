@@ -65,11 +65,11 @@ def test_entry_v10_env_defaults_match_canonical_guard_contract() -> None:
     assert mismatches == {}
 
 
-def test_entry_v10_bad_path_aux_default_is_parked() -> None:
+def test_entry_v10_bad_path_and_path_quality_evidence_are_trained() -> None:
     env_defaults = _env_str_defaults(_trainer_ast())
-    assert env_defaults["ENTRY_AUX_BAD_PATH_WEIGHT"] == "0.0"
-    assert env_defaults["ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT"] == "0.0"
-    assert env_defaults["ENTRY_PATH_QUALITY_RANK_WEIGHT"] == "0.0"
+    assert env_defaults["ENTRY_AUX_BAD_PATH_WEIGHT"] == "1.25"
+    assert env_defaults["ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT"] == "2.00"
+    assert env_defaults["ENTRY_PATH_QUALITY_RANK_WEIGHT"] == "2.00"
 
 
 def test_entry_v10_pred_balance_loss_runs_when_cost_sensitive_is_disabled() -> None:
@@ -319,8 +319,6 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     trade_prob = np.asarray([0.80, 0.82, 0.84, 0.86, 0.94, 0.96] * 12, dtype=np.float64)
     side_pred = np.asarray([0, 0, 1, 1, 0, 1] * 12, dtype=np.int64)
     side_long_prob = np.asarray([0.80, 0.78, 0.20, 0.18, 0.70, 0.30] * 12, dtype=np.float64)
-    public_trade_flat_prob = np.asarray([0.80, 0.82, 0.84, 0.86, 0.94, 0.96] * 12, dtype=np.float64)
-    public_trade_flat_pred = np.asarray([0, 0, 0, 0, 0, 0] * 12, dtype=np.int64)
 
     stats = trainer._direction_slice_balance_stats(
         labels,
@@ -329,8 +327,6 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
         trade_prob_np=trade_prob,
         side_pred_np=side_pred,
         side_long_prob_np=side_long_prob,
-        public_trade_flat_trade_prob_np=public_trade_flat_prob,
-        public_trade_flat_pred_np=public_trade_flat_pred,
     )
     detail = stats["direction_slice_failure_details"][0]
 
@@ -339,10 +335,6 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     assert detail["hier_trade_prob_label_flat_mean"] > 0.90
     assert detail["hier_side_pred_long_rate_on_edge"] == 0.5
     assert detail["hier_side_acc_on_edge"] == 1.0
-    assert detail["public_trade_flat_available"] is True
-    assert detail["public_trade_flat_hard_trade_rate"] == 1.0
-    assert detail["public_trade_flat_hard_flat_rate"] == 0.0
-    assert detail["public_trade_flat_hard_rate_guard_ok"] is False
 
     global_stats = trainer._direction_hierarchy_output_stats(
         labels,
@@ -354,62 +346,9 @@ def test_entry_v10_direction_slice_balance_stats_attaches_hierarchy_diagnostics(
     assert global_stats["hier_flat_label_rate"] == 1 / 3
 
 
-def test_entry_v10_public_trade_flat_output_stats_gates_hard_flat_collapse(monkeypatch) -> None:
-    import numpy as np
-
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    labels = np.asarray([0, 1, 2, 2], dtype=np.int64)
-    collapsed = trainer._direction_public_trade_flat_output_stats(
-        labels,
-        np.asarray([0.90, 0.80, 0.70, 0.60], dtype=np.float64),
-        np.asarray([0, 0, 0, 0], dtype=np.int64),
-        min_pred_to_label=0.35,
-        min_pred_rate=0.05,
-        guard_required=True,
-    )
-    covered = trainer._direction_public_trade_flat_output_stats(
-        labels,
-        np.asarray([0.90, 0.80, 0.20, 0.10], dtype=np.float64),
-        np.asarray([0, 0, 1, 1], dtype=np.int64),
-        min_pred_to_label=0.35,
-        min_pred_rate=0.05,
-        guard_required=True,
-    )
-    missing = trainer._direction_public_trade_flat_output_stats(
-        labels,
-        None,
-        None,
-        min_pred_to_label=0.35,
-        min_pred_rate=0.05,
-        guard_required=True,
-    )
-
-    assert collapsed["public_trade_flat_available"] is True
-    assert collapsed["public_trade_flat_target_flat_rate"] == 0.5
-    assert collapsed["public_trade_flat_hard_flat_rate"] == 0.0
-    assert collapsed["public_trade_flat_required_flat_rate"] == 0.175
-    assert collapsed["public_trade_flat_hard_rate_guard_ok"] is False
-    assert covered["public_trade_flat_hard_rate_guard_ok"] is True
-    assert covered["public_trade_flat_hard_flat_rate"] == 0.5
-    assert covered["public_trade_flat_min_pred_to_label"] == 1.0
-    assert missing["public_trade_flat_available"] is False
-    assert missing["public_trade_flat_hard_rate_guard_ok"] is False
 
 
-def test_entry_v10_public_trade_flat_guard_required_follows_public_heads(monkeypatch) -> None:
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", 0.50)
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_HEAD", 1)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_HEAD", 1)
-
-    assert trainer._public_trade_flat_hard_rate_guard_required() is True
-
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_HEAD", 0)
-    assert trainer._public_trade_flat_hard_rate_guard_required() is False
 
 
 def test_entry_v10_hier_trade_pos_weight_can_downweight_majority_trade_labels() -> None:
@@ -485,18 +424,11 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
                 "rows": np.int64(64),
                 "accuracy": np.float64(0.25),
                 "hier_trade_pred_rate": np.float64(1.0),
-                "public_trade_flat_hard_flat_rate": np.float64(0.0),
-                "public_trade_flat_hard_rate_guard_ok": False,
             }
         ],
         "hier_trade_pred_rate": np.float64(1.0),
         "hier_trade_prob_label_flat_mean": np.float64(0.66),
         "hier_side_acc_on_edge": np.float64(0.57),
-        "public_trade_flat_available": True,
-        "public_trade_flat_hard_trade_rate": np.float64(1.0),
-        "public_trade_flat_hard_flat_rate": np.float64(0.0),
-        "public_trade_flat_trade_prob_label_flat_mean": np.float64(0.91),
-        "public_trade_flat_hard_rate_guard_ok": False,
         "unrelated": "not persisted",
     }
     snapshot = trainer._direction_slice_stats_snapshot(stats)
@@ -517,21 +449,11 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
     assert payload["bundle_written"] is False
     assert payload["promotion_shadow_live_allowed"] is False
     assert payload["best_direction_slice_stats"]["direction_slice_failure_count"] == 2
-    assert payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]["ctx_cat_index"] == 0
-    assert payload["best_direction_slice_stats"]["hier_trade_pred_rate"] == 1.0
+    detail = payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]
+    assert detail["ctx_cat_index"] == 0
+    assert detail["hier_trade_pred_rate"] == 1.0
     assert payload["best_direction_slice_stats"]["hier_trade_prob_label_flat_mean"] == 0.66
     assert payload["best_direction_slice_stats"]["hier_side_acc_on_edge"] == 0.57
-    assert payload["best_direction_slice_stats"]["public_trade_flat_available"] is True
-    assert payload["best_direction_slice_stats"]["public_trade_flat_hard_trade_rate"] == 1.0
-    assert payload["best_direction_slice_stats"]["public_trade_flat_hard_flat_rate"] == 0.0
-    assert payload["best_direction_slice_stats"]["public_trade_flat_hard_rate_guard_ok"] is False
-    assert payload["best_direction_slice_stats"]["direction_slice_failure_details"][0]["hier_trade_pred_rate"] == 1.0
-    assert (
-        payload["best_direction_slice_stats"]["direction_slice_failure_details"][0][
-            "public_trade_flat_hard_rate_guard_ok"
-        ]
-        is False
-    )
     assert "unrelated" not in payload["best_direction_slice_stats"]
 
 
@@ -892,284 +814,12 @@ def test_entry_v10_hier_flat_logit_margin_terms_penalize_flat_as_trade(monkeypat
     assert float(trainer._hier_slice_flat_logit_margin_term(bad_trade, y_trade, ctx_cat).item()) == 0.0
 
 
-def test_entry_v10_hier_public_flat_consistency_terms_penalize_head_conflict(monkeypatch) -> None:
-    import torch
-
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS", 3)
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
-
-    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
-    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
-    trade_logit = torch.tensor([[4.0], [4.0], [4.0], [-4.0], [-4.0], [-4.0]], dtype=torch.float32)
-    conflicting_direction = torch.tensor(
-        [
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-        ],
-        dtype=torch.float32,
-    )
-    matched_direction = torch.tensor(
-        [
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [-4.0, 0.0, 4.0],
-            [-4.0, 0.0, 4.0],
-            [-4.0, 0.0, 4.0],
-        ],
-        dtype=torch.float32,
-    )
-
-    bad_global = float(
-        trainer._hier_public_flat_consistency_term(
-            conflicting_direction,
-            trade_logit,
-            y_trade,
-        ).item()
-    )
-    good_global = float(
-        trainer._hier_public_flat_consistency_term(
-            matched_direction,
-            trade_logit,
-            y_trade,
-        ).item()
-    )
-    bad_slice = float(
-        trainer._hier_slice_public_flat_consistency_term(
-            conflicting_direction,
-            trade_logit,
-            y_trade,
-            ctx_cat,
-        ).item()
-    )
-    good_slice = float(
-        trainer._hier_slice_public_flat_consistency_term(
-            matched_direction,
-            trade_logit,
-            y_trade,
-            ctx_cat,
-        ).item()
-    )
-
-    assert bad_global > good_global + 1.0
-    assert bad_slice > good_slice + 1.0
-    assert good_global < 0.01
-    assert good_slice < 0.01
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 0.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 0.0)
-    assert (
-        float(
-            trainer._hier_public_flat_consistency_term(
-                conflicting_direction,
-                trade_logit,
-                y_trade,
-            ).item()
-        )
-        == 0.0
-    )
-    assert (
-        float(
-            trainer._hier_slice_public_flat_consistency_term(
-                conflicting_direction,
-                trade_logit,
-                y_trade,
-                ctx_cat,
-            ).item()
-        )
-        == 0.0
-    )
 
 
-def test_entry_v10_hier_public_trade_flat_margin_terms_penalize_pairwise_conflict(
-    monkeypatch,
-) -> None:
-    import torch
-
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS", 3)
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
-
-    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
-    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
-    bad_trade_logit = torch.tensor([[0.0], [0.0], [0.0], [1.0], [1.0], [1.0]], dtype=torch.float32)
-    bad_flat_logit = torch.tensor([[1.0], [1.0], [1.0], [0.0], [0.0], [0.0]], dtype=torch.float32)
-    good_trade_logit = torch.tensor([[1.0], [1.0], [1.0], [0.0], [0.0], [0.0]], dtype=torch.float32)
-    good_flat_logit = torch.tensor([[0.0], [0.0], [0.0], [1.0], [1.0], [1.0]], dtype=torch.float32)
-
-    bad_global = float(
-        trainer._hier_public_trade_flat_margin_term(
-            bad_trade_logit,
-            bad_flat_logit,
-            y_trade,
-        ).item()
-    )
-    good_global = float(
-        trainer._hier_public_trade_flat_margin_term(
-            good_trade_logit,
-            good_flat_logit,
-            y_trade,
-        ).item()
-    )
-    bad_slice = float(
-        trainer._hier_slice_public_trade_flat_margin_term(
-            bad_trade_logit,
-            bad_flat_logit,
-            y_trade,
-            ctx_cat,
-        ).item()
-    )
-    good_slice = float(
-        trainer._hier_slice_public_trade_flat_margin_term(
-            good_trade_logit,
-            good_flat_logit,
-            y_trade,
-            ctx_cat,
-        ).item()
-    )
-
-    assert bad_global > good_global + 6.0
-    assert bad_slice > good_slice + 6.0
-    assert good_global == 0.0
-    assert good_slice == 0.0
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 0.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 0.0)
-    assert (
-        float(
-            trainer._hier_public_trade_flat_margin_term(
-                bad_trade_logit,
-                bad_flat_logit,
-                y_trade,
-            ).item()
-        )
-        == 0.0
-    )
-    assert (
-        float(
-            trainer._hier_slice_public_trade_flat_margin_term(
-                bad_trade_logit,
-                bad_flat_logit,
-                y_trade,
-                ctx_cat,
-            ).item()
-        )
-        == 0.0
-    )
 
 
-def test_entry_v10_hier_public_trade_flat_margin_fails_closed_on_contract_break(
-    monkeypatch,
-) -> None:
-    import pytest
-    import torch
-
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", 6.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS", 3)
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "")
-
-    y_trade = torch.tensor([1, 0], dtype=torch.float32)
-    trade_logit = torch.zeros((2, 1), dtype=torch.float32)
-    flat_logit_bad_shape = torch.zeros((1, 1), dtype=torch.float32)
-    flat_logit = torch.zeros((2, 1), dtype=torch.float32)
-
-    with pytest.raises(RuntimeError, match="ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_SHAPE_INVALID"):
-        trainer._hier_public_trade_flat_margin_term(trade_logit, flat_logit_bad_shape, y_trade)
-
-    with pytest.raises(RuntimeError, match="ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_CTX_INVALID"):
-        trainer._hier_slice_public_trade_flat_margin_term(trade_logit, flat_logit, y_trade, None)
-
-    with pytest.raises(
-        RuntimeError,
-        match="ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_CTX_INDICES_EMPTY",
-    ):
-        trainer._hier_slice_public_trade_flat_margin_term(
-            trade_logit,
-            flat_logit,
-            y_trade,
-            torch.zeros((2, 1), dtype=torch.long),
-        )
 
 
-def test_entry_v10_hier_public_flat_consistency_uses_independent_flat_logit(monkeypatch) -> None:
-    import torch
-
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", 4.0)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", 0.10)
-    monkeypatch.setattr(trainer, "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS", 3)
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
-    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
-
-    y_trade = torch.tensor([1, 1, 1, 0, 0, 0], dtype=torch.float32)
-    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
-    trade_logit = torch.zeros((6, 1), dtype=torch.float32)
-    flat_logit = torch.tensor([[-4.0], [-4.0], [-4.0], [4.0], [4.0], [4.0]], dtype=torch.float32)
-    matched_direction = torch.tensor(
-        [
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [4.0, 0.0, -4.0],
-            [-4.0, 0.0, 4.0],
-            [-4.0, 0.0, 4.0],
-            [-4.0, 0.0, 4.0],
-        ],
-        dtype=torch.float32,
-    )
-
-    without_flat_head = float(
-        trainer._hier_public_flat_consistency_term(
-            matched_direction,
-            trade_logit,
-            y_trade,
-        ).item()
-    )
-    with_flat_head = float(
-        trainer._hier_public_flat_consistency_term(
-            matched_direction,
-            trade_logit,
-            y_trade,
-            flat_logit=flat_logit,
-        ).item()
-    )
-    slice_with_flat_head = float(
-        trainer._hier_slice_public_flat_consistency_term(
-            matched_direction,
-            trade_logit,
-            y_trade,
-            ctx_cat,
-            flat_logit=flat_logit,
-        ).item()
-    )
-
-    assert with_flat_head < 0.01
-    assert slice_with_flat_head < 0.01
-    assert without_flat_head > with_flat_head + 0.25
 
 
 def test_entry_v10_direction_slice_accuracy_edge_term_penalizes_below_majority(monkeypatch) -> None:
@@ -1727,51 +1377,19 @@ def test_entry_v10_validate_initializes_direction_utility_margin_accumulator() -
     assert "total_direction_flat_starvation += " in text[text.index("    with torch.no_grad():", validate_start):]
 
 
-def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe() -> None:
+def test_entry_v10_direction_failure_evidence_records_model_native_loss_recipe() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
     required_fields = (
         "direction_utility_margin_weight",
-        "direction_utility_min_gap_bps",
-        "direction_utility_logit_margin",
         "direction_side_utility_conviction_weight",
-        "direction_side_utility_conviction_min_gap_bps",
-        "direction_side_utility_conviction_logit_margin",
         "direction_utility_trade_conviction_weight",
-        "direction_utility_trade_conviction_min_gap_bps",
-        "direction_utility_trade_conviction_min_utility_bps",
-        "direction_utility_trade_conviction_max_bad_path",
-        "direction_utility_trade_conviction_logit_margin",
         "direction_utility_triad_ce_weight",
-        "direction_utility_triad_ce_min_gap_bps",
-        "direction_utility_triad_ce_min_utility_bps",
-        "direction_utility_triad_ce_max_bad_path",
-        "direction_utility_triad_ce_class_weight_cap",
-        "direction_hierarchical_composition",
-        "hier_compose_residual_logit_cap",
-        "hier_compose_residual_side_neutral",
-        "hier_compose_public_flat_from_trade",
-        "hier_public_trade_head",
-        "hier_public_flat_head",
-        "hier_public_trade_dir_margin_bridge",
-        "hier_public_trade_dir_margin_bridge_scale",
-        "hier_public_trade_dir_margin_bridge_cap",
-        "hier_public_side_head",
-        "hier_public_side_dir_margin_bridge",
-        "hier_public_side_dir_margin_bridge_scale",
-        "hier_public_side_dir_margin_bridge_cap",
-        "hier_public_side_head_residual_cap_weight",
-        "hier_public_side_head_residual_cap",
-        "hier_ctx_prior_adapter",
-        "hier_ctx_prior_adapter_scale",
-        "hier_ctx_direction_calibration",
-        "hier_ctx_direction_calibration_scale",
-        "hier_ctx_direction_calibration_cap",
+        "hier_trade_global_prior_match_weight",
+        "hier_slice_trade_prior_match_weight",
+        "hier_flat_logit_margin_weight",
+        "hier_slice_side_ce_weight",
+        "hier_side_global_prior_match_weight",
         "direction_flat_starvation_weight",
-        "direction_flat_starvation_min_label_rate",
-        "direction_flat_starvation_min_rows",
-        "direction_flat_starvation_pred_fraction",
-        "direction_flat_starvation_pred_floor",
-        "direction_flat_starvation_logit_margin",
     )
 
     for marker in (
@@ -1782,6 +1400,21 @@ def test_entry_v10_direction_failure_evidence_records_active_side_repair_recipe(
         block = text[start:text.index("raise RuntimeError", start)]
         for field in required_fields:
             assert f'"{field}"' in block
+
+    retired_markers = (
+        "direction_hierarchical_composition",
+        "hier_compose_",
+        "hier_public_",
+        "hier_ctx_prior_adapter",
+        "hier_ctx_direction_calibration",
+        "public_trade_logit",
+        "public_flat_logit",
+        "public_side_logits",
+        "margin_bridge",
+        "residual_scale",
+    )
+    for marker in retired_markers:
+        assert marker not in text
 
 
 def test_entry_v10_direction_repair_fails_closed_without_calibration_fallback() -> None:
@@ -1829,13 +1462,18 @@ def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
 
 def test_entry_v10_train_and_validate_apply_mtf_aux_direction_repair() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
-    assert text.count("_direction_aux_ce_loss(out[\"mtf_dir_logits\"], y, criterion, ce_sample_weight)") >= 2
+    assert text.count('output_name="mtf_dir_logits"') == 2
+    assert 'if "mtf_dir_logits" in out' not in text
 
 
 def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -> None:
     import numpy as np
     import pandas as pd
 
+    from gx1.features.htf_features import (
+        HTF_V2_MATRIX_CONTRACT,
+        MULTI_TF_FEATURE_COUNT_V2,
+    )
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
     target = pd.Timestamp("2026-07-08T18:00:00Z")
@@ -1846,10 +1484,20 @@ def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -
         ],
         dtype=np.int64,
     )
-    feats = np.array([[1.0], [2.0]], dtype=np.float32)
-    frame = pd.DataFrame(index=pd.DatetimeIndex(ts.astype("datetime64[ns]"), tz="UTC"))
+    feats = np.stack(
+        [
+            np.full(MULTI_TF_FEATURE_COUNT_V2, 1.0, dtype=np.float32),
+            np.full(MULTI_TF_FEATURE_COUNT_V2, 2.0, dtype=np.float32),
+        ]
+    )
+    frame = pd.DataFrame(
+        feats,
+        index=pd.DatetimeIndex(ts.astype("datetime64[ns]"), tz="UTC"),
+    )
     frame.attrs["ts_int64"] = ts
     frame.attrs["feats_np"] = feats
+    frame.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
+    frame.attrs["causal_warmup_rows"] = 0
 
     dataset = trainer.EntryV10CtxDataset.__new__(trainer.EntryV10CtxDataset)
     dataset._multi_tf_feats = {"M5": frame}
@@ -1860,7 +1508,10 @@ def test_entry_v10_multi_tf_window_uses_m5_close_availability_for_closed_bar() -
 
     out = dataset._get_multi_tf_window(target)
 
-    np.testing.assert_allclose(out["seq_m5"], [[2.0]])
+    np.testing.assert_allclose(
+        out["seq_m5"],
+        np.full((1, MULTI_TF_FEATURE_COUNT_V2), 2.0, dtype=np.float32),
+    )
 
 
 def test_entry_v10_metadata_records_multi_tf_target_availability_shift() -> None:
@@ -1883,7 +1534,8 @@ def test_entry_v10_side_validity_head_cannot_be_enabled_untrained() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
     assert "ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED" in text
-    assert "enable_side_validity_head=true requires" in text
+    assert "exact architecture requires" in text
+    assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT>0" in text
 
 
 def test_entry_v10_xau_direction_repair_requires_xau_sources() -> None:
@@ -1913,8 +1565,6 @@ def test_entry_v10_xau_direction_repair_requires_xau_manifest_provenance(tmp_pat
     parquet.with_suffix(".manifest.json").write_text(
         json.dumps(
             {
-                "neutral_xgb_bridge": True,
-                "xgb_bridge_source": "neutral_uniform_proba",
                 "tape_root": "/home/andre2/GX1_DATA/data/oanda/canonical/foreign_fx_m5_bid_ask__CANONICAL",
             }
         ),
@@ -1926,7 +1576,7 @@ def test_entry_v10_xau_direction_repair_requires_xau_manifest_provenance(tmp_pat
     assert any("XAUUSD tape_root" in item for item in failures)
 
 
-def test_entry_v10_xau_direction_repair_target_contract_rejects_wrong_side_rows() -> None:
+def test_entry_v10_outcome_target_contract_does_not_rewrite_structural_rows() -> None:
     import pandas as pd
 
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
@@ -1942,13 +1592,20 @@ def test_entry_v10_xau_direction_repair_target_contract_rejects_wrong_side_rows(
             "mae_first_n_bps": [1.0],
             "mfe_first_n_bps": [0.0],
             "path_quality_bps": [-1.0],
-            "y_position_size_target": [1.0],
+            "y_position_size_target": [0.7],
             "mfe_long_first_n_bps": [8.0],
             "mae_long_first_n_bps": [2.0],
             "mfe_short_first_n_bps": [0.0],
             "mae_short_first_n_bps": [1.0],
-            "y_long_path_utility_bps": [5.0],
-            "y_short_path_utility_bps": [6.0],
+            "bad_path_long_first_n": [0.0],
+            "bad_path_short_first_n": [0.0],
+            "y_long_final_pnl_at_direction_horizon_bps": [-5.0],
+            "y_short_final_pnl_at_direction_horizon_bps": [20.0],
+            "y_direction_target_mode_id": [1],
+            "y_direction_long_score_bps": [-3.0],
+            "y_direction_short_score_bps": [18.6],
+            "y_long_path_utility_bps": [-3.0],
+            "y_short_path_utility_bps": [18.6],
             "y_long_bad_path": [0.0],
             "y_short_bad_path": [0.0],
             "y_long_expected_mae_bps": [2.0],
@@ -1965,11 +1622,50 @@ def test_entry_v10_xau_direction_repair_target_contract_rejects_wrong_side_rows(
     )
 
     failures = trainer._xau_direction_repair_target_failures("train", frame)
-    text = "\n".join(failures)
 
-    assert "still labeled SHORT" in text
-    assert "still teach SHORT" in text
-    assert "SHORT utility >= LONG utility" in text
+    assert failures == []
+
+
+def test_entry_v10_outcome_target_contract_rejects_forced_utility_order() -> None:
+    import pandas as pd
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    frame = pd.DataFrame(
+        {
+            "y_direction": [1],
+            "y_bad_path": [0.0],
+            "y_trade": [1.0],
+            "y_tradable": [1.0],
+            "y_side": [1],
+            "y_side_mask": [1.0],
+            "mae_first_n_bps": [1.0],
+            "mfe_first_n_bps": [4.0],
+            "path_quality_bps": [3.0],
+            "y_position_size_target": [0.7],
+            "mfe_long_first_n_bps": [2.0],
+            "mae_long_first_n_bps": [3.0],
+            "mfe_short_first_n_bps": [4.0],
+            "mae_short_first_n_bps": [1.0],
+            "bad_path_long_first_n": [1.0],
+            "bad_path_short_first_n": [0.0],
+            "y_long_final_pnl_at_direction_horizon_bps": [-5.0],
+            "y_short_final_pnl_at_direction_horizon_bps": [20.0],
+            "y_direction_target_mode_id": [1],
+            "y_direction_long_score_bps": [-30.0],
+            "y_direction_short_score_bps": [20.0],
+            "y_long_path_utility_bps": [-30.0],
+            "y_short_path_utility_bps": [20.0],
+            "y_long_bad_path": [1.0],
+            "y_short_bad_path": [0.0],
+            "y_long_expected_mae_bps": [3.0],
+            "y_short_expected_mae_bps": [1.0],
+        }
+    )
+
+    failures = trainer._xau_direction_repair_target_failures("train", frame)
+
+    assert any("long utility is not the declared future-outcome formula" in row for row in failures)
 
 
 def test_entry_v10_xau_direction_repair_target_contract_uses_float32_path_semantics() -> None:
@@ -1997,8 +1693,15 @@ def test_entry_v10_xau_direction_repair_target_contract_uses_float32_path_semant
             "mae_long_first_n_bps": [355.1455078125],
             "mfe_short_first_n_bps": [float(mfe_short)],
             "mae_short_first_n_bps": [float(mae_short)],
-            "y_long_path_utility_bps": [-358.47857666015625],
-            "y_short_path_utility_bps": [float(path_quality)],
+            "bad_path_long_first_n": [1.0],
+            "bad_path_short_first_n": [0.0],
+            "y_long_final_pnl_at_direction_horizon_bps": [-358.47857666015625],
+            "y_short_final_pnl_at_direction_horizon_bps": [float(path_quality)],
+            "y_direction_target_mode_id": [1],
+            "y_direction_long_score_bps": [-857.68212890625],
+            "y_direction_short_score_bps": [547.65625],
+            "y_long_path_utility_bps": [-857.68212890625],
+            "y_short_path_utility_bps": [547.65625],
             "y_long_bad_path": [1.0],
             "y_short_bad_path": [0.0],
             "y_long_expected_mae_bps": [355.1455078125],
@@ -2079,8 +1782,6 @@ def test_entry_v10_clean_edge_rank_masks_use_bidir_short_negatives(monkeypatch) 
     monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", True)
 
     clean_pos, ranked_neg = trainer._clean_edge_rank_masks(
-        y_teacher_winner_long=torch.zeros(3),
-        y_teacher_bad_long=torch.zeros(3),
         y_clean_edge_long=torch.tensor([1.0, 0.0, 0.0]),
         y_clean_edge_bidir=torch.tensor([1.0, 1.0, 0.0]),
         y_dead_negative_long=torch.zeros(3),
@@ -2093,6 +1794,37 @@ def test_entry_v10_clean_edge_rank_masks_use_bidir_short_negatives(monkeypatch) 
 
     assert clean_pos.tolist() == [True, True, False]
     assert ranked_neg.tolist() == [False, False, True]
+
+
+def test_entry_v10_clean_edge_rank_masks_use_outcome_labels_without_teacher(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", False)
+
+    clean_pos, ranked_neg = trainer._clean_edge_rank_masks(
+        y_clean_edge_long=torch.tensor([1.0, 0.0, 0.0]),
+        y_clean_edge_bidir=torch.zeros(3),
+        y_dead_negative_long=torch.zeros(3),
+        y_teaser_negative_long=torch.tensor([0.0, 1.0, 0.0]),
+        residual_hard_neg_long=torch.tensor([0.0, 0.0, 1.0]),
+        y_dead_negative_short=torch.zeros(3),
+        y_teaser_negative_short=torch.zeros(3),
+        residual_hard_neg_short=torch.zeros(3),
+    )
+
+    assert clean_pos.tolist() == [True, False, False]
+    assert ranked_neg.tolist() == [False, True, True]
+
+
+def test_entry_v10_trainer_has_no_stale_teacher_label_plumbing() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "y_teacher_bad_long" not in text
+    assert "y_teacher_winner_long" not in text
+    assert "y_v6_teacher_bad_long" not in text
+    assert "y_v6_teacher_winner_long" not in text
 
 
 def test_entry_v10_path_quality_rank_loss_penalizes_inverted_order(monkeypatch) -> None:
@@ -2174,14 +1906,6 @@ def test_entry_v10_train_refuses_to_write_bundle_when_best_class_balance_guard_f
     assert "refusing to write a collapsed direction bundle" in text
 
 
-def test_entry_v10_train_refuses_to_write_bundle_when_public_trade_flat_guard_failed() -> None:
-    text = TRAINER_PATH.read_text(encoding="utf-8")
-
-    assert "[TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD]" in text
-    assert "_public_trade_flat_hard_rate_guard_required()" in text
-    assert "FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD" in text
-    assert "[ENTRY_PUBLIC_TRADE_FLAT_HARD_RATE_FAILURE_EVIDENCE]" in text
-    assert "refusing to write a public-trade-flat-collapsed direction bundle" in text
 
 
 def test_entry_v10_train_refuses_to_write_bundle_when_best_slice_guard_failed() -> None:
@@ -2192,291 +1916,186 @@ def test_entry_v10_train_refuses_to_write_bundle_when_best_slice_guard_failed() 
     assert "refusing to write a slice-failed direction bundle" in text
 
 
-def test_entry_v10_train_model_uses_residual_scale_env() -> None:
+def _evidence_fusion_movement_states():
+    import torch
+
+    from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
+        PARAMETER_SHAPES,
+    )
+
+    initial = {
+        key: torch.zeros(tuple(shape), dtype=torch.float32)
+        for key, shape in PARAMETER_SHAPES.items()
+    }
+    selected = {
+        key: torch.full(tuple(shape), 0.01 * (index + 1), dtype=torch.float32)
+        for index, (key, shape) in enumerate(PARAMETER_SHAPES.items())
+    }
+    for row in range(3):
+        selected["evidence_fusion_out.weight"][row].fill_(0.01 * (row + 1))
+    return initial, selected
+
+
+def test_entry_v10_train_model_uses_exact_evidence_fusion_contract() -> None:
+    from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+        FUSION_MODE,
+        HIDDEN_DIM,
+        INPUTS,
+        INPUT_DIM,
+        OUTPUT_DIM,
+        direction_evidence_fusion_metadata,
+    )
+
     text = TRAINER_PATH.read_text(encoding="utf-8")
+    train_ctor = text.split("model = EntryV10CtxHybridTransformer(", 1)[1].split(").to(device)", 1)[0]
+    assert len(INPUTS) == 23
+    assert sum(width for _, width in INPUTS) == INPUT_DIM == 75
+    assert (HIDDEN_DIM, OUTPUT_DIM) == (128, 3)
+    assert FUSION_MODE == "sole_learned_acyclic_75x128x3"
+    assert direction_evidence_fusion_metadata()["sole_direction_path"] is True
+    assert "_capture_evidence_fusion_initial_state(model)" in text
+    for retired in (
+        "residual_scale=",
+        "hierarchical_composition_",
+        "hierarchical_public_",
+        "enable_hierarchical_ctx_",
+    ):
+        assert retired not in train_ctor
 
-    train_ctor = text.split("model = EntryV10CtxHybridTransformer(", 2)[2].split(").to(device)", 1)[0]
-    assert "residual_scale=float(ENTRY_RESIDUAL_SCALE)" in train_ctor
-    assert "anchor_eps=float(ENTRY_ANCHOR_EPS)" in train_ctor
-    assert "hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)" in train_ctor
-    assert "hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)" in train_ctor
-    assert (
-        "hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)"
-        in train_ctor
+
+def test_entry_v10_evidence_fusion_movement_proof_has_exact_six_parameter_schema() -> None:
+    import pytest
+
+    from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
+        COMPONENT_PARAMETERS,
+        PARAMETER_SHAPES,
+        require_learned_component_movement_metadata,
     )
-    assert "hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION)" in train_ctor
-    assert (
-        "hierarchical_public_direction_detach_side_grad=bool("
-        in train_ctor
-    )
-    assert "enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)" in train_ctor
-    assert "enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD)" in train_ctor
-    assert (
-        "enable_hierarchical_public_trade_dir_margin_bridge=bool("
-        in train_ctor
-    )
-    assert (
-        "hierarchical_public_trade_dir_margin_bridge_scale=float("
-        in train_ctor
-    )
-    assert (
-        "hierarchical_public_trade_dir_margin_bridge_cap=float("
-        in train_ctor
-    )
-    assert "enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)" in train_ctor
-    assert (
-        "enable_hierarchical_public_side_dir_margin_bridge=bool("
-        in train_ctor
-    )
-    assert (
-        "hierarchical_public_side_dir_margin_bridge_scale=float("
-        in train_ctor
-    )
-    assert (
-        "hierarchical_public_side_dir_margin_bridge_cap=float("
-        in train_ctor
-    )
-    assert "enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)" in train_ctor
-    assert "hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)" in train_ctor
-    assert (
-        "enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION)"
-        in train_ctor
-    )
-    assert (
-        "hierarchical_ctx_direction_calibration_scale=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE)"
-        in train_ctor
-    )
-    assert (
-        "hierarchical_ctx_direction_calibration_cap=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP)"
-        in train_ctor
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    initial, selected = _evidence_fusion_movement_states()
+    proof = trainer._model_native_evidence_fusion_movement_proof(
+        initial,
+        selected,
+        selected_checkpoint_epoch=4,
     )
 
+    assert len(PARAMETER_SHAPES) == 6
+    assert set(proof["parameter_deltas"]) == set(PARAMETER_SHAPES)
+    assert all(row["changed"] is True for row in proof["parameter_deltas"].values())
+    assert proof["component_changed"] == {name: True for name in COMPONENT_PARAMETERS}
+    assert proof["output_rows_distinct"] is True
+    assert proof["decision"] == "PASS"
+    assert require_learned_component_movement_metadata(proof, context="TEST") == proof
 
-def test_entry_v10_hierarchical_direction_composition_exports_public_logits() -> None:
-    import torch
-
-    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
-
-    torch.manual_seed(7)
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=4,
-        snap_input_dim=7,
-        seq_len=5,
-        ctx_cont_dim=3,
-        ctx_cat_dim=2,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-    )
-    model.eval()
-    seq_x = torch.randn(3, 5, 4)
-    snap_x = torch.full((3, 7), 1.0 / 3.0)
-    ctx_cont = torch.randn(3, 3)
-    ctx_cat = torch.zeros(3, 2, dtype=torch.long)
-
-    with torch.no_grad():
-        out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    trade_log_prob = torch.nn.functional.logsigmoid(out["trade_logit"].reshape(-1))
-    flat_log_prob = torch.nn.functional.logsigmoid(-out["trade_logit"].reshape(-1))
-    side_log_probs = torch.nn.functional.log_softmax(out["side_logits"], dim=1)
-    expected = torch.stack(
-        (
-            trade_log_prob + side_log_probs[:, 0],
-            trade_log_prob + side_log_probs[:, 1],
-            flat_log_prob,
-        ),
-        dim=1,
-    )
-
-    assert out["hierarchical_direction_composed"].shape == (3, 1)
-    assert torch.allclose(out["hierarchical_direction_base_logits"], expected, atol=1e-6)
-    assert torch.allclose(out["direction_logits"], expected, atol=1e-6)
-    assert torch.allclose(torch.softmax(out["direction_logits"], dim=1).sum(dim=1), torch.ones(3), atol=1e-6)
-
-    with torch.no_grad():
-        model.head_direction.bias.copy_(torch.tensor([0.40, -0.20, 0.10], dtype=torch.float32))
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-    expected_with_residual = out["hierarchical_direction_base_logits"] + out[
-        "hierarchical_direction_residual_logits"
-    ]
-
-    assert torch.allclose(out["direction_logits"], expected_with_residual, atol=1e-6)
-    assert not torch.allclose(out["direction_logits"], out["hierarchical_direction_base_logits"], atol=1e-6)
-
-    model.zero_grad(set_to_none=True)
-    loss = torch.nn.functional.cross_entropy(out["direction_logits"], torch.tensor([0, 1, 2]))
-    loss.backward()
-    assert model.head_direction.bias.grad is not None
-    assert float(model.head_direction.bias.grad.abs().sum().item()) > 0.0
-
-    capped_model = EntryV10CtxHybridTransformer(
-        seq_input_dim=4,
-        snap_input_dim=7,
-        seq_len=5,
-        ctx_cont_dim=3,
-        ctx_cat_dim=2,
-        residual_scale=0.35,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_residual_logit_cap=0.18,
-        hierarchical_composition_residual_side_neutral=True,
-    )
-    capped_model.eval()
-    with torch.no_grad():
-        capped_model.head_direction.bias.copy_(torch.tensor([0.05, -0.05, 0.00], dtype=torch.float32))
-    capped_out = capped_model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    assert float(capped_out["hierarchical_direction_residual_logits"].abs().max().item()) <= 0.180001
-    assert torch.allclose(
-        capped_out["hierarchical_direction_residual_logits"][:, 0],
-        capped_out["hierarchical_direction_residual_logits"][:, 1],
-        atol=1e-7,
-    )
-    assert torch.all(capped_out["hierarchical_direction_residual_side_neutral"] == 1.0)
-    assert torch.allclose(
-        capped_out["direction_logits"],
-        capped_out["hierarchical_direction_base_logits"] + capped_out["hierarchical_direction_residual_logits"],
-        atol=1e-6,
-    )
-    assert torch.any(
-        (0.35 * capped_out["delta_logits"]).abs()
-        > capped_out["hierarchical_direction_residual_logits"].abs() + 1e-5
-    )
-
-    capped_model.zero_grad(set_to_none=True)
-    capped_loss = torch.nn.functional.cross_entropy(capped_out["direction_logits"], torch.tensor([0, 1, 2]))
-    capped_loss.backward()
-    assert capped_model.head_direction.bias.grad is not None
-    assert float(capped_model.head_direction.bias.grad.abs().sum().item()) > 0.0
-
-
-def test_entry_v10_hierarchical_direction_public_flat_from_trade_neutralizes_public_residual() -> None:
-    import torch
-
-    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
-
-    torch.manual_seed(17)
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=4,
-        snap_input_dim=7,
-        seq_len=5,
-        ctx_cont_dim=3,
-        ctx_cat_dim=2,
-        residual_scale=0.35,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        hierarchical_composition_residual_logit_cap=0.18,
-        hierarchical_composition_residual_side_neutral=True,
-        hierarchical_composition_public_flat_from_trade=True,
-    )
-    model.eval()
-    seq_x = torch.randn(4, 5, 4)
-    snap_x = torch.full((4, 7), 1.0 / 3.0)
-    ctx_cont = torch.randn(4, 3)
-    ctx_cat = torch.zeros(4, 2, dtype=torch.long)
-
-    with torch.no_grad():
-        model.head_direction.bias.copy_(torch.tensor([2.00, -1.25, 3.00], dtype=torch.float32))
-    out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    residual = out["hierarchical_direction_residual_logits"]
-    assert torch.allclose(residual[:, 0], residual[:, 1], atol=1e-7)
-    assert torch.allclose(residual[:, 1], residual[:, 2], atol=1e-7)
-    assert torch.all(out["hierarchical_direction_public_flat_from_trade"] == 1.0)
-    assert torch.all(out["hierarchical_direction_residual_side_neutral"] == 1.0)
-    assert torch.allclose(
-        torch.softmax(out["direction_logits"], dim=1),
-        torch.softmax(out["hierarchical_direction_base_logits"], dim=1),
-        atol=1e-6,
-    )
-    assert torch.allclose(
-        torch.softmax(out["direction_logits"], dim=1)[:, 2],
-        torch.sigmoid(-out["trade_logit"].reshape(-1)),
-        atol=1e-6,
-    )
-
-    model.zero_grad(set_to_none=True)
-    loss = torch.nn.functional.cross_entropy(out["direction_logits"], torch.tensor([0, 1, 2, 2]))
-    loss.backward()
-    assert model.head_direction.bias.grad is not None
-    assert float(model.head_direction.bias.grad.abs().max().item()) <= 1e-6
-
-
-def test_entry_v10_hierarchical_ctx_prior_adapter_adjusts_trade_and_side_logits() -> None:
-    import torch
-
-    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
-
-    torch.manual_seed(19)
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=4,
-        snap_input_dim=7,
-        seq_len=5,
-        ctx_cont_dim=3,
-        ctx_cat_dim=2,
-        enable_hierarchical_entry_heads=True,
-        enable_hierarchical_direction_composition=True,
-        enable_hierarchical_ctx_prior_adapter=True,
-        hierarchical_ctx_prior_adapter_scale=0.50,
-    )
-    model.eval()
-    seq_x = torch.randn(4, 5, 4)
-    snap_x = torch.full((4, 7), 1.0 / 3.0)
-    ctx_cont = torch.randn(4, 3)
-    ctx_cat = torch.tensor([[0, 1], [1, 2], [2, 3], [3, 4]], dtype=torch.long)
-
-    with torch.no_grad():
-        base = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-    assert torch.allclose(base["hierarchical_ctx_prior"], torch.zeros(4, 3), atol=1e-7)
-
-    with torch.no_grad():
-        model.hierarchical_ctx_prior_adapter.bias.copy_(
-            torch.tensor([2.0, -1.0, 1.0], dtype=torch.float32)
+    missing_parameter = {
+        **proof,
+        "parameter_deltas": dict(proof["parameter_deltas"]),
+    }
+    del missing_parameter["parameter_deltas"]["evidence_fusion_norm.bias"]
+    with pytest.raises(RuntimeError, match="LEARNED_COMPONENT_MOVEMENT_PARAMETERS_INVALID"):
+        require_learned_component_movement_metadata(
+            missing_parameter,
+            context="TEST",
         )
-    adjusted = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
-
-    assert torch.allclose(
-        adjusted["trade_logit"],
-        base["trade_logit"] + 1.0,
-        atol=1e-6,
-    )
-    assert torch.allclose(
-        adjusted["side_logits"][:, 0],
-        base["side_logits"][:, 0] - 0.5,
-        atol=1e-6,
-    )
-    assert torch.allclose(
-        adjusted["side_logits"][:, 1],
-        base["side_logits"][:, 1] + 0.5,
-        atol=1e-6,
-    )
-    assert not torch.allclose(
-        torch.softmax(adjusted["direction_logits"], dim=1),
-        torch.softmax(base["direction_logits"], dim=1),
-        atol=1e-6,
-    )
-
-    model.zero_grad(set_to_none=True)
-    loss = torch.nn.functional.cross_entropy(adjusted["direction_logits"], torch.tensor([0, 1, 2, 2]))
-    loss.backward()
-    assert model.hierarchical_ctx_prior_adapter.bias.grad is not None
-    assert float(model.hierarchical_ctx_prior_adapter.bias.grad.abs().sum().item()) > 0.0
 
 
-def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:
+def test_entry_v10_evidence_fusion_movement_proof_requires_each_component_to_move() -> None:
+    import pytest
+
+    from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
+        COMPONENT_PARAMETERS,
+    )
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    for component, keys in COMPONENT_PARAMETERS.items():
+        initial, selected = _evidence_fusion_movement_states()
+        for key in keys:
+            selected[key] = initial[key].clone()
+        with pytest.raises(
+            RuntimeError,
+            match=f"{component}:no_learned_parameter_movement",
+        ):
+            trainer._model_native_evidence_fusion_movement_proof(
+                initial,
+                selected,
+                selected_checkpoint_epoch=4,
+            )
+
+
+def test_entry_v10_evidence_fusion_movement_proof_requires_distinct_output_rows() -> None:
+    import pytest
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    initial, selected = _evidence_fusion_movement_states()
+    selected["evidence_fusion_out.weight"][:] = selected[
+        "evidence_fusion_out.weight"
+    ][0]
+
+    with pytest.raises(RuntimeError, match="class_rows_not_distinct"):
+        trainer._model_native_evidence_fusion_movement_proof(
+            initial,
+            selected,
+            selected_checkpoint_epoch=4,
+        )
+
+
+def test_entry_v10_model_exposes_only_the_learned_direction_fusion_path() -> None:
+    model_path = TRAINER_PATH.with_name("entry_v10_ctx_hybrid_transformer.py")
+    text = model_path.read_text(encoding="utf-8")
+
+    assert "self.evidence_fusion_norm = nn.LayerNorm(EXACT_EVIDENCE_FUSION_INPUT_DIM)" in text
+    assert "self.evidence_fusion_in = nn.Linear(" in text
+    assert "self.evidence_fusion_out = nn.Linear(EXACT_EVIDENCE_FUSION_HIDDEN_DIM, 3)" in text
+    assert "raw_direction_logits = self._fuse_direction_evidence(pre_fusion_outputs)" in text
+    assert "direction_logits = raw_direction_logits" in text
+    assert '"raw_direction_logits": raw_direction_logits' in text
+    assert text.index("raw_direction_logits = self._fuse_direction_evidence") < text.index(
+        "public_trade_flat_decision_logits = torch.stack"
+    )
+    for retired in (
+        "hierarchical_direction_base_logits",
+        "hierarchical_direction_residual_logits",
+        "hierarchical_ctx_prior_adapter",
+        "public_trade_logit",
+        "public_flat_logit",
+        "public_side_logits",
+        "margin_bridge",
+    ):
+        assert retired not in text
+
+
+
+
+
+
+def test_model_native_train_wrappers_require_exact_audited_positive_recipe() -> None:
+    from gx1.contracts.entry_model_native_train_launch_v1 import (
+        MODEL_NATIVE_RECIPE_ENV_KEYS,
+        RECIPE_AUDIT_SCHEMA,
+    )
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        REQUIRED_POSITIVE_LOSS_WEIGHTS,
+    )
+
     repo = Path(__file__).resolve().parents[1]
-    smoke = (repo / "scripts" / "run_entry_foundation_seq146_smoke_train.sh").read_text(encoding="utf-8")
-    candidate = (repo / "scripts" / "run_entry_foundation_seq146_candidate_train.sh").read_text(encoding="utf-8")
+    smoke = (repo / "scripts" / "run_entry_model_native_seq513_smoke_train.sh").read_text(encoding="utf-8")
+    candidate = (repo / "scripts" / "run_entry_model_native_seq513_candidate_train.sh").read_text(encoding="utf-8")
 
     for text in (smoke, candidate):
-        assert "ENTRY_PATH_QUALITY_RANK_WEIGHT" in text
-        assert "ENTRY_PATH_QUALITY_RANK_MARGIN" in text
-        assert "ENTRY_PATH_QUALITY_RANK_QUANTILE" in text
+        assert "--recipe-audit-json" in text
+        assert "gx1.contracts.entry_model_native_train_launch_v1" in text
+        assert "ENTRY_HIER_LEGACY_CE_MULT" not in text
+
+    assert set(REQUIRED_POSITIVE_LOSS_WEIGHTS).issubset(MODEL_NATIVE_RECIPE_ENV_KEYS)
+    assert "ENTRY_HIER_LEGACY_CE_MULT" not in MODEL_NATIVE_RECIPE_ENV_KEYS
+    assert RECIPE_AUDIT_SCHEMA == "entry_model_native_seq513_train_recipe_audit_v1"
 
 
-def test_entry_v10_standalone_eval_declares_direction_only_loss_scope() -> None:
+def test_entry_v10_standalone_eval_matches_training_objective() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
-    assert '"test_loss_scope": "direction_only_ce_plus_residual_side_bias"' in text
-    assert '"validation_objective_matches_train": False' in text
-    assert '"hierarchical_loss_metrics_included": False' in text
+    assert '"validation_objective_matches_train": True' in text
+    assert "direction_only_ce_plus_residual_side_bias" not in text
+    assert '"hierarchical_loss_metrics_included": False' not in text

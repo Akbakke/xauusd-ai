@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from gx1.features.entry_candlestick_patterns_v1 import (
     CANDLESTICK_PATTERN_FEATURE_NAMES,
@@ -82,23 +83,59 @@ def test_candlestick_pattern_layer_has_no_same_row_or_future_leakage() -> None:
     assert tuple(names) == CANDLESTICK_PATTERN_FEATURE_NAMES
 
 
-def test_candlestick_pattern_layer_sanitizes_nan_and_inf() -> None:
+def test_candlestick_pattern_layer_rejects_nan_and_inf() -> None:
+    for field, value in (("open", np.nan), ("high", np.inf), ("low", -np.inf)):
+        frame = pd.DataFrame(
+            {
+                "time": pd.date_range("2026-01-01", periods=5, freq="5min", tz="UTC"),
+                "open": [10.0, 10.1, 10.2, 10.3, 10.4],
+                "high": [10.5, 10.6, 10.7, 10.8, 10.9],
+                "low": [9.9, 10.0, 10.1, 10.2, 10.3],
+                "close": [10.4, 10.5, 10.6, 10.7, 10.8],
+            }
+        )
+        frame.loc[2, field] = value
+        with pytest.raises(RuntimeError, match="candlestick source field is non-finite"):
+            build_entry_candlestick_pattern_layer(frame)
+
+
+def test_candlestick_pattern_layer_rejects_invalid_time_and_ohlc_geometry() -> None:
     frame = pd.DataFrame(
         {
-            "time": pd.date_range("2026-01-01", periods=5, freq="5min", tz="UTC"),
-            "open": [10.0, np.nan, np.inf, -np.inf, 10.2],
-            "high": [10.5, 10.8, np.inf, 10.3, np.nan],
-            "low": [9.9, -np.inf, 10.0, np.nan, 9.8],
-            "close": [10.4, 10.7, np.nan, np.inf, -np.inf],
+            "time": pd.date_range("2026-01-01", periods=3, freq="5min", tz="UTC"),
+            "open": [10.0, 10.1, 10.2],
+            "high": [10.5, 10.6, 10.7],
+            "low": [9.9, 10.0, 10.1],
+            "close": [10.4, 10.5, 10.6],
         }
     )
+    invalid_geometry = frame.copy()
+    invalid_geometry.loc[1, "high"] = 9.5
+    with pytest.raises(RuntimeError, match="candlestick OHLC geometry is invalid"):
+        build_entry_candlestick_pattern_layer(invalid_geometry)
 
-    out, names = build_entry_candlestick_pattern_layer(frame)
+    naive_time = frame.copy()
+    naive_time["time"] = naive_time["time"].dt.tz_localize(None)
+    with pytest.raises(RuntimeError, match="timezone-aware UTC"):
+        build_entry_candlestick_pattern_layer(naive_time)
 
-    assert out.shape == (5, len(names))
-    assert tuple(names) == CANDLESTICK_PATTERN_FEATURE_NAMES
-    assert np.isfinite(out).all()
-    assert out[0].sum() == 0.0
+    duplicate_time = frame.copy()
+    duplicate_time.loc[2, "time"] = duplicate_time.loc[1, "time"]
+    with pytest.raises(RuntimeError, match="strictly increasing and unique"):
+        build_entry_candlestick_pattern_layer(duplicate_time)
+
+
+def test_candlestick_pattern_layer_rejects_missing_canonical_field() -> None:
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-01-01", periods=2, freq="5min", tz="UTC"),
+            "open": [10.0, 10.1],
+            "high": [10.5, 10.6],
+            "close": [10.4, 10.5],
+        }
+    )
+    with pytest.raises(RuntimeError, match="CANDLESTICK_PATTERN_SOURCE_FIELDS_MISSING"):
+        build_entry_candlestick_pattern_layer(frame)
 
 
 def test_candlestick_source_contract_and_specialist_routing() -> None:

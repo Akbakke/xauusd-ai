@@ -8,10 +8,8 @@ drift (train/serve skew = silent death). Reuse-first: the per-TF regime classes
 but were never wired into the entry/exit models — this module wires them + derives the
 "regime is shifting" change-detection signals on top.
 
-Design: GX1_DATA/DESIGN_MULTI_TF_REGIME_CONDITIONING_CHANGEDETECT_20260603.md.
-
-Gated by env GX1_REGIME_V4 at the call sites (default OFF = bit-parity with cement). When a
-caller opts in, this is FAIL-CLOSED: missing source columns raise (no silent degenerate).
+The full surface is unconditional in model-native Entry. Missing source columns
+raise; no environment-selected subset or neutral substitute exists.
 
 The feature list (REGIME_V4_FEATURE_NAMES) is what gets appended to the entry ctx_cont
 contract (signal_bridge_v3.ORDERED_CTX_CONT_NAMES_V3) and the EXIT_IO_V8 tail. R1/R2 are
@@ -24,6 +22,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 
+from gx1.features.htf_features import validate_causal_feature_matrix
+
 # 2026-06-05 (user vedtak): M5 ADDED — the immediate-flow TF is the MOST important for the entry's
 # direction ("trade with the trend her og nå"). M5 now participates in the regime-class cross-TF
 # agreement/divergence (regime_tf_agreement_v3 etc.), not just the M5 seq. Appended (not prepended) so the
@@ -33,7 +33,7 @@ _TFS = ("m15", "h1", "h4", "d1", "m5")
 # M5-bar cadence per TF (one bar of TF = N M5 bars), for transition look-backs.
 _TF_BARS = {"m15": 3, "h1": 12, "h4": 48, "d1": 288, "m5": 1}
 
-# Source columns this module REUSES (must exist on the frame when GX1_REGIME_V4 is enabled).
+# Source columns this module reuses; every one is mandatory.
 REGIME_V4_SOURCE_COLS: List[str] = (
     [f"{tf}_regime_class_id_v2" for tf in _TFS]        # R1
     + [f"{tf}_trend_age_bars_norm_v2" for tf in _TFS]  # R2
@@ -65,7 +65,15 @@ REGIME_V4_FEATURE_NAMES: List[str] = (
 def _sign_from_class(class_id: np.ndarray) -> np.ndarray:
     """Per-TF regime sign from the 5-class regime id (htf_features._regime_class enum):
     classes {1,2} = up, {3,4} = down, 0 = neutral/none."""
-    c = np.asarray(class_id, dtype=np.int64)
+    raw = np.asarray(class_id, dtype=np.float64)
+    if (
+        raw.ndim != 1
+        or not np.isfinite(raw).all()
+        or not np.equal(raw, np.rint(raw)).all()
+        or np.any((raw < 0.0) | (raw > 4.0))
+    ):
+        raise RuntimeError("[REGIME_V4] regime classes must use exact finite enum values 0..4")
+    c = raw.astype(np.int64)
     return np.where(np.isin(c, (1, 2)), 1, np.where(np.isin(c, (3, 4)), -1, 0)).astype(np.float64)
 
 
@@ -74,59 +82,118 @@ def add_regime_v4_features(df: pd.DataFrame) -> pd.DataFrame:
 
     The frame MUST be time-sorted ascending (shift/run-length depend on it). Build-side passes
     the full-history prebuilt; live-side passes the rolling cv3 window (must carry >=288 bars of
-    D1-dist history for F4 to be exact, else early rows clip to 0 — acceptable, fail-soft on
-    history depth only, fail-CLOSED on missing columns).
+    D1-dist history for F4 to be exact. The causal prefix remains NaN and is trimmed
+    by the shared warmup contract; missing columns fail closed.
     """
     missing = [c for c in REGIME_V4_SOURCE_COLS if c not in df.columns]
     if missing:
         raise RuntimeError(
-            f"[REGIME_V4] required source columns missing (GX1_REGIME_V4 enabled but pipeline "
-            f"did not provide them): {missing}"
+            f"[REGIME_V4] required source columns missing: {missing}"
         )
+    if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is None:
+        raise RuntimeError("[REGIME_V4] frame requires a timezone-aware UTC DatetimeIndex")
+    if any(pd.Timestamp(ts).utcoffset() != pd.Timedelta(0) for ts in df.index[:1]):
+        raise RuntimeError("[REGIME_V4] frame index must be UTC")
+    if df.empty or df.index.hasnans or not df.index.is_unique or not df.index.is_monotonic_increasing:
+        raise RuntimeError("[REGIME_V4] frame must be non-empty, unique and chronological")
+    source = df.loc[:, REGIME_V4_SOURCE_COLS].apply(pd.to_numeric, errors="coerce")
+    source_values = source.to_numpy(dtype=np.float64)
+    source_warmups = [
+        validate_causal_feature_matrix(
+            source_values[:, column : column + 1],
+            expected_width=1,
+            context=f"REGIME_V4_SOURCE_{REGIME_V4_SOURCE_COLS[column]}",
+        )
+        for column in range(source_values.shape[1])
+    ]
+    source_start = max(source_warmups)
+    n_rows = len(df)
+    derived = {
+        name: np.full(n_rows, np.nan, dtype=np.float64)
+        for name in REGIME_V4_DERIVED_COLS
+    }
+    if source_start == n_rows:
+        for name, values in derived.items():
+            df[name] = values.astype(np.float32)
+        df.attrs["causal_regime_v4_warmup_rows"] = n_rows
+        return df
 
-    signs = {tf: _sign_from_class(df[f"{tf}_regime_class_id_v2"].to_numpy()) for tf in _TFS}
+    suffix = source.iloc[source_start:]
+    for tf in _TFS:
+        classes = suffix[f"{tf}_regime_class_id_v2"].to_numpy(dtype=np.float64)
+        _sign_from_class(classes)
+        age = suffix[f"{tf}_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)
+        stack_values = suffix[f"{tf}_ema_stack_aligned_v2"].to_numpy(dtype=np.float64)
+        if np.any((age < 0.0) | (age > 1.0)):
+            raise RuntimeError(f"[REGIME_V4] {tf} trend age must be within [0, 1]")
+        if not np.isin(stack_values, (-1.0, 0.0, 1.0)).all():
+            raise RuntimeError(f"[REGIME_V4] {tf} EMA stack must use exact enum -1/0/1")
+
+    signs = {
+        tf: _sign_from_class(suffix[f"{tf}_regime_class_id_v2"].to_numpy(dtype=np.float64))
+        for tf in _TFS
+    }
     d1_sign = signs["d1"]
 
     # F1: fraction of TFs whose regime sign agrees with D1 (cross-TF agreement) -> [0,1]
     agree = np.mean([(signs[tf] == d1_sign).astype(np.float64) for tf in _TFS], axis=0)
-    df["regime_tf_agreement_v3"] = agree.astype(np.float32)
+    derived["regime_tf_agreement_v3"][source_start:] = agree
 
     # F2: mean ema-stack alignment across TFs -> [-1,1]
     stack = np.mean(
-        [np.nan_to_num(df[f"{tf}_ema_stack_aligned_v2"].to_numpy(dtype=np.float64), nan=0.0) for tf in _TFS],
+        [suffix[f"{tf}_ema_stack_aligned_v2"].to_numpy(dtype=np.float64) for tf in _TFS],
         axis=0,
     )
-    df["regime_stack_sum_v3"] = stack.astype(np.float32)
+    derived["regime_stack_sum_v3"][source_start:] = stack
 
     # F3: TFs disagree (divergence) -> transition onset
-    df["regime_divergence_flag_v3"] = (agree <= 0.5).astype(np.float32)
+    derived["regime_divergence_flag_v3"][source_start:] = (agree <= 0.5).astype(np.float64)
 
     # F4: D1-dist rate-of-change over ~1 D1 bar (288 M5 bars). Clip MANDATORY (corrupt tails).
-    d1d = np.nan_to_num(df["D1_dist_from_ema200_atr"].to_numpy(dtype=np.float64), nan=0.0)
-    roc = d1d - pd.Series(d1d).shift(_TF_BARS["d1"]).fillna(0.0).to_numpy()
-    df["d1_dist_roc_288_v3"] = np.clip(roc, -5.0, 5.0).astype(np.float32)
+    d1d = suffix["D1_dist_from_ema200_atr"].to_numpy(dtype=np.float64)
+    roc_lookback = _TF_BARS["d1"]
+    if len(d1d) > roc_lookback:
+        roc = np.clip(d1d[roc_lookback:] - d1d[:-roc_lookback], -5.0, 5.0)
+        derived["d1_dist_roc_288_v3"][source_start + roc_lookback:] = roc
 
     # F6: |D1-dist| small = near the sign-flip boundary = instability
-    df["d1_dist_to_boundary_v3"] = np.clip(np.abs(d1d), 0.0, 5.0).astype(np.float32)
+    derived["d1_dist_to_boundary_v3"][source_start:] = np.clip(np.abs(d1d), 0.0, 5.0)
 
     # F8: D1 regime class changed vs previous bar
-    d1c = df["d1_regime_class_id_v2"].to_numpy(dtype=np.int64)
-    changed = np.zeros(len(d1c), dtype=np.float64)
+    d1c = suffix["d1_regime_class_id_v2"].to_numpy(dtype=np.int64)
+    changed = np.full(len(d1c), np.nan, dtype=np.float64)
     if len(d1c) > 1:
         changed[1:] = (d1c[1:] != d1c[:-1]).astype(np.float64)
-    df["d1_regime_changed_flag_v3"] = changed.astype(np.float32)
+    derived["d1_regime_changed_flag_v3"][source_start:] = changed
 
     # F9: bars-since-last-D1-regime-change, normalized log1p/log1p(500) -> [0,1] (recency).
     #     Same construction as htf_features._trend_age_bars but keyed on the regime CLASS
     #     (catches 1<->2 / 3<->4 sub-flips the ema-stack misses).
-    s = pd.Series(d1c)
-    grp = (s != s.shift(1)).cumsum()
-    age = s.groupby(grp).cumcount().to_numpy(dtype=np.float64)
-    age = np.clip(age, 0.0, 500.0)
-    df["bars_since_d1_regime_change_v3"] = (np.log1p(age) / np.log1p(500.0)).astype(np.float32)
+    transitions = np.flatnonzero(d1c[1:] != d1c[:-1]) + 1
+    if len(transitions):
+        first_transition = int(transitions[0])
+        age = np.empty(len(d1c) - first_transition, dtype=np.float64)
+        last_change = first_transition
+        for offset, row in enumerate(range(first_transition, len(d1c))):
+            if row > first_transition and d1c[row] != d1c[row - 1]:
+                last_change = row
+            age[offset] = min(float(row - last_change), 500.0)
+        derived["bars_since_d1_regime_change_v3"][source_start + first_transition:] = (
+            np.log1p(age) / np.log1p(500.0)
+        )
 
     # F10: D1 trend exhaustion proxy (reuses R2 trend-age)
-    d1_age = np.nan_to_num(df["d1_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64), nan=0.0)
-    df["d1_trend_age_mature_flag_v3"] = (d1_age > 0.8).astype(np.float32)
+    d1_age = suffix["d1_trend_age_bars_norm_v2"].to_numpy(dtype=np.float64)
+    derived["d1_trend_age_mature_flag_v3"][source_start:] = (d1_age > 0.8).astype(np.float64)
+
+    for name, values in derived.items():
+        df[name] = values.astype(np.float32)
+    derived_values = df.loc[:, REGIME_V4_DERIVED_COLS].to_numpy(dtype=np.float64)
+    derived_start = validate_causal_feature_matrix(
+        derived_values,
+        expected_width=len(REGIME_V4_DERIVED_COLS),
+        context="REGIME_V4_DERIVED",
+    )
+    df.attrs["causal_regime_v4_warmup_rows"] = derived_start
 
     return df

@@ -72,10 +72,8 @@ BASE34_MANIFEST = Path(
 )
 WARMUP_DAYS = 30   # enough for ATR14, EMA200, RSI, etc. to stabilize
 
-# PLUS5: 5 features the v3 augment originally dropped as "duplicates". Re-added
-# 2026-05-21 because PLUS5 Entry-IQL ensemble was trained on them with real values
-# (mean test reward 95K vs 94K without). Logic mirrors
-# augment_canonical_v3_with_missing_features.py:compute_features.
+# PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
+# was trained on real values.  This function is the retained computation source.
 PLUS5_FEATURES = ("atr", "std50", "roc20", "_v1_vwap_drift48", "_v1h1_vwap_drift")
 
 

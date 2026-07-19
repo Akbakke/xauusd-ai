@@ -1,23 +1,20 @@
+from __future__ import annotations
+
+import json
 import subprocess
 from pathlib import Path
 
-
-REPO = Path("/home/andre2/src/GX1_ENGINE")
-WRAPPER = REPO / "scripts/run_entry_foundation_seq146_candidate_train.sh"
-EXPECTED_AUX_FLAGS = (
-    "--enable-tf-agreement-head",
-    "--enable-path-quality-variance-head",
-    "--enable-position-size-head",
-    "--enable-dip-head",
-    "--enable-forecast-head",
-    "--enable-timing-head",
-    "--enable-tail-risk-head",
-    "--enable-vol-forecast-head",
-    "--enable-mtf-direction-head",
+from tests.entry_model_native_train_wrapper_support import (
+    VEDTAK,
+    build_wrapper_contract,
 )
 
 
-def _run_wrapper(*args: str) -> subprocess.CompletedProcess[str]:
+REPO = Path(__file__).resolve().parents[1]
+WRAPPER = REPO / "scripts/run_entry_model_native_seq513_candidate_train.sh"
+
+
+def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["bash", str(WRAPPER), *args],
         cwd=REPO,
@@ -28,816 +25,110 @@ def _run_wrapper(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_candidate_train_requires_explicit_vedtak() -> None:
-    result = _run_wrapper("--dry-run")
-
-    assert result.returncode == 2
-    assert "--vedtak is required" in result.stderr
-    assert "Candidate train command:" not in result.stdout
-
-
-def test_candidate_train_blocks_when_candidate_readiness_is_not_ready() -> None:
-    result = _run_wrapper("--vedtak", "PYTEST_DRY_RUN", "--dry-run")
-
-    assert result.returncode == 2
-    assert "candidate-readiness is NOT_READY" in result.stderr
-    assert "smoke-train --vedtak <id> --require-edge-audit" in result.stderr
-    assert "Candidate train command:" not in result.stdout
-
-
-def test_seq215_candidate_train_blocks_with_seq215_next_gate_when_not_ready() -> None:
-    result = _run_wrapper(
-        "--challenger-seq215",
-        "--vedtak",
-        "ENTRY_FOUNDATION_CANDIDATE_TRAIN_20260630_SEQ215_V1",
-        "--dry-run",
+def test_candidate_wrapper_has_valid_shell_syntax() -> None:
+    result = subprocess.run(
+        ["bash", "-n", str(WRAPPER)],
+        cwd=REPO,
+        text=True,
+        capture_output=True,
+        check=False,
     )
+    assert result.returncode == 0, result.stderr
+
+
+def test_candidate_wrapper_requires_complete_explicit_contract() -> None:
+    result = _run("--vedtak", VEDTAK, "--dry-run")
 
     assert result.returncode == 2
-    assert "candidate-readiness is NOT_READY" in result.stderr
-    assert "smoke-train-seq215 --vedtak <id> --require-edge-audit" in result.stderr
-    assert "candidate-readiness-seq215" in result.stderr
-    assert "Candidate train command:" not in result.stdout
+    assert "missing required argument" in result.stderr
+    assert "Capped candidate train command:" not in result.stdout
 
 
-def test_seq215_candidate_train_dry_run_requires_seq215_vedtak_before_readiness() -> None:
-    result = _run_wrapper(
-        "--challenger-seq215",
-        "--vedtak",
-        "ENTRY_FOUNDATION_CANDIDATE_TRAIN_20260630_SEQ146_V1",
-        "--dry-run",
-    )
+def test_candidate_wrapper_rejects_unknown_retired_lane_argument() -> None:
+    result = _run("--challenger-seq215", "--dry-run")
 
     assert result.returncode == 2
-    assert "requires an explicit SEQ215 vedtak id" in result.stderr
-    assert "candidate-readiness is NOT_READY" not in result.stderr
-    assert "Candidate train command:" not in result.stdout
+    assert "unknown argument" in result.stderr
+    assert "Capped candidate train command:" not in result.stdout
 
 
-def test_candidate_train_wrapper_declares_live_aux_heads_without_hold_horizon() -> None:
+def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -> None:
+    args, paths = build_wrapper_contract(tmp_path, profile="candidate", wrapper=WRAPPER)
+
+    result = _run(*args, "--dry-run")
+
+    assert result.returncode == 0, result.stderr
+    assert "Validated model-native seq513 candidate contract" in result.stdout
+    assert "Capped candidate train command:" in result.stdout
+    assert "gx1_capped_run.sh" in result.stdout
+    assert "--multi-tf-seq-len 96" in result.stdout
+    assert "--specialist-audit-json" in result.stdout
+    assert "--mtf-dir-scale-init" not in result.stdout
+    assert "--enable-" not in result.stdout
+    assert not paths["out_bundle_dir"].exists()
+
+
+def test_candidate_wrapper_rejects_zero_mandatory_recipe_value(tmp_path: Path) -> None:
+    args, paths = build_wrapper_contract(tmp_path, profile="candidate", wrapper=WRAPPER)
+    recipe_path = paths["recipe_audit_json"]
+    recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
+    recipe["trainer_env"]["ENTRY_MTF_DIR_AUX_WEIGHT"] = "0"
+    recipe_path.write_text(json.dumps(recipe, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    result = _run(*args, "--dry-run")
+
+    assert result.returncode == 2
+    assert "must be finite and > 0" in result.stderr
+
+
+def test_candidate_wrapper_rejects_mutated_readiness_binding(tmp_path: Path) -> None:
+    args, paths = build_wrapper_contract(tmp_path, profile="candidate", wrapper=WRAPPER)
+    readiness = paths["candidate_readiness_json"]
+    payload = json.loads(readiness.read_text(encoding="utf-8"))
+    payload["decision"] = "NOT_READY_FOR_CANDIDATE_TRAINING"
+    readiness.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    result = _run(*args, "--dry-run")
+
+    assert result.returncode == 2
+    assert "candidate readiness decision" in result.stderr
+    assert "Capped candidate train command:" not in result.stdout
+
+
+def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_paths() -> None:
     text = WRAPPER.read_text(encoding="utf-8")
+    lowered = text.lower()
 
-    for flag in EXPECTED_AUX_FLAGS:
-        assert flag in text
-    assert "--enable-hold-horizon-head" not in text
-
-
-def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -> None:
-    text = WRAPPER.read_text(encoding="utf-8")
-
-    assert "AUDIT_CMD" in text
-    assert "audit-smoke-bundle" in text
-    assert "--require-edge" in text
-    assert "--require-head-contract" in text
-    assert "--pretrain-manifest-json" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_TRAIN_RUN_MANIFEST" in text
-    assert "entry_foundation_candidate_train_run_manifest_v1" in text
-    assert 'CANDIDATE_MEM_CAP="${ENTRY_FOUNDATION_CANDIDATE_MEM_CAP:-32G}"' in text
-    assert 'CANDIDATE_SWAP_CAP="${ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP:-2G}"' in text
-    assert "CANDIDATE_CAPPED_RUNNER=scripts/gx1_capped_run.sh" in text
-    assert 'CANDIDATE_BAD_PATH_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_WEIGHT:-1.00}"' in text
-    assert (
-        'CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT:-2.00}"'
-        in text
-    )
-    assert 'CANDIDATE_PRED_BALANCE_ALPHA="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA:-0.05}"' in text
-    assert 'CANDIDATE_PRED_BALANCE_TARGET="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_TARGET:-label}"' in text
-    assert (
-        'CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS:-1.0,1.0,1.0}"'
-        in text
-    )
-    assert 'CANDIDATE_DIRECTION_CE_SCALE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE:-1.30}"' in text
-    assert 'CANDIDATE_CKPT_MONITOR="${ENTRY_FOUNDATION_CANDIDATE_CKPT_MONITOR:-dir_acc}"' in text
-    assert (
-        'CANDIDATE_CKPT_CLASS_BALANCE_GUARD_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_CKPT_CLASS_BALANCE_GUARD_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL="${ENTRY_FOUNDATION_CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_RATE="${ENTRY_FOUNDATION_CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_RATE:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_CKPT_DIRECTION_SLICE_GUARD="${ENTRY_FOUNDATION_CANDIDATE_CKPT_DIRECTION_SLICE_GUARD:-0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE:-1.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE:-0.02}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:-0.02}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:-0.02}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE:-0.02}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION:-mean}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER:-0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE:-0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS:-6}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_VS_FLAT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS:-15.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS:-15.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS:-15.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH:-0.50}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FRACTION="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FRACTION:-0.50}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FLOOR="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FLOOR:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:-0.10}"'
-        in text
-    )
-    assert 'CANDIDATE_HIER_LEGACY_CE_MULT="${ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT:-0.35}"' in text
-    assert (
-        'CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS:-10.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP:-20.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_FLAT_LOGIT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_FLAT_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_PUBLIC_TRADE_FLAT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_FLAT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:-0.10}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS="${ENTRY_FOUNDATION_CANDIDATE_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS:-8}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT:-0.0}"'
-        in text
-    )
-    assert (
-        'CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT:-0.0}"'
-        in text
-    )
-    assert 'CANDIDATE_ANCHOR_GATE_INIT="${ENTRY_FOUNDATION_CANDIDATE_ANCHOR_GATE_INIT:-1.0}"' in text
-    assert (
-        'CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT:-0.25}"'
-        in text
-    )
-    assert '--mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP"' in text
-    assert (
-        "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP "
-        "runner=$CANDIDATE_CAPPED_RUNNER num_workers=0"
-        in text
-    )
-    assert "Capped candidate train command:" in text
-    assert '"memory_cap": sys.argv[12]' in text
-    assert '"swap_cap": sys.argv[13]' in text
-    assert '"cgroup_runner": "scripts/gx1_capped_run.sh"' in text
-    assert '"uses_gx1_capped_run": True' in text
-    assert '"num_workers": int(command_arg_value(train_cmd, "--num-workers") or -1)' in text
-    assert "candidate_recipe_env" in text
-    assert "command_env_value" in text
-    assert "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in text
-    assert "ENTRY_AUX_BAD_PATH_WEIGHT=" in text
-    assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=" in text
-    assert "ENTRY_BAD_PATH_PROB_PENALTY=" in text
-    assert "ENTRY_PRED_BALANCE_ALPHA=" in text
-    assert "ENTRY_PRED_BALANCE_TARGET=" in text
-    assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=" in text
-    assert "ENTRY_DIRECTION_CE_SCALE=" in text
-    assert "GX1_V10_CKPT_MONITOR=" in text
-    assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=" in text
-    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=" in text
-    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=" in text
-    assert "ENTRY_CKPT_DIRECTION_SLICE_GUARD=" in text
-    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=" in text
-    assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=" in text
-    assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=" in text
-    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=" in text
-    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=" in text
-    assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE=" in text
-    assert "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS=" in text
-    assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN=" in text
-    assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE=" in text
-    assert "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=" in text
-    assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN=" in text
-    assert "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN=" in text
-    assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=" in text
-    assert "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=" in text
-    assert "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=" in text
-    assert "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE=" in text
-    assert "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS=" in text
-    assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=" in text
-    assert "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=" in text
-    assert "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS=" in text
-    assert "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=" in text
-    assert "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=" in text
-    assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
-    assert "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS=" in text
-    assert "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN=" in text
-    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=" in text
-    assert "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH=" in text
-    assert "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP=" in text
-    assert "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=" in text
-    assert "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP=" in text
-    assert "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=" in text
-    assert "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=" in text
-    assert "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION=" in text
-    assert "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_HEAD=" in text
-    assert "ENTRY_HIER_PUBLIC_FLAT_HEAD=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=" in text
-    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD=" in text
-    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=" in text
-    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE=" in text
-    assert "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP=" in text
-    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT=" in text
-    assert "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP=" in text
-    assert "ENTRY_HIER_CTX_PRIOR_ADAPTER=" in text
-    assert "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE=" in text
-    assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION=" in text
-    assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE=" in text
-    assert "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP=" in text
-    assert "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT=" in text
-    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=" in text
-    assert "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS=" in text
-    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION=" in text
-    assert "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR=" in text
-    assert "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_RESIDUAL_SCALE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_HEAD" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_FLAT_HEAD" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_SCALE" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_CAP" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_ANCHOR_EPS" in text
-    assert 'ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="$CANDIDATE_HIER_COMPOSE_RESIDUAL_LOGIT_CAP"' in text
-    assert 'ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL="$CANDIDATE_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL"' in text
-    assert (
-        'ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="$CANDIDATE_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION="$CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD="$CANDIDATE_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD"'
-        in text
-    )
-    assert 'ENTRY_HIER_PUBLIC_TRADE_HEAD="$CANDIDATE_HIER_PUBLIC_TRADE_HEAD"' in text
-    assert 'ENTRY_HIER_PUBLIC_FLAT_HEAD="$CANDIDATE_HIER_PUBLIC_FLAT_HEAD"' in text
-    assert (
-        'ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE="$CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE="$CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP="$CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP"'
-        in text
-    )
-    assert 'ENTRY_HIER_PUBLIC_SIDE_HEAD="$CANDIDATE_HIER_PUBLIC_SIDE_HEAD"' in text
-    assert (
-        'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE="$CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE="$CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="$CANDIDATE_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT="$CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP="$CANDIDATE_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP"'
-        in text
-    )
-    assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER"' in text
-    assert 'ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="$CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE"' in text
-    assert 'ENTRY_HIER_CTX_DIRECTION_CALIBRATION="$CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION"' in text
-    assert (
-        'ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE="$CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_SCALE"'
-        in text
-    )
-    assert (
-        'ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP="$CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_CAP"'
-        in text
-    )
-    assert 'ENTRY_RESIDUAL_SCALE="$CANDIDATE_RESIDUAL_SCALE"' in text
-    assert 'ENTRY_ANCHOR_EPS="$CANDIDATE_ANCHOR_EPS"' in text
-    assert "ENTRY_RESIDUAL_SCALE" in text
-    assert "ENTRY_ANCHOR_EPS" in text
-    assert "ENTRY_HIER_LEGACY_CE_MULT=" in text
-    assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=" in text
-    assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=" in text
-    assert "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=" in text
-    assert "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN=" in text
-    assert "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT=" in text
-    assert "ENTRY_HIER_FLAT_LOGIT_MARGIN=" in text
-    assert "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN=" in text
-    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS=" in text
-    assert "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT=" in text
-    assert "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN=" in text
-    assert "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_MIN_ROWS=" in text
-    assert "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT=" in text
-    assert "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT=" in text
-    assert "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT=" in text
-    assert "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT=" in text
-    assert "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS=" in text
-    assert "ENTRY_BAD_PATH_PROB_PENALTY" in text
-    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT=" in text
-    assert "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=" in text
-    assert "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=" in text
-    assert "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=" in text
-    assert "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=" in text
-    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=" in text
-    assert "ENTRY_TRENDLINE_RAIL_MARGIN=" in text
-    assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=" in text
-    assert "ENTRY_SYMMETRIC_NEGATIVES=" in text
-    assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=" in text
-    assert "artifact_sha256" in text
-    assert "artifact_provenance_decision" in text
-    assert "artifact_fingerprints" in text
-    assert "report_json_path" in text
-    assert "candidate_readiness_json_path" in text
-    assert '"candidate_readiness_json": candidate_readiness_json_path' in text
-    assert '"candidate_readiness": sha256_file(candidate_readiness_json_path)' in text
-    assert 'gate_decision(candidate_readiness, "artifact_provenance")' in text
-    assert "candidate_readiness_json" in text
-    assert "smoke_bundle_audit_json" in text
-    assert "required_training_specialists" in text
-    assert "specialist_groups" in text
-    assert "trainable_specialists" in text
-    assert "excluded_specialist_groups" in text
-    assert "specialist_model_contract_valid" in text
-    assert "specialist_model_contract_set_exact" in text
-    assert "specialist_model_contract_owned_objectives_match" in text
-    assert "specialist_model_contract" in text
-    assert "_load_specialist_fusion_contract" in text
-    assert "--specialist-contract-mode \"$SPECIALIST_CONTRACT_MODE\"" in text
-    assert 'SPECIALIST_CONTRACT_MODE=foundation_seq146' in text
-    assert 'SPECIALIST_CONTRACT_MODE=challenger_seq215' in text
-    assert 'EXPECTED_SIGNAL_DIM=215' in text
-    assert '--contract-mode "$SPECIALIST_CONTRACT_MODE"' in text
-    assert "--challenger-seq215" in text
-    assert "challenger_seq215_20260630_contract8" in text
-    assert "entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630" in text
-    assert "v10_dataset_challenger_seq215_neutral_20260630" in text
-    assert "v10_dataset_6yr_smartctx_xau_direction_repair" in text
-    assert "v10_6yr_dataset__HOLD_03B" in text
-    assert "refuses known stale dataset path" in text
-    assert "dataset path must be XAU-specific" in text
-    assert "CANDIDATE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
-    assert "CANDIDATE_READINESS_EDGE_SCOPE=smoke" not in text
-    assert "AUDIT_EDGE_SCOPE=candidate" not in text
-    assert "--edge-test-scope candidate" not in text
-    assert "CANDIDATE_READINESS_EDGE_SCOPE=strict" in text
-    assert "AUDIT_EDGE_SCOPE=strict" in text
-    assert "GX1_PERTF_CLOSED_BAR=1" in text
-    assert "CANDIDATE_PRED_BALANCE_ALPHA=0.50" in text
-    assert "CANDIDATE_DIRECTION_CE_SCALE=4.00" in text
-    assert "CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0" in text
-    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00" in text
-    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
-    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
-    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.05" in text
-    assert "CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in text
-    assert "CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE=0.02" in text
-    assert "CANDIDATE_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in text
-    assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
-    assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text
-    assert "CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_BALANCED_CE_WEIGHT=2.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE=0.10" in text
-    assert "CANDIDATE_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS=8" in text
-    assert "CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT=2.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN=0.10" in text
-    assert "CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE=0.10" in text
-    assert "CANDIDATE_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS=8" in text
-    assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT=4.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN=0.02" in text
-    assert "CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT=4.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN=0.02" in text
-    assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE=0.10" in text
-    assert "CANDIDATE_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS=8" in text
-    assert "CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT=3.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE=0.02" in text
-    assert "CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE=0.10" in text
-    assert "CANDIDATE_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS=8" in text
-    assert "CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in text
-    assert "CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE=3" in text
-    assert "CANDIDATE_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS=6" in text
-    assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
-    assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_MARGIN_WEIGHT=4.00" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_MIN_GAP_BPS=15.0" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_LOGIT_MARGIN=0.10" in text
-    assert "CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT=6.00" in text
-    assert "CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS=15.0" in text
-    assert "CANDIDATE_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN=0.10" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT=8.00" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS=15.0" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS=0.0" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH=0.50" in text
-    assert "CANDIDATE_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN=0.10" in text
-    assert "CANDIDATE_DIRECTION_FLAT_STARVATION_WEIGHT=8.00" in text
-    assert "CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE=0.10" in text
-    assert "CANDIDATE_DIRECTION_FLAT_STARVATION_MIN_ROWS=8" in text
-    assert "CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FRACTION=0.50" in text
-    assert "CANDIDATE_DIRECTION_FLAT_STARVATION_PRED_FLOOR=0.10" in text
-    assert "CANDIDATE_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN=0.10" in text
-    assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
-    assert "CANDIDATE_HIER_TRADE_WEIGHT=2.00" in text
-    assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text
-    assert "CANDIDATE_HIER_UTILITY_WEIGHT=1.00" in text
-    assert "CANDIDATE_HIER_BAD_PATH_WEIGHT=1.25" in text
-    assert "CANDIDATE_HIER_PUBLIC_DIRECTION_COMPOSITION=margin_maxnorm_confidence" in text
-    assert "CANDIDATE_HIER_PUBLIC_TRADE_HEAD=1" in text
-    assert "CANDIDATE_HIER_PUBLIC_FLAT_HEAD=1" in text
-    assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=1" in text
-    assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE=0.50" in text
-    assert "CANDIDATE_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP=0.25" in text
-    assert "CANDIDATE_HIER_PUBLIC_SIDE_HEAD=1" in text
-    assert "CANDIDATE_HIER_CTX_PRIOR_ADAPTER=1" in text
-    assert "CANDIDATE_HIER_CTX_PRIOR_ADAPTER_SCALE=0.50" in text
-    assert "CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION=1" in text
-    assert "CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_SCALE=0.50" in text
-    assert "CANDIDATE_HIER_CTX_DIRECTION_CALIBRATION_CAP=0.35" in text
-    assert "CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT=1.50" in text
-    assert "CANDIDATE_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=15.0" in text
-    assert "CANDIDATE_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP=8.0" in text
-    assert "CANDIDATE_HIER_POCKET_ABSTAIN_WEIGHT=5.00" in text
-    assert "CANDIDATE_HIER_POCKET_SIDE_MARGIN_WEIGHT=3.00" in text
-    assert "CANDIDATE_HIER_POCKET_UTILITY_MARGIN_BPS=30.0" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_AUX_WEIGHT=1.00" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT=1.50" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT=1.50" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT=1.75" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT=5.00" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT=4.00" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT=3.00" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_MARGIN=1.00" in text
-    assert "CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in text
-    assert "CANDIDATE_FLAT_CLASS_WEIGHT_FLOOR=1.00" in text
-    assert "CANDIDATE_ANCHOR_GATE_INIT=0.0" in text
-    assert "CANDIDATE_BAD_PATH_PROB_PENALTY=0.0" in text
-    assert "--enable-xau-direction-repair-heads" in text
-    assert '--anchor-gate-init "$CANDIDATE_ANCHOR_GATE_INIT"' in text
-    assert 'contract_mode=sys.argv[15]' in text
-    assert "expected_signal_dim=int(sys.argv[16])" in text
-    assert "feature_objective_liveness_all_live" in text
-    assert "feature_source_field_liveness_all_live" in text
-    assert "specialist_active_heads_match_target" in text
-    assert "specialist_blocked_heads_match_target" in text
-    assert "smoke_dataset_audit_provenance_all_artifacts_present" in text
-    assert "smoke_dataset_audit_provenance_all_artifact_hashes_present" in text
-    assert "worktree_critical_gate_review_ok" in text
-    assert "architecture_active_heads" in text
-    assert "architecture_blocked_heads" in text
-    assert "specialist_input_liveness_all_live" in text
-    assert "entry_candidate_bundle_audit_20260628_v1" in text
-    assert "--skip-candidate-audit" in text
-    assert "require_clean_git_for_real_candidate_train" in text
-    assert "git status --short" in text
-    assert "real foundation candidate train requires clean git worktree" in text
-    assert 'if [[ "$DRY_RUN" = "1" ]]' in text
-    dry_run_block = text[text.index('if [[ "$DRY_RUN" = "1" ]]') : text.index('mkdir -p "$CANDIDATE_TRAIN_MANIFEST_DIR"')]
-    assert dry_run_block.index("require_clean_git_for_real_candidate_train") > dry_run_block.index("exit 0")
+    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v1" in text
+    assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
+    assert "MODEL_NATIVE_SIGNAL_DIM=513" in text
+    assert "--recipe-audit-json" in text
+    assert "--pretrain-audit-json" in text
+    assert "--candidate-readiness-json" in text
+    assert "--smoke-bundle-audit-json" in text
+    assert "--execute" in text and "--vedtak" in text
+    assert 'RUN_CMD=("$CAPPED_RUNNER" --mem "$MEMORY_CAP" --swap "$SWAP_CAP" --' in text
+    for flag in (
+        "--enable-pos-enc",
+        "--enable-regime-film",
+        "--enable-cross-tf-attn",
+        "--enable-tf-agreement-head",
+        "--enable-path-quality-variance-head",
+        "--enable-position-size-head",
+        "--enable-mtf-direction-head",
+        "--enable-specialist-fusion",
+        "--enable-hierarchical-entry-heads",
+        "--enable-side-validity-head",
+        "--enable-trendline-rail-head",
+    ):
+        assert flag not in text
+    for stale in (
+        "seq520",
+        "tombstone",
+        "run_manifest",
+        "event_ledger",
+        "neutral_xgb",
+        "anchor_gate",
+        "gx1_allow_legacy",
+    ):
+        assert stale not in lowered

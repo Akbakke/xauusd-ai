@@ -1,195 +1,395 @@
+from __future__ import annotations
+
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
-from gx1.features.entry_foundation_structure_v1 import (
-    FOUNDATION_STRUCTURE_FEATURE_NAMES,
-    FOUNDATION_STRUCTURE_FEATURE_VERSION,
-)
-from gx1.scripts.verify_entry_foundation_adoption_candidate_v1 import run
-from gx1.scripts.verify_entry_training_readiness_v1 import REQUIRED_SPECIALISTS
+import pytest
 
-REPO = Path("/home/andre2/src/GX1_ENGINE")
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    FOUNDATION_AUDIT_POLICY_SHA256,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_enforcement,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_REQUIRED_SPECIALISTS,
+    model_native_readiness_contract_metadata,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+    model_native_signal_contract_metadata,
+)
+from gx1.contracts.immutable_event_authority_v1 import (
+    ImmutableEventAuthorityError,
+    write_immutable_json_event,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
+)
+from gx1.scripts.verify_entry_foundation_adoption_candidate_v1 import (
+    AUDIT_EVENT_PREFIXES,
+    EVENT_PREFIX,
+    SMOKE_DATASET_SCHEMA,
+    SMOKE_EVENT_PREFIX,
+    SMOKE_REPORT_DECISION,
+    SMOKE_REPORT_SCHEMA,
+    SMOKE_SPLIT_SCHEMA,
+    build_parser,
+    run,
+)
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
 def _sha(path: Path) -> str:
-    import hashlib
-
-    h = hashlib.sha256()
-    h.update(path.read_bytes())
-    return h.hexdigest()
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _write_split(root: Path, split: str) -> None:
-    parquet = root / f"candidate_{split}.parquet"
-    parquet.write_bytes(f"{split}-parquet".encode("utf-8"))
-    fields = [f"f{i}" for i in range(146)]
-    manifest = {
-        "extra": {
-            "signal_bridge": {
-                "fields": fields,
-                "seq_input_dim": 146,
-                "snap_input_dim": 146,
-                "seq_structure_extension_dim": 105,
-                "seq_structure_extension_v1": {
-                    "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
-                    "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
-                    "foundation_structure_missing_feature_count": 0,
-                    "foundation_structure_all_required_selected": True,
+def _sha_json(payload: dict) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _dataset(root: Path) -> tuple[Path, dict[str, dict]]:
+    dataset = root / "model_native_seq513_dataset"
+    dataset.mkdir()
+    contract = model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields(
+            remainder_prefix="session_regime.adoption_fixture"
+        )
+    )
+    rows: dict[str, dict] = {}
+    for split in ("train", "val", "test"):
+        parquet = dataset / f"candidate_{split}.parquet"
+        manifest = dataset / f"candidate_{split}.manifest.json"
+        parquet.write_bytes(f"{split}-model-native-seq513".encode("utf-8"))
+        manifest.write_text(
+            json.dumps(
+                {
+                    "schema_version": SMOKE_SPLIT_SCHEMA,
+                    "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+                    "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+                    "output_data_path": str(parquet.resolve()),
+                    "extra": {
+                        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+                        "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+                        "neutral_xgb_bridge": False,
+                        "model_native_signal_contract": contract,
+                        "signal_bridge": {
+                            "fields": contract["fields"],
+                            "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                            "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                        },
+                    },
                 },
-            }
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        rows[split] = {
+            "parquet": parquet.resolve(),
+            "manifest": manifest.resolve(),
+            "parquet_sha256": _sha(parquet),
+            "manifest_sha256": _sha(manifest),
         }
-    }
-    parquet.with_suffix(".manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return dataset.resolve(), rows
 
 
-def _write_json(path: Path, payload: dict) -> Path:
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def _event(
+    root: Path,
+    prefix: str,
+    stamp: str,
+    payload: dict,
+) -> Path:
+    created = f"2026-07-16T12:00:{stamp}+00:00"
+    path, _ = write_immutable_json_event(
+        root,
+        prefix,
+        {"created_utc": created, **payload},
+    )
     return path
 
 
-def _write_audits(root: Path, dataset: Path) -> dict[str, Path]:
-    audits = root / "audits"
-    audits.mkdir()
-    feature = _write_json(
-        audits / "feature.json",
+def _audits(root: Path, dataset: Path) -> dict[str, Path]:
+    audit_dir = root / "audits"
+    feature = _event(
+        audit_dir,
+        AUDIT_EVENT_PREFIXES["feature_audit"],
+        "01.000001",
         {
             "schema_version": "entry_feature_foundation_audit_v1",
+            **foundation_audit_policy_binding(),
+            "foundation_audit_policy_enforcement": (
+                foundation_audit_policy_enforcement("feature")
+            ),
             "decision": "PASS",
             "failures": [],
             "dataset_dir": str(dataset),
-            "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
-            "foundation_missing_from_manifest_count": 0,
-            "manifest_foundation_all_required_selected": True,
+            "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "foundation_objective_coverage_all_present": True,
             "foundation_objective_liveness_all_live": True,
             "foundation_source_field_liveness_all_live": True,
         },
     )
-    target = _write_json(
-        audits / "target.json",
+    target = _event(
+        audit_dir,
+        AUDIT_EVENT_PREFIXES["target_audit"],
+        "02.000002",
         {
             "schema_version": "entry_target_foundation_audit_v1",
+            **foundation_audit_policy_binding(),
+            "foundation_audit_policy_enforcement": (
+                foundation_audit_policy_enforcement("target")
+            ),
             "decision": "PASS",
             "failures": [],
             "dataset_dir": str(dataset),
-            "target_head_contract": {"active_training_heads": ["direction"]},
-        },
-    )
-    specialist = _write_json(
-        audits / "specialist.json",
-        {
-            "schema_version": "entry_specialist_feature_group_audit_v1",
-            "decision": "PASS",
-            "failures": [],
-            "dataset_dir": str(dataset),
-            "signal_field_count": 146,
-            "selected_feature_count": 105,
-            "required_training_specialists": list(REQUIRED_SPECIALISTS),
-            "specialist_input_liveness_all_live": True,
-            "foundation_objective_routing_all_present_and_expected": True,
-        },
-    )
-    return {"feature_audit": feature, "target_audit": target, "specialist_audit": specialist}
-
-
-def _write_smoke(root: Path, dataset: Path, audit_paths: dict[str, Path]) -> Path:
-    smoke = root / "smoke"
-    smoke.mkdir()
-    splits = {}
-    for split in ("train", "val", "test"):
-        out_parquet = smoke / f"smoke_{split}.parquet"
-        out_manifest = smoke / f"smoke_{split}.manifest.json"
-        out_parquet.write_bytes(f"{split}-smoke-parquet".encode("utf-8"))
-        out_manifest.write_text(json.dumps({"split": split}), encoding="utf-8")
-        source_manifest = dataset / f"candidate_{split}.manifest.json"
-        splits[split] = {
-            "rows": 6,
-            "label_counts": {"0": 2, "1": 2, "2": 2},
-            "source_manifest": str(source_manifest),
-            "source_manifest_sha256": _sha(source_manifest),
-            "out_path": str(out_parquet),
-            "out_parquet_sha256": _sha(out_parquet),
-            "out_manifest": str(out_manifest),
-            "out_manifest_sha256": _sha(out_manifest),
-        }
-    manifest = {
-        "schema_version": "entry_foundation_seq146_smoke_dataset_v1",
-        "source_dir": str(dataset),
-        "splits": splits,
-        "audit_provenance": {
-            "schema_version": "entry_foundation_smoke_dataset_audit_provenance_v1",
-            "artifacts": {
-                name: {
-                    "path": str(path),
-                    "exists": True,
-                    "sha256": _sha(path),
-                }
-                for name, path in audit_paths.items()
+            "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            "target_head_contract": {
+                "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
+                "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
             },
         },
+    )
+    specialist = _event(
+        audit_dir,
+        AUDIT_EVENT_PREFIXES["specialist_audit"],
+        "03.000003",
+        {
+            "schema_version": "entry_specialist_feature_group_audit_v1",
+            **foundation_audit_policy_binding(),
+            "foundation_audit_policy_enforcement": (
+                foundation_audit_policy_enforcement("specialist")
+            ),
+            "decision": "PASS",
+            "failures": [],
+            "dataset_dir": str(dataset),
+            "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+            "signal_field_count": MODEL_NATIVE_SIGNAL_DIM,
+            "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+            "required_training_specialists": list(
+                MODEL_NATIVE_REQUIRED_SPECIALISTS
+            ),
+            "specialist_model_contract": MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
+            "specialist_model_contract_valid": True,
+            "specialist_input_liveness_all_live": True,
+            "foundation_objective_routing_all_present_and_expected": True,
+            "architecture_contract": {
+                "input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                "recommended_fusion": {
+                    "active_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
+                    "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+                },
+            },
+        },
+    )
+    return {
+        "feature_audit": feature,
+        "target_audit": target,
+        "specialist_audit": specialist,
     }
-    (smoke / "SMOKE_DATASET_MANIFEST.json").write_text(json.dumps(manifest), encoding="utf-8")
-    return smoke
 
 
-def _args(tmp_path: Path, dataset: Path, audits: dict[str, Path], smoke: Path) -> argparse.Namespace:
+def _smoke_event(
+    root: Path,
+    dataset: Path,
+    dataset_rows: dict[str, dict],
+) -> Path:
+    split_artifacts: dict[str, dict] = {}
+    embedded_splits: dict[str, dict] = {}
+    for split, row in dataset_rows.items():
+        split_artifacts[split] = {
+            "rows": 3,
+            "output_data_path": str(row["parquet"]),
+            "manifest_path": str(row["manifest"]),
+            "parquet_sha256": row["parquet_sha256"],
+            "manifest_sha256": row["manifest_sha256"],
+            "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "field_count": MODEL_NATIVE_SIGNAL_DIM,
+        }
+        embedded_splits[split] = {
+            "rows": 3,
+            "out_parquet": str(row["parquet"]),
+            "out_manifest": str(row["manifest"]),
+            "out_parquet_sha256": row["parquet_sha256"],
+            "out_manifest_sha256": row["manifest_sha256"],
+            "split_manifest_schema_version": SMOKE_SPLIT_SCHEMA,
+            "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "field_count": MODEL_NATIVE_SIGNAL_DIM,
+        }
+    embedded = {
+        "schema_version": SMOKE_DATASET_SCHEMA,
+        "report_only": True,
+        "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+        "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+        "dataset_dir": str(dataset),
+        "splits": embedded_splits,
+    }
+    return _event(
+        root / "smoke",
+        SMOKE_EVENT_PREFIX,
+        "04.000004",
+        {
+            "schema_version": SMOKE_REPORT_SCHEMA,
+            "decision": SMOKE_REPORT_DECISION,
+            "report_only": True,
+            "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+            "smart_smoke_dataset_dir": str(dataset),
+            "manifest_embedded": True,
+            "manifest_sha256": _sha_json(embedded),
+            "smoke_manifest": embedded,
+            "split_artifacts": split_artifacts,
+            "model_native_readiness_contract": (
+                model_native_readiness_contract_metadata()
+            ),
+            "failures": [],
+            "training_allowed": False,
+            "replay_allowed": False,
+            "shadow_live_allowed": False,
+            "side_effects_started": {
+                "dataset_rebuild": False,
+                "training": False,
+                "replay": False,
+                "shadow": False,
+                "live": False,
+            },
+        },
+    )
+
+
+def _args(
+    root: Path,
+    dataset: Path,
+    audits: dict[str, Path],
+    smoke: Path,
+) -> argparse.Namespace:
     return argparse.Namespace(
         dataset_dir=str(dataset),
         feature_audit_json=str(audits["feature_audit"]),
         target_audit_json=str(audits["target_audit"]),
         specialist_audit_json=str(audits["specialist_audit"]),
-        smoke_dataset_dir=str(smoke),
-        out_dir=str(tmp_path / "reports"),
-        expected_smoke_train_rows=6,
-        expected_smoke_val_rows=6,
-        expected_smoke_test_rows=6,
+        smoke_manifest_json=str(smoke),
+        out_dir=str(root / "reports"),
         quiet=True,
     )
 
 
-def test_entry_foundation_adoption_candidate_passes_for_consistent_bundle(tmp_path: Path) -> None:
-    dataset = tmp_path / "dataset"
-    dataset.mkdir()
-    for split in ("train", "val", "test"):
-        _write_split(dataset, split)
-    audits = _write_audits(tmp_path, dataset)
-    smoke = _write_smoke(tmp_path, dataset, audits)
+def test_model_native_adoption_produces_one_report_only_immutable_event(
+    tmp_path: Path,
+) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    smoke = _smoke_event(tmp_path, dataset, rows)
 
     report = run(_args(tmp_path, dataset, audits, smoke))
 
-    assert report["decision"] == "PASS"
-    assert report["candidate_ready_for_activation"] is True
+    assert report["decision"] == "READY_FOR_MODEL_NATIVE_ADOPTION_REVIEW"
+    assert report["adoption_evidence_ready"] is True
+    assert report["candidate_ready_for_activation"] is False
     assert report["training_allowed"] is False
-    assert report["activation_allowed_without_vedtak"] is False
+    assert report["direction_selection_authority"] is False
     assert report["failures"] == []
-    assert Path(report["json_path"]).exists()
+    assert report["model_native_readiness_contract"] == (
+        model_native_readiness_contract_metadata()
+    )
+    assert report["foundation_audit_policy_sha256"] == (
+        FOUNDATION_AUDIT_POLICY_SHA256
+    )
+    event = Path(report["json_path"])
+    assert event.name.startswith(f"{EVENT_PREFIX}_")
+    assert list((tmp_path / "reports").iterdir()) == [event]
 
 
-def test_entry_foundation_adoption_candidate_fails_on_audit_dataset_mismatch(tmp_path: Path) -> None:
-    dataset = tmp_path / "dataset"
-    dataset.mkdir()
-    for split in ("train", "val", "test"):
-        _write_split(dataset, split)
-    audits = _write_audits(tmp_path, dataset)
+def test_adoption_fails_closed_on_audit_dataset_mismatch(tmp_path: Path) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
     feature = json.loads(audits["feature_audit"].read_text(encoding="utf-8"))
     feature["dataset_dir"] = str(tmp_path / "other_dataset")
-    audits["feature_audit"].write_text(json.dumps(feature), encoding="utf-8")
-    smoke = _write_smoke(tmp_path, dataset, audits)
+    audits["feature_audit"].write_text(
+        json.dumps(feature, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    smoke = _smoke_event(tmp_path, dataset, rows)
 
     report = run(_args(tmp_path, dataset, audits, smoke))
 
-    assert report["decision"] == "NOT_READY"
-    assert report["candidate_ready_for_activation"] is False
+    assert report["decision"] == "BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW"
+    assert report["adoption_evidence_ready"] is False
     assert any(
-        row["gate"] == "feature_audit" and row["check"] == "feature audit points at candidate dataset"
+        row["gate"] == "feature_audit"
+        and row["check"]
+        == "evidence dataset matches the explicit seq513 candidate"
         for row in report["failures"]
     )
 
 
-def test_foundation_state_allows_adoption_candidate_report_root() -> None:
-    verifier = (REPO / "gx1/scripts/verify_entry_foundation_state_v1.py").read_text(encoding="utf-8")
+def test_adoption_rejects_mutable_latest_evidence(tmp_path: Path) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    smoke = _smoke_event(tmp_path, dataset, rows)
+    latest = audits["feature_audit"].with_name(
+        f'{AUDIT_EVENT_PREFIXES["feature_audit"]}_latest.json'
+    )
+    latest.write_bytes(audits["feature_audit"].read_bytes())
+    args = _args(tmp_path, dataset, audits, smoke)
+    args.feature_audit_json = str(latest)
 
-    assert "entry_foundation_adoption_candidate_20260629_v1" in verifier
-    assert "entry_foundation_activation_plan_20260629_v1" in verifier
-    assert "entry_foundation_activation_apply_20260629_v1" in verifier
+    with pytest.raises(ImmutableEventAuthorityError):
+        run(args)
+
+    assert not (tmp_path / "reports").exists()
+
+
+def test_adoption_fails_closed_on_forged_foundation_audit_policy(
+    tmp_path: Path,
+) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    target = json.loads(audits["target_audit"].read_text(encoding="utf-8"))
+    target["foundation_audit_policy"]["target_quality"][
+        "max_majority_rate"
+    ] = 1.0
+    audits["target_audit"].write_text(
+        json.dumps(target, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    smoke = _smoke_event(tmp_path, dataset, rows)
+
+    report = run(_args(tmp_path, dataset, audits, smoke))
+
+    assert report["adoption_evidence_ready"] is False
+    assert any(
+        row["gate"] == "target_audit"
+        and row["check"]
+        == "foundation audit policy identity and full payload are exact"
+        for row in report["failures"]
+    )
+
+
+def test_parser_requires_explicit_smoke_event_and_output() -> None:
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args([])
+    help_text = parser.format_help()
+    assert "--smoke-manifest-json" in help_text
+    assert "--smoke-dataset-dir" not in help_text
+    assert "_latest.json" not in help_text
+    assert "fail-on-not-ready" not in help_text

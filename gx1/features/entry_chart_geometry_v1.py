@@ -1,4 +1,4 @@
-"""Entry chart-geometry challenger features.
+"""Canonical Entry chart-geometry features.
 
 This layer is a causal numeric proxy for what a discretionary chart trader
 draws by hand: trend lines, support/resistance zones, Fibonacci pullback zones,
@@ -12,7 +12,9 @@ from typing import Iterable
 import numpy as np
 
 
-CHART_GEOMETRY_FEATURE_VERSION = "entry_chart_geometry_v1_20260630_numeric_lines_fib_patterns_smart2"
+CHART_GEOMETRY_FEATURE_VERSION = (
+    "entry_chart_geometry_v1_20260717_numeric_lines_fib_patterns_failclosed"
+)
 CHART_GEOMETRY_FEATURE_PREFIX = "chart.geometry_"
 
 CHART_GEOMETRY_SOURCE_FIELDS = (
@@ -78,23 +80,71 @@ CHART_GEOMETRY_SOURCE_FIELDS = (
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
+    values = list(names)
+    invalid = [name for name in values if not isinstance(name, str) or not name]
+    if invalid:
+        raise RuntimeError(f"CHART_GEOMETRY_FEATURE_NAMES_INVALID: {invalid[:10]}")
+    duplicates = sorted({name for name in values if values.count(name) > 1})
+    if duplicates:
+        raise RuntimeError(f"CHART_GEOMETRY_FEATURE_NAMES_DUPLICATE: {duplicates[:10]}")
+    return {name: i for i, name in enumerate(values)}
 
 
 def missing_chart_geometry_source_fields(feature_names: Iterable[str]) -> list[str]:
-    available = {str(name) for name in feature_names}
+    available = set(feature_names)
     return [name for name in CHART_GEOMETRY_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
-    if name not in index:
-        return np.full(x.shape[0], float(default), dtype=np.float32)
-    arr = np.asarray(x[:, index[name]], dtype=np.float32)
-    return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
+def _require_source_matrix(
+    x: np.ndarray,
+    feature_names: list[str],
+) -> tuple[np.ndarray, dict[str, int]]:
+    try:
+        matrix = np.asarray(x, dtype=np.float32)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("CHART_GEOMETRY_INPUT_NOT_NUMERIC") from exc
+    if matrix.ndim != 2:
+        raise RuntimeError(f"CHART_GEOMETRY_INPUT_NOT_2D: shape={matrix.shape}")
+    if matrix.shape[0] == 0:
+        raise RuntimeError("CHART_GEOMETRY_INPUT_EMPTY")
+    if len(feature_names) != matrix.shape[1]:
+        raise RuntimeError(
+            "CHART_GEOMETRY_FEATURE_NAME_COUNT_MISMATCH: "
+            f"names={len(feature_names)} columns={matrix.shape[1]}"
+        )
+    index = _name_index(feature_names)
+    missing = missing_chart_geometry_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(
+            "CHART_GEOMETRY_SOURCE_FIELDS_MISSING: "
+            f"{missing[:30]} total={len(missing)}"
+        )
+    if not np.isfinite(matrix).all():
+        bad = np.argwhere(~np.isfinite(matrix))[0]
+        row, column = int(bad[0]), int(bad[1])
+        raise RuntimeError(
+            "CHART_GEOMETRY_SOURCE_NONFINITE: "
+            f"row={row} field={feature_names[column]}"
+        )
+    return matrix, index
+
+
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    try:
+        column = index[name]
+    except KeyError as exc:
+        raise RuntimeError(f"CHART_GEOMETRY_SOURCE_FIELD_MISSING: {name}") from exc
+    arr = np.asarray(x[:, column], dtype=np.float32)
+    if arr.ndim != 1 or not np.isfinite(arr).all():
+        raise RuntimeError(f"CHART_GEOMETRY_SOURCE_FIELD_INVALID: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if values.ndim != 1 or not np.isfinite(values).all():
+        raise RuntimeError(f"CHART_GEOMETRY_DERIVED_VALUE_INVALID: shape={values.shape}")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -160,23 +210,14 @@ def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray,
 def build_entry_chart_geometry_layer(
     x: np.ndarray,
     feature_names: list[str],
-    *,
-    strict_sources: bool = False,
 ) -> tuple[np.ndarray, list[str]]:
-    """Build deterministic chart-geometry challenger features."""
-    x = np.asarray(x, dtype=np.float32)
-    missing_sources = missing_chart_geometry_source_fields(feature_names)
-    if strict_sources and missing_sources:
-        raise RuntimeError(
-            "CHART_GEOMETRY_SOURCE_FIELDS_MISSING: "
-            f"{missing_sources[:30]} total={len(missing_sources)}"
-        )
-    idx = _name_index(feature_names)
+    """Build deterministic chart-geometry features from exact canonical sources."""
+    x, idx = _require_source_matrix(x, feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     m5_ema = _tanh(c("snap._v1_ema_diff"))
     m5_slope = _tanh(c("snap.ema20_slope"))
@@ -417,9 +458,9 @@ def build_entry_chart_geometry_layer(
         hi=5.0,
     )
 
-    premium = _clip01(c("snap.smc_premium_discount", default=0.5))
+    premium = _clip01(c("snap.smc_premium_discount"))
     retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
-    d1_loc = _clip01(c("ctx_cont.d1_close_pct_in_20day_range_canon_v2", default=0.5))
+    d1_loc = _clip01(c("ctx_cont.d1_close_pct_in_20day_range_canon_v2"))
     fib_position = _clip01(0.55 * retracement + 0.30 * premium + 0.15 * d1_loc)
     fib236 = _fib_proximity(fib_position, 0.236)
     fib382 = _fib_proximity(fib_position, 0.382)
@@ -669,7 +710,11 @@ def build_entry_chart_geometry_layer(
 
 
 CHART_GEOMETRY_FEATURE_NAMES = tuple(
-    name for name in build_entry_chart_geometry_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
+    name
+    for name in build_entry_chart_geometry_layer(
+        np.zeros((1, len(CHART_GEOMETRY_SOURCE_FIELDS)), dtype=np.float32),
+        list(CHART_GEOMETRY_SOURCE_FIELDS),
+    )[1]
 )
 
 CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[41:]

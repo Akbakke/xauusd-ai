@@ -1,0 +1,2022 @@
+#!/usr/bin/env python3
+"""TRAIN==SERVE parity gate for the LIVE model-native Entry serving path — MANDATORY
+before anything downstream of the serving wave opens (vedtak
+SMART_JOINT_POLICY_PROMOTION_20260708, serving-wave gap: parity proof).
+
+What it proves, bar-for-bar, on exactly 256 deterministic positions spanning
+the complete, hash-bound offline TEST split:
+
+  LEG 1 (STATE, hard tolerance 1e-5): the LIVE state builder
+  (gx1.execution.v12_model_native_state_live.ModelNativeStateBuilder) run on the LIVE
+  cv3/BASE28 prebuilts reproduces the OFFLINE dataset rows named by
+  --dataset-dir and the active bundle's model_native_state_contract exactly:
+  seq (96,513) + snap (513) + ctx_cont (142) + ctx_cat (5). FAIL-LOUD per
+  column name on any deviation.
+  The frame-end decision bar is held to the same hard contract as every other
+  bar. Any offline feature that needs future bars is leakage and fails parity.
+
+  LEG 2 (FORWARD, hard tolerance 1e-3): the LIVE adapter
+  (gx1.execution.v12_smart_entry_live.SmartEntryLiveInference) forwards those
+  live states through the contract-resolved calibrated bundle and must
+  reproduce fresh-event-pinned model_direction_argmax predictions: the final
+  direction_logits, their canonical public trade/flat pair, the direct
+  LONG/SHORT/FLAT argmax, probabilities, and auxiliary path heads. Legacy
+  expected-utility or edge/session decision evidence is rejected before any
+  live state/model work begins.
+  NOTE: the pinned predictions were computed on CUDA; this gate runs the live
+  CPU path, so LEG 2 tolerance covers numeric-backend drift ONLY — LEG 1 is the
+  bit-level state proof.
+
+Run under the capped runner (heavy: full prebuilt load + augmenters ~7 min):
+  scripts/gx1_capped_run.sh --mem 34G .venv/bin/python -m \
+      gx1.scripts.verify_model_native_serve_parity_v1 \
+      --dataset-dir /absolute/model_native_dataset \
+      --canonical-v3-path /absolute/xauusd_m5_CANONICAL_V3.parquet \
+      --pinned-predictions /absolute/selective_edge_predictions_<microstamp>.parquet \
+      --prediction-report-json /absolute/ENTRY_CANDIDATE_SELECTIVE_EDGE_<microstamp>.json \
+      --out-dir /absolute/immutable/parity/events
+
+Writes an immutable MODEL_NATIVE_SERVE_PARITY_<microstamp>.json event under
+--out-dir and exits non-zero on FAIL. No mutable authority mirror is produced.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from gx1.contracts.model_native_serve_gate_v1 import (
+    MODEL_NATIVE_REQUIRED_MODEL_NAME,
+    MODEL_NATIVE_REQUIRED_TEST_SPLIT,
+    MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
+    MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
+    SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS,
+    SERVE_PARITY_CALIBRATION_EQUATION,
+    SERVE_PARITY_CALIBRATION_TOL,
+    SERVE_PARITY_ENV_PINS,
+    SERVE_PARITY_FORWARD_FIELD_WIDTHS,
+    SERVE_PARITY_FORWARD_HEADS,
+    SERVE_PARITY_FORWARD_TOL,
+    SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE,
+    SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
+    SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS,
+    SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
+    SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS,
+    SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT,
+    SERVE_PARITY_FUSION_REFERENCE_AGGREGATION,
+    SERVE_PARITY_FUSION_REFERENCE_SPLIT,
+    SERVE_PARITY_HEAD_VARIATION_EPSILON,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_COMPARISON_SURFACE,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_POSITIONS,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLING_CONTRACT,
+    SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES,
+    SERVE_PARITY_SAMPLE_COUNT,
+    SERVE_PARITY_SAMPLING_CONTRACT,
+    SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY,
+    SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT,
+    SERVE_PARITY_SPECIALIST_GATE_MIN_STD,
+    SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT,
+    SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_COMPARISON_SURFACE,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_METHODS,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS,
+    SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLING_CONTRACT,
+    SERVE_PARITY_STATE_TOL,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_COMPARISON_SURFACE,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_METHODS,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_POSITIONS,
+    SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLING_CONTRACT,
+    UTC_TIME_COVERAGE_SCHEMA_VERSION,
+    serve_gate_event_contract_failures,
+)
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
+    INPUTS_SHA256 as DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
+    INPUT_DIM as DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
+    ORDERED_INPUT_LAYOUT as DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT,
+    direction_evidence_fusion_metadata,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_REQUIRED_SPECIALISTS,
+)
+
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+    require_model_direction_decision_contract,
+)
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    resolve_and_validate_prediction_evidence,
+    sha256_file,
+)
+
+_TIMESTAMPED_PREDICTION_RE = re.compile(
+    r"selective_edge_predictions_\d{8}T\d{12}Z\.parquet"
+)
+
+STATE_BLOCKS = ("seq", "snap", "ctx_cont", "ctx_cat")
+_FORWARD_LIVE_KEY_OVERRIDES = {
+    "public_trade_probability": "p_trade",
+    "public_flat_probability": "p_flat_hier",
+    "tf_agreement_prob": "tf_agreement_pred",
+}
+FORWARD_FIELD_MAP = {
+    column: _FORWARD_LIVE_KEY_OVERRIDES.get(column, column)
+    for column in SERVE_PARITY_FORWARD_FIELD_WIDTHS
+}
+FORWARD_SCALAR_MAP = {
+    column: FORWARD_FIELD_MAP[column]
+    for column, width in SERVE_PARITY_FORWARD_FIELD_WIDTHS.items()
+    if width == 1
+}
+FORWARD_VECTOR_COLS = tuple(
+    column
+    for column, width in SERVE_PARITY_FORWARD_FIELD_WIDTHS.items()
+    if width > 1
+)
+FORWARD_COLS = tuple(FORWARD_FIELD_MAP)
+if FORWARD_COLS != SERVE_PARITY_FORWARD_HEADS:
+    raise RuntimeError("SERVE_PARITY_FORWARD_HEAD_CONTRACT_MISMATCH")
+FULL_STACK_REQUIRED_PREDICTION_COLS = tuple(
+    dict.fromkeys(
+        column
+        for fields in SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS.values()
+        for column in fields
+    )
+) + ("specialist_gate",)
+PINNED_REQUIRED_COLS = tuple(
+    dict.fromkeys(
+        (
+            "time",
+            "split",
+            "model",
+            "selection_score_mode",
+            "selection_score",
+            "pred_direction",
+            "trade_side",
+            "public_trade_flat_hard_decision",
+            *FORWARD_COLS,
+            *FULL_STACK_REQUIRED_PREDICTION_COLS,
+        )
+    )
+)
+FORBIDDEN_LEGACY_DECISION_COLS = (
+    "selection_score_threshold",
+    "expected_utility_long_bps",
+    "expected_utility_short_bps",
+    "anchor_logits",
+    "delta_logits",
+    "anchor_gate",
+)
+MODEL_DIRECTION_ACTIONS = {0: "TAKE_LONG_NOW", 1: "TAKE_SHORT_NOW", 2: "SKIP"}
+
+
+def _apply_exact_env_pins() -> None:
+    # Assignment is deliberate: inherited conflicts cannot weaken parity.
+    for name, value in SERVE_PARITY_ENV_PINS.items():
+        os.environ[name] = value
+
+
+def _time_coverage_contract(values: object, *, label: str) -> dict[str, object]:
+    try:
+        index = pd.DatetimeIndex(pd.to_datetime(values, utc=True, errors="raise"))
+    except Exception as exc:
+        raise RuntimeError(f"{label} contains invalid UTC times") from exc
+    if index.empty:
+        raise RuntimeError(f"{label} time coverage is empty")
+    index = index.sort_values()
+    if index.has_duplicates:
+        raise RuntimeError(f"{label} time coverage contains duplicates")
+    utc_ns = np.asarray(index.asi8, dtype="<i8")
+    return {
+        "schema_version": UTC_TIME_COVERAGE_SCHEMA_VERSION,
+        "rows": int(len(index)),
+        "first_utc": index[0].isoformat(),
+        "last_utc": index[-1].isoformat(),
+        "utc_ns_sha256": hashlib.sha256(utc_ns.tobytes()).hexdigest(),
+    }
+
+
+def _deterministic_sample_positions(row_count: int) -> np.ndarray:
+    if row_count < SERVE_PARITY_SAMPLE_COUNT:
+        raise RuntimeError(
+            f"TEST coverage has {row_count} rows; exact parity contract requires at "
+            f"least {SERVE_PARITY_SAMPLE_COUNT}"
+        )
+    numerator = np.arange(SERVE_PARITY_SAMPLE_COUNT, dtype=np.int64) * (row_count - 1)
+    positions = numerator // (SERVE_PARITY_SAMPLE_COUNT - 1)
+    if len(np.unique(positions)) != SERVE_PARITY_SAMPLE_COUNT:
+        raise RuntimeError("deterministic parity sampling produced duplicate positions")
+    return positions
+
+
+def _canonical_sha256(value: object) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _subset_state_rows(
+    states: dict[str, object], positions: np.ndarray
+) -> dict[str, object]:
+    rows: dict[str, object] = {}
+    for key in ("seq", "snap", "ctx_cont", "ctx_cat"):
+        values = np.asarray(states[key])
+        rows[key] = values[positions].copy()
+    times = np.asarray(states["times"], dtype=object)
+    rows["times"] = times[positions].copy()
+    return rows
+
+
+def _batched_direction_logits(
+    adapter: object,
+    states: dict[str, object],
+    *,
+    hook_specialist: str | None = None,
+    fusion_slice_replacement: tuple[int, int, np.ndarray] | None = None,
+    zero_mtf_key: str | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return raw and calibrated logits for one audit-only perturbation batch."""
+
+    import torch
+
+    model = adapter._model
+    if model is None:
+        raise RuntimeError("specialist influence audit model is unavailable")
+    device = adapter.device
+    seq_t = torch.from_numpy(np.asarray(states["seq"], dtype=np.float32)).to(device)
+    snap_t = torch.from_numpy(np.asarray(states["snap"], dtype=np.float32)).to(device)
+    ctx_cont_t = torch.from_numpy(
+        np.asarray(states["ctx_cont"], dtype=np.float32)
+    ).to(device)
+    ctx_cat_t = torch.from_numpy(np.asarray(states["ctx_cat"], dtype=np.int64)).to(
+        device
+    )
+    per_row_mtf = [
+        adapter._multi_tf_window_tensors(pd.Timestamp(ts))
+        for ts in np.asarray(states["times"], dtype=object)
+    ]
+    if not per_row_mtf:
+        raise RuntimeError("specialist influence audit state subset is empty")
+    mtf_kwargs = {
+        key: torch.cat([row[key] for row in per_row_mtf], dim=0)
+        for key in per_row_mtf[0]
+    }
+    if zero_mtf_key is not None:
+        if zero_mtf_key not in mtf_kwargs:
+            raise RuntimeError(f"multi-TF audit key is missing: {zero_mtf_key}")
+        mtf_kwargs[zero_mtf_key] = torch.zeros_like(mtf_kwargs[zero_mtf_key])
+    hooks = []
+    if hook_specialist is not None:
+        encoders = getattr(model, "specialist_encoder", None)
+        if encoders is None or hook_specialist not in encoders:
+            raise RuntimeError(
+                f"specialist encoder hook target is missing: {hook_specialist}"
+            )
+
+        def _zero_encoder_output(_module, _inputs, output):
+            if not torch.is_tensor(output):
+                raise RuntimeError(
+                    f"specialist encoder {hook_specialist} emitted a non-tensor"
+                )
+            return torch.zeros_like(output)
+
+        hooks.append(
+            encoders[hook_specialist].register_forward_hook(_zero_encoder_output)
+        )
+    if fusion_slice_replacement is not None:
+        start, stop, replacement = fusion_slice_replacement
+        fusion_norm = getattr(model, "evidence_fusion_norm", None)
+        if fusion_norm is None:
+            raise RuntimeError("direction evidence fusion LayerNorm is missing")
+        replacement_array = np.asarray(replacement, dtype=np.float32).reshape(-1)
+        if replacement_array.shape != (stop - start,):
+            raise RuntimeError(
+                "direction evidence fusion replacement width mismatch: "
+                f"slice={start}:{stop} replacement={replacement_array.shape}"
+            )
+        replacement_t = torch.from_numpy(replacement_array).to(device)
+
+        def _replace_fusion_slice(_module, inputs):
+            if len(inputs) != 1 or not torch.is_tensor(inputs[0]):
+                raise RuntimeError("direction evidence fusion input hook shape invalid")
+            value = inputs[0]
+            if value.ndim != 2 or int(value.shape[1]) != DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
+                raise RuntimeError(
+                    "direction evidence fusion hook width mismatch: "
+                    f"got={tuple(value.shape)}"
+                )
+            replaced = value.clone()
+            replaced[:, start:stop] = replacement_t.to(
+                device=value.device, dtype=value.dtype
+            ).reshape(1, -1)
+            return (replaced,)
+
+        hooks.append(fusion_norm.register_forward_pre_hook(_replace_fusion_slice))
+    try:
+        with torch.no_grad():
+            out = model(
+                seq_t,
+                snap_t,
+                ctx_cat=ctx_cat_t,
+                ctx_cont=ctx_cont_t,
+                **mtf_kwargs,
+            )
+            raw_t = out.get("raw_direction_logits")
+            final_t = out.get("direction_logits")
+            if not torch.is_tensor(raw_t) or not torch.is_tensor(final_t):
+                raise RuntimeError(
+                    "decision influence audit lacks raw/final direction logits"
+                )
+            raw_logits = raw_t.detach().cpu().to(torch.float64).numpy()
+            final_logits = final_t.detach().cpu().to(torch.float64).numpy()
+    finally:
+        for hook in reversed(hooks):
+            hook.remove()
+    expected = (len(np.asarray(states["times"])), 3)
+    for name, logits in (("raw_direction_logits", raw_logits), ("direction_logits", final_logits)):
+        if logits.shape != expected or not np.isfinite(logits).all():
+            raise RuntimeError(
+                f"decision influence {name} must be finite shape {expected}; "
+                f"got {logits.shape}"
+            )
+    return raw_logits, final_logits
+
+
+def _specialist_model_input_indices(
+    adapter: object,
+) -> tuple[dict[str, list[int]], bool, bool, list[str]]:
+    failures: list[str] = []
+    model = adapter._model
+    metadata = adapter._meta
+    specialists = tuple(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+    metadata_specialist = metadata.get("specialist_fusion")
+    metadata_indices = (
+        metadata_specialist.get("input_indices")
+        if isinstance(metadata_specialist, dict)
+        else None
+    )
+    if not isinstance(metadata_indices, dict):
+        metadata_indices = {}
+        failures.append("bundle specialist_fusion.input_indices is missing")
+    if tuple(getattr(model, "_specialist_names", ())) != specialists:
+        failures.append("model specialist name/order mismatch")
+    encoders = getattr(model, "specialist_encoder", None)
+    if encoders is None or tuple(encoders) != specialists:
+        failures.append("model specialist encoder set/order mismatch")
+    projections = getattr(model, "specialist_proj", None)
+    if projections is None or tuple(projections) != specialists:
+        failures.append("model specialist projection set/order mismatch")
+
+    indices: dict[str, list[int]] = {}
+    buffers_valid = True
+    for specialist in specialists:
+        value = getattr(model, f"specialist_idx_{specialist}", None)
+        try:
+            row = [int(item) for item in value.detach().cpu().tolist()]
+        except Exception:
+            row = []
+        if (
+            not row
+            or row != sorted(row)
+            or len(row) != len(set(row))
+            or min(row, default=-1) < 0
+            or max(row, default=-1) >= int(np.asarray(adapter._meta["ordered_signal_names"]).size)
+        ):
+            failures.append(f"model specialist index buffer invalid: {specialist}")
+            buffers_valid = False
+        if projections is not None and specialist in projections:
+            if int(projections[specialist].in_features) != len(row):
+                failures.append(
+                    f"model specialist projection width mismatch: {specialist}"
+                )
+                buffers_valid = False
+        indices[specialist] = row
+    metadata_exact = set(metadata_indices) == set(specialists) and all(
+        metadata_indices.get(name) == indices[name] for name in specialists
+    )
+    if not metadata_exact:
+        failures.append("bundle metadata specialist indices differ from model buffers")
+    return indices, metadata_exact, buffers_valid, failures
+
+
+def _specialist_decision_influence_contract(
+    *,
+    adapter: object,
+    states: dict[str, object],
+    parity_targets: pd.DatetimeIndex,
+) -> dict[str, object]:
+    """Prove both evidence-family and isolated specialist decision influence."""
+
+    positions = np.asarray(
+        SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS, dtype=np.int64
+    )
+    failures: list[str] = []
+    if len(np.asarray(states["times"])) != SERVE_PARITY_SAMPLE_COUNT:
+        failures.append("specialist audit did not receive the exact parity state set")
+    if len(parity_targets) != SERVE_PARITY_SAMPLE_COUNT:
+        failures.append("specialist audit did not receive the exact parity target set")
+    subset = _subset_state_rows(states, positions)
+    sampled_targets = pd.DatetimeIndex(parity_targets[positions])
+    state_times = pd.DatetimeIndex(pd.to_datetime(subset["times"], utc=True))
+    if not state_times.equals(sampled_targets):
+        failures.append("specialist audit state times differ from deterministic targets")
+
+    indices, metadata_exact, buffers_valid, index_failures = (
+        _specialist_model_input_indices(adapter)
+    )
+    failures.extend(index_failures)
+    try:
+        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw_centered = baseline_raw - baseline_raw.mean(axis=1, keepdims=True)
+        baseline_final_centered = (
+            baseline_final - baseline_final.mean(axis=1, keepdims=True)
+        )
+    except RuntimeError as exc:
+        failures.append(str(exc))
+        baseline_raw_centered = np.zeros(
+            (SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT, 3),
+            dtype=np.float64,
+        )
+        baseline_final_centered = np.zeros(
+            (SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT, 3),
+            dtype=np.float64,
+        )
+
+    method_reports: dict[str, object] = {}
+    for method in SERVE_PARITY_SPECIALIST_INFLUENCE_METHODS:
+        method_failures: list[str] = []
+        specialist_reports: dict[str, object] = {}
+        for specialist in MODEL_NATIVE_REQUIRED_SPECIALISTS:
+            specialist_failures: list[str] = []
+            try:
+                if method == "input_family_mask":
+                    ablated_states = _subset_state_rows(
+                        subset,
+                        np.arange(
+                            SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT,
+                            dtype=np.int64,
+                        ),
+                    )
+                    row_indices = indices[specialist]
+                    np.asarray(ablated_states["seq"])[:, :, row_indices] = 0.0
+                    np.asarray(ablated_states["snap"])[:, row_indices] = 0.0
+                    ablated_raw, ablated_final = _batched_direction_logits(
+                        adapter, ablated_states
+                    )
+                    target = f"signal_indices:{specialist}"
+                else:
+                    ablated_raw, ablated_final = _batched_direction_logits(
+                        adapter,
+                        subset,
+                        hook_specialist=specialist,
+                    )
+                    target = f"model.specialist_encoder.{specialist}"
+                raw_centered = ablated_raw - ablated_raw.mean(axis=1, keepdims=True)
+                final_centered = (
+                    ablated_final - ablated_final.mean(axis=1, keepdims=True)
+                )
+                raw_per_row_delta = np.max(
+                    np.abs(raw_centered - baseline_raw_centered), axis=1
+                )
+                final_per_row_delta = np.max(
+                    np.abs(final_centered - baseline_final_centered), axis=1
+                )
+                raw_max_delta = float(np.max(raw_per_row_delta))
+                final_max_delta = float(np.max(final_per_row_delta))
+                raw_changed_rows = int(
+                    np.count_nonzero(
+                        raw_per_row_delta
+                        > SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON
+                    )
+                )
+                final_changed_rows = int(
+                    np.count_nonzero(
+                        final_per_row_delta
+                        > SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON
+                    )
+                )
+                if raw_max_delta <= SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON:
+                    specialist_failures.append(
+                        "class-centered raw logits did not move > epsilon"
+                    )
+                if final_max_delta <= SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON:
+                    specialist_failures.append(
+                        "class-centered final calibrated logits did not move > epsilon"
+                    )
+                if raw_changed_rows < SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS:
+                    specialist_failures.append(
+                        f"raw_changed_rows={raw_changed_rows} below "
+                        f"{SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS}"
+                    )
+                if final_changed_rows < SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS:
+                    specialist_failures.append(
+                        f"final_changed_rows={final_changed_rows} below "
+                        f"{SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS}"
+                    )
+            except Exception as exc:
+                raw_max_delta = 0.0
+                final_max_delta = 0.0
+                raw_changed_rows = 0
+                final_changed_rows = 0
+                target = (
+                    f"signal_indices:{specialist}"
+                    if method == "input_family_mask"
+                    else f"model.specialist_encoder.{specialist}"
+                )
+                specialist_failures.append(f"ablation failed: {exc}")
+            row = {
+                "decision": "PASS" if not specialist_failures else "FAIL",
+                "failures": specialist_failures,
+                "target": target,
+                "input_indices_sha256": _canonical_sha256(indices[specialist]),
+                "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+                "raw_changed_rows": raw_changed_rows,
+                "max_abs_class_centered_logit_delta": final_max_delta,
+                "changed_rows": final_changed_rows,
+                "total_rows": SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT,
+            }
+            specialist_reports[specialist] = row
+            method_failures.extend(
+                f"{specialist}: {failure}" for failure in specialist_failures
+            )
+        method_reports[method] = {
+            "decision": "PASS" if not method_failures else "FAIL",
+            "failures": method_failures,
+            "ablation_surface": (
+                "seq_and_snap_exact_specialist_input_indices"
+                if method == "input_family_mask"
+                else "specialist_encoder_output_zero_hook"
+            ),
+            "specialists": specialist_reports,
+        }
+        failures.extend(f"{method}: {failure}" for failure in method_failures)
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "sample_count": SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT,
+        "sampling_contract": SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLING_CONTRACT,
+        "sample_positions": list(SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS),
+        "sampled_test_coverage": _time_coverage_contract(
+            sampled_targets,
+            label="specialist influence sampled TEST parity positions",
+        ),
+        "comparison_surface": SERVE_PARITY_SPECIALIST_INFLUENCE_COMPARISON_SURFACE,
+        "epsilon": SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON,
+        "min_changed_rows": SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS,
+        "specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "specialist_input_indices": indices,
+        "specialist_input_indices_sha256": _canonical_sha256(indices),
+        "model_metadata_indices_exact_match": metadata_exact,
+        "model_buffer_indices_exact_match": buffers_valid,
+        "methods": method_reports,
+    }
+
+
+def _decision_influence_subset(
+    *,
+    states: dict[str, object],
+    parity_targets: pd.DatetimeIndex,
+    positions: tuple[int, ...],
+    expected_count: int,
+    audit_name: str,
+) -> tuple[dict[str, object], pd.DatetimeIndex, list[str]]:
+    """Select and time-bind one exact candidate-specific influence sample."""
+
+    failures: list[str] = []
+    if len(positions) != expected_count:
+        failures.append(
+            f"{audit_name} sample position count={len(positions)} expected={expected_count}"
+        )
+    if len(np.asarray(states["times"])) != SERVE_PARITY_SAMPLE_COUNT:
+        failures.append(f"{audit_name} did not receive the exact parity state set")
+    if len(parity_targets) != SERVE_PARITY_SAMPLE_COUNT:
+        failures.append(f"{audit_name} did not receive the exact parity target set")
+    position_array = np.asarray(positions, dtype=np.int64)
+    subset = _subset_state_rows(states, position_array)
+    sampled_targets = pd.DatetimeIndex(parity_targets[position_array])
+    state_times = pd.DatetimeIndex(pd.to_datetime(subset["times"], utc=True))
+    if not state_times.equals(sampled_targets):
+        failures.append(
+            f"{audit_name} state times differ from deterministic target positions"
+        )
+    return subset, sampled_targets, failures
+
+
+def _class_centered_delta_metrics(
+    *,
+    baseline: np.ndarray,
+    ablated: np.ndarray,
+    epsilon: float,
+) -> tuple[float, int]:
+    baseline_centered = baseline - baseline.mean(axis=1, keepdims=True)
+    ablated_centered = ablated - ablated.mean(axis=1, keepdims=True)
+    per_row = np.max(np.abs(ablated_centered - baseline_centered), axis=1)
+    return float(np.max(per_row)), int(np.count_nonzero(per_row > epsilon))
+
+
+def _multi_tf_decision_influence_contract(
+    *,
+    adapter: object,
+    states: dict[str, object],
+    parity_targets: pd.DatetimeIndex,
+) -> dict[str, object]:
+    """Prove every retained timeframe moves candidate raw class margins."""
+
+    subset, sampled_targets, failures = _decision_influence_subset(
+        states=states,
+        parity_targets=parity_targets,
+        positions=SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_POSITIONS,
+        expected_count=SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
+        audit_name="multi-TF influence audit",
+    )
+    try:
+        baseline_raw, _baseline_final = _batched_direction_logits(adapter, subset)
+    except Exception as exc:
+        failures.append(f"baseline forward failed: {exc}")
+        baseline_raw = np.zeros(
+            (SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
+        )
+
+    timeframe_reports: dict[str, object] = {}
+    for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES:
+        row_failures: list[str] = []
+        try:
+            ablated_raw, _ablated_final = _batched_direction_logits(
+                adapter,
+                subset,
+                zero_mtf_key=f"seq_{timeframe.lower()}",
+            )
+            max_delta, changed_rows = _class_centered_delta_metrics(
+                baseline=baseline_raw,
+                ablated=ablated_raw,
+                epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
+            )
+            if max_delta <= SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON:
+                row_failures.append("class-centered raw logits did not move > epsilon")
+            if changed_rows < SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS:
+                row_failures.append(
+                    f"changed_rows={changed_rows} below "
+                    f"{SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS}"
+                )
+        except Exception as exc:
+            max_delta = 0.0
+            changed_rows = 0
+            row_failures.append(f"zero ablation failed: {exc}")
+        timeframe_reports[timeframe] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "target": f"model.input.seq_{timeframe.lower()}",
+            "ablation_surface": "full_tensor_zero_mask",
+            "max_abs_class_centered_raw_logit_delta": max_delta,
+            "changed_rows": changed_rows,
+            "total_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
+        }
+        failures.extend(f"{timeframe}: {failure}" for failure in row_failures)
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "sample_count": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
+        "sampling_contract": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLING_CONTRACT,
+        "sample_positions": list(SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_POSITIONS),
+        "sampled_test_coverage": _time_coverage_contract(
+            sampled_targets,
+            label="multi-TF influence sampled TEST parity positions",
+        ),
+        "comparison_surface": SERVE_PARITY_MULTI_TF_INFLUENCE_COMPARISON_SURFACE,
+        "epsilon": SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
+        "min_changed_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS,
+        "timeframes": list(SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES),
+        "ablation": "candidate_specific_full_tensor_zero_ablation_v1",
+        "metrics": timeframe_reports,
+    }
+
+
+def _upstream_context_decision_influence_contract(
+    *,
+    adapter: object,
+    states: dict[str, object],
+    parity_targets: pd.DatetimeIndex,
+) -> dict[str, object]:
+    """Prove continuous and categorical upstream context moves raw margins."""
+
+    subset, sampled_targets, failures = _decision_influence_subset(
+        states=states,
+        parity_targets=parity_targets,
+        positions=SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_POSITIONS,
+        expected_count=SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
+        audit_name="upstream context influence audit",
+    )
+    try:
+        baseline_raw, _baseline_final = _batched_direction_logits(adapter, subset)
+    except Exception as exc:
+        failures.append(f"baseline forward failed: {exc}")
+        baseline_raw = np.zeros(
+            (SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
+        )
+
+    method_reports: dict[str, object] = {}
+    for method in SERVE_PARITY_UPSTREAM_INFLUENCE_METHODS:
+        row_failures: list[str] = []
+        target = "ctx_cont" if method == "ctx_cont_zero_mask" else "ctx_cat"
+        try:
+            ablated_states = _subset_state_rows(
+                subset,
+                np.arange(SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT, dtype=np.int64),
+            )
+            np.asarray(ablated_states[target])[...] = 0
+            ablated_raw, _ablated_final = _batched_direction_logits(
+                adapter, ablated_states
+            )
+            max_delta, changed_rows = _class_centered_delta_metrics(
+                baseline=baseline_raw,
+                ablated=ablated_raw,
+                epsilon=SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
+            )
+            if max_delta <= SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON:
+                row_failures.append("class-centered raw logits did not move > epsilon")
+            if changed_rows < SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS:
+                row_failures.append(
+                    f"changed_rows={changed_rows} below "
+                    f"{SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS}"
+                )
+        except Exception as exc:
+            max_delta = 0.0
+            changed_rows = 0
+            row_failures.append(f"zero mask failed: {exc}")
+        method_reports[method] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "target": f"model.input.{target}",
+            "ablation_surface": "full_tensor_zero_mask",
+            "max_abs_class_centered_raw_logit_delta": max_delta,
+            "changed_rows": changed_rows,
+            "total_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
+        }
+        failures.extend(f"{method}: {failure}" for failure in row_failures)
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "sample_count": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
+        "sampling_contract": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLING_CONTRACT,
+        "sample_positions": list(SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_POSITIONS),
+        "sampled_test_coverage": _time_coverage_contract(
+            sampled_targets,
+            label="upstream context influence sampled TEST parity positions",
+        ),
+        "comparison_surface": SERVE_PARITY_UPSTREAM_INFLUENCE_COMPARISON_SURFACE,
+        "epsilon": SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
+        "min_changed_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS,
+        "methods": list(SERVE_PARITY_UPSTREAM_INFLUENCE_METHODS),
+        "metrics": method_reports,
+    }
+
+
+def _finite_vector(value: object, *, name: str, size: int, row_label: object) -> np.ndarray:
+    try:
+        vector = np.asarray(value, dtype=np.float64).reshape(-1)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"pinned {name} is not numeric at {row_label}") from exc
+    if vector.shape != (size,):
+        raise RuntimeError(
+            f"pinned {name} must have shape ({size},) at {row_label}; got {vector.shape}"
+        )
+    if not np.isfinite(vector).all():
+        raise RuntimeError(f"pinned {name} contains non-finite values at {row_label}")
+    return vector
+
+
+def _numeric_prediction_column(frame: pd.DataFrame, column: str) -> np.ndarray:
+    if column not in frame:
+        raise RuntimeError(f"prediction evidence missing scalar column {column}")
+    values = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=np.float64)
+    if values.shape != (len(frame),) or not np.isfinite(values).all():
+        raise RuntimeError(
+            f"prediction evidence {column} must be finite shape ({len(frame)},)"
+        )
+    return values.reshape(-1, 1)
+
+
+def _vector_prediction_column(
+    frame: pd.DataFrame,
+    column: str,
+    width: int,
+) -> np.ndarray:
+    if column not in frame:
+        raise RuntimeError(f"prediction evidence missing vector column {column}")
+    try:
+        values = np.stack(
+            [np.asarray(row, dtype=np.float64).reshape(-1) for row in frame[column]]
+        )
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"prediction evidence {column} is not a dense vector") from exc
+    if values.shape != (len(frame), width) or not np.isfinite(values).all():
+        raise RuntimeError(
+            f"prediction evidence {column} must be finite shape ({len(frame)},{width})"
+        )
+    return values
+
+
+def _validate_fusion_reference_prediction_contract(
+    frame: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return the immutable candidate VAL rows used only as ablation references."""
+
+    required = {
+        "time",
+        "split",
+        "model",
+        *(name for name, _width in DIRECTION_EVIDENCE_FUSION_INPUTS),
+    }
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise RuntimeError(
+            "fresh prediction evidence lacks candidate VAL fusion reference columns: "
+            + ",".join(missing)
+        )
+    candidate_val = frame.loc[
+        (frame["model"].astype(str) == MODEL_NATIVE_REQUIRED_MODEL_NAME)
+        & (frame["split"].astype(str) == SERVE_PARITY_FUSION_REFERENCE_SPLIT)
+    ].copy()
+    if candidate_val.empty:
+        raise RuntimeError(
+            "fresh prediction evidence contains no candidate VAL rows for fusion influence"
+        )
+    try:
+        candidate_val["time"] = pd.to_datetime(
+            candidate_val["time"], utc=True, errors="raise"
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "candidate VAL fusion reference contains invalid UTC times"
+        ) from exc
+    if candidate_val["time"].duplicated().any():
+        raise RuntimeError("candidate VAL fusion reference contains duplicate times")
+    for name, width in DIRECTION_EVIDENCE_FUSION_INPUTS:
+        if width == 1:
+            _numeric_prediction_column(candidate_val, name)
+        else:
+            _vector_prediction_column(candidate_val, name, width)
+    return candidate_val.set_index("time").sort_index()
+
+
+def _direction_evidence_fusion_reference_contract(
+    frame: pd.DataFrame,
+) -> dict[str, object]:
+    """Materialize exact finite candidate-VAL column means in fusion order."""
+
+    mean_by_input: dict[str, list[float]] = {}
+    ordered: list[float] = []
+    for name, width in DIRECTION_EVIDENCE_FUSION_INPUTS:
+        values = (
+            _numeric_prediction_column(frame, name)
+            if width == 1
+            else _vector_prediction_column(frame, name, width)
+        )
+        mean = np.mean(values, axis=0, dtype=np.float64)
+        if mean.shape != (width,) or not np.isfinite(mean).all():
+            raise RuntimeError(f"candidate VAL fusion mean is invalid for {name}")
+        row = [float(item) for item in mean]
+        mean_by_input[name] = row
+        ordered.extend(row)
+    if len(ordered) != DIRECTION_EVIDENCE_FUSION_INPUT_DIM:
+        raise RuntimeError(
+            "candidate VAL fusion reference width mismatch: "
+            f"{len(ordered)} != {DIRECTION_EVIDENCE_FUSION_INPUT_DIM}"
+        )
+    return {
+        "split": SERVE_PARITY_FUSION_REFERENCE_SPLIT,
+        "aggregation": SERVE_PARITY_FUSION_REFERENCE_AGGREGATION,
+        "coverage": _time_coverage_contract(
+            frame.index, label="candidate VAL direction fusion reference"
+        ),
+        "input_dim": DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
+        "inputs_sha256": DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
+        "mean_by_input": mean_by_input,
+        "ordered_mean_sha256": _canonical_sha256(ordered),
+    }
+
+
+def _direction_evidence_fusion_influence_contract(
+    *,
+    adapter: object,
+    states: dict[str, object],
+    parity_targets: pd.DatetimeIndex,
+    val_reference_frame: pd.DataFrame,
+) -> dict[str, object]:
+    """Prove all 23 exact learned-fusion slices move final class margins."""
+
+    subset, sampled_targets, failures = _decision_influence_subset(
+        states=states,
+        parity_targets=parity_targets,
+        positions=SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS,
+        expected_count=SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
+        audit_name="direction evidence fusion influence audit",
+    )
+    reference = _direction_evidence_fusion_reference_contract(val_reference_frame)
+    expected_metadata = direction_evidence_fusion_metadata()
+    bundle_dir = Path(adapter.bundle_dir).expanduser().resolve()
+    metadata_path = bundle_dir / "bundle_metadata.json"
+    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+    metadata_exact = False
+    lock_exact = False
+    try:
+        metadata_payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        metadata_exact = (
+            metadata_payload.get("model_native_direction_evidence_fusion")
+            == expected_metadata
+            == adapter._meta.get("model_native_direction_evidence_fusion")
+        )
+        if not metadata_exact:
+            failures.append("bundle metadata direction fusion contract mismatch")
+    except Exception as exc:
+        failures.append(f"bundle metadata direction fusion binding failed: {exc}")
+    try:
+        lock_payload = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock_exact = (
+            lock_payload.get("model_native_direction_evidence_fusion")
+            == expected_metadata
+        )
+        if not lock_exact:
+            failures.append("MASTER_TRANSFORMER_LOCK direction fusion contract mismatch")
+    except Exception as exc:
+        failures.append(f"MASTER_TRANSFORMER_LOCK direction fusion binding failed: {exc}")
+    metadata_sha = sha256_file(metadata_path) if metadata_path.is_file() else ""
+    lock_sha = sha256_file(lock_path) if lock_path.is_file() else ""
+
+    try:
+        _baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+    except Exception as exc:
+        failures.append(f"baseline forward failed: {exc}")
+        baseline_final = np.zeros(
+            (SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
+        )
+
+    groups: dict[str, object] = {}
+    means = reference["mean_by_input"]
+    for layout in DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT:
+        name = str(layout["name"])
+        start = int(layout["start"])
+        stop = int(layout["stop"])
+        width = int(layout["width"])
+        row_failures: list[str] = []
+        try:
+            _ablated_raw, ablated_final = _batched_direction_logits(
+                adapter,
+                subset,
+                fusion_slice_replacement=(
+                    start,
+                    stop,
+                    np.asarray(means[name], dtype=np.float64),
+                ),
+            )
+            max_delta, changed_rows = _class_centered_delta_metrics(
+                baseline=baseline_final,
+                ablated=ablated_final,
+                epsilon=SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
+            )
+            if max_delta <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON:
+                row_failures.append(
+                    "class-centered final calibrated logits did not move > epsilon"
+                )
+            if changed_rows < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS:
+                row_failures.append(
+                    f"changed_rows={changed_rows} below "
+                    f"{SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS}"
+                )
+        except Exception as exc:
+            max_delta = 0.0
+            changed_rows = 0
+            row_failures.append(f"VAL-mean slice replacement failed: {exc}")
+        groups[name] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "target": f"model.evidence_fusion_norm.input[{start}:{stop}]",
+            "start": start,
+            "stop": stop,
+            "width": width,
+            "reference_values_sha256": _canonical_sha256(means[name]),
+            "max_abs_class_centered_logit_delta": max_delta,
+            "changed_rows": changed_rows,
+            "total_rows": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
+        }
+        failures.extend(f"{name}: {failure}" for failure in row_failures)
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "sample_count": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
+        "sampling_contract": SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT,
+        "sample_positions": list(SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_POSITIONS),
+        "sampled_test_coverage": _time_coverage_contract(
+            sampled_targets,
+            label="direction fusion influence sampled TEST parity positions",
+        ),
+        "comparison_surface": SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE,
+        "epsilon": SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
+        "min_changed_rows": SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS,
+        "ablation": "replace_exact_fusion_slice_with_immutable_candidate_val_mean_v1",
+        "fusion_metadata": expected_metadata,
+        "ordered_input_layout": DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT,
+        "inputs_sha256": DIRECTION_EVIDENCE_FUSION_INPUTS_SHA256,
+        "input_dim": DIRECTION_EVIDENCE_FUSION_INPUT_DIM,
+        "bundle_metadata_path": str(metadata_path),
+        "bundle_metadata_sha256": metadata_sha,
+        "bundle_metadata_exact_match": metadata_exact,
+        "master_transformer_lock_path": str(lock_path),
+        "master_transformer_lock_sha256": lock_sha,
+        "master_transformer_lock_exact_match": lock_exact,
+        "reference": reference,
+        "groups": groups,
+    }
+
+
+def _test_prediction_liveness_contract(frame: pd.DataFrame) -> dict[str, object]:
+    """Audit all active heads and all eight gates over exact full TEST rows."""
+
+    failures: list[str] = []
+    active_head_evidence: dict[str, object] = {}
+    for head, field_contract in SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS.items():
+        head_failures: list[str] = []
+        fields: dict[str, object] = {}
+        for column, width in field_contract.items():
+            try:
+                values = (
+                    _numeric_prediction_column(frame, column)
+                    if width == 1
+                    else _vector_prediction_column(frame, column, width)
+                )
+                component_std = np.std(values, axis=0)
+                min_component_std = float(np.min(component_std))
+                finite = bool(np.isfinite(values).all())
+                if min_component_std <= SERVE_PARITY_HEAD_VARIATION_EPSILON:
+                    head_failures.append(
+                        f"{head}/{column}: min_component_std={min_component_std:.12g} "
+                        f"must be > {SERVE_PARITY_HEAD_VARIATION_EPSILON:.12g}"
+                    )
+            except RuntimeError as exc:
+                values = np.empty((0, width), dtype=np.float64)
+                component_std = np.zeros(width, dtype=np.float64)
+                min_component_std = 0.0
+                finite = False
+                head_failures.append(f"{head}/{column}: {exc}")
+            fields[column] = {
+                "width": int(width),
+                "rows": int(len(frame)),
+                "finite": finite,
+                "component_std": [float(item) for item in component_std],
+                "min_component_std": min_component_std,
+            }
+        active_head_evidence[head] = {
+            "decision": "PASS" if not head_failures else "FAIL",
+            "failures": head_failures,
+            "fields": fields,
+        }
+        failures.extend(head_failures)
+
+    gate_failures: list[str] = []
+    try:
+        gate = _vector_prediction_column(
+            frame,
+            "specialist_gate",
+            len(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        )
+        finite = bool(np.isfinite(gate).all())
+        row_sum_error = float(np.max(np.abs(gate.sum(axis=1) - 1.0)))
+        mean_weight = gate.mean(axis=0)
+        std_weight = gate.std(axis=0)
+        clipped = np.clip(gate, 1e-12, 1.0)
+        entropy_mean = float(
+            np.mean(-np.sum(clipped * np.log(clipped), axis=1))
+        )
+        top_rank_count = np.bincount(
+            np.argmax(gate, axis=1),
+            minlength=len(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        )
+        if bool(np.any(gate < 0.0)) or row_sum_error > (
+            SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+        ):
+            gate_failures.append("specialist_gate is not a normalized probability simplex")
+        if entropy_mean < SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY:
+            gate_failures.append(
+                f"specialist_gate entropy_mean={entropy_mean:.12g} below contract"
+            )
+        for index, specialist in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS):
+            if mean_weight[index] <= SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT:
+                gate_failures.append(f"{specialist} mean specialist gate weight is dead")
+            if std_weight[index] <= SERVE_PARITY_SPECIALIST_GATE_MIN_STD:
+                gate_failures.append(f"{specialist} specialist gate is constant")
+            if top_rank_count[index] < SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT:
+                gate_failures.append(f"{specialist} is never top-ranked by specialist gate")
+    except RuntimeError as exc:
+        gate_failures.append(str(exc))
+        finite = False
+        row_sum_error = 1e30
+        entropy_mean = -1e30
+        mean_weight = np.zeros(len(MODEL_NATIVE_REQUIRED_SPECIALISTS), dtype=np.float64)
+        std_weight = np.zeros(len(MODEL_NATIVE_REQUIRED_SPECIALISTS), dtype=np.float64)
+        top_rank_count = np.zeros(len(MODEL_NATIVE_REQUIRED_SPECIALISTS), dtype=np.int64)
+    gate_report = {
+        "decision": "PASS" if not gate_failures else "FAIL",
+        "failures": gate_failures,
+        "rows": int(len(frame)),
+        "finite": finite,
+        "specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "row_sum_max_abs_error": row_sum_error,
+        "entropy_mean": entropy_mean,
+        "mean_weight": {
+            name: float(mean_weight[index])
+            for index, name in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        },
+        "std_weight": {
+            name: float(std_weight[index])
+            for index, name in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        },
+        "top_rank_count": {
+            name: int(top_rank_count[index])
+            for index, name in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        },
+        "thresholds": {
+            "row_sum_max_abs_error": (
+                SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+            ),
+            "min_mean_weight_exclusive": (
+                SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT
+            ),
+            "min_entropy_inclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY,
+            "min_std_exclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_STD,
+            "min_top_rank_count_inclusive": (
+                SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT
+            ),
+        },
+    }
+    failures.extend(gate_failures)
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "rows": int(len(frame)),
+        "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
+        "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+        "head_variation_epsilon": SERVE_PARITY_HEAD_VARIATION_EPSILON,
+        "active_head_evidence": active_head_evidence,
+        "specialist_gate": gate_report,
+    }
+
+
+def _softmax(vector: np.ndarray) -> np.ndarray:
+    shifted = vector - float(np.max(vector))
+    exp = np.exp(shifted)
+    return exp / float(exp.sum())
+
+
+def _require_timestamped_prediction_identity(pinned_path: Path) -> None:
+    pinned = pinned_path.expanduser().resolve()
+    if _TIMESTAMPED_PREDICTION_RE.fullmatch(pinned.name) is None:
+        raise RuntimeError(
+            "serve parity requires an exact microsecond-stamped immutable prediction parquet; "
+            f"got {pinned}"
+        )
+
+
+def _strict_class_index(value: object, *, name: str, size: int, row_label: object) -> int:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError(f"pinned {name} is invalid at {row_label}") from exc
+    if not np.isfinite(numeric) or not numeric.is_integer():
+        raise RuntimeError(f"pinned {name} is not an exact integer at {row_label}")
+    index = int(numeric)
+    if index < 0 or index >= size:
+        raise RuntimeError(f"pinned {name} is outside [0,{size - 1}] at {row_label}")
+    return index
+
+
+def _validate_pinned_prediction_contract(
+    frame: pd.DataFrame,
+    *,
+    dataset_dir: Path,
+    pinned_path: Path,
+) -> pd.DataFrame:
+    """Return indexed candidate rows after strict model-direction SSOT validation."""
+    _require_timestamped_prediction_identity(pinned_path)
+    if frame.empty:
+        raise RuntimeError("fresh event-pinned predictions are empty")
+    missing = [column for column in PINNED_REQUIRED_COLS if column not in frame.columns]
+    if missing:
+        raise RuntimeError(
+            "fresh serve-parity predictions are missing required model-direction columns: "
+            + ",".join(missing)
+        )
+    legacy = [column for column in FORBIDDEN_LEGACY_DECISION_COLS if column in frame.columns]
+    legacy.extend(
+        column
+        for column in frame.columns
+        if any(blocked in str(column) for blocked in MODEL_NATIVE_BLOCKED_HEADS)
+    )
+    if legacy:
+        raise RuntimeError(
+            "legacy expected-utility decision columns are forbidden in serve parity: "
+            + ",".join(legacy)
+        )
+
+    candidate = frame.loc[
+        (frame["model"].astype(str) == MODEL_NATIVE_REQUIRED_MODEL_NAME)
+        & (frame["split"].astype(str) == MODEL_NATIVE_REQUIRED_TEST_SPLIT)
+    ].copy()
+    if candidate.empty:
+        raise RuntimeError(
+            "fresh event-pinned predictions contain no candidate TEST rows"
+        )
+    observed_modes = set(candidate["selection_score_mode"].astype(str))
+    if observed_modes != {MODEL_DIRECTION_SELECTION_MODE}:
+        raise RuntimeError(
+            "pinned predictions selection_score_mode must be exactly "
+            f"{MODEL_DIRECTION_SELECTION_MODE!r}; got {sorted(observed_modes)}"
+        )
+    try:
+        candidate["time"] = pd.to_datetime(candidate["time"], utc=True, errors="raise")
+    except Exception as exc:
+        raise RuntimeError("fresh event-pinned predictions contain invalid UTC times") from exc
+    if candidate["time"].duplicated().any():
+        duplicates = candidate.loc[candidate["time"].duplicated(), "time"].astype(str).tolist()
+        raise RuntimeError(f"fresh event-pinned candidate times are duplicated: {duplicates[:3]}")
+
+    for row_number, row in candidate.iterrows():
+        row_label = row.get("time", row_number)
+        direction_logits = _finite_vector(
+            row["direction_logits"], name="direction_logits", size=3, row_label=row_label
+        )
+        public_logits = _finite_vector(
+            row["public_trade_flat_decision_logits"],
+            name="public_trade_flat_decision_logits",
+            size=2,
+            row_label=row_label,
+        )
+        canonical_public = np.asarray(
+            [max(float(direction_logits[0]), float(direction_logits[1])), float(direction_logits[2])],
+            dtype=np.float64,
+        )
+        if not np.array_equal(public_logits, canonical_public):
+            raise RuntimeError(
+                "pinned public_trade_flat_decision_logits are not the canonical pair "
+                f"[max(direction LONG,SHORT), direction FLAT] at {row_label}"
+            )
+
+        direction_probs = _softmax(direction_logits)
+        public_probs = _softmax(public_logits)
+        pinned_direction_probs = np.asarray(
+            [row["p_long"], row["p_short"], row["p_flat"]], dtype=np.float64
+        )
+        pinned_public_probs = np.asarray(
+            [row["public_trade_probability"], row["public_flat_probability"]],
+            dtype=np.float64,
+        )
+        if not np.isfinite(pinned_direction_probs).all() or not np.allclose(
+            pinned_direction_probs, direction_probs, rtol=0.0, atol=2e-6
+        ):
+            raise RuntimeError(f"pinned p_long/p_short/p_flat do not match direction_logits at {row_label}")
+        if not np.isfinite(pinned_public_probs).all() or not np.allclose(
+            pinned_public_probs, public_probs, rtol=0.0, atol=2e-6
+        ):
+            raise RuntimeError(
+                "pinned public trade/flat probabilities do not match canonical logits "
+                f"at {row_label}"
+            )
+
+        direction_index = int(np.argmax(direction_logits))
+        public_index = int(np.argmax(public_logits))
+        pred_direction = _strict_class_index(
+            row["pred_direction"], name="pred_direction", size=3, row_label=row_label
+        )
+        trade_side = _strict_class_index(
+            row["trade_side"], name="trade_side", size=3, row_label=row_label
+        )
+        pinned_public_index = _strict_class_index(
+            row["public_trade_flat_hard_decision"],
+            name="public_trade_flat_hard_decision",
+            size=2,
+            row_label=row_label,
+        )
+        if pred_direction != direction_index or trade_side != direction_index:
+            raise RuntimeError(
+                "pinned pred_direction/trade_side do not equal final direction argmax "
+                f"at {row_label}"
+            )
+        if pinned_public_index != public_index:
+            raise RuntimeError(
+                "pinned public_trade_flat_hard_decision does not equal canonical pair argmax "
+                f"at {row_label}"
+            )
+        expected_public_index = 1 if direction_index == 2 else 0
+        if public_index != expected_public_index:
+            raise RuntimeError(
+                f"pinned direction/public decisions disagree at {row_label}: "
+                f"direction={direction_index}, public={public_index}"
+            )
+        for column in (*FORWARD_SCALAR_MAP, "selection_score"):
+            try:
+                value = float(row[column])
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise RuntimeError(f"pinned {column} is not numeric at {row_label}") from exc
+            if not np.isfinite(value):
+                raise RuntimeError(f"pinned {column} is non-finite at {row_label}")
+        expected_edge = max(float(direction_probs[0]), float(direction_probs[1])) - float(
+            direction_probs[2]
+        )
+        if not np.isclose(float(row["edge_score"]), expected_edge, rtol=0.0, atol=2e-6):
+            raise RuntimeError(f"pinned edge_score does not match direction probabilities at {row_label}")
+
+    return candidate.set_index("time").sort_index()
+
+
+def _load_pinned_predictions(
+    *,
+    dataset_dir: Path,
+    pinned_path: Path,
+    prediction_report_path: Path,
+) -> tuple[pd.DataFrame, pd.DataFrame, Path, dict, dict, dict[str, str]]:
+    """Resolve and revalidate one explicitly named immutable prediction event.
+
+    The fixed ``selective_edge_predictions.parquet`` mirror is deliberately not
+    accepted here: a mutable locator cannot decide which evidence launch proves.
+    The caller must name the timestamped parquet, whose timestamped report binds
+    bundle, dataset, physical schema, semantics, and exact hashes.
+    """
+
+    requested = pinned_path.expanduser().resolve()
+    requested_report = prediction_report_path.expanduser().resolve()
+    authoritative, prediction_report, prediction_evidence = (
+        resolve_and_validate_prediction_evidence(
+            requested,
+            prediction_report_path=requested_report,
+            bundle_dir=None,
+            dataset_dir=dataset_dir,
+            expected_split=MODEL_NATIVE_REQUIRED_TEST_SPLIT,
+            expected_model=MODEL_NATIVE_REQUIRED_MODEL_NAME,
+        )
+    )
+    _require_timestamped_prediction_identity(authoritative)
+    report_evidence = {
+        "json_path": str(requested_report),
+        "sha256": sha256_file(requested_report),
+    }
+    complete_frame = pd.read_parquet(authoritative)
+    frame = _validate_pinned_prediction_contract(
+        complete_frame,
+        dataset_dir=dataset_dir,
+        pinned_path=authoritative,
+    )
+    val_reference_frame = _validate_fusion_reference_prediction_contract(
+        complete_frame
+    )
+    return (
+        frame,
+        val_reference_frame,
+        authoritative,
+        prediction_report,
+        prediction_evidence,
+        report_evidence,
+    )
+
+
+def _forward_row_deltas(head: dict[str, object], pinned: pd.Series) -> dict[str, float]:
+    deltas: dict[str, float] = {}
+    for pinned_column, live_key in FORWARD_FIELD_MAP.items():
+        if live_key not in head:
+            raise RuntimeError(f"live forward is missing required field {live_key!r}")
+        width = SERVE_PARITY_FORWARD_FIELD_WIDTHS[pinned_column]
+        live_vector = _finite_vector(
+            head[live_key],
+            name=f"live {live_key}",
+            size=width,
+            row_label=head.get("time"),
+        )
+        pinned_vector = _finite_vector(
+            pinned[pinned_column],
+            name=pinned_column,
+            size=width,
+            row_label=pinned.name,
+        )
+        deltas[pinned_column] = float(
+            np.max(np.abs(live_vector - pinned_vector))
+        )
+    return deltas
+
+
+def _git_commit() -> str:
+    import subprocess
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
+            cwd=Path(__file__).resolve().parents[2],
+        ).stdout.strip()
+    except Exception:
+        return "unknown"
+
+
+def _load_offline_rows(dataset_dir: Path, split: str, times: pd.DatetimeIndex) -> pd.DataFrame:
+    """Stream the split parquet batch-wise and keep ONLY the target rows.
+    (A one-shot filtered to_table materializes every row group's nested
+    (96,513) seq lists ≈ 14+GB — OOM'd the 34G-capped gate 2026-07-08.)"""
+    import pyarrow.parquet as pq
+    matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
+    if len(matches) != 1:
+        raise RuntimeError(f"expected exactly one *_{split}.parquet in {dataset_dir}, got {matches}")
+    want = set(times.tz_convert("UTC").asi8)
+    pf = pq.ParquetFile(matches[0])
+    kept: list[pd.DataFrame] = []
+    for batch in pf.iter_batches(batch_size=512, columns=["time", "seq", "snap", "ctx_cont", "ctx_cat"]):
+        ts = pd.to_datetime(pd.Series(batch.column("time").to_pandas()), utc=True)
+        mask = ts.astype("int64").isin(want)
+        if mask.any():
+            df_b = batch.to_pandas()
+            df_b["time"] = ts
+            kept.append(df_b.loc[mask.to_numpy()])
+    if not kept:
+        return pd.DataFrame(columns=["seq", "snap", "ctx_cont", "ctx_cat"]).set_index(
+            pd.DatetimeIndex([], tz="UTC"))
+    df = pd.concat(kept, ignore_index=True)
+    return df.set_index("time").sort_index()
+
+
+def main() -> int:
+    _apply_exact_env_pins()
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--dataset-dir", type=Path, required=True)
+    ap.add_argument("--canonical-v3-path", type=Path, required=True)
+    ap.add_argument(
+        "--pinned-predictions",
+        type=Path,
+        required=True,
+        help="explicit timestamped authoritative selective_edge_predictions_<stamp>.parquet",
+    )
+    ap.add_argument(
+        "--prediction-report-json",
+        type=Path,
+        required=True,
+        help="matching newest immutable ENTRY_CANDIDATE_SELECTIVE_EDGE_<stamp>.json",
+    )
+    ap.add_argument(
+        "--out-dir",
+        type=Path,
+        required=True,
+        help="explicit output directory for one timestamped immutable parity event",
+    )
+    args = ap.parse_args()
+
+    # Reject stale identity/schema before loading the active bundle or live
+    # prebuilts. There is deliberately no legacy pinned-prediction fallback.
+    dataset_dir = args.dataset_dir.expanduser().resolve()
+    requested_pinned_path = args.pinned_predictions.expanduser().resolve()
+    (
+        pinned,
+        val_reference_frame,
+        pinned_path,
+        prediction_report,
+        prediction_evidence,
+        prediction_report_evidence,
+    ) = _load_pinned_predictions(
+        dataset_dir=dataset_dir,
+        pinned_path=args.pinned_predictions,
+        prediction_report_path=args.prediction_report_json,
+    )
+
+    t0 = time.time()
+    failures: list[str] = []
+    report: dict = {
+        "schema_version": MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
+        "contract_version": MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
+        "started_utc": datetime.now(timezone.utc).isoformat(),
+        "git_commit": _git_commit(),
+        "dataset_dir": str(dataset_dir),
+        "split": MODEL_NATIVE_REQUIRED_TEST_SPLIT,
+        "model_name": MODEL_NATIVE_REQUIRED_MODEL_NAME,
+        "pinned_predictions": str(pinned_path),
+        "requested_pinned_predictions": str(requested_pinned_path),
+        "requested_prediction_report_json": str(
+            args.prediction_report_json.expanduser().resolve()
+        ),
+        "prediction_report_evidence": prediction_report_evidence,
+        "prediction_evidence": prediction_evidence,
+        "state_tol": SERVE_PARITY_STATE_TOL,
+        "forward_tol": SERVE_PARITY_FORWARD_TOL,
+        "sampling_contract": SERVE_PARITY_SAMPLING_CONTRACT,
+        "pinned_prediction_contract": {
+            "dataset_dir": str(dataset_dir),
+            "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
+            "candidate_test_rows": int(len(pinned)),
+            "canonical_public_pair": True,
+        },
+        "env_pins": {name: os.environ[name] for name in SERVE_PARITY_ENV_PINS},
+    }
+
+    # ── contract-resolved adapter (fail-closed rule 8) ───────────────────────
+    from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference
+    from gx1.execution.v12_model_native_state_live import SEQ_LEN_MODEL_NATIVE
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_NAMES_V3, ORDERED_CTX_CAT_NAMES_V3,
+    )
+    adapter = SmartEntryLiveInference.load(device="cpu")
+    report["bundle_dir"] = str(adapter.bundle_dir)
+    prediction_bundle_dir = Path(
+        str(prediction_report.get("bundle_dir") or "")
+    ).expanduser().resolve()
+    if prediction_bundle_dir != adapter.bundle_dir.expanduser().resolve():
+        raise RuntimeError(
+            "[parity] prediction evidence bundle does not equal the contract-active "
+            f"serve bundle: prediction={prediction_bundle_dir} active={adapter.bundle_dir}"
+        )
+    report["operating_point"] = adapter.operating_point
+    direction_decision_contract = require_model_direction_decision_contract(
+        adapter._meta,
+        context="[parity] contract-resolved bundle",
+    )
+    report["direction_decision_contract"] = direction_decision_contract
+    selection_mode = adapter.operating_point.get("selection_score")
+    if selection_mode != MODEL_DIRECTION_SELECTION_MODE:
+        raise RuntimeError(
+            "[parity] operating_point.selection_score must be exactly "
+            f"{MODEL_DIRECTION_SELECTION_MODE!r}; got {selection_mode!r}"
+        )
+    report["selection_score_mode"] = selection_mode
+    if adapter._state_contract is None:
+        raise RuntimeError("[parity] model-native state contract missing from adapter")
+    report["model_native_state_contract"] = adapter._state_contract.as_report()
+    report["feature_history_start_utc"] = str(
+        adapter._state_contract.feature_history_start_utc
+    )
+    signal_names = adapter._builder.ordered_signal_names
+
+    # ── live prebuilts (frozen snapshot — deterministic) ─────────────────────
+    from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
+    canonical_v3_path = args.canonical_v3_path.expanduser().resolve()
+    if not canonical_v3_path.is_file():
+        raise RuntimeError(f"canonical-v3 path is missing: {canonical_v3_path}")
+    loader = PrebuiltStateLoader(canonical_v3_path=canonical_v3_path)
+    loader.load()
+    loader._refresh_enabled = False
+    cutoff = loader.cutoff_ts
+    report["canonical_v3_path"] = str(canonical_v3_path)
+    report["live_prebuilt_cutoff"] = str(cutoff)
+    print(f"[parity] live prebuilts loaded (cutoff={cutoff}, {time.time()-t0:.0f}s)", flush=True)
+
+    # ── exact TEST coverage + deterministic representative positions ─────────
+    matches = sorted(dataset_dir.glob(f"*_{MODEL_NATIVE_REQUIRED_TEST_SPLIT}.parquet"))
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"expected exactly one *_{MODEL_NATIVE_REQUIRED_TEST_SPLIT}.parquet "
+            f"in {dataset_dir}; got {matches}"
+        )
+    dataset_parquet = matches[0].expanduser().resolve()
+    all_times = pd.to_datetime(
+        pd.read_parquet(dataset_parquet, columns=["time"])["time"],
+        utc=True,
+        errors="raise",
+    ).sort_values()
+    if all_times.empty:
+        raise RuntimeError("TEST dataset time coverage is empty")
+    if bool(all_times.duplicated().any()):
+        raise RuntimeError("TEST dataset time coverage contains duplicate rows")
+    all_times = all_times.reset_index(drop=True)
+    dataset_coverage = _time_coverage_contract(all_times, label="TEST dataset")
+    prediction_coverage = _time_coverage_contract(
+        pinned.index, label="candidate TEST predictions"
+    )
+    if prediction_coverage != dataset_coverage:
+        raise RuntimeError(
+            "candidate prediction time coverage does not exactly equal the complete "
+            f"TEST dataset: dataset={dataset_coverage} predictions={prediction_coverage}"
+        )
+    if pd.Timestamp(all_times.iloc[-1]) > pd.Timestamp(cutoff):
+        raise RuntimeError(
+            "live prebuilt cutoff does not cover the complete TEST dataset: "
+            f"test_end={all_times.iloc[-1]} cutoff={cutoff}"
+        )
+    pick = _deterministic_sample_positions(len(all_times))
+    targets = pd.DatetimeIndex(all_times.iloc[pick])
+    if len(targets) != SERVE_PARITY_SAMPLE_COUNT:
+        raise RuntimeError("parity target count violates the exact 256-row contract")
+    report["dataset_parquet"] = str(dataset_parquet)
+    report["dataset_parquet_sha256"] = sha256_file(dataset_parquet)
+    report["test_coverage"] = {
+        "dataset": dataset_coverage,
+        "predictions": prediction_coverage,
+        "exact_match": True,
+    }
+    test_prediction_liveness = _test_prediction_liveness_contract(pinned)
+    report["test_prediction_liveness"] = test_prediction_liveness
+    failures.extend(
+        f"TEST prediction liveness: {failure}"
+        for failure in test_prediction_liveness["failures"]
+    )
+    report["sampled_test_coverage"] = _time_coverage_contract(
+        targets, label="sampled TEST parity positions"
+    )
+    report["n_bars"] = int(len(targets))
+    report["target_range"] = [str(targets[0]), str(targets[-1])]
+    print(f"[parity] {len(targets)} target bars: {targets[0]} .. {targets[-1]}", flush=True)
+
+    # ── LIVE common-history frame + states (shared one-truth adapter path) ─────
+    t_max = targets[-1]
+    frame = adapter.build_common_history_frame(loader, t_max)
+    report["live_frame"] = {"rows": int(len(frame)),
+                            "start": str(frame["time"].iloc[0]), "end": str(frame["time"].iloc[-1])}
+    print(f"[parity] common-history frame prepared: {len(frame)} rows ({time.time()-t0:.0f}s)", flush=True)
+    states = adapter._builder.build_states(frame, list(targets))
+    print(f"[parity] live states built ({time.time()-t0:.0f}s)", flush=True)
+
+    # ── LEG 1: state parity vs offline dataset rows ──────────────────────────
+    off = _load_offline_rows(
+        dataset_dir, MODEL_NATIVE_REQUIRED_TEST_SPLIT, targets
+    )
+    missing = [str(t) for t in targets if t not in off.index]
+    if missing:
+        failures.append(f"offline rows missing for {len(missing)} targets: {missing[:3]}")
+    block_max: dict[str, float] = {b: 0.0 for b in STATE_BLOCKS}
+    worst: dict[str, dict] = {}
+    per_bar_rows = []
+    # per-COLUMN max diff across bars (diagnostic: which families skew)
+    col_max_snap = np.zeros(len(signal_names))
+    col_max_seq = np.zeros(len(signal_names))
+    col_max_ctx = np.zeros(len(ORDERED_CTX_CONT_NAMES_V3))
+    state_rows_compared = 0
+    for k, ts in enumerate(targets):
+        if ts not in off.index:
+            continue
+        row = off.loc[ts]
+        o_seq = np.asarray([np.asarray(x, dtype=np.float64) for x in row["seq"]])
+        o_snap = np.asarray(row["snap"], dtype=np.float64)
+        o_ctx = np.asarray(row["ctx_cont"], dtype=np.float64)
+        o_cat = np.asarray(row["ctx_cat"], dtype=np.int64)
+        l_seq = states["seq"][k].astype(np.float64)
+        l_snap = states["snap"][k].astype(np.float64)
+        l_ctx = states["ctx_cont"][k].astype(np.float64)
+        l_cat = states["ctx_cat"][k]
+        shape_mismatches = [
+            f"{name} live={live_values.shape} offline={offline_values.shape}"
+            for name, live_values, offline_values in (
+                ("seq", l_seq, o_seq),
+                ("snap", l_snap, o_snap),
+                ("ctx_cont", l_ctx, o_ctx),
+                ("ctx_cat", l_cat, o_cat),
+            )
+            if live_values.shape != offline_values.shape
+        ]
+        if shape_mismatches:
+            failures.append(f"{ts}: state shape mismatch: {'; '.join(shape_mismatches)}")
+            continue
+        nonfinite_blocks = [
+            name
+            for name, values in (
+                ("offline.seq", o_seq),
+                ("offline.snap", o_snap),
+                ("offline.ctx_cont", o_ctx),
+                ("live.seq", l_seq),
+                ("live.snap", l_snap),
+                ("live.ctx_cont", l_ctx),
+            )
+            if not np.isfinite(values).all()
+        ]
+        if nonfinite_blocks:
+            failures.append(
+                f"{ts}: non-finite state evidence in {','.join(nonfinite_blocks)}"
+            )
+            continue
+        state_rows_compared += 1
+        d_seq = np.abs(l_seq - o_seq)
+        d_snap = np.abs(l_snap - o_snap)
+        d_ctx = np.abs(l_ctx - o_ctx)
+        d_cat = np.abs(l_cat - o_cat).max()
+        col_max_snap = np.maximum(col_max_snap, d_snap)
+        col_max_seq = np.maximum(col_max_seq, d_seq.max(axis=0))
+        col_max_ctx = np.maximum(col_max_ctx, d_ctx)
+        vals = {"seq": float(d_seq.max()), "snap": float(d_snap.max()),
+                "ctx_cont": float(d_ctx.max()), "ctx_cat": float(d_cat)}
+        per_bar_rows.append({"time": str(ts), **vals})
+        for b, v in vals.items():
+            if v > block_max[b]:
+                block_max[b] = v
+                if b == "seq":
+                    r, c = np.unravel_index(int(d_seq.argmax()), d_seq.shape)
+                    worst[b] = {"time": str(ts), "row_offset": int(r) - (SEQ_LEN_MODEL_NATIVE - 1),
+                                "col": signal_names[int(c)], "diff": float(d_seq.max())}
+                elif b == "snap":
+                    c = int(d_snap.argmax())
+                    worst[b] = {"time": str(ts), "col": signal_names[c], "diff": float(d_snap.max())}
+                elif b == "ctx_cont":
+                    c = int(d_ctx.argmax())
+                    worst[b] = {"time": str(ts), "col": ORDERED_CTX_CONT_NAMES_V3[c],
+                                "diff": float(d_ctx.max())}
+                else:
+                    worst[b] = {"time": str(ts),
+                                "col": ORDERED_CTX_CAT_NAMES_V3[int(np.abs(l_cat - o_cat).argmax())],
+                                "diff": float(d_cat)}
+    def _top(names, arr, k=25):
+        order = np.argsort(arr)[::-1][:k]
+        return [{"col": str(names[i]), "max_abs_diff": float(arr[i])}
+                for i in order if arr[i] > SERVE_PARITY_STATE_TOL]
+    report["state_parity"] = {
+        "n_compared": state_rows_compared,
+        "block_max_abs_diff": block_max,
+        "worst": worst,
+        "tolerance": SERVE_PARITY_STATE_TOL,
+        "top_offenders": {
+            "snap": _top(signal_names, col_max_snap),
+            "seq": _top(signal_names, col_max_seq),
+            "ctx_cont": _top(list(ORDERED_CTX_CONT_NAMES_V3), col_max_ctx),
+        },
+    }
+    if state_rows_compared != SERVE_PARITY_SAMPLE_COUNT:
+        failures.append(
+            f"STATE compared {state_rows_compared} rows; exact contract requires "
+            f"{SERVE_PARITY_SAMPLE_COUNT}"
+        )
+    for b, v in block_max.items():
+        tol = 0.0 if b == "ctx_cat" else SERVE_PARITY_STATE_TOL
+        if v > tol:
+            failures.append(
+                f"STATE block '{b}' max_abs_diff={v:.3e} > tol={tol:.0e} (worst: {worst.get(b)})"
+            )
+    print(f"[parity] LEG1 state: {json.dumps(block_max)} ({time.time()-t0:.0f}s)", flush=True)
+
+    # ── LEG 2: forward parity vs fresh model-direction predictions ──────────
+    heads = adapter.forward_states(states)
+    print(f"[parity] LEG2 forward done ({time.time()-t0:.0f}s)", flush=True)
+    if len(heads) != len(targets):
+        failures.append(
+            f"FORWARD emitted {len(heads)} rows for {len(targets)} requested target bars"
+        )
+    fwd_max: dict[str, float] = {c: 0.0 for c in FORWARD_COLS}
+    fwd_worst: dict[str, str] = {}
+    n_fwd = 0
+    direction_calibration = adapter._meta.get("direction_calibration")
+    if not isinstance(direction_calibration, dict) or direction_calibration.get("enabled") is not True:
+        raise RuntimeError("serve parity requires enabled direction calibration metadata")
+    calibration_temperature = float(direction_calibration.get("temperature"))
+    calibration_bias = np.asarray(
+        direction_calibration.get("bias"), dtype=np.float64
+    ).reshape(-1)
+    if (
+        not np.isfinite(calibration_temperature)
+        or calibration_temperature <= 0.0
+        or calibration_bias.shape != (3,)
+        or not np.isfinite(calibration_bias).all()
+    ):
+        raise RuntimeError("serve parity direction calibration parameters are invalid")
+    calibration_max_abs_diff = 0.0
+    calibration_worst_ts: str | None = None
+    atr_bps_values: list[float] = []
+    direction_mismatch: list[str] = []
+    public_pair_mismatch: list[str] = []
+    action_mismatch: list[str] = []
+    target_positions = {pd.Timestamp(ts): index for index, ts in enumerate(targets)}
+    atr_ctx_index = list(ORDERED_CTX_CONT_NAMES_V3).index("atr_bps")
+    for h in heads:
+        ts = pd.Timestamp(h["time"])
+        if ts not in pinned.index:
+            failures.append(f"pinned prediction missing for {ts}")
+            continue
+        if ts not in target_positions:
+            failures.append(f"FORWARD emitted an unrequested timestamp {ts}")
+            continue
+        p = pinned.loc[ts]
+        deltas = _forward_row_deltas(h, p)
+        raw_logits = _finite_vector(
+            h.get("raw_direction_logits"),
+            name="live raw_direction_logits",
+            size=3,
+            row_label=ts,
+        )
+        final_logits = _finite_vector(
+            h.get("direction_logits"),
+            name="live direction_logits",
+            size=3,
+            row_label=ts,
+        )
+        calibration_delta = float(
+            np.max(
+                np.abs(
+                    final_logits
+                    - (raw_logits / calibration_temperature + calibration_bias)
+                )
+            )
+        )
+        if calibration_delta > calibration_max_abs_diff:
+            calibration_max_abs_diff = calibration_delta
+            calibration_worst_ts = str(ts)
+        atr_bps = float(
+            states["ctx_cont"][target_positions[ts]][atr_ctx_index]
+        )
+        if not np.isfinite(atr_bps) or atr_bps <= 0.0:
+            raise RuntimeError(
+                f"{ts}: live state ctx_cont.atr_bps must be finite and positive; "
+                f"got {atr_bps!r}"
+            )
+        atr_bps_values.append(atr_bps)
+        decision = adapter.decide(h, atr_bps=atr_bps)
+        if decision.get("selection_score_mode") != MODEL_DIRECTION_SELECTION_MODE:
+            raise RuntimeError(
+                f"{ts}: live decision selection_score_mode="
+                f"{decision.get('selection_score_mode')!r}"
+            )
+        pinned_direction = int(p["pred_direction"])
+        pinned_public = int(p["public_trade_flat_hard_decision"])
+        pinned_action = MODEL_DIRECTION_ACTIONS[pinned_direction]
+        n_fwd += 1
+        for c, d in deltas.items():
+            if d > fwd_max[c]:
+                fwd_max[c] = d
+                fwd_worst[c] = str(ts)
+        if int(decision["model_direction_index"]) != pinned_direction:
+            direction_mismatch.append(str(ts))
+        if int(decision["public_trade_flat_decision_index"]) != pinned_public:
+            public_pair_mismatch.append(str(ts))
+        if decision["action"] != pinned_action:
+            action_mismatch.append(str(ts))
+    if n_fwd != SERVE_PARITY_SAMPLE_COUNT:
+        failures.append(
+            f"FORWARD compared {n_fwd} rows; exact contract requires "
+            f"{SERVE_PARITY_SAMPLE_COUNT}"
+        )
+    per_head_tol = {c: SERVE_PARITY_FORWARD_TOL for c in fwd_max}
+    report["forward_parity"] = {
+        "n_compared": n_fwd, "max_abs_diff": fwd_max, "worst_ts": fwd_worst,
+        "model_direction_mismatches": direction_mismatch,
+        "public_trade_flat_decision_mismatches": public_pair_mismatch,
+        "model_argmax_action_mismatches": action_mismatch,
+        "selection_score_mode": selection_mode,
+        "direction_decision": direction_decision_contract["direction_decision"],
+        "canonical_public_pair": direction_decision_contract["public_trade_flat_formula"],
+        "tolerance": SERVE_PARITY_FORWARD_TOL,
+        "per_head_tolerance": per_head_tol,
+        "atr_bps_source": "live_state.ctx_cont.atr_bps",
+        "atr_bps_min": float(min(atr_bps_values)) if atr_bps_values else None,
+        "atr_bps_max": float(max(atr_bps_values)) if atr_bps_values else None,
+        "note": "pinned=CUDA fp32 evidence run; live=CPU fp32 — LEG2 bounds backend drift only",
+    }
+    report["direction_calibration_parity"] = {
+        "decision": (
+            "PASS"
+            if n_fwd == SERVE_PARITY_SAMPLE_COUNT
+            and calibration_max_abs_diff <= SERVE_PARITY_CALIBRATION_TOL
+            else "FAIL"
+        ),
+        "failures": (
+            []
+            if n_fwd == SERVE_PARITY_SAMPLE_COUNT
+            and calibration_max_abs_diff <= SERVE_PARITY_CALIBRATION_TOL
+            else ["raw-to-final direction calibration equation mismatch"]
+        ),
+        "n_compared": n_fwd,
+        "equation": SERVE_PARITY_CALIBRATION_EQUATION,
+        "enabled": True,
+        "temperature": calibration_temperature,
+        "bias": calibration_bias.tolist(),
+        "tolerance": SERVE_PARITY_CALIBRATION_TOL,
+        "max_abs_diff": calibration_max_abs_diff,
+        "worst_ts": calibration_worst_ts,
+    }
+    if calibration_max_abs_diff > SERVE_PARITY_CALIBRATION_TOL:
+        failures.append(
+            "DIRECTION CALIBRATION max_abs_diff="
+            f"{calibration_max_abs_diff:.3e} > {SERVE_PARITY_CALIBRATION_TOL:.3e}"
+        )
+    for c, v in fwd_max.items():
+        if v > per_head_tol[c]:
+            failures.append(f"FORWARD '{c}' max_abs_diff={v:.3e} > tol={per_head_tol[c]:.3e} "
+                            f"(worst ts {fwd_worst.get(c)})")
+    if direction_mismatch:
+        failures.append(
+            f"FORWARD model direction argmax mismatches: {len(direction_mismatch)} "
+            f"({direction_mismatch[:3]})"
+        )
+    if public_pair_mismatch:
+        failures.append(
+            f"FORWARD public trade/flat decision mismatches: {len(public_pair_mismatch)} "
+            f"({public_pair_mismatch[:3]})"
+        )
+    if action_mismatch:
+        failures.append(
+            f"FORWARD model-argmax action mismatches: {len(action_mismatch)} ({action_mismatch[:3]})"
+        )
+    print(f"[parity] LEG2 forward: {json.dumps({k: round(v, 9) for k, v in fwd_max.items()})}", flush=True)
+
+    # ── LEG 3: exact full-stack specialist decision influence ───────────────
+    specialist_influence = _specialist_decision_influence_contract(
+        adapter=adapter,
+        states=states,
+        parity_targets=targets,
+    )
+    report["specialist_decision_influence"] = specialist_influence
+    failures.extend(
+        f"specialist decision influence: {failure}"
+        for failure in specialist_influence["failures"]
+    )
+    print(
+        "[parity] LEG3 specialist influence: "
+        f"{specialist_influence['decision']} ({time.time()-t0:.0f}s)",
+        flush=True,
+    )
+
+    # ── LEG 4: upstream, all-TF and exact 23-group fusion influence ──────────
+    upstream_influence = _upstream_context_decision_influence_contract(
+        adapter=adapter,
+        states=states,
+        parity_targets=targets,
+    )
+    report["upstream_context_decision_influence"] = upstream_influence
+    failures.extend(
+        f"upstream context decision influence: {failure}"
+        for failure in upstream_influence["failures"]
+    )
+    multi_tf_influence = _multi_tf_decision_influence_contract(
+        adapter=adapter,
+        states=states,
+        parity_targets=targets,
+    )
+    report["multi_tf_decision_influence"] = multi_tf_influence
+    failures.extend(
+        f"multi-TF decision influence: {failure}"
+        for failure in multi_tf_influence["failures"]
+    )
+    fusion_influence = _direction_evidence_fusion_influence_contract(
+        adapter=adapter,
+        states=states,
+        parity_targets=targets,
+        val_reference_frame=val_reference_frame,
+    )
+    report["direction_evidence_fusion_influence"] = fusion_influence
+    failures.extend(
+        f"direction evidence fusion influence: {failure}"
+        for failure in fusion_influence["failures"]
+    )
+    print(
+        "[parity] LEG4 upstream/TF/fusion influence: "
+        f"{upstream_influence['decision']}/"
+        f"{multi_tf_influence['decision']}/"
+        f"{fusion_influence['decision']} ({time.time()-t0:.0f}s)",
+        flush=True,
+    )
+
+    # ── verdict ───────────────────────────────────────────────────────────────
+    report["per_bar_state_diffs"] = per_bar_rows
+    report["failures"] = list(failures)
+    report["decision"] = "PASS" if not failures else "FAIL"
+    if not failures:
+        contract_failures = serve_gate_event_contract_failures(
+            report,
+            evidence_name="model_native_serve_parity",
+        )
+        if contract_failures:
+            failures.extend(contract_failures)
+            report["failures"] = list(failures)
+            report["decision"] = "FAIL"
+    report["runtime_s"] = round(time.time() - t0, 1)
+    report["created_utc"] = datetime.now(timezone.utc).isoformat()
+    out_path, report = write_immutable_json_event(
+        args.out_dir,
+        "MODEL_NATIVE_SERVE_PARITY",
+        report,
+    )
+    print(json.dumps({
+        "decision": report["decision"],
+        "n_bars": report["n_bars"],
+        "state_block_max_abs_diff": block_max,
+        "forward_max_abs_diff": fwd_max,
+        "failures": failures,
+        "report": str(out_path),
+        "runtime_s": report["runtime_s"],
+    }, indent=2), flush=True)
+    return 0 if not failures else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

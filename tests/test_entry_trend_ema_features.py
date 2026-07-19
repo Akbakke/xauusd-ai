@@ -1,6 +1,3 @@
-import argparse
-import json
-
 import numpy as np
 import pytest
 
@@ -11,7 +8,6 @@ from gx1.features.entry_trend_ema_v1 import (
     build_entry_trend_ema_layer,
     missing_trend_ema_source_fields,
 )
-from gx1.scripts.materialize_entry_trend_ema_extension_manifest_v1 import run as run_manifest
 
 
 EXPECTED_TREND_EMA_FEATURE_NAMES = (
@@ -149,19 +145,15 @@ def test_trend_ema_layer_builds_causal_specialist_features() -> None:
     assert out[6, idx["trend.ema_late_reversal_risk"]] > out[2, idx["trend.ema_late_reversal_risk"]]
 
 
-def test_trend_ema_layer_sanitizes_nonfinite_inputs() -> None:
+@pytest.mark.parametrize("bad_value", [np.nan, np.inf, -np.inf])
+def test_trend_ema_layer_rejects_nonfinite_inputs(bad_value: float) -> None:
     names = list(TREND_EMA_SOURCE_FIELDS)
     x = _matrix(names)
     source_idx = {name: i for i, name in enumerate(names)}
-    x[1, source_idx["snap._v1_ema_diff"]] = np.nan
-    x[2, source_idx["snap.ema20_slope"]] = np.inf
-    x[3, source_idx["ctx_cont._v1h4_slope5"]] = -np.inf
+    x[1, source_idx["snap._v1_ema_diff"]] = bad_value
 
-    out, out_names = build_entry_trend_ema_layer(x, names)
-
-    assert tuple(out_names) == EXPECTED_TREND_EMA_FEATURE_NAMES
-    assert out.shape == (7, 20)
-    assert np.isfinite(out).all()
+    with pytest.raises(RuntimeError, match="trend/EMA input matrix contains non-finite values"):
+        build_entry_trend_ema_layer(x, names)
 
 
 def test_trend_ema_layer_fails_closed_on_missing_source_fields() -> None:
@@ -176,6 +168,18 @@ def test_trend_ema_layer_fails_closed_on_missing_source_fields() -> None:
 
     with pytest.raises(RuntimeError, match="trend/EMA feature name count"):
         build_entry_trend_ema_layer(x, keep_names)
+
+
+def test_trend_ema_layer_rejects_empty_rows_and_duplicate_names() -> None:
+    names = list(TREND_EMA_SOURCE_FIELDS)
+
+    with pytest.raises(RuntimeError, match="at least one row"):
+        build_entry_trend_ema_layer(np.empty((0, len(names)), dtype=np.float32), names)
+
+    duplicate_names = [*names, names[-1]]
+    duplicate_x = np.column_stack([_matrix(names), _matrix(names)[:, -1]])
+    with pytest.raises(RuntimeError, match="duplicate feature names"):
+        build_entry_trend_ema_layer(duplicate_x, duplicate_names)
 
 
 def test_trend_ema_layer_rewards_ema_slope_coherence() -> None:
@@ -211,29 +215,3 @@ def test_trend_ema_layer_does_not_read_future_rows() -> None:
         mutated, _ = build_entry_trend_ema_layer(changed, names)
 
         np.testing.assert_allclose(mutated[:future_start], baseline[:future_start], rtol=0.0, atol=0.0)
-
-
-def test_trend_ema_manifest_is_report_only(tmp_path) -> None:
-    report = run_manifest(
-        argparse.Namespace(
-            out_dir=str(tmp_path / "out"),
-            fail_on_audit_fail=True,
-            quiet=True,
-        )
-    )
-
-    assert report["decision"] == "READY_FOR_TREND_EMA_EXTENSION_REVIEW"
-    assert report["manifest"]["selected_feature_count"] == len(TREND_EMA_FEATURE_NAMES)
-    assert report["manifest"]["all_features_route_to_expected_specialist"] is True
-    assert report["training_allowed"] is False
-    assert report["shadow_live_promotion_allowed"] is False
-    assert report["side_effects_started"] == {
-        "training": False,
-        "replay": False,
-        "iql_distillation": False,
-        "shadow": False,
-        "live": False,
-        "promotion": False,
-    }
-    latest = tmp_path / "out" / "ENTRY_TREND_EMA_EXTENSION_REPORT_latest.json"
-    assert json.loads(latest.read_text(encoding="utf-8"))["decision"] == report["decision"]

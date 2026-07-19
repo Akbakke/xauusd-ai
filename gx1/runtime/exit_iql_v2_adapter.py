@@ -6,7 +6,7 @@ Wire the exit-IQL V2 (multi-head Q(s, a, K), 2-action HOLD/EXIT_NOW) into the
 live runtime as the "smart RL head" supervising the exit transformer (V3).
 
 Live-stack position:
-    [open trade via Entry-IQL] → V3 (frozen) → [Exit-IQL adapter] → ensemble exit
+    [model-native Entry opens trade] → V3 (frozen) → [Exit-IQL adapter] → ensemble exit
 
 At each bar inside an active trade, the adapter:
   1. Receives a per-bar state dict (trade-state + carried candidate context)
@@ -31,7 +31,7 @@ from typing import Any, Sequence
 import numpy as np
 import torch
 
-from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core
+from gx1.scripts import exit_iql_multi_head_gpu_core_v1 as iql_core
 
 
 VALID_AGGREGATORS = ("mean", "max", "weighted")
@@ -40,7 +40,7 @@ ACTION_HOLD_ID = 0
 ACTION_EXIT_NOW_ID = 1
 ACTION_LABELS_EXIT = {ACTION_HOLD_ID: "HOLD", ACTION_EXIT_NOW_ID: "EXIT_NOW"}
 
-# Fail-closed feature-coverage guard (2026-06-04) — see entry_iql_v2_adapter.py.
+# Fail-closed feature-coverage guard derived from the active Exit checkpoint.
 # Trainer computes feature_stds = nanstd + 1e-6, so constant-in-training features
 # sit at ~1e-6; real-variance features are >= ~0.1. A real-variance feature
 # silently 0-filled at serve is the 2026-05-19 LONG-bias skew. std >= threshold
@@ -66,7 +66,7 @@ class ExitRecommendation:
 
 @dataclass
 class ExitIQLV2Adapter:
-    model: iql_core.MultiHeadEntryIQLModel  # same multi-head core, n_actions=2
+    model: iql_core.MultiHeadExitIQLModel
     feature_names: list[str]
     variant: str
     fold_id: str
@@ -128,7 +128,7 @@ class ExitIQLV2Adapter:
         v_net.eval()
         feature_means = np.asarray(ckpt["feature_means"], dtype=np.float32)
         feature_stds = np.asarray(ckpt["feature_stds"], dtype=np.float32)
-        model = iql_core.MultiHeadEntryIQLModel(
+        model = iql_core.MultiHeadExitIQLModel(
             q_net=q_net, v_net=v_net,
             state_dim=state_dim, n_actions=n_actions, n_k=n_k,
             k_horizons=k_horizons, device=device,

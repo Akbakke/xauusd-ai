@@ -33,115 +33,442 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, Sampler
 from sklearn.metrics import accuracy_score
 
-# V2: switched from signal_bridge_v1 (7-dim seq) to signal_bridge_v3 (37-dim seq with SMC).
-# The architecture itself is dimension-flexible — only the import names change.
+# Canonical context ordering; exact model-native dimensions are verified below.
 from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_SEQ_FIELDS_V3 as SIGNAL_FIELDS,
-    CONTRACT_SHA256_V3 as SIGNAL_BRIDGE_CONTRACT_SHA256,
-    SEQ_SIGNAL_DIM_V3 as SEQ_SIGNAL_DIM,
-    SNAP_SIGNAL_DIM_V3 as SNAP_SIGNAL_DIM,
     DEFAULT_SEQ_LEN_V3,
-    CTX_CONT_DIM_V3,
     ORDERED_CTX_CAT_NAMES_V3,
+    ORDERED_CTX_CONT_NAMES_V3,
 )
-from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
-from gx1.time.session_detector import (
-    get_session_vectorized,
-    get_session_minutes_since_open_vectorized,
-    get_session_minutes_to_next_boundary_vectorized,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+    require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_state_v2 import (
+    validate_state_contract_metadata_v2,
+)
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    FIXED_POSITIVE_LOSS_WEIGHTS as _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS,
+    active_loss_weight_failures as _model_native_active_loss_weight_failures,
+    training_objective_contract_metadata,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    direction_evidence_fusion_metadata,
+)
+from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
+    COMPONENT_PARAMETERS as _EVIDENCE_FUSION_MOVEMENT_COMPONENTS,
+    PARAMETER_SHAPES as _EVIDENCE_FUSION_PARAMETER_SHAPES,
+    REFERENCE as _EVIDENCE_FUSION_MOVEMENT_REFERENCE,
+    SCHEMA_VERSION as _EVIDENCE_FUSION_MOVEMENT_SCHEMA_VERSION,
+    require_learned_component_movement_metadata,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
+    EXACT_EVIDENCE_FUSION_OUTPUTS,
     DIP_DIRECTIONS, DIP_HORIZONS, DIP_TARGETS, FORECAST_HORIZONS,
     TIMING_DIRECTIONS, TIMING_HORIZONS, TIMING_TARGETS,
     TAIL_RISK_DIRECTIONS, TAIL_RISK_HORIZONS, TAIL_RISK_QUANTILE,
     VOL_FORECAST_HORIZONS,
 )
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+    model_direction_decision_contract_metadata,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    SPECIALIST_CONTRACT_MODES,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
     required_training_specialists_for_mode,
+    require_model_native_specialist_contract_mode,
     specialist_model_contract_for_mode,
 )
 
 
-def dip_forecast_loss(out: dict, batch: dict, device) -> "torch.Tensor":
-    """Shared loss for the dip-head (18, pinball quantile) + forecast-head (4,
-    smooth_l1). Returns 0 if a head/its targets are absent (gated). Output layout
-    MUST match the model: dip = dir×K×{dip_p50,dip_p90,recovery_p50}; recovery
-    uses the mfe label, dip_p50/p90 use the mae_before_mfe label."""
-    import torch
+_DIP_TARGET_COLS = tuple(
+    [f"y_dip_mae_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
+    + [f"y_dip_mfe_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
+)
+_FORECAST_TARGET_COLS = tuple(f"y_forecast_ret_K{K}" for K in FORECAST_HORIZONS)
+_TIMING_TARGET_COLS = tuple(
+    f"y_{tgt}_{d}_K{K}"
+    for d in TIMING_DIRECTIONS
+    for K in TIMING_HORIZONS
+    for tgt in TIMING_TARGETS
+)
+_TAIL_RISK_TARGET_COLS = tuple(
+    f"y_tail_mae_{d}_K{K}"
+    for d in TAIL_RISK_DIRECTIONS
+    for K in TAIL_RISK_HORIZONS
+)
+_VOL_FORECAST_TARGET_COLS = tuple(f"y_vol_fwd_K{K}" for K in VOL_FORECAST_HORIZONS)
+
+# Exact emitted target surface for the five active forward-path auxiliary heads.
+_DIP_FORECAST_TARGET_COLS = (
+    _DIP_TARGET_COLS
+    + _FORECAST_TARGET_COLS
+    + _TIMING_TARGET_COLS
+    + _TAIL_RISK_TARGET_COLS
+    + _VOL_FORECAST_TARGET_COLS
+)
+
+MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v2"
+_MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS = tuple(
+    (f"y_dip_mae_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in DIP_HORIZONS
+) + tuple(
+    (f"y_dip_mfe_{side}_K{horizon}", horizon)
+    for side in ("long", "short")
+    for horizon in DIP_HORIZONS
+) + tuple(
+    (f"y_forecast_ret_K{horizon}", horizon)
+    for horizon in FORECAST_HORIZONS
+) + tuple(
+    (f"y_dip_bottom_frac_{side}_K{horizon}", horizon)
+    for side in TIMING_DIRECTIONS
+    for horizon in TIMING_HORIZONS
+) + tuple(
+    (f"y_time_to_mfe_frac_{side}_K{horizon}", horizon)
+    for side in TIMING_DIRECTIONS
+    for horizon in TIMING_HORIZONS
+) + tuple(
+    (f"y_tail_mae_{side}_K{horizon}", horizon)
+    for side in TAIL_RISK_DIRECTIONS
+    for horizon in TAIL_RISK_HORIZONS
+) + tuple(
+    (f"y_vol_fwd_K{horizon}", horizon)
+    for horizon in VOL_FORECAST_HORIZONS
+)
+MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN = dict(
+    _MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS
+)
+MODEL_NATIVE_AUX_TARGET_COLUMNS = tuple(
+    MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN
+)
+MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS = 96
+
+
+def _require_model_native_aux_target_contract(raw: Any, *, context: str) -> Dict[str, Any]:
+    """Validate and return the immutable 37-column future-target contract."""
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"[{context}_AUX_TARGET_CONTRACT_MISSING]")
+    expected_horizons = {
+        name: int(horizon)
+        for name, horizon in MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.items()
+    }
+    failures: list[str] = []
+    if raw.get("schema_version") != MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION:
+        failures.append(
+            f"schema_version={raw.get('schema_version')!r}"
+        )
+    if raw.get("columns") != list(MODEL_NATIVE_AUX_TARGET_COLUMNS):
+        failures.append("columns/order do not match the exact 37-column contract")
+    if raw.get("future_horizon_bars_by_column") != expected_horizons:
+        failures.append("future_horizon_bars_by_column mismatch")
+    if raw.get("max_future_horizon_bars") != MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS:
+        failures.append(
+            f"max_future_horizon_bars={raw.get('max_future_horizon_bars')!r}"
+        )
+    if raw.get("spread_aware_risk_magnitudes_required") is not True:
+        failures.append("spread_aware_risk_magnitudes_required is not true")
+    if raw.get("mid_price_timing_reference_only") is not True:
+        failures.append("mid_price_timing_reference_only is not true")
+    if raw.get("incomplete_value") != "NaN_before_emission_only":
+        failures.append(f"incomplete_value={raw.get('incomplete_value')!r}")
+    if raw.get("incomplete_rows_may_be_emitted") is not False:
+        failures.append("incomplete_rows_may_be_emitted is not false")
+    if failures:
+        raise RuntimeError(
+            f"[{context}_AUX_TARGET_CONTRACT_INVALID] " + "; ".join(failures)
+        )
+    return {
+        "schema_version": MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
+        "columns": list(MODEL_NATIVE_AUX_TARGET_COLUMNS),
+        "future_horizon_bars_by_column": expected_horizons,
+        "max_future_horizon_bars": MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
+        "spread_aware_risk_magnitudes_required": True,
+        "mid_price_timing_reference_only": True,
+        "incomplete_value": "NaN_before_emission_only",
+        "incomplete_rows_may_be_emitted": False,
+    }
+
+
+def _require_active_aux_head_prediction(
+    out: dict,
+    batch: dict,
+    *,
+    output_name: str,
+    target_names: tuple[str, ...],
+) -> torch.Tensor:
+    prediction = out.get(output_name)
+    missing_targets = [name for name in target_names if name not in batch]
+    if not isinstance(prediction, torch.Tensor):
+        raise RuntimeError(
+            f"[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output={output_name}"
+        )
+    if missing_targets:
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_TARGET_MISSING] "
+            f"output={output_name} missing={missing_targets}"
+        )
+    return prediction
+
+
+def dip_forecast_loss(
+    out: dict,
+    batch: dict,
+    device,
+) -> "torch.Tensor":
+    """Loss for the exact dip/forecast/timing/tail/vol target surface."""
     total = torch.zeros((), device=device)
-    dip_pred = out.get("dip_pred")
-    if dip_pred is not None and "y_dip_mae_long_K12" in batch:
-        tgts, qs = [], []
-        for d in DIP_DIRECTIONS:
-            for K in DIP_HORIZONS:
-                for tgt in DIP_TARGETS:
-                    if tgt.startswith("recovery"):
-                        tgts.append(batch[f"y_dip_mfe_{d}_K{K}"]); qs.append(0.5)
-                    else:  # dip_p50 / dip_p90
-                        tgts.append(batch[f"y_dip_mae_{d}_K{K}"]); qs.append(0.9 if "p90" in tgt else 0.5)
-        tgt = torch.stack(tgts, dim=1).to(device).float()          # (B, 18)
-        q = torch.tensor(qs, device=device, dtype=tgt.dtype).view(1, -1)
-        err = tgt - dip_pred.float()
-        total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
-    fc_pred = out.get("forecast_pred")
-    if fc_pred is not None and "y_forecast_ret_K1" in batch:
-        fc_tgt = torch.stack([batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS], dim=1).to(device).float()
-        total = total + torch.nn.functional.smooth_l1_loss(fc_pred.float(), fc_tgt)
+    dip_pred = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="dip_pred",
+        target_names=_DIP_TARGET_COLS,
+    )
+    tgts, qs = [], []
+    for d in DIP_DIRECTIONS:
+        for K in DIP_HORIZONS:
+            for tgt in DIP_TARGETS:
+                if tgt.startswith("recovery"):
+                    tgts.append(batch[f"y_dip_mfe_{d}_K{K}"])
+                    qs.append(0.5)
+                else:  # dip_p50 / dip_p90
+                    tgts.append(batch[f"y_dip_mae_{d}_K{K}"])
+                    qs.append(0.9 if "p90" in tgt else 0.5)
+    tgt = torch.stack(tgts, dim=1).to(device).float()          # (B, 18)
+    q = torch.tensor(qs, device=device, dtype=tgt.dtype).view(1, -1)
+    err = tgt - dip_pred.float()
+    total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
+    fc_pred = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="forecast_pred",
+        target_names=_FORECAST_TARGET_COLS,
+    )
+    fc_tgt = torch.stack([batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS], dim=1).to(device).float()
+    total = total + torch.nn.functional.smooth_l1_loss(fc_pred.float(), fc_tgt)
     # ── dip-timing head (12, smooth_l1) — WHEN the dip bottoms / favorable peak ─
-    timing_pred = out.get("timing_pred")
-    if timing_pred is not None and "y_dip_bottom_frac_long_K12" in batch:
-        t_tgts = []
-        for d in TIMING_DIRECTIONS:
-            for K in TIMING_HORIZONS:
-                for tgt in TIMING_TARGETS:
-                    t_tgts.append(batch[f"y_{tgt}_{d}_K{K}"])
-        t_tgt = torch.stack(t_tgts, dim=1).to(device).float()          # (B, 12)
-        total = total + torch.nn.functional.smooth_l1_loss(timing_pred.float(), t_tgt)
+    timing_pred = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="timing_pred",
+        target_names=_TIMING_TARGET_COLS,
+    )
+    t_tgts = []
+    for d in TIMING_DIRECTIONS:
+        for K in TIMING_HORIZONS:
+            for tgt in TIMING_TARGETS:
+                t_tgts.append(batch[f"y_{tgt}_{d}_K{K}"])
+    t_tgt = torch.stack(t_tgts, dim=1).to(device).float()          # (B, 12)
+    total = total + torch.nn.functional.smooth_l1_loss(timing_pred.float(), t_tgt)
     # ── tail-risk head (6, pinball q=0.9) — worst adverse over full horizon ─────
-    tail_pred = out.get("tail_risk_pred")
-    if tail_pred is not None and "y_tail_mae_long_K12" in batch:
-        tail_tgts = [batch[f"y_tail_mae_{d}_K{K}"]
-                     for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
-        tail_tgt = torch.stack(tail_tgts, dim=1).to(device).float()    # (B, 6)
-        q = float(TAIL_RISK_QUANTILE)
-        err = tail_tgt - tail_pred.float()
-        total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
+    tail_pred = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="tail_risk_pred",
+        target_names=_TAIL_RISK_TARGET_COLS,
+    )
+    tail_tgts = [batch[f"y_tail_mae_{d}_K{K}"]
+                 for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
+    tail_tgt = torch.stack(tail_tgts, dim=1).to(device).float()    # (B, 6)
+    q = float(TAIL_RISK_QUANTILE)
+    err = tail_tgt - tail_pred.float()
+    total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
     # ── vol-forecast head (3, smooth_l1) — forward realized vol (bps) ───────────
-    vol_pred = out.get("vol_forecast_pred")
-    if vol_pred is not None and "y_vol_fwd_K12" in batch:
-        vol_tgt = torch.stack([batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS], dim=1).to(device).float()
-        total = total + torch.nn.functional.smooth_l1_loss(vol_pred.float(), vol_tgt)
+    vol_pred = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="vol_forecast_pred",
+        target_names=_VOL_FORECAST_TARGET_COLS,
+    )
+    vol_tgt = torch.stack([batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS], dim=1).to(device).float()
+    total = total + torch.nn.functional.smooth_l1_loss(vol_pred.float(), vol_tgt)
     return total
 
 
-# Aux-head regression target columns batched per sample (fallback 0.0). Must
-# stay in sync with the builder's _HEAD_TARGET_COLS and the model's heads.
-_DIP_FORECAST_TARGET_COLS = (
-    [f"y_dip_mae_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
-    + [f"y_dip_mfe_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
-    + [f"y_forecast_ret_K{K}" for K in FORECAST_HORIZONS]
-    + [f"y_{tgt}_{d}_K{K}" for d in TIMING_DIRECTIONS for K in TIMING_HORIZONS for tgt in TIMING_TARGETS]
-    + [f"y_tail_mae_{d}_K{K}" for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
-    + [f"y_vol_fwd_K{K}" for K in VOL_FORECAST_HORIZONS]
+_MODEL_NATIVE_ACTIVE_CORE_TARGET_COLS = (
+    "y_direction",
+    "y_tradable",
+    "mfe_first_n_bps",
+    "path_quality_bps",
+    "y_bad_path",
+    "y_dead_negative_long",
+    "y_teaser_negative_long",
+    "y_hard_negative_long",
+    "y_dead_negative_short",
+    "y_teaser_negative_short",
+    "y_hard_negative_short",
+    "y_clean_edge_long",
+    "y_survival_long",
+    "y_selector_long_mask",
+    "y_selector_short_mask",
+    "y_clean_edge_bidir",
+    "y_survival_bidir",
+    "y_trade",
+    "y_side",
+    "y_side_mask",
+    "y_long_path_utility_bps",
+    "y_short_path_utility_bps",
+    "y_long_bad_path",
+    "y_short_bad_path",
+    "y_long_expected_mae_bps",
+    "y_short_expected_mae_bps",
 )
+_MODEL_NATIVE_ACTIVE_RAIL_TARGET_COLS = (
+    "y_rising_channel_support_touch",
+    "y_falling_channel_resistance_touch",
+    "y_countertrend_short_trap",
+    "y_countertrend_long_trap",
+    "y_short_high_mae_low_mfe_early_failure",
+    "y_long_high_mae_low_mfe_early_failure",
+)
+_MODEL_NATIVE_ACTIVE_TARGET_COLS = (
+    _MODEL_NATIVE_ACTIVE_CORE_TARGET_COLS
+    + ("y_tf_agreement_score", "y_position_size_target")
+    + _MODEL_NATIVE_ACTIVE_RAIL_TARGET_COLS
+    + _DIP_FORECAST_TARGET_COLS
+)
+_MODEL_NATIVE_BINARY_TARGET_COLS = (
+    "y_tradable",
+    "y_bad_path",
+    "y_dead_negative_long",
+    "y_teaser_negative_long",
+    "y_hard_negative_long",
+    "y_dead_negative_short",
+    "y_teaser_negative_short",
+    "y_hard_negative_short",
+    "y_clean_edge_long",
+    "y_survival_long",
+    "y_selector_long_mask",
+    "y_selector_short_mask",
+    "y_clean_edge_bidir",
+    "y_survival_bidir",
+    "y_trade",
+    "y_side",
+    "y_side_mask",
+    "y_long_bad_path",
+    "y_short_bad_path",
+) + _MODEL_NATIVE_ACTIVE_RAIL_TARGET_COLS
+_MODEL_NATIVE_UNIT_INTERVAL_TARGET_COLS = (
+    "y_tf_agreement_score",
+    "y_position_size_target",
+) + _TIMING_TARGET_COLS
+_MODEL_NATIVE_NONNEGATIVE_TARGET_COLS = (
+    "mfe_first_n_bps",
+    "y_long_expected_mae_bps",
+    "y_short_expected_mae_bps",
+) + _DIP_TARGET_COLS + _TAIL_RISK_TARGET_COLS + _VOL_FORECAST_TARGET_COLS
+
+
+def _model_native_active_target_failures(
+    split_name: str,
+    df: pd.DataFrame,
+) -> list[str]:
+    failures: list[str] = []
+    if df.empty:
+        return [f"{split_name} model-native active target frame is empty"]
+    duplicate_columns = sorted(
+        {str(name) for name in df.columns[df.columns.duplicated()].tolist()}
+    )
+    if duplicate_columns:
+        return [
+            f"{split_name} model-native target frame has duplicate columns: {duplicate_columns}"
+        ]
+    missing = [name for name in _MODEL_NATIVE_ACTIVE_TARGET_COLS if name not in df.columns]
+    if missing:
+        return [
+            f"{split_name} missing model-native active target columns: {missing}; "
+            "rebuild the dataset because target defaults and aliases are forbidden"
+        ]
+
+    numeric: Dict[str, np.ndarray] = {}
+    for name in _MODEL_NATIVE_ACTIVE_TARGET_COLS:
+        values = pd.to_numeric(df[name], errors="coerce").to_numpy(dtype=np.float64)
+        numeric[name] = values
+        if not np.isfinite(values).all():
+            failures.append(f"{split_name} model-native target {name} contains non-finite values")
+    if failures:
+        return failures
+
+    direction = numeric["y_direction"]
+    if bool((~np.isin(direction, [0.0, 1.0, 2.0])).any()):
+        failures.append(f"{split_name} model-native y_direction must be exact LONG/SHORT/FLAT ids")
+    for name in _MODEL_NATIVE_BINARY_TARGET_COLS:
+        values = numeric[name]
+        if bool((~np.isin(values, [0.0, 1.0])).any()):
+            failures.append(f"{split_name} model-native binary target {name} is outside {{0,1}}")
+    for name in _MODEL_NATIVE_UNIT_INTERVAL_TARGET_COLS:
+        values = numeric[name]
+        if bool(((values < 0.0) | (values > 1.0)).any()):
+            failures.append(f"{split_name} model-native target {name} is outside [0,1]")
+    for name in _MODEL_NATIVE_NONNEGATIVE_TARGET_COLS:
+        if bool((numeric[name] < 0.0).any()):
+            failures.append(f"{split_name} model-native target {name} contains negative values")
+    return failures
+
+
+_MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS = {
+    **dict(EXACT_EVIDENCE_FUSION_OUTPUTS),
+    "raw_direction_logits": 3,
+    "direction_logits": 3,
+    "path_quality": 1,
+    "bad_path_logit": 1,
+    "public_trade_flat_decision_logits": 2,
+    "specialist_gate": 8,
+}
+
+
+def _model_native_active_output_head_failures(out: Dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    for name, expected_width in _MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS.items():
+        value = out.get(name)
+        if not isinstance(value, torch.Tensor):
+            failures.append(f"missing tensor output {name}")
+            continue
+        if value.ndim != 2 or int(value.shape[1]) != int(expected_width):
+            failures.append(
+                f"output {name} shape={tuple(value.shape)} expected=(batch,{expected_width})"
+            )
+        elif not bool(torch.isfinite(value).all().item()):
+            failures.append(f"output {name} contains non-finite values")
+    return failures
+
+
+def _direction_decision_contract_export_failures(
+    lock: Dict[str, Any],
+    meta: Dict[str, Any],
+) -> list[str]:
+    canonical = model_direction_decision_contract_metadata()
+    lock_contract = lock.get("direction_decision_contract")
+    meta_contract = meta.get("direction_decision_contract")
+    failures: list[str] = []
+    if lock_contract != canonical:
+        failures.append("MASTER_TRANSFORMER_LOCK direction_decision_contract is not canonical")
+    if meta_contract != canonical:
+        failures.append("bundle_metadata direction_decision_contract is not canonical")
+    if lock_contract != meta_contract:
+        failures.append("direction_decision_contract split-brain between lock and metadata")
+    return failures
 
 # -----------------------------------------------------------------------------
 # RL / legacy guard (fail-fast)
 # -----------------------------------------------------------------------------
 def _guard_no_rl() -> None:
     """Hard-fail if gx1.rl or legacy was imported."""
-    allowed_legacy_modules = {"gx1.runtime.entry_next_edge_legacy_guard"}
     for mod in list(sys.modules.keys()):
         if mod == "gx1.rl" or mod.startswith("gx1.rl."):
             raise RuntimeError(
                 "[ENTRY_V10_CTX_RL_FORBIDDEN] gx1.rl must not be imported. "
                 f"Found: {mod}"
             )
-        if "legacy" in mod and mod.startswith("gx1.") and mod not in allowed_legacy_modules:
+        if "legacy" in mod and mod.startswith("gx1."):
             raise RuntimeError(
                 "[ENTRY_V10_CTX_LEGACY_FORBIDDEN] gx1 legacy must not be imported. "
                 f"Found: {mod}"
@@ -197,68 +524,15 @@ def _running_in_wsl() -> bool:
         return False
 
 
-_ENTRY_ALLOWED_COMPAT_STATE_KEYS = {
-    "head_early_move.weight",
-    "head_early_move.bias",
-    "head_quality.weight",
-    "head_quality.bias",
-    "head_bad_path.weight",
-    "head_bad_path.bias",
-    "head_clean_edge.weight",
-    "head_clean_edge.bias",
-    "head_survival.weight",
-    "head_survival.bias",
-    # V10 v3+ aux heads (Targets 1-4) — optional, present only when
-    # bundle was trained with --enable-*-head flags.
-    "head_tf_agreement.weight",
-    "head_tf_agreement.bias",
-    "head_path_quality_log_var.weight",
-    "head_path_quality_log_var.bias",
-    "head_position_size.weight",
-    "head_position_size.bias",
-    "head_hold_horizon.weight",
-    "head_hold_horizon.bias",
-    # XAU direction repair challengers (opt-in).
-    "head_anchor_gate.weight",
-    "head_anchor_gate.bias",
-    "head_trade.weight",
-    "head_trade.bias",
-    "head_side.weight",
-    "head_side.bias",
-    "head_side_utility.weight",
-    "head_side_utility.bias",
-    "head_side_bad_path.weight",
-    "head_side_bad_path.bias",
-    "head_side_mae.weight",
-    "head_side_mae.bias",
-    "head_trendline_rail.weight",
-    "head_trendline_rail.bias",
-}
-
-
-def _load_entry_model_state_compat(model: nn.Module, state: Dict[str, Any], *, label: str) -> None:
-    incompatible = model.load_state_dict(state, strict=False)
-    missing = set(getattr(incompatible, "missing_keys", []) or [])
-    unexpected = set(getattr(incompatible, "unexpected_keys", []) or [])
-    unexpected_active = unexpected - _ENTRY_ALLOWED_COMPAT_STATE_KEYS
-    if unexpected_active:
-        raise RuntimeError(f"[ENTRY_V10_CTX_UNEXPECTED_KEYS] {label}: {sorted(unexpected_active)}")
-    missing_active = missing - _ENTRY_ALLOWED_COMPAT_STATE_KEYS
-    if missing_active:
-        raise RuntimeError(f"[ENTRY_V10_CTX_MISSING_KEYS] {label}: {sorted(missing_active)}")
-
 # -----------------------------------------------------------------------------
 # SHORT collapse countermeasures (training-only)
-# Canonical lane keeps these parked unless we have clear evidence they help more
-# than they complicate the recipe.
+# Secondary training controls. The model-native launch audit owns the exact
+# subset that may affect its decision path.
 # -----------------------------------------------------------------------------
 SHORT_CLASS_WEIGHT = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT", "0.90"))
 ENTRY_LONG_CLASS_WEIGHT_CAP = float(_env_str("ENTRY_LONG_CLASS_WEIGHT_CAP", "20.0"))
 ENTRY_SHORT_CLASS_WEIGHT_CAP = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT_CAP", "8.0"))
 ENTRY_FLAT_CLASS_WEIGHT_FLOOR = float(_env_str("ENTRY_FLAT_CLASS_WEIGHT_FLOOR", "1.0"))
-XGB_SHORT_LEAD_MARGIN = float(_env_str("ENTRY_XGB_SHORT_LEAD_MARGIN", "0.0"))
-XGB_SHORT_LONG_PENALTY = float(_env_str("ENTRY_XGB_SHORT_LONG_PENALTY", "0.0"))
-
 # -----------------------------------------------------------------------------
 # Cost-sensitive loss (ENTRY 3-class)
 # -----------------------------------------------------------------------------
@@ -288,13 +562,12 @@ ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_PRED_BALANCE_CLASS_WEIGHTS = _parse_three_float_env("ENTRY_PRED_BALANCE_CLASS_WEIGHTS", "1.0,1.0,1.0")
-ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
-ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.30"))
-ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT", "0.0"))
+ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "4.00"))
+ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT", "0.35"))
 ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE = float(_env_str("ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE", "0.70"))
 ENTRY_TAIL_DIRECTION_MIN_BATCH = int(_env_str("ENTRY_TAIL_DIRECTION_MIN_BATCH", "8"))
-ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT", "0.0"))
-ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT", "0.0"))
+ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT", "0.05"))
+ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT", "0.05"))
 ENTRY_SPECIALIST_GATE_MIN_MEAN = float(_env_str("ENTRY_SPECIALIST_GATE_MIN_MEAN", "0.01"))
 # Forceful MTF→direction (2026-06-06): aux CE on the multi-TF direction logits vs
 # the direction label, forcing the 5 multi-TF streams to predict direction.
@@ -413,11 +686,11 @@ ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS = int(
 )
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
-ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", "0.0"))
+ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", "4.00"))
 ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS = float(_env_str("ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", "15.0"))
 ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN = float(_env_str("ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", "0.10"))
 ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT = float(
-    _env_str("ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT", "0.0")
+    _env_str("ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT", "6.00")
 )
 ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS = float(
     _env_str("ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS", "15.0")
@@ -426,7 +699,7 @@ ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN = float(
     _env_str("ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN", "0.10")
 )
 ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT = float(
-    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT", "0.0")
+    _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT", "8.00")
 )
 ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS = float(
     _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS", "15.0")
@@ -440,7 +713,7 @@ ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH = float(
 ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN = float(
     _env_str("ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN", "0.10")
 )
-ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT = float(_env_str("ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT", "0.0"))
+ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT = float(_env_str("ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT", "8.00"))
 ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS = float(
     _env_str("ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS", "15.0")
 )
@@ -452,60 +725,6 @@ ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH = float(
 )
 ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP = float(
     _env_str("ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP", "4.0")
-)
-ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION = int(
-    float(_env_str("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", "0"))
-)
-ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP = float(_env_str("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", "0.0"))
-ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL = int(
-    float(_env_str("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", "0"))
-)
-ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE = int(
-    float(_env_str("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", "0"))
-)
-ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION = (
-    _env_str("ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION", "logprob").strip().lower()
-)
-ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD = int(
-    float(_env_str("ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD", "0"))
-)
-ENTRY_HIER_PUBLIC_TRADE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_TRADE_HEAD", "0")))
-ENTRY_HIER_PUBLIC_FLAT_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_FLAT_HEAD", "0")))
-ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE = int(
-    float(_env_str("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE", "0"))
-)
-ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE = float(
-    _env_str("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE", "0.0")
-)
-ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP = float(
-    _env_str("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP", "0.0")
-)
-ENTRY_HIER_PUBLIC_SIDE_HEAD = int(float(_env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD", "0")))
-ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE = int(
-    float(_env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE", "0"))
-)
-ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE = float(
-    _env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE", "0.0")
-)
-ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP = float(
-    _env_str("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", "0.0")
-)
-ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT = float(
-    _env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT", "0.0")
-)
-ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP = float(
-    _env_str("ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP", "0.0")
-)
-ENTRY_HIER_CTX_PRIOR_ADAPTER = int(float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER", "0")))
-ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE = float(_env_str("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", "0.0"))
-ENTRY_HIER_CTX_DIRECTION_CALIBRATION = int(
-    float(_env_str("ENTRY_HIER_CTX_DIRECTION_CALIBRATION", "0"))
-)
-ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE = float(
-    _env_str("ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE", "0.0")
-)
-ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP = float(
-    _env_str("ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP", "0.0")
 )
 ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT = float(_env_str("ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT", "0.0"))
 ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = float(
@@ -531,32 +750,20 @@ _DIRECTION_SLICE_CKPT_DEFICIT_PENALTY = 0.25
 _DIRECTION_SLICE_LOSS_AGGREGATIONS = {"mean", "max", "mean_max", "sum", "sqrt"}
 
 # -----------------------------------------------------------------------------
-# Timing loss (early adverse move penalty)
-# -----------------------------------------------------------------------------
-ENTRY_TIMING_TARGET_BPS = float(_env_str("ENTRY_TIMING_TARGET_BPS", "3.0"))
-ENTRY_TIMING_LOSS_SCALE = float(_env_str("ENTRY_TIMING_LOSS_SCALE", "0.0"))
-
-# -----------------------------------------------------------------------------
 # Auxiliary losses (use existing dataset targets)
 # -----------------------------------------------------------------------------
-# Canonical lane keeps only the auxiliary heads that directly support runtime
-# gates (tradable, mfe_first_n, path_quality). Early/quality-score/bad-path stay parked.
-ENTRY_AUX_EARLY_WEIGHT = float(_env_str("ENTRY_AUX_EARLY_WEIGHT", "0.0"))
-ENTRY_AUX_QUALITY_WEIGHT = float(_env_str("ENTRY_AUX_QUALITY_WEIGHT", "0.0"))
 ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.90"))
 ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.25"))
 ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "1.15"))
-# Canonical lane keeps bad-path parked until it shows clean incremental value.
-ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
+ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "1.25"))
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
-ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT", "0.0"))
+ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT", "2.00"))
 ENTRY_BAD_PATH_QUALITY_RANK_MARGIN = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_MARGIN", "0.20"))
 ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE", "0.25"))
-ENTRY_PATH_QUALITY_RANK_WEIGHT = float(_env_str("ENTRY_PATH_QUALITY_RANK_WEIGHT", "0.0"))
+ENTRY_PATH_QUALITY_RANK_WEIGHT = float(_env_str("ENTRY_PATH_QUALITY_RANK_WEIGHT", "2.00"))
 ENTRY_PATH_QUALITY_RANK_MARGIN = float(_env_str("ENTRY_PATH_QUALITY_RANK_MARGIN", "0.20"))
 ENTRY_PATH_QUALITY_RANK_QUANTILE = float(_env_str("ENTRY_PATH_QUALITY_RANK_QUANTILE", "0.25"))
 # Scale bps targets to keep regression losses in a stable range
-ENTRY_AUX_QUALITY_SCALE_BPS = float(_env_str("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
 ENTRY_AUX_PATH_SCALE_BPS = float(_env_str("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
 ENTRY_AUX_MFE_SCALE_BPS = float(_env_str("ENTRY_AUX_MFE_SCALE_BPS", "20.0"))
 ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP", "12.0"))
@@ -566,12 +773,9 @@ ENTRY_DEAD_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_DEAD_LONG_CE_MULTIPLIER", 
 ENTRY_DEAD_LONG_PROB_PENALTY = float(_env_str("ENTRY_DEAD_LONG_PROB_PENALTY", "0.40"))
 ENTRY_TEASER_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_TEASER_LONG_CE_MULTIPLIER", "1.35"))
 ENTRY_TEASER_LONG_PROB_PENALTY = float(_env_str("ENTRY_TEASER_LONG_PROB_PENALTY", "0.16"))
-# 2026-06-03 (vedtak v10_symmetric_negatives_20260603): mirror the LONG hard-negative
-# penalty stack onto the SHORT side (probs[:,1] + y_*_negative_short), reusing the SAME
-# magnitudes (equal weight). Default OFF = bit-identical to cement (the LONG-only asymmetry
-# that suppressed the LONG side). Enable for the retrain with ENTRY_SYMMETRIC_NEGATIVES=1
-# (+ GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1, since it's a deliberate non-cement recipe).
-ENTRY_SYMMETRIC_NEGATIVES = _env_str("ENTRY_SYMMETRIC_NEGATIVES", "0") in {"1", "true", "yes", "on"}
+# Mirror the LONG hard-negative objective onto SHORT with the same magnitudes.
+# The exact launch recipe must set this to one; there is no diagnostic bypass.
+ENTRY_SYMMETRIC_NEGATIVES = _env_str("ENTRY_SYMMETRIC_NEGATIVES", "1") in {"1", "true", "yes", "on"}
 ENTRY_BAD_PATH_CE_MULTIPLIER = float(_env_str("ENTRY_BAD_PATH_CE_MULTIPLIER", "1.50"))
 ENTRY_BAD_PATH_PROB_PENALTY = float(_env_str("ENTRY_BAD_PATH_PROB_PENALTY", "0.24"))
 ENTRY_AUX_CLEAN_EDGE_WEIGHT = float(_env_str("ENTRY_AUX_CLEAN_EDGE_WEIGHT", "0.45"))
@@ -582,16 +786,15 @@ ENTRY_CLEAN_EDGE_RANKING_WEIGHT = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_WEIGH
 ENTRY_CLEAN_EDGE_RANKING_MARGIN = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_MARGIN", "0.12"))
 # XAU direction repair (2026-07-10): losses for opt-in hierarchical
 # trade/no-trade, conditional side and per-side path heads.
-ENTRY_HIER_TRADE_WEIGHT = float(_env_str("ENTRY_HIER_TRADE_WEIGHT", "0.85"))
-ENTRY_HIER_SIDE_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_WEIGHT", "0.85"))
-ENTRY_HIER_UTILITY_WEIGHT = float(_env_str("ENTRY_HIER_UTILITY_WEIGHT", "0.20"))
-ENTRY_HIER_BAD_PATH_WEIGHT = float(_env_str("ENTRY_HIER_BAD_PATH_WEIGHT", "0.35"))
-ENTRY_HIER_MAE_WEIGHT = float(_env_str("ENTRY_HIER_MAE_WEIGHT", "0.15"))
+ENTRY_HIER_TRADE_WEIGHT = float(_env_str("ENTRY_HIER_TRADE_WEIGHT", "2.00"))
+ENTRY_HIER_SIDE_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_WEIGHT", "1.75"))
+ENTRY_HIER_UTILITY_WEIGHT = float(_env_str("ENTRY_HIER_UTILITY_WEIGHT", "1.00"))
+ENTRY_HIER_BAD_PATH_WEIGHT = float(_env_str("ENTRY_HIER_BAD_PATH_WEIGHT", "1.25"))
+ENTRY_HIER_MAE_WEIGHT = float(_env_str("ENTRY_HIER_MAE_WEIGHT", "0.35"))
 ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
-ENTRY_HIER_LEGACY_CE_MULT = float(_env_str("ENTRY_HIER_LEGACY_CE_MULT", "0.35"))
-ENTRY_HIER_SIDE_VALIDITY_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", "0.0"))
-ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", "10.0"))
-ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", "20.0"))
+ENTRY_HIER_SIDE_VALIDITY_WEIGHT = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", "1.50"))
+ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", "15.0"))
+ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP = float(_env_str("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", "8.0"))
 ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = float(
     _env_str("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", "0.0")
 )
@@ -634,40 +837,6 @@ ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = float(
 ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS = int(
     float(_env_str("ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
-ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT = float(
-    _env_str("ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", "0.0")
-)
-ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = float(
-    _env_str("ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
-)
-ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT = float(
-    _env_str("ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT", "0.0")
-)
-ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = float(
-    _env_str("ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
-)
-ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS = int(
-    float(_env_str("ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
-)
-ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT = float(
-    _env_str("ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", "0.0")
-)
-ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN = float(_env_str("ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN", "0.10"))
-ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE = float(
-    _env_str("ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
-)
-ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT = float(
-    _env_str("ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", "0.0")
-)
-ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN = float(
-    _env_str("ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN", "0.10")
-)
-ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE = float(
-    _env_str("ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE", str(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
-)
-ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS = int(
-    float(_env_str("ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
-)
 ENTRY_HIER_SLICE_SIDE_CE_WEIGHT = float(_env_str("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", "0.0"))
 ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = float(
     _env_str("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", "0.0")
@@ -706,109 +875,49 @@ ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE = float(
 ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS = int(
     float(_env_str("ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS", str(ENTRY_HIER_SLICE_SIDE_MIN_ROWS)))
 )
-ENTRY_HIER_POCKET_ABSTAIN_WEIGHT = float(_env_str("ENTRY_HIER_POCKET_ABSTAIN_WEIGHT", "0.0"))
-ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT = float(_env_str("ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT", "0.0"))
-ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS = float(_env_str("ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS", "10.0"))
-ENTRY_TRENDLINE_RAIL_AUX_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", "0.25"))
-ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT", "0.20"))
-ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT = float(
-    _env_str(
-        "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT",
-        str(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
-    )
-)
-ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT = float(
-    _env_str(
-        "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT",
-        str(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
-    )
-)
-ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT", "0.0"))
-ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT", "0.0"))
-ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT", "0.0"))
-ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT", "0.0"))
-ENTRY_TRENDLINE_RAIL_MARGIN = float(_env_str("ENTRY_TRENDLINE_RAIL_MARGIN", "0.50"))
-ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS = float(_env_str("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS", "5.0"))
+ENTRY_TRENDLINE_RAIL_AUX_WEIGHT = float(_env_str("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", "1.00"))
 
-# -----------------------------------------------------------------------------
-# Micro features (ctx_cont extension)
-# -----------------------------------------------------------------------------
-MICRO_FEATURE_NAMES = [
-    "micro_momentum_3",
-    "micro_momentum_5",
-    "micro_acceleration",
-    "wick_ratio",
-    "distance_ema_fast",
-]
-SWING_FEATURE_NAMES = [
-    "dist_last_swing_high_atr",
-    "dist_last_swing_low_atr",
-    "bars_since_swing_high",
-    "bars_since_swing_low",
-    "retracement_from_last_impulse",
-]
-EXT_CTX_FEATURE_NAMES = list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES)
 
-# -----------------------------------------------------------------------------
-# V_NEXT session-context extension (ctx_cont +5)
-# Canonical default is V_NEXT (CTX21). Explicitly set GX1_CTX_CONTRACT=V_CURRENT
-# only for legacy/debug use. Training without this env set now defaults to CTX21.
-# -----------------------------------------------------------------------------
-_CTX_CONTRACT_MODE = _env_str("GX1_CTX_CONTRACT", "V_NEXT").upper()
-V_NEXT_EXTRA_CTX_CONT = [
-    "is_ASIA",
-    "minutes_since_session_open",
-    "minutes_to_next_session_boundary",
-    "session_change_flag",
-    "session_tradable",
-]
+def _current_model_native_active_loss_weights() -> Dict[str, float]:
+    """Return the exact configurable objective surface recorded in each bundle."""
 
-def _is_vnext() -> bool:
-    return _CTX_CONTRACT_MODE == "V_NEXT"
-
-def _expected_ctx_cont_dim() -> int:
-    # V2+: signal_bridge_v3 exposes the active ctx_cont dim through CTX_CONT_DIM_V3.
-    # V_NEXT (legacy) was 21. V_BASE (legacy) was 16.
-    from gx1.contracts.signal_bridge_v3 import CTX_CONT_DIM_V3
-    return int(CTX_CONT_DIM_V3)
-
-def _expected_ctx_cat_dim() -> int:
-    # R4 (2026-06-04): ctx_cat is contract-driven, mirroring _expected_ctx_cont_dim — no
-    # hardcoded 6. signal_bridge_v3: CTX_CAT_DIM_V3 = 5 (GX1_REGIME_V4=1, trend_regime_id
-    # dropped — continuous D1_dist + 16 multi-TF REGIME_V4 carry trend) or 6 (cement,
-    # GX1_REGIME_V4=0). The stale signal_bridge_v1 anchor (frozen 6) is NOT consulted here.
-    from gx1.contracts.signal_bridge_v3 import CTX_CAT_DIM_V3
-    return int(CTX_CAT_DIM_V3)
-
-def _build_ordered_ctx_cont_names(ctx_cont_dim: int, base_names: List[str]) -> List[str]:
-    try:
-        from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CONT_NAMES_V3
-        if int(ctx_cont_dim) == len(ORDERED_CTX_CONT_NAMES_V3):
-            return list(ORDERED_CTX_CONT_NAMES_V3)
-    except Exception:
-        pass
-    ordered = list(base_names)
-    if ctx_cont_dim > len(ordered):
-        ordered = ordered + list(EXT_CTX_FEATURE_NAMES)
-    if _is_vnext() and ctx_cont_dim > len(ordered):
-        ordered = ordered + list(V_NEXT_EXTRA_CTX_CONT)
-    return ordered
-
-# -----------------------------------------------------------------------------
-# Anchored ENTRY (residual over XGB signal7 probs)
-# -----------------------------------------------------------------------------
-# Keep the canonical anchor mix unchanged for this bad-path candidate so replay
-# deltas reflect the new adverse-first supervision rather than a different anchor.
-ENTRY_RESIDUAL_SCALE = float(_env_str("ENTRY_RESIDUAL_SCALE", "0.35"))
-ENTRY_ANCHOR_EPS = float(_env_str("ENTRY_ANCHOR_EPS", "1e-6"))
+    return {
+        "ENTRY_DIRECTION_CE_SCALE": float(ENTRY_DIRECTION_CE_SCALE),
+        "ENTRY_TAIL_DIRECTION_CE_WEIGHT": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
+        "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
+        "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
+        "ENTRY_MTF_DIR_AUX_WEIGHT": float(ENTRY_MTF_DIR_AUX_WEIGHT),
+        "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
+        "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": float(
+            ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT
+        ),
+        "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT": float(
+            ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT
+        ),
+        "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT": float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT),
+        "ENTRY_AUX_PATH_WEIGHT": float(ENTRY_AUX_PATH_WEIGHT),
+        "ENTRY_AUX_MFE_WEIGHT": float(ENTRY_AUX_MFE_WEIGHT),
+        "ENTRY_AUX_TRADABLE_WEIGHT": float(ENTRY_AUX_TRADABLE_WEIGHT),
+        "ENTRY_AUX_BAD_PATH_WEIGHT": float(ENTRY_AUX_BAD_PATH_WEIGHT),
+        "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT),
+        "ENTRY_PATH_QUALITY_RANK_WEIGHT": float(ENTRY_PATH_QUALITY_RANK_WEIGHT),
+        "ENTRY_AUX_CLEAN_EDGE_WEIGHT": float(ENTRY_AUX_CLEAN_EDGE_WEIGHT),
+        "ENTRY_AUX_SURVIVAL_WEIGHT": float(ENTRY_AUX_SURVIVAL_WEIGHT),
+        "ENTRY_CLEAN_EDGE_RANKING_WEIGHT": float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT),
+        "ENTRY_HIER_TRADE_WEIGHT": float(ENTRY_HIER_TRADE_WEIGHT),
+        "ENTRY_HIER_SIDE_WEIGHT": float(ENTRY_HIER_SIDE_WEIGHT),
+        "ENTRY_HIER_UTILITY_WEIGHT": float(ENTRY_HIER_UTILITY_WEIGHT),
+        "ENTRY_HIER_BAD_PATH_WEIGHT": float(ENTRY_HIER_BAD_PATH_WEIGHT),
+        "ENTRY_HIER_MAE_WEIGHT": float(ENTRY_HIER_MAE_WEIGHT),
+        "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT),
+        "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
+    }
 
 _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_SHORT_CLASS_WEIGHT": "0.90",
     "ENTRY_LONG_CLASS_WEIGHT_CAP": "20.0",
     "ENTRY_SHORT_CLASS_WEIGHT_CAP": "8.0",
     "ENTRY_FLAT_CLASS_WEIGHT_FLOOR": "1.0",
-    "ENTRY_XGB_SHORT_LEAD_MARGIN": "0.0",
-    "ENTRY_XGB_SHORT_LONG_PENALTY": "0.0",
     "ENTRY_COST_SENSITIVE_LOSS": "1",
     "ENTRY_COST_SENSITIVE_SCALE": "0.25",
     "ENTRY_COST_LONG_TO_SHORT": "2.00",
@@ -820,9 +929,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_PRED_BALANCE_ALPHA": "0.0",
     "ENTRY_PRED_BALANCE_TARGET": "label",
     "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,1.0",
-    "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
-    "ENTRY_DIRECTION_CE_SCALE": "1.30",
-    "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_CE_SCALE": "4.00",
+    "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.35",
     "ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE": "0.70",
     "ENTRY_TAIL_DIRECTION_MIN_BATCH": "8",
     "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.0",
@@ -870,69 +978,43 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
-    "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
     "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
     "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
-    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": "6.00",
     "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS": "15.0",
     "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN": "0.10",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT": "8.00",
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS": "15.0",
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS": "0.0",
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH": "0.50",
     "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN": "0.10",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT": "8.00",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS": "15.0",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS": "0.0",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
     "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
-    "ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION": "0",
-    "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP": "0.0",
-    "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL": "0",
-    "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE": "0",
-    "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION": "logprob",
-    "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD": "0",
-    "ENTRY_HIER_PUBLIC_TRADE_HEAD": "0",
-    "ENTRY_HIER_PUBLIC_FLAT_HEAD": "0",
-    "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE": "0",
-    "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
-    "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP": "0.0",
-    "ENTRY_HIER_PUBLIC_SIDE_HEAD": "0",
-    "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE": "0",
-    "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE": "0.0",
-    "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP": "0.0",
-    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT": "0.0",
-    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP": "0.0",
-    "ENTRY_HIER_CTX_PRIOR_ADAPTER": "0",
-    "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE": "0.0",
-    "ENTRY_HIER_CTX_DIRECTION_CALIBRATION": "0",
-    "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE": "0.0",
-    "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
     "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION": "0.50",
     "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN": "0.10",
-    "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
-    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
+    "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.05",
+    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.05",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
-    "ENTRY_TIMING_TARGET_BPS": "3.0",
-    "ENTRY_TIMING_LOSS_SCALE": "0.0",
-    "ENTRY_AUX_EARLY_WEIGHT": "0.0",
-    "ENTRY_AUX_QUALITY_WEIGHT": "0.0",
+    "ENTRY_MTF_DIR_AUX_WEIGHT": "0.30",
     "ENTRY_AUX_PATH_WEIGHT": "0.90",
     "ENTRY_AUX_MFE_WEIGHT": "0.25",
     "ENTRY_AUX_TRADABLE_WEIGHT": "1.15",
-    "ENTRY_AUX_BAD_PATH_WEIGHT": "0.0",
+    "ENTRY_AUX_BAD_PATH_WEIGHT": "1.25",
     "ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP": "20.0",
-    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "0.0",
+    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "2.00",
     "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN": "0.20",
     "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE": "0.25",
-    "ENTRY_PATH_QUALITY_RANK_WEIGHT": "0.0",
+    "ENTRY_PATH_QUALITY_RANK_WEIGHT": "2.00",
     "ENTRY_PATH_QUALITY_RANK_MARGIN": "0.20",
     "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
-    "ENTRY_AUX_QUALITY_SCALE_BPS": "50.0",
     "ENTRY_AUX_PATH_SCALE_BPS": "50.0",
     "ENTRY_AUX_MFE_SCALE_BPS": "20.0",
     "ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP": "12.0",
@@ -942,7 +1024,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DEAD_LONG_PROB_PENALTY": "0.40",
     "ENTRY_TEASER_LONG_CE_MULTIPLIER": "1.35",
     "ENTRY_TEASER_LONG_PROB_PENALTY": "0.16",
-    "ENTRY_SYMMETRIC_NEGATIVES": "0",
+    "ENTRY_SYMMETRIC_NEGATIVES": "1",
     "ENTRY_BAD_PATH_CE_MULTIPLIER": "1.50",
     "ENTRY_BAD_PATH_PROB_PENALTY": "0.24",
     "ENTRY_AUX_CLEAN_EDGE_WEIGHT": "0.45",
@@ -951,16 +1033,15 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP": "10.0",
     "ENTRY_CLEAN_EDGE_RANKING_WEIGHT": "0.25",
     "ENTRY_CLEAN_EDGE_RANKING_MARGIN": "0.12",
-    "ENTRY_HIER_TRADE_WEIGHT": "0.85",
-    "ENTRY_HIER_SIDE_WEIGHT": "0.85",
-    "ENTRY_HIER_UTILITY_WEIGHT": "0.20",
-    "ENTRY_HIER_BAD_PATH_WEIGHT": "0.35",
-    "ENTRY_HIER_MAE_WEIGHT": "0.15",
+    "ENTRY_HIER_TRADE_WEIGHT": "2.00",
+    "ENTRY_HIER_SIDE_WEIGHT": "1.75",
+    "ENTRY_HIER_UTILITY_WEIGHT": "1.00",
+    "ENTRY_HIER_BAD_PATH_WEIGHT": "1.25",
+    "ENTRY_HIER_MAE_WEIGHT": "0.35",
     "ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP": "20.0",
-    "ENTRY_HIER_LEGACY_CE_MULT": "0.35",
-    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "0.0",
-    "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "10.0",
-    "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "1.50",
+    "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "15.0",
+    "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "8.0",
     "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT": "0.0",
     "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
     "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
@@ -977,18 +1058,6 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN": "0.10",
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS": "8",
-    "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "0.0",
-    "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS": "8",
-    "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT": "0.0",
-    "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN": "0.10",
-    "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN": "0.10",
-    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS": "8",
     "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "0.0",
     "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
@@ -1003,127 +1072,26 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE": "0.02",
     "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
     "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS": "8",
-    "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT": "0.0",
-    "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT": "0.0",
-    "ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS": "10.0",
-    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": "0.25",
-    "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT": "0.20",
-    "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT": "0.20",
-    "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT": "0.20",
-    "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT": "0.0",
-    "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT": "0.0",
-    "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT": "0.0",
-    "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT": "0.0",
-    "ENTRY_TRENDLINE_RAIL_MARGIN": "0.50",
-    "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS": "5.0",
+    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": "1.00",
     "GX1_CTX_CONTRACT": "V_NEXT",
-    "ENTRY_RESIDUAL_SCALE": "0.35",
-    "ENTRY_ANCHOR_EPS": "1e-6",
 }
 
 
 def _enforce_canonical_train_env_contract() -> None:
-    """
-    Canonical ENTRY training must not be silently steered by ad-hoc env knobs.
-    Non-canonical experimentation may opt in explicitly.
-    """
-    allow_noncanonical = _env_str("GX1_NON_CANONICAL_DIAGNOSTIC", "0") in {"1", "true", "yes", "on"} or _env_str(
-        "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES", "0"
-    ) in {"1", "true", "yes", "on"}
-    if allow_noncanonical:
-        log.warning("[ENTRY_CANONICAL_TRAIN_ENV] non-canonical env overrides explicitly enabled")
-        return
-
-    tripped: List[str] = []
-    for name, default in _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS.items():
-        if name not in os.environ:
-            continue
-        actual = str(os.environ.get(name, "")).strip()
-        if actual != str(default):
-            tripped.append(f"{name}={actual!r} (default={default!r})")
-    if tripped:
-        raise RuntimeError(
-            "[ENTRY_CANONICAL_TRAIN_ENV_FORBIDDEN] canonical entry training forbids non-default env overrides: "
-            + ", ".join(sorted(tripped))
+    """Reject historical escape hatches; recipe env is audit-bound upstream."""
+    forbidden = [
+        name
+        for name in (
+            "GX1_NON_CANONICAL_DIAGNOSTIC",
+            "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES",
         )
-
-# --- Determinism utilities (SSoT training API) ---------------------------------
-# NOTE: These functions are part of the stable training-module API.
-# The wrapper (gx1/scripts/train_entry_v10_ctx_depth_ladder.py) expects them.
-# No fallbacks, no silent behavior changes—just deterministic seeding + thread limits.
-import os as _os_det
-import random as _random_det
-from typing import Optional as _OptionalDet
-
-import numpy as _np_det
-import torch as _torch_det
-
-
-def set_seed(seed: int) -> None:
-    """
-    Deterministic seeding for ENTRY_V10_CTX training.
-
-    This is intentionally minimal and stable. Do not add "smart defaults" here.
-    The caller decides the seed value.
-    """
-    if seed is None:
-        raise ValueError("seed must be an int (not None)")
-
-    # Python / NumPy
-    _os_det.environ["PYTHONHASHSEED"] = str(int(seed))
-    _random_det.seed(int(seed))
-    _np_det.random.seed(int(seed))
-
-    # Torch
-    _torch_det.manual_seed(int(seed))
-    if _torch_det.cuda.is_available():
-        _torch_det.cuda.manual_seed_all(int(seed))
-
-    # Determinism knobs (best-effort; no silent fallback logic)
-    try:
-        _torch_det.backends.cudnn.deterministic = True
-        _torch_det.backends.cudnn.benchmark = False
-    except Exception:
-        # Some builds may not expose these flags; do not hard-fail.
-        pass
-
-    # PyTorch deterministic algorithms (may raise if op not supported; keep best-effort)
-    try:
-        _torch_det.use_deterministic_algorithms(True)
-    except Exception:
-        pass
-
-
-def set_thread_limits(threads: int = 1) -> None:
-    """
-    Limit CPU thread usage for deterministic / reproducible runs (TRUTH doctrine).
-
-    Best-effort: do not hard-fail on environments that do not support all settings.
-    """
-    if threads is None:
-        raise ValueError("threads must be an int (not None)")
-    t = int(threads)
-    if t <= 0:
-        raise ValueError(f"threads must be >= 1, got {t}")
-
-    # Common BLAS/OpenMP knobs
-    _os_det.environ["OMP_NUM_THREADS"] = str(t)
-    _os_det.environ["MKL_NUM_THREADS"] = str(t)
-    _os_det.environ["NUMEXPR_NUM_THREADS"] = str(t)
-    _os_det.environ["OPENBLAS_NUM_THREADS"] = str(t)
-    _os_det.environ["VECLIB_MAXIMUM_THREADS"] = str(t)
-
-    # Torch thread limits
-    try:
-        _torch_det.set_num_threads(t)
-    except Exception:
-        pass
-
-    try:
-        _torch_det.set_num_interop_threads(t)
-    except Exception:
-        pass
-# --- end determinism utilities -------------------------------------------------
+        if name in os.environ
+    ]
+    if forbidden:
+        raise RuntimeError(
+            "[ENTRY_CANONICAL_TRAIN_ENV_BYPASS_FORBIDDEN] "
+            + ", ".join(sorted(forbidden))
+        )
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -1163,86 +1131,135 @@ def _require_nonneg(name: str, v: float) -> None:
         raise RuntimeError(f"[ENTRY_COST_INVALID] {name} must be >= 0.0, got {v}")
 
 
-def _build_active_head_names(
+def _build_active_head_names() -> List[str]:
+    """Return the one exact model-native learned-component surface."""
+    return list(MODEL_NATIVE_ACTIVE_HEADS)
+
+
+_EVIDENCE_FUSION_MOVEMENT_KEYS: Tuple[str, ...] = tuple(
+    _EVIDENCE_FUSION_PARAMETER_SHAPES
+)
+
+
+def _capture_evidence_fusion_initial_state(
+    model: nn.Module,
+) -> Dict[str, torch.Tensor]:
+    state = model.state_dict()
+    missing = [key for key in _EVIDENCE_FUSION_MOVEMENT_KEYS if key not in state]
+    if missing:
+        raise RuntimeError(
+            "[ENTRY_EVIDENCE_FUSION_INITIAL_STATE_MISSING] "
+            f"keys={missing}"
+        )
+    return {
+        key: state[key].detach().cpu().clone()
+        for key in _EVIDENCE_FUSION_MOVEMENT_KEYS
+    }
+
+
+def _model_native_evidence_fusion_movement_proof(
+    initial_state: Dict[str, torch.Tensor],
+    selected_state: Dict[str, torch.Tensor],
     *,
-    enable_tf_agreement_head: bool,
-    enable_path_quality_variance_head: bool,
-    enable_position_size_head: bool,
-    enable_hold_horizon_head: bool,
-    enable_mtf_direction_head: bool,
-    enable_dip_head: bool,
-    enable_forecast_head: bool,
-    enable_timing_head: bool,
-    enable_tail_risk_head: bool,
-    enable_vol_forecast_head: bool,
-    enable_anchor_gate: bool = False,
-    enable_hierarchical_entry_heads: bool = False,
-    enable_hierarchical_public_trade_head: bool = False,
-    enable_hierarchical_public_flat_head: bool = False,
-    enable_hierarchical_public_trade_dir_margin_bridge: bool = False,
-    enable_hierarchical_public_side_head: bool = False,
-    enable_hierarchical_public_side_dir_margin_bridge: bool = False,
-    hierarchical_public_direction_composition: str = "logprob",
-    enable_hierarchical_public_direction_detach_side_grad: bool = False,
-    enable_hierarchical_ctx_prior_adapter: bool = False,
-    enable_hierarchical_ctx_direction_calibration: bool = False,
-    enable_side_validity_head: bool = False,
-    enable_trendline_rail_head: bool = False,
-) -> List[str]:
-    heads = [
-        "direction",
-        "tradable",
-        "path_quality",
-        "mfe_first_n",
-        "bad_path",
-        "clean_edge",
-        "survival",
-    ]
-    optional_heads = [
-        ("tf_agreement", enable_tf_agreement_head),
-        ("path_quality_log_var", enable_path_quality_variance_head),
-        ("position_size", enable_position_size_head),
-        ("hold_horizon", enable_hold_horizon_head),
-        ("mtf_direction", enable_mtf_direction_head),
-        ("dip", enable_dip_head),
-        ("forecast", enable_forecast_head),
-        ("timing", enable_timing_head),
-        ("tail_risk", enable_tail_risk_head),
-        ("vol_forecast", enable_vol_forecast_head),
-        ("anchor_gate", enable_anchor_gate),
-        ("trade_side_hierarchy", enable_hierarchical_entry_heads),
-        ("hierarchical_public_trade_head", enable_hierarchical_public_trade_head),
-        ("hierarchical_public_flat_head", enable_hierarchical_public_flat_head),
-        (
-            "hierarchical_public_trade_dir_margin_bridge",
-            enable_hierarchical_public_trade_dir_margin_bridge,
-        ),
-        ("hierarchical_public_side_head", enable_hierarchical_public_side_head),
-        (
-            "hierarchical_public_side_dir_margin_bridge",
-            enable_hierarchical_public_side_dir_margin_bridge,
-        ),
-        (
-            "hierarchical_public_direction_detach_side_grad",
-            enable_hierarchical_public_direction_detach_side_grad,
-        ),
-        ("hierarchical_ctx_prior_adapter", enable_hierarchical_ctx_prior_adapter),
-        ("hierarchical_ctx_direction_calibration", enable_hierarchical_ctx_direction_calibration),
-        ("side_validity", enable_side_validity_head),
-        ("trendline_rail", enable_trendline_rail_head),
-    ]
-    heads.extend(name for name, enabled in optional_heads if bool(enabled))
-    return heads
+    selected_checkpoint_epoch: int,
+) -> Dict[str, Any]:
+    if int(selected_checkpoint_epoch) <= 0:
+        raise RuntimeError(
+            "[ENTRY_EVIDENCE_FUSION_MOVEMENT_EPOCH_INVALID] "
+            f"selected_checkpoint_epoch={selected_checkpoint_epoch}"
+        )
+
+    parameter_deltas: Dict[str, Dict[str, Any]] = {}
+    failures: List[str] = []
+    for key in _EVIDENCE_FUSION_MOVEMENT_KEYS:
+        initial = initial_state.get(key)
+        selected = selected_state.get(key)
+        if not isinstance(initial, torch.Tensor) or not isinstance(selected, torch.Tensor):
+            failures.append(f"{key}:missing_or_non_tensor")
+            continue
+        if tuple(initial.shape) != tuple(selected.shape):
+            failures.append(
+                f"{key}:shape={tuple(selected.shape)} expected={tuple(initial.shape)}"
+            )
+            continue
+        if [int(value) for value in selected.shape] != list(
+            _EVIDENCE_FUSION_PARAMETER_SHAPES[key]
+        ):
+            failures.append(
+                f"{key}:contract_shape={tuple(selected.shape)} "
+                f"expected={tuple(_EVIDENCE_FUSION_PARAMETER_SHAPES[key])}"
+            )
+            continue
+        initial_f64 = initial.detach().cpu().to(dtype=torch.float64)
+        selected_f64 = selected.detach().cpu().to(dtype=torch.float64)
+        if not bool(torch.isfinite(initial_f64).all().item()):
+            failures.append(f"{key}:initial_non_finite")
+            continue
+        if not bool(torch.isfinite(selected_f64).all().item()):
+            failures.append(f"{key}:selected_non_finite")
+            continue
+        delta = selected_f64 - initial_f64
+        max_abs_delta = float(delta.abs().max().item()) if delta.numel() else 0.0
+        l2_delta = float(torch.linalg.vector_norm(delta).item()) if delta.numel() else 0.0
+        changed = bool(max_abs_delta > 0.0 and l2_delta > 0.0)
+        if not np.isfinite(max_abs_delta) or not np.isfinite(l2_delta):
+            failures.append(f"{key}:non_finite_delta")
+        parameter_deltas[key] = {
+            "shape": [int(value) for value in selected.shape],
+            "max_abs_delta": max_abs_delta,
+            "l2_delta": l2_delta,
+            "changed": changed,
+        }
+
+    component_changed = {
+        component: any(
+            bool(parameter_deltas.get(key, {}).get("changed", False))
+            for key in keys
+        )
+        for component, keys in _EVIDENCE_FUSION_MOVEMENT_COMPONENTS.items()
+    }
+    for component, changed in component_changed.items():
+        if not changed:
+            failures.append(f"{component}:no_learned_parameter_movement")
+
+    out_weight = selected_state.get("evidence_fusion_out.weight")
+    output_rows_distinct = bool(
+        isinstance(out_weight, torch.Tensor)
+        and out_weight.ndim == 2
+        and int(out_weight.shape[0]) == 3
+        and all(
+            not bool(torch.equal(out_weight[i], out_weight[j]))
+            for i in range(3)
+            for j in range(i + 1, 3)
+        )
+    )
+    if not output_rows_distinct:
+        failures.append("evidence_fusion_out.weight:class_rows_not_distinct")
+
+    proof = {
+        "schema_version": _EVIDENCE_FUSION_MOVEMENT_SCHEMA_VERSION,
+        "reference": _EVIDENCE_FUSION_MOVEMENT_REFERENCE,
+        "selected_checkpoint_epoch": int(selected_checkpoint_epoch),
+        "parameter_deltas": parameter_deltas,
+        "component_changed": component_changed,
+        "output_rows_distinct": output_rows_distinct,
+        "decision": "PASS",
+    }
+    if failures:
+        raise RuntimeError(
+            "[ENTRY_EVIDENCE_FUSION_LEARNED_MOVEMENT_REQUIRED] "
+            f"failures={failures} proof={json.dumps(proof, sort_keys=True)}"
+        )
+    return require_learned_component_movement_metadata(
+        proof,
+        context="ENTRY_EXPORT",
+    )
 
 
 # V12.2: grad-clip norm + weight-decay set at runtime via CLI flag. Module-level
 # so we don't have to thread through 6 layers of function args.
 _GRAD_CLIP_NORM: float = 1.0
 _WEIGHT_DECAY: float = 1e-5
-DEFAULT_SPECIALIST_AUDIT_JSON = Path(
-    "/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/"
-    "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
-)
 
 
 def _autocast_forward(model: nn.Module, device: torch.device, *args, **kwargs) -> Dict[str, torch.Tensor]:
@@ -1262,20 +1279,12 @@ def _autocast_forward(model: nn.Module, device: torch.device, *args, **kwargs) -
 
 
 def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
-    """Extract multi-TF tensors from batch if present (V12.2). Returns {} for v3 batches.
-    Centralized helper so each model() call site doesn't need its own conditional logic.
-
-    Includes seq_m5 even though V10's base sequence IS M5 — V10's forward
-    declares seq_m5 as ignored kwarg for symmetry with V3 (which DOES use M5).
-    Same helper is used by V3 trainer (where M5 is needed).
-    """
+    """Extract the five mandatory causal TF tensors, or fail closed."""
     out: Dict[str, torch.Tensor] = {}
     for key in ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1"):
-        if key in batch:
-            t = batch[key]
-            if hasattr(t, "to"):
-                t = t.to(device)
-            out[key] = t
+        if key not in batch or not isinstance(batch[key], torch.Tensor):
+            raise RuntimeError(f"[ENTRY_EXACT_MULTI_TF_BATCH_MISSING] {key}")
+        out[key] = batch[key].to(device)
     return out
 
 
@@ -1283,12 +1292,20 @@ def _load_specialist_fusion_contract(
     audit_json: Optional[Path],
     *,
     expected_signal_dim: int,
-    contract_mode: str = "foundation_seq146",
+    contract_mode: str,
 ) -> tuple[Dict[str, list[int]], Dict[str, Any]]:
-    normalized_contract_mode = str(contract_mode or "foundation_seq146").strip()
+    try:
+        normalized_contract_mode = require_model_native_specialist_contract_mode(contract_mode)
+    except ValueError as exc:
+        raise RuntimeError(
+            "[SPECIALIST_MODEL_NATIVE_CONTRACT_REQUIRED] "
+            f"contract_mode={contract_mode!r} expected={MODEL_NATIVE_CONTRACT_MODE!r}"
+        ) from exc
     required_training_specialists = required_training_specialists_for_mode(normalized_contract_mode)
     expected_model_contract = specialist_model_contract_for_mode(normalized_contract_mode)
-    path = Path(audit_json or DEFAULT_SPECIALIST_AUDIT_JSON).expanduser().resolve()
+    if audit_json is None:
+        raise RuntimeError("[SPECIALIST_AUDIT_EXPLICIT_PATH_REQUIRED]")
+    path = Path(audit_json).expanduser().resolve()
     if not path.exists():
         raise RuntimeError(f"[SPECIALIST_AUDIT_MISSING] {path}")
     report = json.loads(path.read_text(encoding="utf-8"))
@@ -1305,7 +1322,7 @@ def _load_specialist_fusion_contract(
     specialist_model_failures = list(report.get("specialist_model_contract_failures") or [])
     if not bool(report.get("specialist_model_contract_valid")):
         specialist_model_failures.append("specialist audit did not declare specialist_model_contract_valid=true")
-    observed_contract_mode = str(report.get("contract_mode") or "foundation_seq146").strip()
+    observed_contract_mode = report.get("contract_mode")
     if observed_contract_mode != normalized_contract_mode:
         specialist_model_failures.append(
             f"specialist audit contract mode mismatch: observed={observed_contract_mode} expected={normalized_contract_mode}"
@@ -1355,20 +1372,33 @@ def _load_specialist_fusion_contract(
     if overlap:
         raise RuntimeError(f"[SPECIALIST_HEADS_ACTIVE_AND_BLOCKED] {overlap}")
     trainable = set(required_training_specialists)
-    blocked = {"neutral_bridge_anchor", "unmapped"}
+    blocked = {"forbidden_legacy_bridge", "unmapped"}
     indices: Dict[str, list[int]] = {}
     excluded_groups: Dict[str, int] = {}
     for name, values in raw.items():
         key = str(name)
-        idx = sorted({int(v) for v in list(values or [])})
         if key in blocked or key not in trainable:
-            if idx:
-                excluded_groups[key] = int(len(idx))
+            if isinstance(values, list) and values:
+                excluded_groups[key] = int(len(values))
             continue
-        if not idx:
-            continue
+    seen_indices: set[int] = set()
+    for key in required_training_specialists:
+        values = raw.get(key)
+        if not isinstance(values, list) or not values:
+            raise RuntimeError(f"[SPECIALIST_REQUIRED_GROUP_INVALID] {key}")
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
+            raise RuntimeError(f"[SPECIALIST_INDEX_TYPE_INVALID] {key}")
+        idx = list(values)
+        if idx != sorted(set(idx)):
+            raise RuntimeError(f"[SPECIALIST_INDEX_ORDER_INVALID] {key}")
         if min(idx) < 0 or max(idx) >= int(expected_signal_dim):
             raise RuntimeError(f"[SPECIALIST_INDEX_OOB] {key}: min={min(idx)} max={max(idx)} dim={expected_signal_dim}")
+        duplicate = seen_indices.intersection(idx)
+        if duplicate:
+            raise RuntimeError(
+                f"[SPECIALIST_INDEX_OVERLAP] {key} overlap={sorted(duplicate)}"
+            )
+        seen_indices.update(idx)
         indices[key] = idx
     required = list(required_training_specialists)
     missing = [name for name in required if name not in indices]
@@ -1524,207 +1554,125 @@ def _resolve_train_val_parquets(
 
 def _log_manifest_proof(dataset_manifest: Optional[Path]) -> None:
     if dataset_manifest is None:
-        return
+        raise RuntimeError("[ENTRY_MODEL_NATIVE_DATASET_MANIFEST_REQUIRED]")
     p = Path(dataset_manifest).expanduser().resolve()
     if not p.exists():
         raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_MISSING] {p}")
     if p.suffix.lower() != ".json":
         raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_NOT_JSON] {p}")
-    data = json.loads(p.read_text(encoding="utf-8"))
-    inputs = data.get("inputs") or {}
-    fc = data.get("feature_contract") or {}
-    xgb_bundle = str(inputs.get("xgb_bundle") or "")
-    xgb_model_sha256 = str(inputs.get("xgb_model_sha256") or "")
-    bridge_id = str(fc.get("signal_bridge_id") or "")
-    bridge_sha = str(fc.get("signal_bridge_contract_sha256") or "")
-
-    xgb_override = os.environ.get("GX1_XGB_BUNDLE_DIR", "").strip()
-    if xgb_override:
-        override_path = str(Path(xgb_override).expanduser().resolve())
-        if xgb_bundle and Path(xgb_bundle).expanduser().resolve() != Path(override_path).expanduser().resolve():
-            raise RuntimeError(
-                "[ENTRY_V10_CTX_XGB_OVERRIDE_MISMATCH] "
-                f"GX1_XGB_BUNDLE_DIR={override_path} dataset_manifest.xgb_bundle={xgb_bundle}"
-            )
-
-    log.info(
-        "[ENTRY_DATASET_MANIFEST_PROOF] manifest=%s xgb_bundle=%s xgb_model_sha256=%s signal_bridge_id=%s signal_bridge_sha256=%s",
-        p,
-        xgb_bundle,
-        xgb_model_sha256,
-        bridge_id,
-        bridge_sha,
+    contract = _signal_contract_from_manifest_obj(
+        json.loads(p.read_text(encoding="utf-8"))
     )
-
-
-def _normalize_signal_names(names: List[str], dim: int) -> List[str]:
-    out = [str(x) for x in names if str(x).strip()]
-    if len(out) < int(dim):
-        out.extend(f"seq_extra_{i}" for i in range(len(out), int(dim)))
-    return out[: int(dim)]
-
-
-def _default_signal_names(dim: int) -> List[str]:
-    return _normalize_signal_names(list(SIGNAL_FIELDS), int(dim))
+    log.info(
+        "[ENTRY_DATASET_MANIFEST_PROOF] manifest=%s contract_mode=%s "
+        "signal_dim=%d signal_contract_sha256=%s",
+        p,
+        contract["contract_mode"],
+        int(contract["seq_input_dim"]),
+        contract["model_native_signal_contract"]["static_contract_sha256"],
+    )
 
 
 def _signal_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
     extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
-    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
-    fc = data.get("feature_contract") if isinstance(data.get("feature_contract"), dict) else {}
     sb = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
-    fields_raw = sb.get("fields") or fc.get("signal_bridge_fields") or list(SIGNAL_FIELDS)
+    contract_mode = str(extra.get("contract_mode") or "").strip()
+    if contract_mode != MODEL_NATIVE_CONTRACT_MODE:
+        raise RuntimeError(
+            "[ENTRY_DATASET_MODEL_NATIVE_MODE_REQUIRED] "
+            f"got={contract_mode!r} expected={MODEL_NATIVE_CONTRACT_MODE!r}"
+        )
+    direction_logit_mode = str(extra.get("direction_logit_mode") or "").strip()
+    if direction_logit_mode != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
+        raise RuntimeError(
+            "[ENTRY_DATASET_MODEL_NATIVE_DIRECTION_MODE_REQUIRED] "
+            f"got={direction_logit_mode!r} expected={MODEL_NATIVE_DIRECTION_LOGIT_MODE!r}"
+        )
+    model_native_signal_contract = extra.get("model_native_signal_contract")
+    if not isinstance(model_native_signal_contract, dict):
+        raise RuntimeError("[ENTRY_DATASET_MODEL_NATIVE_SIGNAL_CONTRACT_MISSING]")
+    require_model_native_signal_contract(
+        model_native_signal_contract,
+        context="ENTRY_DATASET",
+    )
+    fields_raw = sb.get("fields")
+    if not isinstance(fields_raw, list):
+        raise RuntimeError("[ENTRY_DATASET_MODEL_NATIVE_SIGNAL_FIELDS_MISSING]")
     fields = [str(x) for x in fields_raw]
-    seq_dim = int(sb.get("seq_input_dim") or len(fields) or SEQ_SIGNAL_DIM)
-    snap_dim = int(sb.get("snap_input_dim") or seq_dim)
+    seq_dim = int(sb.get("seq_input_dim") or 0)
+    snap_dim = int(sb.get("snap_input_dim") or 0)
+    if seq_dim != MODEL_NATIVE_SIGNAL_DIM or snap_dim != MODEL_NATIVE_SIGNAL_DIM:
+        raise RuntimeError(
+            "[ENTRY_DATASET_MODEL_NATIVE_SIGNAL_DIM_INVALID] "
+            f"seq={seq_dim} snap={snap_dim} expected={MODEL_NATIVE_SIGNAL_DIM}"
+        )
+    if fields != list(model_native_signal_contract["fields"]):
+        raise RuntimeError("[ENTRY_DATASET_MODEL_NATIVE_SIGNAL_ORDER_MISMATCH]")
+    aux_head_target_contract = _require_model_native_aux_target_contract(
+        extra.get("aux_head_target_contract"),
+        context="ENTRY_DATASET",
+    )
     return {
         "seq_input_dim": seq_dim,
         "snap_input_dim": snap_dim,
-        "fields": _normalize_signal_names(fields, seq_dim),
-        "neutral_xgb_bridge": bool(
-            extra.get("neutral_xgb_bridge", False)
-            or inputs.get("neutral_xgb_bridge", False)
-            or sb.get("neutral_xgb_bridge", False)
-        ),
-        "bridge_source": str(extra.get("xgb_bridge_source") or inputs.get("xgb_bridge_source") or sb.get("bridge_source") or ""),
+        "fields": fields,
+        "contract_mode": contract_mode,
+        "direction_logit_mode": direction_logit_mode,
+        "model_native_signal_contract": model_native_signal_contract,
+        "aux_head_target_contract": aux_head_target_contract,
     }
 
 
 def _signal_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
     if dataset_manifest is None:
-        return {
-            "seq_input_dim": int(SEQ_SIGNAL_DIM),
-            "snap_input_dim": int(SNAP_SIGNAL_DIM),
-            "fields": list(SIGNAL_FIELDS),
-            "neutral_xgb_bridge": False,
-            "bridge_source": "xgb_bundle_inference",
-        }
+        raise RuntimeError("[ENTRY_MODEL_NATIVE_DATASET_MANIFEST_REQUIRED]")
     p = Path(dataset_manifest).expanduser().resolve()
     if not p.exists():
-        return {
-            "seq_input_dim": int(SEQ_SIGNAL_DIM),
-            "snap_input_dim": int(SNAP_SIGNAL_DIM),
-            "fields": list(SIGNAL_FIELDS),
-            "neutral_xgb_bridge": False,
-            "bridge_source": "xgb_bundle_inference",
-        }
+        raise RuntimeError(f"[ENTRY_MODEL_NATIVE_DATASET_MANIFEST_MISSING] {p}")
     return _signal_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
 
 
-def _smart520_state_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
+def _model_native_state_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
     extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
-    contract = extra.get("smart520_state_contract")
+    contract = extra.get("model_native_state_contract")
     return dict(contract) if isinstance(contract, dict) else {}
 
 
-def _smart520_state_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
+def _model_native_state_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
     if dataset_manifest is None:
         return {}
     p = Path(dataset_manifest).expanduser().resolve()
     if not p.exists():
         return {}
-    return _smart520_state_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
+    return _model_native_state_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
 
 
-def _smart520_state_contract_for_parquet(parquet_path: Path) -> Dict[str, Any]:
-    return _smart520_state_contract_from_manifest_path(
+def _model_native_state_contract_for_parquet(parquet_path: Path) -> Dict[str, Any]:
+    return _model_native_state_contract_from_manifest_path(
         Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
     )
 
 
-def _smart520_state_contract_failures(contract: Dict[str, Any], *, split: str) -> list[str]:
-    failures: list[str] = []
-    required = {
-        "schema_version",
-        "frame_anchor_utc",
-        "model_range_start_utc",
-        "rank_reference_end_utc",
-        "rank_reference_npz",
-        "rank_reference_npz_sha256",
-    }
+def _model_native_state_contract_failures(contract: Dict[str, Any], *, split: str) -> list[str]:
     if not isinstance(contract, dict) or not contract:
-        return [f"{split} manifest missing smart520_state_contract for XAU direction repair"]
-    missing = sorted(required - set(contract))
-    if missing:
-        failures.append(
-            f"{split} smart520_state_contract missing fields for XAU direction repair: {','.join(missing)}"
-        )
-    if str(contract.get("schema_version") or "") != "smart520_state_contract_v1":
-        failures.append(
-            f"{split} smart520_state_contract schema_version must be smart520_state_contract_v1, "
-            f"got {contract.get('schema_version')!r}"
-        )
-    rank_ref = str(contract.get("rank_reference_npz") or "").strip()
-    rank_ref_low = rank_ref.lower()
-    if not rank_ref:
-        failures.append(f"{split} smart520_state_contract rank_reference_npz missing")
-    elif not Path(rank_ref).expanduser().is_file():
-        failures.append(f"{split} smart520_state_contract rank_reference_npz does not exist: {rank_ref}")
-    else:
-        rank_ref_path = Path(rank_ref).expanduser()
-        expected_sha = str(contract.get("rank_reference_npz_sha256") or "").strip().lower()
-        actual_sha = _sha256_file(rank_ref_path)
-        if expected_sha != actual_sha:
-            failures.append(
-                f"{split} smart520_state_contract rank_reference_npz_sha256 mismatch: "
-                f"metadata={expected_sha!r} actual={actual_sha} path={rank_ref}"
-            )
-        sidecar_path = rank_ref_path.with_suffix(rank_ref_path.suffix + ".json")
-        if not sidecar_path.is_file():
-            failures.append(f"{split} smart520_state_contract rank reference sidecar missing: {sidecar_path}")
-        else:
-            try:
-                sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
-                sidecar_sha = str(sidecar.get("out_npz_sha256") or "").strip().lower()
-                if sidecar_sha != expected_sha:
-                    failures.append(
-                        f"{split} smart520_state_contract sidecar out_npz_sha256 mismatch: "
-                        f"sidecar={sidecar_sha!r} metadata={expected_sha!r}"
-                    )
-            except Exception as exc:
-                failures.append(f"{split} smart520_state_contract rank reference sidecar unreadable: {sidecar_path}: {exc}")
-    for marker in ("julyext", "smart_candidate_20260630", "utilityrepair", "20260710"):
-        if marker in rank_ref_low:
-            failures.append(
-                f"{split} smart520_state_contract rank_reference_npz references stale marker "
-                f"{marker!r}: {rank_ref}"
-            )
-    parsed_ts: Dict[str, pd.Timestamp] = {}
-    for key in ("frame_anchor_utc", "model_range_start_utc", "rank_reference_end_utc"):
-        try:
-            ts = pd.to_datetime(str(contract.get(key) or ""), utc=True, errors="coerce")
-            if pd.isna(ts):
-                raise ValueError("NaT")
-            parsed_ts[key] = ts
-        except Exception:
-            failures.append(f"{split} smart520_state_contract {key} is not a valid timestamp")
-    if not failures and parsed_ts["frame_anchor_utc"] < parsed_ts["model_range_start_utc"]:
-        failures.append(f"{split} smart520_state_contract frame_anchor_utc precedes model_range_start_utc")
-    if not failures and parsed_ts["rank_reference_end_utc"] < parsed_ts["model_range_start_utc"]:
-        failures.append(f"{split} smart520_state_contract rank_reference_end_utc precedes model_range_start_utc")
-    if not failures and parsed_ts["frame_anchor_utc"] > parsed_ts["rank_reference_end_utc"]:
-        failures.append(f"{split} smart520_state_contract frame_anchor_utc exceeds rank_reference_end_utc")
-    return failures
+        return [f"{split} manifest missing model_native_state_contract for XAU direction repair"]
+    try:
+        validate_state_contract_metadata_v2(contract, require_artifact=True)
+    except (RuntimeError, TypeError, ValueError, OSError) as exc:
+        return [f"{split} model_native_state_contract v2 invalid: {exc}"]
+    return []
 
 
 def _signal_contract_for_parquet(parquet_path: Path, seq_dim: int, snap_dim: int) -> Dict[str, Any]:
     manifest_path = Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
-    if manifest_path.exists():
-        contract = _signal_contract_from_manifest_path(manifest_path)
-        if int(contract["seq_input_dim"]) != int(seq_dim) or int(contract["snap_input_dim"]) != int(snap_dim):
-            raise RuntimeError(
-                "[ENTRY_V10_CTX_MANIFEST_SIGNAL_DIM_MISMATCH] "
-                f"{manifest_path} declares seq/snap={contract['seq_input_dim']}/{contract['snap_input_dim']} "
-                f"but parquet has {seq_dim}/{snap_dim}"
-            )
-        return contract
-    return {
-        "seq_input_dim": int(seq_dim),
-        "snap_input_dim": int(snap_dim),
-        "fields": _default_signal_names(seq_dim),
-        "neutral_xgb_bridge": False,
-        "bridge_source": "unknown_no_manifest",
-    }
+    contract = _signal_contract_from_manifest_path(manifest_path)
+    if int(contract["seq_input_dim"]) != int(seq_dim) or int(contract["snap_input_dim"]) != int(snap_dim):
+        raise RuntimeError(
+            "[ENTRY_V10_CTX_MANIFEST_SIGNAL_DIM_MISMATCH] "
+            f"{manifest_path} declares seq/snap={contract['seq_input_dim']}/{contract['snap_input_dim']} "
+            f"but parquet has {seq_dim}/{snap_dim}"
+        )
+    return contract
 
 
 def _xau_direction_repair_source_failures(paths: Dict[str, Any]) -> list[str]:
@@ -1753,6 +1701,7 @@ def _xau_direction_repair_source_failures(paths: Dict[str, Any]) -> list[str]:
 
 def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> list[str]:
     failures: list[str] = []
+    state_contracts: Dict[str, Dict[str, Any]] = {}
     for split, raw_path in parquet_paths.items():
         parquet_path = Path(raw_path).expanduser()
         manifest_path = parquet_path.with_suffix(".manifest.json")
@@ -1765,33 +1714,58 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
             failures.append(f"{split} manifest unreadable for XAU direction repair: {manifest_path}: {exc}")
             continue
         extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
-        bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
-        neutral_xgb_bridge = bool(
-            manifest.get("neutral_xgb_bridge", False)
-            or bridge.get("neutral_xgb_bridge", False)
-        )
-        xgb_bridge_source = str(
-            manifest.get("xgb_bridge_source")
-            or bridge.get("bridge_source")
-            or extra.get("xgb_bridge_source")
+        inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), dict) else {}
+        try:
+            _signal_contract_from_manifest_obj(manifest)
+        except RuntimeError as exc:
+            failures.append(f"{split} {exc}")
+        tape_root = str(
+            manifest.get("tape_root")
+            or extra.get("tape_root")
+            or inputs.get("tape_root")
             or ""
-        )
-        tape_root = str(manifest.get("tape_root") or extra.get("tape_root") or "").lower()
-        if neutral_xgb_bridge is not True:
-            failures.append(f"{split} manifest must declare neutral_xgb_bridge=true for XAU direction repair")
-        if xgb_bridge_source != "neutral_uniform_proba":
-            failures.append(
-                f"{split} manifest must declare xgb_bridge_source=neutral_uniform_proba "
-                f"for XAU direction repair, got {xgb_bridge_source!r}"
-            )
+        ).lower()
         if "xauusd" not in tape_root:
             failures.append(f"{split} manifest must prove XAUUSD tape_root for XAU direction repair, got {tape_root!r}")
-        failures.extend(
-            _smart520_state_contract_failures(
-                _smart520_state_contract_from_manifest_obj(manifest),
-                split=split,
-            )
+        state_contract = _model_native_state_contract_from_manifest_obj(manifest)
+        failures.extend(_model_native_state_contract_failures(state_contract, split=split))
+        split_windows = manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {}
+        train_window = (
+            split_windows.get("train")
+            if isinstance(split_windows.get("train"), dict)
+            else {}
         )
+        if not train_window:
+            failures.append(f"{split} manifest missing exact TRAIN split window")
+        elif state_contract:
+            try:
+                train_start = pd.Timestamp(pd.to_datetime(train_window.get("start"), utc=True))
+                train_end = pd.Timestamp(pd.to_datetime(train_window.get("end"), utc=True))
+                rank_fit_start = pd.Timestamp(
+                    pd.to_datetime(state_contract.get("rank_fit_start_utc"), utc=True)
+                )
+                rank_fit_end = pd.Timestamp(
+                    pd.to_datetime(state_contract.get("rank_fit_end_utc"), utc=True)
+                )
+            except Exception:
+                failures.append(f"{split} TRAIN/state rank-fit timestamps are invalid")
+            else:
+                if rank_fit_start != train_start or rank_fit_end != train_end:
+                    failures.append(
+                        f"{split} TRAIN-only rank fit {rank_fit_start}..{rank_fit_end} "
+                        f"does not equal TRAIN window {train_start}..{train_end}"
+                    )
+        if state_contract:
+            state_contracts[split] = state_contract
+    if len(state_contracts) > 1:
+        baseline_split = next(iter(state_contracts))
+        baseline = state_contracts[baseline_split]
+        for split, contract in state_contracts.items():
+            if contract != baseline:
+                failures.append(
+                    f"{split} model_native_state_contract differs from {baseline_split}; "
+                    "TRAIN/VAL/TEST must share one immutable rank/history contract"
+                )
     return failures
 
 
@@ -1811,27 +1785,26 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
         "mae_long_first_n_bps",
         "mfe_short_first_n_bps",
         "mae_short_first_n_bps",
+        "bad_path_long_first_n",
+        "bad_path_short_first_n",
+        "y_long_final_pnl_at_direction_horizon_bps",
+        "y_short_final_pnl_at_direction_horizon_bps",
+        "y_direction_target_mode_id",
+        "y_direction_long_score_bps",
+        "y_direction_short_score_bps",
         "y_long_path_utility_bps",
         "y_short_path_utility_bps",
         "y_long_bad_path",
         "y_short_bad_path",
         "y_long_expected_mae_bps",
         "y_short_expected_mae_bps",
-        "y_rising_channel_support_touch",
-        "y_falling_channel_resistance_touch",
-        "y_support_retest_continuation",
-        "y_resistance_retest_continuation",
-        "y_countertrend_short_trap",
-        "y_countertrend_long_trap",
-        "y_long_high_mae_low_mfe_early_failure",
-        "y_short_high_mae_low_mfe_early_failure",
     ]
     failures: list[str] = []
     missing = [name for name in required if name not in df.columns]
     if missing:
         failures.append(
-            f"{split_name} missing XAU direction-repair target columns: {missing}. "
-            "Rebuild the fresh XAU path-utility dataset; repair heads must not train on fallback labels."
+            f"{split_name} missing XAU outcome target columns: {missing}. "
+            "Rebuild the fresh model-native dataset; targets must not be inferred or repaired."
         )
         return failures
 
@@ -1854,6 +1827,23 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
     mae_long = pd.to_numeric(df["mae_long_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
     mfe_short = pd.to_numeric(df["mfe_short_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
     mae_short = pd.to_numeric(df["mae_short_first_n_bps"], errors="coerce").to_numpy(dtype=np.float64)
+    raw_long_bad = pd.to_numeric(df["bad_path_long_first_n"], errors="coerce").to_numpy(dtype=np.float64)
+    raw_short_bad = pd.to_numeric(df["bad_path_short_first_n"], errors="coerce").to_numpy(dtype=np.float64)
+    pnl_long = pd.to_numeric(
+        df["y_long_final_pnl_at_direction_horizon_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    pnl_short = pd.to_numeric(
+        df["y_short_final_pnl_at_direction_horizon_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    target_mode_id = pd.to_numeric(
+        df["y_direction_target_mode_id"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    y_direction_long_score = pd.to_numeric(
+        df["y_direction_long_score_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    y_direction_short_score = pd.to_numeric(
+        df["y_direction_short_score_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
     y_position_size = pd.to_numeric(df["y_position_size_target"], errors="coerce").to_numpy(dtype=np.float64)
     arrays = [
         y_direction,
@@ -1875,38 +1865,74 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
         mae_long,
         mfe_short,
         mae_short,
+        raw_long_bad,
+        raw_short_bad,
+        pnl_long,
+        pnl_short,
+        target_mode_id,
+        y_direction_long_score,
+        y_direction_short_score,
         y_position_size,
     ]
     if any(not np.isfinite(arr).all() for arr in arrays):
-        failures.append(f"{split_name} XAU direction-repair targets contain non-finite values")
+        failures.append(f"{split_name} XAU outcome targets contain non-finite values")
         return failures
 
-    anti_short = np.zeros(len(df), dtype=bool)
-    for name in (
-        "y_rising_channel_support_touch",
-        "y_support_retest_continuation",
-        "y_countertrend_short_trap",
-        "y_short_high_mae_low_mfe_early_failure",
-    ):
-        anti_short |= pd.to_numeric(df[name], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64) > 0.5
-    anti_long = np.zeros(len(df), dtype=bool)
-    for name in (
-        "y_falling_channel_resistance_touch",
-        "y_resistance_retest_continuation",
-        "y_countertrend_long_trap",
-        "y_long_high_mae_low_mfe_early_failure",
-    ):
-        anti_long |= pd.to_numeric(df[name], errors="coerce").fillna(0.0).to_numpy(dtype=np.float64) > 0.5
-    anti_short_only = anti_short & (~anti_long)
-    anti_long_only = anti_long & (~anti_short)
-    conflict_rows = anti_short & anti_long
+    if not bool(np.equal(target_mode_id, 1.0).all()):
+        failures.append(
+            f"{split_name}: y_direction_target_mode_id must be exact split-wide value 1 (path_utility_v2)"
+        )
+        return failures
 
-    repaired_scalar_bad = np.zeros(len(df), dtype=np.float64)
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+        V12_DIRECTION_UTILITY_MAE_WEIGHT,
+        V12_DIRECTION_UTILITY_MFE_WEIGHT,
+        V12_DIRECTION_UTILITY_MIN_BPS,
+        V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS,
+        V12_DIRECTION_UTILITY_PATH_WEIGHT,
+    )
+
+    mfe_long_f = mfe_long.astype(np.float32)
+    mae_long_f = mae_long.astype(np.float32)
+    mfe_short_f = mfe_short.astype(np.float32)
+    mae_short_f = mae_short.astype(np.float32)
+    expected_long_utility = (
+        pnl_long.astype(np.float32)
+        + float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * mfe_long_f
+        - float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * mae_long_f
+        + float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * (mfe_long_f - mae_long_f)
+    ).astype(np.float32).astype(np.float64)
+    expected_short_utility = (
+        pnl_short.astype(np.float32)
+        + float(V12_DIRECTION_UTILITY_MFE_WEIGHT) * mfe_short_f
+        - float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * mae_short_f
+        + float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * (mfe_short_f - mae_short_f)
+    ).astype(np.float32).astype(np.float64)
+    utility_margin = expected_long_utility - expected_short_utility
+    tradable_long = (
+        (expected_long_utility >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+        & (utility_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+    )
+    tradable_short = (
+        (expected_short_utility >= float(V12_DIRECTION_UTILITY_MIN_BPS))
+        & ((-utility_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+    )
+
+    expected_direction = np.full(len(df), 2.0, dtype=np.float64)
+    only_long = tradable_long & (~tradable_short)
+    only_short = tradable_short & (~tradable_long)
+    both = tradable_long & tradable_short
+    expected_direction[only_long] = 0.0
+    expected_direction[only_short] = 1.0
+    expected_direction[both & (expected_long_utility >= expected_short_utility)] = 0.0
+    expected_direction[both & (expected_short_utility > expected_long_utility)] = 1.0
+
+    expected_scalar_bad = np.zeros(len(df), dtype=np.float64)
     long_rows = (y_trade > 0.5) & (y_side == 0)
     short_rows = (y_trade > 0.5) & (y_side == 1)
     flat_rows = y_trade <= 0.5
-    repaired_scalar_bad[long_rows] = y_long_bad[long_rows]
-    repaired_scalar_bad[short_rows] = y_short_bad[short_rows]
+    expected_scalar_bad[long_rows] = y_long_bad[long_rows]
+    expected_scalar_bad[short_rows] = y_short_bad[short_rows]
     expected_mfe = np.zeros(len(df), dtype=np.float64)
     expected_mae = np.zeros(len(df), dtype=np.float64)
     expected_mfe[long_rows] = mfe_long[long_rows]
@@ -1930,32 +1956,21 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
         "SHORT trade rows have non-SHORT y_side": short_rows & (y_side != 1),
         "LONG direction rows have non-LONG y_side": (y_direction == 0) & (y_side_mask > 0.5) & (y_side != 0),
         "SHORT direction rows have non-SHORT y_side": (y_direction == 1) & (y_side_mask > 0.5) & (y_side != 1),
-        "scalar y_bad_path mismatches repaired side-specific bad-path targets": np.abs(y_bad_path - repaired_scalar_bad) > 1e-5,
+        "y_direction mismatches future outcome side selection": np.abs(y_direction - expected_direction) > 1e-5,
+        "scalar y_bad_path mismatches selected side-specific bad-path outcome": np.abs(y_bad_path - expected_scalar_bad) > 1e-5,
         "mfe_first_n_bps mismatches selected side-specific MFE": np.abs(mfe_first - expected_mfe) > 1e-5,
         "mae_first_n_bps mismatches selected side-specific MAE": np.abs(mae_first - expected_mae) > 1e-5,
         "path_quality_bps mismatches selected side-specific path": np.abs(path_quality - expected_path) > 1e-5,
         "FLAT/no-trade rows have non-neutral y_position_size_target": flat_rows & (np.abs(y_position_size - 0.5) > 1e-5),
-        "anti-short structural rows still labeled SHORT": anti_short_only & (y_direction == 1),
-        "anti-long structural rows still labeled LONG": anti_long_only & (y_direction == 0),
-        "anti-short structural rows still teach SHORT through side mask": anti_short_only & (y_side_mask > 0.5) & (y_side == 1),
-        "anti-long structural rows still teach LONG through side mask": anti_long_only & (y_side_mask > 0.5) & (y_side == 0),
-        "conflict structural rows are not FLAT/no-trade": conflict_rows
-        & ((y_direction != 2) | (y_trade > 0.5) | (y_side_mask > 0.5)),
-        "anti-short structural rows still have SHORT utility >= LONG utility": anti_short_only
-        & (y_short_utility >= y_long_utility),
-        "anti-long structural rows still have LONG utility >= SHORT utility": anti_long_only
-        & (y_long_utility >= y_short_utility),
-        "anti-short structural rows do not force SHORT bad-path target": anti_short_only & (y_short_bad < 0.999),
-        "anti-long structural rows do not force LONG bad-path target": anti_long_only & (y_long_bad < 0.999),
-        "anti-short structural rows do not make SHORT expected MAE worse": anti_short_only & (y_short_mae <= y_long_mae),
-        "anti-long structural rows do not make LONG expected MAE worse": anti_long_only & (y_long_mae <= y_short_mae),
+        "long utility is not the declared future-outcome formula": np.abs(y_long_utility - expected_long_utility) > 1e-4,
+        "short utility is not the declared future-outcome formula": np.abs(y_short_utility - expected_short_utility) > 1e-4,
+        "long bad-path target differs from raw future path outcome": np.abs(y_long_bad - raw_long_bad) > 1e-5,
+        "short bad-path target differs from raw future path outcome": np.abs(y_short_bad - raw_short_bad) > 1e-5,
+        "long expected MAE differs from raw future MAE": np.abs(y_long_mae - mae_long) > 1e-5,
+        "short expected MAE differs from raw future MAE": np.abs(y_short_mae - mae_short) > 1e-5,
+        "y_direction_long_score_bps mismatches outcome long utility": np.abs(y_direction_long_score - y_long_utility) > 1e-5,
+        "y_direction_short_score_bps mismatches outcome short utility": np.abs(y_direction_short_score - y_short_utility) > 1e-5,
     }
-    if "y_direction_long_score_bps" in df.columns:
-        alias = pd.to_numeric(df["y_direction_long_score_bps"], errors="coerce").to_numpy(dtype=np.float64)
-        checks["y_direction_long_score_bps mismatches repaired long utility"] = np.abs(alias - y_long_utility) > 1e-5
-    if "y_direction_short_score_bps" in df.columns:
-        alias = pd.to_numeric(df["y_direction_short_score_bps"], errors="coerce").to_numpy(dtype=np.float64)
-        checks["y_direction_short_score_bps mismatches repaired short utility"] = np.abs(alias - y_short_utility) > 1e-5
     for reason, mask in checks.items():
         count = int(np.asarray(mask, dtype=bool).sum())
         if count:
@@ -2122,9 +2137,8 @@ class EntryV10CtxDataset(Dataset):
     Builds rolling-window samples from canonical ENTRY_V10_CTX parquet.
     ctx_cont / ctx_cat are per-sample (B, N), not per-timestep.
 
-    Multi-TF mode (V12.2): when enable_multi_tf=True, the dataset also serves
-    M15/H1/H4/D1 per-bar feature windows (96 bars × 19 features each) for the
-    multi-TF V10 mode. Source is the M5 canonical_v3 prebuilt, resampled and
+    The dataset always serves M5/M15/H1/H4/D1 per-bar feature windows for the
+    exact multi-TF model. Source is the M5 canonical_v3 prebuilt, resampled and
     feature-engineered once at __init__. Resampled tables are cached at module
     level so train_ds + val_ds share them. Adds ~25s init time first call,
     instant on subsequent dataset instantiations with same prebuilt path.
@@ -2134,35 +2148,23 @@ class EntryV10CtxDataset(Dataset):
         self,
         parquet_path: Path,
         seq_len: int,
-        allow_constant_labels: bool,
-        enable_multi_tf: bool = False,
-        m5_prebuilt_path: Optional[Path] = None,
+        m5_prebuilt_path: Path,
         multi_tf_seq_len: int = 96,
-        # V2 fast-train: per-TF seq_len overrides + smoke date subset
+        # Per-TF sequence-length overrides are operational memory/receptive-field knobs.
         per_tf_seq_lens: Optional[Dict[str, int]] = None,
         multi_tf_closed_bar: Optional[bool] = None,
-        smoke_date_from: str = "",
-        smoke_date_to: str = "",
     ):
         self.parquet_path = Path(parquet_path)
         self.seq_len = int(seq_len)
-        self.seq_input_dim = int(SEQ_SIGNAL_DIM)
-        self.snap_input_dim = int(SNAP_SIGNAL_DIM)
-        self.signal_names = list(SIGNAL_FIELDS)
-        self.neutral_xgb_bridge = False
-        self.xgb_bridge_source = "xgb_bundle_inference"
-        self.enable_multi_tf = bool(enable_multi_tf)
         self.multi_tf_seq_len = int(multi_tf_seq_len)
-        self._multi_tf_closed_bar = (
-            os.environ.get("GX1_PERTF_CLOSED_BAR", "0") == "1"
-            if multi_tf_closed_bar is None
-            else bool(multi_tf_closed_bar)
-        )
+        if multi_tf_closed_bar is False:
+            raise RuntimeError(
+                "ENTRY_MULTI_TF_CAUSALITY: forming higher-timeframe bars are forbidden"
+            )
+        self._multi_tf_closed_bar = True
         # per_tf_seq_lens: dict like {"M5": 96, "M15": 96, "H1": 96, "H4": 48, "D1": 30}.
         # Unset TFs fall back to multi_tf_seq_len.
         self.per_tf_seq_lens: Dict[str, int] = dict(per_tf_seq_lens) if per_tf_seq_lens else {}
-        self.smoke_date_from = str(smoke_date_from or "")
-        self.smoke_date_to = str(smoke_date_to or "")
         self._multi_tf_feats: Optional[Dict[str, pd.DataFrame]] = None
         self._multi_tf_shift: Optional[Dict[str, pd.Timedelta]] = None
         self._multi_tf_feature_count: int = 0
@@ -2170,35 +2172,40 @@ class EntryV10CtxDataset(Dataset):
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
+        signal_contract = _signal_contract_from_manifest_path(
+            self.parquet_path.with_suffix(".manifest.json")
+        )
+        self.seq_input_dim = int(signal_contract["seq_input_dim"])
+        self.snap_input_dim = int(signal_contract["snap_input_dim"])
+        self.signal_names = list(signal_contract["fields"])
+        self.contract_mode = MODEL_NATIVE_CONTRACT_MODE
+        self.direction_logit_mode = MODEL_NATIVE_DIRECTION_LOGIT_MODE
+        self.model_native_signal_contract = signal_contract["model_native_signal_contract"]
+        self.aux_head_target_contract = signal_contract["aux_head_target_contract"]
 
         # ── Memory fix (V12.2): EXCLUDE nested-list columns from pandas load.
         # The nested-list columns (seq/snap/ctx_cont/ctx_cat) stored as
         # list<list<double>> blow up to ~30GB when materialized in pandas.
         # We re-read them via chunked pyarrow into pre-allocated numpy arrays
-        # below (only for the advanced schema). For flat schema (smoke-test)
-        # the columns are scalar and small — load normally.
+        # below for the only admitted nested model-native schema.
         import pyarrow.parquet as pq
         _all_cols = pq.ParquetFile(self.parquet_path).schema_arrow.names
         _nested_cols = {"seq", "snap", "ctx_cont", "ctx_cat"}
-        _has_nested = bool(_nested_cols & set(_all_cols))
-        _load_cols = [c for c in _all_cols if c not in _nested_cols] if _has_nested else None
+        missing_nested = sorted(_nested_cols - set(_all_cols))
+        if missing_nested:
+            raise RuntimeError(
+                "[ENTRY_MODEL_NATIVE_NESTED_SCHEMA_REQUIRED] "
+                f"missing={missing_nested} parquet={self.parquet_path}"
+            )
+        _load_cols = [c for c in _all_cols if c not in _nested_cols]
         df = pd.read_parquet(self.parquet_path, columns=_load_cols)
-        if _has_nested:
-            # Re-add empty stubs for downstream "in df.columns" presence checks.
-            # They get filled (or dropped) by the chunked pyarrow load below.
-            for _c in ("seq", "snap", "ctx_cont", "ctx_cat"):
-                df[_c] = None
-
-        ctx = get_canonical_ctx_contract()
-        ctx_cont = list(ctx["ctx_cont_names"])
-        ctx_cat = list(ctx["ctx_cat_names"])
+        # Re-add empty stubs for downstream presence checks. They are replaced
+        # by the chunked Arrow arrays below.
+        for _c in ("seq", "snap", "ctx_cont", "ctx_cat"):
+            df[_c] = None
 
         if "seq" in df.columns:
             # ---- advanced schema: builder has prebuilt samples
-            if "y_teacher_bad_long" not in df.columns and "y_v6_teacher_bad_long" in df.columns:
-                df["y_teacher_bad_long"] = df["y_v6_teacher_bad_long"]
-            if "y_teacher_winner_long" not in df.columns and "y_v6_teacher_winner_long" in df.columns:
-                df["y_teacher_winner_long"] = df["y_v6_teacher_winner_long"]
             required_advanced = [
                 "time",
                 "seq",
@@ -2218,23 +2225,17 @@ class EntryV10CtxDataset(Dataset):
                 "y_hard_negative_long",
                 "y_clean_edge_long",
                 "y_survival_long",
-                "y_teacher_bad_long",
-                "y_teacher_winner_long",
                 "y_selector_long_mask",
             ]
-            optional_defaults = {
-                "y_dead_negative_long": 0.0,
-                "y_teaser_negative_long": 0.0,
-                "y_hard_negative_long": 0.0,
-                "y_clean_edge_long": 0.0,
-                "y_survival_long": 0.0,
-                "y_teacher_bad_long": 0.0,
-                "y_teacher_winner_long": 0.0,
-                "y_selector_long_mask": 0.0,
-            }
-            for col, default in optional_defaults.items():
-                if col not in df.columns:
-                    df[col] = default
+            target_failures = _model_native_active_target_failures(
+                self.parquet_path.stem,
+                df,
+            )
+            if target_failures:
+                raise RuntimeError(
+                    "[ENTRY_V10_CTX_MODEL_NATIVE_ACTIVE_TARGET_CONTRACT_INVALID] "
+                    + "; ".join(target_failures)
+                )
             missing = [c for c in required_advanced if c not in df.columns]
             _require(not missing, f"[ENTRY_V10_CTX_SCHEMA_MISSING] advanced {missing}")
 
@@ -2259,22 +2260,19 @@ class EntryV10CtxDataset(Dataset):
             n_rows = int(pf.metadata.num_rows)
             # Probe one batch to learn dims
             first_batch = next(pf.iter_batches(batch_size=64, columns=["seq", "snap", "ctx_cont", "ctx_cat"]))
-            seq_inner_dim = first_batch.column("seq").type.value_type.value_type
             seq_dim = int(first_batch.column("seq")[0].values[0].values.__len__())
             seq_len = int(first_batch.column("seq")[0].values.__len__())
             snap_dim = int(first_batch.column("snap")[0].values.__len__())
             ctx_cont_dim = int(first_batch.column("ctx_cont")[0].values.__len__())
             ctx_cat_dim = int(first_batch.column("ctx_cat")[0].values.__len__())
-            signal_contract = _signal_contract_for_parquet(self.parquet_path, seq_dim=seq_dim, snap_dim=snap_dim)
-            self.seq_input_dim = int(signal_contract["seq_input_dim"])
-            self.snap_input_dim = int(signal_contract["snap_input_dim"])
-            self.signal_names = list(signal_contract["fields"])
-            self.neutral_xgb_bridge = bool(signal_contract.get("neutral_xgb_bridge", False))
-            self.xgb_bridge_source = str(signal_contract.get("bridge_source") or "")
+            _signal_contract_for_parquet(
+                self.parquet_path,
+                seq_dim=seq_dim,
+                snap_dim=snap_dim,
+            )
             log.info(
                 f"[MEM_FIX] schema probe: seq=(N,{seq_len},{seq_dim})  snap=(N,{snap_dim})  "
-                f"ctx_cont=(N,{ctx_cont_dim})  ctx_cat=(N,{ctx_cat_dim}) "
-                f"neutral_xgb_bridge={self.neutral_xgb_bridge}"
+                f"ctx_cont=(N,{ctx_cont_dim})  ctx_cat=(N,{ctx_cat_dim})"
             )
             seq_shape = (n_rows, seq_len, seq_dim)
             snap_shape = (n_rows, snap_dim)
@@ -2347,7 +2345,9 @@ class EntryV10CtxDataset(Dataset):
             for c in ("seq", "snap", "ctx_cont", "ctx_cat"):
                 if c in df.columns:
                     df = df.drop(columns=[c])
-            import gc; gc.collect()
+            import gc
+
+            gc.collect()
 
             self.df = df
             self._advanced = True
@@ -2358,126 +2358,27 @@ class EntryV10CtxDataset(Dataset):
             self.ctx_cont_dim = int(self._np_ctx_cont.shape[1])
             self.ctx_cat_dim = int(self._np_ctx_cat.shape[1])
             self._ctx_vnext_extra = None
-            if _is_vnext():
-                if self.ctx_cont_dim == 21:
-                    self._ctx_vnext_extra = None
-                    log.info(
-                        "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=prebuilt ctx_cont_dim=%d status=present",
-                        self.ctx_cont_dim,
-                    )
-                elif self.ctx_cont_dim == 16:
-                    ts = pd.to_datetime(self.df["time"], utc=True, errors="coerce")
-                    _require(not ts.isna().any(), "[ENTRY_V10_CTX_TIME_PARSE_FAIL]")
-                    sessions = get_session_vectorized(ts)
-                    sess_id_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
-                    sess_id = sessions.map(sess_id_map).fillna(0).astype("int32")
-                    mins_since = get_session_minutes_since_open_vectorized(ts).astype("float32")
-                    mins_to = get_session_minutes_to_next_boundary_vectorized(ts).astype("float32")
-                    sess_change = sess_id.diff().fillna(0).ne(0).astype("int8")
-                    sess_tradable = (sess_id != 0).astype("int8")
-                    is_asia = (sess_id == 0).astype("int8")
-                    self._ctx_vnext_extra = np.column_stack(
-                        [is_asia.values, mins_since.values, mins_to.values, sess_change.values, sess_tradable.values]
-                    ).astype(np.float32)
-                    self.ctx_cont_dim = self.ctx_cont_dim + 5
-                    uniq, cnt = np.unique(sess_id.values, return_counts=True)
-                    dist = {int(k): int(v) for k, v in zip(uniq, cnt)}
-                    log.info(
-                        "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=session_detector ctx_cont_dim_base=16 added=5 "
-                        "session_id_dist=%s mins_since_range=[%.1f, %.1f] mins_to_range=[%.1f, %.1f]",
-                        dist,
-                        float(np.nanmin(mins_since.values)),
-                        float(np.nanmax(mins_since.values)),
-                        float(np.nanmin(mins_to.values)),
-                        float(np.nanmax(mins_to.values)),
-                    )
-                elif self.ctx_cont_dim in (43, 45, CTX_CONT_DIM_V3):
-                    # V2 (43) / legacy V3 (45) / current V3 variants are contract-sized.
-                    self._ctx_vnext_extra = None
-                    log.info(
-                        "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=prebuilt_v3 ctx_cont_dim=%d status=present (signal_bridge_v3)",
-                        self.ctx_cont_dim,
-                    )
-                else:
-                    raise RuntimeError(
-                        f"[ENTRY_V10_CTX_VNEXT_DIM] expected ctx_cont_dim 16, 21, 43, 45, or {CTX_CONT_DIM_V3}, got {self.ctx_cont_dim}"
-                    )
+            if (
+                self.ctx_cont_dim != MODEL_NATIVE_CTX_CONT_DIM
+                or self.ctx_cat_dim != MODEL_NATIVE_CTX_CAT_DIM
+            ):
+                raise RuntimeError(
+                    "[ENTRY_MODEL_NATIVE_CTX_DIM_INVALID] "
+                    f"ctx_cont_dim={self.ctx_cont_dim} expected={MODEL_NATIVE_CTX_CONT_DIM} "
+                    f"ctx_cat_dim={self.ctx_cat_dim} expected={MODEL_NATIVE_CTX_CAT_DIM}"
+                )
 
             y = df["y_direction"].astype(int).values
-            if not allow_constant_labels:
-                if len(np.unique(y)) < 2:
-                    raise RuntimeError(
-                        "[ENTRY_V10_CTX_LABELS_CONSTANT] "
-                        "All y_direction identical. Use --allow-constant-labels only for smoke/plumbing."
-                    )
+            if len(np.unique(y)) < 2:
+                raise RuntimeError(
+                    "[ENTRY_V10_CTX_LABELS_CONSTANT] exact training requires at least two classes"
+                )
 
             self.indices = np.arange(len(df))
             _require(len(self.indices) > 0, "[ENTRY_V10_CTX_NO_SAMPLES]")
 
             log.info(
                 f"[DATASET_SCHEMA] advanced | rows={len(df)} samples={len(self.indices)} "
-                f"time=[{df['time'].min()} .. {df['time'].max()}]"
-            )
-        else:
-            # ---- flat columns (rolling-window); canary/smoke
-            required_signal = list(SIGNAL_FIELDS)
-            required = ["time"] + required_signal + ctx_cont + ctx_cat + ["y_direction"]
-            missing = [c for c in required if c not in df.columns]
-            _require(not missing, f"[ENTRY_V10_CTX_SCHEMA_MISSING] {missing}")
-
-            df["time"] = pd.to_datetime(df["time"], utc=True, errors="coerce")
-            _require(not df["time"].isna().any(), "[ENTRY_V10_CTX_TIME_PARSE_FAIL]")
-            df = df.sort_values("time").reset_index(drop=True)
-
-            self.df = df
-            self._advanced = False
-            self.signal_cols = required_signal
-            self.ctx_cont_cols = ctx_cont
-            self.ctx_cat_cols = ctx_cat
-            self.ctx_cont_dim = int(len(ctx_cont))
-            self.ctx_cat_dim = int(len(ctx_cat))
-            self._ctx_vnext_extra = None
-            if _is_vnext():
-                ts = pd.to_datetime(self.df["time"], utc=True, errors="coerce")
-                _require(not ts.isna().any(), "[ENTRY_V10_CTX_TIME_PARSE_FAIL]")
-                sessions = get_session_vectorized(ts)
-                sess_id_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
-                sess_id = sessions.map(sess_id_map).fillna(0).astype("int32")
-                mins_since = get_session_minutes_since_open_vectorized(ts).astype("float32")
-                mins_to = get_session_minutes_to_next_boundary_vectorized(ts).astype("float32")
-                sess_change = sess_id.diff().fillna(0).ne(0).astype("int8")
-                sess_tradable = (sess_id != 0).astype("int8")
-                is_asia = (sess_id == 0).astype("int8")
-                self._ctx_vnext_extra = np.column_stack(
-                    [is_asia.values, mins_since.values, mins_to.values, sess_change.values, sess_tradable.values]
-                ).astype(np.float32)
-                self.ctx_cont_dim = self.ctx_cont_dim + 5
-                uniq, cnt = np.unique(sess_id.values, return_counts=True)
-                dist = {int(k): int(v) for k, v in zip(uniq, cnt)}
-                log.info(
-                    "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=session_detector ctx_cont_dim_base=%d added=5 "
-                    "session_id_dist=%s mins_since_range=[%.1f, %.1f] mins_to_range=[%.1f, %.1f]",
-                    int(len(ctx_cont)),
-                    dist,
-                    float(np.nanmin(mins_since.values)),
-                    float(np.nanmax(mins_since.values)),
-                    float(np.nanmin(mins_to.values)),
-                    float(np.nanmax(mins_to.values)),
-                )
-
-            y = df["y_direction"].astype(int).values
-            if not allow_constant_labels:
-                if len(np.unique(y)) < 2:
-                    raise RuntimeError(
-                        "[ENTRY_V10_CTX_LABELS_CONSTANT] "
-                        "All y_direction identical. Use --allow-constant-labels only for smoke/plumbing."
-                    )
-
-            self.indices = np.arange(self.seq_len - 1, len(df))
-            _require(len(self.indices) > 0, "[ENTRY_V10_CTX_NO_SAMPLES] after seq_len windowing")
-
-            log.info(
-                f"[DATASET_SCHEMA] flat | rows={len(df)} samples={len(self.indices)} "
                 f"time=[{df['time'].min()} .. {df['time'].max()}]"
             )
 
@@ -2487,167 +2388,133 @@ class EntryV10CtxDataset(Dataset):
         # IMPORTANT: cache at module level so train_ds + val_ds share the
         # ~3GB resampled feature tables. Without this, peak memory hits OOM
         # on 15GB hosts (1.5GB parquet × 2 + multi-TF × 2 + train arrays).
-        if self.enable_multi_tf:
-            # MANDATORY V2: 5 TFs (M5/M15/H1/H4/D1) × 25 feats. The V1 (4-TF/17-feat)
-            # path + GX1_V10_MULTI_TF_V2 env-gate were removed 2026-05-26 — multi-TF×5
-            # is the only supported mode (rule: multi_tf_always_mandatory).
-            v2_mode = True
+        # MANDATORY V2: 5 TFs (M5/M15/H1/H4/D1) × 25 feats. The V1 (4-TF/17-feat)
+        # path + GX1_V10_MULTI_TF_V2 env-gate were removed 2026-05-26 — multi-TF×5
+        # is the only supported mode (rule: multi_tf_always_mandatory).
+        from gx1.features.htf_features import (
+            build_multi_tf_per_bar_features_v2,
+            MULTI_TF_FEATURE_COUNT_V2,
+            MULTI_TF_SHIFT,
+        )
+        if m5_prebuilt_path is None:
+            raise RuntimeError(
+                "[MULTI_TF_INIT_FAIL] exact architecture requires m5_prebuilt_path "
+                "(path to canonical_v3 M5 OHLC parquet)."
+            )
+        m5_path = Path(m5_prebuilt_path)
+        if not m5_path.is_file():
+            raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
+        cache_key = f"{m5_path.resolve()}|contract=V2_CAUSAL"
+        cached = _MULTI_TF_CACHE.get(cache_key)
+        # Disk cache (V2 only): GX1_V10_MULTI_TF_V2_CACHE_DIR points at a pre-built
+        # cache from gx1/scripts/prebuild_multi_tf_cache_v2.py. Saves ~84s per init.
+        _disk_cache_dir = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR", "").strip()
+        if cached is not None:
+            log.info(f"[MULTI_TF] reusing exact V2 causal feature tables (key={m5_path.name})")
+            self._multi_tf_feats = cached
+        elif _disk_cache_dir:
             from gx1.features.htf_features import (
-                build_multi_tf_per_bar_features,
-                build_multi_tf_per_bar_features_v2,
-                MULTI_TF_FEATURE_COUNT,
-                MULTI_TF_FEATURE_COUNT_V2,
+                MULTI_TF_PER_BAR_FEATURES_V2,
                 MULTI_TF_SHIFT,
+                load_multi_tf_v2_cache,
             )
-            if m5_prebuilt_path is None:
+            log.info(f"[MULTI_TF] loading V2 disk cache: {_disk_cache_dir}")
+            _disk_manifest_path = Path(_disk_cache_dir) / "manifest.json"
+            if not _disk_manifest_path.is_file():
+                raise RuntimeError(f"[MULTI_TF_CACHE_MANIFEST_MISSING] {_disk_manifest_path}")
+            _disk_manifest = json.loads(_disk_manifest_path.read_text(encoding="utf-8"))
+            _observed_features = [str(x) for x in (_disk_manifest.get("feature_names") or [])]
+            _expected_features = list(MULTI_TF_PER_BAR_FEATURES_V2)
+            if _observed_features != _expected_features:
                 raise RuntimeError(
-                    "[MULTI_TF_INIT_FAIL] enable_multi_tf=True requires m5_prebuilt_path "
-                    "(path to canonical_v3 M5 OHLC parquet)."
+                    "[MULTI_TF_CACHE_FEATURE_CONTRACT_MISMATCH] "
+                    f"cache={_disk_cache_dir} observed={_observed_features or '<missing>'} "
+                    f"expected={_expected_features}"
                 )
-            m5_path = Path(m5_prebuilt_path)
-            if not m5_path.is_file():
-                raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
-            # Cache key includes v2 flag so V1 and V2 don't alias each other.
-            cache_key = f"{m5_path.resolve()}|v2={v2_mode}"
-            cached = _MULTI_TF_CACHE.get(cache_key)
-            # Disk cache (V2 only): GX1_V10_MULTI_TF_V2_CACHE_DIR points at a pre-built
-            # cache from scripts/prebuild_multi_tf_cache_v2.py. Saves ~84s per init.
-            _disk_cache_dir = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR", "").strip()
-            if cached is not None:
-                log.info(f"[MULTI_TF] reusing cached feature tables (key={m5_path.name} v2={v2_mode})")
-                self._multi_tf_feats = cached
-            elif v2_mode and _disk_cache_dir:
-                from gx1.features.htf_features import (
-                    MULTI_TF_PER_BAR_FEATURES_V2,
-                    MULTI_TF_SHIFT,
-                    load_multi_tf_v2_cache,
-                )
-                log.info(f"[MULTI_TF] loading V2 disk cache: {_disk_cache_dir}")
-                _disk_manifest_path = Path(_disk_cache_dir) / "manifest.json"
-                if not _disk_manifest_path.is_file():
-                    raise RuntimeError(f"[MULTI_TF_CACHE_MANIFEST_MISSING] {_disk_manifest_path}")
-                _disk_manifest = json.loads(_disk_manifest_path.read_text(encoding="utf-8"))
-                _observed_features = [str(x) for x in (_disk_manifest.get("feature_names") or [])]
-                _expected_features = list(MULTI_TF_PER_BAR_FEATURES_V2)
-                if _observed_features != _expected_features:
-                    raise RuntimeError(
-                        "[MULTI_TF_CACHE_FEATURE_CONTRACT_MISMATCH] "
-                        f"cache={_disk_cache_dir} observed={_observed_features or '<missing>'} "
-                        f"expected={_expected_features}"
-                    )
-                _observed_shift = (
-                    _disk_manifest.get("shift_contract")
-                    if isinstance(_disk_manifest.get("shift_contract"), dict)
-                    else {}
-                )
-                _expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
-                if _observed_shift != _expected_shift:
-                    raise RuntimeError(
-                        "[MULTI_TF_CACHE_SHIFT_CONTRACT_MISMATCH] "
-                        f"cache={_disk_cache_dir} observed={_observed_shift or '<missing>'} "
-                        f"expected={_expected_shift}"
-                    )
-                _expected_source_sha = _sha256_file(m5_path)
-                _observed_source_sha = str(_disk_manifest.get("m5_prebuilt_source_sha256") or "").strip()
-                if _observed_source_sha != _expected_source_sha:
-                    raise RuntimeError(
-                        "[MULTI_TF_CACHE_SOURCE_SHA_MISMATCH] "
-                        f"cache={_disk_cache_dir} observed={_observed_source_sha or '<missing>'} "
-                        f"expected={_expected_source_sha} m5_prebuilt={m5_path}"
-                    )
-                _loaded_cache = load_multi_tf_v2_cache(_disk_cache_dir)
-                # FRESHNESS GUARD (2026-07-04 stale-cache incident): the disk cache is
-                # keyed by filename, so an in-place-extended prebuilt silently serves a
-                # stale snapshot — June eval bars got MTF context frozen at 2026-05-25
-                # (same freeze class as the 2026-05-25 BASE34 incident, rule 9). The
-                # dataset-build side already fail-closes on this; this is the eval/train
-                # twin. Cache lagging the prebuilt by >2 days = hard error, never a
-                # silent frozen-context eval.
-                import pyarrow.parquet as _pq
-                _prebuilt_max = pd.to_datetime(
-                    _pq.read_table(m5_path, columns=["time"]).column("time").to_numpy(zero_copy_only=False).max(),
-                    utc=True,
-                )
-                _cache_max = _loaded_cache["M5"].index.max()
-                if _cache_max + pd.Timedelta(days=2) < _prebuilt_max:
-                    raise RuntimeError(
-                        f"[MULTI_TF_CACHE_STALE] disk cache M5 max {_cache_max} lags prebuilt "
-                        f"{_prebuilt_max} by >2d — regenerate via "
-                        f"python -m gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt {m5_path} "
-                        f"--out-dir {_disk_cache_dir}"
-                    )
-                self._multi_tf_feats = _loaded_cache
-                _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
-            else:
-                log.info(f"[MULTI_TF] loading M5 prebuilt for resample: {m5_path.name} (v2={v2_mode})")
-                load_cols = ["time", "open", "high", "low", "close"]
-                if v2_mode:
-                    # V2 needs volume for VWAP family — fall back to tick-equal if missing.
-                    import pyarrow.parquet as pq
-                    if "volume" in pq.ParquetFile(m5_path).schema_arrow.names:
-                        load_cols.append("volume")
-                m5 = pd.read_parquet(m5_path, columns=load_cols)
-                m5["time"] = pd.to_datetime(m5["time"], utc=True)
-                m5 = m5.set_index("time").sort_index()
-                for c in ("open", "high", "low", "close"):
-                    m5[c] = m5[c].astype(np.float32)
-                if "volume" in m5.columns:
-                    m5["volume"] = m5["volume"].astype(np.float32)
-                tf_label = "M5+M15+H1+H4+D1 (V2 25-feat)" if v2_mode else "M15+H1+H4+D1 (V1 17-feat)"
-                log.info(f"[MULTI_TF] M5 prebuilt: {len(m5):,} rows, building {tf_label}...")
-                if v2_mode:
-                    self._multi_tf_feats = build_multi_tf_per_bar_features_v2(m5)
-                else:
-                    self._multi_tf_feats = build_multi_tf_per_bar_features(m5)
-                    # V1 returned all 5 keys (M5/M15/H1/H4/D1) historically; V1
-                    # V10 trainer expects only 4 (M5 is the base seq). Filter.
-                    self._multi_tf_feats = {
-                        k: v for k, v in self._multi_tf_feats.items() if k != "M5"
-                    }
-                del m5
-                import gc; gc.collect()
-                _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
-            self._multi_tf_shift = MULTI_TF_SHIFT
-            self._multi_tf_target_availability_shift = (
-                pd.Timedelta(minutes=5)
-                if self._multi_tf_closed_bar
-                else pd.Timedelta(0)
+            _observed_shift = (
+                _disk_manifest.get("shift_contract")
+                if isinstance(_disk_manifest.get("shift_contract"), dict)
+                else {}
             )
-            self._multi_tf_feature_count = (
-                int(MULTI_TF_FEATURE_COUNT_V2) if v2_mode else int(MULTI_TF_FEATURE_COUNT)
-            )
-            self._multi_tf_v2 = bool(v2_mode)
-            for tf_name, feats in self._multi_tf_feats.items():
-                log.info(
-                    f"[MULTI_TF] {tf_name}: {len(feats):,} bars × {feats.shape[1]} feats  "
-                    f"range {feats.index[0]} → {feats.index[-1]}"
+            _expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
+            if _observed_shift != _expected_shift:
+                raise RuntimeError(
+                    "[MULTI_TF_CACHE_SHIFT_CONTRACT_MISMATCH] "
+                    f"cache={_disk_cache_dir} observed={_observed_shift or '<missing>'} "
+                    f"expected={_expected_shift}"
                 )
+            _expected_source_sha = _sha256_file(m5_path)
+            _observed_source_sha = str(_disk_manifest.get("m5_prebuilt_source_sha256") or "").strip()
+            if _observed_source_sha != _expected_source_sha:
+                raise RuntimeError(
+                    "[MULTI_TF_CACHE_SOURCE_SHA_MISMATCH] "
+                    f"cache={_disk_cache_dir} observed={_observed_source_sha or '<missing>'} "
+                    f"expected={_expected_source_sha} m5_prebuilt={m5_path}"
+                )
+            _loaded_cache = load_multi_tf_v2_cache(_disk_cache_dir)
+            # FRESHNESS GUARD (2026-07-04 stale-cache incident): the disk cache is
+            # keyed by filename, so an in-place-extended prebuilt silently serves a
+            # stale snapshot — June eval bars got MTF context frozen at 2026-05-25
+            # (same freeze class as the 2026-05-25 BASE34 incident, rule 9). The
+            # dataset-build side already fail-closes on this; this is the eval/train
+            # twin. Cache lagging the prebuilt by >2 days = hard error, never a
+            # silent frozen-context eval.
+            import pyarrow.parquet as _pq
+            _prebuilt_max = pd.to_datetime(
+                _pq.read_table(m5_path, columns=["time"]).column("time").to_numpy(zero_copy_only=False).max(),
+                utc=True,
+            )
+            _cache_max = _loaded_cache["M5"].index.max()
+            if _cache_max != _prebuilt_max:
+                raise RuntimeError(
+                    f"[MULTI_TF_CACHE_STALE] disk cache M5 max {_cache_max} does not exactly "
+                    f"match prebuilt max {_prebuilt_max} — regenerate via "
+                    f"python -m gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt {m5_path} "
+                    f"--out-dir {_disk_cache_dir}"
+                )
+            self._multi_tf_feats = _loaded_cache
+            _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
+        else:
+            log.info(f"[MULTI_TF] loading M5 prebuilt for exact V2 resample: {m5_path.name}")
+            load_cols = ["time", "open", "high", "low", "close", "volume"]
+            import pyarrow.parquet as pq
+            _source_columns = set(pq.ParquetFile(m5_path).schema_arrow.names)
+            _missing_mtf_source = [name for name in load_cols if name not in _source_columns]
+            if _missing_mtf_source:
+                raise RuntimeError(
+                    "[MULTI_TF_SOURCE_CONTRACT] exact canonical M5 OHLCV source missing: "
+                    f"{_missing_mtf_source}"
+                )
+            m5 = pd.read_parquet(m5_path, columns=load_cols)
+            m5["time"] = pd.to_datetime(m5["time"], utc=True)
+            m5 = m5.set_index("time").sort_index()
+            for c in ("open", "high", "low", "close"):
+                m5[c] = m5[c].astype(np.float32)
+            m5["volume"] = m5["volume"].astype(np.float32)
+            tf_label = "M5+M15+H1+H4+D1 (V2 25-feat causal)"
+            log.info(f"[MULTI_TF] M5 prebuilt: {len(m5):,} rows, building {tf_label}...")
+            self._multi_tf_feats = build_multi_tf_per_bar_features_v2(m5)
+            del m5
+            import gc
 
-        # V2 fast-train: smoke-date subset (applies to BOTH advanced and flat schemas).
-        # Subsets self.indices only — np_seq + df rows are kept intact (idx-addressed).
-        if self.smoke_date_from or self.smoke_date_to:
-            times = pd.to_datetime(self.df["time"], utc=True, errors="coerce")
-            mask = np.ones(len(times), dtype=bool)
-            if self.smoke_date_from:
-                from_ts = pd.Timestamp(self.smoke_date_from, tz="UTC")
-                mask &= (times >= from_ts).values
-            if self.smoke_date_to:
-                to_ts = pd.Timestamp(self.smoke_date_to, tz="UTC")
-                mask &= (times <= to_ts).values
-            kept = np.where(mask)[0]
-            # Intersect with existing self.indices (preserves seq_len warmup constraint of flat schema).
-            self.indices = np.array(sorted(set(self.indices.tolist()) & set(kept.tolist())), dtype=np.int64)
+            gc.collect()
+            _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
+        self._multi_tf_shift = MULTI_TF_SHIFT
+        self._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
+        self._multi_tf_feature_count = int(MULTI_TF_FEATURE_COUNT_V2)
+        self._multi_tf_v2 = True
+        for tf_name, feats in self._multi_tf_feats.items():
             log.info(
-                f"[SMOKE_DATE] range=[{self.smoke_date_from or '*'}..{self.smoke_date_to or '*'}] "
-                f"samples kept: {len(self.indices):,}/{len(times):,}"
+                f"[MULTI_TF] {tf_name}: {len(feats):,} bars × {feats.shape[1]} feats  "
+                f"range {feats.index[0]} → {feats.index[-1]}"
             )
 
     def _get_multi_tf_window(self, target_ts: pd.Timestamp) -> Dict[str, np.ndarray]:
         """Slice the multi-TF window at-or-before target_ts, using per-TF seq_len.
 
         Returns dict with one 'seq_<tf>' key per TF in self._multi_tf_feats. Each
-        array shape = (per_tf_lens[TF], feature_count) float32, left-zero-padded
-        on warmup.
+        array shape = (per_tf_lens[TF], feature_count) float32. Insufficient
+        history or indicator warmup fails closed.
         """
         from gx1.features.htf_features import get_last_n_at_or_before
         default_n = self.multi_tf_seq_len
@@ -2675,10 +2542,7 @@ class EntryV10CtxDataset(Dataset):
             # __getitem__ now just slices for speed + memory efficiency.
             seq = self._np_seq[t]
             snap = self._np_snap[t]
-            ctx_cont = self._np_ctx_cont[t].copy()   # copy so concatenate below is safe
-            if _is_vnext() and self._ctx_vnext_extra is not None:
-                extra = self._ctx_vnext_extra[t]
-                ctx_cont = np.concatenate([ctx_cont, extra.astype(np.float32)], axis=0)
+            ctx_cont = self._np_ctx_cont[t]
             ctx_cat = self._np_ctx_cat[t]
             y = int(np.asarray(row["y_direction"]).ravel()[0])
             if y not in (0, 1, 2):
@@ -2707,132 +2571,22 @@ class EntryV10CtxDataset(Dataset):
                 "ctx_cont": torch.tensor(ctx_cont),
                 "ctx_cat": torch.tensor(ctx_cat),
                 "y": torch.tensor(y, dtype=torch.long),
-                "y_tradable": torch.tensor(float(row["y_tradable"]), dtype=torch.float32),
-                "mfe_first_n_bps": torch.tensor(float(row["mfe_first_n_bps"]), dtype=torch.float32),
-                "path_quality_bps": torch.tensor(float(row["path_quality_bps"]), dtype=torch.float32),
-                "y_bad_path": torch.tensor(float(row.get("y_bad_path", 0.0)), dtype=torch.float32),
-                "y_dead_negative_long": torch.tensor(float(row.get("y_dead_negative_long", 0.0)), dtype=torch.float32),
-                "y_teaser_negative_long": torch.tensor(float(row.get("y_teaser_negative_long", 0.0)), dtype=torch.float32),
-                "y_hard_negative_long": torch.tensor(float(row.get("y_hard_negative_long", 0.0)), dtype=torch.float32),
-                # SHORT-side negatives (vedtak v10_symmetric_negatives_20260603) — fed only when
-                # ENTRY_SYMMETRIC_NEGATIVES=1; default 0.0 fallback keeps cement bit-parity.
-                "y_dead_negative_short": torch.tensor(float(row.get("y_dead_negative_short", 0.0)), dtype=torch.float32),
-                "y_teaser_negative_short": torch.tensor(float(row.get("y_teaser_negative_short", 0.0)), dtype=torch.float32),
-                "y_hard_negative_short": torch.tensor(float(row.get("y_hard_negative_short", 0.0)), dtype=torch.float32),
-                "y_clean_edge_long": torch.tensor(float(row.get("y_clean_edge_long", 0.0)), dtype=torch.float32),
-                "y_survival_long": torch.tensor(float(row.get("y_survival_long", 0.0)), dtype=torch.float32),
-                # bidir quality labels + short selector (vedtak v10_symmetric_negatives_20260603)
-                "y_selector_short_mask": torch.tensor(float(row.get("y_selector_short_mask", 0.0)), dtype=torch.float32),
-                "y_clean_edge_bidir": torch.tensor(float(row.get("y_clean_edge_bidir", 0.0)), dtype=torch.float32),
-                "y_survival_bidir": torch.tensor(float(row.get("y_survival_bidir", 0.0)), dtype=torch.float32),
-                "y_trade": torch.tensor(float(row.get("y_trade", row.get("y_tradable", 1.0 if y in (0, 1) else 0.0))), dtype=torch.float32),
-                "y_side": torch.tensor(int(row.get("y_side", 0 if y == 0 else 1 if y == 1 else 0)), dtype=torch.long),
-                "y_side_mask": torch.tensor(float(row.get("y_side_mask", 1.0 if y in (0, 1) else 0.0)), dtype=torch.float32),
-                "y_long_path_utility_bps": torch.tensor(float(row.get("y_long_path_utility_bps", row.get("y_direction_long_score_bps", 0.0))), dtype=torch.float32),
-                "y_short_path_utility_bps": torch.tensor(float(row.get("y_short_path_utility_bps", row.get("y_direction_short_score_bps", 0.0))), dtype=torch.float32),
-                "y_long_bad_path": torch.tensor(float(row.get("y_long_bad_path", 0.0)), dtype=torch.float32),
-                "y_short_bad_path": torch.tensor(float(row.get("y_short_bad_path", 0.0)), dtype=torch.float32),
-                "y_long_expected_mae_bps": torch.tensor(float(row.get("y_long_expected_mae_bps", 0.0)), dtype=torch.float32),
-                "y_short_expected_mae_bps": torch.tensor(float(row.get("y_short_expected_mae_bps", 0.0)), dtype=torch.float32),
-                "y_rising_channel_support_touch": torch.tensor(float(row.get("y_rising_channel_support_touch", 0.0)), dtype=torch.float32),
-                "y_falling_channel_resistance_touch": torch.tensor(float(row.get("y_falling_channel_resistance_touch", 0.0)), dtype=torch.float32),
-                "y_support_retest_continuation": torch.tensor(float(row.get("y_support_retest_continuation", 0.0)), dtype=torch.float32),
-                "y_resistance_retest_continuation": torch.tensor(float(row.get("y_resistance_retest_continuation", 0.0)), dtype=torch.float32),
-                "y_countertrend_short_trap": torch.tensor(float(row.get("y_countertrend_short_trap", 0.0)), dtype=torch.float32),
-                "y_countertrend_long_trap": torch.tensor(float(row.get("y_countertrend_long_trap", 0.0)), dtype=torch.float32),
-                "y_mtf_conflict_m5_vs_higher_side": torch.tensor(float(row.get("y_mtf_conflict_m5_vs_higher_side", 0.0)), dtype=torch.float32),
-                "y_long_high_mae_low_mfe_early_failure": torch.tensor(float(row.get("y_long_high_mae_low_mfe_early_failure", 0.0)), dtype=torch.float32),
-                "y_short_high_mae_low_mfe_early_failure": torch.tensor(float(row.get("y_short_high_mae_low_mfe_early_failure", 0.0)), dtype=torch.float32),
-                "y_teacher_bad_long": torch.tensor(float(row.get("y_teacher_bad_long", row.get("y_v6_teacher_bad_long", 0.0))), dtype=torch.float32),
-                "y_teacher_winner_long": torch.tensor(float(row.get("y_teacher_winner_long", row.get("y_v6_teacher_winner_long", 0.0))), dtype=torch.float32),
-                "y_selector_long_mask": torch.tensor(float(row.get("y_selector_long_mask", 0.0)), dtype=torch.float32),
-                # V10 v3+ Target 1: multi-TF trend-agreement score (fallback 0.5 = neutral)
-                "y_tf_agreement_score": torch.tensor(float(row.get("y_tf_agreement_score", 0.5)), dtype=torch.float32),
-                # V10 v3+ Target 3: position-size target (fallback 0.5 = neutral)
-                "y_position_size_target": torch.tensor(float(row.get("y_position_size_target", 0.5)), dtype=torch.float32),
-                # V10 v3+ Target 4: hold-horizon target (fallback 0.5 = ~720 bars)
-                "y_hold_horizon_target": torch.tensor(float(row.get("y_hold_horizon_target", 0.5)), dtype=torch.float32),
             }
-            for _tcol in _DIP_FORECAST_TARGET_COLS:  # dip(12) + forecast(4) head targets
-                out_batch[_tcol] = torch.tensor(float(row.get(_tcol, 0.0)), dtype=torch.float32)
-            if self.enable_multi_tf:
-                mtf = self._get_multi_tf_window(pd.Timestamp(row["time"]))
-                for k, v in mtf.items():
-                    out_batch[k] = torch.from_numpy(v)
-            return out_batch
-        else:
-            t = self.indices[i]
-            start = t - self.seq_len + 1
-
-            seq = self.df.iloc[start : t + 1][self.signal_cols].values.astype(np.float32)
-            snap = self.df.iloc[t][self.signal_cols].values.astype(np.float32)
-            ctx_cont = self.df.iloc[t][self.ctx_cont_cols].values.astype(np.float32)
-            if _is_vnext() and self._ctx_vnext_extra is not None:
-                extra = self._ctx_vnext_extra[t]
-                ctx_cont = np.concatenate([ctx_cont, extra.astype(np.float32)], axis=0)
-            ctx_cat = self.df.iloc[t][self.ctx_cat_cols].values.astype(np.int64)
-            y = int(self.df.iloc[t]["y_direction"])
-            if y not in (0, 1, 2):
-                raise RuntimeError(f"[ENTRY_V10_CTX_LABEL_INVALID] y_direction={y} expected 0/1/2")
-
-            out_batch = {
-                "seq_x": torch.tensor(seq),
-                "snap_x": torch.tensor(snap),
-                "ctx_cont": torch.tensor(ctx_cont),
-                "ctx_cat": torch.tensor(ctx_cat),
-                "y": torch.tensor(y, dtype=torch.long),
-                "y_tradable": torch.tensor(0.0, dtype=torch.float32),
-                "mfe_first_n_bps": torch.tensor(0.0, dtype=torch.float32),
-                "path_quality_bps": torch.tensor(0.0, dtype=torch.float32),
-                "y_bad_path": torch.tensor(0.0, dtype=torch.float32),
-                "y_dead_negative_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_teaser_negative_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_hard_negative_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_dead_negative_short": torch.tensor(0.0, dtype=torch.float32),
-                "y_teaser_negative_short": torch.tensor(0.0, dtype=torch.float32),
-                "y_hard_negative_short": torch.tensor(0.0, dtype=torch.float32),
-                "y_clean_edge_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_survival_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_selector_short_mask": torch.tensor(0.0, dtype=torch.float32),
-                "y_clean_edge_bidir": torch.tensor(0.0, dtype=torch.float32),
-                "y_survival_bidir": torch.tensor(0.0, dtype=torch.float32),
-                "y_trade": torch.tensor(float(1.0 if y in (0, 1) else 0.0), dtype=torch.float32),
-                "y_side": torch.tensor(0 if y == 0 else 1 if y == 1 else 0, dtype=torch.long),
-                "y_side_mask": torch.tensor(float(1.0 if y in (0, 1) else 0.0), dtype=torch.float32),
-                "y_long_path_utility_bps": torch.tensor(0.0, dtype=torch.float32),
-                "y_short_path_utility_bps": torch.tensor(0.0, dtype=torch.float32),
-                "y_long_bad_path": torch.tensor(0.0, dtype=torch.float32),
-                "y_short_bad_path": torch.tensor(0.0, dtype=torch.float32),
-                "y_long_expected_mae_bps": torch.tensor(0.0, dtype=torch.float32),
-                "y_short_expected_mae_bps": torch.tensor(0.0, dtype=torch.float32),
-                "y_rising_channel_support_touch": torch.tensor(0.0, dtype=torch.float32),
-                "y_falling_channel_resistance_touch": torch.tensor(0.0, dtype=torch.float32),
-                "y_support_retest_continuation": torch.tensor(0.0, dtype=torch.float32),
-                "y_resistance_retest_continuation": torch.tensor(0.0, dtype=torch.float32),
-                "y_countertrend_short_trap": torch.tensor(0.0, dtype=torch.float32),
-                "y_countertrend_long_trap": torch.tensor(0.0, dtype=torch.float32),
-                "y_mtf_conflict_m5_vs_higher_side": torch.tensor(0.0, dtype=torch.float32),
-                "y_long_high_mae_low_mfe_early_failure": torch.tensor(0.0, dtype=torch.float32),
-                "y_short_high_mae_low_mfe_early_failure": torch.tensor(0.0, dtype=torch.float32),
-                "y_teacher_bad_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_teacher_winner_long": torch.tensor(0.0, dtype=torch.float32),
-                "y_selector_long_mask": torch.tensor(0.0, dtype=torch.float32),
-                # V10 v3+ Target 1: tf_agreement neutral fallback for flat schema
-                "y_tf_agreement_score": torch.tensor(0.5, dtype=torch.float32),
-                # V10 v3+ Target 3: position-size neutral fallback for flat schema
-                "y_position_size_target": torch.tensor(0.5, dtype=torch.float32),
-                # V10 v3+ Target 4: hold-horizon neutral fallback for flat schema
-                "y_hold_horizon_target": torch.tensor(0.5, dtype=torch.float32),
-            }
-            _row_t = self.df.iloc[t]
-            for _tcol in _DIP_FORECAST_TARGET_COLS:  # dip(12) + forecast(4) head targets
-                _v = _row_t[_tcol] if _tcol in self.df.columns else 0.0
-                out_batch[_tcol] = torch.tensor(float(_v), dtype=torch.float32)
-            if self.enable_multi_tf:
-                target_ts = pd.Timestamp(self.df.iloc[t]["time"])
-                mtf = self._get_multi_tf_window(target_ts)
-                for k, v in mtf.items():
-                    out_batch[k] = torch.from_numpy(v)
+            # Every active target was validated in __init__ and is read
+            # directly. There are no aliases, defaults, or compatibility rows.
+            for target_name in _MODEL_NATIVE_ACTIVE_TARGET_COLS:
+                if target_name == "y_direction":
+                    continue
+                target_dtype = torch.long if target_name == "y_side" else torch.float32
+                target_value = (
+                    int(row[target_name])
+                    if target_dtype == torch.long
+                    else float(row[target_name])
+                )
+                out_batch[target_name] = torch.tensor(target_value, dtype=target_dtype)
+            mtf = self._get_multi_tf_window(pd.Timestamp(row["time"]))
+            for k, v in mtf.items():
+                out_batch[k] = torch.from_numpy(v)
             return out_batch
 
 # -----------------------------------------------------------------------------
@@ -3922,246 +3676,6 @@ def _hier_slice_flat_logit_margin_term(
     return weight * _direction_slice_loss_aggregate(values)
 
 
-def _hier_public_flat_consistency_term(
-    direction_logits: Optional[torch.Tensor],
-    trade_logit: torch.Tensor,
-    y_trade: torch.Tensor,
-    *,
-    flat_logit: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
-    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
-    weight = float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
-    if weight <= 0.0:
-        return zero
-    if direction_logits is None or direction_logits.ndim != 2 or direction_logits.shape[1] < 3:
-        return zero
-    logits = trade_logit.reshape(-1)
-    if direction_logits.shape[0] != logits.shape[0]:
-        return zero
-    flat_logits = flat_logit.reshape(-1) if isinstance(flat_logit, torch.Tensor) else None
-    if flat_logits is not None and flat_logits.shape[0] != logits.shape[0]:
-        return zero
-    flat_mask = y_trade.reshape(-1).float() <= 0.5
-    if flat_mask.numel() != logits.shape[0]:
-        return zero
-    min_label_rate = float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE)
-    if min_label_rate < 0.0 or min_label_rate > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
-            f"ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
-        )
-    flat_rate = float(flat_mask.float().mean().detach().cpu().item())
-    if flat_rate < min_label_rate:
-        return zero
-    public_flat_prob = torch.softmax(direction_logits.float(), dim=1)[:, 2]
-    hier_flat_prob = (
-        torch.sigmoid(flat_logits.float())
-        if flat_logits is not None
-        else 1.0 - torch.sigmoid(logits.float())
-    )
-    return weight * nn.functional.mse_loss(public_flat_prob, hier_flat_prob)
-
-
-def _hier_slice_public_flat_consistency_term(
-    direction_logits: Optional[torch.Tensor],
-    trade_logit: torch.Tensor,
-    y_trade: torch.Tensor,
-    ctx_cat: Optional[torch.Tensor],
-    *,
-    flat_logit: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
-    zero = torch.zeros((), device=trade_logit.device, dtype=trade_logit.dtype)
-    weight = float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
-    if weight <= 0.0:
-        return zero
-    if direction_logits is None or direction_logits.ndim != 2 or direction_logits.shape[1] < 3:
-        return zero
-    if ctx_cat is None or ctx_cat.ndim != 2:
-        return zero
-    logits = trade_logit.reshape(-1)
-    if direction_logits.shape[0] != logits.shape[0] or ctx_cat.shape[0] != logits.shape[0]:
-        return zero
-    flat_logits = flat_logit.reshape(-1) if isinstance(flat_logit, torch.Tensor) else None
-    if flat_logits is not None and flat_logits.shape[0] != logits.shape[0]:
-        return zero
-    flat_mask = y_trade.reshape(-1).float() <= 0.5
-    if flat_mask.numel() != logits.shape[0]:
-        return zero
-
-    min_rows = int(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS)
-    min_label_rate = float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE)
-    if min_rows < 2:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS_INVALID] "
-            f"ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS={min_rows} expected >=2"
-        )
-    if min_label_rate < 0.0 or min_label_rate > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
-            f"ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE={min_label_rate:.6f} expected [0.0, 1.0]"
-        )
-    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
-    if not indices:
-        return zero
-
-    public_flat_prob = torch.softmax(direction_logits.float(), dim=1)[:, 2]
-    hier_flat_prob = (
-        torch.sigmoid(flat_logits.float())
-        if flat_logits is not None
-        else 1.0 - torch.sigmoid(logits.float())
-    )
-    values: list[torch.Tensor] = []
-    for idx in indices:
-        slice_values = torch.unique(ctx_cat[:, idx].long())
-        for value in slice_values:
-            mask = ctx_cat[:, idx].long() == value
-            rows = int(mask.sum().detach().cpu().item())
-            if rows < min_rows:
-                continue
-            slice_flat = flat_mask & mask
-            flat_rows = int(slice_flat.sum().detach().cpu().item())
-            if flat_rows < 1:
-                continue
-            if (float(flat_rows) / float(max(1, rows))) < min_label_rate:
-                continue
-            values.append(nn.functional.mse_loss(public_flat_prob[mask], hier_flat_prob[mask]))
-    if not values:
-        return zero
-    return weight * _direction_slice_loss_aggregate(values)
-
-
-def _hier_public_trade_flat_margin_term(
-    public_trade_logit: torch.Tensor,
-    public_flat_logit: torch.Tensor,
-    y_trade: torch.Tensor,
-) -> torch.Tensor:
-    zero = torch.zeros((), device=public_trade_logit.device, dtype=public_trade_logit.dtype)
-    weight = float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT)
-    if weight <= 0.0:
-        return zero
-    trade_logits = public_trade_logit.reshape(-1)
-    flat_logits = public_flat_logit.reshape(-1)
-    if trade_logits.shape[0] != flat_logits.shape[0]:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_SHAPE_INVALID] "
-            f"public_trade_rows={trade_logits.shape[0]} public_flat_rows={flat_logits.shape[0]}"
-        )
-    targets = y_trade.reshape(-1).float()
-    if targets.numel() != trade_logits.shape[0]:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_TARGET_SHAPE_INVALID] "
-            f"target_rows={targets.numel()} logit_rows={trade_logits.shape[0]}"
-        )
-    margin = float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN)
-    min_label_rate = float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE)
-    if margin < 0.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_INVALID] "
-            f"ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN={margin:.6f} expected >=0.0"
-        )
-    if min_label_rate < 0.0 or min_label_rate > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE_INVALID] "
-            "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="
-            f"{min_label_rate:.6f} expected [0.0, 1.0]"
-        )
-    trade_mask = targets > 0.5
-    flat_mask = ~trade_mask
-    margin_t = torch.as_tensor(margin, device=trade_logits.device, dtype=trade_logits.dtype)
-    values: list[torch.Tensor] = []
-    if float(trade_mask.float().mean().detach().cpu().item()) >= min_label_rate and trade_mask.any():
-        values.append(torch.relu(flat_logits[trade_mask] - trade_logits[trade_mask] + margin_t).mean())
-    if float(flat_mask.float().mean().detach().cpu().item()) >= min_label_rate and flat_mask.any():
-        values.append(torch.relu(trade_logits[flat_mask] - flat_logits[flat_mask] + margin_t).mean())
-    if not values:
-        return zero
-    return weight * torch.stack(values).mean()
-
-
-def _hier_slice_public_trade_flat_margin_term(
-    public_trade_logit: torch.Tensor,
-    public_flat_logit: torch.Tensor,
-    y_trade: torch.Tensor,
-    ctx_cat: Optional[torch.Tensor],
-) -> torch.Tensor:
-    zero = torch.zeros((), device=public_trade_logit.device, dtype=public_trade_logit.dtype)
-    weight = float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT)
-    if weight <= 0.0:
-        return zero
-    if ctx_cat is None or ctx_cat.ndim != 2:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_CTX_INVALID] "
-            "ctx_cat must be rank-2 when ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT > 0"
-        )
-    trade_logits = public_trade_logit.reshape(-1)
-    flat_logits = public_flat_logit.reshape(-1)
-    if trade_logits.shape[0] != flat_logits.shape[0] or ctx_cat.shape[0] != trade_logits.shape[0]:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_SHAPE_INVALID] "
-            f"public_trade_rows={trade_logits.shape[0]} public_flat_rows={flat_logits.shape[0]} "
-            f"ctx_rows={ctx_cat.shape[0]}"
-        )
-    targets = y_trade.reshape(-1).float()
-    if targets.numel() != trade_logits.shape[0]:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_TARGET_SHAPE_INVALID] "
-            f"target_rows={targets.numel()} logit_rows={trade_logits.shape[0]}"
-        )
-
-    margin = float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN)
-    min_rows = int(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS)
-    min_label_rate = float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE)
-    if margin < 0.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_INVALID] "
-            f"ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN={margin:.6f} expected >=0.0"
-        )
-    if min_rows < 2:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS_INVALID] "
-            f"ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS={min_rows} expected >=2"
-        )
-    if min_label_rate < 0.0 or min_label_rate > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE_INVALID] "
-            "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="
-            f"{min_label_rate:.6f} expected [0.0, 1.0]"
-        )
-    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
-    if not indices:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_CTX_INDICES_EMPTY] "
-            "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES must select at least one ctx_cat column"
-        )
-
-    margin_t = torch.as_tensor(margin, device=trade_logits.device, dtype=trade_logits.dtype)
-    trade_mask_all = targets > 0.5
-    flat_mask_all = ~trade_mask_all
-    values: list[torch.Tensor] = []
-    for idx in indices:
-        slice_values = torch.unique(ctx_cat[:, idx].long())
-        for value in slice_values:
-            mask = ctx_cat[:, idx].long() == value
-            rows = int(mask.sum().detach().cpu().item())
-            if rows < min_rows:
-                continue
-            trade_mask = trade_mask_all & mask
-            flat_mask = flat_mask_all & mask
-            trade_rows = int(trade_mask.sum().detach().cpu().item())
-            flat_rows = int(flat_mask.sum().detach().cpu().item())
-            if trade_rows > 0 and (float(trade_rows) / float(max(1, rows))) >= min_label_rate:
-                values.append(
-                    torch.relu(flat_logits[trade_mask] - trade_logits[trade_mask] + margin_t).mean()
-                )
-            if flat_rows > 0 and (float(flat_rows) / float(max(1, rows))) >= min_label_rate:
-                values.append(
-                    torch.relu(trade_logits[flat_mask] - flat_logits[flat_mask] + margin_t).mean()
-                )
-    if not values:
-        return zero
-    return weight * _direction_slice_loss_aggregate(values)
-
-
 def _hier_side_global_prior_match_term(
     side_logits: torch.Tensor,
     side_targets: torch.Tensor,
@@ -4206,7 +3720,6 @@ def _hier_side_global_prior_match_term(
     drift = torch.abs(pred_rates[active] - label_rates[active])
     tol = torch.as_tensor(tolerance, device=side_logits.device, dtype=side_logits.dtype)
     return weight * torch.relu(drift - tol).sum()
-
 
 def _hier_slice_side_prior_match_term(
     side_logits: torch.Tensor,
@@ -4273,7 +3786,6 @@ def _hier_slice_side_prior_match_term(
     if not values:
         return zero
     return weight * _direction_slice_loss_aggregate(values)
-
 
 def _direction_slice_accuracy_edge_term(
     logits: torch.Tensor,
@@ -4344,7 +3856,6 @@ def _direction_slice_accuracy_edge_term(
     if not values:
         return zero
     return weight * _direction_slice_loss_aggregate(values)
-
 
 def _direction_slice_confusion_pair_term(
     logits: torch.Tensor,
@@ -4422,7 +3933,6 @@ def _direction_slice_confusion_pair_term(
     if not values:
         return zero
     return weight * _direction_slice_loss_aggregate(values)
-
 
 def _direction_slice_prior_match_term(
     probs: torch.Tensor,
@@ -4853,9 +4363,17 @@ def _build_cost_sensitive_criterion(
 
 def _specialist_gate_regularization(out: dict[str, Any], device: torch.device) -> tuple[torch.Tensor, dict[str, float]]:
     gate = out.get("specialist_gate")
-    zero = torch.zeros((), device=device)
-    if gate is None or not isinstance(gate, torch.Tensor) or gate.numel() == 0:
-        return zero, {"entropy": 0.0, "min_mean": 0.0, "kl_uniform": 0.0, "floor_hinge": 0.0}
+    if not isinstance(gate, torch.Tensor):
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output=specialist_gate"
+        )
+    if gate.ndim != 2 or gate.shape[1] != 8 or gate.numel() == 0:
+        raise RuntimeError(
+            "[ENTRY_SPECIALIST_GATE_SHAPE_INVALID] "
+            f"shape={tuple(gate.shape)} expected=(batch,8)"
+        )
+    if not bool(torch.isfinite(gate).all().item()):
+        raise RuntimeError("[ENTRY_SPECIALIST_GATE_NONFINITE]")
     gate = gate.float().clamp(min=1e-8)
     mean_gate = gate.mean(dim=0)
     entropy = -(gate * gate.log()).sum(dim=1).mean()
@@ -4878,15 +4396,17 @@ def _specialist_gate_regularization(out: dict[str, Any], device: torch.device) -
 
 
 def _bad_path_quality_rank_loss(
-    bad_path_logit: torch.Tensor | None,
+    bad_path_logit: torch.Tensor,
     path_quality_bps: torch.Tensor,
     device: torch.device,
 ) -> torch.Tensor:
     zero = torch.zeros((), device=device)
     if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) <= 0.0:
         return zero
-    if bad_path_logit is None or not isinstance(bad_path_logit, torch.Tensor) or bad_path_logit.numel() == 0:
-        return zero
+    if not isinstance(bad_path_logit, torch.Tensor) or bad_path_logit.numel() == 0:
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output=bad_path_logit"
+        )
     logits = bad_path_logit.reshape(-1).float()
     quality = path_quality_bps.reshape(-1).float()
     finite = torch.isfinite(logits) & torch.isfinite(quality)
@@ -4911,15 +4431,17 @@ def _bad_path_quality_rank_loss(
 
 
 def _path_quality_rank_loss(
-    path_quality_pred: torch.Tensor | None,
+    path_quality_pred: torch.Tensor,
     path_quality_bps: torch.Tensor,
     device: torch.device,
 ) -> torch.Tensor:
     zero = torch.zeros((), device=device)
     if float(ENTRY_PATH_QUALITY_RANK_WEIGHT) <= 0.0:
         return zero
-    if path_quality_pred is None or not isinstance(path_quality_pred, torch.Tensor) or path_quality_pred.numel() == 0:
-        return zero
+    if not isinstance(path_quality_pred, torch.Tensor) or path_quality_pred.numel() == 0:
+        raise RuntimeError(
+            "[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output=path_quality"
+        )
     pred = path_quality_pred.reshape(-1).float()
     quality = path_quality_bps.reshape(-1).float()
     finite = torch.isfinite(pred) & torch.isfinite(quality)
@@ -5043,12 +4565,7 @@ def _hierarchical_entry_loss(
     trade_pos_weight: float,
     side_bad_path_pos_weight: Any,
 ) -> tuple[torch.Tensor, Dict[str, float]]:
-    """Opt-in XAU direction repair objective.
-
-    The legacy LONG/SHORT/FLAT CE is kept for compatibility. These heads teach
-    the missing decomposition explicitly: trade/no-trade first, then side given
-    trade, then per-side path utility / bad-path / MAE.
-    """
+    """Supervise the mandatory evidence heads consumed by direction fusion."""
     total = torch.tensor(0.0, device=device)
     stats: Dict[str, float] = {
         "hier_trade_loss": 0.0,
@@ -5057,30 +4574,12 @@ def _hierarchical_entry_loss(
         "hier_slice_trade_accuracy_edge_loss": 0.0,
         "hier_flat_logit_margin_loss": 0.0,
         "hier_slice_flat_logit_margin_loss": 0.0,
-        "hier_public_trade_loss": 0.0,
-        "hier_public_flat_loss": 0.0,
-        "hier_public_trade_global_prior_loss": 0.0,
-        "hier_public_slice_trade_prior_loss": 0.0,
-        "hier_public_slice_trade_accuracy_edge_loss": 0.0,
-        "hier_public_flat_logit_margin_loss": 0.0,
-        "hier_public_slice_flat_logit_margin_loss": 0.0,
-        "hier_public_flat_consistency_loss": 0.0,
-        "hier_slice_public_flat_consistency_loss": 0.0,
-        "hier_public_trade_flat_margin_loss": 0.0,
-        "hier_slice_public_trade_flat_margin_loss": 0.0,
         "hier_side_loss": 0.0,
         "hier_slice_side_ce_loss": 0.0,
         "hier_slice_side_margin_loss": 0.0,
         "hier_slice_side_accuracy_edge_loss": 0.0,
         "hier_side_global_prior_loss": 0.0,
         "hier_slice_side_prior_loss": 0.0,
-        "hier_public_side_loss": 0.0,
-        "hier_public_slice_side_ce_loss": 0.0,
-        "hier_public_slice_side_margin_loss": 0.0,
-        "hier_public_slice_side_accuracy_edge_loss": 0.0,
-        "hier_public_side_global_prior_loss": 0.0,
-        "hier_public_slice_side_prior_loss": 0.0,
-        "hier_public_side_head_residual_cap_loss": 0.0,
         "hier_utility_loss": 0.0,
         "hier_bad_path_loss": 0.0,
         "hier_mae_loss": 0.0,
@@ -5089,54 +4588,26 @@ def _hierarchical_entry_loss(
         "hier_short_valid_target_rate": 0.0,
         "hier_long_valid_prob_mean": 0.0,
         "hier_short_valid_prob_mean": 0.0,
-        "hier_pocket_abstain_loss": 0.0,
-        "hier_pocket_abstain_rows": 0.0,
-        "hier_pocket_side_margin_loss": 0.0,
-        "hier_pocket_anti_short_rows": 0.0,
-        "hier_pocket_anti_long_rows": 0.0,
         "hier_side_rows": 0.0,
         "hier_side_acc": 0.0,
-        "hier_public_side_rows": 0.0,
-        "hier_public_side_acc": 0.0,
         "hier_long_bad_target_rate": 0.0,
         "hier_short_bad_target_rate": 0.0,
-        "hier_countertrend_long_trap_rate": 0.0,
-        "hier_countertrend_short_trap_rate": 0.0,
     }
-    trade_logit = out.get("trade_logit")
-    public_trade_logit = out.get("public_trade_logit")
-    public_flat_logit = out.get("public_flat_logit")
-    direction_logits = out.get("direction_logits")
-    side_logits = out.get("side_logits")
-    public_side_logits = out.get("public_side_logits")
-    public_side_dir_margin_bridge = out.get("public_side_dir_margin_bridge")
-    side_utility = out.get("side_utility")
-    side_bad_path_logit = out.get("side_bad_path_logit")
-    side_mae = out.get("side_mae")
-    side_validity_logit = out.get("side_validity_logit")
-    if (
-        trade_logit is None
-        and public_trade_logit is None
-        and public_flat_logit is None
-        and side_logits is None
-        and public_side_logits is None
-        and side_utility is None
-        and side_bad_path_logit is None
-        and side_mae is None
-        and side_validity_logit is None
-    ):
-        return total, stats
+    trade_logit = out["trade_logit"]
+    side_logits = out["side_logits"]
+    side_utility = out["side_utility"]
+    side_bad_path_logit = out["side_bad_path_logit"]
+    side_mae = out["side_mae"]
+    side_validity_logit = out["side_validity_logit"]
 
     non_blocking = device.type == "cuda"
     y_trade = batch["y_trade"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     y_side = batch["y_side"].to(device, non_blocking=non_blocking).long().clamp(0, 1)
     y_side_mask = batch["y_side_mask"].to(device, non_blocking=non_blocking).float() > 0.5
-    ctx_cat_value = batch.get("ctx_cat")
-    ctx_cat = (
-        ctx_cat_value.to(device, non_blocking=non_blocking)
-        if isinstance(ctx_cat_value, torch.Tensor)
-        else None
-    )
+    ctx_cat_value = batch["ctx_cat"]
+    if not isinstance(ctx_cat_value, torch.Tensor):
+        raise RuntimeError("[ENTRY_MODEL_NATIVE_ACTIVE_CONTEXT_MISSING] ctx_cat")
+    ctx_cat = ctx_cat_value.to(device, non_blocking=non_blocking)
     y_long_util = batch["y_long_path_utility_bps"].to(device, non_blocking=non_blocking).float()
     y_short_util = batch["y_short_path_utility_bps"].to(device, non_blocking=non_blocking).float()
     y_long_bad = batch["y_long_bad_path"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
@@ -5144,89 +4615,24 @@ def _hierarchical_entry_loss(
     y_long_mae = batch["y_long_expected_mae_bps"].to(device, non_blocking=non_blocking).float().clamp_min(0.0)
     y_short_mae = batch["y_short_expected_mae_bps"].to(device, non_blocking=non_blocking).float().clamp_min(0.0)
 
-    def optional_label(name: str, like: torch.Tensor) -> torch.Tensor:
-        value = batch.get(name)
-        if value is None:
-            return torch.zeros_like(like)
-        return value.to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-
-    # Direction repair: turn explicit continuation/trap labels into side-specific
-    # bad-path supervision. This is a learned target contract, not a live rule:
-    # the model still decides, but it is punished for assigning low bad-path
-    # probability to the wrong side in known support/resistance continuation traps.
-    y_support_retest_continue = optional_label("y_support_retest_continuation", y_short_bad)
-    y_resistance_retest_continue = optional_label("y_resistance_retest_continuation", y_long_bad)
-    y_countertrend_short_trap = optional_label("y_countertrend_short_trap", y_short_bad)
-    y_countertrend_long_trap = optional_label("y_countertrend_long_trap", y_long_bad)
-    y_short_early_fail = optional_label("y_short_high_mae_low_mfe_early_failure", y_short_bad)
-    y_long_early_fail = optional_label("y_long_high_mae_low_mfe_early_failure", y_long_bad)
-    y_rising_support_touch = optional_label("y_rising_channel_support_touch", y_trade)
-    y_falling_resistance_touch = optional_label("y_falling_channel_resistance_touch", y_trade)
-    y_short_bad = torch.maximum(
-        y_short_bad,
-        torch.maximum(
-            torch.maximum(y_support_retest_continue, y_countertrend_short_trap),
-            y_short_early_fail,
-        ),
-    )
-    y_long_bad = torch.maximum(
-        y_long_bad,
-        torch.maximum(
-            torch.maximum(y_resistance_retest_continue, y_countertrend_long_trap),
-            y_long_early_fail,
-        ),
-    )
+    # Side utility, bad-path, and MAE targets are forward-outcome contracts.  Do
+    # not rewrite them from structural/trend labels here: those labels remain
+    # available to the model through the full signal stack and the dedicated
+    # rail auxiliary head, while direction is learned only from outcome truth.
     stats["hier_long_bad_target_rate"] = float(y_long_bad.detach().mean().cpu().item())
     stats["hier_short_bad_target_rate"] = float(y_short_bad.detach().mean().cpu().item())
-    stats["hier_countertrend_long_trap_rate"] = float(y_countertrend_long_trap.detach().mean().cpu().item())
-    stats["hier_countertrend_short_trap_rate"] = float(y_countertrend_short_trap.detach().mean().cpu().item())
     util_scale = max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS))
     mae_scale = max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS))
     valid_long_trade_target = (
         (y_long_util >= float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS))
         & (y_long_bad < 0.5)
-        & (y_long_early_fail <= 0.5)
     )
     valid_short_trade_target = (
         (y_short_util >= float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS))
         & (y_short_bad < 0.5)
-        & (y_short_early_fail <= 0.5)
     )
-    support_touch_abstain = (
-        (y_rising_support_touch > 0.5)
-        & (y_support_retest_continue <= 0.5)
-        & (~valid_long_trade_target)
-    )
-    resistance_touch_abstain = (
-        (y_falling_resistance_touch > 0.5)
-        & (y_resistance_retest_continue <= 0.5)
-        & (~valid_short_trade_target)
-    )
-    long_failure_abstain = (y_long_early_fail > 0.5) & (~valid_short_trade_target)
-    short_failure_abstain = (y_short_early_fail > 0.5) & (~valid_long_trade_target)
-    pocket_abstain_mask = (
-        support_touch_abstain
-        | resistance_touch_abstain
-        | long_failure_abstain
-        | short_failure_abstain
-    )
-    anti_short_mask = (
-        (y_rising_support_touch > 0.5)
-        | (y_support_retest_continue > 0.5)
-        | (y_countertrend_short_trap > 0.5)
-        | (y_short_early_fail > 0.5)
-    )
-    anti_long_mask = (
-        (y_falling_resistance_touch > 0.5)
-        | (y_resistance_retest_continue > 0.5)
-        | (y_countertrend_long_trap > 0.5)
-        | (y_long_early_fail > 0.5)
-    )
-    stats["hier_pocket_abstain_rows"] = float(int(pocket_abstain_mask.sum().detach().cpu().item()))
-    stats["hier_pocket_anti_short_rows"] = float(int(anti_short_mask.sum().detach().cpu().item()))
-    stats["hier_pocket_anti_long_rows"] = float(int(anti_long_mask.sum().detach().cpu().item()))
 
-    if trade_logit is not None and float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
+    if float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
         raw = nn.functional.binary_cross_entropy_with_logits(
             trade_logit.squeeze(1),
             y_trade,
@@ -5236,317 +4642,75 @@ def _hierarchical_entry_loss(
         total = total + weighted
         stats["hier_trade_loss"] = float(weighted.detach().cpu().item())
 
-    if trade_logit is not None:
-        hier_trade_global_prior = _hier_trade_global_prior_match_term(trade_logit, y_trade)
-        if hier_trade_global_prior.numel() == 1:
-            total = total + hier_trade_global_prior
-            stats["hier_trade_global_prior_loss"] = float(hier_trade_global_prior.detach().cpu().item())
-        hier_slice_trade_prior = _hier_slice_trade_prior_match_term(trade_logit, y_trade, ctx_cat)
-        if hier_slice_trade_prior.numel() == 1:
-            total = total + hier_slice_trade_prior
-            stats["hier_slice_trade_prior_loss"] = float(hier_slice_trade_prior.detach().cpu().item())
-        hier_slice_trade_accuracy_edge = _hier_slice_trade_accuracy_edge_term(
-            trade_logit,
-            y_trade,
-            ctx_cat,
-        )
-        if hier_slice_trade_accuracy_edge.numel() == 1:
-            total = total + hier_slice_trade_accuracy_edge
-            stats["hier_slice_trade_accuracy_edge_loss"] = float(
-                hier_slice_trade_accuracy_edge.detach().cpu().item()
-            )
-        hier_flat_logit_margin = _hier_flat_logit_margin_term(trade_logit, y_trade)
-        if hier_flat_logit_margin.numel() == 1:
-            total = total + hier_flat_logit_margin
-            stats["hier_flat_logit_margin_loss"] = float(hier_flat_logit_margin.detach().cpu().item())
-        hier_slice_flat_logit_margin = _hier_slice_flat_logit_margin_term(trade_logit, y_trade, ctx_cat)
-        if hier_slice_flat_logit_margin.numel() == 1:
-            total = total + hier_slice_flat_logit_margin
-            stats["hier_slice_flat_logit_margin_loss"] = float(
-                hier_slice_flat_logit_margin.detach().cpu().item()
-            )
-        public_flat_source_logit = (
-            public_trade_logit
-            if isinstance(public_trade_logit, torch.Tensor)
-            else trade_logit
-        )
-        hier_public_flat_consistency = _hier_public_flat_consistency_term(
-            direction_logits if isinstance(direction_logits, torch.Tensor) else None,
-            public_flat_source_logit,
-            y_trade,
-            flat_logit=public_flat_logit if isinstance(public_flat_logit, torch.Tensor) else None,
-        )
-        if hier_public_flat_consistency.numel() == 1:
-            total = total + hier_public_flat_consistency
-            stats["hier_public_flat_consistency_loss"] = float(
-                hier_public_flat_consistency.detach().cpu().item()
-            )
-        hier_slice_public_flat_consistency = _hier_slice_public_flat_consistency_term(
-            direction_logits if isinstance(direction_logits, torch.Tensor) else None,
-            public_flat_source_logit,
-            y_trade,
-            ctx_cat,
-            flat_logit=public_flat_logit if isinstance(public_flat_logit, torch.Tensor) else None,
-        )
-        if hier_slice_public_flat_consistency.numel() == 1:
-            total = total + hier_slice_public_flat_consistency
-            stats["hier_slice_public_flat_consistency_loss"] = float(
-                hier_slice_public_flat_consistency.detach().cpu().item()
-            )
-
-    if public_trade_logit is not None and float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
-        raw = nn.functional.binary_cross_entropy_with_logits(
-            public_trade_logit.reshape(-1),
-            y_trade,
-            pos_weight=torch.tensor(
-                float(trade_pos_weight),
-                device=device,
-                dtype=public_trade_logit.dtype,
-            ),
-        )
-        weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
+    hier_trade_global_prior = _hier_trade_global_prior_match_term(trade_logit, y_trade)
+    total = total + hier_trade_global_prior
+    stats["hier_trade_global_prior_loss"] = float(hier_trade_global_prior.detach().cpu().item())
+    hier_slice_trade_prior = _hier_slice_trade_prior_match_term(trade_logit, y_trade, ctx_cat)
+    total = total + hier_slice_trade_prior
+    stats["hier_slice_trade_prior_loss"] = float(hier_slice_trade_prior.detach().cpu().item())
+    hier_slice_trade_accuracy_edge = _hier_slice_trade_accuracy_edge_term(
+        trade_logit,
+        y_trade,
+        ctx_cat,
+    )
+    total = total + hier_slice_trade_accuracy_edge
+    stats["hier_slice_trade_accuracy_edge_loss"] = float(
+        hier_slice_trade_accuracy_edge.detach().cpu().item()
+    )
+    hier_flat_logit_margin = _hier_flat_logit_margin_term(trade_logit, y_trade)
+    total = total + hier_flat_logit_margin
+    stats["hier_flat_logit_margin_loss"] = float(hier_flat_logit_margin.detach().cpu().item())
+    hier_slice_flat_logit_margin = _hier_slice_flat_logit_margin_term(trade_logit, y_trade, ctx_cat)
+    total = total + hier_slice_flat_logit_margin
+    stats["hier_slice_flat_logit_margin_loss"] = float(
+        hier_slice_flat_logit_margin.detach().cpu().item()
+    )
+    if float(ENTRY_HIER_SIDE_WEIGHT) > 0.0 and y_side_mask.any():
+        raw = nn.functional.cross_entropy(side_logits[y_side_mask], y_side[y_side_mask])
+        weighted = float(ENTRY_HIER_SIDE_WEIGHT) * raw
         total = total + weighted
-        stats["hier_public_trade_loss"] = float(weighted.detach().cpu().item())
+        pred_side = torch.argmax(side_logits[y_side_mask], dim=1)
+        stats["hier_side_rows"] = float(int(y_side_mask.sum().detach().cpu().item()))
+        stats["hier_side_acc"] = float((pred_side == y_side[y_side_mask]).float().mean().detach().cpu().item())
+        stats["hier_side_loss"] = float(weighted.detach().cpu().item())
+    hier_slice_side_ce = _hier_slice_side_balanced_ce_term(side_logits, y_side, y_side_mask, ctx_cat)
+    total = total + hier_slice_side_ce
+    stats["hier_slice_side_ce_loss"] = float(hier_slice_side_ce.detach().cpu().item())
+    hier_slice_side_margin = _hier_slice_side_true_margin_term(side_logits, y_side, y_side_mask, ctx_cat)
+    total = total + hier_slice_side_margin
+    stats["hier_slice_side_margin_loss"] = float(hier_slice_side_margin.detach().cpu().item())
+    hier_slice_side_accuracy_edge = _hier_slice_side_accuracy_edge_term(
+        side_logits,
+        y_side,
+        y_side_mask,
+        ctx_cat,
+    )
+    total = total + hier_slice_side_accuracy_edge
+    stats["hier_slice_side_accuracy_edge_loss"] = float(
+        hier_slice_side_accuracy_edge.detach().cpu().item()
+    )
+    hier_side_global_prior = _hier_side_global_prior_match_term(side_logits, y_side, y_side_mask)
+    total = total + hier_side_global_prior
+    stats["hier_side_global_prior_loss"] = float(hier_side_global_prior.detach().cpu().item())
+    hier_slice_side_prior = _hier_slice_side_prior_match_term(side_logits, y_side, y_side_mask, ctx_cat)
+    total = total + hier_slice_side_prior
+    stats["hier_slice_side_prior_loss"] = float(hier_slice_side_prior.detach().cpu().item())
 
-    if public_flat_logit is not None and float(ENTRY_HIER_TRADE_WEIGHT) > 0.0:
-        flat_pos_weight = 1.0 / max(float(trade_pos_weight), 1e-6)
-        raw = nn.functional.binary_cross_entropy_with_logits(
-            public_flat_logit.reshape(-1),
-            1.0 - y_trade,
-            pos_weight=torch.tensor(
-                float(flat_pos_weight),
-                device=device,
-                dtype=public_flat_logit.dtype,
-            ),
-        )
-        weighted = float(ENTRY_HIER_TRADE_WEIGHT) * raw
-        total = total + weighted
-        stats["hier_public_flat_loss"] = float(weighted.detach().cpu().item())
-
-    if public_trade_logit is not None:
-        hier_public_trade_global_prior = _hier_trade_global_prior_match_term(
-            public_trade_logit,
-            y_trade,
-        )
-        if hier_public_trade_global_prior.numel() == 1:
-            total = total + hier_public_trade_global_prior
-            stats["hier_public_trade_global_prior_loss"] = float(
-                hier_public_trade_global_prior.detach().cpu().item()
-            )
-        hier_public_slice_trade_prior = _hier_slice_trade_prior_match_term(
-            public_trade_logit,
-            y_trade,
-            ctx_cat,
-        )
-        if hier_public_slice_trade_prior.numel() == 1:
-            total = total + hier_public_slice_trade_prior
-            stats["hier_public_slice_trade_prior_loss"] = float(
-                hier_public_slice_trade_prior.detach().cpu().item()
-            )
-        hier_public_slice_trade_accuracy_edge = _hier_slice_trade_accuracy_edge_term(
-            public_trade_logit,
-            y_trade,
-            ctx_cat,
-        )
-        if hier_public_slice_trade_accuracy_edge.numel() == 1:
-            total = total + hier_public_slice_trade_accuracy_edge
-            stats["hier_public_slice_trade_accuracy_edge_loss"] = float(
-                hier_public_slice_trade_accuracy_edge.detach().cpu().item()
-            )
-        hier_public_flat_logit_margin = _hier_flat_logit_margin_term(public_trade_logit, y_trade)
-        if hier_public_flat_logit_margin.numel() == 1:
-            total = total + hier_public_flat_logit_margin
-            stats["hier_public_flat_logit_margin_loss"] = float(
-                hier_public_flat_logit_margin.detach().cpu().item()
-            )
-        hier_public_slice_flat_logit_margin = _hier_slice_flat_logit_margin_term(
-            public_trade_logit,
-            y_trade,
-            ctx_cat,
-        )
-        if hier_public_slice_flat_logit_margin.numel() == 1:
-            total = total + hier_public_slice_flat_logit_margin
-            stats["hier_public_slice_flat_logit_margin_loss"] = float(
-                hier_public_slice_flat_logit_margin.detach().cpu().item()
-            )
-
-    if public_trade_logit is not None and public_flat_logit is not None:
-        hier_public_trade_flat_margin = _hier_public_trade_flat_margin_term(
-            public_trade_logit,
-            public_flat_logit,
-            y_trade,
-        )
-        if hier_public_trade_flat_margin.numel() == 1:
-            total = total + hier_public_trade_flat_margin
-            stats["hier_public_trade_flat_margin_loss"] = float(
-                hier_public_trade_flat_margin.detach().cpu().item()
-            )
-        hier_slice_public_trade_flat_margin = _hier_slice_public_trade_flat_margin_term(
-            public_trade_logit,
-            public_flat_logit,
-            y_trade,
-            ctx_cat,
-        )
-        if hier_slice_public_trade_flat_margin.numel() == 1:
-            total = total + hier_slice_public_trade_flat_margin
-            stats["hier_slice_public_trade_flat_margin_loss"] = float(
-                hier_slice_public_trade_flat_margin.detach().cpu().item()
-            )
-
-    if (
-        trade_logit is not None
-        and float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT) > 0.0
-        and pocket_abstain_mask.any()
-    ):
-        raw = nn.functional.binary_cross_entropy_with_logits(
-            trade_logit.reshape(-1)[pocket_abstain_mask],
-            torch.zeros_like(y_trade[pocket_abstain_mask], dtype=trade_logit.dtype),
-        )
-        weighted = float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT) * raw
-        total = total + weighted
-        stats["hier_pocket_abstain_loss"] = float(weighted.detach().cpu().item())
-
-    if side_logits is not None:
-        if float(ENTRY_HIER_SIDE_WEIGHT) > 0.0 and y_side_mask.any():
-            raw = nn.functional.cross_entropy(side_logits[y_side_mask], y_side[y_side_mask])
-            weighted = float(ENTRY_HIER_SIDE_WEIGHT) * raw
-            total = total + weighted
-            pred_side = torch.argmax(side_logits[y_side_mask], dim=1)
-            stats["hier_side_rows"] = float(int(y_side_mask.sum().detach().cpu().item()))
-            stats["hier_side_acc"] = float((pred_side == y_side[y_side_mask]).float().mean().detach().cpu().item())
-            stats["hier_side_loss"] = float(weighted.detach().cpu().item())
-        hier_slice_side_ce = _hier_slice_side_balanced_ce_term(side_logits, y_side, y_side_mask, ctx_cat)
-        if hier_slice_side_ce.numel() == 1:
-            total = total + hier_slice_side_ce
-            stats["hier_slice_side_ce_loss"] = float(hier_slice_side_ce.detach().cpu().item())
-        hier_slice_side_margin = _hier_slice_side_true_margin_term(side_logits, y_side, y_side_mask, ctx_cat)
-        if hier_slice_side_margin.numel() == 1:
-            total = total + hier_slice_side_margin
-            stats["hier_slice_side_margin_loss"] = float(hier_slice_side_margin.detach().cpu().item())
-        hier_slice_side_accuracy_edge = _hier_slice_side_accuracy_edge_term(
-            side_logits,
-            y_side,
-            y_side_mask,
-            ctx_cat,
-        )
-        if hier_slice_side_accuracy_edge.numel() == 1:
-            total = total + hier_slice_side_accuracy_edge
-            stats["hier_slice_side_accuracy_edge_loss"] = float(
-                hier_slice_side_accuracy_edge.detach().cpu().item()
-            )
-        hier_side_global_prior = _hier_side_global_prior_match_term(side_logits, y_side, y_side_mask)
-        if hier_side_global_prior.numel() == 1:
-            total = total + hier_side_global_prior
-            stats["hier_side_global_prior_loss"] = float(hier_side_global_prior.detach().cpu().item())
-        hier_slice_side_prior = _hier_slice_side_prior_match_term(side_logits, y_side, y_side_mask, ctx_cat)
-        if hier_slice_side_prior.numel() == 1:
-            total = total + hier_slice_side_prior
-            stats["hier_slice_side_prior_loss"] = float(hier_slice_side_prior.detach().cpu().item())
-
-    if public_side_logits is not None and isinstance(public_side_logits, torch.Tensor):
-        if float(ENTRY_HIER_SIDE_WEIGHT) > 0.0 and y_side_mask.any():
-            raw = nn.functional.cross_entropy(public_side_logits[y_side_mask], y_side[y_side_mask])
-            weighted = float(ENTRY_HIER_SIDE_WEIGHT) * raw
-            total = total + weighted
-            pred_side = torch.argmax(public_side_logits[y_side_mask], dim=1)
-            stats["hier_public_side_rows"] = float(int(y_side_mask.sum().detach().cpu().item()))
-            stats["hier_public_side_acc"] = float(
-                (pred_side == y_side[y_side_mask]).float().mean().detach().cpu().item()
-            )
-            stats["hier_public_side_loss"] = float(weighted.detach().cpu().item())
-        hier_public_slice_side_ce = _hier_slice_side_balanced_ce_term(
-            public_side_logits,
-            y_side,
-            y_side_mask,
-            ctx_cat,
-        )
-        if hier_public_slice_side_ce.numel() == 1:
-            total = total + hier_public_slice_side_ce
-            stats["hier_public_slice_side_ce_loss"] = float(
-                hier_public_slice_side_ce.detach().cpu().item()
-            )
-        hier_public_slice_side_margin = _hier_slice_side_true_margin_term(
-            public_side_logits,
-            y_side,
-            y_side_mask,
-            ctx_cat,
-        )
-        if hier_public_slice_side_margin.numel() == 1:
-            total = total + hier_public_slice_side_margin
-            stats["hier_public_slice_side_margin_loss"] = float(
-                hier_public_slice_side_margin.detach().cpu().item()
-            )
-        hier_public_slice_side_accuracy_edge = _hier_slice_side_accuracy_edge_term(
-            public_side_logits,
-            y_side,
-            y_side_mask,
-            ctx_cat,
-        )
-        if hier_public_slice_side_accuracy_edge.numel() == 1:
-            total = total + hier_public_slice_side_accuracy_edge
-            stats["hier_public_slice_side_accuracy_edge_loss"] = float(
-                hier_public_slice_side_accuracy_edge.detach().cpu().item()
-            )
-        hier_public_side_global_prior = _hier_side_global_prior_match_term(
-            public_side_logits,
-            y_side,
-            y_side_mask,
-        )
-        if hier_public_side_global_prior.numel() == 1:
-            total = total + hier_public_side_global_prior
-            stats["hier_public_side_global_prior_loss"] = float(
-                hier_public_side_global_prior.detach().cpu().item()
-            )
-        hier_public_slice_side_prior = _hier_slice_side_prior_match_term(
-            public_side_logits,
-            y_side,
-            y_side_mask,
-            ctx_cat,
-        )
-        if hier_public_slice_side_prior.numel() == 1:
-            total = total + hier_public_slice_side_prior
-            stats["hier_public_slice_side_prior_loss"] = float(
-                hier_public_slice_side_prior.detach().cpu().item()
-            )
-        if (
-            isinstance(public_side_dir_margin_bridge, torch.Tensor)
-            and public_side_dir_margin_bridge.shape == public_side_logits.shape
-            and float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT) > 0.0
-        ):
-            residual_cap = float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP)
-            if residual_cap <= 0.0:
-                raise RuntimeError(
-                    "[ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_INVALID] "
-                    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP must be >0 when "
-                    "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT>0"
-                )
-            public_side_head_residual = public_side_logits - public_side_dir_margin_bridge.detach()
-            cap_t = torch.as_tensor(
-                residual_cap,
-                device=public_side_logits.device,
-                dtype=public_side_logits.dtype,
-            )
-            excess = torch.relu(public_side_head_residual.abs() - cap_t)
-            raw = torch.square(excess).mean()
-            weighted = float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT) * raw
-            total = total + weighted
-            stats["hier_public_side_head_residual_cap_loss"] = float(
-                weighted.detach().cpu().item()
-            )
-
-    if side_utility is not None and float(ENTRY_HIER_UTILITY_WEIGHT) > 0.0:
+    if float(ENTRY_HIER_UTILITY_WEIGHT) > 0.0:
         util_target = (torch.stack([y_long_util, y_short_util], dim=1) / util_scale).to(dtype=side_utility.dtype)
         raw = nn.functional.smooth_l1_loss(side_utility, util_target)
         weighted = float(ENTRY_HIER_UTILITY_WEIGHT) * raw
         total = total + weighted
         stats["hier_utility_loss"] = float(weighted.detach().cpu().item())
 
-    if side_bad_path_logit is not None and float(ENTRY_HIER_BAD_PATH_WEIGHT) > 0.0:
+    if float(ENTRY_HIER_BAD_PATH_WEIGHT) > 0.0:
         bad_target = torch.stack([y_long_bad, y_short_bad], dim=1).to(dtype=side_bad_path_logit.dtype)
         if isinstance(side_bad_path_pos_weight, (list, tuple, np.ndarray)):
             weights = [float(x) for x in list(side_bad_path_pos_weight)[:2]]
             if len(weights) != 2:
-                weights = [1.0, 1.0]
+                raise RuntimeError(
+                    "[ENTRY_HIER_BAD_PATH_POS_WEIGHT_INVALID] expected exactly two weights"
+                )
         else:
             weights = [float(side_bad_path_pos_weight), float(side_bad_path_pos_weight)]
         raw = nn.functional.binary_cross_entropy_with_logits(
@@ -5562,14 +4726,14 @@ def _hierarchical_entry_loss(
         total = total + weighted
         stats["hier_bad_path_loss"] = float(weighted.detach().cpu().item())
 
-    if side_mae is not None and float(ENTRY_HIER_MAE_WEIGHT) > 0.0:
+    if float(ENTRY_HIER_MAE_WEIGHT) > 0.0:
         mae_target = (torch.stack([y_long_mae, y_short_mae], dim=1) / mae_scale).to(dtype=side_mae.dtype)
         raw = nn.functional.smooth_l1_loss(side_mae, mae_target)
         weighted = float(ENTRY_HIER_MAE_WEIGHT) * raw
         total = total + weighted
         stats["hier_mae_loss"] = float(weighted.detach().cpu().item())
 
-    if side_validity_logit is not None and float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT) > 0.0:
+    if float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT) > 0.0:
         validity_target = torch.stack(
             [valid_long_trade_target.float(), valid_short_trade_target.float()],
             dim=1,
@@ -5596,273 +4760,67 @@ def _hierarchical_entry_loss(
         stats["hier_long_valid_prob_mean"] = float(valid_prob[:, 0].mean().cpu().item())
         stats["hier_short_valid_prob_mean"] = float(valid_prob[:, 1].mean().cpu().item())
 
-    pocket_margin_terms = []
-    if float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT) > 0.0:
-        margin = float(ENTRY_TRENDLINE_RAIL_MARGIN)
-        if side_logits is not None and isinstance(side_logits, torch.Tensor) and side_logits.ndim == 2 and side_logits.shape[1] >= 2:
-            side_logits_f = side_logits.float()
-            if anti_short_mask.any():
-                pocket_margin_terms.append(
-                    nn.functional.softplus(
-                        side_logits_f[anti_short_mask, 1] - side_logits_f[anti_short_mask, 0] + margin
-                    ).mean()
-                )
-            if anti_long_mask.any():
-                pocket_margin_terms.append(
-                    nn.functional.softplus(
-                        side_logits_f[anti_long_mask, 0] - side_logits_f[anti_long_mask, 1] + margin
-                    ).mean()
-                )
-        if side_bad_path_logit is not None and isinstance(side_bad_path_logit, torch.Tensor) and side_bad_path_logit.ndim == 2 and side_bad_path_logit.shape[1] >= 2:
-            side_bad_f = side_bad_path_logit.float()
-            if anti_short_mask.any():
-                pocket_margin_terms.append(
-                    nn.functional.softplus(
-                        side_bad_f[anti_short_mask, 0] - side_bad_f[anti_short_mask, 1] + margin
-                    ).mean()
-                )
-            if anti_long_mask.any():
-                pocket_margin_terms.append(
-                    nn.functional.softplus(
-                        side_bad_f[anti_long_mask, 1] - side_bad_f[anti_long_mask, 0] + margin
-                    ).mean()
-                )
-        if side_utility is not None and isinstance(side_utility, torch.Tensor) and side_utility.ndim == 2 and side_utility.shape[1] >= 2:
-            side_utility_f = side_utility.float()
-            utility_margin = float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS) / util_scale
-            if anti_short_mask.any():
-                pocket_margin_terms.append(
-                    nn.functional.softplus(
-                        side_utility_f[anti_short_mask, 1] - side_utility_f[anti_short_mask, 0] + utility_margin
-                    ).mean()
-                )
-            if anti_long_mask.any():
-                pocket_margin_terms.append(
-                    nn.functional.softplus(
-                        side_utility_f[anti_long_mask, 0] - side_utility_f[anti_long_mask, 1] + utility_margin
-                    ).mean()
-                )
-    if pocket_margin_terms:
-        raw = torch.stack(pocket_margin_terms).mean()
-        weighted = float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT) * raw
-        total = total + weighted
-        stats["hier_pocket_side_margin_loss"] = float(weighted.detach().cpu().item())
-
     return total, stats
 
 
 def _trendline_rail_aux_loss(
     out: Dict[str, torch.Tensor],
     batch: Dict[str, torch.Tensor],
-    direction_probs: torch.Tensor,
     device: torch.device,
 ) -> tuple[torch.Tensor, Dict[str, float]]:
-    logits = out.get("trendline_rail_logits")
+    """Train rail evidence without imposing a hand-written direction mapping."""
+    logits = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="trendline_rail_logits",
+        target_names=(
+            "y_rising_channel_support_touch",
+            "y_falling_channel_resistance_touch",
+            "y_countertrend_short_trap",
+            "y_countertrend_long_trap",
+            "y_short_high_mae_low_mfe_early_failure",
+            "y_long_high_mae_low_mfe_early_failure",
+        ),
+    )
     stats = {
         "trendline_rail_loss": 0.0,
         "trendline_rail_rows": 0.0,
         "trendline_rising_rows": 0.0,
         "trendline_falling_rows": 0.0,
-        "trendline_wrong_side_prob": 0.0,
-        "trendline_rising_wrong_short_prob": 0.0,
-        "trendline_falling_wrong_long_prob": 0.0,
-        "trendline_final_margin_loss": 0.0,
-        "trendline_hier_margin_loss": 0.0,
-        "trendline_flat_trade_loss": 0.0,
-        "trendline_utility_margin_loss": 0.0,
     }
-    if logits is None or not isinstance(logits, torch.Tensor) or logits.numel() == 0:
-        return torch.tensor(0.0, device=device), stats
     if float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) <= 0.0:
-        return torch.tensor(0.0, device=device), stats
+        raise RuntimeError(
+            "[ENTRY_TRENDLINE_RAIL_HEAD_UNTRAINED] loss weight must be positive"
+        )
 
     non_blocking = device.type == "cuda"
     rising = batch["y_rising_channel_support_touch"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     falling = batch["y_falling_channel_resistance_touch"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     short_trap = batch["y_countertrend_short_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     long_trap = batch["y_countertrend_long_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    like = rising
-
-    def optional_label(name: str) -> torch.Tensor:
-        value = batch.get(name)
-        if value is None:
-            return torch.zeros_like(like)
-        return value.to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-
-    support_continue = optional_label("y_support_retest_continuation")
-    resistance_continue = optional_label("y_resistance_retest_continuation")
-    short_early_fail = optional_label("y_short_high_mae_low_mfe_early_failure")
-    long_early_fail = optional_label("y_long_high_mae_low_mfe_early_failure")
-    target_parts = [rising, falling, short_trap, long_trap]
-    if logits.ndim == 2 and logits.shape[1] >= 6:
-        target_parts.extend([short_early_fail, long_early_fail])
-    targets = torch.stack(target_parts, dim=1).to(dtype=logits.dtype)
+    short_early_fail = batch["y_short_high_mae_low_mfe_early_failure"].to(
+        device, non_blocking=non_blocking
+    ).float().clamp(0.0, 1.0)
+    long_early_fail = batch["y_long_high_mae_low_mfe_early_failure"].to(
+        device, non_blocking=non_blocking
+    ).float().clamp(0.0, 1.0)
+    targets = torch.stack(
+        [rising, falling, short_trap, long_trap, short_early_fail, long_early_fail],
+        dim=1,
+    ).to(dtype=logits.dtype)
     if logits.ndim != 2 or logits.shape[1] != targets.shape[1]:
         raise RuntimeError(
             "[ENTRY_TRENDLINE_RAIL_OUTPUT_DIM_MISMATCH] "
             f"logits_shape={tuple(logits.shape)} targets_shape={tuple(targets.shape)}"
         )
-    raw = nn.functional.binary_cross_entropy_with_logits(logits, targets)
-
-    anti_short_score = torch.maximum(
-        torch.maximum(torch.maximum(rising, support_continue), short_trap),
-        short_early_fail,
+    loss = float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) * nn.functional.binary_cross_entropy_with_logits(
+        logits,
+        targets,
     )
-    anti_long_score = torch.maximum(
-        torch.maximum(torch.maximum(falling, resistance_continue), long_trap),
-        long_early_fail,
-    )
-    rising_wrong_side = anti_short_score > 0.5
-    falling_wrong_side = anti_long_score > 0.5
-    wrong_side_terms = []
-    weighted_wrong_side_terms = []
-    if rising_wrong_side.any():
-        rising_wrong_short = direction_probs[rising_wrong_side, 1].mean()
-        wrong_side_terms.append(rising_wrong_short)
-        weighted_wrong_side_terms.append(
-            float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * rising_wrong_short
-        )
-        stats["trendline_rising_wrong_short_prob"] = float(rising_wrong_short.detach().cpu().item())
-    if falling_wrong_side.any():
-        falling_wrong_long = direction_probs[falling_wrong_side, 0].mean()
-        wrong_side_terms.append(falling_wrong_long)
-        weighted_wrong_side_terms.append(
-            float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * falling_wrong_long
-        )
-        stats["trendline_falling_wrong_long_prob"] = float(falling_wrong_long.detach().cpu().item())
-    wrong_side = (
-        torch.stack(wrong_side_terms).mean()
-        if wrong_side_terms
-        else torch.tensor(0.0, device=device, dtype=direction_probs.dtype)
-    )
-    weighted_wrong_side = (
-        torch.stack(weighted_wrong_side_terms).mean()
-        if weighted_wrong_side_terms
-        else torch.tensor(0.0, device=device, dtype=direction_probs.dtype)
-    )
-    loss = float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT) * raw
-    if weighted_wrong_side_terms:
-        loss = loss + weighted_wrong_side
-    margin = float(ENTRY_TRENDLINE_RAIL_MARGIN)
-    direction_logits = out.get("direction_logits")
-    if (
-        direction_logits is not None
-        and isinstance(direction_logits, torch.Tensor)
-        and direction_logits.ndim == 2
-        and direction_logits.shape[1] >= 3
-        and float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT) > 0.0
-    ):
-        dir_logits = direction_logits.float()
-        final_margin_terms = []
-        if rising_wrong_side.any():
-            allowed = torch.maximum(dir_logits[:, 0], dir_logits[:, 2])
-            short_margin = nn.functional.softplus(dir_logits[rising_wrong_side, 1] - allowed[rising_wrong_side] + margin).mean()
-            final_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * short_margin)
-        if falling_wrong_side.any():
-            allowed = torch.maximum(dir_logits[:, 1], dir_logits[:, 2])
-            long_margin = nn.functional.softplus(dir_logits[falling_wrong_side, 0] - allowed[falling_wrong_side] + margin).mean()
-            final_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * long_margin)
-        if final_margin_terms:
-            final_margin_loss = torch.stack(final_margin_terms).mean()
-            weighted_final_margin = float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT) * final_margin_loss
-            loss = loss + weighted_final_margin
-            stats["trendline_final_margin_loss"] = float(weighted_final_margin.detach().cpu().item())
-
-    hier_margin_terms = []
-    side_logits = out.get("side_logits")
-    if (
-        side_logits is not None
-        and isinstance(side_logits, torch.Tensor)
-        and side_logits.ndim == 2
-        and side_logits.shape[1] >= 2
-        and float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT) > 0.0
-    ):
-        side_logits_f = side_logits.float()
-        if rising_wrong_side.any():
-            side_short_margin = nn.functional.softplus(
-                side_logits_f[rising_wrong_side, 1] - side_logits_f[rising_wrong_side, 0] + margin
-            ).mean()
-            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * side_short_margin)
-        if falling_wrong_side.any():
-            side_long_margin = nn.functional.softplus(
-                side_logits_f[falling_wrong_side, 0] - side_logits_f[falling_wrong_side, 1] + margin
-            ).mean()
-            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * side_long_margin)
-
-    utility_margin_terms = []
-    side_utility = out.get("side_utility")
-    if (
-        side_utility is not None
-        and isinstance(side_utility, torch.Tensor)
-        and side_utility.ndim == 2
-        and side_utility.shape[1] >= 2
-        and float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT) > 0.0
-    ):
-        side_utility_f = side_utility.float()
-        utility_margin = float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS) / max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS))
-        if rising_wrong_side.any():
-            short_utility_margin = nn.functional.softplus(
-                side_utility_f[rising_wrong_side, 1] - side_utility_f[rising_wrong_side, 0] + utility_margin
-            ).mean()
-            utility_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * short_utility_margin)
-        if falling_wrong_side.any():
-            long_utility_margin = nn.functional.softplus(
-                side_utility_f[falling_wrong_side, 0] - side_utility_f[falling_wrong_side, 1] + utility_margin
-            ).mean()
-            utility_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * long_utility_margin)
-    if utility_margin_terms:
-        utility_margin_loss = torch.stack(utility_margin_terms).mean()
-        weighted_utility_margin = float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT) * utility_margin_loss
-        loss = loss + weighted_utility_margin
-        stats["trendline_utility_margin_loss"] = float(weighted_utility_margin.detach().cpu().item())
-
-    side_bad_path_logit = out.get("side_bad_path_logit")
-    if (
-        side_bad_path_logit is not None
-        and isinstance(side_bad_path_logit, torch.Tensor)
-        and side_bad_path_logit.ndim == 2
-        and side_bad_path_logit.shape[1] >= 2
-        and float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT) > 0.0
-    ):
-        side_bad_f = side_bad_path_logit.float()
-        if rising_wrong_side.any():
-            short_bad_margin = nn.functional.softplus(
-                side_bad_f[rising_wrong_side, 0] - side_bad_f[rising_wrong_side, 1] + margin
-            ).mean()
-            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT) * short_bad_margin)
-        if falling_wrong_side.any():
-            long_bad_margin = nn.functional.softplus(
-                side_bad_f[falling_wrong_side, 1] - side_bad_f[falling_wrong_side, 0] + margin
-            ).mean()
-            hier_margin_terms.append(float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT) * long_bad_margin)
-    if hier_margin_terms:
-        hier_margin_loss = torch.stack(hier_margin_terms).mean()
-        weighted_hier_margin = float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT) * hier_margin_loss
-        loss = loss + weighted_hier_margin
-        stats["trendline_hier_margin_loss"] = float(weighted_hier_margin.detach().cpu().item())
-
-    trade_logit = out.get("trade_logit")
-    if (
-        trade_logit is not None
-        and isinstance(trade_logit, torch.Tensor)
-        and float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT) > 0.0
-        and "y_trade" in batch
-    ):
-        y_trade = batch["y_trade"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-        flat_pocket = (rising_wrong_side | falling_wrong_side) & (y_trade <= 0.5)
-        if flat_pocket.any():
-            flat_trade_loss = nn.functional.binary_cross_entropy_with_logits(
-                trade_logit.reshape(-1)[flat_pocket],
-                torch.zeros_like(y_trade[flat_pocket], dtype=trade_logit.dtype),
-            )
-            weighted_flat_trade = float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT) * flat_trade_loss
-            loss = loss + weighted_flat_trade
-            stats["trendline_flat_trade_loss"] = float(weighted_flat_trade.detach().cpu().item())
     stats["trendline_rail_loss"] = float(loss.detach().cpu().item())
     stats["trendline_rail_rows"] = float(int((targets.max(dim=1).values > 0.5).sum().detach().cpu().item()))
-    stats["trendline_rising_rows"] = float(int(rising_wrong_side.sum().detach().cpu().item()))
-    stats["trendline_falling_rows"] = float(int(falling_wrong_side.sum().detach().cpu().item()))
-    stats["trendline_wrong_side_prob"] = float(wrong_side.detach().cpu().item())
+    stats["trendline_rising_rows"] = float(int((rising > 0.5).sum().detach().cpu().item()))
+    stats["trendline_falling_rows"] = float(int((falling > 0.5).sum().detach().cpu().item()))
     return loss, stats
 
 
@@ -5890,8 +4848,6 @@ def _aux_survival_target(
 
 
 def _clean_edge_rank_masks(
-    y_teacher_winner_long: torch.Tensor,
-    y_teacher_bad_long: torch.Tensor,
     y_clean_edge_long: torch.Tensor,
     y_clean_edge_bidir: torch.Tensor,
     y_dead_negative_long: torch.Tensor,
@@ -5904,8 +4860,7 @@ def _clean_edge_rank_masks(
     if ENTRY_SYMMETRIC_NEGATIVES:
         clean_pos = y_clean_edge_bidir.float() > 0.5
         ranked_neg = (
-            (y_teacher_bad_long.float() > 0.5)
-            | (y_dead_negative_long.float() > 0.5)
+            (y_dead_negative_long.float() > 0.5)
             | (y_teaser_negative_long.float() > 0.5)
             | (residual_hard_neg_long.float() > 0.5)
             | (y_dead_negative_short.float() > 0.5)
@@ -5914,15 +4869,12 @@ def _clean_edge_rank_masks(
         )
         return clean_pos, ranked_neg
 
-    clean_pos = y_teacher_winner_long.float() > 0.5
-    ranked_neg = y_teacher_bad_long.float() > 0.5
-    if not clean_pos.any() or not ranked_neg.any():
-        clean_pos = y_clean_edge_long.float() > 0.5
-        ranked_neg = (
-            (y_teacher_bad_long.float() > 0.5)
-            | (y_dead_negative_long.float() > 0.5)
-            | (y_teaser_negative_long.float() > 0.5)
-        )
+    clean_pos = y_clean_edge_long.float() > 0.5
+    ranked_neg = (
+        (y_dead_negative_long.float() > 0.5)
+        | (y_teaser_negative_long.float() > 0.5)
+        | (residual_hard_neg_long.float() > 0.5)
+    )
     return clean_pos, ranked_neg
 
 
@@ -5932,17 +4884,9 @@ def train_epoch(
     criterion,
     optimizer,
     device,
-    short_lead_margin: float,
-    long_penalty_weight: float,
-    residual_side_bias_alpha: float,
-    timing_target_bps: float,
-    timing_loss_scale: float,
-    aux_early_weight: float,
-    aux_quality_weight: float,
     aux_path_weight: float,
     aux_mfe_weight: float,
     aux_tradable_weight: float,
-    aux_quality_scale_bps: float,
     aux_path_scale_bps: float,
     aux_mfe_scale_bps: float,
     tradable_pos_weight: float,
@@ -5984,16 +4928,6 @@ def train_epoch(
     total_direction_utility_triad_ce = 0.0
     total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
-    total_timing = 0.0
-    total_aux_early = 0.0
-    total_aux_quality = 0.0
-    total_aux_path = 0.0
-    total_aux_mfe = 0.0
-    total_aux_tradable = 0.0
-    total_aux_clean_edge = 0.0
-    total_aux_survival = 0.0
-    total_clean_edge_rank = 0.0
-    total_aux_bad_path = 0.0
     specialist_gate_loss_sum = 0.0
     specialist_gate_entropy_sum = 0.0
     specialist_gate_min_mean_sum = 0.0
@@ -6002,16 +4936,6 @@ def train_epoch(
     n = 0
     short_total = 0
     short_pred_long = 0
-    short_lead_count = 0
-    short_lead_long_prob_sum = 0.0
-    anchor_abs_sum = 0.0
-    delta_abs_sum = 0.0
-    scaled_delta_abs_sum = 0.0
-    final_minus_anchor_abs_sum = 0.0
-    timing_mae_sum = 0.0
-    timing_penalty_sum = 0.0
-    early_loss_sum = 0.0
-    quality_loss_sum = 0.0
     path_loss_sum = 0.0
     mfe_loss_sum = 0.0
     tradable_loss_sum = 0.0
@@ -6027,30 +4951,12 @@ def train_epoch(
     hier_slice_trade_accuracy_edge_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
-    hier_public_trade_loss_sum = 0.0
-    hier_public_flat_loss_sum = 0.0
-    hier_public_trade_global_prior_loss_sum = 0.0
-    hier_public_slice_trade_prior_loss_sum = 0.0
-    hier_public_slice_trade_accuracy_edge_loss_sum = 0.0
-    hier_public_flat_logit_margin_loss_sum = 0.0
-    hier_public_slice_flat_logit_margin_loss_sum = 0.0
-    hier_public_flat_consistency_loss_sum = 0.0
-    hier_slice_public_flat_consistency_loss_sum = 0.0
-    hier_public_trade_flat_margin_loss_sum = 0.0
-    hier_slice_public_trade_flat_margin_loss_sum = 0.0
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
     hier_slice_side_accuracy_edge_loss_sum = 0.0
     hier_side_global_prior_loss_sum = 0.0
     hier_slice_side_prior_loss_sum = 0.0
-    hier_public_side_loss_sum = 0.0
-    hier_public_slice_side_ce_loss_sum = 0.0
-    hier_public_slice_side_margin_loss_sum = 0.0
-    hier_public_slice_side_accuracy_edge_loss_sum = 0.0
-    hier_public_side_global_prior_loss_sum = 0.0
-    hier_public_slice_side_prior_loss_sum = 0.0
-    hier_public_side_head_residual_cap_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -6065,13 +4971,10 @@ def train_epoch(
     hier_countertrend_short_trap_rate_sum = 0.0
     hier_side_rows_sum = 0
     hier_side_correct_sum = 0.0
-    hier_public_side_rows_sum = 0
-    hier_public_side_correct_sum = 0.0
     trendline_rail_loss_sum = 0.0
     trendline_rail_rows_sum = 0
     trendline_rising_rows_sum = 0
     trendline_falling_rows_sum = 0
-    trendline_wrong_side_prob_sum = 0.0
 
     for batch in loader:
         non_blocking = device.type == "cuda"
@@ -6092,8 +4995,6 @@ def train_epoch(
         y_hard_negative_short = batch["y_hard_negative_short"].to(device, non_blocking=non_blocking)
         y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
         y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
-        y_teacher_bad_long = batch["y_teacher_bad_long"].to(device, non_blocking=non_blocking)
-        y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
         y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
         # SYM (vedtak v10_symmetric_negatives_20260603): short-side selector + bidir quality
         # labels (already built in the dataset, never read by cement). Used only when symmetric.
@@ -6105,14 +5006,48 @@ def train_epoch(
         # See loss.backward() / optimizer.step() block below for the gated step.
         out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
         logits = out["direction_logits"]
-        path_pred = out.get("path_quality")
-        mfe_pred = out.get("mfe_first_n")
-        tradable_logit = out.get("tradable_logit")
-        bad_path_logit = out.get("bad_path_logit")
-        clean_edge_logit = out.get("clean_edge_logit")
-        survival_logit = out.get("survival_logit")
-        anchor_logits = out.get("anchor_logits")
-        delta_logits = out.get("delta_logits")
+        path_pred = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="path_quality",
+            target_names=("path_quality_bps",),
+        )
+        path_log_var = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="path_quality_log_var",
+            target_names=("path_quality_bps",),
+        )
+        mfe_pred = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="mfe_first_n",
+            target_names=("mfe_first_n_bps",),
+        )
+        tradable_logit = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="tradable_logit",
+            target_names=("y_tradable",),
+        )
+        bad_path_logit = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="bad_path_logit",
+            target_names=("y_bad_path",),
+        )
+        clean_edge_logit = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="clean_edge_logit",
+            target_names=("y_clean_edge_long", "y_clean_edge_bidir"),
+        )
+        survival_logit = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="survival_logit",
+            target_names=("y_survival_long", "y_survival_bidir"),
+        )
         specialist_gate_loss, specialist_gate_stats = _specialist_gate_regularization(out, device)
         bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
         path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
@@ -6134,8 +5069,7 @@ def train_epoch(
             residual_hard_neg_short,
         ).to(device=ce_per.device, dtype=ce_per.dtype)
         ce_loss_raw = (ce_per * ce_sample_weight).mean()
-        legacy_ce_mult = float(ENTRY_HIER_LEGACY_CE_MULT) if "trade_logit" in out else 1.0
-        ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * legacy_ce_mult * ce_loss_raw
+        ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
         tail_direction_loss = torch.tensor(0.0, device=device)
         tail_direction_mask = torch.zeros_like(y, dtype=torch.bool)
@@ -6224,17 +5158,13 @@ def train_epoch(
         )
         if hier_loss.numel() == 1:
             loss = loss + hier_loss
-        trendline_rail_loss, trendline_stats = _trendline_rail_aux_loss(out, batch, probs, device)
+        trendline_rail_loss, trendline_stats = _trendline_rail_aux_loss(out, batch, device)
         if trendline_rail_loss.numel() == 1:
             loss = loss + trendline_rail_loss
         hard_neg_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_prob_loss = torch.tensor(0.0, device=device)
         teaser_neg_prob_loss = torch.tensor(0.0, device=device)
         bad_path_prob_loss = torch.tensor(0.0, device=device)
-        if residual_side_bias_alpha > 0.0 and delta_logits is not None:
-            residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
-            residual_side_bias_loss = residual_gap.mean().pow(2)
-            loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
         dead_neg_mask = y_dead_negative_long.float() > 0.5
         teaser_neg_mask = y_teaser_negative_long.float() > 0.5
         bad_path_neg_mask = y_bad_path.float() > 0.5
@@ -6275,28 +5205,22 @@ def train_epoch(
         selector_mask = _aux_selector_mask(y_selector_long_mask, y_selector_short_mask)
         clean_edge_target = _aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)
         survival_target = _aux_survival_target(y_survival_long, y_survival_bidir)
-        if aux_path_weight > 0.0 and path_pred is not None:
+        if aux_path_weight > 0.0:
             if positive_mask.any():
                 p_scale = max(1.0, float(aux_path_scale_bps))
                 # Path-quality should be learned from premium tradable rows, not diluted by parked zeros.
                 path_target = (y_path_quality[positive_mask] / p_scale).clamp(min=0.0)
                 # V10 v3+ Target 2: if heteroscedastic head is active, use Gaussian NLL
                 # so model learns uncertainty (high var on regime-conflict samples).
-                path_log_var = out.get("path_quality_log_var")
-                if path_log_var is not None:
-                    # NLL = 0.5 * (log_var + (y - mu)^2 / exp(log_var))
-                    mu = path_pred.squeeze(1)[positive_mask]
-                    lv = path_log_var.squeeze(1)[positive_mask].clamp(min=-5.0, max=5.0)
-                    sq_err = (path_target.float() - mu) ** 2
-                    path_loss = 0.5 * (lv + sq_err / torch.exp(lv)).mean()
-                else:
-                    path_loss = nn.functional.smooth_l1_loss(
-                        path_pred.squeeze(1)[positive_mask], path_target.float()
-                    )
+                # NLL = 0.5 * (log_var + (y - mu)^2 / exp(log_var))
+                mu = path_pred.squeeze(1)[positive_mask]
+                lv = path_log_var.squeeze(1)[positive_mask].clamp(min=-5.0, max=5.0)
+                sq_err = (path_target.float() - mu) ** 2
+                path_loss = 0.5 * (lv + sq_err / torch.exp(lv)).mean()
                 path_loss = float(aux_path_weight) * path_loss
                 loss = loss + path_loss
                 path_loss_sum += float(path_loss.item()) * y.shape[0]
-        if aux_mfe_weight > 0.0 and mfe_pred is not None:
+        if aux_mfe_weight > 0.0:
             if positive_mask.any():
                 m_scale = max(1.0, float(aux_mfe_scale_bps))
                 mfe_target = (y_mfe_first[positive_mask] / m_scale).clamp(min=0.0)
@@ -6306,7 +5230,7 @@ def train_epoch(
                 mfe_loss = float(aux_mfe_weight) * mfe_loss
                 loss = loss + mfe_loss
                 mfe_loss_sum += float(mfe_loss.item()) * y.shape[0]
-        if aux_tradable_weight > 0.0 and tradable_logit is not None:
+        if aux_tradable_weight > 0.0:
             if selector_mask.any():
                 tradable_loss = nn.functional.binary_cross_entropy_with_logits(
                     tradable_logit.squeeze(1)[selector_mask],
@@ -6316,7 +5240,7 @@ def train_epoch(
                 tradable_loss = float(aux_tradable_weight) * tradable_loss
                 loss = loss + tradable_loss
                 tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
-        if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0 and bad_path_logit is not None:
+        if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0:
             if selector_mask.any():
                 bad_path_loss = nn.functional.binary_cross_entropy_with_logits(
                     bad_path_logit.squeeze(1)[selector_mask],
@@ -6326,7 +5250,7 @@ def train_epoch(
                 bad_path_loss = float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_loss
                 loss = loss + bad_path_loss
                 bad_path_loss_sum += float(bad_path_loss.item()) * y.shape[0]
-        if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0 and clean_edge_logit is not None:
+        if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0:
             if selector_mask.any():
                 clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
                     clean_edge_logit.squeeze(1)[selector_mask],
@@ -6336,7 +5260,7 @@ def train_epoch(
                 clean_edge_loss = float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss
                 loss = loss + clean_edge_loss
                 clean_edge_loss_sum += float(clean_edge_loss.item()) * y.shape[0]
-        if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0 and survival_logit is not None:
+        if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0:
             if selector_mask.any():
                 survival_loss = nn.functional.binary_cross_entropy_with_logits(
                     survival_logit.squeeze(1)[selector_mask],
@@ -6347,14 +5271,8 @@ def train_epoch(
                 loss = loss + survival_loss
                 survival_loss_sum += float(survival_loss.item()) * y.shape[0]
         if float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) > 0.0:
-            clean_edge_prob = (
-                torch.sigmoid(clean_edge_logit.squeeze(1))
-                if clean_edge_logit is not None
-                else probs[:, 0]
-            )
+            clean_edge_prob = torch.sigmoid(clean_edge_logit.squeeze(1))
             clean_pos, ranked_neg = _clean_edge_rank_masks(
-                y_teacher_winner_long,
-                y_teacher_bad_long,
                 y_clean_edge_long,
                 y_clean_edge_bidir,
                 y_dead_negative_long,
@@ -6373,61 +5291,65 @@ def train_epoch(
                 )
                 loss = loss + clean_edge_rank_loss
                 clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
-        if long_penalty_weight > 0.0:
-            short_lead_mask = (snap_x[:, 1] - snap_x[:, 0]) >= float(short_lead_margin)
-            if short_lead_mask.any():
-                short_lead_count += int(short_lead_mask.sum().item())
-                short_lead_long_prob = probs[short_lead_mask, 0].mean()
-                short_lead_long_prob_sum += float(short_lead_long_prob.item()) * int(short_lead_mask.sum().item())
-                loss = loss + float(long_penalty_weight) * short_lead_long_prob
+        tf_agreement_logit = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="tf_agreement_logit",
+            target_names=("y_tf_agreement_score",),
+        )
+        y_tf_agreement = batch["y_tf_agreement_score"].to(device, non_blocking=non_blocking)
+        tf_pred = torch.sigmoid(tf_agreement_logit).squeeze(-1)
+        tf_agreement_loss = torch.nn.functional.mse_loss(tf_pred, y_tf_agreement)
+        loss = loss + (
+            _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS["tf_agreement"]
+            * tf_agreement_loss
+        )
 
-        # V10 v3+ Target 1: tf_agreement MSE loss (only when aux head enabled in model)
-        if "tf_agreement_logit" in out:
-            y_tf_agreement = batch["y_tf_agreement_score"].to(device, non_blocking=non_blocking)
-            tf_pred = torch.sigmoid(out["tf_agreement_logit"]).squeeze(-1)
-            tf_agreement_loss = torch.nn.functional.mse_loss(tf_pred, y_tf_agreement)
-            loss = loss + 0.3 * tf_agreement_loss  # weight conservative; primary task = direction. Reduced from 0.5 after first retrain to free more capacity for direction head.
-
-        # V10 v3+ Target 3: position-size BCE-style loss (only when aux head enabled)
-        if "position_size_logit" in out:
-            y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
-            pos_pred = torch.sigmoid(out["position_size_logit"]).squeeze(-1)
-            # MSE is fine here since target is continuous in [0,1] and well-defined.
-            position_size_loss = torch.nn.functional.mse_loss(pos_pred, y_pos_size)
-            loss = loss + 0.2 * position_size_loss  # secondary task; reduced from 0.3 after first retrain
-
-        # V10 v3+ Target 4: hold-horizon MSE loss (only when aux head enabled)
-        if "hold_horizon_logit" in out:
-            y_hold = batch["y_hold_horizon_target"].to(device, non_blocking=non_blocking)
-            hold_pred = torch.sigmoid(out["hold_horizon_logit"]).squeeze(-1)
-            hold_horizon_loss = torch.nn.functional.mse_loss(hold_pred, y_hold)
-            loss = loss + 0.2 * hold_horizon_loss  # reduced from 0.3 after first retrain
+        position_size_logit = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="position_size_logit",
+            target_names=("y_position_size_target",),
+        )
+        y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
+        pos_pred = torch.sigmoid(position_size_logit).squeeze(-1)
+        position_size_loss = torch.nn.functional.mse_loss(pos_pred, y_pos_size)
+        loss = loss + (
+            _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS["position_size"]
+            * position_size_loss
+        )
 
         # Forceful MTF→direction aux CE (2026-06-06): force the multi-TF repr to
         # predict direction (LONG/SHORT/FLAT). Mirrors the active direction
         # repair recipe: class weights, bad-path/side sample weights and
         # prediction-balance, NOT selector-masked.
-        if "mtf_dir_logits" in out and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0:
-            mtf_dir_loss = _direction_aux_ce_loss(out["mtf_dir_logits"], y, criterion, ce_sample_weight)
-            loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
+        mtf_dir_logits = _require_active_aux_head_prediction(
+            out,
+            batch,
+            output_name="mtf_dir_logits",
+            target_names=("y_direction",),
+        )
+        mtf_dir_loss = _direction_aux_ce_loss(
+            mtf_dir_logits,
+            y,
+            criterion,
+            ce_sample_weight,
+        )
+        loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
 
-        # Dip-head (18, pinball) + forecast-head (4, smooth_l1). Returns a 0-tensor
-        # if heads/targets absent (gated) → harmless. Conservative weight (0.2):
-        # primary task is direction; dip/forecast shape the representation.
-        loss = loss + 0.2 * dip_forecast_loss(out, batch, device)
+        loss = loss + _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS[
+            "dip_forecast_timing_tail_vol_composite"
+        ] * dip_forecast_loss(
+            out,
+            batch,
+            device,
+        )
 
         preds = torch.argmax(probs, dim=1)
         short_mask = y == 1
         if short_mask.any():
             short_total += int(short_mask.sum().item())
             short_pred_long += int(((preds == 0) & short_mask).sum().item())
-        if anchor_logits is not None and delta_logits is not None:
-            residual_scale = float(getattr(model, "residual_scale", 1.0))
-            scaled_delta = delta_logits * residual_scale
-            anchor_abs_sum += float(anchor_logits.abs().mean().item()) * y.shape[0]
-            delta_abs_sum += float(delta_logits.abs().mean().item()) * y.shape[0]
-            scaled_delta_abs_sum += float(scaled_delta.abs().mean().item()) * y.shape[0]
-            final_minus_anchor_abs_sum += float((logits - anchor_logits).abs().mean().item()) * y.shape[0]
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
         # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
         if _accum_steps > 1:
@@ -6486,35 +5408,6 @@ def train_epoch(
         hier_slice_flat_logit_margin_loss_sum += (
             float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
         )
-        hier_public_trade_loss_sum += float(hier_stats.get("hier_public_trade_loss", 0.0)) * bs
-        hier_public_flat_loss_sum += float(hier_stats.get("hier_public_flat_loss", 0.0)) * bs
-        hier_public_trade_global_prior_loss_sum += (
-            float(hier_stats.get("hier_public_trade_global_prior_loss", 0.0)) * bs
-        )
-        hier_public_slice_trade_prior_loss_sum += (
-            float(hier_stats.get("hier_public_slice_trade_prior_loss", 0.0)) * bs
-        )
-        hier_public_slice_trade_accuracy_edge_loss_sum += (
-            float(hier_stats.get("hier_public_slice_trade_accuracy_edge_loss", 0.0)) * bs
-        )
-        hier_public_flat_logit_margin_loss_sum += (
-            float(hier_stats.get("hier_public_flat_logit_margin_loss", 0.0)) * bs
-        )
-        hier_public_slice_flat_logit_margin_loss_sum += (
-            float(hier_stats.get("hier_public_slice_flat_logit_margin_loss", 0.0)) * bs
-        )
-        hier_public_flat_consistency_loss_sum += (
-            float(hier_stats.get("hier_public_flat_consistency_loss", 0.0)) * bs
-        )
-        hier_slice_public_flat_consistency_loss_sum += (
-            float(hier_stats.get("hier_slice_public_flat_consistency_loss", 0.0)) * bs
-        )
-        hier_public_trade_flat_margin_loss_sum += (
-            float(hier_stats.get("hier_public_trade_flat_margin_loss", 0.0)) * bs
-        )
-        hier_slice_public_trade_flat_margin_loss_sum += (
-            float(hier_stats.get("hier_slice_public_trade_flat_margin_loss", 0.0)) * bs
-        )
         hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
         hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
         hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
@@ -6523,25 +5416,6 @@ def train_epoch(
         ) * bs
         hier_side_global_prior_loss_sum += float(hier_stats.get("hier_side_global_prior_loss", 0.0)) * bs
         hier_slice_side_prior_loss_sum += float(hier_stats.get("hier_slice_side_prior_loss", 0.0)) * bs
-        hier_public_side_loss_sum += float(hier_stats.get("hier_public_side_loss", 0.0)) * bs
-        hier_public_slice_side_ce_loss_sum += float(
-            hier_stats.get("hier_public_slice_side_ce_loss", 0.0)
-        ) * bs
-        hier_public_slice_side_margin_loss_sum += float(
-            hier_stats.get("hier_public_slice_side_margin_loss", 0.0)
-        ) * bs
-        hier_public_slice_side_accuracy_edge_loss_sum += float(
-            hier_stats.get("hier_public_slice_side_accuracy_edge_loss", 0.0)
-        ) * bs
-        hier_public_side_global_prior_loss_sum += float(
-            hier_stats.get("hier_public_side_global_prior_loss", 0.0)
-        ) * bs
-        hier_public_slice_side_prior_loss_sum += float(
-            hier_stats.get("hier_public_slice_side_prior_loss", 0.0)
-        ) * bs
-        hier_public_side_head_residual_cap_loss_sum += float(
-            hier_stats.get("hier_public_side_head_residual_cap_loss", 0.0)
-        ) * bs
         hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
         hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
         hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -6558,29 +5432,10 @@ def train_epoch(
         if _side_rows > 0:
             hier_side_rows_sum += _side_rows
             hier_side_correct_sum += float(hier_stats.get("hier_side_acc", 0.0)) * _side_rows
-        _public_side_rows = int(hier_stats.get("hier_public_side_rows", 0.0))
-        if _public_side_rows > 0:
-            hier_public_side_rows_sum += _public_side_rows
-            hier_public_side_correct_sum += (
-                float(hier_stats.get("hier_public_side_acc", 0.0)) * _public_side_rows
-            )
         trendline_rail_loss_sum += float(trendline_stats.get("trendline_rail_loss", 0.0)) * bs
         trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
         trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
         trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
-        trendline_wrong_side_prob_sum += float(trendline_stats.get("trendline_wrong_side_prob", 0.0)) * bs
-        if aux_path_weight > 0.0:
-            total_aux_path += float(path_loss) * bs
-        if aux_mfe_weight > 0.0:
-            total_aux_mfe += float(mfe_loss) * bs
-        if aux_tradable_weight > 0.0:
-            total_aux_tradable += float(tradable_loss) * bs
-        if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0:
-            total_aux_clean_edge += float(clean_edge_loss) * bs
-        if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0:
-            total_aux_survival += float(survival_loss) * bs
-        if float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) > 0.0:
-            total_clean_edge_rank += float(clean_edge_rank_loss) * bs
         n += bs
 
     return total / max(1, n), {
@@ -6615,19 +5470,7 @@ def train_epoch(
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
-        "aux_path_loss_mean": (total_aux_path / max(1, n)),
-        "aux_mfe_loss_mean": (total_aux_mfe / max(1, n)),
-        "aux_tradable_loss_mean": (total_aux_tradable / max(1, n)),
-        "aux_clean_edge_loss_mean": (total_aux_clean_edge / max(1, n)),
-        "aux_survival_loss_mean": (total_aux_survival / max(1, n)),
-        "clean_edge_rank_loss_mean": (total_clean_edge_rank / max(1, n)),
         "short_pred_long_rate": (short_pred_long / short_total if short_total > 0 else 0.0),
-        "short_lead_count": short_lead_count,
-        "short_lead_long_prob_mean": (short_lead_long_prob_sum / short_lead_count if short_lead_count > 0 else 0.0),
-        "anchor_abs_mean": (anchor_abs_sum / max(1, n)),
-        "delta_abs_mean": (delta_abs_sum / max(1, n)),
-        "scaled_delta_abs_mean": (scaled_delta_abs_sum / max(1, n)),
-        "final_minus_anchor_abs_mean": (final_minus_anchor_abs_sum / max(1, n)),
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
@@ -6644,35 +5487,6 @@ def train_epoch(
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
         ),
-        "hier_public_trade_loss_mean": (hier_public_trade_loss_sum / max(1, n)),
-        "hier_public_flat_loss_mean": (hier_public_flat_loss_sum / max(1, n)),
-        "hier_public_trade_global_prior_loss_mean": (
-            hier_public_trade_global_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_trade_prior_loss_mean": (
-            hier_public_slice_trade_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_trade_accuracy_edge_loss_mean": (
-            hier_public_slice_trade_accuracy_edge_loss_sum / max(1, n)
-        ),
-        "hier_public_flat_logit_margin_loss_mean": (
-            hier_public_flat_logit_margin_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_flat_logit_margin_loss_mean": (
-            hier_public_slice_flat_logit_margin_loss_sum / max(1, n)
-        ),
-        "hier_public_flat_consistency_loss_mean": (
-            hier_public_flat_consistency_loss_sum / max(1, n)
-        ),
-        "hier_slice_public_flat_consistency_loss_mean": (
-            hier_slice_public_flat_consistency_loss_sum / max(1, n)
-        ),
-        "hier_public_trade_flat_margin_loss_mean": (
-            hier_public_trade_flat_margin_loss_sum / max(1, n)
-        ),
-        "hier_slice_public_trade_flat_margin_loss_mean": (
-            hier_slice_public_trade_flat_margin_loss_sum / max(1, n)
-        ),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
         "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
@@ -6681,25 +5495,6 @@ def train_epoch(
         ),
         "hier_side_global_prior_loss_mean": (hier_side_global_prior_loss_sum / max(1, n)),
         "hier_slice_side_prior_loss_mean": (hier_slice_side_prior_loss_sum / max(1, n)),
-        "hier_public_side_loss_mean": (hier_public_side_loss_sum / max(1, n)),
-        "hier_public_slice_side_ce_loss_mean": (
-            hier_public_slice_side_ce_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_side_margin_loss_mean": (
-            hier_public_slice_side_margin_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_side_accuracy_edge_loss_mean": (
-            hier_public_slice_side_accuracy_edge_loss_sum / max(1, n)
-        ),
-        "hier_public_side_global_prior_loss_mean": (
-            hier_public_side_global_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_side_prior_loss_mean": (
-            hier_public_slice_side_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_side_head_residual_cap_loss_mean": (
-            hier_public_side_head_residual_cap_loss_sum / max(1, n)
-        ),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
         "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
@@ -6714,17 +5509,10 @@ def train_epoch(
         "hier_countertrend_short_trap_rate": (hier_countertrend_short_trap_rate_sum / max(1, n)),
         "hier_side_rows": int(hier_side_rows_sum),
         "hier_side_acc": (hier_side_correct_sum / hier_side_rows_sum if hier_side_rows_sum > 0 else 0.0),
-        "hier_public_side_rows": int(hier_public_side_rows_sum),
-        "hier_public_side_acc": (
-            hier_public_side_correct_sum / hier_public_side_rows_sum
-            if hier_public_side_rows_sum > 0
-            else 0.0
-        ),
         "trendline_rail_loss_mean": (trendline_rail_loss_sum / max(1, n)),
         "trendline_rail_rows": int(trendline_rail_rows_sum),
         "trendline_rising_rows": int(trendline_rising_rows_sum),
         "trendline_falling_rows": int(trendline_falling_rows_sum),
-        "trendline_wrong_side_prob_mean": (trendline_wrong_side_prob_sum / max(1, n)),
     }
 
 
@@ -6733,7 +5521,7 @@ def _aux_head_diagnostics(
     binary_labels: "dict[str, list]",
     realized: "dict[str, list]",
 ) -> "tuple[dict, list]":
-    """V10-AUX-02 (2026-06-03 cross-model scan): read-only WARN-level build signal.
+    """Compute mandatory auxiliary-head health evidence.
 
     Computes, on the accumulated validation predictions:
       (a) cross-head Spearman between aux-head predictions -> catches the rho~0.99
@@ -6744,31 +5532,42 @@ def _aux_head_diagnostics(
           documented bad_path head predicting volatility instead of loss (bad_path prob
           should correlate NEGATIVELY with realized path_quality_bps).
 
-    This NEVER touches loss/gradients/checkpoint-selection. It is observability only, so it
-    fails SOFT: a missing head/label/dependency skips that metric with a WARN, it does not
-    raise. Returns (metrics_dict, warn_messages).
+    Missing dependencies, predictions, labels, finite metrics, discriminative
+    evidence, or anti-targeted/collapsed heads are bundle-blocking failures.
     """
     metrics: "dict[str, float]" = {}
     warns: "list[str]" = []
     try:
         from scipy.stats import spearmanr  # local import: fail-soft if scipy absent
         from sklearn.metrics import roc_auc_score
-    except Exception as exc:  # pragma: no cover - diagnostics only
-        warns.append(f"[V10-AUX-02] diagnostics skipped (import failed: {exc})")
-        return metrics, warns
+    except Exception as exc:  # pragma: no cover - environment-specific
+        raise RuntimeError(
+            f"[ENTRY_AUX_HEAD_HEALTH_DEPENDENCY_MISSING] {exc}"
+        ) from exc
 
     def _cat(d, k):
         vs = d.get(k) or []
         if not vs:
-            return None
+            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_EVIDENCE_MISSING] {k}")
         try:
             arr = np.concatenate([np.asarray(v, dtype=np.float64).reshape(-1) for v in vs])
-        except Exception:
-            return None
-        return arr if arr.size else None
+        except Exception as exc:
+            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_EVIDENCE_INVALID] {k}: {exc}") from exc
+        if arr.size < 16 or not np.isfinite(arr).all():
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_EVIDENCE_INVALID] {k} rows={arr.size} finite={np.isfinite(arr).all()}"
+            )
+        return arr
 
-    pred_arrays = {k: _cat(head_preds, k) for k in head_preds}
-    pred_arrays = {k: v for k, v in pred_arrays.items() if v is not None}
+    required_preds = (
+        "tradable",
+        "bad_path",
+        "clean_edge",
+        "survival",
+        "path_quality",
+        "mfe_first_n",
+    )
+    pred_arrays = {k: _cat(head_preds, k) for k in required_preds}
 
     # (a) cross-head Spearman -> report the max |rho| off-diagonal + flag redundant pairs.
     names = sorted(pred_arrays.keys())
@@ -6777,14 +5576,20 @@ def _aux_head_diagnostics(
     for i in range(len(names)):
         for j in range(i + 1, len(names)):
             a, b = pred_arrays[names[i]], pred_arrays[names[j]]
-            if a.size != b.size or a.size < 16:
-                continue
+            if a.size != b.size:
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] {names[i]}={a.size} {names[j]}={b.size}"
+                )
             try:
                 rho = spearmanr(a, b).correlation
-            except Exception:
-                continue
+            except Exception as exc:
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_FAILED] {names[i]}~{names[j]}: {exc}"
+                ) from exc
             if rho is None or not np.isfinite(rho):
-                continue
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_NONFINITE] {names[i]}~{names[j]}"
+                )
             metrics[f"xhead_rho__{names[i]}__{names[j]}"] = float(rho)
             if abs(rho) > abs(max_abs_rho):
                 max_abs_rho = float(rho)
@@ -6803,20 +5608,20 @@ def _aux_head_diagnostics(
     for k in ("tradable", "bad_path", "clean_edge", "survival"):
         pred = pred_arrays.get(k)
         lbl = _cat(binary_labels, k)
-        if pred is None or lbl is None or pred.size != lbl.size:
-            continue
+        if pred.size != lbl.size:
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] pred_{k}={pred.size} label_{k}={lbl.size}"
+            )
         ub = np.unique(lbl[np.isfinite(lbl)])
         if ub.size < 2:
-            warns.append(f"[V10-AUX-02] {k} AUC skipped (label has one class)")
-            continue
+            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_LABEL_CONSTANT] {k}")
         m = np.isfinite(pred) & np.isfinite(lbl)
         if m.sum() < 16:
-            continue
+            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] {k}={int(m.sum())}")
         try:
             auc = float(roc_auc_score((lbl[m] > 0.5).astype(int), pred[m]))
         except Exception as exc:
-            warns.append(f"[V10-AUX-02] {k} AUC failed: {exc}")
-            continue
+            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_AUC_FAILED] {k}: {exc}") from exc
         metrics[f"auc__{k}"] = auc
         if auc < 0.52:
             warns.append(f"[V10-AUX-02] {k} AUC={auc:.3f} (~chance => head not discriminating)")
@@ -6824,20 +5629,26 @@ def _aux_head_diagnostics(
     # (c) Spearman(head_pred, realized outcome) -> mis-targeting detector.
     for rk in realized:
         rv = _cat(realized, rk)
-        if rv is None:
-            continue
         for hk, pred in pred_arrays.items():
-            if pred.size != rv.size or pred.size < 16:
-                continue
+            if pred.size != rv.size:
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] pred_{hk}={pred.size} realized_{rk}={rv.size}"
+                )
             m = np.isfinite(pred) & np.isfinite(rv)
             if m.sum() < 16:
-                continue
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] {hk}~{rk}={int(m.sum())}"
+                )
             try:
                 rho = spearmanr(pred[m], rv[m]).correlation
-            except Exception:
-                continue
+            except Exception as exc:
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_FAILED] {hk}~{rk}: {exc}"
+                ) from exc
             if rho is None or not np.isfinite(rho):
-                continue
+                raise RuntimeError(
+                    f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_NONFINITE] {hk}~{rk}"
+                )
             metrics[f"realized_rho__{hk}__{rk}"] = float(rho)
             # Documented failure: bad_path (prob of a BAD path) should be NEGATIVELY
             # correlated with realized path_quality_bps. A positive sign = anti-targeted.
@@ -6985,105 +5796,6 @@ def _direction_hierarchy_output_stats(
     return stats
 
 
-def _direction_public_trade_flat_output_stats(
-    targets_np: np.ndarray,
-    trade_prob_np: Optional[np.ndarray] = None,
-    pred_np: Optional[np.ndarray] = None,
-    *,
-    min_pred_to_label: float,
-    min_pred_rate: float,
-    guard_required: bool = False,
-) -> Dict[str, Any]:
-    targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
-    n = int(targets_i.size)
-    if n <= 0:
-        return {
-            "public_trade_flat_available": False,
-            "public_trade_flat_hard_rate_guard_ok": not bool(guard_required),
-        }
-
-    trade_target = targets_i != 2
-    flat_target = targets_i == 2
-    target_rates = np.asarray(
-        [float(np.mean(trade_target)), float(np.mean(flat_target))],
-        dtype=np.float64,
-    )
-    stats: Dict[str, Any] = {
-        "public_trade_flat_available": False,
-        "public_trade_flat_target_trade_rate": float(target_rates[0]),
-        "public_trade_flat_target_flat_rate": float(target_rates[1]),
-        "public_trade_flat_min_pred_to_label_threshold": float(min_pred_to_label),
-        "public_trade_flat_min_pred_rate_threshold": float(min_pred_rate),
-    }
-
-    trade_prob = _optional_float_1d(trade_prob_np, n)
-    pred = _optional_int_1d(pred_np, n)
-    if trade_prob is None or pred is None:
-        if bool(guard_required):
-            stats["public_trade_flat_hard_rate_guard_ok"] = False
-        return stats
-
-    finite = np.isfinite(trade_prob)
-    if not bool(np.any(finite)):
-        if bool(guard_required):
-            stats["public_trade_flat_hard_rate_guard_ok"] = False
-        return stats
-
-    trade_prob_f = trade_prob[finite]
-    flat_prob_f = 1.0 - trade_prob_f
-    trade_pred = pred[finite] == 0
-    flat_pred = ~trade_pred
-    trade_target_f = trade_target[finite]
-    flat_target_f = flat_target[finite]
-    pred_rates = np.asarray(
-        [float(np.mean(trade_pred)), float(np.mean(flat_pred))],
-        dtype=np.float64,
-    )
-    active = target_rates > 0.0
-    pred_to_label = np.divide(
-        pred_rates,
-        np.maximum(target_rates, 1e-12),
-        out=np.zeros_like(pred_rates),
-        where=active,
-    )
-    min_pred_to_label_seen = float(np.min(pred_to_label[active])) if bool(np.any(active)) else 0.0
-    min_pred_to_label_req = float(min_pred_to_label)
-    min_pred_rate_req = float(min_pred_rate)
-    required = np.maximum(target_rates * min_pred_to_label_req, min_pred_rate_req)
-    guard_ok = bool(np.all(pred_rates[active] + 1e-12 >= required[active]))
-
-    stats.update(
-        {
-            "public_trade_flat_available": True,
-            "public_trade_flat_trade_prob_mean": float(np.mean(trade_prob_f)),
-            "public_trade_flat_flat_prob_mean": float(np.mean(flat_prob_f)),
-            "public_trade_flat_hard_trade_rate": float(pred_rates[0]),
-            "public_trade_flat_hard_flat_rate": float(pred_rates[1]),
-            "public_trade_flat_hard_acc": float(np.mean(trade_pred == trade_target_f)),
-            "public_trade_flat_pred_label_l1": float(np.abs(pred_rates - target_rates).sum()),
-            "public_trade_flat_min_pred_to_label": min_pred_to_label_seen,
-            "public_trade_flat_required_trade_rate": float(required[0]),
-            "public_trade_flat_required_flat_rate": float(required[1]),
-            "public_trade_flat_hard_rate_guard_ok": guard_ok,
-        }
-    )
-    if bool(np.any(trade_target_f)):
-        stats["public_trade_flat_trade_prob_label_trade_mean"] = float(
-            np.mean(trade_prob_f[trade_target_f])
-        )
-        stats["public_trade_flat_flat_prob_label_trade_mean"] = float(
-            np.mean(flat_prob_f[trade_target_f])
-        )
-    if bool(np.any(flat_target_f)):
-        stats["public_trade_flat_trade_prob_label_flat_mean"] = float(
-            np.mean(trade_prob_f[flat_target_f])
-        )
-        stats["public_trade_flat_flat_prob_label_flat_mean"] = float(
-            np.mean(flat_prob_f[flat_target_f])
-        )
-    return stats
-
-
 def _direction_slice_balance_stats(
     targets_np: np.ndarray,
     preds_np: np.ndarray,
@@ -7091,12 +5803,13 @@ def _direction_slice_balance_stats(
     trade_prob_np: Optional[np.ndarray] = None,
     side_pred_np: Optional[np.ndarray] = None,
     side_long_prob_np: Optional[np.ndarray] = None,
-    public_trade_flat_trade_prob_np: Optional[np.ndarray] = None,
-    public_trade_flat_pred_np: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
+    """Audit final three-class direction and learned hierarchy by context slice."""
+
     targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
     preds_i = np.asarray(preds_np, dtype=np.int64).reshape(-1)
-    if ctx_cat_np is None or targets_i.size <= 0 or preds_i.size != targets_i.size:
+
+    def _empty() -> Dict[str, Any]:
         return {
             "direction_slice_audited_count": 0,
             "direction_slice_failure_count": 0,
@@ -7107,23 +5820,23 @@ def _direction_slice_balance_stats(
             "direction_slice_failure_details": [],
         }
 
+    if ctx_cat_np is None or targets_i.size <= 0 or preds_i.size != targets_i.size:
+        return _empty()
     cat = np.asarray(ctx_cat_np)
     if cat.ndim == 1:
         cat = cat.reshape(-1, 1)
     if cat.ndim != 2 or cat.shape[0] != targets_i.size:
-        return {
-            "direction_slice_audited_count": 0,
-            "direction_slice_failure_count": 0,
-            "direction_slice_accuracy_failure_count": 0,
-            "direction_slice_pred_rate_failure_count": 0,
-            "direction_slice_accuracy_deficit": 0.0,
-            "direction_slice_pred_rate_shortfall": 0.0,
-            "direction_slice_failure_details": [],
-        }
+        return _empty()
 
     min_rows = max(_DIRECTION_AUDIT_MIN_SLICE_ROWS, int(ENTRY_DIRECTION_SLICE_MIN_ROWS))
-    min_label_rate = max(_DIRECTION_AUDIT_MIN_LABEL_RATE, float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
-    min_pred_rate = max(_DIRECTION_AUDIT_MIN_PRED_RATE, float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE))
+    min_label_rate = max(
+        _DIRECTION_AUDIT_MIN_LABEL_RATE,
+        float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+    )
+    min_pred_rate = max(
+        _DIRECTION_AUDIT_MIN_PRED_RATE,
+        float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+    )
     pred_to_label = max(
         _DIRECTION_AUDIT_MIN_PRED_TO_LABEL,
         float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
@@ -7131,14 +5844,10 @@ def _direction_slice_balance_stats(
     indices = _direction_slice_ctx_cat_indices(int(cat.shape[1]))
     if not indices:
         indices = list(range(int(cat.shape[1])))
+
     trade_prob = _optional_float_1d(trade_prob_np, targets_i.size)
     side_pred = _optional_int_1d(side_pred_np, targets_i.size)
     side_long_prob = _optional_float_1d(side_long_prob_np, targets_i.size)
-    public_trade_flat_trade_prob = _optional_float_1d(
-        public_trade_flat_trade_prob_np,
-        targets_i.size,
-    )
-    public_trade_flat_pred = _optional_int_1d(public_trade_flat_pred_np, targets_i.size)
 
     audited = 0
     accuracy_failures = 0
@@ -7151,8 +5860,9 @@ def _direction_slice_balance_stats(
         finite = np.isfinite(values)
         if not bool(np.any(finite)):
             continue
+        int_values = cat[:, idx].astype(np.int64, copy=False)
         for raw_value in sorted(set(int(v) for v in values[finite].ravel())):
-            mask = finite & (cat[:, idx].astype(np.int64, copy=False) == int(raw_value))
+            mask = finite & (int_values == int(raw_value))
             rows = int(mask.sum())
             if rows < min_rows:
                 continue
@@ -7163,65 +5873,60 @@ def _direction_slice_balance_stats(
             active = label_rates >= min_label_rate
             if int(active.sum()) < 2:
                 continue
+
             audited += 1
             pred_counts = np.bincount(preds_s, minlength=3)[:3].astype(np.float64)
             pred_rates = pred_counts / max(float(pred_counts.sum()), 1.0)
-            acc = float(np.mean(preds_s == labels_s)) if rows > 0 else 0.0
-            majority = float(label_rates.max()) if label_rates.size else 0.0
-            acc_deficit = max(0.0, majority - acc)
-            accuracy_failed = bool(acc <= majority + 1e-12)
+            accuracy = float(np.mean(preds_s == labels_s))
+            majority = float(label_rates.max())
+            slice_accuracy_deficit = max(0.0, majority - accuracy)
+            accuracy_failed = bool(accuracy <= majority + 1e-12)
             if accuracy_failed:
                 accuracy_failures += 1
-                accuracy_deficit += acc_deficit
+                accuracy_deficit += slice_accuracy_deficit
+
             required = np.maximum(label_rates * pred_to_label, min_pred_rate)
             shortfalls = np.maximum(required[active] - pred_rates[active], 0.0)
-            pred_rate_failed = shortfalls > 1e-12
-            pred_rate_failures += int(np.sum(pred_rate_failed))
+            failed_active = shortfalls > 1e-12
+            pred_rate_failures += int(np.sum(failed_active))
             pred_rate_shortfall += float(shortfalls.sum())
-            if accuracy_failed or bool(np.any(pred_rate_failed)):
-                active_classes = np.flatnonzero(active)
-                pred_failed_classes = [
-                    int(cls)
-                    for cls, failed in zip(active_classes.tolist(), pred_rate_failed.tolist())
-                    if bool(failed)
-                ]
-                hierarchy_detail = _direction_hierarchy_output_stats(
-                    labels_s,
-                    trade_prob[mask] if trade_prob is not None else None,
-                    side_pred[mask] if side_pred is not None else None,
-                    side_long_prob[mask] if side_long_prob is not None else None,
+            if not accuracy_failed and not bool(np.any(failed_active)):
+                continue
+
+            active_classes = np.flatnonzero(active)
+            failed_classes = [
+                int(class_id)
+                for class_id, failed in zip(
+                    active_classes.tolist(),
+                    failed_active.tolist(),
+                    strict=True,
                 )
-                public_trade_flat_detail = _direction_public_trade_flat_output_stats(
-                    labels_s,
-                    (
-                        public_trade_flat_trade_prob[mask]
-                        if public_trade_flat_trade_prob is not None
-                        else None
-                    ),
-                    public_trade_flat_pred[mask] if public_trade_flat_pred is not None else None,
-                    min_pred_to_label=pred_to_label,
-                    min_pred_rate=min_pred_rate,
-                    guard_required=False,
-                )
-                failure_details.append(
-                    {
-                        "ctx_cat_index": int(idx),
-                        "ctx_cat_value": int(raw_value),
-                        "rows": int(rows),
-                        "accuracy": float(acc),
-                        "majority": float(majority),
-                        "accuracy_failed": bool(accuracy_failed),
-                        "accuracy_deficit": float(acc_deficit),
-                        "label_rates": [float(v) for v in label_rates[:3].tolist()],
-                        "pred_rates": [float(v) for v in pred_rates[:3].tolist()],
-                        "required_pred_rates": [float(v) for v in required[:3].tolist()],
-                        "pred_rate_failed_classes": pred_failed_classes,
-                        "pred_rate_shortfalls": [float(v) for v in shortfalls.tolist()],
-                        "pred_rate_shortfall": float(shortfalls.sum()),
-                        **hierarchy_detail,
-                        **public_trade_flat_detail,
-                    }
-                )
+                if bool(failed)
+            ]
+            hierarchy_detail = _direction_hierarchy_output_stats(
+                labels_s,
+                trade_prob[mask] if trade_prob is not None else None,
+                side_pred[mask] if side_pred is not None else None,
+                side_long_prob[mask] if side_long_prob is not None else None,
+            )
+            failure_details.append(
+                {
+                    "ctx_cat_index": int(idx),
+                    "ctx_cat_value": int(raw_value),
+                    "rows": rows,
+                    "accuracy": accuracy,
+                    "majority": majority,
+                    "accuracy_failed": accuracy_failed,
+                    "accuracy_deficit": slice_accuracy_deficit,
+                    "label_rates": [float(v) for v in label_rates.tolist()],
+                    "pred_rates": [float(v) for v in pred_rates.tolist()],
+                    "required_pred_rates": [float(v) for v in required.tolist()],
+                    "pred_rate_failed_classes": failed_classes,
+                    "pred_rate_shortfalls": [float(v) for v in shortfalls.tolist()],
+                    "pred_rate_shortfall": float(shortfalls.sum()),
+                    **hierarchy_detail,
+                }
+            )
 
     failure_count = int(accuracy_failures + pred_rate_failures)
     failure_details = sorted(
@@ -7249,13 +5954,15 @@ def _direction_slice_balance_stats(
     }
 
 
+
 def _direction_slice_ckpt_score(base_score: float, slice_stats: Dict[str, Any]) -> float:
     failures = float(slice_stats.get("direction_slice_failure_count", 0.0) or 0.0)
     rate_shortfall = float(slice_stats.get("direction_slice_pred_rate_shortfall", 0.0) or 0.0)
     acc_deficit = float(slice_stats.get("direction_slice_accuracy_deficit", 0.0) or 0.0)
     return float(base_score) - (
         _DIRECTION_SLICE_CKPT_FAILURE_PENALTY * failures
-        + _DIRECTION_SLICE_CKPT_DEFICIT_PENALTY * (rate_shortfall + acc_deficit)
+        + _DIRECTION_SLICE_CKPT_DEFICIT_PENALTY
+        * (rate_shortfall + acc_deficit)
     )
 
 
@@ -7344,25 +6051,6 @@ def _direction_slice_stats_snapshot(stats: Optional[Dict[str, Any]]) -> Dict[str
         "hier_side_long_prob_mean_on_edge",
         "hier_side_long_prob_label_long_mean",
         "hier_side_long_prob_label_short_mean",
-        "public_trade_flat_available",
-        "public_trade_flat_target_trade_rate",
-        "public_trade_flat_target_flat_rate",
-        "public_trade_flat_trade_prob_mean",
-        "public_trade_flat_flat_prob_mean",
-        "public_trade_flat_hard_trade_rate",
-        "public_trade_flat_hard_flat_rate",
-        "public_trade_flat_hard_acc",
-        "public_trade_flat_pred_label_l1",
-        "public_trade_flat_min_pred_to_label",
-        "public_trade_flat_min_pred_to_label_threshold",
-        "public_trade_flat_min_pred_rate_threshold",
-        "public_trade_flat_required_trade_rate",
-        "public_trade_flat_required_flat_rate",
-        "public_trade_flat_hard_rate_guard_ok",
-        "public_trade_flat_trade_prob_label_trade_mean",
-        "public_trade_flat_flat_prob_label_trade_mean",
-        "public_trade_flat_trade_prob_label_flat_mean",
-        "public_trade_flat_flat_prob_label_flat_mean",
     )
     return {key: stats.get(key) for key in keys if key in stats}
 
@@ -7402,26 +6090,14 @@ def _direction_ckpt_slice_guard_required() -> bool:
     return bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD)
 
 
-def _public_trade_flat_hard_rate_guard_required() -> bool:
-    return (
-        _direction_ckpt_balance_guard_required()
-        and bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)
-        and bool(ENTRY_HIER_PUBLIC_FLAT_HEAD)
-    )
-
-
 def validate(
     model,
     loader,
     criterion,
     device,
-    residual_side_bias_alpha: float,
-    aux_early_weight: float,
-    aux_quality_weight: float,
     aux_path_weight: float,
     aux_mfe_weight: float,
     aux_tradable_weight: float,
-    aux_quality_scale_bps: float,
     aux_path_scale_bps: float,
     aux_mfe_scale_bps: float,
     tradable_pos_weight: float,
@@ -7459,12 +6135,6 @@ def validate(
     ctx_cats: List[np.ndarray] = []
     short_total = 0
     short_pred_long = 0
-    anchor_abs_sum = 0.0
-    delta_abs_sum = 0.0
-    scaled_delta_abs_sum = 0.0
-    final_minus_anchor_abs_sum = 0.0
-    early_loss_sum = 0.0
-    quality_loss_sum = 0.0
     path_loss_sum = 0.0
     mfe_loss_sum = 0.0
     tradable_loss_sum = 0.0
@@ -7480,30 +6150,12 @@ def validate(
     hier_slice_trade_accuracy_edge_loss_sum = 0.0
     hier_flat_logit_margin_loss_sum = 0.0
     hier_slice_flat_logit_margin_loss_sum = 0.0
-    hier_public_trade_loss_sum = 0.0
-    hier_public_flat_loss_sum = 0.0
-    hier_public_trade_global_prior_loss_sum = 0.0
-    hier_public_slice_trade_prior_loss_sum = 0.0
-    hier_public_slice_trade_accuracy_edge_loss_sum = 0.0
-    hier_public_flat_logit_margin_loss_sum = 0.0
-    hier_public_slice_flat_logit_margin_loss_sum = 0.0
-    hier_public_flat_consistency_loss_sum = 0.0
-    hier_slice_public_flat_consistency_loss_sum = 0.0
-    hier_public_trade_flat_margin_loss_sum = 0.0
-    hier_slice_public_trade_flat_margin_loss_sum = 0.0
     hier_side_loss_sum = 0.0
     hier_slice_side_ce_loss_sum = 0.0
     hier_slice_side_margin_loss_sum = 0.0
     hier_slice_side_accuracy_edge_loss_sum = 0.0
     hier_side_global_prior_loss_sum = 0.0
     hier_slice_side_prior_loss_sum = 0.0
-    hier_public_side_loss_sum = 0.0
-    hier_public_slice_side_ce_loss_sum = 0.0
-    hier_public_slice_side_margin_loss_sum = 0.0
-    hier_public_slice_side_accuracy_edge_loss_sum = 0.0
-    hier_public_side_global_prior_loss_sum = 0.0
-    hier_public_slice_side_prior_loss_sum = 0.0
-    hier_public_side_head_residual_cap_loss_sum = 0.0
     hier_utility_loss_sum = 0.0
     hier_side_bad_path_loss_sum = 0.0
     hier_side_mae_loss_sum = 0.0
@@ -7518,13 +6170,10 @@ def validate(
     hier_countertrend_short_trap_rate_sum = 0.0
     hier_side_rows_sum = 0
     hier_side_correct_sum = 0.0
-    hier_public_side_rows_sum = 0
-    hier_public_side_correct_sum = 0.0
     trendline_rail_loss_sum = 0.0
     trendline_rail_rows_sum = 0
     trendline_rising_rows_sum = 0
     trendline_falling_rows_sum = 0
-    trendline_wrong_side_prob_sum = 0.0
     # V10-AUX-02: read-only accumulators for the cross-head / AUC / realized-target panel.
     _diag_pred: "dict[str, list]" = {k: [] for k in (
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
@@ -7533,8 +6182,6 @@ def validate(
     hierarchy_trade_prob_chunks: List[np.ndarray] = []
     hierarchy_side_pred_chunks: List[np.ndarray] = []
     hierarchy_side_long_prob_chunks: List[np.ndarray] = []
-    public_trade_flat_trade_prob_chunks: List[np.ndarray] = []
-    public_trade_flat_pred_chunks: List[np.ndarray] = []
 
     with torch.no_grad():
         for batch in loader:
@@ -7556,8 +6203,6 @@ def validate(
             y_hard_negative_short = batch["y_hard_negative_short"].to(device, non_blocking=non_blocking)
             y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
             y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
-            y_teacher_bad_long = batch["y_teacher_bad_long"].to(device, non_blocking=non_blocking)
-            y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
             y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
             y_selector_short_mask = batch["y_selector_short_mask"].to(device, non_blocking=non_blocking)
             y_clean_edge_bidir = batch["y_clean_edge_bidir"].to(device, non_blocking=non_blocking)
@@ -7565,19 +6210,15 @@ def validate(
 
             out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
             logits = out["direction_logits"]
-            path_pred = out.get("path_quality")
-            mfe_pred = out.get("mfe_first_n")
-            tradable_logit = out.get("tradable_logit")
-            bad_path_logit = out.get("bad_path_logit")
-            clean_edge_logit = out.get("clean_edge_logit")
-            survival_logit = out.get("survival_logit")
-            trade_logit = out.get("trade_logit")
-            public_trade_logit = out.get("public_trade_logit")
-            public_flat_logit = out.get("public_flat_logit")
-            side_logits = out.get("side_logits")
-            public_side_logits = out.get("public_side_logits")
-            anchor_logits = out.get("anchor_logits")
-            delta_logits = out.get("delta_logits")
+            path_pred = out["path_quality"]
+            path_log_var = out["path_quality_log_var"]
+            mfe_pred = out["mfe_first_n"]
+            tradable_logit = out["tradable_logit"]
+            bad_path_logit = out["bad_path_logit"]
+            clean_edge_logit = out["clean_edge_logit"]
+            survival_logit = out["survival_logit"]
+            trade_logit = out["trade_logit"]
+            side_logits = out["side_logits"]
             specialist_gate_loss, _specialist_gate_stats = _specialist_gate_regularization(out, device)
             bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
             path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
@@ -7586,63 +6227,20 @@ def validate(
             # the read-only diagnostic panel (computed after the loop). Detached, no grad.
             def _np1d(t):
                 return t.detach().float().cpu().numpy().reshape(-1)
-            if tradable_logit is not None:
-                _diag_pred["tradable"].append(_np1d(torch.sigmoid(tradable_logit)))
-            if bad_path_logit is not None:
-                _diag_pred["bad_path"].append(_np1d(torch.sigmoid(bad_path_logit)))
-            if clean_edge_logit is not None:
-                _diag_pred["clean_edge"].append(_np1d(torch.sigmoid(clean_edge_logit)))
-            if survival_logit is not None:
-                _diag_pred["survival"].append(_np1d(torch.sigmoid(survival_logit)))
-            if path_pred is not None:
-                _diag_pred["path_quality"].append(_np1d(path_pred))
-            if mfe_pred is not None:
-                _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
-            trade_metric_logit = (
-                public_trade_logit
-                if isinstance(public_trade_logit, torch.Tensor)
-                else trade_logit
+            _diag_pred["tradable"].append(_np1d(torch.sigmoid(tradable_logit)))
+            _diag_pred["bad_path"].append(_np1d(torch.sigmoid(bad_path_logit)))
+            _diag_pred["clean_edge"].append(_np1d(torch.sigmoid(clean_edge_logit)))
+            _diag_pred["survival"].append(_np1d(torch.sigmoid(survival_logit)))
+            _diag_pred["path_quality"].append(_np1d(path_pred))
+            _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
+            hierarchy_trade_prob_chunks.append(
+                torch.sigmoid(trade_logit.float()).detach().cpu().numpy().reshape(-1)
             )
-            if trade_metric_logit is not None:
-                hierarchy_trade_prob_chunks.append(_np1d(torch.sigmoid(trade_metric_logit)))
-            if isinstance(public_trade_logit, torch.Tensor) and isinstance(public_flat_logit, torch.Tensor):
-                public_trade_1d = public_trade_logit.reshape(-1)
-                public_flat_1d = public_flat_logit.reshape(-1)
-                if public_trade_1d.shape[0] != public_flat_1d.shape[0]:
-                    raise RuntimeError(
-                        "[ENTRY_PUBLIC_TRADE_FLAT_VAL_SHAPE_INVALID] "
-                        f"public_trade_rows={public_trade_1d.shape[0]} "
-                        f"public_flat_rows={public_flat_1d.shape[0]}"
-                    )
-                public_pair_probs = torch.softmax(
-                    torch.stack([public_trade_1d.float(), public_flat_1d.float()], dim=1),
-                    dim=1,
-                )
-                public_trade_flat_trade_prob_chunks.append(
-                    public_pair_probs[:, 0].detach().cpu().numpy().reshape(-1)
-                )
-                public_trade_flat_pred_chunks.append(
-                    torch.argmax(public_pair_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
-                )
-            side_metric_logits = (
-                public_side_logits
-                if (
-                    public_side_logits is not None
-                    and isinstance(public_side_logits, torch.Tensor)
-                    and public_side_logits.ndim == 2
-                )
-                else side_logits
+            side_probs = torch.softmax(side_logits.float(), dim=1)
+            hierarchy_side_pred_chunks.append(
+                torch.argmax(side_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
             )
-            if (
-                side_metric_logits is not None
-                and isinstance(side_metric_logits, torch.Tensor)
-                and side_metric_logits.ndim == 2
-            ):
-                side_probs = torch.softmax(side_metric_logits.float(), dim=1)
-                hierarchy_side_pred_chunks.append(
-                    torch.argmax(side_probs, dim=1).detach().cpu().numpy().astype(np.int64).reshape(-1)
-                )
-                hierarchy_side_long_prob_chunks.append(side_probs[:, 0].detach().cpu().numpy().reshape(-1))
+            hierarchy_side_long_prob_chunks.append(side_probs[:, 0].detach().cpu().numpy().reshape(-1))
             _diag_lbl["tradable"].append(_np1d(y_tradable))
             _diag_lbl["bad_path"].append(_np1d(y_bad_path))
             _diag_lbl["clean_edge"].append(_np1d(_aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)))
@@ -7667,8 +6265,7 @@ def validate(
                 residual_hard_neg_short,
             ).to(device=ce_per.device, dtype=ce_per.dtype)
             ce_loss_raw = (ce_per * ce_sample_weight).mean()
-            legacy_ce_mult = float(ENTRY_HIER_LEGACY_CE_MULT) if "trade_logit" in out else 1.0
-            ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * legacy_ce_mult * ce_loss_raw
+            ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
             probs = torch.softmax(logits, dim=1)
             tail_direction_loss = torch.tensor(0.0, device=device)
             tail_direction_mask = torch.zeros_like(y, dtype=torch.bool)
@@ -7757,17 +6354,13 @@ def validate(
             )
             if hier_loss.numel() == 1:
                 loss = loss + hier_loss
-            trendline_rail_loss, trendline_stats = _trendline_rail_aux_loss(out, batch, probs, device)
+            trendline_rail_loss, trendline_stats = _trendline_rail_aux_loss(out, batch, device)
             if trendline_rail_loss.numel() == 1:
                 loss = loss + trendline_rail_loss
             hard_neg_prob_loss = torch.tensor(0.0, device=device)
             dead_neg_prob_loss = torch.tensor(0.0, device=device)
             teaser_neg_prob_loss = torch.tensor(0.0, device=device)
             bad_path_prob_loss = torch.tensor(0.0, device=device)
-            if residual_side_bias_alpha > 0.0 and delta_logits is not None:
-                residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
-                residual_side_bias_loss = residual_gap.mean().pow(2)
-                loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
             dead_neg_mask = y_dead_negative_long.float() > 0.5
             teaser_neg_mask = y_teaser_negative_long.float() > 0.5
             bad_path_neg_mask = y_bad_path.float() > 0.5
@@ -7806,24 +6399,18 @@ def validate(
             selector_mask = _aux_selector_mask(y_selector_long_mask, y_selector_short_mask)
             clean_edge_target = _aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)
             survival_target = _aux_survival_target(y_survival_long, y_survival_bidir)
-            if aux_path_weight > 0.0 and path_pred is not None:
+            if aux_path_weight > 0.0:
                 if positive_mask.any():
                     p_scale = max(1.0, float(aux_path_scale_bps))
                     path_target = (y_path_quality[positive_mask] / p_scale).clamp(min=0.0)
                     # V10 v3+ Target 2: heteroscedastic path_quality NLL (val)
-                    path_log_var = out.get("path_quality_log_var")
-                    if path_log_var is not None:
-                        mu = path_pred.squeeze(1)[positive_mask]
-                        lv = path_log_var.squeeze(1)[positive_mask].clamp(min=-5.0, max=5.0)
-                        sq_err = (path_target.float() - mu) ** 2
-                        path_loss = 0.5 * (lv + sq_err / torch.exp(lv)).mean()
-                    else:
-                        path_loss = nn.functional.smooth_l1_loss(
-                            path_pred.squeeze(1)[positive_mask], path_target.float()
-                        )
+                    mu = path_pred.squeeze(1)[positive_mask]
+                    lv = path_log_var.squeeze(1)[positive_mask].clamp(min=-5.0, max=5.0)
+                    sq_err = (path_target.float() - mu) ** 2
+                    path_loss = 0.5 * (lv + sq_err / torch.exp(lv)).mean()
                     loss = loss + (float(aux_path_weight) * path_loss)
                     path_loss_sum += float(path_loss.item()) * y.shape[0]
-            if aux_mfe_weight > 0.0 and mfe_pred is not None:
+            if aux_mfe_weight > 0.0:
                 if positive_mask.any():
                     m_scale = max(1.0, float(aux_mfe_scale_bps))
                     mfe_target = (y_mfe_first[positive_mask] / m_scale).clamp(min=0.0)
@@ -7832,7 +6419,7 @@ def validate(
                     )
                     loss = loss + (float(aux_mfe_weight) * mfe_loss)
                     mfe_loss_sum += float(mfe_loss.item()) * y.shape[0]
-            if aux_tradable_weight > 0.0 and tradable_logit is not None:
+            if aux_tradable_weight > 0.0:
                 if selector_mask.any():
                     tradable_loss = nn.functional.binary_cross_entropy_with_logits(
                         tradable_logit.squeeze(1)[selector_mask],
@@ -7841,7 +6428,7 @@ def validate(
                     )
                     loss = loss + (float(aux_tradable_weight) * tradable_loss)
                     tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
-            if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0 and bad_path_logit is not None:
+            if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0:
                 if selector_mask.any():
                     bad_path_loss = nn.functional.binary_cross_entropy_with_logits(
                         bad_path_logit.squeeze(1)[selector_mask],
@@ -7850,7 +6437,7 @@ def validate(
                     )
                     loss = loss + (float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_loss)
                     bad_path_loss_sum += float(bad_path_loss.item()) * y.shape[0]
-            if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0 and clean_edge_logit is not None:
+            if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0:
                 if selector_mask.any():
                     clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
                         clean_edge_logit.squeeze(1)[selector_mask],
@@ -7859,7 +6446,7 @@ def validate(
                     )
                     loss = loss + (float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss)
                     clean_edge_loss_sum += float(clean_edge_loss.item()) * y.shape[0]
-            if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0 and survival_logit is not None:
+            if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0:
                 if selector_mask.any():
                     survival_loss = nn.functional.binary_cross_entropy_with_logits(
                         survival_logit.squeeze(1)[selector_mask],
@@ -7869,14 +6456,8 @@ def validate(
                     loss = loss + (float(ENTRY_AUX_SURVIVAL_WEIGHT) * survival_loss)
                     survival_loss_sum += float(survival_loss.item()) * y.shape[0]
             if float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) > 0.0:
-                clean_edge_prob = (
-                    torch.sigmoid(clean_edge_logit.squeeze(1))
-                    if clean_edge_logit is not None
-                    else probs[:, 0]
-                )
+                clean_edge_prob = torch.sigmoid(clean_edge_logit.squeeze(1))
                 clean_pos, ranked_neg = _clean_edge_rank_masks(
-                    y_teacher_winner_long,
-                    y_teacher_bad_long,
                     y_clean_edge_long,
                     y_clean_edge_bidir,
                     y_dead_negative_long,
@@ -7895,26 +6476,48 @@ def validate(
                 )
                 loss = loss + clean_edge_rank_loss
                 clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
-            if float(XGB_SHORT_LONG_PENALTY) > 0.0:
-                short_lead_mask = (snap_x[:, 1] - snap_x[:, 0]) >= float(XGB_SHORT_LEAD_MARGIN)
-                if short_lead_mask.any():
-                    loss = loss + float(XGB_SHORT_LONG_PENALTY) * probs[short_lead_mask, 0].mean()
-            if "tf_agreement_logit" in out:
-                y_tf_agreement = batch["y_tf_agreement_score"].to(device, non_blocking=non_blocking)
-                tf_pred = torch.sigmoid(out["tf_agreement_logit"]).squeeze(-1)
-                loss = loss + 0.3 * torch.nn.functional.mse_loss(tf_pred, y_tf_agreement)
-            if "position_size_logit" in out:
-                y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
-                pos_pred = torch.sigmoid(out["position_size_logit"]).squeeze(-1)
-                loss = loss + 0.2 * torch.nn.functional.mse_loss(pos_pred, y_pos_size)
-            if "hold_horizon_logit" in out:
-                y_hold = batch["y_hold_horizon_target"].to(device, non_blocking=non_blocking)
-                hold_pred = torch.sigmoid(out["hold_horizon_logit"]).squeeze(-1)
-                loss = loss + 0.2 * torch.nn.functional.mse_loss(hold_pred, y_hold)
-            if "mtf_dir_logits" in out and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0:
-                mtf_dir_loss = _direction_aux_ce_loss(out["mtf_dir_logits"], y, criterion, ce_sample_weight)
-                loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
-            loss = loss + 0.2 * dip_forecast_loss(out, batch, device)
+            tf_agreement_logit = _require_active_aux_head_prediction(
+                out,
+                batch,
+                output_name="tf_agreement_logit",
+                target_names=("y_tf_agreement_score",),
+            )
+            y_tf_agreement = batch["y_tf_agreement_score"].to(device, non_blocking=non_blocking)
+            tf_pred = torch.sigmoid(tf_agreement_logit).squeeze(-1)
+            loss = loss + _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS[
+                "tf_agreement"
+            ] * torch.nn.functional.mse_loss(tf_pred, y_tf_agreement)
+            position_size_logit = _require_active_aux_head_prediction(
+                out,
+                batch,
+                output_name="position_size_logit",
+                target_names=("y_position_size_target",),
+            )
+            y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
+            pos_pred = torch.sigmoid(position_size_logit).squeeze(-1)
+            loss = loss + _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS[
+                "position_size"
+            ] * torch.nn.functional.mse_loss(pos_pred, y_pos_size)
+            mtf_dir_logits = _require_active_aux_head_prediction(
+                out,
+                batch,
+                output_name="mtf_dir_logits",
+                target_names=("y_direction",),
+            )
+            mtf_dir_loss = _direction_aux_ce_loss(
+                mtf_dir_logits,
+                y,
+                criterion,
+                ce_sample_weight,
+            )
+            loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
+            loss = loss + _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS[
+                "dip_forecast_timing_tail_vol_composite"
+            ] * dip_forecast_loss(
+                out,
+                batch,
+                device,
+            )
             bs = y.shape[0]
             total += float(loss) * bs
             total_ce += float(ce_loss) * bs
@@ -7955,35 +6558,6 @@ def validate(
             hier_slice_flat_logit_margin_loss_sum += (
                 float(hier_stats.get("hier_slice_flat_logit_margin_loss", 0.0)) * bs
             )
-            hier_public_trade_loss_sum += float(hier_stats.get("hier_public_trade_loss", 0.0)) * bs
-            hier_public_flat_loss_sum += float(hier_stats.get("hier_public_flat_loss", 0.0)) * bs
-            hier_public_trade_global_prior_loss_sum += (
-                float(hier_stats.get("hier_public_trade_global_prior_loss", 0.0)) * bs
-            )
-            hier_public_slice_trade_prior_loss_sum += (
-                float(hier_stats.get("hier_public_slice_trade_prior_loss", 0.0)) * bs
-            )
-            hier_public_slice_trade_accuracy_edge_loss_sum += (
-                float(hier_stats.get("hier_public_slice_trade_accuracy_edge_loss", 0.0)) * bs
-            )
-            hier_public_flat_logit_margin_loss_sum += (
-                float(hier_stats.get("hier_public_flat_logit_margin_loss", 0.0)) * bs
-            )
-            hier_public_slice_flat_logit_margin_loss_sum += (
-                float(hier_stats.get("hier_public_slice_flat_logit_margin_loss", 0.0)) * bs
-            )
-            hier_public_flat_consistency_loss_sum += (
-                float(hier_stats.get("hier_public_flat_consistency_loss", 0.0)) * bs
-            )
-            hier_slice_public_flat_consistency_loss_sum += (
-                float(hier_stats.get("hier_slice_public_flat_consistency_loss", 0.0)) * bs
-            )
-            hier_public_trade_flat_margin_loss_sum += (
-                float(hier_stats.get("hier_public_trade_flat_margin_loss", 0.0)) * bs
-            )
-            hier_slice_public_trade_flat_margin_loss_sum += (
-                float(hier_stats.get("hier_slice_public_trade_flat_margin_loss", 0.0)) * bs
-            )
             hier_side_loss_sum += float(hier_stats.get("hier_side_loss", 0.0)) * bs
             hier_slice_side_ce_loss_sum += float(hier_stats.get("hier_slice_side_ce_loss", 0.0)) * bs
             hier_slice_side_margin_loss_sum += float(hier_stats.get("hier_slice_side_margin_loss", 0.0)) * bs
@@ -7992,25 +6566,6 @@ def validate(
             ) * bs
             hier_side_global_prior_loss_sum += float(hier_stats.get("hier_side_global_prior_loss", 0.0)) * bs
             hier_slice_side_prior_loss_sum += float(hier_stats.get("hier_slice_side_prior_loss", 0.0)) * bs
-            hier_public_side_loss_sum += float(hier_stats.get("hier_public_side_loss", 0.0)) * bs
-            hier_public_slice_side_ce_loss_sum += float(
-                hier_stats.get("hier_public_slice_side_ce_loss", 0.0)
-            ) * bs
-            hier_public_slice_side_margin_loss_sum += float(
-                hier_stats.get("hier_public_slice_side_margin_loss", 0.0)
-            ) * bs
-            hier_public_slice_side_accuracy_edge_loss_sum += float(
-                hier_stats.get("hier_public_slice_side_accuracy_edge_loss", 0.0)
-            ) * bs
-            hier_public_side_global_prior_loss_sum += float(
-                hier_stats.get("hier_public_side_global_prior_loss", 0.0)
-            ) * bs
-            hier_public_slice_side_prior_loss_sum += float(
-                hier_stats.get("hier_public_slice_side_prior_loss", 0.0)
-            ) * bs
-            hier_public_side_head_residual_cap_loss_sum += float(
-                hier_stats.get("hier_public_side_head_residual_cap_loss", 0.0)
-            ) * bs
             hier_utility_loss_sum += float(hier_stats.get("hier_utility_loss", 0.0)) * bs
             hier_side_bad_path_loss_sum += float(hier_stats.get("hier_bad_path_loss", 0.0)) * bs
             hier_side_mae_loss_sum += float(hier_stats.get("hier_mae_loss", 0.0)) * bs
@@ -8027,17 +6582,10 @@ def validate(
             if _side_rows > 0:
                 hier_side_rows_sum += _side_rows
                 hier_side_correct_sum += float(hier_stats.get("hier_side_acc", 0.0)) * _side_rows
-            _public_side_rows = int(hier_stats.get("hier_public_side_rows", 0.0))
-            if _public_side_rows > 0:
-                hier_public_side_rows_sum += _public_side_rows
-                hier_public_side_correct_sum += (
-                    float(hier_stats.get("hier_public_side_acc", 0.0)) * _public_side_rows
-                )
             trendline_rail_loss_sum += float(trendline_stats.get("trendline_rail_loss", 0.0)) * bs
             trendline_rail_rows_sum += int(trendline_stats.get("trendline_rail_rows", 0.0))
             trendline_rising_rows_sum += int(trendline_stats.get("trendline_rising_rows", 0.0))
             trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
-            trendline_wrong_side_prob_sum += float(trendline_stats.get("trendline_wrong_side_prob", 0.0)) * bs
             n += bs
 
             p = probs.cpu().numpy()
@@ -8049,13 +6597,6 @@ def validate(
             short_total += int((y_np == 1).sum())
             if short_total > 0:
                 short_pred_long += int(((pred_np == 0) & (y_np == 1)).sum())
-            if anchor_logits is not None and delta_logits is not None:
-                residual_scale = float(getattr(model, "residual_scale", 1.0))
-                scaled_delta = delta_logits * residual_scale
-                anchor_abs_sum += float(anchor_logits.abs().mean().item()) * bs
-                delta_abs_sum += float(delta_logits.abs().mean().item()) * bs
-                scaled_delta_abs_sum += float(scaled_delta.abs().mean().item()) * bs
-                final_minus_anchor_abs_sum += float((logits - anchor_logits).abs().mean().item()) * bs
 
     preds_np = np.asarray(preds)
     targets_np = np.asarray(targets)
@@ -8071,24 +6612,10 @@ def validate(
         if hierarchy_side_long_prob_chunks
         else None
     )
-    public_trade_flat_trade_prob_np = (
-        np.concatenate(public_trade_flat_trade_prob_chunks, axis=0)
-        if public_trade_flat_trade_prob_chunks
-        else None
-    )
-    public_trade_flat_pred_np = (
-        np.concatenate(public_trade_flat_pred_chunks, axis=0)
-        if public_trade_flat_pred_chunks
-        else None
-    )
 
     acc = float(accuracy_score(targets_np.astype(int), preds_np.astype(int)))
     short_pred_long_rate = (short_pred_long / short_total if short_total > 0 else 0.0)
-    stats = {
-        "anchor_abs_mean": (anchor_abs_sum / max(1, n)),
-        "delta_abs_mean": (delta_abs_sum / max(1, n)),
-        "scaled_delta_abs_mean": (scaled_delta_abs_sum / max(1, n)),
-        "final_minus_anchor_abs_mean": (final_minus_anchor_abs_sum / max(1, n)),
+    stats: Dict[str, Any] = {
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
@@ -8100,120 +6627,115 @@ def validate(
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
         "direction_min_pred_rate_loss_mean": (total_direction_min_pred / max(1, n)),
-        "direction_global_prior_match_loss_mean": (total_direction_global_prior_match / max(1, n)),
-        "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
+        "direction_global_prior_match_loss_mean": (
+            total_direction_global_prior_match / max(1, n)
+        ),
+        "direction_slice_min_pred_rate_loss_mean": (
+            total_direction_slice_min_pred / max(1, n)
+        ),
         "direction_slice_recall_loss_mean": (total_direction_slice_recall / max(1, n)),
-        "direction_slice_balanced_ce_loss_mean": (total_direction_slice_balanced_ce / max(1, n)),
-        "direction_slice_true_margin_loss_mean": (total_direction_slice_true_margin / max(1, n)),
-        "direction_slice_accuracy_edge_loss_mean": (total_direction_slice_accuracy_edge / max(1, n)),
-        "direction_slice_confusion_pair_loss_mean": (total_direction_slice_confusion_pair / max(1, n)),
-        "direction_slice_prior_match_loss_mean": (total_direction_slice_prior_match / max(1, n)),
+        "direction_slice_balanced_ce_loss_mean": (
+            total_direction_slice_balanced_ce / max(1, n)
+        ),
+        "direction_slice_true_margin_loss_mean": (
+            total_direction_slice_true_margin / max(1, n)
+        ),
+        "direction_slice_accuracy_edge_loss_mean": (
+            total_direction_slice_accuracy_edge / max(1, n)
+        ),
+        "direction_slice_confusion_pair_loss_mean": (
+            total_direction_slice_confusion_pair / max(1, n)
+        ),
+        "direction_slice_prior_match_loss_mean": (
+            total_direction_slice_prior_match / max(1, n)
+        ),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
-        "direction_utility_margin_loss_mean": (total_direction_utility_margin / max(1, n)),
+        "direction_utility_margin_loss_mean": (
+            total_direction_utility_margin / max(1, n)
+        ),
         "direction_side_utility_conviction_loss_mean": (
             total_direction_side_utility_conviction / max(1, n)
         ),
         "direction_utility_trade_conviction_loss_mean": (
             total_direction_utility_trade_conviction / max(1, n)
         ),
-        "direction_utility_triad_ce_loss_mean": (total_direction_utility_triad_ce / max(1, n)),
-        "direction_flat_starvation_loss_mean": (total_direction_flat_starvation / max(1, n)),
+        "direction_utility_triad_ce_loss_mean": (
+            total_direction_utility_triad_ce / max(1, n)
+        ),
+        "direction_flat_starvation_loss_mean": (
+            total_direction_flat_starvation / max(1, n)
+        ),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
-        "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
+        "bad_path_quality_rank_loss_mean": (
+            bad_path_quality_rank_loss_sum / max(1, n)
+        ),
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "hier_trade_loss_mean": (hier_trade_loss_sum / max(1, n)),
-        "hier_trade_global_prior_loss_mean": (hier_trade_global_prior_loss_sum / max(1, n)),
-        "hier_slice_trade_prior_loss_mean": (hier_slice_trade_prior_loss_sum / max(1, n)),
+        "hier_trade_global_prior_loss_mean": (
+            hier_trade_global_prior_loss_sum / max(1, n)
+        ),
+        "hier_slice_trade_prior_loss_mean": (
+            hier_slice_trade_prior_loss_sum / max(1, n)
+        ),
         "hier_slice_trade_accuracy_edge_loss_mean": (
             hier_slice_trade_accuracy_edge_loss_sum / max(1, n)
         ),
-        "hier_flat_logit_margin_loss_mean": (hier_flat_logit_margin_loss_sum / max(1, n)),
+        "hier_flat_logit_margin_loss_mean": (
+            hier_flat_logit_margin_loss_sum / max(1, n)
+        ),
         "hier_slice_flat_logit_margin_loss_mean": (
             hier_slice_flat_logit_margin_loss_sum / max(1, n)
         ),
-        "hier_public_trade_loss_mean": (hier_public_trade_loss_sum / max(1, n)),
-        "hier_public_flat_loss_mean": (hier_public_flat_loss_sum / max(1, n)),
-        "hier_public_trade_global_prior_loss_mean": (
-            hier_public_trade_global_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_trade_prior_loss_mean": (
-            hier_public_slice_trade_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_trade_accuracy_edge_loss_mean": (
-            hier_public_slice_trade_accuracy_edge_loss_sum / max(1, n)
-        ),
-        "hier_public_flat_logit_margin_loss_mean": (
-            hier_public_flat_logit_margin_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_flat_logit_margin_loss_mean": (
-            hier_public_slice_flat_logit_margin_loss_sum / max(1, n)
-        ),
-        "hier_public_flat_consistency_loss_mean": (
-            hier_public_flat_consistency_loss_sum / max(1, n)
-        ),
-        "hier_slice_public_flat_consistency_loss_mean": (
-            hier_slice_public_flat_consistency_loss_sum / max(1, n)
-        ),
-        "hier_public_trade_flat_margin_loss_mean": (
-            hier_public_trade_flat_margin_loss_sum / max(1, n)
-        ),
-        "hier_slice_public_trade_flat_margin_loss_mean": (
-            hier_slice_public_trade_flat_margin_loss_sum / max(1, n)
-        ),
         "hier_side_loss_mean": (hier_side_loss_sum / max(1, n)),
         "hier_slice_side_ce_loss_mean": (hier_slice_side_ce_loss_sum / max(1, n)),
-        "hier_slice_side_margin_loss_mean": (hier_slice_side_margin_loss_sum / max(1, n)),
+        "hier_slice_side_margin_loss_mean": (
+            hier_slice_side_margin_loss_sum / max(1, n)
+        ),
         "hier_slice_side_accuracy_edge_loss_mean": (
             hier_slice_side_accuracy_edge_loss_sum / max(1, n)
         ),
-        "hier_side_global_prior_loss_mean": (hier_side_global_prior_loss_sum / max(1, n)),
-        "hier_slice_side_prior_loss_mean": (hier_slice_side_prior_loss_sum / max(1, n)),
-        "hier_public_side_loss_mean": (hier_public_side_loss_sum / max(1, n)),
-        "hier_public_slice_side_ce_loss_mean": (
-            hier_public_slice_side_ce_loss_sum / max(1, n)
+        "hier_side_global_prior_loss_mean": (
+            hier_side_global_prior_loss_sum / max(1, n)
         ),
-        "hier_public_slice_side_margin_loss_mean": (
-            hier_public_slice_side_margin_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_side_accuracy_edge_loss_mean": (
-            hier_public_slice_side_accuracy_edge_loss_sum / max(1, n)
-        ),
-        "hier_public_side_global_prior_loss_mean": (
-            hier_public_side_global_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_slice_side_prior_loss_mean": (
-            hier_public_slice_side_prior_loss_sum / max(1, n)
-        ),
-        "hier_public_side_head_residual_cap_loss_mean": (
-            hier_public_side_head_residual_cap_loss_sum / max(1, n)
+        "hier_slice_side_prior_loss_mean": (
+            hier_slice_side_prior_loss_sum / max(1, n)
         ),
         "hier_utility_loss_mean": (hier_utility_loss_sum / max(1, n)),
         "hier_bad_path_loss_mean": (hier_side_bad_path_loss_sum / max(1, n)),
         "hier_mae_loss_mean": (hier_side_mae_loss_sum / max(1, n)),
-        "hier_side_validity_loss_mean": (hier_side_validity_loss_sum / max(1, n)),
-        "hier_long_valid_target_rate": (hier_long_valid_target_rate_sum / max(1, n)),
-        "hier_short_valid_target_rate": (hier_short_valid_target_rate_sum / max(1, n)),
+        "hier_side_validity_loss_mean": (
+            hier_side_validity_loss_sum / max(1, n)
+        ),
+        "hier_long_valid_target_rate": (
+            hier_long_valid_target_rate_sum / max(1, n)
+        ),
+        "hier_short_valid_target_rate": (
+            hier_short_valid_target_rate_sum / max(1, n)
+        ),
         "hier_long_valid_prob_mean": (hier_long_valid_prob_sum / max(1, n)),
         "hier_short_valid_prob_mean": (hier_short_valid_prob_sum / max(1, n)),
         "hier_long_bad_target_rate": (hier_long_bad_target_rate_sum / max(1, n)),
-        "hier_short_bad_target_rate": (hier_short_bad_target_rate_sum / max(1, n)),
-        "hier_countertrend_long_trap_rate": (hier_countertrend_long_trap_rate_sum / max(1, n)),
-        "hier_countertrend_short_trap_rate": (hier_countertrend_short_trap_rate_sum / max(1, n)),
+        "hier_short_bad_target_rate": (
+            hier_short_bad_target_rate_sum / max(1, n)
+        ),
+        "hier_countertrend_long_trap_rate": (
+            hier_countertrend_long_trap_rate_sum / max(1, n)
+        ),
+        "hier_countertrend_short_trap_rate": (
+            hier_countertrend_short_trap_rate_sum / max(1, n)
+        ),
         "hier_side_rows": int(hier_side_rows_sum),
-        "hier_side_acc": (hier_side_correct_sum / hier_side_rows_sum if hier_side_rows_sum > 0 else 0.0),
-        "hier_public_side_rows": int(hier_public_side_rows_sum),
-        "hier_public_side_acc": (
-            hier_public_side_correct_sum / hier_public_side_rows_sum
-            if hier_public_side_rows_sum > 0
+        "hier_side_acc": (
+            hier_side_correct_sum / hier_side_rows_sum
+            if hier_side_rows_sum > 0
             else 0.0
         ),
         "trendline_rail_loss_mean": (trendline_rail_loss_sum / max(1, n)),
         "trendline_rail_rows": int(trendline_rail_rows_sum),
         "trendline_rising_rows": int(trendline_rising_rows_sum),
         "trendline_falling_rows": int(trendline_falling_rows_sum),
-        "trendline_wrong_side_prob_mean": (trendline_wrong_side_prob_sum / max(1, n)),
     }
     stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
     stats.update(
@@ -8224,16 +6746,6 @@ def validate(
             hierarchy_side_long_prob_np,
         )
     )
-    stats.update(
-        _direction_public_trade_flat_output_stats(
-            targets_np,
-            public_trade_flat_trade_prob_np,
-            public_trade_flat_pred_np,
-            min_pred_to_label=float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
-            min_pred_rate=float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
-            guard_required=_public_trade_flat_hard_rate_guard_required(),
-        )
-    )
     slice_stats = _direction_slice_balance_stats(
         targets_np,
         preds_np,
@@ -8241,479 +6753,28 @@ def validate(
         trade_prob_np=hierarchy_trade_prob_np,
         side_pred_np=hierarchy_side_pred_np,
         side_long_prob_np=hierarchy_side_long_prob_np,
-        public_trade_flat_trade_prob_np=public_trade_flat_trade_prob_np,
-        public_trade_flat_pred_np=public_trade_flat_pred_np,
     )
     stats.update(slice_stats)
     stats["direction_slice_ckpt_score"] = _direction_slice_ckpt_score(
         float(stats.get("direction_ckpt_score", acc)),
         slice_stats,
     )
-    # V10-AUX-02: cross-head / AUC / realized-target diagnostics. Fail-soft, WARN-level,
-    # does NOT affect the returned loss or any checkpoint-selection metric.
-    try:
-        _diag_metrics, _diag_warns = _aux_head_diagnostics(_diag_pred, _diag_lbl, _diag_real)
-        stats.update(_diag_metrics)
-        for _w in _diag_warns:
-            log.warning(_w)
-    except Exception as _exc:  # pragma: no cover - diagnostics must never break val
-        log.warning(f"[V10-AUX-02] head diagnostics panel failed (ignored): {_exc}")
+    _diag_metrics, _diag_failures = _aux_head_diagnostics(
+        _diag_pred,
+        _diag_lbl,
+        _diag_real,
+    )
+    stats.update(_diag_metrics)
+    stats["aux_head_health_ok"] = not _diag_failures
+    stats["aux_head_health_failures"] = list(_diag_failures)
+    if _diag_failures:
+        log.error(
+            "[ENTRY_AUX_HEAD_HEALTH_CHECKPOINT_BLOCKED] %s",
+            "; ".join(_diag_failures),
+        )
     # AUC is intentionally disabled for this 3-class path (previously hardcoded 0.0)
     return total / max(1, n), float("nan"), acc, short_pred_long_rate, stats
 
-
-def _validate_eval(model, loader, criterion, device, residual_side_bias_alpha: float):
-    """
-    Eval with non-finite guard; returns loss/acc and raises on NaN/Inf.
-    """
-    model.eval()
-    total = 0.0
-    n = 0
-    preds, targets = [], []
-    session_map = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-    anchor_counts = {"long": 0, "short": 0, "flat": 0}
-    final_counts = {"long": 0, "short": 0, "flat": 0}
-    flip_counts = {
-        "anchor_short_to_short": 0,
-        "anchor_short_to_long": 0,
-        "anchor_long_to_short": 0,
-        "anchor_long_to_long": 0,
-        "anchor_flat_to_long": 0,
-        "anchor_flat_to_short": 0,
-    }
-    anchor_counts_by_session = {name: {"long": 0, "short": 0, "flat": 0} for name in session_map.values()}
-    final_counts_by_session = {name: {"long": 0, "short": 0, "flat": 0} for name in session_map.values()}
-    flip_counts_by_session = {
-        name: {k: 0 for k in flip_counts.keys()} for name in session_map.values()
-    }
-    residual_gap_chunks: List[np.ndarray] = []
-    anchor_gap_chunks: List[np.ndarray] = []
-    ratio_chunks: List[np.ndarray] = []
-    ratio_eps = 1e-8
-
-    with torch.no_grad():
-        for batch in loader:
-            non_blocking = device.type == "cuda"
-            seq_x = batch["seq_x"].to(device, non_blocking=non_blocking)
-            snap_x = batch["snap_x"].to(device, non_blocking=non_blocking)
-            ctx_cont = batch["ctx_cont"].to(device, non_blocking=non_blocking)
-            ctx_cat = batch["ctx_cat"].to(device, non_blocking=non_blocking)
-            y = batch["y"].to(device, non_blocking=non_blocking)
-
-            out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
-            logits = out["direction_logits"]
-            anchor_logits = out.get("anchor_logits")
-            delta_logits = out.get("delta_logits")
-
-            if not torch.isfinite(logits).all():
-                raise RuntimeError("[EVAL_NON_FINITE] logits contain non-finite values")
-
-            loss = float(ENTRY_DIRECTION_CE_SCALE) * criterion(logits, y)
-            if residual_side_bias_alpha > 0.0 and delta_logits is not None:
-                residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
-                residual_side_bias_loss = residual_gap.mean().pow(2)
-                loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
-            bs = y.shape[0]
-            total += float(loss) * bs
-            n += bs
-
-            prob = torch.softmax(logits, dim=1)
-            if not torch.isfinite(prob).all():
-                raise RuntimeError("[EVAL_NON_FINITE] probs contain non-finite values")
-
-            preds.extend(np.argmax(prob.cpu().numpy(), axis=1).tolist())
-            targets.extend(y.cpu().numpy().tolist())
-
-            if anchor_logits is not None:
-                anchor_side = torch.argmax(anchor_logits, dim=1)
-                final_side = torch.argmax(logits, dim=1)
-
-                anchor_counts["long"] += int((anchor_side == 0).sum().item())
-                anchor_counts["short"] += int((anchor_side == 1).sum().item())
-                anchor_counts["flat"] += int((anchor_side == 2).sum().item())
-                final_counts["long"] += int((final_side == 0).sum().item())
-                final_counts["short"] += int((final_side == 1).sum().item())
-                final_counts["flat"] += int((final_side == 2).sum().item())
-
-                flip_counts["anchor_short_to_short"] += int(((anchor_side == 1) & (final_side == 1)).sum().item())
-                flip_counts["anchor_short_to_long"] += int(((anchor_side == 1) & (final_side == 0)).sum().item())
-                flip_counts["anchor_long_to_short"] += int(((anchor_side == 0) & (final_side == 1)).sum().item())
-                flip_counts["anchor_long_to_long"] += int(((anchor_side == 0) & (final_side == 0)).sum().item())
-                flip_counts["anchor_flat_to_long"] += int(((anchor_side == 2) & (final_side == 0)).sum().item())
-                flip_counts["anchor_flat_to_short"] += int(((anchor_side == 2) & (final_side == 1)).sum().item())
-
-                sessions = ctx_cat[:, 0].cpu().numpy()
-                for sess_id, sess_name in session_map.items():
-                    sess_mask = sessions == sess_id
-                    if not np.any(sess_mask):
-                        continue
-                    sess_anchor = anchor_side[sess_mask]
-                    sess_final = final_side[sess_mask]
-                    anchor_counts_by_session[sess_name]["long"] += int((sess_anchor == 0).sum().item())
-                    anchor_counts_by_session[sess_name]["short"] += int((sess_anchor == 1).sum().item())
-                    anchor_counts_by_session[sess_name]["flat"] += int((sess_anchor == 2).sum().item())
-                    final_counts_by_session[sess_name]["long"] += int((sess_final == 0).sum().item())
-                    final_counts_by_session[sess_name]["short"] += int((sess_final == 1).sum().item())
-                    final_counts_by_session[sess_name]["flat"] += int((sess_final == 2).sum().item())
-                    flip_counts_by_session[sess_name]["anchor_short_to_short"] += int(
-                        ((sess_anchor == 1) & (sess_final == 1)).sum().item()
-                    )
-                    flip_counts_by_session[sess_name]["anchor_short_to_long"] += int(
-                        ((sess_anchor == 1) & (sess_final == 0)).sum().item()
-                    )
-                    flip_counts_by_session[sess_name]["anchor_long_to_short"] += int(
-                        ((sess_anchor == 0) & (sess_final == 1)).sum().item()
-                    )
-                    flip_counts_by_session[sess_name]["anchor_long_to_long"] += int(
-                        ((sess_anchor == 0) & (sess_final == 0)).sum().item()
-                    )
-                    flip_counts_by_session[sess_name]["anchor_flat_to_long"] += int(
-                        ((sess_anchor == 2) & (sess_final == 0)).sum().item()
-                    )
-                    flip_counts_by_session[sess_name]["anchor_flat_to_short"] += int(
-                        ((sess_anchor == 2) & (sess_final == 1)).sum().item()
-                    )
-
-                if delta_logits is not None:
-                    residual_scale = float(getattr(model, "residual_scale", 1.0))
-                    residual_gap = residual_scale * (delta_logits[:, 0] - delta_logits[:, 1])
-                    anchor_gap = anchor_logits[:, 1] - anchor_logits[:, 0]
-                    ratio = torch.abs(residual_gap) / (torch.abs(anchor_gap) + ratio_eps)
-                    residual_gap_chunks.append(residual_gap.detach().cpu().numpy())
-                    anchor_gap_chunks.append(anchor_gap.detach().cpu().numpy())
-                    ratio_chunks.append(ratio.detach().cpu().numpy())
-
-    preds_np = np.asarray(preds)
-    targets_np = np.asarray(targets)
-
-    acc = float(accuracy_score(targets_np.astype(int), preds_np.astype(int)))
-
-    def _stat_summary(values: np.ndarray) -> Dict[str, Optional[float]]:
-        if values.size == 0:
-            return {"mean": None, "median": None, "p90": None, "p95": None, "max": None}
-        return {
-            "mean": float(values.mean()),
-            "median": float(np.median(values)),
-            "p90": float(np.percentile(values, 90)),
-            "p95": float(np.percentile(values, 95)),
-            "max": float(values.max()),
-        }
-
-    total_anchor = sum(anchor_counts.values())
-    total_final = sum(final_counts.values())
-    if total_anchor > 0:
-        if total_final > 0:
-            log.info(
-                "[ENTRY_PRED_DIST_PROOF] pred_long_pct=%.6f pred_short_pct=%.6f pred_flat_pct=%.6f",
-                final_counts["long"] / total_final,
-                final_counts["short"] / total_final,
-                final_counts["flat"] / total_final,
-            )
-            for sess_name in session_map.values():
-                sess_total = sum(final_counts_by_session[sess_name].values())
-                if sess_total > 0:
-                    log.info(
-                        "[ENTRY_PRED_DIST_PROOF] session=%s pred_long_pct=%.6f pred_short_pct=%.6f pred_flat_pct=%.6f",
-                        sess_name,
-                        final_counts_by_session[sess_name]["long"] / sess_total,
-                        final_counts_by_session[sess_name]["short"] / sess_total,
-                        final_counts_by_session[sess_name]["flat"] / sess_total,
-                    )
-        log.info(
-            "[ENTRY_ANCHOR_DIST_PROOF] anchor_long_pct=%.6f anchor_short_pct=%.6f anchor_flat_pct=%.6f",
-            anchor_counts["long"] / total_anchor,
-            anchor_counts["short"] / total_anchor,
-            anchor_counts["flat"] / total_anchor,
-        )
-        for sess_name in session_map.values():
-            sess_total = sum(anchor_counts_by_session[sess_name].values())
-            if sess_total > 0:
-                log.info(
-                    "[ENTRY_ANCHOR_DIST_PROOF] session=%s anchor_long_pct=%.6f anchor_short_pct=%.6f anchor_flat_pct=%.6f",
-                    sess_name,
-                    anchor_counts_by_session[sess_name]["long"] / sess_total,
-                    anchor_counts_by_session[sess_name]["short"] / sess_total,
-                    anchor_counts_by_session[sess_name]["flat"] / sess_total,
-                )
-
-        log.info(
-            "[ENTRY_ANCHOR_FLIP_PROOF] anchor_short_to_short=%d anchor_short_to_long=%d anchor_long_to_short=%d "
-            "anchor_long_to_long=%d anchor_flat_to_long=%d anchor_flat_to_short=%d",
-            flip_counts["anchor_short_to_short"],
-            flip_counts["anchor_short_to_long"],
-            flip_counts["anchor_long_to_short"],
-            flip_counts["anchor_long_to_long"],
-            flip_counts["anchor_flat_to_long"],
-            flip_counts["anchor_flat_to_short"],
-        )
-        for sess_name in session_map.values():
-            sess_counts = flip_counts_by_session[sess_name]
-            if sum(sess_counts.values()) > 0:
-                log.info(
-                    "[ENTRY_ANCHOR_FLIP_PROOF] session=%s anchor_short_to_short=%d anchor_short_to_long=%d "
-                    "anchor_long_to_short=%d anchor_long_to_long=%d anchor_flat_to_long=%d anchor_flat_to_short=%d",
-                    sess_name,
-                    sess_counts["anchor_short_to_short"],
-                    sess_counts["anchor_short_to_long"],
-                    sess_counts["anchor_long_to_short"],
-                    sess_counts["anchor_long_to_long"],
-                    sess_counts["anchor_flat_to_long"],
-                    sess_counts["anchor_flat_to_short"],
-                )
-
-    if residual_gap_chunks and anchor_gap_chunks and ratio_chunks:
-        residual_gap_all = np.concatenate(residual_gap_chunks, axis=0)
-        anchor_gap_all = np.concatenate(anchor_gap_chunks, axis=0)
-        ratio_all = np.concatenate(ratio_chunks, axis=0)
-
-        res_stats = _stat_summary(residual_gap_all)
-        anc_stats = _stat_summary(anchor_gap_all)
-        ratio_stats = _stat_summary(ratio_all)
-
-        log.info(
-            "[ENTRY_RESIDUAL_GAP_PROOF] mean_gap=%.6f median_gap=%.6f p90_gap=%.6f p95_gap=%.6f max_gap=%.6f",
-            res_stats["mean"] or 0.0,
-            res_stats["median"] or 0.0,
-            res_stats["p90"] or 0.0,
-            res_stats["p95"] or 0.0,
-            res_stats["max"] or 0.0,
-        )
-        log.info(
-            "[ENTRY_ANCHOR_GAP_PROOF] mean_anchor_gap=%.6f median_anchor_gap=%.6f p90_anchor_gap=%.6f",
-            anc_stats["mean"] or 0.0,
-            anc_stats["median"] or 0.0,
-            anc_stats["p90"] or 0.0,
-        )
-        log.info(
-            "[ENTRY_RESIDUAL_VS_ANCHOR_PROOF] mean_ratio=%.6f p90_ratio=%.6f p95_ratio=%.6f",
-            ratio_stats["mean"] or 0.0,
-            ratio_stats["p90"] or 0.0,
-            ratio_stats["p95"] or 0.0,
-        )
-
-    # AUC disabled for this 3-class path
-    return total / max(1, n), float("nan"), acc
-
-# -----------------------------------------------------------------------------
-# Sanity check
-# -----------------------------------------------------------------------------
-def run_sanity_check(
-    seq_len: int,
-    seed: int,
-    device: torch.device,
-    out_bundle_dir: Path,
-    dataset_manifest: Optional[Path] = None,
-    deterministic: bool = True,
-    enable_specialist_fusion: bool = False,
-    specialist_audit_json: Optional[Path] = None,
-    specialist_contract_mode: str = "foundation_seq146",
-    specialist_num_layers: int = 1,
-    specialist_fusion_scale: float = 0.25,
-) -> None:
-    """
-    Contract + dummy forward + write minimal bundle + reload with runtime loader (strict).
-    Fail-fast with clear error labels.
-    """
-    _guard_no_rl()
-
-    signal_contract = _signal_contract_from_manifest_path(dataset_manifest)
-    seq_input_dim = int(signal_contract["seq_input_dim"])
-    snap_input_dim = int(signal_contract["snap_input_dim"])
-
-    if dataset_manifest is not None:
-        p = Path(dataset_manifest).expanduser().resolve()
-        _require(p.exists(), f"[SANITY_MANIFEST_MISSING] {p}")
-        data = json.loads(p.read_text(encoding="utf-8"))
-        fc = data.get("feature_contract") or {}
-        fc_ctx_cont_dim = int(fc.get("ctx_cont_dim") or -1)
-        fc_ctx_cat_dim = int(fc.get("ctx_cat_dim") or -1)
-        # R4: validate by DIMS (the real contract), not a brittle literal-tag string.
-        # ctx_cat is contract-driven (5/6); the ctx_tag is informational/self-describing.
-        _exp_cat_dim = _expected_ctx_cat_dim()
-        _require(
-            fc_ctx_cont_dim >= 6
-            and fc_ctx_cat_dim == _exp_cat_dim,
-            f"[SANITY_MANIFEST_CONTRACT] manifest feature_contract must be ctx_cont_dim>=6 ctx_cat_dim={_exp_cat_dim}, got {fc}",
-        )
-        if fc.get("ctx_cont_base_dim") is not None:
-            _require(
-                int(fc.get("ctx_cont_base_dim")) == 6,
-                f"[SANITY_MANIFEST_CTX_BASE] expected ctx_cont_base_dim=6, got {fc.get('ctx_cont_base_dim')}",
-            )
-        bridge_id = str(fc.get("signal_bridge_id") or "")
-        _require(
-            bridge_id.startswith("XGB_SIGNAL_BRIDGE_"),
-            f"[SANITY_MANIFEST_SIGNAL] expected XGB_SIGNAL_BRIDGE_*, got {bridge_id}",
-        )
-        log.info(f"[SANITY] manifest contract OK: {p}")
-
-    ctx = get_canonical_ctx_contract()
-    expected_ctx_cat_dim = _expected_ctx_cat_dim()
-    if not _is_vnext():
-        _require(
-            int(ctx.get("ctx_cont_dim") or 0) >= 6 and expected_ctx_cat_dim > 0,
-            f"[SANITY_CTX_DIM_MISMATCH] expected ctx_cont_base>=6 ctx_cat_dim={expected_ctx_cat_dim}",
-        )
-    _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SANITY_SIGNAL_DIM] seq={seq_input_dim} snap={snap_input_dim}")
-
-    if dataset_manifest is not None:
-        ctx_cont_dim = int(fc_ctx_cont_dim)
-        ctx_cat_dim = int(fc_ctx_cat_dim)
-    else:
-        ctx_cont_dim = int(ctx.get("ctx_cont_dim") or 6)
-        ctx_cat_dim = expected_ctx_cat_dim
-    if _is_vnext():
-        ctx_cont_dim = max(ctx_cont_dim, 21)
-
-    log.info(
-        f"[SANITY] seed={seed} device={device} "
-        f"signal_dim={seq_input_dim} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim} seq_len={seq_len}"
-    )
-    specialist_indices: Dict[str, list[int]] | None = None
-    specialist_meta: Dict[str, Any] | None = None
-    if enable_specialist_fusion:
-        specialist_indices, specialist_meta = _load_specialist_fusion_contract(
-            specialist_audit_json,
-            expected_signal_dim=seq_input_dim,
-            contract_mode=specialist_contract_mode,
-        )
-        log.info("[SPECIALIST_FUSION] sanity enabled groups=%s", sorted(specialist_indices))
-
-    _set_deterministic(seed, device, deterministic=deterministic)
-
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=seq_input_dim,
-        snap_input_dim=snap_input_dim,
-        seq_len=seq_len,
-        ctx_cont_dim=ctx_cont_dim,
-        ctx_cat_dim=ctx_cat_dim,
-        residual_scale=float(ENTRY_RESIDUAL_SCALE),
-        anchor_eps=float(ENTRY_ANCHOR_EPS),
-        hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-        hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-        enable_specialist_fusion=bool(enable_specialist_fusion),
-        specialist_input_indices=specialist_indices,
-        specialist_num_layers=int(specialist_num_layers),
-        specialist_fusion_scale=float(specialist_fusion_scale),
-    ).to(device)
-    try:
-        head_out = int(getattr(model.head_direction, "out_features", -1))
-    except Exception:
-        head_out = -1
-    log.info("[ENTRY_3CLASS_PROOF] head_direction_out=%s", head_out)
-    try:
-        head_out = int(getattr(model.head_direction, "out_features", -1))
-    except Exception:
-        head_out = -1
-    log.info("[ENTRY_3CLASS_PROOF] head_direction_out=%s", head_out)
-
-    # Dummy batch: per-sample ctx (B, ctx_*) as in dataset/trening
-    B, T = 4, seq_len
-    dummy_seq = torch.randn(B, T, seq_input_dim, device=device, dtype=torch.float32)
-    dummy_snap = torch.randn(B, snap_input_dim, device=device, dtype=torch.float32)
-    dummy_ctx_cont = torch.randn(B, ctx_cont_dim, device=device, dtype=torch.float32)
-    dummy_ctx_cat = torch.randint(0, 256, (B, ctx_cat_dim), device=device, dtype=torch.int64)
-
-    with torch.no_grad():
-        out = model(
-            dummy_seq,
-            dummy_snap,
-            ctx_cat=dummy_ctx_cat,
-            ctx_cont=dummy_ctx_cont,
-        )
-
-    direction_logits = out["direction_logits"]
-    _require(
-        direction_logits.dim() == 2 and direction_logits.shape[1] == 3,
-        f"[SANITY_OUTPUT_SHAPE] expected (B,3) got {tuple(direction_logits.shape)}",
-    )
-    _require(
-        direction_logits.dtype == torch.float32,
-        f"[SANITY_OUTPUT_DTYPE] expected float32 got {direction_logits.dtype}",
-    )
-    if torch.isnan(direction_logits).any() or torch.isinf(direction_logits).any():
-        raise RuntimeError("[SANITY_NAN_INF] direction_logits contains NaN/Inf")
-
-    log.info(
-        f"[SANITY] forward OK shapes seq={dummy_seq.shape} snap={dummy_snap.shape} "
-        f"ctx_cont=(B,{ctx_cont_dim}) ctx_cat=(B,{ctx_cat_dim}) out={direction_logits.shape}"
-    )
-
-    # Write minimal sanity bundle
-    out_bundle_dir = Path(out_bundle_dir).expanduser().resolve()
-    out_bundle_dir.mkdir(parents=True, exist_ok=True)
-
-    state_path = out_bundle_dir / "model_state_dict.pt"
-    # Unwrap torch.compile wrapper to avoid `_orig_mod.` prefix in saved keys.
-    _save_model = model._orig_mod if hasattr(model, "_orig_mod") else model
-    state_dict = {k: v.cpu().clone() for k, v in _save_model.state_dict().items()}
-    torch.save(state_dict, state_path)
-
-    ordered_ctx_cont_names = _build_ordered_ctx_cont_names(ctx_cont_dim, list(ctx.get("ctx_cont_names") or []))
-
-    lock = {
-        "version": "entry_v10_ctx_lock_v1",
-        "created_at_utc": _utc_now(),
-        "signal_bridge_contract_sha256": SIGNAL_BRIDGE_CONTRACT_SHA256,
-        "seq_input_dim": seq_input_dim,
-        "snap_input_dim": snap_input_dim,
-        "seq_len": seq_len,
-        "ctx_cont_dim": ctx_cont_dim,
-        "ctx_cat_dim": ctx_cat_dim,
-        "num_classes": 3,
-        "class_order": [0, 1, 2],
-        "model_path_relative": "model_state_dict.pt",
-        "model_sha256": _sha256_file(state_path),
-    }
-    (out_bundle_dir / "MASTER_TRANSFORMER_LOCK.json").write_text(
-        json.dumps(lock, indent=2)
-    )
-
-    feature_meta_path = out_bundle_dir / "feature_meta.json"
-    feature_meta_path.write_text(json.dumps({"sanity": True, "placeholder": True}))
-
-    meta = {
-        "created_at_utc": _utc_now(),
-        "seq_input_dim": seq_input_dim,
-        "snap_input_dim": snap_input_dim,
-        "seq_len": seq_len,
-        "ctx_cont_dim": ctx_cont_dim,
-        "ctx_cat_dim": ctx_cat_dim,
-        "num_classes": 3,
-        "class_order": [0, 1, 2],
-        "supports_context_features": True,
-        "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-        "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
-        "ordered_ctx_cont_names": ordered_ctx_cont_names,
-        "ordered_ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
-        "feature_meta_path": str(feature_meta_path.name),
-        "sanity_bundle": True,
-    }
-    if specialist_meta:
-        meta["specialist_fusion"] = {
-            **specialist_meta,
-            "num_layers": int(specialist_num_layers),
-            "fusion_scale": float(specialist_fusion_scale),
-        }
-    (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
-
-    # Reload with runtime loader (strict=True in loader)
-    from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
-
-    bundle = load_entry_v10_ctx_bundle(
-        bundle_dir=out_bundle_dir,
-        feature_meta_path=feature_meta_path,
-        device="cpu",
-        xgb_models=None,
-    )
-    with torch.no_grad():
-        _ = bundle.transformer_model(
-            dummy_seq.cpu(),
-            dummy_snap.cpu(),
-            ctx_cat=dummy_ctx_cat.cpu(),
-            ctx_cont=dummy_ctx_cont.cpu(),
-        )
-    log.info("[SANITY] strict load + forward OK")
 
 # -----------------------------------------------------------------------------
 # Train
@@ -8729,53 +6790,22 @@ def run_train(
     lr: float,
     out_bundle_dir: Path,
     gx1_data_override: str,
-    allow_constant_labels: bool,
     num_workers: int,
     early_stopping_patience: int,
     early_stopping_min_delta: float,
+    m5_prebuilt_path: Path,
+    specialist_audit_json: Path,
+    specialist_contract_mode: str,
     deterministic: bool = True,
-    # V12.2 multi-TF
-    enable_multi_tf: bool = False,
-    m5_prebuilt_path: Optional[Path] = None,
     multi_tf_seq_len: int = 96,
     multi_tf_scale: float = 0.5,
     subsample_rows: int = 0,
-    # V10 v3+ aux heads (Targets 1-4)
-    enable_tf_agreement_head: bool = False,
-    enable_path_quality_variance_head: bool = False,
-    enable_position_size_head: bool = False,
-    enable_hold_horizon_head: bool = False,
-    # Positional encoding (temporal order of every sequence)
-    enable_pos_enc: bool = False,
-    enable_mtf_direction_head: bool = False,
-    mtf_dir_scale_init: float = 0.2,
-    enable_regime_film: bool = False,   # BIG-9: FiLM regime-conditioning (default OFF = bit-parity)
-    enable_dip_head: bool = False,
-    enable_forecast_head: bool = False,
-    enable_cross_tf_attn: bool = False,
-    enable_timing_head: bool = False,
-    enable_tail_risk_head: bool = False,
-    enable_vol_forecast_head: bool = False,
-    enable_anchor_gate: bool = False,
-    anchor_gate_init: float = 1.0,
-    enable_hierarchical_entry_heads: bool = False,
-    enable_hierarchical_direction_composition: bool = False,
-    enable_side_validity_head: bool = False,
-    enable_trendline_rail_head: bool = False,
-    enable_specialist_fusion: bool = False,
-    specialist_audit_json: Optional[Path] = None,
-    specialist_contract_mode: str = "foundation_seq146",
     specialist_num_layers: int = 1,
     specialist_fusion_scale: float = 0.25,
     # V2 fast-train extras
     per_tf_seq_len_h4: int = 0,
     per_tf_seq_len_d1: int = 0,
-    smoke_date_from: str = "",
-    smoke_date_to: str = "",
     grad_accum_steps: int = 0,
-    init_from_state_dict: Optional[Path] = None,
-    # 2026-06-02: per-TF learnable input scaling (V10 v5+)
-    enable_tf_input_scale: bool = False,
     tf_input_scale_init_m5: float = 1.0,
     tf_input_scale_init_m15: float = 1.0,
     tf_input_scale_init_h1: float = 0.7,
@@ -8785,21 +6815,23 @@ def run_train(
 ) -> None:
     _guard_no_rl()
 
-    # Multi-TF×5 is MANDATORY — fail closed if a caller ever passes it off or
-    # forgets the M5 prebuilt. There is no single-TF V10 (toggle removed 2026-05-26).
-    if not enable_multi_tf or m5_prebuilt_path is None:
-        raise RuntimeError(
-            "[MULTI_TF_MANDATORY] V10 must train multi-TF×5 (M5/M15/H1/H4/D1). "
-            f"Got enable_multi_tf={enable_multi_tf} m5_prebuilt_path={m5_prebuilt_path}."
+    try:
+        normalized_specialist_contract_mode = require_model_native_specialist_contract_mode(
+            specialist_contract_mode
         )
+    except ValueError as exc:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_MODEL_NATIVE_SPECIALIST_CONTRACT_REQUIRED] "
+            f"observed={specialist_contract_mode!r} expected={MODEL_NATIVE_CONTRACT_MODE!r}"
+        ) from exc
 
-    ctx = get_canonical_ctx_contract()
-    expected_ctx_cat_dim = _expected_ctx_cat_dim()
-    _require(expected_ctx_cat_dim > 0 and int(ctx.get("ctx_cont_dim") or 0) >= 6, "[CTX_CONTRACT_DIM]")
+    if m5_prebuilt_path is None:
+        raise RuntimeError("[MULTI_TF_MANDATORY] m5_prebuilt_path is required")
 
     log.info(
         f"[TRAIN] seed={seed} device={device} batch_size={batch_size} epochs={epochs} lr={lr} "
-        f"signal_dim=dynamic ctx_cont=dynamic ctx_cat={expected_ctx_cat_dim} early_stop_patience={early_stopping_patience} "
+        f"signal_dim={MODEL_NATIVE_SIGNAL_DIM} ctx_cont={MODEL_NATIVE_CTX_CONT_DIM} "
+        f"ctx_cat={MODEL_NATIVE_CTX_CAT_DIM} early_stop_patience={early_stopping_patience} "
         f"early_stop_min_delta={early_stopping_min_delta}"
     )
 
@@ -8812,7 +6844,7 @@ def run_train(
     # memory = max(train_parquet, M5_prebuilt) instead of their sum. Without
     # this, OOM on 15GB hosts during Dataset construction (1.5GB parquet ×
     # pandas overhead + 1.5GB M5 prebuilt × pandas overhead > 15GB).
-    if enable_multi_tf and m5_prebuilt_path is not None:
+    if m5_prebuilt_path is not None:
         v2_mode = True  # MANDATORY V2 5×25 (env-gate removed 2026-05-26)
         cache_key = f"{Path(m5_prebuilt_path).resolve()}|v2={v2_mode}"
         if cache_key not in _MULTI_TF_CACHE:
@@ -8839,12 +6871,14 @@ def run_train(
                 feats = build_multi_tf_per_bar_features(m5)
                 feats = {k: v for k, v in feats.items() if k != "M5"}
             del m5
-            import gc; gc.collect()
+            import gc
+
+            gc.collect()
             _MULTI_TF_CACHE[cache_key] = feats
             for tf_name, df in feats.items():
                 log.info(f"[MULTI_TF] {tf_name}: {len(df):,} bars × {df.shape[1]} feats")
 
-    # V2 fast-train: build per-TF seq_lens dict and forward smoke-date.
+    # Build exact per-TF sequence lengths.
     _per_tf_lens: Dict[str, int] = {}
     # B10 tapered-MTF (GX1_MTF_TAPERED=1, default OFF): coarser TFs reach further with FEWER
     # bars — m15=64 (drops the ~8h M5 overlap), d1=252 (~1yr regime memory, matches the
@@ -8860,23 +6894,13 @@ def run_train(
     if _tapered:
         _per_tf_lens["M15"] = 64
         log.info("[GX1_MTF_TAPERED] per-TF seq-lens: %s (m5/h1=default %d)", _per_tf_lens, int(multi_tf_seq_len))
-    xau_direction_repair_mode = bool(
-        enable_anchor_gate
-        or enable_hierarchical_entry_heads
-        or enable_side_validity_head
-        or enable_trendline_rail_head
-    )
     train_ds = EntryV10CtxDataset(
         train_parquet,
         seq_len=seq_len,
-        allow_constant_labels=allow_constant_labels,
-        enable_multi_tf=enable_multi_tf,
         m5_prebuilt_path=m5_prebuilt_path,
         multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
-        multi_tf_closed_bar=True if xau_direction_repair_mode else None,
-        smoke_date_from=smoke_date_from,
-        smoke_date_to=smoke_date_to,
+        multi_tf_closed_bar=True,
     )
     # V12.2 sweep mode: stratified subsample on training set ONLY (val untouched).
     if subsample_rows > 0 and subsample_rows < len(train_ds):
@@ -8899,53 +6923,92 @@ def run_train(
     val_ds = EntryV10CtxDataset(
         val_parquet,
         seq_len=seq_len,
-        allow_constant_labels=True,
-        enable_multi_tf=enable_multi_tf,
         m5_prebuilt_path=m5_prebuilt_path,
         multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
-        multi_tf_closed_bar=True if xau_direction_repair_mode else None,
-        smoke_date_from=smoke_date_from,
-        smoke_date_to=smoke_date_to,
+        multi_tf_closed_bar=True,
     )
-    if xau_direction_repair_mode:
-        contract_failures: list[str] = []
-        contract_failures.extend(
-            _xau_direction_repair_source_failures(
-                {
-                    "train_parquet": train_parquet,
-                    "val_parquet": val_parquet,
-                    "m5_prebuilt_path": m5_prebuilt_path,
-                }
-            )
+    train_contract_mode = str(train_ds.contract_mode)
+    val_contract_mode = str(val_ds.contract_mode)
+    if (
+        train_contract_mode != MODEL_NATIVE_CONTRACT_MODE
+        or val_contract_mode != MODEL_NATIVE_CONTRACT_MODE
+    ):
+        raise RuntimeError(
+            "[ENTRY_TRAIN_MODEL_NATIVE_SIGNAL_CONTRACT_REQUIRED] "
+            f"train={train_contract_mode!r} val={val_contract_mode!r}"
         )
-        contract_failures.extend(
-            _xau_direction_repair_manifest_failures(
-                {
-                    "train": train_parquet,
-                    "val": val_parquet,
-                }
-            )
+    direction_logit_mode = str(train_ds.direction_logit_mode)
+    if (
+        direction_logit_mode != MODEL_NATIVE_DIRECTION_LOGIT_MODE
+        or str(val_ds.direction_logit_mode) != MODEL_NATIVE_DIRECTION_LOGIT_MODE
+    ):
+        raise RuntimeError("[ENTRY_TRAIN_MODEL_NATIVE_DIRECTION_MODE_REQUIRED]")
+    if normalized_specialist_contract_mode != MODEL_NATIVE_CONTRACT_MODE:
+        raise RuntimeError("[ENTRY_TRAIN_SPECIALIST_CONTRACT_MODE_INVALID]")
+    if not bool(ENTRY_SYMMETRIC_NEGATIVES):
+        raise RuntimeError("[ENTRY_TRAIN_SYMMETRIC_NEGATIVES_REQUIRED]")
+    active_model_native_loss_weights = _current_model_native_active_loss_weights()
+    active_loss_weight_failures = _model_native_active_loss_weight_failures(
+        active_model_native_loss_weights
+    )
+    if active_loss_weight_failures:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_MODEL_NATIVE_ACTIVE_LOSS_WEIGHT_INVALID] "
+            + "; ".join(active_loss_weight_failures)
         )
-        for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
-            if not bool(getattr(ds_obj, "neutral_xgb_bridge", False)):
-                contract_failures.append(
-                    f"{split_name} dataset manifest must declare neutral_xgb_bridge=true "
-                    "for XAU direction repair heads"
-                )
-            if str(getattr(ds_obj, "xgb_bridge_source", "") or "") != "neutral_uniform_proba":
-                contract_failures.append(
-                    f"{split_name} dataset manifest must declare xgb_bridge_source=neutral_uniform_proba "
-                    f"(got {getattr(ds_obj, 'xgb_bridge_source', '')!r})"
-                )
-            contract_failures.extend(_xau_direction_repair_target_failures(split_name, ds_obj.df))
-        if contract_failures:
+    model_native_training_objective = training_objective_contract_metadata(
+        active_model_native_loss_weights
+    )
+    for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+        contract = ds_obj.model_native_signal_contract
+        require_model_native_signal_contract(
+            contract,
+            context=f"ENTRY_TRAIN_{split_name.upper()}",
+        )
+        if list(ds_obj.signal_names) != list(contract["fields"]):
             raise RuntimeError(
-                "[ENTRY_XAU_DIRECTION_REPAIR_CONTRACT_INVALID] "
-                + "; ".join(contract_failures)
+                f"[ENTRY_TRAIN_{split_name.upper()}_MODEL_NATIVE_SIGNAL_ORDER_MISMATCH]"
             )
-    if enable_hierarchical_entry_heads:
-        required_hier_cols = [
+    if train_ds.aux_head_target_contract != val_ds.aux_head_target_contract:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_AUX_TARGET_CONTRACT_SPLIT_MISMATCH] "
+            "TRAIN and VAL must share one immutable 37-column future-target contract"
+        )
+    contract_failures: list[str] = []
+    contract_failures.extend(
+        _xau_direction_repair_source_failures(
+            {
+                "train_parquet": train_parquet,
+                "val_parquet": val_parquet,
+                "m5_prebuilt_path": m5_prebuilt_path,
+            }
+        )
+    )
+    contract_failures.extend(
+        _xau_direction_repair_manifest_failures(
+            {
+                "train": train_parquet,
+                "val": val_parquet,
+            }
+        )
+    )
+    for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+        forbidden_present = sorted(
+            set(ds_obj.signal_names)
+            & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
+        )
+        if forbidden_present:
+            contract_failures.append(
+                f"{split_name} dataset contains forbidden bridge fields: {forbidden_present}"
+            )
+        contract_failures.extend(_xau_direction_repair_target_failures(split_name, ds_obj.df))
+    if contract_failures:
+        raise RuntimeError(
+            "[ENTRY_XAU_DIRECTION_REPAIR_CONTRACT_INVALID] "
+            + "; ".join(contract_failures)
+        )
+    required_hier_cols = [
             "y_trade",
             "y_side",
             "y_side_mask",
@@ -8964,67 +7027,45 @@ def run_train(
             "y_mtf_conflict_m5_vs_higher_side",
             "y_long_high_mae_low_mfe_early_failure",
             "y_short_high_mae_low_mfe_early_failure",
-        ]
-        for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
-            missing = [c for c in required_hier_cols if c not in ds_obj.df.columns]
-            if missing:
-                raise RuntimeError(
-                    f"[ENTRY_HIER_LABEL_CONTRACT_MISSING] split={split_name} "
-                    f"missing={missing}. Rebuild the XAU path-utility dataset; "
-                    "hierarchical repair heads must not train on fallback labels."
-                )
-    train_bad_path_rate = float(train_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in train_ds.df.columns else 0.0
-    val_bad_path_rate = float(val_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in val_ds.df.columns else 0.0
-    train_tradable_rate = float(train_ds.df["y_tradable"].astype(float).mean()) if "y_tradable" in train_ds.df.columns else 0.0
-    val_tradable_rate = float(val_ds.df["y_tradable"].astype(float).mean()) if "y_tradable" in val_ds.df.columns else 0.0
-    train_trade_rate = float(train_ds.df["y_trade"].astype(float).mean()) if "y_trade" in train_ds.df.columns else train_tradable_rate
-    val_trade_rate = float(val_ds.df["y_trade"].astype(float).mean()) if "y_trade" in val_ds.df.columns else val_tradable_rate
-    if {"y_long_bad_path", "y_short_bad_path"}.issubset(train_ds.df.columns):
-        train_long_bad_path_rate = float(train_ds.df["y_long_bad_path"].astype(float).mean())
-        train_short_bad_path_rate = float(train_ds.df["y_short_bad_path"].astype(float).mean())
-        _train_side_bad_arr = pd.concat(
-            [
-                train_ds.df["y_long_bad_path"].astype(float),
-                train_ds.df["y_short_bad_path"].astype(float),
-            ],
-            ignore_index=True,
-        )
-        train_side_bad_path_rate = float(_train_side_bad_arr.mean())
-    else:
-        train_long_bad_path_rate = train_bad_path_rate
-        train_short_bad_path_rate = train_bad_path_rate
-        train_side_bad_path_rate = train_bad_path_rate
-    if {"y_long_bad_path", "y_short_bad_path"}.issubset(val_ds.df.columns):
-        val_long_bad_path_rate = float(val_ds.df["y_long_bad_path"].astype(float).mean())
-        val_short_bad_path_rate = float(val_ds.df["y_short_bad_path"].astype(float).mean())
-        _val_side_bad_arr = pd.concat(
-            [
-                val_ds.df["y_long_bad_path"].astype(float),
-                val_ds.df["y_short_bad_path"].astype(float),
-            ],
-            ignore_index=True,
-        )
-        val_side_bad_path_rate = float(_val_side_bad_arr.mean())
-    else:
-        val_long_bad_path_rate = val_bad_path_rate
-        val_short_bad_path_rate = val_bad_path_rate
-        val_side_bad_path_rate = val_bad_path_rate
-    train_hard_neg_long_rate = float(train_ds.df["y_hard_negative_long"].astype(float).mean()) if "y_hard_negative_long" in train_ds.df.columns else 0.0
-    val_hard_neg_long_rate = float(val_ds.df["y_hard_negative_long"].astype(float).mean()) if "y_hard_negative_long" in val_ds.df.columns else 0.0
-    train_dead_neg_long_rate = float(train_ds.df["y_dead_negative_long"].astype(float).mean()) if "y_dead_negative_long" in train_ds.df.columns else 0.0
-    val_dead_neg_long_rate = float(val_ds.df["y_dead_negative_long"].astype(float).mean()) if "y_dead_negative_long" in val_ds.df.columns else 0.0
-    train_teaser_neg_long_rate = float(train_ds.df["y_teaser_negative_long"].astype(float).mean()) if "y_teaser_negative_long" in train_ds.df.columns else 0.0
-    val_teaser_neg_long_rate = float(val_ds.df["y_teaser_negative_long"].astype(float).mean()) if "y_teaser_negative_long" in val_ds.df.columns else 0.0
-    train_clean_edge_rate = float(train_ds.df["y_clean_edge_long"].astype(float).mean()) if "y_clean_edge_long" in train_ds.df.columns else 0.0
-    val_clean_edge_rate = float(val_ds.df["y_clean_edge_long"].astype(float).mean()) if "y_clean_edge_long" in val_ds.df.columns else 0.0
-    train_survival_rate = float(train_ds.df["y_survival_long"].astype(float).mean()) if "y_survival_long" in train_ds.df.columns else 0.0
-    val_survival_rate = float(val_ds.df["y_survival_long"].astype(float).mean()) if "y_survival_long" in val_ds.df.columns else 0.0
-    train_teacher_bad_rate = float(train_ds.df["y_teacher_bad_long"].astype(float).mean()) if "y_teacher_bad_long" in train_ds.df.columns else 0.0
-    val_teacher_bad_rate = float(val_ds.df["y_teacher_bad_long"].astype(float).mean()) if "y_teacher_bad_long" in val_ds.df.columns else 0.0
-    train_teacher_winner_rate = float(train_ds.df["y_teacher_winner_long"].astype(float).mean()) if "y_teacher_winner_long" in train_ds.df.columns else 0.0
-    val_teacher_winner_rate = float(val_ds.df["y_teacher_winner_long"].astype(float).mean()) if "y_teacher_winner_long" in val_ds.df.columns else 0.0
-    train_selector_long_mask_rate = float(train_ds.df["y_selector_long_mask"].astype(float).mean()) if "y_selector_long_mask" in train_ds.df.columns else 0.0
-    val_selector_long_mask_rate = float(val_ds.df["y_selector_long_mask"].astype(float).mean()) if "y_selector_long_mask" in val_ds.df.columns else 0.0
+    ]
+    for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+        missing = [c for c in required_hier_cols if c not in ds_obj.df.columns]
+        if missing:
+            raise RuntimeError(
+                f"[ENTRY_HIER_LABEL_CONTRACT_MISSING] split={split_name} "
+                f"missing={missing}. Rebuild the XAU path-utility dataset; "
+                "hierarchical repair heads must not train on fallback labels."
+            )
+    train_bad_path_rate = float(train_ds.df["y_bad_path"].astype(float).mean())
+    val_bad_path_rate = float(val_ds.df["y_bad_path"].astype(float).mean())
+    train_tradable_rate = float(train_ds.df["y_tradable"].astype(float).mean())
+    val_tradable_rate = float(val_ds.df["y_tradable"].astype(float).mean())
+    train_trade_rate = float(train_ds.df["y_trade"].astype(float).mean())
+    val_trade_rate = float(val_ds.df["y_trade"].astype(float).mean())
+    train_long_bad_path_rate = float(train_ds.df["y_long_bad_path"].astype(float).mean())
+    train_short_bad_path_rate = float(train_ds.df["y_short_bad_path"].astype(float).mean())
+    _train_side_bad_arr = pd.concat(
+        [train_ds.df["y_long_bad_path"].astype(float), train_ds.df["y_short_bad_path"].astype(float)],
+        ignore_index=True,
+    )
+    train_side_bad_path_rate = float(_train_side_bad_arr.mean())
+    _val_side_bad_arr = pd.concat(
+        [val_ds.df["y_long_bad_path"].astype(float), val_ds.df["y_short_bad_path"].astype(float)],
+        ignore_index=True,
+    )
+    val_side_bad_path_rate = float(_val_side_bad_arr.mean())
+    train_hard_neg_long_rate = float(train_ds.df["y_hard_negative_long"].astype(float).mean())
+    val_hard_neg_long_rate = float(val_ds.df["y_hard_negative_long"].astype(float).mean())
+    train_dead_neg_long_rate = float(train_ds.df["y_dead_negative_long"].astype(float).mean())
+    val_dead_neg_long_rate = float(val_ds.df["y_dead_negative_long"].astype(float).mean())
+    train_teaser_neg_long_rate = float(train_ds.df["y_teaser_negative_long"].astype(float).mean())
+    val_teaser_neg_long_rate = float(val_ds.df["y_teaser_negative_long"].astype(float).mean())
+    train_clean_edge_rate = float(train_ds.df["y_clean_edge_long"].astype(float).mean())
+    val_clean_edge_rate = float(val_ds.df["y_clean_edge_long"].astype(float).mean())
+    train_survival_rate = float(train_ds.df["y_survival_long"].astype(float).mean())
+    val_survival_rate = float(val_ds.df["y_survival_long"].astype(float).mean())
+    train_selector_long_mask_rate = float(train_ds.df["y_selector_long_mask"].astype(float).mean())
+    val_selector_long_mask_rate = float(val_ds.df["y_selector_long_mask"].astype(float).mean())
     train_label_counts = train_ds.df["y_direction"].value_counts().to_dict()
     train_long_rate = float(train_label_counts.get(0, 0) / max(len(train_ds.df), 1))
     train_short_rate = float(train_label_counts.get(1, 0) / max(len(train_ds.df), 1))
@@ -9163,11 +7204,7 @@ def run_train(
         float(ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP),
     )
     log.info(
-        "[ENTRY_TEACHER_RATE_PROOF] train_bad=%.6f val_bad=%.6f train_winner=%.6f val_winner=%.6f selector_mask_train=%.6f selector_mask_val=%.6f",
-        train_teacher_bad_rate,
-        val_teacher_bad_rate,
-        train_teacher_winner_rate,
-        val_teacher_winner_rate,
+        "[ENTRY_SELECTOR_MASK_RATE_PROOF] train=%.6f val=%.6f",
         train_selector_long_mask_rate,
         val_selector_long_mask_rate,
     )
@@ -9242,53 +7279,39 @@ def run_train(
         prefetch_factor=prefetch_factor,
     )
 
-    # Before first epoch: log sample shapes and confirm contract signal=7, ctx_cat=6, ctx_cont>=6
+    # Before first epoch: prove the exact model-native input contract.
     sample = next(iter(train_loader))
     seq_input_dim = int(sample["seq_x"].shape[2])
     snap_input_dim = int(sample["snap_x"].shape[1])
     _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SIGNAL_DIM_INVALID] seq={seq_input_dim} snap={snap_input_dim}")
     ctx_cont_dim = int(sample["ctx_cont"].shape[1])
     ctx_cat_dim = int(sample["ctx_cat"].shape[1])
-    base_ctx_cont_names = list(ctx.get("ctx_cont_names") or [])
-    ordered_ctx_cont_names = _build_ordered_ctx_cont_names(ctx_cont_dim, base_ctx_cont_names)
-    # M3 fix (2026-06-06): use the REGIME-AWARE 5-name ctx_cat (signal_bridge_v3), NOT the stale
-    # signal_bridge_v1 6-name list (which keeps the dropped trend_regime_id) — so the bundle metadata
-    # matches the trained ctx_cat_dim (5 under GX1_REGIME_V4) + the strict v3 contract validator.
+    ordered_ctx_cont_names = list(ORDERED_CTX_CONT_NAMES_V3)
     ordered_ctx_cat_names = list(ORDERED_CTX_CAT_NAMES_V3)
     if len(ordered_ctx_cat_names) != ctx_cat_dim:
         raise RuntimeError(
             f"[CTX_CAT_NAME_DIM_MISMATCH] ordered_ctx_cat_names={len(ordered_ctx_cat_names)} "
-            f"!= trained ctx_cat_dim={ctx_cat_dim} (REGIME_V4={os.environ.get('GX1_REGIME_V4','1')})"
+            f"!= trained ctx_cat_dim={ctx_cat_dim}"
         )
     log.info(
         f"[TRAIN_CONTRACT] seq_x={sample['seq_x'].shape} snap_x={sample['snap_x'].shape} "
         f"ctx_cont={sample['ctx_cont'].shape} ctx_cat={sample['ctx_cat'].shape}"
     )
     log.info(
-        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=%d ctx_cont_dim=%d ctx_cat_dim=%d neutral_xgb_bridge=%s",
+        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=%d ctx_cont_dim=%d ctx_cat_dim=%d contract_mode=%s",
         seq_input_dim,
         ctx_cont_dim,
         ctx_cat_dim,
-        bool(getattr(train_ds, "neutral_xgb_bridge", False)),
+        MODEL_NATIVE_CONTRACT_MODE,
     )
-    expected_ctx_cont_dim = _expected_ctx_cont_dim()
     _require(
-        ctx_cont_dim == expected_ctx_cont_dim,
-        f"[ENTRY_CTX_CONT_DIM_MISMATCH] expected ctx_cont_dim={expected_ctx_cont_dim} got={ctx_cont_dim}",
+        ctx_cont_dim == MODEL_NATIVE_CTX_CONT_DIM,
+        f"[ENTRY_CTX_CONT_DIM_MISMATCH] expected ctx_cont_dim={MODEL_NATIVE_CTX_CONT_DIM} got={ctx_cont_dim}",
     )
-    _exp_ctx_cat_dim = _expected_ctx_cat_dim()
-    _require(ctx_cat_dim == _exp_ctx_cat_dim, f"[ENTRY_CTX_CAT_DIM_MISMATCH] expected ctx_cat_dim={_exp_ctx_cat_dim} got={ctx_cat_dim}")
-    if ctx_cont_dim > 6:
-        log.info(
-            "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
-            list(MICRO_FEATURE_NAMES),
-            len(MICRO_FEATURE_NAMES),
-        )
-        log.info(
-            "[ENTRY_SWING_FEATURES_PROOF] names=%s count=%d",
-            list(SWING_FEATURE_NAMES),
-            len(SWING_FEATURE_NAMES),
-        )
+    _require(
+        ctx_cat_dim == MODEL_NATIVE_CTX_CAT_DIM,
+        f"[ENTRY_CTX_CAT_DIM_MISMATCH] expected ctx_cat_dim={MODEL_NATIVE_CTX_CAT_DIM} got={ctx_cat_dim}",
+    )
     _require(
         sample["seq_x"].shape[2] == seq_input_dim
         and sample["snap_x"].shape[1] == snap_input_dim
@@ -9298,33 +7321,31 @@ def run_train(
     )
 
     # V12.2: detect multi-TF feature count from dataset (avoid hardcoding 19)
-    _mtf_feat_count = train_ds._multi_tf_feature_count if enable_multi_tf else 0
-    # V2 mode: dataset adds M5 branch (5 TFs total) + 25-feat per TF
-    _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False)) if enable_multi_tf else False
+    _mtf_feat_count = int(train_ds._multi_tf_feature_count)
+    # Exact mode always includes the causal M5 branch and all four higher TFs.
+    _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False))
+    if not _mtf_v2 or _mtf_feat_count <= 0:
+        raise RuntimeError(
+            "[MULTI_TF_EXACT_ARCHITECTURE_REQUIRED] expected causal M5/M15/H1/H4/D1 V2"
+        )
     # Per-TF seq_len overrides (default 0 → fall back to global multi_tf_seq_len).
     _h4_len = int(per_tf_seq_len_h4) if int(per_tf_seq_len_h4) > 0 else int(multi_tf_seq_len)
     _d1_len = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else (252 if _tapered else int(multi_tf_seq_len))
     _m15_len = 64 if _tapered else int(multi_tf_seq_len)  # B10 tapered-MTF — mirrors _per_tf_lens above (train==serve via bundle meta)
     if _h4_len != multi_tf_seq_len or _d1_len != multi_tf_seq_len or _m15_len != multi_tf_seq_len:
         log.info("[PER_TF_SEQ_LEN] M15=%d H4=%d D1=%d (global=%d)", _m15_len, _h4_len, _d1_len, int(multi_tf_seq_len))
-    specialist_indices: Dict[str, list[int]] | None = None
-    specialist_meta: Dict[str, Any] | None = None
-    if enable_specialist_fusion:
-        specialist_indices, specialist_meta = _load_specialist_fusion_contract(
-            specialist_audit_json,
-            expected_signal_dim=seq_input_dim,
-            contract_mode=specialist_contract_mode,
-        )
-        log.info("[SPECIALIST_FUSION] train enabled groups=%s", sorted(specialist_indices))
+    specialist_indices, specialist_meta = _load_specialist_fusion_contract(
+        specialist_audit_json,
+        expected_signal_dim=seq_input_dim,
+        contract_mode=specialist_contract_mode,
+    )
+    log.info("[SPECIALIST_FUSION] exact groups=%s", sorted(specialist_indices))
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
-        residual_scale=float(ENTRY_RESIDUAL_SCALE),
-        anchor_eps=float(ENTRY_ANCHOR_EPS),
-        enable_multi_tf=enable_multi_tf,
         m15_seq_dim=_mtf_feat_count,
         h1_seq_dim=_mtf_feat_count,
         h4_seq_dim=_mtf_feat_count,
@@ -9333,134 +7354,34 @@ def run_train(
         h1_seq_len=multi_tf_seq_len,
         h4_seq_len=_h4_len,
         d1_seq_len=_d1_len,
-        # V2 only: enable M5 branch (V1 leaves enable_multi_tf_m5=False)
-        enable_multi_tf_m5=_mtf_v2,
-        m5_seq_dim=_mtf_feat_count if _mtf_v2 else 0,
+        m5_seq_dim=_mtf_feat_count,
         m5_seq_len=multi_tf_seq_len,
         multi_tf_scale=multi_tf_scale,
-        # V10 v3+ aux heads (Targets 1-4)
-        enable_tf_agreement_head=enable_tf_agreement_head,
-        enable_path_quality_variance_head=enable_path_quality_variance_head,
-        enable_position_size_head=enable_position_size_head,
-        enable_hold_horizon_head=enable_hold_horizon_head,
-        enable_pos_enc=enable_pos_enc,
-        enable_regime_film=enable_regime_film,
-        enable_dip_head=enable_dip_head,
-        enable_forecast_head=enable_forecast_head,
-        enable_cross_tf_attn=enable_cross_tf_attn,
-        enable_timing_head=enable_timing_head,
-        enable_tail_risk_head=enable_tail_risk_head,
-        enable_vol_forecast_head=enable_vol_forecast_head,
-        enable_anchor_gate=bool(enable_anchor_gate),
-        anchor_gate_init=float(anchor_gate_init),
-        enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
-        enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
-        hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-        hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-        hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-        hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-        hierarchical_public_direction_detach_side_grad=bool(
-            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-        ),
-        enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-        enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-        enable_hierarchical_public_trade_dir_margin_bridge=bool(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
-        ),
-        hierarchical_public_trade_dir_margin_bridge_scale=float(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
-        ),
-        hierarchical_public_trade_dir_margin_bridge_cap=float(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
-        ),
-        enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-        enable_hierarchical_public_side_dir_margin_bridge=bool(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
-        ),
-        hierarchical_public_side_dir_margin_bridge_scale=float(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
-        ),
-        hierarchical_public_side_dir_margin_bridge_cap=float(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
-        ),
-        enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-        hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-        enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-        hierarchical_ctx_direction_calibration_scale=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
-        hierarchical_ctx_direction_calibration_cap=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
-        enable_side_validity_head=bool(enable_side_validity_head),
-        enable_trendline_rail_head=bool(enable_trendline_rail_head),
-        trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
-        enable_mtf_direction_head=enable_mtf_direction_head,
-        mtf_dir_scale_init=mtf_dir_scale_init,
-        enable_specialist_fusion=bool(enable_specialist_fusion),
         specialist_input_indices=specialist_indices,
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
-        # 2026-06-02: per-TF learnable input scale (passes through to model arch)
-        enable_tf_input_scale=enable_tf_input_scale,
         tf_input_scale_init_m5=tf_input_scale_init_m5,
         tf_input_scale_init_m15=tf_input_scale_init_m15,
         tf_input_scale_init_h1=tf_input_scale_init_h1,
         tf_input_scale_init_h4=tf_input_scale_init_h4,
         tf_input_scale_init_d1=tf_input_scale_init_d1,
     ).to(device)
-    if enable_tf_input_scale:
-        log.info(
-            "[TF_INPUT_SCALE] learnable per-TF inits: M5=%.2f M15=%.2f H1=%.2f H4=%.2f D1=%.2f",
-            tf_input_scale_init_m5, tf_input_scale_init_m15,
-            tf_input_scale_init_h1, tf_input_scale_init_h4, tf_input_scale_init_d1,
-        )
-    if enable_tf_agreement_head or enable_path_quality_variance_head or enable_position_size_head or enable_hold_horizon_head:
-        log.info(
-            "[V10_V3PLUS_HEADS] tf_agreement=%s path_var=%s position_size=%s hold_horizon=%s",
-            enable_tf_agreement_head, enable_path_quality_variance_head,
-            enable_position_size_head, enable_hold_horizon_head,
-        )
+    evidence_fusion_initial_state = _capture_evidence_fusion_initial_state(model)
     log.info(
-        "[ENTRY_DIRECTION_REPAIR_HEADS] anchor_gate=%s anchor_gate_init=%.4f hierarchy=%s side_validity=%s trendline_rail=%s",
-        bool(enable_anchor_gate),
-        float(anchor_gate_init),
-        bool(enable_hierarchical_entry_heads),
-        bool(enable_side_validity_head),
-        bool(enable_trendline_rail_head),
+        "[TF_INPUT_SCALE] mandatory learnable per-TF inits: M5=%.2f M15=%.2f H1=%.2f H4=%.2f D1=%.2f",
+        tf_input_scale_init_m5, tf_input_scale_init_m15,
+        tf_input_scale_init_h1, tf_input_scale_init_h4, tf_input_scale_init_d1,
     )
-    if enable_multi_tf:
-        _tfs = "M5+M15+H1+H4+D1 (V2)" if _mtf_v2 else "M15+H1+H4+D1 (V1)"
-        log.info(
-            "[MULTI_TF_PROOF] enabled=True  TFs=%s  per_tf_dim=%d  per_tf_len=%d  total_extra_params≈%dK",
-            _tfs, _mtf_feat_count, multi_tf_seq_len,
-            (sum(p.numel() for p in model.parameters()) - 691977) // 1000,
-        )
-    # Warm-start: load a state_dict (likely from warm_start_v10_v2_from_v1.py)
-    # BEFORE torch.compile wrap, since compile prefixes keys with _orig_mod.
-    if init_from_state_dict is not None:
-        _isd_path = Path(init_from_state_dict)
-        if not _isd_path.is_file():
-            raise FileNotFoundError(f"[INIT_STATE_DICT_MISSING] {_isd_path}")
-        log.info(f"[WARM_START] loading state_dict: {_isd_path}")
-        _isd = torch.load(_isd_path, map_location="cpu", weights_only=True)
-        _isd = {k.removeprefix("_orig_mod."): v for k, v in _isd.items()}
-        _model_state = model.state_dict()
-        _shape_dropped = [
-            k for k, v in _isd.items()
-            if k in _model_state and tuple(getattr(v, "shape", ())) != tuple(_model_state[k].shape)
-        ]
-        if _shape_dropped:
-            _isd = {k: v for k, v in _isd.items() if k not in set(_shape_dropped)}
-            log.info(
-                "[WARM_START] dropped %d shape-mismatched keys for dynamic input dims: %s",
-                len(_shape_dropped),
-                sorted(_shape_dropped)[:8],
-            )
-        _ld = model.load_state_dict(_isd, strict=False)
-        log.info(
-            f"[WARM_START] loaded {len(_isd)} keys. missing={len(_ld.missing_keys)} unexpected={len(_ld.unexpected_keys)}"
-        )
-        if _ld.missing_keys:
-            log.info(f"[WARM_START] missing (model has, state lacks): {sorted(_ld.missing_keys)[:5]}...")
-        if _ld.unexpected_keys:
-            log.info(f"[WARM_START] unexpected (state has, model lacks): {sorted(_ld.unexpected_keys)[:5]}...")
+    log.info(
+        "[ENTRY_EXACT_HEADS] hierarchy=true side_validity=true trendline_rail=true "
+        "tf_agreement=true path_variance=true position_size=true",
+    )
+    log.info(
+        "[MULTI_TF_PROOF] enabled=True TFs=M5+M15+H1+H4+D1 (V2) "
+        "per_tf_dim=%d per_tf_len=%d total_extra_params≈%dK",
+        _mtf_feat_count, multi_tf_seq_len,
+        (sum(p.numel() for p in model.parameters()) - 691977) // 1000,
+    )
     # GX1_FAST_TRAIN=1 wraps model with torch.compile (best-effort).
     try:
         from gx1.utils.fast_train import maybe_compile, compile_enabled
@@ -9480,10 +7401,44 @@ def run_train(
         float(model.cfg.ctx_cont_scale),
     )
     log.info(
-        "[ENTRY_ANCHORED_PROOF] enabled=1 residual_scale=%.3f anchor_source=signal7_p_long_short_flat anchor_eps=%.8f",
-        float(ENTRY_RESIDUAL_SCALE),
-        float(ENTRY_ANCHOR_EPS),
+        "[ENTRY_MODEL_NATIVE_DIRECTION_PROOF] mode=%s signal_dim=%d",
+        direction_logit_mode,
+        int(seq_input_dim),
     )
+    preflight_batch = {
+        key: (value[:1] if isinstance(value, torch.Tensor) and value.ndim > 0 else value)
+        for key, value in sample.items()
+    }
+    preflight_seq = preflight_batch["seq_x"].to(device)
+    preflight_snap = preflight_batch["snap_x"].to(device)
+    preflight_ctx_cont = preflight_batch["ctx_cont"].to(device)
+    preflight_ctx_cat = preflight_batch["ctx_cat"].to(device)
+    was_training = bool(model.training)
+    model.eval()
+    with torch.no_grad():
+        preflight_out = _autocast_forward(
+            model,
+            device,
+            preflight_seq,
+            preflight_snap,
+            ctx_cat=preflight_ctx_cat,
+            ctx_cont=preflight_ctx_cont,
+            **_multi_tf_kwargs_from_batch(preflight_batch, device),
+        )
+    if was_training:
+        model.train()
+    output_head_failures = _model_native_active_output_head_failures(preflight_out)
+    if output_head_failures:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_MODEL_NATIVE_ACTIVE_OUTPUT_CONTRACT_INVALID] "
+            + "; ".join(output_head_failures)
+        )
+    dip_forecast_loss(
+        preflight_out,
+        preflight_batch,
+        device,
+    )
+    del preflight_out, preflight_batch
 
     _require_nonneg("ENTRY_COST_SENSITIVE_SCALE", ENTRY_COST_SENSITIVE_SCALE)
     _require_nonneg("ENTRY_COST_LONG_TO_SHORT", ENTRY_COST_LONG_TO_SHORT)
@@ -9493,38 +7448,15 @@ def run_train(
     _require_nonneg("ENTRY_COST_FLAT_TO_LONG", ENTRY_COST_FLAT_TO_LONG)
     _require_nonneg("ENTRY_COST_FLAT_TO_SHORT", ENTRY_COST_FLAT_TO_SHORT)
     _require_nonneg("ENTRY_PRED_BALANCE_ALPHA", ENTRY_PRED_BALANCE_ALPHA)
-    _require_nonneg("ENTRY_RESIDUAL_SCALE", ENTRY_RESIDUAL_SCALE)
-    _require_nonneg("ENTRY_ANCHOR_EPS", ENTRY_ANCHOR_EPS)
-    _require_nonneg("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", ENTRY_RESIDUAL_SIDE_BIAS_ALPHA)
     _require_nonneg("ENTRY_TAIL_DIRECTION_CE_WEIGHT", ENTRY_TAIL_DIRECTION_CE_WEIGHT)
     _require_nonneg("ENTRY_HIER_TRADE_WEIGHT", ENTRY_HIER_TRADE_WEIGHT)
     _require_nonneg("ENTRY_HIER_SIDE_WEIGHT", ENTRY_HIER_SIDE_WEIGHT)
     _require_nonneg("ENTRY_HIER_UTILITY_WEIGHT", ENTRY_HIER_UTILITY_WEIGHT)
     _require_nonneg("ENTRY_HIER_BAD_PATH_WEIGHT", ENTRY_HIER_BAD_PATH_WEIGHT)
     _require_nonneg("ENTRY_HIER_MAE_WEIGHT", ENTRY_HIER_MAE_WEIGHT)
-    _require_nonneg("ENTRY_HIER_LEGACY_CE_MULT", ENTRY_HIER_LEGACY_CE_MULT)
     _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_WEIGHT", ENTRY_HIER_SIDE_VALIDITY_WEIGHT)
     _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS", ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS)
     _require_nonneg("ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP", ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP)
-    _require_nonneg("ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT", ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT)
-    _require_nonneg("ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN", ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN)
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE",
-        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT",
-        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT,
-    )
-    _require_nonneg("ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN", ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN)
-    _require_nonneg(
-        "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE",
-        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS",
-        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS,
-    )
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_CE_WEIGHT", ENTRY_HIER_SLICE_SIDE_CE_WEIGHT)
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT", ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN", ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN)
@@ -9534,16 +7466,6 @@ def run_train(
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_MIN_ROWS", ENTRY_HIER_SLICE_SIDE_MIN_ROWS)
     _require_nonneg("ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT)
     _require_nonneg("ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE", ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE)
-    _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE", ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE)
-    _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP", ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP)
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT",
-        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP",
-        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP,
-    )
     _require_nonneg(
         "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE",
         ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE,
@@ -9555,25 +7477,7 @@ def run_train(
         ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE,
     )
     _require_nonneg("ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS", ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS)
-    _require_nonneg("ENTRY_HIER_POCKET_ABSTAIN_WEIGHT", ENTRY_HIER_POCKET_ABSTAIN_WEIGHT)
-    _require_nonneg("ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT", ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT)
-    _require_nonneg("ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS", ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS)
     _require_nonneg("ENTRY_TRENDLINE_RAIL_AUX_WEIGHT", ENTRY_TRENDLINE_RAIL_AUX_WEIGHT)
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT", ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT)
-    _require_nonneg(
-        "ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT",
-        ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT,
-    )
-    _require_nonneg(
-        "ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT",
-        ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT,
-    )
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT", ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT)
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT", ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT)
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT", ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT)
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT", ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT)
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_MARGIN", ENTRY_TRENDLINE_RAIL_MARGIN)
-    _require_nonneg("ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS", ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS)
     _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT)
     _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL)
     _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE)
@@ -9649,36 +7553,6 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT", ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS", ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS)
     _require_nonneg("ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN", ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN)
-    _require_nonneg("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION", ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION)
-    _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP", ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP)
-    _require_nonneg("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL", ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
-    _require_nonneg("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE", ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-    _require_nonneg("ENTRY_HIER_PUBLIC_TRADE_HEAD", ENTRY_HIER_PUBLIC_TRADE_HEAD)
-    _require_nonneg("ENTRY_HIER_PUBLIC_FLAT_HEAD", ENTRY_HIER_PUBLIC_FLAT_HEAD)
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE",
-        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE",
-        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP",
-        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP,
-    )
-    _require_nonneg("ENTRY_HIER_PUBLIC_SIDE_HEAD", ENTRY_HIER_PUBLIC_SIDE_HEAD)
-    _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER", ENTRY_HIER_CTX_PRIOR_ADAPTER)
-    _require_nonneg("ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE", ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE)
-    _require_nonneg("ENTRY_HIER_CTX_DIRECTION_CALIBRATION", ENTRY_HIER_CTX_DIRECTION_CALIBRATION)
-    _require_nonneg(
-        "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE",
-        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP",
-        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP,
-    )
     _require_nonneg("ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT", ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT)
     _require_nonneg(
         "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE",
@@ -9721,23 +7595,6 @@ def run_train(
     _require_nonneg(
         "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS",
         ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS,
-    )
-    _require_nonneg("ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT", ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT)
-    _require_nonneg(
-        "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE",
-        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT",
-        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE",
-        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE,
-    )
-    _require_nonneg(
-        "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS",
-        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS,
     )
     _require_nonneg(
         "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
@@ -9788,93 +7645,6 @@ def run_train(
             "[ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_INVALID] "
             "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE="
             f"{ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE:.6f} expected >0.0"
-        )
-    if int(ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION_INVALID] "
-            f"ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION={ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_INVALID] "
-            "ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL="
-            f"{ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_INVALID] "
-            "ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE="
-            f"{ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE} expected 0 or 1"
-        )
-    if ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION not in {
-        "logprob",
-        "margin",
-        "margin_centered",
-        "margin_maxnorm",
-        "margin_maxnorm_confidence",
-    }:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION_INVALID] "
-            f"ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION={ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} "
-            "expected 'logprob', 'margin', 'margin_centered', 'margin_maxnorm', "
-            "or 'margin_maxnorm_confidence'"
-        )
-    if int(ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_INVALID] "
-            "ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD="
-            f"{ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_PUBLIC_TRADE_HEAD) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_HEAD_INVALID] "
-            f"ENTRY_HIER_PUBLIC_TRADE_HEAD={ENTRY_HIER_PUBLIC_TRADE_HEAD} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_PUBLIC_FLAT_HEAD) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_FLAT_HEAD_INVALID] "
-            f"ENTRY_HIER_PUBLIC_FLAT_HEAD={ENTRY_HIER_PUBLIC_FLAT_HEAD} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_PUBLIC_FLAT_HEAD) and not int(ENTRY_HIER_PUBLIC_TRADE_HEAD):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_FLAT_HEAD_REQUIRES_PUBLIC_TRADE_HEAD] "
-            "ENTRY_HIER_PUBLIC_FLAT_HEAD=1 requires ENTRY_HIER_PUBLIC_TRADE_HEAD=1"
-        )
-    if int(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_INVALID] "
-            "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE="
-            f"{ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_PUBLIC_SIDE_HEAD) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_SIDE_HEAD_INVALID] "
-            f"ENTRY_HIER_PUBLIC_SIDE_HEAD={ENTRY_HIER_PUBLIC_SIDE_HEAD} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_INVALID] "
-            "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE="
-            f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE} expected 0 or 1"
-        )
-    if (
-        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT > 0.0
-        and ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP <= 0.0
-    ):
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_INVALID] "
-            "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP must be >0 when "
-            "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT>0"
-        )
-    if int(ENTRY_HIER_CTX_PRIOR_ADAPTER) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_CTX_PRIOR_ADAPTER_INVALID] "
-            f"ENTRY_HIER_CTX_PRIOR_ADAPTER={ENTRY_HIER_CTX_PRIOR_ADAPTER} expected 0 or 1"
-        )
-    if int(ENTRY_HIER_CTX_DIRECTION_CALIBRATION) not in (0, 1):
-        raise RuntimeError(
-            "[ENTRY_HIER_CTX_DIRECTION_CALIBRATION_INVALID] "
-            f"ENTRY_HIER_CTX_DIRECTION_CALIBRATION={ENTRY_HIER_CTX_DIRECTION_CALIBRATION} expected 0 or 1"
         )
     if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE > 1.0:
         raise RuntimeError(
@@ -9939,42 +7709,6 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS_INVALID] "
             f"ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS={ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS} expected >=2"
-        )
-    if ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
-            "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
-            f"{ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.6f} expected <=1.0"
-        )
-    if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE_INVALID] "
-            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
-            f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.6f} expected <=1.0"
-        )
-    if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS < 2:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS_INVALID] "
-            "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS="
-            f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS} expected >=2"
-        )
-    if ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE_INVALID] "
-            "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="
-            f"{ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:.6f} expected <=1.0"
-        )
-    if ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE > 1.0:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE_INVALID] "
-            "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="
-            f"{ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:.6f} expected <=1.0"
-        )
-    if ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS < 2:
-        raise RuntimeError(
-            "[ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS_INVALID] "
-            "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS="
-            f"{ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS} expected >=2"
         )
     if ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE > 1.0:
         raise RuntimeError(
@@ -10149,729 +7883,11 @@ def run_train(
             "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_BATCH_TOO_SMALL] "
             f"batch_size={batch_size} min_rows={ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS}"
         )
-    if bool(enable_side_validity_head) and ENTRY_HIER_SIDE_VALIDITY_WEIGHT <= 0.0:
+    if ENTRY_HIER_SIDE_VALIDITY_WEIGHT <= 0.0:
         raise RuntimeError(
-            "[ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED] enable_side_validity_head=true requires "
+            "[ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED] exact architecture requires "
             f"ENTRY_HIER_SIDE_VALIDITY_WEIGHT>0, got {ENTRY_HIER_SIDE_VALIDITY_WEIGHT:.6f}"
         )
-    if bool(enable_anchor_gate and enable_hierarchical_entry_heads):
-        repair_failures: list[str] = []
-        repair_failures.extend(
-            _xau_direction_repair_source_failures(
-                {
-                    "train_parquet": train_parquet,
-                    "val_parquet": val_parquet,
-                    "m5_prebuilt_path": m5_prebuilt_path,
-                }
-            )
-        )
-        for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
-            if not bool(getattr(ds_obj, "neutral_xgb_bridge", False)):
-                repair_failures.append(
-                    f"{split_name} dataset manifest must declare neutral_xgb_bridge=true "
-                    "for XAU direction repair heads"
-                )
-            if str(getattr(ds_obj, "xgb_bridge_source", "") or "") != "neutral_uniform_proba":
-                repair_failures.append(
-                    f"{split_name} dataset manifest must declare xgb_bridge_source=neutral_uniform_proba "
-                    f"(got {getattr(ds_obj, 'xgb_bridge_source', '')!r})"
-                )
-        if list(getattr(train_ds, "signal_names", [])) != list(getattr(val_ds, "signal_names", [])):
-            repair_failures.append("train/val signal_names differ for XAU direction repair heads")
-        if int(getattr(train_ds, "seq_input_dim", -1)) != int(getattr(val_ds, "seq_input_dim", -2)):
-            repair_failures.append("train/val seq_input_dim differ for XAU direction repair heads")
-        if float(ENTRY_BAD_PATH_PROB_PENALTY) > 0.0:
-            repair_failures.append(
-                "ENTRY_BAD_PATH_PROB_PENALTY="
-                f"{ENTRY_BAD_PATH_PROB_PENALTY:.3f} expected 0.0 for side-specific XAU repair"
-            )
-        if float(anchor_gate_init) > 0.05:
-            repair_failures.append(f"anchor_gate_init={float(anchor_gate_init):.3f} expected <=0.05")
-        if ENTRY_PRED_BALANCE_ALPHA < 0.45:
-            repair_failures.append(f"ENTRY_PRED_BALANCE_ALPHA={ENTRY_PRED_BALANCE_ALPHA:.3f} expected >=0.45")
-        if [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS] != [1.0, 1.0, 4.0]:
-            repair_failures.append(
-                "ENTRY_PRED_BALANCE_CLASS_WEIGHTS="
-                + ",".join(str(float(value)) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS)
-                + " expected 1.0,1.0,4.0"
-            )
-        if ENTRY_DIRECTION_CE_SCALE < 2.0:
-            repair_failures.append(f"ENTRY_DIRECTION_CE_SCALE={ENTRY_DIRECTION_CE_SCALE:.3f} expected >=2.0")
-        if ENTRY_CKPT_MONITOR != "dir_acc":
-            repair_failures.append(f"GX1_V10_CKPT_MONITOR={ENTRY_CKPT_MONITOR!r} expected 'dir_acc'")
-        if ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT < 0.50:
-            repair_failures.append(
-                "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT="
-                f"{ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT:.3f} expected >=0.50"
-            )
-        if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL < 0.35:
-            repair_failures.append(
-                "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL="
-                f"{ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL:.3f} expected >=0.35"
-            )
-        if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE < 0.05:
-            repair_failures.append(
-                "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE="
-                f"{ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE:.3f} expected >=0.05"
-            )
-        if not bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD):
-            repair_failures.append("ENTRY_CKPT_DIRECTION_SLICE_GUARD=0 expected 1")
-        if not bool(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER):
-            repair_failures.append("ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER=0 expected 1")
-        if ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS="
-                f"{ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT < 2.50:
-            repair_failures.append(
-                "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="
-                f"{ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:.3f} expected >=2.50"
-            )
-        if ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION < 0.50:
-            repair_failures.append(
-                "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION="
-                f"{ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION:.3f} expected >=0.50"
-            )
-        if ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR < 0.05:
-            repair_failures.append(
-                "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR="
-                f"{ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.3f} expected >=0.05"
-            )
-        if ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE > 0.05:
-            repair_failures.append(
-                "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE="
-                f"{ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE:.3f} expected <=0.05"
-            )
-        if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT < 8.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT="
-                f"{ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT:.3f} expected >=8.0"
-            )
-        if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE > 0.02:
-            repair_failures.append(
-                "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE="
-                f"{ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
-            )
-        if ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
-                f"{ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT < 2.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT="
-                f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT:.3f} expected >=2.0"
-            )
-        if ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE="
-                f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS="
-                f"{ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT < 2.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT="
-                f"{ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT:.3f} expected >=2.0"
-            )
-        if ENTRY_DIRECTION_SLICE_TRUE_MARGIN < 0.05:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_TRUE_MARGIN="
-                f"{ENTRY_DIRECTION_SLICE_TRUE_MARGIN:.3f} expected >=0.05"
-            )
-        if ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE="
-                f"{ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS="
-                f"{ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION != "mean_max":
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION="
-                f"{ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION!r} expected 'mean_max'"
-            )
-        if ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE < 1:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE="
-                f"{ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE} expected >=1"
-            )
-        if ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS < 1:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS="
-                f"{ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS} expected >=1"
-            )
-        if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT="
-                f"{ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN < 0.02:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN="
-                f"{ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:.3f} expected >=0.02"
-            )
-        if ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT="
-                f"{ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN < 0.02:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN="
-                f"{ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:.3f} expected >=0.02"
-            )
-        if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE="
-                f"{ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS="
-                f"{ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT < 3.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT="
-                f"{ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT:.3f} expected >=3.0"
-            )
-        if ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE > 0.02:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE="
-                f"{ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
-            )
-        if ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE="
-                f"{ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS="
-                f"{ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT="
-                f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE > 0.02:
-            repair_failures.append(
-                "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE="
-                f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
-            )
-        if ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT="
-                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE > 0.02:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE="
-                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
-            )
-        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS="
-                f"{ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT="
-                f"{ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN < 0.02:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN="
-                f"{ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN:.3f} expected >=0.02"
-            )
-        if ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT < 8.0:
-            repair_failures.append(
-                "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT="
-                f"{ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT:.3f} expected >=8.0"
-            )
-        if ENTRY_HIER_FLAT_LOGIT_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_FLAT_LOGIT_MARGIN="
-                f"{ENTRY_HIER_FLAT_LOGIT_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT < 8.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT="
-                f"{ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:.3f} expected >=8.0"
-            )
-        if ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN="
-                f"{ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS="
-                f"{ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT="
-                f"{ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT="
-                f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS="
-                f"{ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT < 6.0:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT="
-                f"{ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:.3f} expected >=6.0"
-            )
-        if ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN < 0.05:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN="
-                f"{ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN:.3f} expected >=0.05"
-            )
-        if ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT < 6.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT="
-                f"{ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:.3f} expected >=6.0"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN < 0.05:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN="
-                f"{ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN:.3f} expected >=0.05"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS="
-                f"{ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT < 3.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT="
-                f"{ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT:.3f} expected >=3.0"
-            )
-        if ENTRY_DIRECTION_VS_FLAT_MARGIN < 0.05:
-            repair_failures.append(
-                "ENTRY_DIRECTION_VS_FLAT_MARGIN="
-                f"{ENTRY_DIRECTION_VS_FLAT_MARGIN:.3f} expected >=0.05"
-            )
-        if ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT="
-                f"{ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS > 15.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS="
-                f"{ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS:.3f} expected <=15.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN="
-                f"{ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT < 6.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT="
-                f"{ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT:.3f} expected >=6.0"
-            )
-        if ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS > 15.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS="
-                f"{ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS:.3f} expected <=15.0"
-            )
-        if ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN="
-                f"{ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT < 8.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT="
-                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:.3f} expected >=8.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS > 15.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS="
-                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS:.3f} expected <=15.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS > 0.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS="
-                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS:.3f} expected <=0.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH > 0.50:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH="
-                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH:.3f} expected <=0.50"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN="
-                f"{ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT < 8.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT="
-                f"{ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT:.3f} expected >=8.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS > 15.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS="
-                f"{ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS:.3f} expected <=15.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS > 0.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS="
-                f"{ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS:.3f} expected <=0.0"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH > 0.50:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH="
-                f"{ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH:.3f} expected <=0.50"
-            )
-        if ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP < 2.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP="
-                f"{ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP:.3f} expected >=2.0"
-            )
-        if not bool(enable_hierarchical_direction_composition):
-            repair_failures.append("ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION=0 expected 1")
-        if ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="
-                f"{ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP > 0.20:
-            repair_failures.append(
-                "ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP="
-                f"{ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP:.3f} expected <=0.20"
-            )
-        if not bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL):
-            repair_failures.append("ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL=0 expected 1")
-        if not bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE):
-            repair_failures.append("ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE=0 expected 1")
-        if ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION != "margin_maxnorm_confidence":
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION="
-                f"{ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION!r} expected 'margin_maxnorm_confidence'"
-            )
-        if not bool(ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD):
-            repair_failures.append("ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD=0 expected 1")
-        if not bool(ENTRY_HIER_PUBLIC_TRADE_HEAD):
-            repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_HEAD=0 expected 1")
-        if not bool(ENTRY_HIER_PUBLIC_FLAT_HEAD):
-            repair_failures.append("ENTRY_HIER_PUBLIC_FLAT_HEAD=0 expected 1")
-        if not bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE):
-            repair_failures.append("ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE=0 expected 1")
-        if ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE < 0.25:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE="
-                f"{ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE:.3f} expected >=0.25"
-            )
-        if ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE > 1.00:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE="
-                f"{ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE:.3f} expected <=1.00"
-            )
-        if ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP < 0.05:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP="
-                f"{ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP:.3f} expected >=0.05"
-            )
-        if ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP > 0.50:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP="
-                f"{ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP:.3f} expected <=0.50"
-            )
-        if not bool(ENTRY_HIER_PUBLIC_SIDE_HEAD):
-            repair_failures.append("ENTRY_HIER_PUBLIC_SIDE_HEAD=0 expected 1")
-        if not bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE):
-            repair_failures.append("ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE=0 expected 1")
-        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE < 0.25:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE="
-                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE:.3f} expected >=0.25"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE > 1.00:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE="
-                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE:.3f} expected <=1.00"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP < 0.05:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="
-                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP:.3f} expected >=0.05"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP > 0.50:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP="
-                f"{ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP:.3f} expected <=0.50"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT="
-                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT > 16.0:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT="
-                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT:.3f} expected <=16.0"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP < 0.05:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP="
-                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP:.3f} expected >=0.05"
-            )
-        if ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP > 0.50:
-            repair_failures.append(
-                "ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP="
-                f"{ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP:.3f} expected <=0.50"
-            )
-        if not bool(ENTRY_HIER_CTX_PRIOR_ADAPTER):
-            repair_failures.append("ENTRY_HIER_CTX_PRIOR_ADAPTER=0 expected 1")
-        if ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE < 0.25:
-            repair_failures.append(
-                "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="
-                f"{ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE:.3f} expected >=0.25"
-            )
-        if ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE > 1.00:
-            repair_failures.append(
-                "ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE="
-                f"{ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE:.3f} expected <=1.00"
-            )
-        if not bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION):
-            repair_failures.append("ENTRY_HIER_CTX_DIRECTION_CALIBRATION=0 expected 1")
-        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE < 0.25:
-            repair_failures.append(
-                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE="
-                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE:.3f} expected >=0.25"
-            )
-        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE > 1.00:
-            repair_failures.append(
-                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE="
-                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE:.3f} expected <=1.00"
-            )
-        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP="
-                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP > 0.50:
-            repair_failures.append(
-                "ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP="
-                f"{ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP:.3f} expected <=0.50"
-            )
-        if ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT < 8.0:
-            repair_failures.append(
-                "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT="
-                f"{ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT:.3f} expected >=8.0"
-            )
-        if ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE="
-                f"{ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS="
-                f"{ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION < 0.50:
-            repair_failures.append(
-                "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION="
-                f"{ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION:.3f} expected >=0.50"
-            )
-        if ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR="
-                f"{ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR:.3f} expected >=0.10"
-            )
-        if ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN="
-                f"{ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_LEGACY_CE_MULT < 1.0:
-            repair_failures.append(f"ENTRY_HIER_LEGACY_CE_MULT={ENTRY_HIER_LEGACY_CE_MULT:.3f} expected >=1.0")
-        if not bool(enable_side_validity_head):
-            repair_failures.append("enable_side_validity_head=false expected true for XAU direction repair")
-        if ENTRY_HIER_SIDE_VALIDITY_WEIGHT < 1.50:
-            repair_failures.append(
-                "ENTRY_HIER_SIDE_VALIDITY_WEIGHT="
-                f"{ENTRY_HIER_SIDE_VALIDITY_WEIGHT:.3f} expected >=1.50"
-            )
-        if ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS < 15.0:
-            repair_failures.append(
-                "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS="
-                f"{ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS:.3f} expected >=15.0"
-            )
-        if ENTRY_HIER_SLICE_SIDE_CE_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT="
-                f"{ENTRY_HIER_SLICE_SIDE_CE_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT < 3.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT="
-                f"{ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT:.3f} expected >=3.0"
-            )
-        if ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN="
-                f"{ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT="
-                f"{ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN < 0.02:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN="
-                f"{ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN:.3f} expected >=0.02"
-            )
-        if ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_SIDE_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_MIN_ROWS="
-                f"{ENTRY_HIER_SLICE_SIDE_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT="
-                f"{ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE > 0.02:
-            repair_failures.append(
-                "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE="
-                f"{ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
-            )
-        if ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT="
-                f"{ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE > 0.02:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE="
-                f"{ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE:.3f} expected <=0.02"
-            )
-        if ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE < 0.10:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE="
-                f"{ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE:.3f} expected >=0.10"
-            )
-        if ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS < 8:
-            repair_failures.append(
-                "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS="
-                f"{ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS} expected >=8"
-            )
-        if ENTRY_HIER_POCKET_ABSTAIN_WEIGHT < 5.0:
-            repair_failures.append(
-                "ENTRY_HIER_POCKET_ABSTAIN_WEIGHT="
-                f"{ENTRY_HIER_POCKET_ABSTAIN_WEIGHT:.3f} expected >=5.0"
-            )
-        if ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT < 3.0:
-            repair_failures.append(
-                "ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT="
-                f"{ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT:.3f} expected >=3.0"
-            )
-        if not bool(enable_trendline_rail_head):
-            repair_failures.append("enable_trendline_rail_head=false expected true for XAU direction repair")
-        if ENTRY_TRENDLINE_RAIL_AUX_WEIGHT < 1.0:
-            repair_failures.append(
-                f"ENTRY_TRENDLINE_RAIL_AUX_WEIGHT={ENTRY_TRENDLINE_RAIL_AUX_WEIGHT:.3f} expected >=1.0"
-            )
-        if ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT < 1.50:
-            repair_failures.append(
-                "ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT="
-                f"{ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT:.3f} expected >=1.50"
-            )
-        if ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT < 5.0:
-            repair_failures.append(
-                "ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT="
-                f"{ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT:.3f} expected >=5.0"
-            )
-        if ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT < 4.0:
-            repair_failures.append(
-                "ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT="
-                f"{ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT:.3f} expected >=4.0"
-            )
-        if ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT < 3.0:
-            repair_failures.append(
-                "ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT="
-                f"{ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT:.3f} expected >=3.0"
-            )
-        if ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT < 5.0:
-            repair_failures.append(
-                "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT="
-                f"{ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT:.3f} expected >=5.0"
-            )
-        if repair_failures:
-            raise RuntimeError("[ENTRY_XAU_DIRECTION_REPAIR_RECIPE_INVALID] " + "; ".join(repair_failures))
     if ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE < 0.50 or ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE > 0.95:
         raise RuntimeError(
             "[ENTRY_TAIL_DIRECTION_QUANTILE_INVALID] "
@@ -10912,11 +7928,10 @@ def run_train(
         balance_class_weights=pred_balance_class_weights,
     )
     log.info(
-        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f tail_direction_w=%.3f tail_direction_q=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
+        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f tail_direction_w=%.3f tail_direction_q=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
         float(ENTRY_DIRECTION_CE_SCALE),
         float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
         float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
-        float(ENTRY_RESIDUAL_SCALE),
         float(ENTRY_AUX_TRADABLE_WEIGHT),
         float(ENTRY_AUX_PATH_WEIGHT),
         float(ENTRY_AUX_MFE_WEIGHT),
@@ -10931,18 +7946,12 @@ def run_train(
         float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
     )
     log.info(
-        "[ENTRY_TRAIN_PARKED] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f pred_balance_class_weights=%s residual_side_bias_alpha=%.3f "
-        "timing_scale=%.3f early_w=%.3f quality_w=%.3f bad_path_w=%.3f xgb_short_penalty=%.3f short_class_weight=%.3f",
+        "[ENTRY_TRAIN_SECONDARY_CONTROLS] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f pred_balance_class_weights=%s "
+        "short_class_weight=%.3f",
         int(bool(ENTRY_COST_SENSITIVE_ENABLED)),
         float(ENTRY_COST_SENSITIVE_SCALE),
         float(ENTRY_PRED_BALANCE_ALPHA),
         ",".join(f"{float(value):.3f}" for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS),
-        float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
-        float(ENTRY_TIMING_LOSS_SCALE),
-        float(ENTRY_AUX_EARLY_WEIGHT),
-        float(ENTRY_AUX_QUALITY_WEIGHT),
-        float(ENTRY_AUX_BAD_PATH_WEIGHT),
-        float(XGB_SHORT_LONG_PENALTY),
         float(SHORT_CLASS_WEIGHT),
     )
     log.info(
@@ -10973,24 +7982,7 @@ def run_train(
         "utility_trade_conviction_margin=%.3f "
         "utility_triad_ce_w=%.3f utility_triad_ce_min_gap_bps=%.3f "
         "utility_triad_ce_min_utility_bps=%.3f utility_triad_ce_max_bad_path=%.3f "
-        "utility_triad_ce_class_weight_cap=%.3f hierarchical_composition=%d "
-        "hier_compose_residual_cap=%.3f hier_compose_residual_side_neutral=%d "
-        "hier_compose_public_flat_from_trade=%d hier_public_trade_head=%d "
-        "hier_public_flat_head=%d "
-        "hier_public_trade_dir_margin_bridge=%d "
-        "hier_public_trade_dir_margin_bridge_scale=%.3f "
-        "hier_public_trade_dir_margin_bridge_cap=%.3f "
-        "hier_public_side_head=%d "
-        "hier_public_side_dir_margin_bridge=%d "
-        "hier_public_side_dir_margin_bridge_scale=%.3f "
-        "hier_public_side_dir_margin_bridge_cap=%.3f "
-        "hier_public_side_head_residual_cap_w=%.3f "
-        "hier_public_side_head_residual_cap=%.3f "
-        "hier_public_direction_composition=%s "
-        "hier_public_direction_detach_side_grad=%d "
-        "hier_ctx_prior_adapter=%d "
-        "hier_ctx_prior_adapter_scale=%.3f hier_ctx_direction_calibration=%d "
-        "hier_ctx_direction_calibration_scale=%.3f hier_ctx_direction_calibration_cap=%.3f "
+        "utility_triad_ce_class_weight_cap=%.3f "
         "flat_starvation_w=%.3f flat_starvation_min_label_rate=%.3f flat_starvation_min_rows=%d "
         "flat_starvation_fraction=%.3f flat_starvation_floor=%.3f flat_starvation_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
@@ -11050,28 +8042,6 @@ def run_train(
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS),
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH),
         float(ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP),
-        int(bool(enable_hierarchical_direction_composition)),
-        float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-        int(bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)),
-        int(bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)),
-        int(bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)),
-        int(bool(ENTRY_HIER_PUBLIC_FLAT_HEAD)),
-        int(bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE)),
-        float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE),
-        float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP),
-        int(bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)),
-        int(bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE)),
-        float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE),
-        float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP),
-        float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT),
-        float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
-        str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-        int(bool(ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD)),
-        int(bool(ENTRY_HIER_CTX_PRIOR_ADAPTER)),
-        float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-        int(bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION)),
-        float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
-        float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
         float(ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT),
         float(ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE),
         int(ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS),
@@ -11092,25 +8062,20 @@ def run_train(
         float(ENTRY_PATH_QUALITY_RANK_QUANTILE),
     )
     log.info(
-        "[ENTRY_HIER_RECIPE] enabled=%d legacy_ce_mult=%.3f trade_w=%.3f side_w=%.3f utility_w=%.3f bad_path_w=%.3f mae_w=%.3f "
+        "[ENTRY_HIER_RECIPE] enabled=%d trade_w=%.3f side_w=%.3f utility_w=%.3f bad_path_w=%.3f mae_w=%.3f "
         "trade_global_prior_w=%.3f trade_global_prior_tol=%.3f trade_global_prior_min_label_rate=%.3f "
         "slice_trade_prior_w=%.3f slice_trade_prior_tol=%.3f slice_trade_prior_min_rows=%d slice_trade_prior_min_label_rate=%.3f "
         "slice_trade_acc_edge_w=%.3f slice_trade_acc_edge_margin=%.3f "
         "flat_logit_margin_w=%.3f flat_logit_margin=%.3f flat_logit_margin_min_label_rate=%.3f "
         "slice_flat_logit_margin_w=%.3f slice_flat_logit_margin=%.3f slice_flat_logit_margin_min_rows=%d slice_flat_logit_margin_min_label_rate=%.3f "
-        "public_flat_consistency_w=%.3f public_flat_consistency_min_label_rate=%.3f "
-        "slice_public_flat_consistency_w=%.3f slice_public_flat_consistency_min_rows=%d slice_public_flat_consistency_min_label_rate=%.3f "
-        "public_trade_flat_margin_w=%.3f public_trade_flat_margin=%.3f public_trade_flat_margin_min_label_rate=%.3f "
-        "slice_public_trade_flat_margin_w=%.3f slice_public_trade_flat_margin=%.3f slice_public_trade_flat_margin_min_rows=%d slice_public_trade_flat_margin_min_label_rate=%.3f "
         "slice_side_ce_w=%.3f slice_side_margin_w=%.3f slice_side_margin=%.3f "
         "slice_side_acc_edge_w=%.3f slice_side_acc_edge_margin=%.3f "
         "slice_side_min_rows=%d slice_side_min_label_rate=%.3f "
         "side_global_prior_w=%.3f side_global_prior_tol=%.3f side_global_prior_min_label_rate=%.3f "
         "slice_side_prior_w=%.3f slice_side_prior_tol=%.3f slice_side_prior_min_rows=%d slice_side_prior_min_label_rate=%.3f "
         "trade_pos_weight=%.3f bad_path_pos_weight_long=%.3f bad_path_pos_weight_short=%.3f "
-        "utility_scale_bps=%.3f mae_scale_bps=%.3f pocket_abstain_w=%.3f pocket_side_margin_w=%.3f pocket_utility_margin_bps=%.3f",
-        int(bool(enable_hierarchical_entry_heads)),
-        float(ENTRY_HIER_LEGACY_CE_MULT),
+        "utility_scale_bps=%.3f mae_scale_bps=%.3f",
+        1,
         float(ENTRY_HIER_TRADE_WEIGHT),
         float(ENTRY_HIER_SIDE_WEIGHT),
         float(ENTRY_HIER_UTILITY_WEIGHT),
@@ -11132,18 +8097,6 @@ def run_train(
         float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN),
         int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
         float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE),
-        float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
-        float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE),
-        float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
-        int(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS),
-        float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE),
-        float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT),
-        float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-        float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE),
-        float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT),
-        float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN),
-        int(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS),
-        float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE),
         float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -11163,9 +8116,6 @@ def run_train(
         float(hier_bad_path_pos_weight[1]),
         max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS)),
         max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS)),
-        float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT),
-        float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT),
-        float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS),
     )
     log.info(
         "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f",
@@ -11203,10 +8153,8 @@ def run_train(
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
     best_dir_ckpt_score = float("-inf")
     best_direction_balance_guard_ok: Optional[bool] = None
-    best_public_trade_flat_hard_rate_guard_ok: Optional[bool] = None
     best_direction_slice_contract_ok: Optional[bool] = None
     raw_best_direction_balance_guard_ok: Optional[bool] = None
-    raw_best_public_trade_flat_hard_rate_guard_ok: Optional[bool] = None
     raw_best_direction_slice_contract_ok: Optional[bool] = None
     best_direction_slice_stats: Dict[str, Any] = {}
     last_direction_slice_stats: Dict[str, Any] = {}
@@ -11232,17 +8180,9 @@ def run_train(
             criterion,
             optimizer,
             device,
-            short_lead_margin=XGB_SHORT_LEAD_MARGIN,
-            long_penalty_weight=XGB_SHORT_LONG_PENALTY,
-            residual_side_bias_alpha=ENTRY_RESIDUAL_SIDE_BIAS_ALPHA,
-            timing_target_bps=ENTRY_TIMING_TARGET_BPS,
-            timing_loss_scale=ENTRY_TIMING_LOSS_SCALE,
-            aux_early_weight=ENTRY_AUX_EARLY_WEIGHT,
-            aux_quality_weight=ENTRY_AUX_QUALITY_WEIGHT,
             aux_path_weight=ENTRY_AUX_PATH_WEIGHT,
             aux_mfe_weight=ENTRY_AUX_MFE_WEIGHT,
             aux_tradable_weight=ENTRY_AUX_TRADABLE_WEIGHT,
-            aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
             aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
             aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
             tradable_pos_weight=tradable_pos_weight,
@@ -11258,13 +8198,9 @@ def run_train(
             val_loader,
             criterion,
             device,
-            residual_side_bias_alpha=ENTRY_RESIDUAL_SIDE_BIAS_ALPHA,
-            aux_early_weight=ENTRY_AUX_EARLY_WEIGHT,
-            aux_quality_weight=ENTRY_AUX_QUALITY_WEIGHT,
             aux_path_weight=ENTRY_AUX_PATH_WEIGHT,
             aux_mfe_weight=ENTRY_AUX_MFE_WEIGHT,
             aux_tradable_weight=ENTRY_AUX_TRADABLE_WEIGHT,
-            aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
             aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
             aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
             tradable_pos_weight=tradable_pos_weight,
@@ -11281,42 +8217,9 @@ def run_train(
             f"train={tr_loss:.6f} val={va_loss:.6f} auc={auc_display} acc={acc:.4f} "
             f"short_to_long_val={val_short_to_long:.6f}"
         )
-        if tr_stats:
-            anchor_abs_mean = float(tr_stats.get("anchor_abs_mean") or 0.0)
-            delta_abs_mean = float(tr_stats.get("delta_abs_mean") or 0.0)
-            scaled_delta_abs_mean = float(tr_stats.get("scaled_delta_abs_mean") or 0.0)
-            final_minus_anchor_abs_mean = float(tr_stats.get("final_minus_anchor_abs_mean") or 0.0)
-            ratio = (scaled_delta_abs_mean / max(anchor_abs_mean, 1e-12))
-            log.info(
-                "[ENTRY_RESIDUAL_MAG_PROOF] split=train epoch=%d "
-                "anchor_abs_mean=%.6f delta_abs_mean=%.6f scaled_delta_abs_mean=%.6f "
-                "final_minus_anchor_abs_mean=%.6f scaled_delta_to_anchor_ratio=%.6f",
-                epoch + 1,
-                anchor_abs_mean,
-                delta_abs_mean,
-                scaled_delta_abs_mean,
-                final_minus_anchor_abs_mean,
-                ratio,
-            )
         if val_stats:
-            anchor_abs_mean = float(val_stats.get("anchor_abs_mean") or 0.0)
-            delta_abs_mean = float(val_stats.get("delta_abs_mean") or 0.0)
-            scaled_delta_abs_mean = float(val_stats.get("scaled_delta_abs_mean") or 0.0)
-            final_minus_anchor_abs_mean = float(val_stats.get("final_minus_anchor_abs_mean") or 0.0)
-            ratio = (scaled_delta_abs_mean / max(anchor_abs_mean, 1e-12))
             log.info(
-                "[ENTRY_RESIDUAL_MAG_PROOF] split=val epoch=%d "
-                "anchor_abs_mean=%.6f delta_abs_mean=%.6f scaled_delta_abs_mean=%.6f "
-                "final_minus_anchor_abs_mean=%.6f scaled_delta_to_anchor_ratio=%.6f",
-                epoch + 1,
-                anchor_abs_mean,
-                delta_abs_mean,
-                scaled_delta_abs_mean,
-                final_minus_anchor_abs_mean,
-                ratio,
-            )
-            log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_public_flat=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_public_trade_flat_margin=%.6f hier_slice_public_trade_flat_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
                 float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -11340,22 +8243,16 @@ def run_train(
                 float(val_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(val_stats.get("hier_trade_loss_mean", 0.0)),
-                float(val_stats.get("hier_public_flat_loss_mean", 0.0)),
                 float(val_stats.get("hier_trade_global_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_flat_logit_margin_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_flat_logit_margin_loss_mean", 0.0)),
-                float(val_stats.get("hier_public_flat_consistency_loss_mean", 0.0)),
-                float(val_stats.get("hier_slice_public_flat_consistency_loss_mean", 0.0)),
-                float(val_stats.get("hier_public_trade_flat_margin_loss_mean", 0.0)),
-                float(val_stats.get("hier_slice_public_trade_flat_margin_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_accuracy_edge_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_global_prior_loss_mean", 0.0)),
                 float(val_stats.get("hier_slice_side_prior_loss_mean", 0.0)),
-                float(val_stats.get("hier_public_side_head_residual_cap_loss_mean", 0.0)),
                 float(val_stats.get("hier_side_acc", 0.0)),
                 float(va_loss),
             )
@@ -11397,27 +8294,6 @@ def run_train(
                     float(val_stats.get("hier_side_pred_long_rate_on_edge", 0.0)),
                     float(val_stats.get("hier_side_acc_on_edge", 0.0)),
                 )
-            if "public_trade_flat_available" in val_stats:
-                log.info(
-                    "[ENTRY_PUBLIC_TRADE_FLAT_OUTPUT] split=val epoch=%d available=%d "
-                    "target_trade=%.6f pred_trade=%.6f target_flat=%.6f pred_flat=%.6f "
-                    "trade_prob=%.6f flat_prob=%.6f trade_prob_label_trade=%.6f "
-                    "trade_prob_label_flat=%.6f hard_acc=%.6f min_pred_to_label=%.6f "
-                    "guard_ok=%d",
-                    epoch + 1,
-                    int(bool(val_stats.get("public_trade_flat_available", False))),
-                    float(val_stats.get("public_trade_flat_target_trade_rate", 0.0)),
-                    float(val_stats.get("public_trade_flat_hard_trade_rate", 0.0)),
-                    float(val_stats.get("public_trade_flat_target_flat_rate", 0.0)),
-                    float(val_stats.get("public_trade_flat_hard_flat_rate", 0.0)),
-                    float(val_stats.get("public_trade_flat_trade_prob_mean", 0.0)),
-                    float(val_stats.get("public_trade_flat_flat_prob_mean", 0.0)),
-                    float(val_stats.get("public_trade_flat_trade_prob_label_trade_mean", 0.0)),
-                    float(val_stats.get("public_trade_flat_trade_prob_label_flat_mean", 0.0)),
-                    float(val_stats.get("public_trade_flat_hard_acc", 0.0)),
-                    float(val_stats.get("public_trade_flat_min_pred_to_label", 0.0)),
-                    int(bool(val_stats.get("public_trade_flat_hard_rate_guard_ok", True))),
-                )
             log.info(
                 "[ENTRY_DIR_SLICE_CKPT] split=val epoch=%d score=%.6f failures=%d "
                 "acc_failures=%d pred_rate_failures=%d audited=%d acc_deficit=%.6f pred_shortfall=%.6f",
@@ -11441,10 +8317,7 @@ def run_train(
                     "required=%.6f,%.6f,%.6f pred_rate_failed_classes=%s pred_shortfall=%.6f "
                     "hier_trade_target=%.6f hier_trade_pred=%.6f hier_trade_prob=%.6f "
                     "hier_trade_prob_label_flat=%.6f hier_side_pred_long_edge=%.6f "
-                    "hier_side_acc_edge=%.6f public_trade_flat_available=%d "
-                    "public_trade_flat_pred_trade=%.6f public_trade_flat_pred_flat=%.6f "
-                    "public_trade_flat_trade_prob_label_flat=%.6f "
-                    "public_trade_flat_guard_ok=%d",
+                    "hier_side_acc_edge=%.6f",
                     epoch + 1,
                     int(detail.get("ctx_cat_index", -1)),
                     int(detail.get("ctx_cat_value", -1)),
@@ -11470,21 +8343,14 @@ def run_train(
                     float(detail.get("hier_trade_prob_label_flat_mean", 0.0)),
                     float(detail.get("hier_side_pred_long_rate_on_edge", 0.0)),
                     float(detail.get("hier_side_acc_on_edge", 0.0)),
-                    int(bool(detail.get("public_trade_flat_available", False))),
-                    float(detail.get("public_trade_flat_hard_trade_rate", 0.0)),
-                    float(detail.get("public_trade_flat_hard_flat_rate", 0.0)),
-                    float(detail.get("public_trade_flat_trade_prob_label_flat_mean", 0.0)),
-                    int(bool(detail.get("public_trade_flat_hard_rate_guard_ok", True))),
                 )
         log.info(
-            "[SHORT_TO_LONG_TRAIN] rate=%.6f short_lead_count=%d short_lead_long_prob_mean=%.6f",
+            "[SHORT_TO_LONG_TRAIN] rate=%.6f",
             float(tr_stats.get("short_pred_long_rate", 0.0)),
-            int(tr_stats.get("short_lead_count", 0)),
-            float(tr_stats.get("short_lead_long_prob_mean", 0.0)),
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_public_flat=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_public_flat_consistency=%.6f hier_slice_public_flat_consistency=%.6f hier_public_trade_flat_margin=%.6f hier_slice_public_trade_flat_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_rescap=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
                 float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
@@ -11508,22 +8374,16 @@ def run_train(
                 float(tr_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(tr_stats.get("hier_trade_loss_mean", 0.0)),
-                float(tr_stats.get("hier_public_flat_loss_mean", 0.0)),
                 float(tr_stats.get("hier_trade_global_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_trade_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_flat_logit_margin_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_flat_logit_margin_loss_mean", 0.0)),
-                float(tr_stats.get("hier_public_flat_consistency_loss_mean", 0.0)),
-                float(tr_stats.get("hier_slice_public_flat_consistency_loss_mean", 0.0)),
-                float(tr_stats.get("hier_public_trade_flat_margin_loss_mean", 0.0)),
-                float(tr_stats.get("hier_slice_public_trade_flat_margin_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_ce_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_margin_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_accuracy_edge_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_global_prior_loss_mean", 0.0)),
                 float(tr_stats.get("hier_slice_side_prior_loss_mean", 0.0)),
-                float(tr_stats.get("hier_public_side_head_residual_cap_loss_mean", 0.0)),
                 float(tr_stats.get("hier_side_acc", 0.0)),
                 float(tr_loss),
             )
@@ -11548,7 +8408,7 @@ def run_train(
             _dir_ckpt_score = (
                 float(
                     val_stats.get(
-                        "direction_slice_ckpt_score" if bool(xau_direction_repair_mode) else "direction_ckpt_score",
+                        "direction_slice_ckpt_score",
                         acc,
                     )
                 )
@@ -11561,6 +8421,10 @@ def run_train(
         else:
             _dir_ckpt_score = float(val_stats.get("direction_ckpt_score", acc)) if val_stats else float(acc)
             _improved = (best_val - va_loss) > float(early_stopping_min_delta)
+        _aux_head_health_ok = bool(
+            val_stats.get("aux_head_health_ok", False)
+        ) if val_stats else False
+        _improved = bool(_improved and _aux_head_health_ok)
         if _improved:
             best_val = va_loss
             if np.isfinite(acc):
@@ -11569,16 +8433,6 @@ def run_train(
                 best_dir_ckpt_score = _dir_ckpt_score
             best_direction_balance_guard_ok = (
                 bool(val_stats.get("direction_class_balance_guard_ok", True)) if val_stats else True
-            )
-            best_public_trade_flat_hard_rate_guard_ok = (
-                bool(
-                    val_stats.get(
-                        "public_trade_flat_hard_rate_guard_ok",
-                        not _public_trade_flat_hard_rate_guard_required(),
-                    )
-                )
-                if val_stats
-                else not _public_trade_flat_hard_rate_guard_required()
             )
             best_direction_slice_contract_ok = (
                 bool(val_stats.get("direction_slice_contract_ok", False)) if val_stats else False
@@ -11590,13 +8444,12 @@ def run_train(
             epochs_since_improve = 0
             log.info(
                 "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f dir_ckpt_score=%.6f "
-                "balance_guard_ok=%d public_trade_flat_guard_ok=%d slice_contract_ok=%d monitor=%s",
+                "balance_guard_ok=%d slice_contract_ok=%d monitor=%s",
                 best_epoch,
                 best_val,
                 acc,
                 best_dir_ckpt_score,
                 int(bool(best_direction_balance_guard_ok)),
-                int(bool(best_public_trade_flat_hard_rate_guard_ok)),
                 int(bool(best_direction_slice_contract_ok)),
                 _ckpt_monitor,
             )
@@ -11638,8 +8491,19 @@ def run_train(
             break
 
     _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
+    model_native_learned_component_movement = (
+        _model_native_evidence_fusion_movement_proof(
+            evidence_fusion_initial_state,
+            best_state,
+            selected_checkpoint_epoch=best_epoch,
+        )
+    )
+    log.info(
+        "[ENTRY_EVIDENCE_FUSION_MOVEMENT_PASS] epoch=%d components=%s",
+        int(best_epoch),
+        model_native_learned_component_movement["component_changed"],
+    )
     raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
-    raw_best_public_trade_flat_hard_rate_guard_ok = best_public_trade_flat_hard_rate_guard_ok
     raw_best_direction_slice_contract_ok = best_direction_slice_contract_ok
     if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
         intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
@@ -11667,12 +8531,8 @@ def run_train(
                     float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
                 ),
                 "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
-                "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
                 "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
                 "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
-                "raw_best_public_trade_flat_hard_rate_guard_ok": (
-                    raw_best_public_trade_flat_hard_rate_guard_ok
-                ),
                 "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
                 "best_direction_slice_stats": best_direction_slice_stats,
                 "last_direction_slice_stats": last_direction_slice_stats,
@@ -11683,9 +8543,6 @@ def run_train(
                         ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL
                     ),
                     "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
-                    "public_trade_flat_hard_rate_guard_required": bool(
-                        _public_trade_flat_hard_rate_guard_required()
-                    ),
                     "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
                     "direction_global_prior_match_weight": float(ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT),
                     "direction_global_prior_match_tolerance": float(
@@ -11748,48 +8605,6 @@ def run_train(
                     "direction_utility_triad_ce_class_weight_cap": float(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
-                    "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
-                    "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-                    "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-                    "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-                    "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-                    "hier_public_direction_detach_side_grad": bool(
-                        ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-                    ),
-                    "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-                    "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-                    "hier_public_trade_dir_margin_bridge": bool(
-                        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
-                    ),
-                    "hier_public_trade_dir_margin_bridge_scale": float(
-                        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
-                    ),
-                    "hier_public_trade_dir_margin_bridge_cap": float(
-                        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
-                    ),
-                    "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-                    "hier_public_side_dir_margin_bridge": bool(
-                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
-                    ),
-                    "hier_public_side_dir_margin_bridge_scale": float(
-                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
-                    ),
-                    "hier_public_side_dir_margin_bridge_cap": float(
-                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
-                    ),
-                    "hier_public_side_head_residual_cap_weight": float(
-                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
-                    ),
-                    "hier_public_side_head_residual_cap": float(
-                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP
-                    ),
-                    "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-                    "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-                    "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-                    "hier_ctx_direction_calibration_scale": float(
-                        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE
-                    ),
-                    "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
                     "hier_trade_global_prior_match_weight": float(
                         ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
                     ),
@@ -11831,40 +8646,6 @@ def run_train(
                     ),
                     "hier_slice_flat_logit_margin_min_rows": int(
                         ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS
-                    ),
-                    "hier_public_flat_consistency_weight": float(
-                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-                    ),
-                    "hier_public_flat_consistency_min_label_rate": float(
-                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_flat_consistency_weight": float(
-                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-                    ),
-                    "hier_slice_public_flat_consistency_min_label_rate": float(
-                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_flat_consistency_min_rows": int(
-                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
-                    ),
-                    "hier_public_trade_flat_margin_weight": float(
-                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                    ),
-                    "hier_public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-                    "hier_public_trade_flat_margin_min_label_rate": float(
-                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_trade_flat_margin_weight": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                    ),
-                    "hier_slice_public_trade_flat_margin": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
-                    ),
-                    "hier_slice_public_trade_flat_margin_min_label_rate": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_trade_flat_margin_min_rows": int(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
                     ),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
@@ -11923,84 +8704,6 @@ def run_train(
             "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
             "refusing to write a collapsed direction bundle"
         )
-    if (
-        _public_trade_flat_hard_rate_guard_required()
-        and not bool(best_public_trade_flat_hard_rate_guard_ok)
-    ):
-        intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
-        evidence_path = _write_direction_slice_failure_evidence(
-            intended_out_bundle_dir,
-            {
-                "schema_version": "entry_direction_slice_failure_evidence_v1",
-                "created_at_utc": _utc_now(),
-                "decision": "FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD",
-                "failure_code": "TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD",
-                "vedtak_id": str(vedtak_id or ""),
-                "git_commit": _git_commit(),
-                "intended_out_bundle_dir": str(intended_out_bundle_dir),
-                "train_data": str(train_parquet),
-                "val_data": str(val_parquet),
-                "train_data_sha256": _sha256_file(Path(train_parquet)),
-                "val_data_sha256": _sha256_file(Path(val_parquet)),
-                "best_epoch": int(best_epoch),
-                "last_epoch": int(last_epoch),
-                "epochs": int(epochs),
-                "early_stopped": bool(early_stopped),
-                "hard_red_stopped": bool(hard_red_stopped),
-                "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
-                "best_dir_ckpt_score": (
-                    float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
-                ),
-                "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
-                "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
-                "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
-                "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
-                "raw_best_public_trade_flat_hard_rate_guard_ok": (
-                    raw_best_public_trade_flat_hard_rate_guard_ok
-                ),
-                "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
-                "best_direction_slice_stats": best_direction_slice_stats,
-                "last_direction_slice_stats": last_direction_slice_stats,
-                "train_recipe": {
-                    "ckpt_monitor": str(_ckpt_monitor),
-                    "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
-                    "ckpt_class_balance_min_pred_to_label": float(
-                        ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL
-                    ),
-                    "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
-                    "public_trade_flat_hard_rate_guard_required": bool(
-                        _public_trade_flat_hard_rate_guard_required()
-                    ),
-                    "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-                    "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-                    "hier_public_trade_flat_margin_weight": float(
-                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                    ),
-                    "hier_public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-                    "hier_public_trade_flat_margin_min_label_rate": float(
-                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_trade_flat_margin_weight": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                    ),
-                    "hier_slice_public_trade_flat_margin": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
-                    ),
-                    "hier_slice_public_trade_flat_margin_min_label_rate": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_trade_flat_margin_min_rows": int(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
-                    ),
-                },
-            },
-        )
-        log.error("[ENTRY_PUBLIC_TRADE_FLAT_HARD_RATE_FAILURE_EVIDENCE] path=%s", evidence_path)
-        raise RuntimeError(
-            "[TRAIN_FAIL_PUBLIC_TRADE_FLAT_HARD_RATE_GUARD] "
-            "best checkpoint failed active public trade-vs-FLAT hard-rate guard; "
-            "refusing to write a public-trade-flat-collapsed direction bundle"
-        )
     if _direction_ckpt_slice_guard_required() and not bool(best_direction_slice_contract_ok):
         intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
         evidence_path = _write_direction_slice_failure_evidence(
@@ -12027,20 +8730,13 @@ def run_train(
                     float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None
                 ),
                 "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
-                "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
                 "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
                 "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
-                "raw_best_public_trade_flat_hard_rate_guard_ok": (
-                    raw_best_public_trade_flat_hard_rate_guard_ok
-                ),
                 "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
                 "best_direction_slice_stats": best_direction_slice_stats,
                 "last_direction_slice_stats": last_direction_slice_stats,
                 "train_recipe": {
                     "ckpt_monitor": str(_ckpt_monitor),
-                    "public_trade_flat_hard_rate_guard_required": bool(
-                        _public_trade_flat_hard_rate_guard_required()
-                    ),
                     "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
                     "direction_global_prior_match_weight": float(ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT),
                     "direction_global_prior_match_tolerance": float(ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE),
@@ -12139,48 +8835,6 @@ def run_train(
                     "direction_utility_triad_ce_class_weight_cap": float(
                         ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
                     ),
-                    "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
-                    "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-                    "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-                    "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-                    "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-                    "hier_public_direction_detach_side_grad": bool(
-                        ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-                    ),
-                    "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-                    "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-                    "hier_public_trade_dir_margin_bridge": bool(
-                        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
-                    ),
-                    "hier_public_trade_dir_margin_bridge_scale": float(
-                        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
-                    ),
-                    "hier_public_trade_dir_margin_bridge_cap": float(
-                        ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
-                    ),
-                    "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-                    "hier_public_side_dir_margin_bridge": bool(
-                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
-                    ),
-                    "hier_public_side_dir_margin_bridge_scale": float(
-                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
-                    ),
-                    "hier_public_side_dir_margin_bridge_cap": float(
-                        ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
-                    ),
-                    "hier_public_side_head_residual_cap_weight": float(
-                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
-                    ),
-                    "hier_public_side_head_residual_cap": float(
-                        ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP
-                    ),
-                    "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-                    "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-                    "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-                    "hier_ctx_direction_calibration_scale": float(
-                        ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE
-                    ),
-                    "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
                     "hier_trade_global_prior_match_weight": float(
                         ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT
                     ),
@@ -12222,40 +8876,6 @@ def run_train(
                     ),
                     "hier_slice_flat_logit_margin_min_rows": int(
                         ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS
-                    ),
-                    "hier_public_flat_consistency_weight": float(
-                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-                    ),
-                    "hier_public_flat_consistency_min_label_rate": float(
-                        ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_flat_consistency_weight": float(
-                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-                    ),
-                    "hier_slice_public_flat_consistency_min_label_rate": float(
-                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_flat_consistency_min_rows": int(
-                        ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
-                    ),
-                    "hier_public_trade_flat_margin_weight": float(
-                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                    ),
-                    "hier_public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-                    "hier_public_trade_flat_margin_min_label_rate": float(
-                        ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_trade_flat_margin_weight": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                    ),
-                    "hier_slice_public_trade_flat_margin": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
-                    ),
-                    "hier_slice_public_trade_flat_margin_min_label_rate": float(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                    ),
-                    "hier_slice_public_trade_flat_margin_min_rows": int(
-                        ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
                     ),
                     "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                     "hier_slice_side_true_margin_weight": float(
@@ -12322,34 +8942,46 @@ def run_train(
     model_path = out_bundle_dir / "model_state_dict.pt"
     torch.save(best_state, model_path)
     state_dict_sha256 = _sha256_file(model_path)
-    trained_signal_names = list(getattr(train_ds, "signal_names", _default_signal_names(seq_input_dim)))
-    trained_neutral_xgb_bridge = bool(getattr(train_ds, "neutral_xgb_bridge", False))
-    trained_xgb_bridge_source = str(getattr(train_ds, "xgb_bridge_source", "") or "")
-    trained_smart520_state_contract = _smart520_state_contract_for_parquet(Path(train_parquet))
-    if xau_direction_repair_mode:
-        state_contract_failures = _smart520_state_contract_failures(
-            trained_smart520_state_contract,
-            split="train",
+    trained_signal_names = list(train_ds.signal_names)
+    trained_model_native_signal_contract = train_ds.model_native_signal_contract
+    require_model_native_signal_contract(
+        trained_model_native_signal_contract,
+        context="ENTRY_EXPORT",
+    )
+    trained_model_native_state_contract = _model_native_state_contract_for_parquet(Path(train_parquet))
+    state_contract_failures = _model_native_state_contract_failures(
+        trained_model_native_state_contract,
+        split="train",
+    )
+    if state_contract_failures:
+        raise RuntimeError(
+            "[XAU_DIRECTION_REPAIR_STATE_CONTRACT_FAIL] "
+            + " | ".join(state_contract_failures)
         )
-        if state_contract_failures:
-            raise RuntimeError(
-                "[XAU_DIRECTION_REPAIR_STATE_CONTRACT_FAIL] "
-                + " | ".join(state_contract_failures)
-            )
 
+    direction_decision_contract = model_direction_decision_contract_metadata()
+    model_native_direction_evidence_fusion = direction_evidence_fusion_metadata()
     lock = {
         "version": "entry_v10_ctx_lock_v1",
         "created_at_utc": _utc_now(),
-        "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-        "signal_bridge_contract_sha256": SIGNAL_BRIDGE_CONTRACT_SHA256,
-        "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
+        "signal_bridge_id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+        "signal_bridge_contract_sha256": trained_model_native_signal_contract["static_contract_sha256"],
+        "contract_mode": train_contract_mode,
+        "direction_logit_mode": direction_logit_mode,
+        "direction_decision_contract": direction_decision_contract,
+        "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
+        "model_native_learned_component_movement": model_native_learned_component_movement,
+        "model_native_signal_contract": trained_model_native_signal_contract,
+        "aux_head_target_contract": train_ds.aux_head_target_contract,
+        "model_native_training_objective": model_native_training_objective,
+        "ctx_tag": f"CTX{ctx_cont_dim}CAT{ctx_cat_dim}",
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
         "ordered_ctx_cont_names": list(ordered_ctx_cont_names),
         "ordered_ctx_cat_names": list(ordered_ctx_cat_names),
         "ordered_signal_names": trained_signal_names,
-        "neutral_xgb_bridge": trained_neutral_xgb_bridge,
-        "xgb_bridge_source": trained_xgb_bridge_source,
+        "neutral_xgb_bridge": False,
+        "xgb_bridge_source": None,
         "seq_input_dim": seq_input_dim,
         "snap_input_dim": snap_input_dim,
         "seq_len": seq_len,
@@ -12358,63 +8990,33 @@ def run_train(
         "model_path_relative": "model_state_dict.pt",
         "model_sha256": state_dict_sha256,
     }
-    (out_bundle_dir / "MASTER_TRANSFORMER_LOCK.json").write_text(
-        json.dumps(lock, indent=2)
-    )
-
     # 2026-06-02: extract learned per-TF input scales from best_state.
     # These are saved next to the initial priors so inference can rebuild the
     # model identically (init values define the Parameter, then state_dict
     # overwrites with the learned values).
     learned_tf_input_scales: Dict[str, float] = {}
-    if enable_tf_input_scale:
-        for _tf in ("m5", "m15", "h1", "h4", "d1"):
-            _key = f"tf_input_scale_{_tf}"
-            if _key in best_state:
-                learned_tf_input_scales[_tf] = float(best_state[_key].item())
-            elif f"_orig_mod.{_key}" in best_state:  # torch.compile prefix
-                learned_tf_input_scales[_tf] = float(best_state[f"_orig_mod.{_key}"].item())
-        if learned_tf_input_scales:
-            log.info(
-                "[TF_INPUT_SCALE_LEARNED] %s",
-                {k: round(v, 4) for k, v in learned_tf_input_scales.items()},
-            )
-
-    active_heads = _build_active_head_names(
-        enable_tf_agreement_head=enable_tf_agreement_head,
-        enable_path_quality_variance_head=enable_path_quality_variance_head,
-        enable_position_size_head=enable_position_size_head,
-        enable_hold_horizon_head=enable_hold_horizon_head,
-        enable_mtf_direction_head=enable_mtf_direction_head,
-        enable_dip_head=enable_dip_head,
-        enable_forecast_head=enable_forecast_head,
-        enable_timing_head=enable_timing_head,
-        enable_tail_risk_head=enable_tail_risk_head,
-        enable_vol_forecast_head=enable_vol_forecast_head,
-        enable_anchor_gate=bool(enable_anchor_gate),
-        enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
-        enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-        enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-        enable_hierarchical_public_trade_dir_margin_bridge=bool(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
-        ),
-        enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-        enable_hierarchical_public_side_dir_margin_bridge=bool(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
-        ),
-        hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-        enable_hierarchical_public_direction_detach_side_grad=bool(
-            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-        ),
-        enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-        enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-        enable_side_validity_head=bool(enable_side_validity_head),
-        enable_trendline_rail_head=bool(enable_trendline_rail_head),
+    for _tf in ("m5", "m15", "h1", "h4", "d1"):
+        _key = f"tf_input_scale_{_tf}"
+        _state_key = _key if _key in best_state else f"_orig_mod.{_key}"
+        if _state_key not in best_state:
+            raise RuntimeError(f"[TF_INPUT_SCALE_STATE_MISSING] {_key}")
+        _value = float(best_state[_state_key].item())
+        if not np.isfinite(_value):
+            raise RuntimeError(f"[TF_INPUT_SCALE_STATE_NONFINITE] {_key}={_value}")
+        learned_tf_input_scales[_tf] = _value
+    log.info(
+        "[TF_INPUT_SCALE_LEARNED] %s",
+        {k: round(v, 4) for k, v in learned_tf_input_scales.items()},
     )
+
+    active_heads = _build_active_head_names()
 
     meta = {
         "created_at_utc": _utc_now(),
         "git_commit": _git_commit(),
+        "model_native_training_objective": model_native_training_objective,
+        "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
+        "model_native_learned_component_movement": model_native_learned_component_movement,
         "train_data": str(train_parquet),
         "val_data": str(val_parquet),
         "train_data_sha256": _sha256_file(Path(train_parquet)),
@@ -12426,9 +9028,6 @@ def run_train(
         "best_dir_ckpt_score": (float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None),
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
-        "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
-        "raw_best_public_trade_flat_hard_rate_guard_ok": raw_best_public_trade_flat_hard_rate_guard_ok,
-        "public_trade_flat_hard_rate_guard_required": bool(_public_trade_flat_hard_rate_guard_required()),
         "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
         "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
         "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
@@ -12445,20 +9044,20 @@ def run_train(
         # V12.2 multi-TF marker — live inference inspects this to decide
         # whether to feed seq_m15/seq_h1/seq_h4/seq_d1 into the model.
         "multi_tf": {
-            "enabled": bool(enable_multi_tf),
-            "v2_mode": bool(_mtf_v2),
-            "m5_seq_dim": int(_mtf_feat_count) if (enable_multi_tf and _mtf_v2) else 0,
-            "m5_seq_len": int(multi_tf_seq_len) if (enable_multi_tf and _mtf_v2) else 0,
-            "m15_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
-            "h1_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
-            "h4_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
-            "d1_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
+            "enabled": True,
+            "v2_mode": True,
+            "m5_seq_dim": int(_mtf_feat_count),
+            "m5_seq_len": int(multi_tf_seq_len),
+            "m15_seq_dim": int(_mtf_feat_count),
+            "h1_seq_dim": int(_mtf_feat_count),
+            "h4_seq_dim": int(_mtf_feat_count),
+            "d1_seq_dim": int(_mtf_feat_count),
             "m15_seq_len": int(_m15_len),
             "h1_seq_len": int(multi_tf_seq_len),
             "h4_seq_len": int(_h4_len),
             "d1_seq_len": int(_d1_len),
             "multi_tf_scale": float(multi_tf_scale),
-            "feature_contract": "MULTI_TF_PER_BAR_V2" if _mtf_v2 else "MULTI_TF_PER_BAR_V1",
+            "feature_contract": "MULTI_TF_PER_BAR_V2",
             "closed_bar_target_availability": bool(
                 getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)) > pd.Timedelta(0)
             ),
@@ -12468,12 +9067,12 @@ def run_train(
             ),
         },
         # 2026-06-02: per-TF learnable input scaling marker. Inference must
-        # init the model with `enable_tf_input_scale=True` and the same init
+        # init the model with the same exact learnable scale priors
         # values used at train time so state_dict load is shape-compatible.
         # Learned values overwrite the inits via state_dict; we surface them
         # here for inspection/debugging.
         "tf_input_scale": {
-            "enabled": bool(enable_tf_input_scale),
+            "enabled": True,
             "init": {
                 "m5": float(tf_input_scale_init_m5),
                 "m15": float(tf_input_scale_init_m15),
@@ -12486,21 +9085,26 @@ def run_train(
         # Positional encoding marker — buffer is persistent=False (not in
         # state_dict), so the live bundle loader MUST read this to rebuild the
         # model with matching forward behaviour.
-        "enable_pos_enc": bool(enable_pos_enc),
-        "enable_regime_film": bool(enable_regime_film),
-        "enable_mtf_direction_head": bool(enable_mtf_direction_head),  # forceful MTF→dir (2026-06-06)
+        "enable_pos_enc": True,
+        "enable_regime_film": True,
+        "enable_mtf_direction_head": True,
         "mtf_dir_aux_weight": float(ENTRY_MTF_DIR_AUX_WEIGHT),
         "mtf_dir_aux_uses_direction_balance_repair": bool(
-            enable_mtf_direction_head and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0
+            float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0
         ),
         "batch_size": batch_size,
         "seed": seed,
         "seq_input_dim": seq_input_dim,
         "snap_input_dim": snap_input_dim,
         "ordered_signal_names": trained_signal_names,
-        "neutral_xgb_bridge": trained_neutral_xgb_bridge,
-        "xgb_bridge_source": trained_xgb_bridge_source,
-        "smart520_state_contract": trained_smart520_state_contract,
+        "contract_mode": train_contract_mode,
+        "direction_logit_mode": direction_logit_mode,
+        "direction_decision_contract": direction_decision_contract,
+        "model_native_signal_contract": trained_model_native_signal_contract,
+        "aux_head_target_contract": train_ds.aux_head_target_contract,
+        "neutral_xgb_bridge": False,
+        "xgb_bridge_source": None,
+        "model_native_state_contract": trained_model_native_state_contract,
         "seq_len": seq_len,
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
@@ -12511,224 +9115,25 @@ def run_train(
         "expected_ctx_cont_dim": ctx_cont_dim,
         "expected_ctx_cat_dim": ctx_cat_dim,
         "supports_context_features": True,
-        "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-        "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
+        "signal_bridge_id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+        "ctx_tag": f"CTX{ctx_cont_dim}CAT{ctx_cat_dim}",
         "model_class": "EntryV10CtxHybridTransformer",
         "arch_id": "entry_v10_ctx_hybrid_transformer",
-        "specialist_fusion": (
-            {
-                **specialist_meta,
-                "num_layers": int(specialist_num_layers),
-                "fusion_scale": float(specialist_fusion_scale),
-            }
-            if specialist_meta
-            else {"enabled": False}
-        ),
+        "specialist_fusion": {
+            **specialist_meta,
+            "num_layers": int(specialist_num_layers),
+            "fusion_scale": float(specialist_fusion_scale),
+        },
         "state_dict_sha256": state_dict_sha256,
-        "anchored_entry_enabled": True,
-        "anchor_source": "signal7_p_long_short_flat",
-        "residual_scale": float(ENTRY_RESIDUAL_SCALE),
-        "anchor_eps": float(ENTRY_ANCHOR_EPS),
-        "anchor_gate": {
-            "enabled": bool(enable_anchor_gate),
-            "init": float(anchor_gate_init),
-            "purpose": "learned per-regime suppression of signal-bridge anchor logits",
-        },
-        "hierarchical_direction_composition": {
-            "enabled": bool(enable_hierarchical_direction_composition),
-            "residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-            "residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-            "public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-            "public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-            "public_direction_detach_side_grad": bool(
-                ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-            ),
-            "public_trade_head": {
-                "enabled": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-                "input": "shared_entry_representation",
-                "applies_to": [
-                    "public_long_logit",
-                    "public_short_logit",
-                ],
-                "side_source": (
-                    "public_side_logits"
-                    if bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)
-                    else "side_logits"
-                ),
-                "direct_trade_supervision": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-                "supervision_losses": [
-                    "binary_cross_entropy_on_y_trade",
-                    "global_prior_match",
-                    "slice_prior_match",
-                    "slice_accuracy_edge",
-                    "flat_logit_margin",
-                    "slice_flat_logit_margin",
-                    "public_trade_flat_margin",
-                    "slice_public_trade_flat_margin",
-                ],
-                "runtime_rule_free": True,
-            },
-            "public_flat_head": {
-                "enabled": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-                "input": "shared_entry_representation",
-                "applies_to": ["public_flat_logit"],
-                "direct_flat_supervision": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-                "supervision_losses": [
-                    "binary_cross_entropy_on_not_y_trade",
-                    "public_flat_consistency",
-                    "slice_public_flat_consistency",
-                    "public_trade_flat_margin",
-                    "slice_public_trade_flat_margin",
-                ],
-                "runtime_rule_free": True,
-            },
-            "public_trade_dir_margin_bridge": {
-                "enabled": bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE),
-                "scale": float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE),
-                "cap": float(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP),
-                "input": "pre-composition raw direction logits",
-                "formula": "capped(scale*(mean(raw_long_logit, raw_short_logit)-raw_flat_logit))",
-                "applies_to": ["public_trade_logit"],
-                "side_direction_source": "none",
-                "runtime_rule_free": True,
-            },
-            "public_side_head": {
-                "enabled": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-                "input": "shared_entry_representation",
-                "applies_to": ["public_long_logit", "public_short_logit"],
-                "flat_source": (
-                    "public_trade_logit"
-                    if bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)
-                    else "trade_logit"
-                ),
-                "direct_side_supervision": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-                "supervision_losses": [
-                    "cross_entropy_on_y_side_mask",
-                    "slice_balanced_ce",
-                    "slice_true_margin",
-                    "slice_accuracy_edge",
-                    "global_prior_match",
-                    "slice_prior_match",
-                    "public_side_head_residual_cap",
-                ],
-                "residual_cap_loss": {
-                    "weight": float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT),
-                    "cap": float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
-                    "residual": "public_side_logits-public_side_dir_margin_bridge",
-                    "bridge_gradient_source": "detached_for_residual_cap_loss",
-                },
-                "runtime_rule_free": True,
-            },
-            "public_side_dir_margin_bridge": {
-                "enabled": bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE),
-                "scale": float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE),
-                "cap": float(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP),
-                "input": "pre-composition raw direction LONG/SHORT logits",
-                "formula": "capped(scale*(raw_long_short_logits-mean(raw_long_short_logits)))",
-                "applies_to": ["public_side_logits"],
-                "trade_direction_source": "none",
-                "runtime_rule_free": True,
-            },
-            "ctx_prior_adapter": {
-                "enabled": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-                "scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-                "input": "ctx_cat_embeddings",
-                "applies_to": (
-                    ["trade_logit", "public_trade_logit", "side_logits"]
-                    if bool(ENTRY_HIER_PUBLIC_TRADE_HEAD)
-                    else ["trade_logit", "side_logits"]
-                ),
-                "runtime_rule_free": True,
-            },
-            "ctx_direction_calibration": {
-                "enabled": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-                "scale": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
-                "cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
-                "input": "ctx_cat_embeddings",
-                "applies_to": ["public_direction_logits"],
-                "runtime_rule_free": True,
-            },
-            "formula": (
-                (
-                    "logits=[public_trade_logit-bounded_side_uncertainty_penalty"
-                    "+(public_side_long_logit-max(public_side_logits)), "
-                    "public_trade_logit-bounded_side_uncertainty_penalty"
-                    "+(public_side_short_logit-max(public_side_logits)), "
-                    "public_flat_logit when public_flat_head is enabled else "
-                    "-(public_trade_logit-bounded_side_uncertainty_penalty)] "
-                    "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
-                    "public_trade_logit includes capped mean(raw LONG/SHORT)-raw FLAT direction-margin bridge; "
-                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge; "
-                    "margin_maxnorm_confidence keeps max public side contribution at zero while bounded side "
-                    "uncertainty can only lower trade-vs-flat, public trade/flat and public side use separate "
-                    "learned heads, and public FLAT comes from independent public_flat_logit when enabled"
-                )
-                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-                and ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION == "margin_maxnorm_confidence"
-                else (
-                    "logits=[public_trade_logit+centered_public_side_long_logit, "
-                    "public_trade_logit+centered_public_side_short_logit, "
-                    "public_flat_logit when public_flat_head is enabled else -public_trade_logit] "
-                    "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
-                    "margin_centered composition avoids joint-probability argmax starvation and "
-                    "prevents public side common-mode from moving trade-vs-flat, "
-                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge, "
-                    "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
-                    "and public FLAT comes from independent public_flat_logit when enabled"
-                )
-                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-                and ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION == "margin_centered"
-                else (
-                    "logits=[public_trade_logit+public_side_long_logit, "
-                    "public_trade_logit+public_side_short_logit, "
-                    "public_flat_logit when public_flat_head is enabled else -public_trade_logit] "
-                    "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
-                    "margin composition avoids joint-probability argmax starvation, "
-                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge, "
-                    "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
-                    "and public FLAT comes from independent public_flat_logit when enabled"
-                )
-                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-                and ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION == "margin"
-                else (
-                    "logits=[log P(trade)+log P(public long|trade), log P(trade)+log P(public short|trade), "
-                    "logit(public_flat) when public_flat_head is enabled else log P(flat)] "
-                    "+ common(capped(residual_scale*delta_logits)) + capped(ctx direction calibration); "
-                    "public_side_logits include capped centered raw LONG/SHORT side-margin bridge, "
-                    "common residual is softmax-invariant, public trade/flat and public side use separate learned heads, "
-                    "and public FLAT comes from independent public_flat_logit when enabled"
-                )
-                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-                else
-                (
-                    "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
-                    "log P(flat)] + capped(side_neutral(residual_scale*delta_logits))"
-                )
-                if bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL)
-                else (
-                    "logits=[log P(trade)+log P(long|trade), log P(trade)+log P(short|trade), "
-                    "log P(flat)] + capped(residual_scale*delta_logits)"
-                )
-            ),
-            "public_output": "direction_logits",
-            "residual_delta_logits": (
-                "head_direction residual is retained for diagnostics but is public-softmax invariant"
-                if bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE)
-                else "head_direction remains trainable through public direction_logits"
-            ),
-            "runtime_rule_free": True,
-        },
+        "anchored_entry_enabled": False,
+        "anchor_source": None,
+        "anchor_gate": {"enabled": False},
         "hierarchical_entry_heads": {
-            "enabled": bool(enable_hierarchical_entry_heads),
-            "selection_score": "expected_utility_side",
+            "enabled": True,
+            "selection_score": MODEL_DIRECTION_SELECTION_MODE,
+            "auxiliary_head_role": "training_and_diagnostics_only",
             "side_utility_scale_bps": max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS)),
             "side_mae_scale_bps": max(1.0, float(ENTRY_AUX_MFE_SCALE_BPS)),
-            "ctx_prior_adapter": {
-                "enabled": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-                "scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-                "input": "ctx_cat_embeddings",
-                "runtime_rule_free": True,
-            },
             "heads": [
                 "trade_vs_flat",
                 "long_vs_short_given_trade",
@@ -12738,7 +9143,7 @@ def run_train(
                 "side_valid_trade_probability",
             ],
             "side_validity": {
-                "enabled": bool(enable_side_validity_head),
+                "enabled": True,
                 "loss_weight": float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT),
                 "min_utility_bps": float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS),
                 "pos_weight_cap": float(ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP),
@@ -12746,12 +9151,10 @@ def run_train(
                     "long_valid_trade": [
                         "y_long_path_utility_bps >= min_utility_bps",
                         "y_long_bad_path == 0",
-                        "y_long_high_mae_low_mfe_early_failure == 0",
                     ],
                     "short_valid_trade": [
                         "y_short_path_utility_bps >= min_utility_bps",
                         "y_short_bad_path == 0",
-                        "y_short_high_mae_low_mfe_early_failure == 0",
                     ],
                 },
                 "runtime_rule_free": True,
@@ -12763,10 +9166,6 @@ def run_train(
                     or float(ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT) > 0.0
                     or float(ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT) > 0.0
-                    or float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT) > 0.0
-                    or float(ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT) > 0.0
-                    or float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT) > 0.0
-                    or float(ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT) > 0.0
                 ),
                 "global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
                 "global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
@@ -12788,38 +9187,6 @@ def run_train(
                     ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
                 ),
                 "slice_flat_logit_margin_min_rows": int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
-                "public_flat_consistency_weight": float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
-                "public_flat_consistency_min_label_rate": float(
-                    ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-                ),
-                "slice_public_flat_consistency_weight": float(
-                    ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-                ),
-                "slice_public_flat_consistency_min_label_rate": float(
-                    ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-                ),
-                "slice_public_flat_consistency_min_rows": int(
-                    ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
-                ),
-                "public_trade_flat_margin_weight": float(
-                    ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                ),
-                "public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-                "public_trade_flat_margin_min_label_rate": float(
-                    ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                ),
-                "slice_public_trade_flat_margin_weight": float(
-                    ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-                ),
-                "slice_public_trade_flat_margin": float(
-                    ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
-                ),
-                "slice_public_trade_flat_margin_min_label_rate": float(
-                    ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-                ),
-                "slice_public_trade_flat_margin_min_rows": int(
-                    ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
-                ),
                 "ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
                 "loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
                 "target_classes": ["trade", "flat"],
@@ -12833,11 +9200,7 @@ def run_train(
                     or float(ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT) > 0.0
                     or float(ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT) > 0.0
                 ),
-                "applies_to": (
-                    ["side_logits", "public_side_logits"]
-                    if bool(ENTRY_HIER_PUBLIC_SIDE_HEAD)
-                    else ["side_logits"]
-                ),
+                "applies_to": ["side_logits"],
                 "balanced_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
                 "true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
                 "true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -12858,39 +9221,16 @@ def run_train(
                 "loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
                 "runtime_rule_free": True,
             },
-            "side_bad_path_target_augmentation": {
-                "enabled": True,
-                "short_bad_path_or_labels": [
-                    "y_short_bad_path",
-                    "y_support_retest_continuation",
-                    "y_countertrend_short_trap",
-                    "y_short_high_mae_low_mfe_early_failure",
-                ],
-                "long_bad_path_or_labels": [
-                    "y_long_bad_path",
-                    "y_resistance_retest_continuation",
-                    "y_countertrend_long_trap",
-                    "y_long_high_mae_low_mfe_early_failure",
-                ],
-                "runtime_rule_free": True,
-            },
-            "pocket_abstention": {
-                "enabled": float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT) > 0.0,
-                "abstain_weight": float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT),
-                "side_margin_weight": float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT),
-                "utility_margin_bps": float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS),
-                "no_trade_labels": [
-                    "rising_channel_support_touch_without_valid_long_continuation",
-                    "falling_channel_resistance_touch_without_valid_short_continuation",
-                    "long_high_mae_low_mfe_early_failure_without_valid_short_target",
-                    "short_high_mae_low_mfe_early_failure_without_valid_long_target",
-                ],
-                "runtime_rule_free": True,
+            "side_outcome_targets": {
+                "utility": ["y_long_path_utility_bps", "y_short_path_utility_bps"],
+                "bad_path": ["y_long_bad_path", "y_short_bad_path"],
+                "expected_mae": ["y_long_expected_mae_bps", "y_short_expected_mae_bps"],
+                "structural_direction_rewrite": False,
             },
         },
         "trendline_rail_head": {
-            "enabled": bool(enable_trendline_rail_head),
-            "output_dim": 6 if bool(enable_trendline_rail_head) else 4,
+            "enabled": True,
+            "output_dim": 6,
             "labels": [
                 "y_rising_channel_support_touch",
                 "y_falling_channel_resistance_touch",
@@ -12900,16 +9240,8 @@ def run_train(
                 "y_long_high_mae_low_mfe_early_failure",
             ],
             "aux_weight": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
-            "wrong_side_weight": float(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
-            "rising_wrong_short_weight": float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT),
-            "falling_wrong_long_weight": float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT),
-            "final_margin_weight": float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT),
-            "hier_margin_weight": float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT),
-            "flat_trade_weight": float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT),
-            "utility_margin_weight": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT),
-            "margin": float(ENTRY_TRENDLINE_RAIL_MARGIN),
-            "utility_margin_bps": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS),
-            "runtime_rule_free": True,
+            "direction_mapping": "direct_learned_evidence_fusion",
+            "hand_written_direction_pressure": False,
         },
         "class_weights": {
             "long": float(long_class_weight),
@@ -12929,12 +9261,7 @@ def run_train(
         "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
         "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
         "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
-        "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
         "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
-        "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
-        "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
-        "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
-        "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -13010,40 +9337,6 @@ def run_train(
         "direction_utility_triad_ce_class_weight_cap": float(
             ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
         ),
-        "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
-        "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-        "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-        "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-        "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-        "hier_public_direction_detach_side_grad": bool(
-            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-        ),
-        "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-        "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-        "hier_public_trade_dir_margin_bridge": bool(ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE),
-        "hier_public_trade_dir_margin_bridge_scale": float(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
-        ),
-        "hier_public_trade_dir_margin_bridge_cap": float(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
-        ),
-        "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-        "hier_public_side_dir_margin_bridge": bool(ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE),
-        "hier_public_side_dir_margin_bridge_scale": float(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
-        ),
-        "hier_public_side_dir_margin_bridge_cap": float(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
-        ),
-        "hier_public_side_head_residual_cap_weight": float(
-            ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
-        ),
-        "hier_public_side_head_residual_cap": float(ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP),
-        "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-        "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-        "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-        "hier_ctx_direction_calibration_scale": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
-        "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
         "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
         "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
         "hier_trade_global_prior_match_min_label_rate": float(
@@ -13066,38 +9359,6 @@ def run_train(
             ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
         ),
         "hier_slice_flat_logit_margin_min_rows": int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
-        "hier_public_flat_consistency_weight": float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
-        "hier_public_flat_consistency_min_label_rate": float(
-            ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-        ),
-        "hier_slice_public_flat_consistency_weight": float(
-            ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-        ),
-        "hier_slice_public_flat_consistency_min_label_rate": float(
-            ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-        ),
-        "hier_slice_public_flat_consistency_min_rows": int(
-            ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
-        ),
-        "hier_public_trade_flat_margin_weight": float(
-            ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-        ),
-        "hier_public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-        "hier_public_trade_flat_margin_min_label_rate": float(
-            ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-        ),
-        "hier_slice_public_trade_flat_margin_weight": float(
-            ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-        ),
-        "hier_slice_public_trade_flat_margin": float(
-            ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
-        ),
-        "hier_slice_public_trade_flat_margin_min_label_rate": float(
-            ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-        ),
-        "hier_slice_public_trade_flat_margin_min_rows": int(
-            ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
-        ),
         "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
         "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
         "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -13146,7 +9407,7 @@ def run_train(
             "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
             "mtf_dir_aux_weight": float(ENTRY_MTF_DIR_AUX_WEIGHT),
             "mtf_dir_aux_uses_direction_balance_repair": bool(
-                enable_mtf_direction_head and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0
+                float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0
             ),
             "ckpt_monitor": str(_ckpt_monitor),
             "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
@@ -13232,46 +9493,6 @@ def run_train(
             "direction_utility_triad_ce_class_weight_cap": float(
                 ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP
             ),
-            "direction_hierarchical_composition": bool(enable_hierarchical_direction_composition),
-            "hier_compose_residual_logit_cap": float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-            "hier_compose_residual_side_neutral": bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-            "hier_compose_public_flat_from_trade": bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-            "hier_public_direction_composition": str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-            "hier_public_direction_detach_side_grad": bool(
-                ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-            ),
-            "hier_public_trade_head": bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-            "hier_public_flat_head": bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-            "hier_public_trade_dir_margin_bridge": bool(
-                ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
-            ),
-            "hier_public_trade_dir_margin_bridge_scale": float(
-                ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
-            ),
-            "hier_public_trade_dir_margin_bridge_cap": float(
-                ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
-            ),
-            "hier_public_side_head": bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-            "hier_public_side_dir_margin_bridge": bool(
-                ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
-            ),
-            "hier_public_side_dir_margin_bridge_scale": float(
-                ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
-            ),
-            "hier_public_side_dir_margin_bridge_cap": float(
-                ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
-            ),
-            "hier_public_side_head_residual_cap_weight": float(
-                ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT
-            ),
-            "hier_public_side_head_residual_cap": float(
-                ENTRY_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP
-            ),
-            "hier_ctx_prior_adapter": bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-            "hier_ctx_prior_adapter_scale": float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-            "hier_ctx_direction_calibration": bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-            "hier_ctx_direction_calibration_scale": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
-            "hier_ctx_direction_calibration_cap": float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
             "hier_trade_global_prior_match_weight": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT),
             "hier_trade_global_prior_match_tolerance": float(ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE),
             "hier_trade_global_prior_match_min_label_rate": float(
@@ -13294,38 +9515,6 @@ def run_train(
                 ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
             ),
             "hier_slice_flat_logit_margin_min_rows": int(ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS),
-            "hier_public_flat_consistency_weight": float(ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT),
-            "hier_public_flat_consistency_min_label_rate": float(
-                ENTRY_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-            ),
-            "hier_slice_public_flat_consistency_weight": float(
-                ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-            ),
-            "hier_slice_public_flat_consistency_min_label_rate": float(
-                ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-            ),
-            "hier_slice_public_flat_consistency_min_rows": int(
-                ENTRY_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
-            ),
-            "hier_public_trade_flat_margin_weight": float(
-                ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-            ),
-            "hier_public_trade_flat_margin": float(ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN),
-            "hier_public_trade_flat_margin_min_label_rate": float(
-                ENTRY_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-            ),
-            "hier_slice_public_trade_flat_margin_weight": float(
-                ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-            ),
-            "hier_slice_public_trade_flat_margin": float(
-                ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN
-            ),
-            "hier_slice_public_trade_flat_margin_min_label_rate": float(
-                ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-            ),
-            "hier_slice_public_trade_flat_margin_min_rows": int(
-                ENTRY_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
-            ),
             "hier_slice_side_ce_weight": float(ENTRY_HIER_SLICE_SIDE_CE_WEIGHT),
             "hier_slice_side_true_margin_weight": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT),
             "hier_slice_side_true_margin": float(ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN),
@@ -13350,24 +9539,12 @@ def run_train(
             "direction_flat_starvation_pred_fraction": float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION),
             "direction_flat_starvation_pred_floor": float(ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR),
             "direction_flat_starvation_logit_margin": float(ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN),
-            "residual_scale": float(ENTRY_RESIDUAL_SCALE),
-            "anchor_gate_enabled": bool(enable_anchor_gate),
-            "anchor_gate_init": float(anchor_gate_init),
-            "hierarchical_entry_heads_enabled": bool(enable_hierarchical_entry_heads),
-            "side_validity_head_enabled": bool(enable_side_validity_head),
-            "trendline_rail_head_enabled": bool(enable_trendline_rail_head),
-            "trendline_rail_output_dim": 6 if bool(enable_trendline_rail_head) else 4,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_output_dim": 6,
             "trendline_rail_aux_weight": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
-            "trendline_rail_wrong_side_weight": float(ENTRY_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT),
-            "trendline_rail_rising_wrong_short_weight": float(ENTRY_TRENDLINE_RAIL_RISING_WRONG_SHORT_WEIGHT),
-            "trendline_rail_falling_wrong_long_weight": float(ENTRY_TRENDLINE_RAIL_FALLING_WRONG_LONG_WEIGHT),
-            "trendline_rail_final_margin_weight": float(ENTRY_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT),
-            "trendline_rail_hier_margin_weight": float(ENTRY_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT),
-            "trendline_rail_flat_trade_weight": float(ENTRY_TRENDLINE_RAIL_FLAT_TRADE_WEIGHT),
-            "trendline_rail_utility_margin_weight": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT),
-            "trendline_rail_margin": float(ENTRY_TRENDLINE_RAIL_MARGIN),
-            "trendline_rail_utility_margin_bps": float(ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS),
-            "hier_legacy_ce_mult": float(ENTRY_HIER_LEGACY_CE_MULT),
+            "trendline_rail_hand_written_direction_pressure": False,
             "hier_trade_weight": float(ENTRY_HIER_TRADE_WEIGHT),
             "hier_side_weight": float(ENTRY_HIER_SIDE_WEIGHT),
             "hier_utility_weight": float(ENTRY_HIER_UTILITY_WEIGHT),
@@ -13376,9 +9553,7 @@ def run_train(
             "hier_side_validity_weight": float(ENTRY_HIER_SIDE_VALIDITY_WEIGHT),
             "hier_side_validity_min_utility_bps": float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS),
             "hier_side_validity_pos_weight_cap": float(ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP),
-            "hier_pocket_abstain_weight": float(ENTRY_HIER_POCKET_ABSTAIN_WEIGHT),
-            "hier_pocket_side_margin_weight": float(ENTRY_HIER_POCKET_SIDE_MARGIN_WEIGHT),
-            "hier_pocket_utility_margin_bps": float(ENTRY_HIER_POCKET_UTILITY_MARGIN_BPS),
+            "hier_structural_direction_target_rewrite": False,
             "hier_trade_pos_weight": float(hier_trade_pos_weight),
             "hier_bad_path_pos_weight": [float(hier_bad_path_pos_weight[0]), float(hier_bad_path_pos_weight[1])],
             "hier_side_utility_scale_bps": max(1.0, float(ENTRY_AUX_PATH_SCALE_BPS)),
@@ -13415,8 +9590,7 @@ def run_train(
             "validation_objective_matches_train": True,
             "validation_objective_scope_note": (
                 "training validation includes the active train loss family: direction, hierarchy, "
-                "path/rank, specialist gate, V3+ aux heads, MTF-direction, and dip/forecast terms. "
-                "Standalone --eval remains direction-only and declares that scope separately."
+                "path/rank, specialist gate, all aux heads, MTF-direction, and future-path terms."
             ),
             "aux_selector_mode": "long_short_union" if ENTRY_SYMMETRIC_NEGATIVES else "long_only",
             "clean_edge_target_mode": "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
@@ -13425,43 +9599,34 @@ def run_train(
             "bad_path_prob_penalty_in_validation": bool(ENTRY_BAD_PATH_PROB_PENALTY > 0.0),
             "symmetric_short_prob_penalties": bool(ENTRY_SYMMETRIC_NEGATIVES),
             "symmetric_clean_edge_rank": bool(ENTRY_SYMMETRIC_NEGATIVES),
-            "teacher_v6_mined": bool(ENTRY_CLEAN_EDGE_RANKING_WEIGHT > 0.0),  # A5: honest (dead targets ⇒ off)
             "aux_regression_positive_only": True,
             "path_quality_rank_full_batch": bool(ENTRY_PATH_QUALITY_RANK_WEIGHT > 0.0),
             "active_heads": active_heads,
         },
-        "lane_contract": {
-            # A7 2026-06-06: model trained BIDIRECTIONAL (symmetric long/short); the stale
-            # LONG_ONLY_PREMIUM label drove the live lane to suppress shorts. entry_admission_policy
-            # left as-is this wave (governs admission ORDER only; consumers not yet re-verified).
-            "direction_policy": "BIDIRECTIONAL_PREMIUM",
-            "entry_admission_policy": "OVERLAP_LONG_REPLACES_OLDEST_OVERLAP_SHORT_WHEN_FULL",
-            "max_open_trades": 10,
-        },
-        "parked_features": {
+        "secondary_training_controls": {
             "cost_sensitive_loss_enabled": bool(ENTRY_COST_SENSITIVE_ENABLED),
             "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
-            "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
-            "timing_loss_scale": float(ENTRY_TIMING_LOSS_SCALE),
-            "aux_early_weight": float(ENTRY_AUX_EARLY_WEIGHT),
-            "aux_quality_weight": float(ENTRY_AUX_QUALITY_WEIGHT),
-            "aux_bad_path_weight": float(ENTRY_AUX_BAD_PATH_WEIGHT),
-            "xgb_short_penalty_weight": float(XGB_SHORT_LONG_PENALTY),
             "tradable_pos_weight_cap": float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
         },
     }
+    export_contract_failures = _direction_decision_contract_export_failures(lock, meta)
+    if export_contract_failures:
+        raise RuntimeError(
+            "[ENTRY_EXPORT_DIRECTION_DECISION_CONTRACT_INVALID] "
+            + "; ".join(export_contract_failures)
+        )
+    (out_bundle_dir / "MASTER_TRANSFORMER_LOCK.json").write_text(
+        json.dumps(lock, indent=2)
+    )
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
 
-    # Post-export verify: strict load. Match aux-head flags so model2 has
-    # the same parameters as the trained model (otherwise the v3+ head
-    # weights would be flagged as unexpected_keys).
+    # Post-export verify: reconstruct the one exact architecture and strict-load.
     model2 = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
-        enable_multi_tf=enable_multi_tf,
         m15_seq_dim=_mtf_feat_count,
         h1_seq_dim=_mtf_feat_count,
         h4_seq_dim=_mtf_feat_count,
@@ -13470,83 +9635,18 @@ def run_train(
         h1_seq_len=multi_tf_seq_len,
         h4_seq_len=_h4_len,
         d1_seq_len=_d1_len,
-        # V2: mirror M5 branch + dim from training-time model.
-        enable_multi_tf_m5=_mtf_v2,
-        m5_seq_dim=_mtf_feat_count if _mtf_v2 else 0,
+        m5_seq_dim=_mtf_feat_count,
         m5_seq_len=multi_tf_seq_len,
-        enable_tf_agreement_head=enable_tf_agreement_head,
-        enable_path_quality_variance_head=enable_path_quality_variance_head,
-        enable_position_size_head=enable_position_size_head,
-        enable_hold_horizon_head=enable_hold_horizon_head,
-        # 2026-05-26: the post-export verify model MUST mirror the trained model's
-        # new heads, else their state_dict keys read as "unexpected" and the verify
-        # raises (caught in pre-train smoke). Keep in lockstep with run_train args.
-        enable_dip_head=enable_dip_head,
-        enable_forecast_head=enable_forecast_head,
-        enable_cross_tf_attn=enable_cross_tf_attn,
-        enable_timing_head=enable_timing_head,
-        enable_tail_risk_head=enable_tail_risk_head,
-        enable_vol_forecast_head=enable_vol_forecast_head,
-        enable_anchor_gate=bool(enable_anchor_gate),
-        anchor_gate_init=float(anchor_gate_init),
-        enable_hierarchical_entry_heads=bool(enable_hierarchical_entry_heads),
-        enable_hierarchical_direction_composition=bool(enable_hierarchical_direction_composition),
-        hierarchical_composition_residual_logit_cap=float(ENTRY_HIER_COMPOSE_RESIDUAL_LOGIT_CAP),
-        hierarchical_composition_residual_side_neutral=bool(ENTRY_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL),
-        hierarchical_composition_public_flat_from_trade=bool(ENTRY_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE),
-        hierarchical_public_direction_composition=str(ENTRY_HIER_PUBLIC_DIRECTION_COMPOSITION),
-        hierarchical_public_direction_detach_side_grad=bool(
-            ENTRY_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD
-        ),
-        enable_hierarchical_public_trade_head=bool(ENTRY_HIER_PUBLIC_TRADE_HEAD),
-        enable_hierarchical_public_flat_head=bool(ENTRY_HIER_PUBLIC_FLAT_HEAD),
-        enable_hierarchical_public_trade_dir_margin_bridge=bool(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE
-        ),
-        hierarchical_public_trade_dir_margin_bridge_scale=float(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE
-        ),
-        hierarchical_public_trade_dir_margin_bridge_cap=float(
-            ENTRY_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP
-        ),
-        enable_hierarchical_public_side_head=bool(ENTRY_HIER_PUBLIC_SIDE_HEAD),
-        enable_hierarchical_public_side_dir_margin_bridge=bool(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE
-        ),
-        hierarchical_public_side_dir_margin_bridge_scale=float(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE
-        ),
-        hierarchical_public_side_dir_margin_bridge_cap=float(
-            ENTRY_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP
-        ),
-        enable_hierarchical_ctx_prior_adapter=bool(ENTRY_HIER_CTX_PRIOR_ADAPTER),
-        hierarchical_ctx_prior_adapter_scale=float(ENTRY_HIER_CTX_PRIOR_ADAPTER_SCALE),
-        enable_hierarchical_ctx_direction_calibration=bool(ENTRY_HIER_CTX_DIRECTION_CALIBRATION),
-        hierarchical_ctx_direction_calibration_scale=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_SCALE),
-        hierarchical_ctx_direction_calibration_cap=float(ENTRY_HIER_CTX_DIRECTION_CALIBRATION_CAP),
-        enable_side_validity_head=bool(enable_side_validity_head),
-        enable_trendline_rail_head=bool(enable_trendline_rail_head),
-        trendline_rail_output_dim=6 if bool(enable_trendline_rail_head) else 4,
-        enable_mtf_direction_head=enable_mtf_direction_head,
-        mtf_dir_scale_init=mtf_dir_scale_init,
-        enable_specialist_fusion=bool(enable_specialist_fusion),
         specialist_input_indices=specialist_indices,
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
-        # 2026-06-03 BIG-9: regime_film.* are real params in state_dict -> verify model MUST
-        # mirror the flag or strict-load reads them as unexpected_keys and raises.
-        enable_regime_film=enable_regime_film,
-        # 2026-06-02: mirror training-time tf_input_scale config — state_dict
-        # contains tf_input_scale_* Parameters only when enabled, so the verify
-        # model must match the flag exactly.
-        enable_tf_input_scale=enable_tf_input_scale,
         tf_input_scale_init_m5=tf_input_scale_init_m5,
         tf_input_scale_init_m15=tf_input_scale_init_m15,
         tf_input_scale_init_h1=tf_input_scale_init_h1,
         tf_input_scale_init_h4=tf_input_scale_init_h4,
         tf_input_scale_init_d1=tf_input_scale_init_d1,
     )
-    _load_entry_model_state_compat(model2, torch.load(model_path, map_location="cpu"), label="post_export_verify")
+    model2.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
     model2.eval()
     with torch.no_grad():
         B = 2
@@ -13554,16 +9654,13 @@ def run_train(
         dummy_snap = torch.zeros(B, snap_input_dim)
         dummy_cat = torch.zeros(B, ctx_cat_dim, dtype=torch.long)
         dummy_cont = torch.zeros(B, ctx_cont_dim)
-        mtf_kwargs = {}
-        if enable_multi_tf:
-            mtf_kwargs = {
-                "seq_m15": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
-                "seq_h1": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
-                "seq_h4": torch.zeros(B, _h4_len, _mtf_feat_count),
-                "seq_d1": torch.zeros(B, _d1_len, _mtf_feat_count),
-            }
-            if _mtf_v2:
-                mtf_kwargs["seq_m5"] = torch.zeros(B, multi_tf_seq_len, _mtf_feat_count)
+        mtf_kwargs = {
+            "seq_m5": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
+            "seq_m15": torch.zeros(B, _m15_len, _mtf_feat_count),
+            "seq_h1": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
+            "seq_h4": torch.zeros(B, _h4_len, _mtf_feat_count),
+            "seq_d1": torch.zeros(B, _d1_len, _mtf_feat_count),
+        }
         _ = model2(dummy_seq, dummy_snap, ctx_cat=dummy_cat, ctx_cont=dummy_cont, **mtf_kwargs)
     log.info(f"[DONE] Bundle OK strict load verified: {out_bundle_dir}")
 
@@ -13572,621 +9669,90 @@ def run_train(
     _ = load_entry_v10_ctx_bundle(
         bundle_dir=out_bundle_dir,
         device="cpu",
-        xgb_models=None,
     )
 
-    # ── ALWAYS-RUN feature-liveness audit (user vedtak 2026-06-06: NOTHING ignored, rule 9) ──────
-    # Fail LOUD if an input feature went silently dead (off the allowlist) or the multi-TF block broke.
-    # Two correctness requirements (learned 2026-06-06 from a false-fail):
-    #   (1) use the FULL 123 ctx_cont names (ordered_ctx_cont_names may be the truncated base list →
-    #       unnamed indices can't be allowlist-matched → false-flag allowlisted feats like vol_pct_*1yr);
-    #   (2) sample from TRAIN (2020-2025 = broad period). The val window alone (6 months) is too narrow:
-    #       slow-varying D1 regime feats (trend-age/regime-change) look const there → false-fail.
-    # FeatureLivenessError FAILS the retrain (a silently-ignored input is a regression); a transient
-    # load issue only warns.
+    # ── ALWAYS-RUN exact model-native feature-liveness audit ───────────────────────
+    # No input slicing, constant allowlist, or transient-error pass-through is
+    # permitted. Both seq_x and snap_x must prove the exact 513-field surface;
+    # ctx_cont must prove all 142 fields; every MTF surface must be present/live.
     try:
         from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
-        try:
-            from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import ORDERED_CTX_CONT_NAMES_V3 as _FULL_CC
-            _live_cc = list(_FULL_CC) if len(_FULL_CC) == int(ctx_cont_dim) else list(ordered_ctx_cont_names)
-        except Exception:
-            _live_cc = list(ordered_ctx_cont_names)
-        _live_ds = train_ds if len(train_ds) > 0 else val_ds  # broad period so slow-varying feats vary
-        _snap_names = list(getattr(_live_ds, "signal_names", _default_signal_names(seq_input_dim)))
-        if bool(getattr(_live_ds, "_advanced", False)) and hasattr(_live_ds, "_np_ctx_cont") and hasattr(_live_ds, "_np_snap"):
+        _live_cc = list(ordered_ctx_cont_names)
+        if len(_live_cc) != 142:
+            raise FeatureLivenessError(
+                f"[FEATURE_LIVENESS_CTX_CONTRACT] names={len(_live_cc)} expected=142"
+            )
+        _live_ds = train_ds
+        if len(_live_ds) <= 0:
+            raise FeatureLivenessError("[FEATURE_LIVENESS_EMPTY_TRAIN_SPLIT]")
+        _snap_names = list(getattr(_live_ds, "signal_names", ()))
+        if len(_snap_names) != 513:
+            raise FeatureLivenessError(
+                f"[FEATURE_LIVENESS_SIGNAL_CONTRACT] names={len(_snap_names)} expected=513"
+            )
+        if (
+            bool(getattr(_live_ds, "_advanced", False))
+            and hasattr(_live_ds, "_np_seq")
+            and hasattr(_live_ds, "_np_ctx_cont")
+            and hasattr(_live_ds, "_np_snap")
+        ):
+            _sample_rows = min(1024, len(_live_ds))
+            _sample_idx = np.linspace(
+                0,
+                len(_live_ds) - 1,
+                num=_sample_rows,
+                dtype=np.int64,
+            )
             _ab = {
-                "ctx_cont": np.asarray(_live_ds._np_ctx_cont, dtype=np.float32),
-                "snap_x": np.asarray(_live_ds._np_snap, dtype=np.float32),
+                "seq_x": np.asarray(_live_ds._np_seq[_sample_idx], dtype=np.float32),
+                "ctx_cont": np.asarray(_live_ds._np_ctx_cont[_sample_idx], dtype=np.float32),
+                "snap_x": np.asarray(_live_ds._np_snap[_sample_idx], dtype=np.float32),
             }
             if getattr(_live_ds, "_multi_tf_feats", None):
                 for _tf, _feats in _live_ds._multi_tf_feats.items():
                     _arr = np.asarray(_feats.attrs.get("feats_np"), dtype=np.float32)
                     if _arr.size:
-                        _ab[f"seq_{str(_tf).lower()}"] = _arr.reshape(1, _arr.shape[0], _arr.shape[1])
+                        _tf_rows = min(8192, int(_arr.shape[0]))
+                        _tf_idx = np.linspace(
+                            0,
+                            int(_arr.shape[0]) - 1,
+                            num=_tf_rows,
+                            dtype=np.int64,
+                        )
+                        _sampled_tf = _arr[_tf_idx]
+                        _ab[f"seq_{str(_tf).lower()}"] = _sampled_tf.reshape(
+                            1,
+                            _sampled_tf.shape[0],
+                            _sampled_tf.shape[1],
+                        )
             log.info(
-                "[FEATURE_LIVENESS] using full advanced arrays rows=%d snap_dim=%d ctx_cont_dim=%d",
+                "[FEATURE_LIVENESS] using deterministic broad sample rows=%d seq_dim=%d snap_dim=%d ctx_cont_dim=%d",
                 int(_ab["ctx_cont"].shape[0]),
+                int(_ab["seq_x"].shape[2]),
                 int(_ab["snap_x"].shape[1]),
                 int(_ab["ctx_cont"].shape[1]),
             )
         else:
-            _ab = next(iter(DataLoader(_live_ds, batch_size=min(8192, len(_live_ds)),
-                                       shuffle=True, num_workers=2)))
-        if bool(getattr(_live_ds, "neutral_xgb_bridge", False)):
-            _ab = dict(_ab)
-            _ab["snap_x"] = _ab["snap_x"][:, 7:]
-            _snap_names = _snap_names[7:]
-            log.info("[FEATURE_LIVENESS] neutral XGB bridge detected; skipping first 7 compat bridge slots")
+            _ab = next(
+                iter(
+                    DataLoader(
+                        _live_ds,
+                        batch_size=min(1024, len(_live_ds)),
+                        shuffle=True,
+                        num_workers=0,
+                    )
+                )
+            )
         assert_v10_batch_liveness(_ab, ctx_cont_names=_live_cc,
                                   snap_names=_snap_names, raise_on_fail=True)
-        log.info("[FEATURE_LIVENESS] post-export audit OK — nothing ignored (all inputs alive/allowlisted)")
+        log.info("[FEATURE_LIVENESS] post-export audit OK — exact seq513/ctx142 inputs are live")
     except FeatureLivenessError:
         raise
-    except Exception as _e:  # transient dataset/load issue must not fail a good retrain
-        log.warning("[FEATURE_LIVENESS] audit skipped (non-fatal): %r", _e)
-
-
-def run_eval(
-    bundle_dir: Path,
-    train_parquet: Optional[Path],
-    val_parquet: Optional[Path],
-    test_parquet: Path,
-    m5_prebuilt_path: Path,
-    seq_len: int,
-    seed: int,
-    device: torch.device,
-    batch_size: int,
-    num_workers: int,
-    gx1_data_override: str,
-) -> None:
-    """
-    Deterministic eval of an existing bundle on a test parquet.
-    No bundle mutation; writes EVAL_TEST.json alongside the bundle.
-    """
-    if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    set_seed(seed)
-    set_thread_limits(1)
-
-    bd = Path(bundle_dir).expanduser()
-    if not bd.is_absolute():
-        gx1_data = _resolve_gx1_data(gx1_data_override)
-        bd = (gx1_data / bd).resolve()
-    _require(bd.is_dir(), f"[ENTRY_V10_CTX_BUNDLE_DIR_MISSING] {bd}")
-
-    model_path = bd / "model_state_dict.pt"
-    meta_path = bd / "bundle_metadata.json"
-    _require(model_path.exists(), f"[ENTRY_V10_CTX_MODEL_MISSING] {model_path}")
-    _require(meta_path.exists(), f"[ENTRY_V10_CTX_META_MISSING] {meta_path}")
-
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    _require(meta.get("signal_bridge_id") == "XGB_SIGNAL_BRIDGE_V1", "[EVAL_CONTRACT_BRIDGE]")
-    # R4: the ctx_tag self-describes the bundle's own ctx_cat_dim. Validate
-    # self-consistency, not a frozen literal. ctx_cat_dim is read below.
-    _meta_cat_dim = int(meta.get("ctx_cat_dim") or -1)
-    _require(meta.get("ctx_tag") == f"CTX6CAT{_meta_cat_dim}", "[EVAL_CONTRACT_CTX_TAG]")
-    ctx_cont_dim = int(meta.get("ctx_cont_dim") or -1)
-    ctx_cat_dim = int(meta.get("ctx_cat_dim") or -1)
-    seq_input_dim = int(meta.get("seq_input_dim") or SEQ_SIGNAL_DIM)
-    snap_input_dim = int(meta.get("snap_input_dim") or seq_input_dim)
-    _require(ctx_cont_dim >= 6, "[EVAL_CONTRACT_CTX_CONT]")
-    _require(ctx_cat_dim == _expected_ctx_cat_dim(), "[EVAL_CONTRACT_CTX_CAT]")
-    _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[EVAL_CONTRACT_SIGNAL_DIM] seq={seq_input_dim} snap={snap_input_dim}")
-
-    state_dict_sha = _sha256_file(model_path)
-
-    # Eval must construct the exact bundle architecture (multi-TF V2, cross-TF
-    # attention, new aux heads, optional scale params). Reusing the runtime bundle
-    # loader prevents --eval from drifting behind training/export.
-    from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
-    bundle = load_entry_v10_ctx_bundle(bundle_dir=bd, device=str(device), xgb_models=None)
-    model = bundle.transformer_model
-
-    mtf_meta = (meta.get("multi_tf") or {}) if isinstance(meta, dict) else {}
-    eval_dataset_kwargs: Dict[str, Any] = {}
-    if bool(mtf_meta.get("enabled", False)):
-        m5_path = Path(m5_prebuilt_path).expanduser()
-        _require(m5_path.is_file(), f"[EVAL_M5_PREBUILT_MISSING] {m5_path}")
-        mtf_seq_len = int(mtf_meta.get("m15_seq_len", 96))
-        eval_dataset_kwargs = {
-            "enable_multi_tf": True,
-            "m5_prebuilt_path": m5_path,
-            "multi_tf_seq_len": mtf_seq_len,
-            "multi_tf_closed_bar": bool(float(mtf_meta.get("target_availability_shift_minutes", 0.0) or 0.0) > 0.0),
-            "per_tf_seq_lens": {
-                "M5": int(mtf_meta.get("m5_seq_len", mtf_seq_len)),
-                "M15": int(mtf_meta.get("m15_seq_len", mtf_seq_len)),
-                "H1": int(mtf_meta.get("h1_seq_len", mtf_seq_len)),
-                "H4": int(mtf_meta.get("h4_seq_len", mtf_seq_len)),
-                "D1": int(mtf_meta.get("d1_seq_len", mtf_seq_len)),
-            },
-        }
-
-    dataset = EntryV10CtxDataset(
-        parquet_path=test_parquet,
-        seq_len=seq_len,
-        allow_constant_labels=True,
-        **eval_dataset_kwargs,
-    )
-    _require(len(dataset) > 0, "[EVAL_NO_SAMPLES]")
-    sample = dataset[0]
-    _require(
-        sample["seq_x"].shape[0] == seq_len,
-        f"[EVAL_SEQ_LEN_MISMATCH] dataset seq_len {sample['seq_x'].shape[0]} != {seq_len}",
-    )
-    _require(
-        sample["seq_x"].shape[1] == seq_input_dim
-        and sample["snap_x"].shape[0] == snap_input_dim
-        and sample["ctx_cont"].shape[0] == ctx_cont_dim
-        and sample["ctx_cat"].shape[0] == ctx_cat_dim,
-        f"[EVAL_CONTRACT_MISMATCH] expected signal={seq_input_dim} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
-    )
-
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        drop_last=False,
-    )
-
-    meta_cost = meta.get("cost_matrix") or {}
-    meta_cw = meta.get("class_weights") or {}
-    cost_enabled = bool(meta.get("cost_sensitive_loss_enabled", ENTRY_COST_SENSITIVE_ENABLED))
-    cost_scale = float(meta.get("cost_sensitive_loss_scale", ENTRY_COST_SENSITIVE_SCALE))
-    _require_nonneg("EVAL_COST_SENSITIVE_SCALE", cost_scale)
-    balance_alpha = float(meta.get("pred_balance_alpha", ENTRY_PRED_BALANCE_ALPHA))
-    balance_target = str(meta.get("pred_balance_target", ENTRY_PRED_BALANCE_TARGET)).strip().lower()
-    raw_balance_weights = meta.get("pred_balance_class_weights", ENTRY_PRED_BALANCE_CLASS_WEIGHTS)
-    if isinstance(raw_balance_weights, str):
-        balance_class_weights_values = _parse_three_float_value(
-            "EVAL_PRED_BALANCE_CLASS_WEIGHTS",
-            raw_balance_weights,
-        )
-    else:
-        balance_class_weights_values = tuple(float(value) for value in raw_balance_weights)
-        if len(balance_class_weights_values) != 3 or any(
-            (not np.isfinite(value)) or value <= 0.0 for value in balance_class_weights_values
-        ):
-            raise RuntimeError(
-                "[EVAL_PRED_BALANCE_CLASS_WEIGHTS_INVALID] expected three finite positive weights"
-            )
-    _require_nonneg("EVAL_PRED_BALANCE_ALPHA", balance_alpha)
-    residual_side_bias_alpha = float(
-        meta.get("residual_side_bias_alpha", ENTRY_RESIDUAL_SIDE_BIAS_ALPHA)
-    )
-    _require_nonneg("EVAL_RESIDUAL_SIDE_BIAS_ALPHA", residual_side_bias_alpha)
-    if balance_target not in ("label", "uniform"):
+    except Exception as _e:
         raise RuntimeError(
-            f"[EVAL_BALANCE_TARGET_INVALID] pred_balance_target={balance_target!r} expected 'label' or 'uniform'"
-        )
+            f"[FEATURE_LIVENESS_AUDIT_UNAVAILABLE] {_e!r}"
+        ) from _e
 
-    cw_long = float(meta_cw.get("long", 1.0))
-    cw_short = float(meta_cw.get("short", SHORT_CLASS_WEIGHT))
-    cw_flat = float(meta_cw.get("flat", 1.0))
-    class_weights = torch.tensor([cw_long, cw_short, cw_flat], device=device)
-    pred_balance_class_weights = torch.tensor(
-        [float(value) for value in balance_class_weights_values],
-        device=device,
-    )
-
-    cost_long_to_short = float(meta_cost.get("long_to_short", ENTRY_COST_LONG_TO_SHORT))
-    cost_long_to_flat = float(meta_cost.get("long_to_flat", ENTRY_COST_LONG_TO_FLAT))
-    cost_short_to_long = float(meta_cost.get("short_to_long", ENTRY_COST_SHORT_TO_LONG))
-    cost_short_to_flat = float(meta_cost.get("short_to_flat", ENTRY_COST_SHORT_TO_FLAT))
-    cost_flat_to_long = float(meta_cost.get("flat_to_long", ENTRY_COST_FLAT_TO_LONG))
-    cost_flat_to_short = float(meta_cost.get("flat_to_short", ENTRY_COST_FLAT_TO_SHORT))
-    _require_nonneg("EVAL_COST_LONG_TO_SHORT", cost_long_to_short)
-    _require_nonneg("EVAL_COST_LONG_TO_FLAT", cost_long_to_flat)
-    _require_nonneg("EVAL_COST_SHORT_TO_LONG", cost_short_to_long)
-    _require_nonneg("EVAL_COST_SHORT_TO_FLAT", cost_short_to_flat)
-    _require_nonneg("EVAL_COST_FLAT_TO_LONG", cost_flat_to_long)
-    _require_nonneg("EVAL_COST_FLAT_TO_SHORT", cost_flat_to_short)
-
-    criterion, _ = _build_cost_sensitive_criterion(
-        device=device,
-        class_weights=class_weights,
-        cost_long_to_short=cost_long_to_short,
-        cost_long_to_flat=cost_long_to_flat,
-        cost_short_to_long=cost_short_to_long,
-        cost_short_to_flat=cost_short_to_flat,
-        cost_flat_to_long=cost_flat_to_long,
-        cost_flat_to_short=cost_flat_to_short,
-        cost_scale=cost_scale,
-        enabled=cost_enabled,
-        balance_alpha=balance_alpha,
-        balance_target=balance_target,
-        balance_class_weights=pred_balance_class_weights,
-    )
-    test_loss, test_auc, test_acc = _validate_eval(
-        model,
-        loader,
-        criterion,
-        device,
-        residual_side_bias_alpha=residual_side_bias_alpha,
-    )
-
-    eval_artifact = {
-        "created_at_utc": _utc_now(),
-        "bundle_dir": str(bd),
-        "bundle_state_dict_sha256": state_dict_sha,
-        "test_parquet": str(test_parquet),
-        "test_parquet_sha256": _sha256_file(Path(test_parquet)),
-        "seq_len": seq_len,
-        "seq_input_dim": seq_input_dim,
-        "snap_input_dim": snap_input_dim,
-        "batch_size": batch_size,
-        "device": str(device),
-        "seed": seed,
-        "test_loss": test_loss,
-        "test_loss_scope": "direction_only_ce_plus_residual_side_bias",
-        "validation_objective_matches_train": False,
-        "train_objective_metrics_included": False,
-        "hierarchical_loss_metrics_included": False,
-        "eval_scope_note": (
-            "Standalone --eval uses the frozen direction-only evaluator for deterministic "
-            "bundle checks. Use train/val or selective-edge/replay artifacts for the full "
-            "hierarchical trade/side/utility objective."
-        ),
-        "test_auc": test_auc,
-        "test_auc_status": "DISABLED",
-        "test_acc": test_acc,
-        "n_test_samples": len(dataset),
-    }
-    eval_path = bd / "EVAL_TEST.json"
-    eval_path.write_text(json.dumps(eval_artifact, indent=2), encoding="utf-8")
-    auc_display = "DISABLED" if not np.isfinite(test_auc) else f"{test_auc:.4f}"
-    log.info(
-        f"[EVAL_DONE] {eval_path} loss={test_loss:.6f} auc={auc_display} acc={test_acc:.4f}"
-    )
-
-    _run_entry_training_bias_audit(
-        bundle_dir=bd,
-        model=model,
-        device=device,
-        seq_len=seq_len,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        train_parquet=train_parquet,
-        val_parquet=val_parquet,
-        test_parquet=test_parquet,
-        dataset_kwargs=eval_dataset_kwargs,
-    )
-
-
-def _mean_median(values: List[float]) -> Dict[str, Optional[float]]:
-    if not values:
-        return {"count": 0, "mean": None, "median": None}
-    arr = np.asarray(values, dtype=np.float64)
-    return {
-        "count": int(arr.size),
-        "mean": float(arr.mean()),
-        "median": float(np.median(arr)),
-    }
-
-
-def _init_confusion_bucket() -> Dict[str, Dict[str, List[float]]]:
-    return {
-        "label_SHORT__pred_LONG": {"p_long": [], "p_short": [], "p_flat": []},
-        "label_SHORT__pred_SHORT": {"p_long": [], "p_short": [], "p_flat": []},
-        "label_LONG__pred_LONG": {"p_long": [], "p_short": [], "p_flat": []},
-        "label_LONG__pred_SHORT": {"p_long": [], "p_short": [], "p_flat": []},
-    }
-
-
-def _finalize_confusion(conf: Dict[str, Dict[str, List[float]]]) -> Dict[str, Dict[str, Dict[str, Optional[float]]]]:
-    out = {}
-    for key, vals in conf.items():
-        out[key] = {
-            "p_long": _mean_median(vals["p_long"]),
-            "p_short": _mean_median(vals["p_short"]),
-            "p_flat": _mean_median(vals["p_flat"]),
-            "count": len(vals["p_long"]),
-        }
-    return out
-
-
-def _compute_bias_stats(
-    model: nn.Module,
-    dataset: EntryV10CtxDataset,
-    device: torch.device,
-    batch_size: int,
-    num_workers: int,
-) -> Dict[str, Any]:
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        drop_last=False,
-    )
-
-    session_map = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-    conf_global = _init_confusion_bucket()
-    conf_by_session: Dict[str, Dict[str, Dict[str, List[float]]]] = {}
-    totals_by_session: Dict[str, int] = {}
-    total_samples = 0
-    total_label_long_short = 0
-    label_long_total = 0
-    label_long_pred_long = 0
-    label_long_pred_short = 0
-    label_long_pred_flat = 0
-    label_long_margin_ge_000 = 0
-    label_long_margin_ge_002 = 0
-    label_long_margin_ge_005 = 0
-
-    label_long_by_session: Dict[str, Dict[str, int]] = {}
-
-    model.eval()
-    with torch.no_grad():
-        for batch in loader:
-            seq_x = batch["seq_x"].to(device)
-            snap_x = batch["snap_x"].to(device)
-            ctx_cont = batch["ctx_cont"].to(device)
-            ctx_cat = batch["ctx_cat"].to(device)
-            y = batch["y"].to(device)
-
-            out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
-            logits = out["direction_logits"]
-            probs = torch.softmax(logits, dim=1)
-            preds = torch.argmax(probs, dim=1)
-
-            p_long = probs[:, 0].cpu().numpy()
-            p_short = probs[:, 1].cpu().numpy()
-            p_flat = probs[:, 2].cpu().numpy()
-            labels = y.cpu().numpy()
-            preds_np = preds.cpu().numpy()
-            sessions = ctx_cat[:, 0].cpu().numpy()
-
-            total_samples += len(labels)
-
-            for i in range(len(labels)):
-                label = int(labels[i])
-                pred = int(preds_np[i])
-                sess_id = int(sessions[i]) if sessions is not None else -1
-                sess_name = session_map.get(sess_id, f"UNKNOWN_{sess_id}")
-
-                totals_by_session[sess_name] = totals_by_session.get(sess_name, 0) + 1
-                if sess_name not in conf_by_session:
-                    conf_by_session[sess_name] = _init_confusion_bucket()
-                    label_long_by_session[sess_name] = {
-                        "total": 0,
-                        "pred_long": 0,
-                        "pred_short": 0,
-                        "pred_flat": 0,
-                        "margin_ge_000": 0,
-                        "margin_ge_002": 0,
-                        "margin_ge_005": 0,
-                    }
-
-                if label in (0, 1):
-                    total_label_long_short += 1
-                    if label == 0:
-                        label_long_total += 1
-                        label_long_by_session[sess_name]["total"] += 1
-                        if pred == 0:
-                            label_long_pred_long += 1
-                            label_long_by_session[sess_name]["pred_long"] += 1
-                        if pred == 1:
-                            label_long_pred_short += 1
-                            label_long_by_session[sess_name]["pred_short"] += 1
-                        if pred == 2:
-                            label_long_pred_flat += 1
-                            label_long_by_session[sess_name]["pred_flat"] += 1
-                        margin = float(p_long[i] - p_flat[i])
-                        if margin >= 0.00:
-                            label_long_margin_ge_000 += 1
-                            label_long_by_session[sess_name]["margin_ge_000"] += 1
-                        if margin >= 0.02:
-                            label_long_margin_ge_002 += 1
-                            label_long_by_session[sess_name]["margin_ge_002"] += 1
-                        if margin >= 0.05:
-                            label_long_margin_ge_005 += 1
-                            label_long_by_session[sess_name]["margin_ge_005"] += 1
-
-                    if label == 1 and pred == 0:
-                        key = "label_SHORT__pred_LONG"
-                    elif label == 1 and pred == 1:
-                        key = "label_SHORT__pred_SHORT"
-                    elif label == 0 and pred == 0:
-                        key = "label_LONG__pred_LONG"
-                    elif label == 0 and pred == 1:
-                        key = "label_LONG__pred_SHORT"
-                    else:
-                        key = None
-
-                    if key:
-                        conf_global[key]["p_long"].append(float(p_long[i]))
-                        conf_global[key]["p_short"].append(float(p_short[i]))
-                        conf_global[key]["p_flat"].append(float(p_flat[i]))
-                        conf_by_session[sess_name][key]["p_long"].append(float(p_long[i]))
-                        conf_by_session[sess_name][key]["p_short"].append(float(p_short[i]))
-                        conf_by_session[sess_name][key]["p_flat"].append(float(p_flat[i]))
-
-    confusion_counts = {k: len(v["p_long"]) for k, v in conf_global.items()}
-    confusion_rates = {
-        k: (count / total_label_long_short if total_label_long_short > 0 else 0.0)
-        for k, count in confusion_counts.items()
-    }
-
-    session_stats = {}
-    for sess_name, conf in conf_by_session.items():
-        session_label_long = label_long_by_session.get(sess_name, {})
-        session_total = totals_by_session.get(sess_name, 0)
-        session_conf_counts = {k: len(v["p_long"]) for k, v in conf.items()}
-        session_conf_rates = {
-            k: (count / sum(session_conf_counts.values()) if sum(session_conf_counts.values()) > 0 else 0.0)
-            for k, count in session_conf_counts.items()
-        }
-        long_total = session_label_long.get("total", 0)
-        pred_long = session_label_long.get("pred_long", 0)
-        pred_short = session_label_long.get("pred_short", 0)
-        pred_flat = session_label_long.get("pred_flat", 0)
-        session_stats[sess_name] = {
-            "total_samples": session_total,
-            "confusion_counts": session_conf_counts,
-            "confusion_rates": session_conf_rates,
-            "prob_stats": _finalize_confusion(conf),
-            "label_long": {
-                "total": long_total,
-                "pred_long_count": pred_long,
-                "pred_short_count": pred_short,
-                "pred_flat_count": pred_flat,
-                "pred_long_rate": (pred_long / long_total if long_total > 0 else 0.0),
-                "pred_short_rate": (pred_short / long_total if long_total > 0 else 0.0),
-                "pred_flat_rate": (pred_flat / long_total if long_total > 0 else 0.0),
-                "p_long_minus_p_flat_ge_0.00_count": session_label_long.get("margin_ge_000", 0),
-                "p_long_minus_p_flat_ge_0.00_rate": (
-                    session_label_long.get("margin_ge_000", 0) / long_total if long_total > 0 else 0.0
-                ),
-                "p_long_minus_p_flat_ge_0.02_count": session_label_long.get("margin_ge_002", 0),
-                "p_long_minus_p_flat_ge_0.02_rate": (
-                    session_label_long.get("margin_ge_002", 0) / long_total if long_total > 0 else 0.0
-                ),
-                "p_long_minus_p_flat_ge_0.05_count": session_label_long.get("margin_ge_005", 0),
-                "p_long_minus_p_flat_ge_0.05_rate": (
-                    session_label_long.get("margin_ge_005", 0) / long_total if long_total > 0 else 0.0
-                ),
-            },
-        }
-
-    return {
-        "total_samples": total_samples,
-        "label_long_short_total": total_label_long_short,
-        "confusion_counts": confusion_counts,
-        "confusion_rates": confusion_rates,
-        "prob_stats": _finalize_confusion(conf_global),
-        "label_long": {
-            "total": label_long_total,
-            "pred_long_count": label_long_pred_long,
-            "pred_short_count": label_long_pred_short,
-            "pred_flat_count": label_long_pred_flat,
-            "pred_long_rate": (label_long_pred_long / label_long_total if label_long_total > 0 else 0.0),
-            "pred_short_rate": (label_long_pred_short / label_long_total if label_long_total > 0 else 0.0),
-            "pred_flat_rate": (label_long_pred_flat / label_long_total if label_long_total > 0 else 0.0),
-            "p_long_minus_p_flat_ge_0.00_count": label_long_margin_ge_000,
-            "p_long_minus_p_flat_ge_0.00_rate": (
-                label_long_margin_ge_000 / label_long_total if label_long_total > 0 else 0.0
-            ),
-            "p_long_minus_p_flat_ge_0.02_count": label_long_margin_ge_002,
-            "p_long_minus_p_flat_ge_0.02_rate": (
-                label_long_margin_ge_002 / label_long_total if label_long_total > 0 else 0.0
-            ),
-            "p_long_minus_p_flat_ge_0.05_count": label_long_margin_ge_005,
-            "p_long_minus_p_flat_ge_0.05_rate": (
-                label_long_margin_ge_005 / label_long_total if label_long_total > 0 else 0.0
-            ),
-        },
-        "sessions": session_stats,
-    }
-
-
-def _run_entry_training_bias_audit(
-    bundle_dir: Path,
-    model: nn.Module,
-    device: torch.device,
-    seq_len: int,
-    batch_size: int,
-    num_workers: int,
-    train_parquet: Optional[Path],
-    val_parquet: Optional[Path],
-    test_parquet: Optional[Path],
-    dataset_kwargs: Optional[Dict[str, Any]] = None,
-) -> None:
-    splits = {
-        "train": train_parquet,
-        "val": val_parquet,
-        "test": test_parquet,
-    }
-
-    results = {
-        "created_at_utc": _utc_now(),
-        "bundle_dir": str(bundle_dir),
-        "splits": {},
-    }
-
-    for split_name, parquet_path in splits.items():
-        if parquet_path is None:
-            log.warning("[ENTRY_TRAINING_BIAS_AUDIT] split=%s status=skip reason=missing_parquet", split_name)
-            continue
-        if not Path(parquet_path).exists():
-            log.warning("[ENTRY_TRAINING_BIAS_AUDIT] split=%s status=skip reason=missing_file path=%s", split_name, parquet_path)
-            continue
-
-        dataset = EntryV10CtxDataset(
-            parquet_path=Path(parquet_path),
-            seq_len=seq_len,
-            allow_constant_labels=True,
-            **(dataset_kwargs or {}),
-        )
-        if len(dataset) == 0:
-            log.warning("[ENTRY_TRAINING_BIAS_AUDIT] split=%s status=skip reason=empty_dataset", split_name)
-            continue
-
-        stats = _compute_bias_stats(
-            model=model,
-            dataset=dataset,
-            device=device,
-            batch_size=batch_size,
-            num_workers=num_workers,
-        )
-        results["splits"][split_name] = stats
-
-    audit_path = Path(bundle_dir) / "ENTRY_TRAINING_BIAS_AUDIT.json"
-    audit_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
-
-    session_bias = {"created_at_utc": _utc_now(), "bundle_dir": str(bundle_dir), "splits": {}}
-    for split_name, split_stats in results.get("splits", {}).items():
-        split_sessions = split_stats.get("sessions", {})
-        session_bias["splits"][split_name] = {}
-        for session_name in ["ASIA", "EU", "OVERLAP", "US"]:
-            sess_stats = split_sessions.get(session_name, {})
-            label_long = sess_stats.get("label_long", {})
-            session_bias["splits"][split_name][session_name] = {
-                "label_long_total": label_long.get("total", 0),
-                "pred_long_rate": label_long.get("pred_long_rate", 0.0),
-                "pred_short_rate": label_long.get("pred_short_rate", 0.0),
-                "pred_flat_rate": label_long.get("pred_flat_rate", 0.0),
-                "margin_ge_0.00_rate": label_long.get("p_long_minus_p_flat_ge_0.00_rate", 0.0),
-                "margin_ge_0.02_rate": label_long.get("p_long_minus_p_flat_ge_0.02_rate", 0.0),
-                "margin_ge_0.05_rate": label_long.get("p_long_minus_p_flat_ge_0.05_rate", 0.0),
-            }
-
-    session_bias_path = Path(bundle_dir) / "ENTRY_SESSION_BIAS_AUDIT.json"
-    session_bias_path.write_text(json.dumps(session_bias, indent=2), encoding="utf-8")
-
-    log.info("[ENTRY_TRAINING_BIAS_AUDIT]")
-    log.info("bundle_dir=%s", bundle_dir)
-    log.info("splits=%s", json.dumps(list(results.get("splits", {}).keys())))
-    for split_name, split_stats in results.get("splits", {}).items():
-        long_stats = split_stats.get("label_long", {})
-        log.info(
-            "[ENTRY_TRAINING_BIAS_AUDIT] split=%s label_long_total=%s pred_long_rate=%.6f pred_flat_rate=%.6f margin_ge_0.00_rate=%.6f margin_ge_0.02_rate=%.6f margin_ge_0.05_rate=%.6f",
-            split_name,
-            long_stats.get("total"),
-            float(long_stats.get("pred_long_rate") or 0.0),
-            float(long_stats.get("pred_flat_rate") or 0.0),
-            float(long_stats.get("p_long_minus_p_flat_ge_0.00_rate") or 0.0),
-            float(long_stats.get("p_long_minus_p_flat_ge_0.02_rate") or 0.0),
-            float(long_stats.get("p_long_minus_p_flat_ge_0.05_rate") or 0.0),
-        )
-
-    log.info("[ENTRY_SESSION_BIAS_AUDIT]")
-    log.info("bundle_dir=%s", bundle_dir)
-    for split_name, split_sessions in session_bias.get("splits", {}).items():
-        for session_name, metrics in split_sessions.items():
-            log.info(
-                "[ENTRY_SESSION_BIAS_AUDIT] split=%s session=%s label_long_total=%s pred_long_rate=%.6f pred_short_rate=%.6f pred_flat_rate=%.6f margin_ge_0.00_rate=%.6f margin_ge_0.02_rate=%.6f margin_ge_0.05_rate=%.6f",
-                split_name,
-                session_name,
-                metrics.get("label_long_total"),
-                float(metrics.get("pred_long_rate") or 0.0),
-                float(metrics.get("pred_short_rate") or 0.0),
-                float(metrics.get("pred_flat_rate") or 0.0),
-                float(metrics.get("margin_ge_0.00_rate") or 0.0),
-                float(metrics.get("margin_ge_0.02_rate") or 0.0),
-                float(metrics.get("margin_ge_0.05_rate") or 0.0),
-            )
 
 # -----------------------------------------------------------------------------
 # Main
@@ -14194,447 +9760,124 @@ def _run_entry_training_bias_audit(
 def main() -> None:
     _enforce_canonical_train_env_contract()
 
-    parser = argparse.ArgumentParser("ENTRY_V10_CTX canonical trainer")
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--sanity", action="store_true", help="Run sanity check only and exit 0/1")
-    mode.add_argument("--train", action="store_true", help="Run training")
-    mode.add_argument("--eval", action="store_true", help="Run eval on test split")
-    parser.add_argument("--seed", type=int, default=1337, help="Random seed")
+    parser = argparse.ArgumentParser("ENTRY_V10_CTX exact model-native trainer")
+    parser.add_argument("--train", action="store_true", required=True)
+    parser.add_argument("--vedtak", type=str, required=True)
+    parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--device", type=str, default="auto", choices=["cpu", "cuda", "auto"])
     parser.add_argument("--batch_size", type=int, default=256)
-    parser.add_argument("--epochs", type=int, default=10, help="Max epochs (used with early stopping)")
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--seq_len", type=int, default=DEFAULT_SEQ_LEN_V3)  # V2: 96 (was 30)
-    parser.add_argument("--dataset_manifest", type=Path, default=None, help="Path to dataset .manifest.json (train parquet from output_data_path; val = same dir stem_val.parquet)")
-    parser.add_argument("--dataset_dir", type=Path, default=None, help="Directory with *_train.parquet and *_val.parquet")
-    parser.add_argument("--dataset_train_parquet", type=Path, default=None, help="Optional: explicit train parquet path when dataset_dir has multiple pairs")
-    parser.add_argument("--out_bundle_dir", type=Path, required=False, help="Output bundle directory (under GX1_DATA if relative for train/sanity)")
-    parser.add_argument("--bundle_dir", type=Path, default=None, help="Existing bundle directory for eval mode")
-    parser.add_argument("--test_parquet", type=Path, default=None, help="Explicit test parquet path (optional)")
-    parser.add_argument("--gx1-data", type=str, default="")
-    parser.add_argument("--allow-constant-labels", action="store_true")
+    parser.add_argument("--seq_len", type=int, default=DEFAULT_SEQ_LEN_V3)
+    parser.add_argument("--dataset_manifest", type=Path, required=True)
+    parser.add_argument("--dataset_dir", type=Path, default=None)
+    parser.add_argument("--dataset_train_parquet", type=Path, default=None)
+    parser.add_argument("--test_parquet", type=Path, required=True)
+    parser.add_argument("--out_bundle_dir", type=Path, required=True)
+    parser.add_argument("--gx1-data", type=str, required=True)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument(
         "--fast",
         action="store_true",
-        help="Enable faster (non-deterministic) training: cudnn benchmark on, deterministic off",
+        help="Use the audited non-deterministic CUDA execution mode.",
     )
     parser.add_argument("--early-stopping-patience", type=int, default=10)
     parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4)
-    # ── Multi-TF (V12.2) — MANDATORY, no toggle ──────────────────────
-    # 2026-05-26: the --enable-multi-tf on/off flag was REMOVED. Multi-TF×5
-    # (M5/M15/H1/H4/D1, V2 25-feat) is ALWAYS on — it must never be possible to
-    # accidentally train a single-TF V10. --m5-prebuilt-path is therefore
-    # required. (rule: multi_tf_always_mandatory)
-    # ── V10 v3+ aux heads (Targets 1-4) ──────────────────────────────
-    parser.add_argument(
-        "--enable-tf-agreement-head", action="store_true",
-        help="V10 v3+ Target 1: add multi-TF agreement aux head + MSE loss "
-             "× 0.5 weight on y_tf_agreement_score label.",
-    )
-    parser.add_argument(
-        "--enable-path-quality-variance-head", action="store_true",
-        help="V10 v3+ Target 2: add log-variance head for path_quality; "
-             "swap smooth_l1 loss for Gaussian NLL so model learns uncertainty.",
-    )
-    parser.add_argument(
-        "--enable-position-size-head", action="store_true",
-        help="V10 v3+ Target 3: add position-size aux head + MSE loss × 0.3 "
-             "weight on y_position_size_target label.",
-    )
-    parser.add_argument(
-        "--enable-hold-horizon-head", action="store_true",
-        help="V10 v3+ Target 4: add hold-horizon aux head + MSE loss × 0.3 "
-             "weight on y_hold_horizon_target label.",
-    )
-    parser.add_argument(
-        "--enable-v10-v3plus-all-heads", action="store_true",
-        help="Convenience flag: enable all 4 V10 v3+ aux heads (T1+T2+T3+T4).",
-    )
-    parser.add_argument(
-        "--enable-pos-enc", action=argparse.BooleanOptionalAction, default=True,
-        help="Sinusoidal positional encoding on the base seq + every per-TF "
-             "sequence so the transformer uses temporal ORDER (default ON for "
-             "new runs). Without it the encoder+mean-pool are permutation-"
-             "invariant — the model is blind to bar order. --no-enable-pos-enc "
-             "restores the old order-blind behaviour.",
-    )
-    parser.add_argument(
-        "--enable-regime-film", action="store_true", default=False,
-        help="BIG-9 (2026-06-03): FiLM regime-conditioning of a separate z_dir for the "
-             "direction head (zero-init -> bit-parity at start). Default OFF; enable for the "
-             "regime-robust retrain (pair with GX1_TREND_REGIME_FROM_D1=1 so the regime slot varies).",
-    )
-    parser.add_argument(
-        "--enable-mtf-direction-head", action="store_true", default=False,
-        help="Forceful MTF→direction (2026-06-06): a dedicated head reads the GATED cross-TF "
-             "repr and adds a non-zeroable term to direction logits, + an aux CE forcing the 5 "
-             "multi-TF streams to predict direction. Requires --enable-cross-tf-attn (default ON).",
-    )
-    parser.add_argument(
-        "--mtf-dir-scale-init", type=float, default=0.2,
-        help="Initial value of the learnable mtf_dir_scale (default 0.2, NON-zero so the multi-TF "
-             "direction term contributes from epoch 0).",
-    )
-    parser.add_argument(
-        "--enable-dip-head", action=argparse.BooleanOptionalAction, default=True,
-        help="Distributional dip-analysis head (18: dir×K×{dip_p50,dip_p90,recovery_p50}, "
-             "pinball loss vs mae_before_mfe/mfe). Default ON for the dip-aware rebuild.",
-    )
-    parser.add_argument(
-        "--enable-forecast-head", action=argparse.BooleanOptionalAction, default=True,
-        help="Self-supervised forecast head (4: cum future return @ K{1,5,12,24}). Default ON.",
-    )
-    parser.add_argument(
-        "--enable-cross-tf-attn", action=argparse.BooleanOptionalAction, default=True,
-        help="Cross-TF attention + learnable per-TF gates fusion (regime-dependent). Default ON.",
-    )
-    parser.add_argument(
-        "--enable-timing-head", action=argparse.BooleanOptionalAction, default=True,
-        help="Dip-timing head (12: dir×K×{dip_bottom_frac,time_to_mfe_frac}). WHEN the dip "
-             "bottoms / favorable peak hits. Default ON for the dip-aware rebuild.",
-    )
-    parser.add_argument(
-        "--enable-tail-risk-head", action=argparse.BooleanOptionalAction, default=True,
-        help="Tail-risk head (6: dir×K, pinball q=0.9 of worst adverse over full horizon). Default ON.",
-    )
-    parser.add_argument(
-        "--enable-vol-forecast-head", action=argparse.BooleanOptionalAction, default=True,
-        help="Volatility-forecast head (3: forward realized vol bps @ K{12,48,96}). Default ON.",
-    )
-    parser.add_argument(
-        "--enable-anchor-gate", action="store_true", default=False,
-        help="XAU direction repair: learn a per-regime gate on signal-bridge anchor logits "
-             "so geometry/MTF can suppress a wrong anchor instead of only adding residuals.",
-    )
-    parser.add_argument(
-        "--anchor-gate-init", type=float, default=1.0,
-        help="Initial anchor-gate value when --enable-anchor-gate is active. 1.0 starts "
-             "near legacy anchored behavior; lower values train a more anchor-light challenger.",
-    )
-    parser.add_argument(
-        "--enable-hierarchical-entry-heads", action="store_true", default=False,
-        help="XAU direction repair: add trade-vs-flat, conditional side, side utility, "
-             "side bad-path and side MAE heads.",
-    )
-    parser.add_argument(
-        "--enable-side-validity-head", action="store_true", default=False,
-        help="XAU direction repair: add learned long/short valid-trade logits so broad "
-             "touch/failure setups can be learned as no-trade instead of forced side flips.",
-    )
-    parser.add_argument(
-        "--enable-trendline-rail-head", action="store_true", default=False,
-        help="XAU direction repair: add supervised trendline/rail pocket head for rising support, "
-             "falling resistance and countertrend trap labels.",
-    )
-    parser.add_argument(
-        "--enable-xau-direction-repair-heads", action="store_true", default=False,
-        help="Convenience flag: enable anchor-gate, hierarchical entry heads and trendline rail head.",
-    )
-    parser.add_argument(
-        "--enable-specialist-fusion", action=argparse.BooleanOptionalAction, default=False,
-        help="Enable audited seq146 specialist feature-family encoders and gated fusion. "
-             "Default OFF for legacy bundle compatibility.",
-    )
-    parser.add_argument(
-        "--specialist-audit-json", type=Path, default=DEFAULT_SPECIALIST_AUDIT_JSON,
-        help="PASS specialist feature-group audit JSON that supplies specialist input indices.",
-    )
+    parser.add_argument("--m5-prebuilt-path", type=Path, required=True)
+    parser.add_argument("--multi-tf-seq-len", type=int, default=96)
+    parser.add_argument("--per-tf-seq-len-h4", type=int, default=0)
+    parser.add_argument("--per-tf-seq-len-d1", type=int, default=0)
+    parser.add_argument("--multi-tf-scale", type=float, default=0.5)
+    parser.add_argument("--specialist-audit-json", type=Path, required=True)
     parser.add_argument(
         "--specialist-contract-mode",
-        choices=SPECIALIST_CONTRACT_MODES,
-        default="foundation_seq146",
-        help="Specialist contract mode expected by the trainer loader.",
+        choices=(MODEL_NATIVE_CONTRACT_MODE,),
+        required=True,
     )
-    parser.add_argument(
-        "--specialist-num-layers", type=int, default=1,
-        help="TransformerEncoder layers per specialist branch when --enable-specialist-fusion is on.",
-    )
-    parser.add_argument(
-        "--specialist-fusion-scale", type=float, default=0.25,
-        help="Residual correction scale for specialist-fusion output.",
-    )
-    parser.add_argument(
-        "--m5-prebuilt-path", type=Path, required=True,
-        help="REQUIRED: path to canonical_v3 M5 OHLC parquet (used by dataset to "
-             "resample the M5/M15/H1/H4/D1 multi-TF features). Multi-TF is mandatory.",
-    )
-    parser.add_argument(
-        "--multi-tf-seq-len", type=int, default=96,
-        help="V12.2: number of bars per TF (default: 96 → ~4d H1, ~16d H4, ~3mo D1). "
-             "Per-TF overrides via --per-tf-seq-len-{h4,d1}.",
-    )
-    parser.add_argument(
-        "--per-tf-seq-len-h4", type=int, default=0,
-        help="V2: override H4 multi-TF seq_len (default 0 = use --multi-tf-seq-len). "
-             "Recommended 48 — H4@96 = 16d which is overkill, 48 = 8d.",
-    )
-    parser.add_argument(
-        "--per-tf-seq-len-d1", type=int, default=0,
-        help="V2: override D1 multi-TF seq_len (default 0 = use --multi-tf-seq-len). "
-             "Recommended 30 — D1@96 = 3mo which is overkill, 30 = 1mo.",
-    )
-    parser.add_argument(
-        "--prelim-no-aux-heads", action="store_true",
-        help="V2 prelim mode: disable V10 v3+ aux heads (tradable/clean_edge/survival/etc) "
-             "during prelim training. Speeds up ~10%% per step. Final retrain re-enables them.",
-    )
-    parser.add_argument(
-        "--smoke-date-from", type=str, default="",
-        help="V2 smoke mode: subset train/val to samples >= this UTC date (YYYY-MM-DD). "
-             "Use with --smoke-date-to for short-fold smoke (e.g. 6mo)."
-    )
-    parser.add_argument(
-        "--smoke-date-to", type=str, default="",
-        help="V2 smoke mode: subset train/val to samples <= this UTC date (YYYY-MM-DD)."
-    )
-    parser.add_argument(
-        "--grad-accum-steps", type=int, default=0,
-        help="Gradient accumulation steps (effective_batch = batch_size × this). "
-             "Default 0 = use env GX1_FAST_TRAIN_GRAD_ACCUM (which defaults to 1).",
-    )
-    parser.add_argument(
-        "--init-from-state-dict", type=Path, default=None,
-        help="V2 warm-start: load a state_dict (.pt) into the model right after construction. "
-             "Use scripts/warm_start_v10_v2_from_v1.py to build a V2 warm-start from a V1 bundle. "
-             "Strict=False — missing/unexpected keys are logged but allowed.",
-    )
-    parser.add_argument(
-        "--multi-tf-scale", type=float, default=0.5,
-        help="V12.2: scale applied to multi-TF pool before fusion (default 0.5). "
-             "Lower (e.g. 0.25) dampens multi-TF contribution and helps if "
-             "gradient explosion is observed in delta_abs_mean during early epochs.",
-    )
-    # 2026-06-02: per-TF learnable input scaling. Initialized with priors and
-    # adjusted via backprop during training. Saves cement model from uniform
-    # per-TF gates that fail to differentiate macro vs micro signals.
-    parser.add_argument("--enable-tf-input-scale", action="store_true",
-        help="Enable learnable per-TF input scaling (V10 v5+). Each TF input "
-             "is multiplied by a learnable scalar before encoding. Defaults to "
-             "user-specified priors that down-weight macro TFs (D1, H4, H1).")
-    parser.add_argument("--tf-input-scale-init-m5",  type=float, default=1.0,
-        help="Initial value of learnable M5 scale (default 1.0)")
-    parser.add_argument("--tf-input-scale-init-m15", type=float, default=1.0,
-        help="Initial value of learnable M15 scale (default 1.0)")
-    parser.add_argument("--tf-input-scale-init-h1",  type=float, default=0.7,
-        help="Initial value of learnable H1 scale (default 0.7 — down-weight macro)")
-    parser.add_argument("--tf-input-scale-init-h4",  type=float, default=0.5,
-        help="Initial value of learnable H4 scale (default 0.5 — down-weight macro)")
-    parser.add_argument("--tf-input-scale-init-d1",  type=float, default=0.3,
-        help="Initial value of learnable D1 scale (default 0.3 — down-weight macro)")
-    parser.add_argument(
-        "--subsample-rows", type=int, default=0,
-        help="V12.2 sweep: stratified-subsample train set to at most N rows "
-             "(0 = use all). Stratification preserves long/short/flat ratios. "
-             "Use for hyperparameter sweeps where each trial needs fast epochs.",
-    )
-    parser.add_argument(
-        "--grad-clip-norm", type=float, default=1.0,
-        help="V12.2: max grad norm for clipping (default 1.0). Use 0.5 for more "
-             "aggressive clipping when multi-TF causes train delta to explode.",
-    )
-    parser.add_argument(
-        "--weight-decay", type=float, default=1e-5,
-        help="V12.2: AdamW weight decay (default 1e-5 — V10 v3 baseline). "
-             "Increase (e.g. 1e-3) to fight 'weight blow-up' overfit pattern "
-             "where train delta grows unboundedly while val is stable.",
-    )
-
-    parser.add_argument(
-        "--vedtak", type=str, default=None,
-        help="Explicit user decision id authorizing this retrain. REQUIRED for --train "
-             "(never auto-retrain). Any non-empty string from a deliberate human go.",
-    )
+    parser.add_argument("--specialist-num-layers", type=int, default=1)
+    parser.add_argument("--specialist-fusion-scale", type=float, default=0.25)
+    parser.add_argument("--grad-accum-steps", type=int, default=0)
+    parser.add_argument("--tf-input-scale-init-m5", type=float, default=1.0)
+    parser.add_argument("--tf-input-scale-init-m15", type=float, default=1.0)
+    parser.add_argument("--tf-input-scale-init-h1", type=float, default=0.7)
+    parser.add_argument("--tf-input-scale-init-h4", type=float, default=0.5)
+    parser.add_argument("--tf-input-scale-init-d1", type=float, default=0.3)
+    parser.add_argument("--subsample-rows", type=int, default=0)
+    parser.add_argument("--grad-clip-norm", type=float, default=1.0)
+    parser.add_argument("--weight-decay", type=float, default=1e-5)
     args = parser.parse_args()
-    from gx1.runtime.entry_next_edge_legacy_guard import enforce_legacy_entry_research_ack
-    enforce_legacy_entry_research_ack("legacy Entry V10_CTX trainer/evaluator")
-    # Multi-TF is mandatory — m5-prebuilt-path is required by argparse; nothing to gate.
-    # V12.2: apply grad-clip-norm + weight-decay to module-level variables
+
+    from gx1_guards.gates import GateError, require_retrain_vedtak
+
+    try:
+        require_retrain_vedtak(args.vedtak)
+    except GateError as exc:
+        parser.error(str(exc))
+
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
     _GRAD_CLIP_NORM = float(args.grad_clip_norm)
     _WEIGHT_DECAY = float(args.weight_decay)
-    log.info(f"[CONFIG] grad_clip_norm={_GRAD_CLIP_NORM} weight_decay={_WEIGHT_DECAY}")
-
     _guard_no_rl()
-
     device = _resolve_device(args.device)
-    log.info(f"[CONFIG] seed={args.seed} device={device} deterministic={not args.fast}")
-    if torch.cuda.is_available():
-        try:
-            name = torch.cuda.get_device_name(0)
-        except Exception:
-            name = "unknown"
-        log.info(
-            "[CUDA_PROOF] cuda_available=%s device=%s device_name=%s",
-            True,
-            device,
-            name,
-        )
-    else:
-        log.info("[CUDA_PROOF] cuda_available=%s device=%s", False, device)
+    log.info(
+        "[CONFIG] seed=%d device=%s deterministic=%s grad_clip_norm=%.6f weight_decay=%.6f",
+        args.seed,
+        device,
+        not args.fast,
+        _GRAD_CLIP_NORM,
+        _WEIGHT_DECAY,
+    )
 
-    if args.sanity:
-        if args.out_bundle_dir is None:
-            parser.error("--out_bundle_dir is required for --sanity")
-        _log_manifest_proof(args.dataset_manifest)
-        run_sanity_check(
-            seq_len=args.seq_len,
-            seed=args.seed,
-            device=device,
-            out_bundle_dir=args.out_bundle_dir,
-            dataset_manifest=args.dataset_manifest,
-            deterministic=not args.fast,
-            enable_specialist_fusion=bool(args.enable_specialist_fusion),
-            specialist_audit_json=args.specialist_audit_json,
-            specialist_contract_mode=str(args.specialist_contract_mode),
-            specialist_num_layers=int(args.specialist_num_layers),
-            specialist_fusion_scale=float(args.specialist_fusion_scale),
-        )
-        return
+    _log_manifest_proof(args.dataset_manifest)
+    gx1_data = _resolve_gx1_data(args.gx1_data)
+    train_parquet, val_parquet = _resolve_train_val_parquets(
+        args.dataset_manifest,
+        args.dataset_dir,
+        gx1_data,
+        train_parquet_hint=args.dataset_train_parquet,
+    )
+    test_parquet = _resolve_test_parquet(
+        args.dataset_manifest,
+        args.dataset_dir,
+        args.test_parquet,
+        gx1_data,
+    )
+    _log_label_distribution(test_parquet, split="test")
 
-    if args.train:
-        # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed.
-        from gx1_guards.gates import require_retrain_vedtak, GateError
-        try:
-            require_retrain_vedtak(args.vedtak)
-        except GateError as e:
-            parser.error(str(e))
-        if args.out_bundle_dir is None:
-            parser.error("--out_bundle_dir is required for --train")
-        _log_manifest_proof(args.dataset_manifest)
-        gx1_data = _resolve_gx1_data(args.gx1_data)
-        train_parquet, val_parquet = _resolve_train_val_parquets(
-            args.dataset_manifest,
-            args.dataset_dir,
-            gx1_data,
-            train_parquet_hint=args.dataset_train_parquet,
-        )
-        try:
-            test_parquet = _resolve_test_parquet(
-                args.dataset_manifest,
-                args.dataset_dir,
-                args.test_parquet,
-                gx1_data,
-            )
-            _log_label_distribution(test_parquet, split="test")
-        except Exception as e:
-            log.warning("[ENTRY_LABEL_DISTRIBUTION] split=test status=skip reason=%s", e)
-        # V2 prelim-mode: force-disable all V10 v3+ aux heads for prelim training (item 16).
-        # Final retrain (without --prelim-no-aux-heads) re-enables them.
-        _aux_tf = args.enable_tf_agreement_head or args.enable_v10_v3plus_all_heads
-        _aux_pqv = args.enable_path_quality_variance_head or args.enable_v10_v3plus_all_heads
-        _aux_ps = args.enable_position_size_head or args.enable_v10_v3plus_all_heads
-        _aux_hh = args.enable_hold_horizon_head or args.enable_v10_v3plus_all_heads
-        _anchor_gate = bool(args.enable_anchor_gate or args.enable_xau_direction_repair_heads)
-        _hier_heads = bool(args.enable_hierarchical_entry_heads or args.enable_xau_direction_repair_heads)
-        _side_validity_head = bool(args.enable_side_validity_head or args.enable_xau_direction_repair_heads)
-        _trendline_head = bool(args.enable_trendline_rail_head or args.enable_xau_direction_repair_heads)
-        if args.prelim_no_aux_heads:
-            log.info("[PRELIM_NO_AUX_HEADS] disabling tf_agreement/path_var/pos_size/hold_horizon heads for prelim")
-            _aux_tf = _aux_pqv = _aux_ps = _aux_hh = False
-        run_train(
-            train_parquet=train_parquet,
-            val_parquet=val_parquet,
-            seq_len=args.seq_len,
-            seed=args.seed,
-            device=device,
-            batch_size=args.batch_size,
-            epochs=args.epochs,
-            lr=args.lr,
-            out_bundle_dir=args.out_bundle_dir,
-            gx1_data_override=args.gx1_data,
-            allow_constant_labels=args.allow_constant_labels,
-            num_workers=args.num_workers,
-            early_stopping_patience=args.early_stopping_patience,
-            early_stopping_min_delta=args.early_stopping_min_delta,
-            deterministic=not args.fast,
-            enable_multi_tf=True,  # MANDATORY — never single-TF (toggle removed 2026-05-26)
-            m5_prebuilt_path=args.m5_prebuilt_path,
-            multi_tf_seq_len=args.multi_tf_seq_len,
-            multi_tf_scale=args.multi_tf_scale,
-            subsample_rows=args.subsample_rows,
-            enable_tf_agreement_head=_aux_tf,
-            enable_path_quality_variance_head=_aux_pqv,
-            enable_position_size_head=_aux_ps,
-            enable_hold_horizon_head=_aux_hh,
-            enable_pos_enc=bool(args.enable_pos_enc),
-            enable_regime_film=bool(args.enable_regime_film),
-            enable_dip_head=bool(args.enable_dip_head),
-            enable_forecast_head=bool(args.enable_forecast_head),
-            enable_cross_tf_attn=bool(args.enable_cross_tf_attn),
-            enable_timing_head=bool(args.enable_timing_head),
-            enable_tail_risk_head=bool(args.enable_tail_risk_head),
-            enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
-        enable_anchor_gate=_anchor_gate,
-        anchor_gate_init=float(args.anchor_gate_init),
-        enable_hierarchical_entry_heads=_hier_heads,
-        enable_hierarchical_direction_composition=bool(ENTRY_DIRECTION_HIERARCHICAL_COMPOSITION),
-        enable_side_validity_head=_side_validity_head,
-            enable_trendline_rail_head=_trendline_head,
-            enable_specialist_fusion=bool(args.enable_specialist_fusion),
-            specialist_audit_json=args.specialist_audit_json,
-            specialist_contract_mode=str(args.specialist_contract_mode),
-            specialist_num_layers=int(args.specialist_num_layers),
-            specialist_fusion_scale=float(args.specialist_fusion_scale),
-            enable_mtf_direction_head=bool(args.enable_mtf_direction_head),
-            mtf_dir_scale_init=float(args.mtf_dir_scale_init),
-            # V2 fast-train extras
-            per_tf_seq_len_h4=int(args.per_tf_seq_len_h4),
-            per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),
-            smoke_date_from=str(args.smoke_date_from or ""),
-            smoke_date_to=str(args.smoke_date_to or ""),
-            grad_accum_steps=int(args.grad_accum_steps),
-            init_from_state_dict=args.init_from_state_dict,
-            # 2026-06-02: per-TF learnable input scaling
-            enable_tf_input_scale=bool(args.enable_tf_input_scale),
-            tf_input_scale_init_m5=float(args.tf_input_scale_init_m5),
-            tf_input_scale_init_m15=float(args.tf_input_scale_init_m15),
-            tf_input_scale_init_h1=float(args.tf_input_scale_init_h1),
-            tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
-            tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
-            vedtak_id=str(args.vedtak or ""),
-        )
-        return
+    run_train(
+        train_parquet=train_parquet,
+        val_parquet=val_parquet,
+        seq_len=args.seq_len,
+        seed=args.seed,
+        device=device,
+        batch_size=args.batch_size,
+        epochs=args.epochs,
+        lr=args.lr,
+        out_bundle_dir=args.out_bundle_dir,
+        gx1_data_override=args.gx1_data,
+        num_workers=args.num_workers,
+        early_stopping_patience=args.early_stopping_patience,
+        early_stopping_min_delta=args.early_stopping_min_delta,
+        m5_prebuilt_path=args.m5_prebuilt_path,
+        specialist_audit_json=args.specialist_audit_json,
+        specialist_contract_mode=str(args.specialist_contract_mode),
+        deterministic=not args.fast,
+        multi_tf_seq_len=args.multi_tf_seq_len,
+        multi_tf_scale=args.multi_tf_scale,
+        subsample_rows=args.subsample_rows,
+        specialist_num_layers=int(args.specialist_num_layers),
+        specialist_fusion_scale=float(args.specialist_fusion_scale),
+        per_tf_seq_len_h4=int(args.per_tf_seq_len_h4),
+        per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),
+        grad_accum_steps=int(args.grad_accum_steps),
+        tf_input_scale_init_m5=float(args.tf_input_scale_init_m5),
+        tf_input_scale_init_m15=float(args.tf_input_scale_init_m15),
+        tf_input_scale_init_h1=float(args.tf_input_scale_init_h1),
+        tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
+        tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
+        vedtak_id=str(args.vedtak),
+    )
 
-    if args.eval:
-        _require(args.bundle_dir is not None, "[ENTRY_V10_CTX_EVAL_BUNDLE_REQUIRED]")
-        _log_manifest_proof(args.dataset_manifest)
-        gx1_data = _resolve_gx1_data(args.gx1_data)
-        test_parquet = _resolve_test_parquet(
-            args.dataset_manifest,
-            args.dataset_dir,
-            args.test_parquet,
-            gx1_data,
-            bundle_dir=args.bundle_dir,
-        )
-        # Resolve train/val from bundle metadata if available
-        train_parquet = None
-        val_parquet = None
-        try:
-            meta_path = Path(args.bundle_dir).expanduser() / "bundle_metadata.json"
-            if meta_path.exists():
-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                if meta.get("train_data"):
-                    train_parquet = Path(meta["train_data"])
-                if meta.get("val_data"):
-                    val_parquet = Path(meta["val_data"])
-        except Exception as e:
-            log.warning("[ENTRY_TRAINING_BIAS_AUDIT] failed to resolve train/val from bundle metadata: %s", e)
-
-        run_eval(
-            bundle_dir=args.bundle_dir,
-            train_parquet=train_parquet,
-            val_parquet=val_parquet,
-            test_parquet=test_parquet,
-            m5_prebuilt_path=args.m5_prebuilt_path,
-            seq_len=args.seq_len,
-            seed=args.seed,
-            device=device,
-            batch_size=args.batch_size,
-            num_workers=args.num_workers,
-            gx1_data_override=args.gx1_data,
-        )
-        return
 
 if __name__ == "__main__":
     main()

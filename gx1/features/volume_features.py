@@ -42,60 +42,82 @@ _CLIP = 6.0  # clip z-scores to ±6σ so a single bad tick-print can't dominate
 def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
     """Compute the VOLUME_FEATURE_NAMES from `df['volume']` (+ `df['close']`).
 
-    Returns a dict name -> float32 ndarray (len == len(df)). NaN-safe: warmup
-    bars and missing/zero volume resolve to neutral 0.0. Causal (trailing
-    windows only) — no future leakage.
+    Returns a dict name -> float32 ndarray (len == len(df)). Sources are exact,
+    numeric and finite. Causal warmup values use expanding trailing windows;
+    missing or malformed market data is never converted into neutral evidence.
     """
     n = len(df)
     if n == 0:
-        return {k: np.zeros(0, dtype=np.float32) for k in VOLUME_FEATURE_NAMES}
+        raise RuntimeError("VOLUME_FEATURE_SOURCE_EMPTY")
+    for name in ("volume", "close"):
+        if name not in df.columns:
+            raise RuntimeError(f"VOLUME_FEATURE_SOURCE_MISSING: {name}")
+        if list(df.columns).count(name) != 1:
+            raise RuntimeError(f"VOLUME_FEATURE_SOURCE_DUPLICATE: {name}")
 
-    if "volume" not in df.columns:
-        # Fail-closed-neutral: no volume → all features 0.0 (model sees "no signal").
-        return {k: np.zeros(n, dtype=np.float32) for k in VOLUME_FEATURE_NAMES}
+    try:
+        vol_values = pd.to_numeric(df["volume"], errors="raise").to_numpy(dtype=np.float64)
+        close_values = pd.to_numeric(df["close"], errors="raise").to_numpy(dtype=np.float64)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("VOLUME_FEATURE_SOURCE_NOT_NUMERIC") from exc
+    if vol_values.shape != (n,) or close_values.shape != (n,):
+        raise RuntimeError(
+            "VOLUME_FEATURE_SOURCE_SHAPE_INVALID: "
+            f"volume={vol_values.shape} close={close_values.shape} rows={n}"
+        )
+    if not np.isfinite(vol_values).all() or not np.isfinite(close_values).all():
+        raise RuntimeError("VOLUME_FEATURE_SOURCE_NONFINITE")
+    if np.any(vol_values < 0.0):
+        raise RuntimeError("VOLUME_FEATURE_SOURCE_VOLUME_NEGATIVE")
+    if np.any(close_values <= 0.0):
+        raise RuntimeError("VOLUME_FEATURE_SOURCE_CLOSE_NOT_POSITIVE")
 
-    vol = pd.to_numeric(df["volume"], errors="coerce").astype(np.float64)
-    vol = vol.fillna(0.0).clip(lower=0.0)
+    vol = pd.Series(vol_values, index=df.index, dtype=np.float64)
 
     # z-score over trailing 20 bars
-    mean20 = vol.rolling(_Z_WIN, min_periods=max(2, _Z_WIN // 2)).mean()
-    std20 = vol.rolling(_Z_WIN, min_periods=max(2, _Z_WIN // 2)).std(ddof=0)
-    vol_z = ((vol - mean20) / std20.replace(0.0, np.nan)).clip(-_CLIP, _CLIP)
+    mean20 = vol.rolling(_Z_WIN, min_periods=1).mean().to_numpy(dtype=np.float64)
+    std20 = vol.rolling(_Z_WIN, min_periods=1).std(ddof=0).to_numpy(dtype=np.float64)
+    vol_z = np.zeros(n, dtype=np.float64)
+    np.divide(vol_values - mean20, std20, out=vol_z, where=std20 > 0.0)
+    vol_z = np.clip(vol_z, -_CLIP, _CLIP)
 
     # fast/slow ratio - 1 (centered at 0)
-    sma_fast = vol.rolling(_RATIO_FAST, min_periods=2).mean()
-    sma_slow = vol.rolling(_RATIO_SLOW, min_periods=2).mean()
-    vol_ratio = (sma_fast / sma_slow.replace(0.0, np.nan)) - 1.0
+    sma_fast = vol.rolling(_RATIO_FAST, min_periods=1).mean().to_numpy(dtype=np.float64)
+    sma_slow = vol.rolling(_RATIO_SLOW, min_periods=1).mean().to_numpy(dtype=np.float64)
+    vol_ratio = np.zeros(n, dtype=np.float64)
+    np.divide(sma_fast, sma_slow, out=vol_ratio, where=sma_slow > 0.0)
+    vol_ratio[sma_slow > 0.0] -= 1.0
 
     # rolling percentile rank over trailing 96 bars (fraction of window <= current)
     def _pct_rank(x: np.ndarray) -> float:
         last = x[-1]
         return float((x <= last).mean())
 
-    vol_pct = vol.rolling(_PCT_WIN, min_periods=max(8, _PCT_WIN // 8)).apply(
+    vol_pct = vol.rolling(_PCT_WIN, min_periods=1).apply(
         _pct_rank, raw=True
-    )
+    ).to_numpy(dtype=np.float64)
 
     # signed by short-term return direction
-    if "close" in df.columns:
-        close = pd.to_numeric(df["close"], errors="coerce").astype(np.float64)
-        ret1 = close.diff()
-        sign = np.sign(ret1.fillna(0.0).to_numpy())
-    else:
-        sign = np.zeros(n, dtype=np.float64)
-    signed_vol_z = vol_z.to_numpy() * sign
+    sign = np.zeros(n, dtype=np.float64)
+    if n > 1:
+        sign[1:] = np.sign(close_values[1:] - close_values[:-1])
+    signed_vol_z = vol_z * sign
 
     out = {
-        "vol_z_20": vol_z.to_numpy(),
-        "vol_ratio_5_20": vol_ratio.to_numpy(),
-        "vol_pct_96": vol_pct.to_numpy(),
+        "vol_z_20": vol_z,
+        "vol_ratio_5_20": vol_ratio,
+        "vol_pct_96": vol_pct,
         "signed_vol_z_20": signed_vol_z,
     }
-    # NaN/inf warmup → neutral 0.0; cast float32.
-    return {
-        k: np.nan_to_num(v, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
-        for k, v in out.items()
-    }
+    emitted = {name: np.asarray(values, dtype=np.float32) for name, values in out.items()}
+    if tuple(emitted) != tuple(VOLUME_FEATURE_NAMES):
+        raise RuntimeError("VOLUME_FEATURE_OUTPUT_ORDER_INVALID")
+    for name, values in emitted.items():
+        if values.shape != (n,) or not np.isfinite(values).all():
+            raise RuntimeError(
+                f"VOLUME_FEATURE_OUTPUT_INVALID: {name} shape={values.shape}"
+            )
+    return emitted
 
 
 def add_volume_features(df: pd.DataFrame) -> pd.DataFrame:

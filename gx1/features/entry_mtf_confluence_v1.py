@@ -1,9 +1,8 @@
-"""Entry multi-timeframe confluence smart-layer features.
+"""Canonical Entry multi-timeframe confluence features.
 
-This layer is intentionally dormant until a later manifest/rebuild gate adopts
-it. It binds existing closed-bar Entry families across M5/M15/H1/H4/D1:
+This model-native layer binds closed-bar Entry families across M5/M15/H1/H4/D1:
 trend/EMA, structure/BOS, SMC sweep/reclaim, Fibonacci/SR proximity and
-session/regime agreement. It does not train, replay or touch live paths.
+session/regime agreement with the same exact source contract in train and serve.
 """
 from __future__ import annotations
 
@@ -12,7 +11,9 @@ from typing import Iterable
 import numpy as np
 
 
-MTF_CONFLUENCE_FEATURE_VERSION = "entry_mtf_confluence_v1_20260630_causal_family_agreement"
+MTF_CONFLUENCE_FEATURE_VERSION = (
+    "entry_mtf_confluence_v1_20260717_causal_family_agreement_failclosed"
+)
 MTF_CONFLUENCE_TIMEFRAMES = ("m5", "m15", "h1", "h4", "d1")
 
 MTF_CONFLUENCE_SOURCE_FIELDS = (
@@ -90,9 +91,6 @@ MTF_CONFLUENCE_SOURCE_FIELDS = (
     "ctx_cont.D1_atr_percentile_252",
     "ctx_cont.d1_regime_changed_flag_v3",
     "ctx_cont.bars_since_d1_regime_change_v3",
-)
-
-MTF_CONFLUENCE_OPTIONAL_SOURCE_FIELDS = (
     "trend.ema_mtf_score",
     "trend.ema_mtf_agreement_pressure",
     "trend.ema_mtf_divergence_pressure",
@@ -147,38 +145,78 @@ MTF_CONFLUENCE_FEATURE_NAMES = (
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
-
-
-def _aliases(name: str) -> tuple[str, ...]:
-    aliases = [str(name)]
-    for prefix in ("snap.", "ctx_cont.", "ctx_cat."):
-        if str(name).startswith(prefix):
-            aliases.append(str(name)[len(prefix) :])
-            break
-    return tuple(dict.fromkeys(aliases))
+    values = list(names)
+    invalid = [name for name in values if not isinstance(name, str) or not name]
+    if invalid:
+        raise RuntimeError(f"MTF_CONFLUENCE_FEATURE_NAMES_INVALID: {invalid[:10]}")
+    duplicates = sorted({name for name in values if values.count(name) > 1})
+    if duplicates:
+        raise RuntimeError(f"MTF_CONFLUENCE_FEATURE_NAMES_DUPLICATE: {duplicates[:10]}")
+    return {name: i for i, name in enumerate(values)}
 
 
 def missing_mtf_confluence_source_fields(feature_names: Iterable[str]) -> list[str]:
-    """Return required source fields not represented by any accepted alias."""
-    available = {str(name) for name in feature_names}
-    return [
-        name
-        for name in MTF_CONFLUENCE_SOURCE_FIELDS
-        if not any(alias in available for alias in _aliases(name))
-    ]
+    """Return exact canonical source fields absent from ``feature_names``."""
+    available = set(feature_names)
+    return [name for name in MTF_CONFLUENCE_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
-    for alias in _aliases(name):
-        if alias in index:
-            arr = np.asarray(x[:, index[alias]], dtype=np.float32)
-            return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
-    return np.full(x.shape[0], float(default), dtype=np.float32)
+def _require_source_matrix(
+    x: np.ndarray,
+    feature_names: list[str],
+) -> tuple[np.ndarray, dict[str, int]]:
+    try:
+        matrix = np.asarray(x, dtype=np.float32)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("MTF_CONFLUENCE_INPUT_NOT_NUMERIC") from exc
+    if matrix.ndim != 2:
+        raise RuntimeError(f"MTF_CONFLUENCE_INPUT_NOT_2D: shape={matrix.shape}")
+    if matrix.shape[0] == 0:
+        raise RuntimeError("MTF_CONFLUENCE_INPUT_EMPTY")
+    if len(feature_names) != matrix.shape[1]:
+        raise RuntimeError(
+            "MTF_CONFLUENCE_FEATURE_NAME_COUNT_MISMATCH: "
+            f"names={len(feature_names)} columns={matrix.shape[1]}"
+        )
+    index = _name_index(feature_names)
+    missing = missing_mtf_confluence_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(
+            "MTF_CONFLUENCE_SOURCE_FIELDS_MISSING: "
+            f"{missing[:30]} total={len(missing)}"
+        )
+    if not np.isfinite(matrix).all():
+        bad = np.argwhere(~np.isfinite(matrix))[0]
+        row, column = int(bad[0]), int(bad[1])
+        raise RuntimeError(
+            "MTF_CONFLUENCE_SOURCE_NONFINITE: "
+            f"row={row} field={feature_names[column]}"
+        )
+    atr_bps = matrix[:, index["ctx_cont.atr_bps"]]
+    spread_bps = matrix[:, index["ctx_cont.spread_bps"]]
+    if np.any(atr_bps <= 0.0):
+        raise RuntimeError("MTF_CONFLUENCE_ATR_BPS_NOT_POSITIVE")
+    if np.any(spread_bps < 0.0):
+        raise RuntimeError("MTF_CONFLUENCE_SPREAD_BPS_NEGATIVE")
+    return matrix, index
+
+
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
+    try:
+        column = index[name]
+    except KeyError as exc:
+        raise RuntimeError(f"MTF_CONFLUENCE_SOURCE_FIELD_MISSING: {name}") from exc
+    arr = np.asarray(x[:, column], dtype=np.float32)
+    if arr.ndim != 1 or not np.isfinite(arr).all():
+        raise RuntimeError(f"MTF_CONFLUENCE_SOURCE_FIELD_INVALID: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if values.ndim != 1 or not np.isfinite(values).all():
+        raise RuntimeError(f"MTF_CONFLUENCE_DERIVED_VALUE_INVALID: shape={values.shape}")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -250,13 +288,10 @@ def build_entry_mtf_confluence_layer(
     The implementation uses only the current as-of row and already-materialized
     closed-bar feature columns. It never references future rows.
     """
-    x = np.asarray(x, dtype=np.float32)
-    if x.ndim != 2:
-        raise RuntimeError(f"MTF confluence input matrix must be 2D, got {x.shape}")
-    idx = _name_index(feature_names)
+    x, idx = _require_source_matrix(x, feature_names)
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     m5_trend = _clip(
         0.45 * _tanh(c("snap._v1_ema_diff"))
@@ -308,12 +343,12 @@ def build_entry_mtf_confluence_layer(
     struct_down_tf = _mean(_clip01(c(f"ctx_cont.struct_continuation_down_{tf}_v3")) for tf in MTF_CONFLUENCE_TIMEFRAMES)
     bos_up_recent = _clip01(
         c("chart.foundation_bos_up_recent_tau24")
-        + 0.20 * _recency(c("chart.foundation_bos_up_age_bars", default=96.0))
+        + 0.20 * _recency(c("chart.foundation_bos_up_age_bars"))
         + 0.15 * _pos(c("chart.foundation_bos_recent_balance"))
     )
     bos_down_recent = _clip01(
         c("chart.foundation_bos_down_recent_tau24")
-        + 0.20 * _recency(c("chart.foundation_bos_down_age_bars", default=96.0))
+        + 0.20 * _recency(c("chart.foundation_bos_down_age_bars"))
         + 0.15 * _neg(c("chart.foundation_bos_recent_balance"))
     )
     choch_recent = _clip01(c("chart.foundation_choch_recent_tau24"))
@@ -382,7 +417,7 @@ def build_entry_mtf_confluence_layer(
     resistance_stack = resistance_sources.max(axis=0).astype(np.float32)
     level_density = _clip01(0.70 * np.maximum(support_stack, resistance_stack) + 0.30 * _mean([support_sources.mean(axis=0), resistance_sources.mean(axis=0)]))
     sr_balance = _clip(c("ctx_cont.sr_support_minus_resistance_prox") * 0.25 + support_stack - resistance_stack, -1.0, 1.0)
-    premium = _clip01(c("snap.smc_premium_discount", default=0.5))
+    premium = _clip01(c("snap.smc_premium_discount"))
     discount = _clip01(1.0 - premium)
     fib_position = _clip01(
         0.46 * c("ctx_cont.retracement_from_last_impulse")
@@ -403,7 +438,7 @@ def build_entry_mtf_confluence_layer(
     sweep_high_reclaim = _clip01(c("chart.foundation_sweep_high_reclaim_down_proxy") / 5.0)
     false_low = _clip01(c("chart.foundation_false_breakout_low_followthrough_up_proxy") / 5.0)
     false_high = _clip01(c("chart.foundation_false_breakout_high_followthrough_down_proxy") / 5.0)
-    sweep_recent = _clip01(c("ctx_cont.smc_sweep_recency_tau24") + _recency(c("snap.smc_bars_since_sweep", default=96.0)))
+    sweep_recent = _clip01(c("ctx_cont.smc_sweep_recency_tau24") + _recency(c("snap.smc_bars_since_sweep")))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
     sweep_down_context = _clip01(c("snap.smc_sweep_down") * (0.55 + 0.25 * sweep_recent + 0.20 * sweep_size))
     sweep_up_context = _clip01(c("snap.smc_sweep_up") * (0.55 + 0.25 * sweep_recent + 0.20 * sweep_size))
@@ -442,7 +477,7 @@ def build_entry_mtf_confluence_layer(
         1.0,
     )
 
-    spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps", default=1.0)), 0.0, 5.0)
+    spread_ratio = _clip(_safe_ratio(c("ctx_cont.spread_bps"), c("ctx_cont.atr_bps")), 0.0, 5.0)
     spread_pressure = _clip01(np.maximum(_tanh(spread_ratio, scale=0.15), c("session_regime.spread_cost_pressure")))
     spread_bucket_high = (np.rint(c("ctx_cat.spread_bucket")) >= 2).astype(np.float32)
     vol_regime_high = (np.rint(c("ctx_cat.vol_regime_id")) >= 2).astype(np.float32)
@@ -454,9 +489,9 @@ def build_entry_mtf_confluence_layer(
     )
     spread_vol_abstain = _clip01(0.46 * spread_pressure + 0.24 * spread_bucket_high + 0.30 * vol_pressure)
     session_change = _clip01(c("ctx_cont.session_change_flag"))
-    opening_risk = _clip01(np.exp(-_clip(c("ctx_cont.minutes_since_session_open", default=1440.0), 0.0, 1440.0) / 30.0) + session_change)
+    opening_risk = _clip01(np.exp(-_clip(c("ctx_cont.minutes_since_session_open"), 0.0, 1440.0) / 30.0) + session_change)
     boundary_risk = _clip01(
-        np.exp(-_clip(c("ctx_cont.minutes_to_next_session_boundary", default=1440.0), 0.0, 1440.0) / 30.0)
+        np.exp(-_clip(c("ctx_cont.minutes_to_next_session_boundary"), 0.0, 1440.0) / 30.0)
         + session_change
     )
     asia = _clip01(c("ctx_cont.is_ASIA"))
@@ -467,12 +502,12 @@ def build_entry_mtf_confluence_layer(
     active_session = _clip01(asia + eu + us)
     session_permission = _clip01(
         active_session
-        * _clip01(c("ctx_cont.session_tradable", default=1.0))
+        * _clip01(c("ctx_cont.session_tradable"))
         * (1.0 - 0.44 * spread_pressure)
         * (1.0 - 0.28 * np.maximum(opening_risk, boundary_risk))
     )
     d1_regime_changed = _clip01(c("ctx_cont.d1_regime_changed_flag_v3"))
-    bars_since_change = _clip01(c("ctx_cont.bars_since_d1_regime_change_v3", default=1.0))
+    bars_since_change = _clip01(c("ctx_cont.bars_since_d1_regime_change_v3"))
     regime_stack = _tanh(c("ctx_cont.regime_stack_sum_v3"), scale=3.0)
     regime_agreement = _clip01(
         0.31 * regime_agreement_raw

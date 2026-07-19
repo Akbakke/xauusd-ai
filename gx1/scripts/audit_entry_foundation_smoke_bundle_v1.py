@@ -1,4453 +1,1766 @@
 #!/usr/bin/env python3
-"""Audit an Entry foundation smoke bundle after strict load and forward pass.
+"""Audit one immutable seq513 model-native XAU smoke bundle.
 
-This is a post-train plumbing/diagnostic gate. It never trains, promotes, pins,
-starts shadow, or touches live/practice order paths.
+The historical module name and root schema are retained only because the
+candidate-readiness and candidate-launch contracts consume them.  This audit
+does not discover artifacts, run inference, select a direction, promote a
+bundle, or mutate a ``latest`` mirror.  It strict-loads one explicitly named
+bundle and validates one already-published immutable prediction event.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import os
-from collections import Counter
+import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
 
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    FOUNDATION_AUDIT_SMOKE_SPLITS,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_metadata,
+    require_foundation_audit_report_policy,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_ACTIVE_HEADS,
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_REQUIRED_SPECIALISTS,
+    MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT_SHA256,
+    model_native_readiness_contract_metadata,
+)
+from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    require_smoke_bundle_audit_contract,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SEQ_LEN,
+    MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    require_training_objective_contract,
+)
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    INPUTS as DIRECTION_EVIDENCE_INPUTS,
+    require_direction_evidence_fusion_metadata,
+)
+from gx1.contracts.immutable_event_authority_v1 import (
+    require_newest_immutable_event,
+    write_immutable_json_event,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    SPECIALIST_FUSION_ACTIVE_HEADS,
-    SPECIALIST_FUSION_BLOCKED_HEADS,
-    required_training_specialists_for_mode,
-    specialist_model_contract_for_mode,
+    MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+    require_model_direction_decision_contract,
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
-from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
-from gx1.scripts.verify_entry_foundation_state_v1 import (
-    FOUNDATION_SMOKE_DATASET_DIR,
-    FOUNDATION_SPECIALIST_SANITY_BUNDLE_DIR,
-    REPORTS_ROOT,
-    RUN_ROOT,
-    TARGET_AUDIT_LATEST,
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    atomic_write_text,
+    resolve_and_validate_prediction_evidence,
 )
 
 
-DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_foundation_smoke_bundle_audit_20260628_v1"
-DEFAULT_M5_PREBUILT = (
-    RUN_ROOT
-    / "v10_6yr_rebuild_20260626_spreadfix/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v1"
+REPORT_PREFIX = "ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT"
+_SMOKE_EDGE_POLICY = foundation_audit_policy_metadata()["smoke_edge_pockets"]
+DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
+CLASS_NAMES = ("LONG", "SHORT", "FLAT")
+EXPECTED_SESSIONS = tuple(_SMOKE_EDGE_POLICY["expected_sessions"])
+CONTEXT_POCKET_FIELDS = tuple(_SMOKE_EDGE_POLICY["context_fields"])
+MIN_DIRECTION_ACCURACY = float(_SMOKE_EDGE_POLICY["min_direction_accuracy"])
+MIN_BALANCED_ACCURACY = float(_SMOKE_EDGE_POLICY["min_balanced_accuracy"])
+MIN_TRADE_DIRECTION_PRECISION = float(
+    _SMOKE_EDGE_POLICY["min_trade_direction_precision"]
 )
-DEFAULT_MTF_CACHE_DIR = RUN_ROOT / "MULTI_TF_V2_CACHE"
-CLASS_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
-MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
-MIN_DIRECTION_CLASS_PRED_RATE = 0.05
-MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
-MIN_DIRECTION_SLICE_ROWS = 64
-SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.45
-SMART_DIRECTION_CE_SCALE_MIN = 2.00
-SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
-SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
-SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
-SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
-SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
-SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
-SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
-SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.05
-SMART_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT = 8.00
-SMART_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE = 0.02
-SMART_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_SLICE_BALANCED_CE_WEIGHT = 2.00
-SMART_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS = 8
-SMART_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT = 2.00
-SMART_DIRECTION_SLICE_TRUE_MARGIN = 0.10
-SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS = 8
-SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT = 4.00
-SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN = 0.02
-SMART_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT = 4.00
-SMART_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN = 0.02
-SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS = 8
-SMART_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT = 3.00
-SMART_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE = 0.02
-SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS = 8
-SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS = 8
-SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE = 3
-SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS = 6
-SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
-SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
-SMART_DIRECTION_UTILITY_MARGIN_WEIGHT = 4.00
-SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX = 15.0
-SMART_DIRECTION_UTILITY_LOGIT_MARGIN = 0.10
-SMART_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT = 6.00
-SMART_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS_MAX = 15.0
-SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN = 0.10
-SMART_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT = 8.00
-SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX = 15.0
-SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX = 0.0
-SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX = 0.50
-SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN = 0.10
-SMART_DIRECTION_UTILITY_TRIAD_CE_WEIGHT = 8.00
-SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX = 15.0
-SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX = 0.0
-SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX = 0.50
-SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN = 2.0
-SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED = True
-SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN = 0.10
-SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX = 0.20
-SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED = True
-SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED = "margin_maxnorm_confidence"
-SMART_DIRECTION_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_FLAT_HEAD_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN = 0.25
-SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX = 1.00
-SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN = 0.05
-SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX = 0.50
-SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_REQUIRED = True
-SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MIN = 0.25
-SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MAX = 1.00
-SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MIN = 0.05
-SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MAX = 0.50
-SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT_MIN = 4.00
-SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT_MAX = 16.00
-SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_MIN = 0.05
-SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_MAX = 0.50
-SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED = True
-SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN = 0.25
-SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX = 1.00
-SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED = True
-SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN = 0.25
-SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX = 1.00
-SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN = 0.10
-SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX = 0.50
-SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
-SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
-SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
-SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS = 8
-SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN = 0.02
-SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT = 8.00
-SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN = 0.10
-SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT = 8.00
-SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN = 0.10
-SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS = 8
-SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT = 4.00
-SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS = 8
-SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT = 6.00
-SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN = 0.10
-SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT = 6.00
-SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN = 0.10
-SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS = 8
-SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT = 3.00
-SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN = 0.10
-SMART_DIRECTION_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN = 0.02
-SMART_DIRECTION_HIER_SLICE_SIDE_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_SIDE_MIN_ROWS = 8
-SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX = 0.02
-SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT = 4.00
-SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE_MAX = 0.02
-SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS = 8
-SMART_DIRECTION_FLAT_STARVATION_WEIGHT = 8.00
-SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE = 0.10
-SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS = 8
-SMART_DIRECTION_FLAT_STARVATION_PRED_FRACTION = 0.50
-SMART_DIRECTION_FLAT_STARVATION_PRED_FLOOR = 0.10
-SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN = 0.10
-SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
-SMART_DIRECTION_RESIDUAL_SCALE = 0.35
-SMART_DIRECTION_ANCHOR_EPS = 1e-6
-SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
-SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
-SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN = 1.00
-SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN = 1.50
-HEAD_OUTPUT_KEYS = {
-    "direction": "direction_logits",
-    "tradable": "tradable_logit",
-    "path_quality": "path_quality",
-    "mfe_first_n": "mfe_first_n",
-    "bad_path": "bad_path_logit",
-    "clean_edge": "clean_edge_logit",
-    "survival": "survival_logit",
-    "tf_agreement": "tf_agreement_logit",
-    "path_quality_log_var": "path_quality_log_var",
-    "position_size": "position_size_logit",
-    "dip": "dip_pred",
-    "forecast": "forecast_pred",
-    "timing": "timing_pred",
-    "tail_risk": "tail_risk_pred",
-    "vol_forecast": "vol_forecast_pred",
-    "mtf_direction": "mtf_dir_logits",
-    "hold_horizon": "hold_horizon_logit",
-    "trendline_rail": "trendline_rail_logits",
-    "side_validity": "side_validity_logit",
-    "trade_side_hierarchy": (
-        "trade_logit",
-        "side_logits",
-        "side_utility",
-        "side_bad_path_logit",
-        "side_mae",
+MIN_CLASS_PRECISION = float(_SMOKE_EDGE_POLICY["min_class_precision"])
+WILSON_CONFIDENCE_LEVEL = float(
+    _SMOKE_EDGE_POLICY["wilson_confidence_level"]
+)
+WILSON_Z_SCORE = float(_SMOKE_EDGE_POLICY["wilson_z_score"])
+MIN_TRADE_ROWS = int(_SMOKE_EDGE_POLICY["min_trade_rows"])
+MIN_PREDICTION_ROWS_PER_CLASS = int(
+    _SMOKE_EDGE_POLICY["min_prediction_rows_per_class"]
+)
+MIN_TRADE_PRECISION_WILSON_LOWER = float(
+    _SMOKE_EDGE_POLICY["min_trade_precision_wilson_lower"]
+)
+MIN_CLASS_PRECISION_WILSON_LOWER = float(
+    _SMOKE_EDGE_POLICY["min_class_precision_wilson_lower"]
+)
+MIN_CONTEXT_ROWS = int(_SMOKE_EDGE_POLICY["min_rows_per_context_slice"])
+MIN_CONTEXT_TRADE_DIRECTION_PRECISION = float(
+    _SMOKE_EDGE_POLICY["min_context_trade_direction_precision"]
+)
+MIN_CONTEXT_TRADE_ROWS = int(_SMOKE_EDGE_POLICY["min_context_trade_rows"])
+MIN_CONTEXT_TRADE_PRECISION_WILSON_LOWER = float(
+    _SMOKE_EDGE_POLICY["min_context_trade_precision_wilson_lower"]
+)
+MIN_SPECIALIST_MEAN_WEIGHT = float(
+    _SMOKE_EDGE_POLICY["min_specialist_mean_weight"]
+)
+MIN_SPECIALIST_GATE_ENTROPY = float(
+    _SMOKE_EDGE_POLICY["min_specialist_gate_entropy"]
+)
+MIN_SPECIALIST_GATE_STD = float(_SMOKE_EDGE_POLICY["min_specialist_gate_std"])
+
+_STAMP_RE = re.compile(r"\d{8}T\d{6}(?:\d{6})?Z")
+_HEX64_RE = re.compile(r"[0-9a-f]{64}")
+
+_INPUT_AUDIT_CONTRACTS = {
+    "target": (
+        "entry_target_foundation_audit_v1",
+        "ENTRY_TARGET_FOUNDATION_AUDIT",
+    ),
+    "specialist": (
+        "entry_specialist_feature_group_audit_v1",
+        "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT",
+    ),
+    "pretrain": (
+        "xau_direction_repair_pretrain_audit_v1",
+        "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT",
     ),
 }
-HEAD_OUTPUT_TRAILING_SHAPES = {
-    "direction": (3,),
-    "tradable": (1,),
-    "path_quality": (1,),
-    "mfe_first_n": (1,),
-    "bad_path": (1,),
-    "clean_edge": (1,),
-    "survival": (1,),
-    "tf_agreement": (1,),
-    "path_quality_log_var": (1,),
-    "position_size": (1,),
-    "dip": (18,),
-    "forecast": (4,),
-    "timing": (12,),
-    "tail_risk": (6,),
-    "vol_forecast": (3,),
-    "mtf_direction": (3,),
-    "hold_horizon": (1,),
-    "trendline_rail": (6,),
-    "side_validity": (2,),
+
+_SCALAR_HEAD_EVIDENCE = {
+    "tradable": ("tradable_prob",),
+    "path_quality": ("path_quality_pred",),
+    "mfe_first_n": ("mfe_first_n_pred",),
+    "bad_path": ("bad_path_prob",),
+    "clean_edge": ("clean_edge_prob",),
+    "survival": ("survival_prob",),
+    "tf_agreement": ("tf_agreement_prob",),
+    "path_quality_log_var": ("path_quality_log_var",),
+    "position_size": ("position_size_pred",),
+}
+_VECTOR_HEAD_EVIDENCE = {
+    "direction": {"direction_logits": 3},
+    "dip": {"dip_pred": 18},
+    "forecast": {"forecast_pred": 4},
+    "timing": {"timing_pred": 12},
+    "tail_risk": {"tail_risk_pred": 6},
+    "vol_forecast": {"vol_forecast_pred": 3},
+    "mtf_direction": {"mtf_dir_logits": 3},
     "trade_side_hierarchy": {
-        "trade_logit": (1,),
-        "side_logits": (2,),
-        "side_utility": (2,),
-        "side_bad_path_logit": (2,),
-        "side_mae": (2,),
+        "trade_logit": 1,
+        "side_logits": 2,
+        "side_utility": 2,
+        "side_bad_path_logit": 2,
+        "side_mae": 2,
+    },
+    "trendline_rail": {"trendline_rail_logits": 6},
+    "side_validity": {"side_validity_logit": 2},
+    "model_native_evidence_fusion": {
+        **dict(DIRECTION_EVIDENCE_INPUTS),
+        "raw_direction_logits": 3,
     },
 }
-SMART_EXTRA_ACTIVE_HEADS = ("trade_side_hierarchy", "trendline_rail", "side_validity")
-SMART_ALLOWED_INTERNAL_HEADS = ("anchor_gate",)
+_TRADE_HIERARCHY_SCALARS = ("p_trade",)
+_REQUIRED_TARGET_EVIDENCE = (
+    "path_quality_bps",
+    "y_bad_path",
+    "mfe_first_n_bps",
+    "y_tradable",
+    "y_position_size_target",
+    "y_long_path_utility_bps",
+    "y_short_path_utility_bps",
+    "long_path_utility_pred_bps",
+    "short_path_utility_pred_bps",
+)
 
 
-def _head_output_specs(head: str) -> list[tuple[str, list[int]]]:
-    keys = HEAD_OUTPUT_KEYS[head]
-    shapes = HEAD_OUTPUT_TRAILING_SHAPES[head]
-    if isinstance(keys, str):
-        return [(keys, list(shapes))]
-    if not isinstance(shapes, dict):
-        raise RuntimeError(f"head {head} has grouped output keys but no grouped shape contract")
-    return [(str(key), list(shapes[str(key)])) for key in keys]
+def _read_json(path: Path) -> dict[str, Any]:
+    path = Path(path).expanduser().resolve()
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"JSON evidence is not a regular file: {path}")
+
+    def reject_constant(raw: str) -> None:
+        raise ValueError(f"non-finite JSON constant {raw}")
+
+    try:
+        value = json.loads(
+            path.read_text(encoding="utf-8"), parse_constant=reject_constant
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError(f"invalid JSON evidence {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"JSON evidence root must be an object: {path}")
+    return value
 
 
-def _json_default(obj: Any) -> Any:
-    if isinstance(obj, Path):
-        return str(obj)
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return None if not np.isfinite(obj) else float(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    return str(obj)
+def _sha256_file(path: Path) -> str:
+    path = Path(path).expanduser().resolve()
+    if path.is_symlink() or not path.is_file():
+        return ""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _canonical_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _timestamped_directory(raw: str | Path, *, label: str) -> Path:
+    path = Path(raw).expanduser().absolute()
+    if path.is_symlink() or not path.is_dir():
+        raise RuntimeError(f"{label} must be an explicit regular directory: {path}")
+    path = path.resolve()
+    if any("latest" in part.lower() for part in path.parts):
+        raise RuntimeError(f"{label} cannot use a mutable latest path: {path}")
+    if _STAMP_RE.search(path.name) is None:
+        raise RuntimeError(f"{label} directory name lacks an immutable UTC stamp: {path}")
+    return path
 
 
 def _parse_csv(raw: str) -> list[str]:
     values = [part.strip() for part in str(raw or "").split(",") if part.strip()]
     if not values:
-        raise SystemExit("expected at least one split")
+        raise SystemExit("expected at least one comma-separated value")
     return values
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        raise RuntimeError(f"missing JSON artifact: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _artifact_hash_check(path: Path, expected: str) -> dict[str, Any]:
-    observed = _sha256_file(path) if path.exists() else ""
-    check: dict[str, Any] = {
-        "path": str(path),
-        "expected": expected,
-        "observed": observed,
-        "ok": bool(expected and observed and expected == observed),
-    }
-    if check["ok"] or not expected or "_latest." not in path.name:
-        return check
-
-    matches: list[Path] = []
-    for sibling in sorted(path.parent.glob("*.json")):
-        sibling = sibling.resolve()
-        if sibling == path or "_latest." in sibling.name:
-            continue
-        try:
-            if _sha256_file(sibling) == expected:
-                matches.append(sibling)
-        except OSError:
-            continue
-
-    check["latest_resolution_candidate_count"] = len(matches)
-    check["latest_resolution_candidates"] = [str(match) for match in matches]
-    if len(matches) == 1:
-        check["ok"] = True
-        check["mutable_latest_observed"] = observed
-        check["observed"] = expected
-        check["resolved_path"] = str(matches[0])
-        check["resolution"] = "timestamped_sibling_by_expected_sha256"
-    elif len(matches) > 1:
-        check["latest_resolution_error"] = "ambiguous timestamped artifacts with expected sha256"
-    else:
-        check["latest_resolution_error"] = "no timestamped sibling artifact with expected sha256"
-    return check
-
-
 def _device_arg(raw: str) -> str:
-    if raw == "auto":
+    value = str(raw or "").strip().lower()
+    if value == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
-    if raw not in {"cpu", "cuda"}:
+    if value not in {"cpu", "cuda"}:
         raise SystemExit(f"--device must be auto, cpu, or cuda; got {raw!r}")
-    if raw == "cuda" and not torch.cuda.is_available():
-        raise SystemExit("--device cuda requested but CUDA is not available")
-    return raw
+    if value == "cuda" and not torch.cuda.is_available():
+        raise SystemExit("--device cuda requested but CUDA is unavailable")
+    return value
 
 
 def _split_file(dataset_dir: Path, split: str) -> Path:
+    """Resolve one exact split file; fuzzy legacy matching is forbidden."""
+
+    dataset_dir = Path(dataset_dir).expanduser().resolve()
     matches = sorted(dataset_dir.glob(f"*_{split}.parquet"))
-    if not matches:
-        matches = sorted(dataset_dir.glob(f"*{split}*.parquet"))
-    if not matches:
-        raise FileNotFoundError(f"no parquet found for split={split!r} under {dataset_dir}")
-    if len(matches) > 1:
-        exact = [path for path in matches if path.name.endswith(f"_{split}.parquet")]
-        matches = exact or matches
     if len(matches) != 1:
-        raise RuntimeError(f"ambiguous parquet files for split={split}: {[str(path) for path in matches]}")
-    return matches[0]
+        raise RuntimeError(
+            f"dataset must contain exactly one *_{split}.parquet; "
+            f"observed={[str(path) for path in matches]}"
+        )
+    path = matches[0]
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"split parquet is not a regular file: {path}")
+    return path.resolve()
 
 
-def _majority_baseline_accuracy(labels: np.ndarray) -> float:
-    labels = np.asarray(labels, dtype=np.int64)
-    if labels.size == 0:
-        return 0.0
-    counts = np.bincount(labels, minlength=3)
-    return float(counts.max() / labels.size)
+def _bundle_dataset_kwargs(
+    metadata: Mapping[str, Any], m5_prebuilt_path: Path
+) -> dict[str, Any]:
+    """Translate exact MTF bundle metadata for dataset consumers.
 
+    This compatibility helper remains because the candidate evaluator and Exit
+    handoff import it.  It deliberately has no single-TF or missing-field path.
+    """
 
-def _class_count_dict(labels: np.ndarray) -> dict[str, int]:
-    counts = Counter(int(x) for x in np.asarray(labels, dtype=np.int64).ravel())
-    return {CLASS_NAMES.get(i, str(i)): int(counts.get(i, 0)) for i in range(3)}
-
-
-def _safe_mean(values: np.ndarray) -> float | None:
-    arr = np.asarray(values, dtype=np.float64)
-    if arr.size == 0:
-        return None
-    return float(np.nanmean(arr))
-
-
-def _spearman(x: np.ndarray, y: np.ndarray) -> float | None:
-    x_arr = np.asarray(x, dtype=np.float64).ravel()
-    y_arr = np.asarray(y, dtype=np.float64).ravel()
-    mask = np.isfinite(x_arr) & np.isfinite(y_arr)
-    x_arr = x_arr[mask]
-    y_arr = y_arr[mask]
-    if x_arr.size < 3:
-        return None
-    if float(np.nanstd(x_arr)) == 0.0 or float(np.nanstd(y_arr)) == 0.0:
-        return None
-    rx = pd.Series(x_arr).rank(method="average").to_numpy(dtype=np.float64)
-    ry = pd.Series(y_arr).rank(method="average").to_numpy(dtype=np.float64)
-    corr = float(np.corrcoef(rx, ry)[0, 1])
-    return corr if np.isfinite(corr) else None
-
-
-def _direction_metrics(direction_logits: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
-    logits = np.asarray(direction_logits, dtype=np.float64)
-    y = np.asarray(labels, dtype=np.int64).ravel()
-    if logits.ndim != 2 or logits.shape[1] != 3:
-        raise RuntimeError(f"direction logits must have shape (N,3), got {logits.shape}")
-    if logits.shape[0] != y.shape[0]:
-        raise RuntimeError(f"direction logits/labels row mismatch: {logits.shape[0]} vs {y.shape[0]}")
-    shifted = logits - np.nanmax(logits, axis=1, keepdims=True)
-    exp = np.exp(shifted)
-    probs = exp / np.maximum(exp.sum(axis=1, keepdims=True), 1e-12)
-    pred = probs.argmax(axis=1).astype(np.int64)
-    accuracy = float((pred == y).mean()) if y.size else 0.0
-    majority = _majority_baseline_accuracy(y)
-    label_counts = _class_count_dict(y)
-    prediction_counts = _class_count_dict(pred)
-    rows = int(y.size)
-    label_rate = {
-        name: (float(count) / float(rows) if rows else 0.0)
-        for name, count in label_counts.items()
+    mtf = metadata.get("multi_tf")
+    if not isinstance(mtf, Mapping) or mtf.get("enabled") is not True:
+        raise RuntimeError("model-native dataset consumer requires multi_tf.enabled=true")
+    required = (
+        "m5_seq_len",
+        "m15_seq_len",
+        "h1_seq_len",
+        "h4_seq_len",
+        "d1_seq_len",
+        "closed_bar_target_availability",
+        "target_availability_shift_minutes",
+    )
+    missing = [name for name in required if name not in mtf]
+    if missing:
+        raise RuntimeError(f"model-native multi-TF metadata missing: {missing}")
+    if mtf["closed_bar_target_availability"] is not True or not math.isclose(
+        float(mtf["target_availability_shift_minutes"]), 5.0, abs_tol=1e-9
+    ):
+        raise RuntimeError("model-native multi-TF closed-bar contract is invalid")
+    m5_prebuilt_path = Path(m5_prebuilt_path).expanduser().resolve()
+    if m5_prebuilt_path.is_symlink() or not m5_prebuilt_path.is_file():
+        raise RuntimeError(f"explicit M5 prebuilt is not a regular file: {m5_prebuilt_path}")
+    lengths = {
+        timeframe: int(mtf[f"{timeframe.lower()}_seq_len"])
+        for timeframe in ("M5", "M15", "H1", "H4", "D1")
     }
-    prediction_rate = {
-        name: (float(count) / float(rows) if rows else 0.0)
-        for name, count in prediction_counts.items()
-    }
+    if any(value <= 0 for value in lengths.values()):
+        raise RuntimeError(f"model-native multi-TF sequence lengths are invalid: {lengths}")
     return {
+        "m5_prebuilt_path": m5_prebuilt_path,
+        "multi_tf_seq_len": lengths["M15"],
+        "multi_tf_closed_bar": True,
+        "per_tf_seq_lens": lengths,
+    }
+
+
+def _model_native_training_objective_contract_report(
+    *, bundle_dir: Path, metadata: dict[str, Any]
+) -> dict[str, Any]:
+    """Prove the complete positive objective is exact in metadata and lock."""
+
+    bundle_dir = Path(bundle_dir).expanduser().resolve()
+    metadata_path = bundle_dir / "bundle_metadata.json"
+    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+    failures: list[str] = []
+    metadata_contract: dict[str, Any] = {}
+    lock_contract: dict[str, Any] = {}
+    try:
+        metadata_contract = require_training_objective_contract(
+            metadata.get("model_native_training_objective"),
+            context="SMOKE_AUDIT_BUNDLE_META",
+        )
+    except RuntimeError as exc:
+        failures.append(str(exc))
+    try:
+        lock = _read_json(lock_path)
+        lock_contract = require_training_objective_contract(
+            lock.get("model_native_training_objective"),
+            context="SMOKE_AUDIT_BUNDLE_LOCK",
+        )
+    except RuntimeError as exc:
+        failures.append(str(exc))
+    meta_lock_exact = bool(
+        metadata_contract
+        and lock_contract
+        and metadata_contract == lock_contract
+    )
+    if not meta_lock_exact:
+        failures.append("model-native training objective differs between metadata and lock")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "meta_lock_exact": meta_lock_exact,
+        "objective": metadata_contract,
+        "metadata_path": str(metadata_path),
+        "metadata_sha256": _sha256_file(metadata_path),
+        "lock_path": str(lock_path),
+        "lock_sha256": _sha256_file(lock_path),
+    }
+
+
+def _dataset_manifest_contract(
+    *, dataset_dir: Path, manifests: Mapping[str, Path]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    failures: list[str] = []
+    rows: dict[str, Any] = {}
+    reference_signal_contract: dict[str, Any] | None = None
+    if tuple(manifests) != DATA_SPLITS:
+        failures.append(
+            f"dataset manifest split set/order mismatch: {tuple(manifests)} != {DATA_SPLITS}"
+        )
+    for split in DATA_SPLITS:
+        raw_path = Path(manifests[split]).expanduser().absolute()
+        row_failures: list[str] = []
+        payload: dict[str, Any] = {}
+        parquet_path = Path("/")
+        if raw_path.is_symlink() or not raw_path.is_file():
+            row_failures.append(f"manifest is not a regular file: {raw_path}")
+        else:
+            path = raw_path.resolve()
+            if path.parent != dataset_dir:
+                row_failures.append(
+                    f"manifest must be directly inside dataset_dir: {path}"
+                )
+            try:
+                payload = _read_json(path)
+            except RuntimeError as exc:
+                row_failures.append(str(exc))
+        if payload:
+            if payload.get("schema_version") != "entry_model_native_seq513_smoke_split_manifest_v1":
+                row_failures.append("split manifest schema is not exact model-native smoke v1")
+            if payload.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE:
+                row_failures.append("split manifest contract mode mismatch")
+            if int(payload.get("expected_seq_snap_width") or -1) != MODEL_NATIVE_SIGNAL_DIM:
+                row_failures.append("split manifest signal width mismatch")
+            raw_parquet = str(payload.get("output_data_path") or "").strip()
+            if not raw_parquet:
+                row_failures.append("split manifest output_data_path missing")
+            else:
+                parquet_path = Path(raw_parquet).expanduser().absolute()
+                if parquet_path.is_symlink() or not parquet_path.is_file():
+                    row_failures.append(
+                        f"split parquet is not a regular file: {parquet_path}"
+                    )
+                else:
+                    parquet_path = parquet_path.resolve()
+                    if parquet_path.parent != dataset_dir:
+                        row_failures.append("split parquet is outside dataset_dir")
+                    if not parquet_path.name.endswith(f"_{split}.parquet"):
+                        row_failures.append("split parquet filename does not bind split")
+            extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+            if extra.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE:
+                row_failures.append("split manifest extra.contract_mode mismatch")
+            if extra.get("direction_logit_mode") != MODEL_NATIVE_DIRECTION_LOGIT_MODE:
+                row_failures.append("split manifest direction mode mismatch")
+            if extra.get("neutral_xgb_bridge") is not False:
+                row_failures.append("split manifest neutral bridge flag is not false")
+            signal_contract = extra.get("model_native_signal_contract")
+            try:
+                normalized = require_model_native_signal_contract(
+                    signal_contract,
+                    context=f"SMOKE_AUDIT_DATASET_{split.upper()}",
+                )
+                if reference_signal_contract is None:
+                    reference_signal_contract = normalized
+                elif normalized != reference_signal_contract:
+                    row_failures.append("split model-native signal contracts differ")
+            except RuntimeError as exc:
+                row_failures.append(str(exc))
+        resolved_manifest = raw_path.resolve() if raw_path.exists() else raw_path
+        rows[split] = {
+            "decision": "PASS" if not row_failures else "FAIL",
+            "failures": row_failures,
+            "path": str(resolved_manifest),
+            "sha256": _sha256_file(resolved_manifest),
+            "parquet_path": str(parquet_path),
+            "parquet_sha256": _sha256_file(parquet_path),
+            "model_native_signal_contract_sha256": (
+                _canonical_sha256(reference_signal_contract)
+                if reference_signal_contract
+                else ""
+            ),
+        }
+        failures.extend(f"{split}: {failure}" for failure in row_failures)
+    if reference_signal_contract is None:
+        failures.append("dataset has no exact model-native signal contract")
+    return (
+        {
+            "decision": "PASS" if not failures else "FAIL",
+            "failures": failures,
+            "splits": rows,
+        },
+        reference_signal_contract or {},
+    )
+
+
+def _input_audit_contract(
+    *, name: str, path: Path, dataset_dir: Path
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    schema, prefix = _INPUT_AUDIT_CONTRACTS[name]
+    path = Path(path).expanduser().absolute()
+    failures: list[str] = []
+    payload: dict[str, Any] = {}
+    try:
+        require_newest_immutable_event(path, prefix)
+        payload = _read_json(path)
+    except RuntimeError as exc:
+        failures.append(str(exc))
+    if payload:
+        if payload.get("schema_version") != schema:
+            failures.append(
+                f"{name} audit schema mismatch: {payload.get('schema_version')!r}"
+            )
+        if payload.get("decision") != "PASS" or payload.get("failures") != []:
+            failures.append(f"{name} audit is not a zero-failure PASS")
+        if Path(str(payload.get("dataset_dir") or "")).expanduser().resolve() != dataset_dir:
+            failures.append(f"{name} audit dataset binding mismatch")
+        if name in {"target", "specialist"}:
+            if tuple(payload.get("data_splits") or ()) != FOUNDATION_AUDIT_DATA_SPLITS:
+                failures.append(
+                    f"{name} audit split set/order mismatch: "
+                    f"{payload.get('data_splits')!r}"
+                )
+            try:
+                require_foundation_audit_report_policy(
+                    payload,
+                    audit_kind=name,
+                    context=f"SMOKE_{name.upper()}_AUDIT",
+                )
+            except RuntimeError as exc:
+                failures.append(str(exc))
+    if name == "target" and payload:
+        contract = payload.get("target_head_contract")
+        if not isinstance(contract, dict):
+            failures.append("target audit lacks target_head_contract")
+        else:
+            if tuple(contract.get("active_training_heads") or ()) != tuple(
+                MODEL_NATIVE_BASE_ACTIVE_HEADS
+            ):
+                failures.append("target audit base active-head set/order mismatch")
+            if tuple(contract.get("blocked_heads") or ()) != tuple(MODEL_NATIVE_BLOCKED_HEADS):
+                failures.append("target audit blocked-head set/order mismatch")
+    if name == "specialist" and payload:
+        exact_checks = (
+            (payload.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "contract mode"),
+            (int(payload.get("signal_field_count") or -1) == MODEL_NATIVE_SIGNAL_DIM, "signal width"),
+            (
+                int(payload.get("selected_feature_count") or -1)
+                == MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+                "selected feature width",
+            ),
+            (
+                tuple(payload.get("required_training_specialists") or ())
+                == tuple(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+                "specialist set/order",
+            ),
+            (payload.get("specialist_model_contract_valid") is True, "model contract"),
+            (payload.get("signal_routing_all_mapped") is True, "signal routing"),
+            (
+                payload.get("specialist_input_liveness_all_live") is True,
+                "input liveness",
+            ),
+        )
+        failures.extend(
+            f"specialist audit {label} mismatch" for ok, label in exact_checks if not ok
+        )
+        observed_model_contract = payload.get("specialist_model_contract")
+        if _canonical_sha256(observed_model_contract) != _canonical_sha256(
+            MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
+        ):
+            failures.append("specialist audit model contract payload mismatch")
+    if name == "pretrain" and payload:
+        exact_checks = (
+            (payload.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "contract mode"),
+            (int(payload.get("expected_signal_dim") or -1) == MODEL_NATIVE_SIGNAL_DIM, "signal width"),
+            (
+                int(payload.get("expected_selected_feature_count") or -1)
+                == MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+                "selected feature width",
+            ),
+            (
+                tuple(payload.get("data_splits") or ())
+                == FOUNDATION_AUDIT_DATA_SPLITS,
+                "split set/order",
+            ),
+            (payload.get("require_rail_features") is True, "rail feature proof"),
+            (payload.get("require_inline_seq_structure") is True, "inline structure proof"),
+            (payload.get("require_xau_provenance") is True, "XAU provenance proof"),
+            (payload.get("large_artifact_hashes_verified") is True, "large artifact hashes"),
+        )
+        failures.extend(
+            f"pretrain audit {label} mismatch" for ok, label in exact_checks if not ok
+        )
+    report = {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "path": str(path.resolve()),
+        "sha256": _sha256_file(path),
+        "schema_version": payload.get("schema_version"),
+    }
+    if name in {"target", "specialist"}:
+        report.update(
+            {
+                key: payload.get(key)
+                for key in foundation_audit_policy_binding()
+            }
+        )
+        report["data_splits"] = payload.get("data_splits")
+        report["foundation_audit_policy_enforcement"] = payload.get(
+            "foundation_audit_policy_enforcement"
+        )
+    return report, payload
+
+
+def _fusion_metadata_failures(value: Mapping[str, Any]) -> list[str]:
+    try:
+        require_direction_evidence_fusion_metadata(
+            value,
+            context="SMOKE_AUDIT_BUNDLE",
+        )
+    except RuntimeError as exc:
+        return [str(exc)]
+    return []
+
+
+def _bundle_contract_report(
+    *, bundle_dir: Path, device: str
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], Any | None]:
+    failures: list[str] = []
+    metadata: dict[str, Any] = {}
+    lock: dict[str, Any] = {}
+    loaded = None
+    metadata_path = bundle_dir / "bundle_metadata.json"
+    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+    state_path = bundle_dir / "model_state_dict.pt"
+    try:
+        metadata = _read_json(metadata_path)
+        lock = _read_json(lock_path)
+        loaded = load_entry_v10_ctx_bundle(
+            bundle_dir=bundle_dir,
+            device=device,
+            is_replay=True,
+        )
+    except Exception as exc:
+        failures.append(f"strict bundle load failed: {exc}")
+
+    direction_contract: dict[str, Any] = {}
+    if metadata:
+        try:
+            require_model_native_signal_contract(
+                metadata.get("model_native_signal_contract"),
+                context="SMOKE_AUDIT_BUNDLE",
+            )
+            direction_contract = require_model_direction_decision_contract(
+                metadata,
+                context="SMOKE_AUDIT_BUNDLE",
+            )
+        except RuntimeError as exc:
+            failures.append(str(exc))
+
+    active_heads = list(MODEL_NATIVE_ACTIVE_HEADS)
+    blocked_heads = list(MODEL_NATIVE_BLOCKED_HEADS)
+    specialists = list(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+    full_stack = {
+        "multi_tf_timeframes": ["M5", "M15", "H1", "H4", "D1"],
+        "cross_tf_attention": False,
+        "mtf_direction_head": False,
+        "positional_encoding": False,
+        "regime_film": False,
+        "learned_tf_input_scales": False,
+        "specialist_fusion": False,
+        "learned_direction_evidence_fusion": False,
+        "canonical_trade_flat_from_final_logits": False,
+        "retired_direction_state_absent": False,
+        "final_calibrated_logits_only": False,
+        "hold_horizon_blocked": False,
+    }
+    if loaded is not None:
+        model_state = loaded.transformer_model.state_dict()
+        model_keys = set(model_state)
+
+        def finite_nonzero_tensor(name: str) -> bool:
+            value = model_state.get(name)
+            return bool(
+                isinstance(value, torch.Tensor)
+                and torch.isfinite(value).all().item()
+                and torch.count_nonzero(value).item()
+            )
+
+        specialist = metadata.get("specialist_fusion")
+        fusion_metadata = metadata.get("model_native_direction_evidence_fusion")
+        mtf = metadata.get("multi_tf")
+        full_stack.update(
+            {
+                "cross_tf_attention": bool(
+                    any(key.startswith("cross_tf_attn.") for key in model_keys)
+                    and "tf_gate_logits" in model_keys
+                    and any(key.startswith("cross_tf_out.") for key in model_keys)
+                ),
+                "mtf_direction_head": bool(
+                    "head_mtf_direction.weight" in model_keys
+                    and "head_mtf_direction.bias" in model_keys
+                ),
+                "positional_encoding": bool(
+                    metadata.get("enable_pos_enc") is True
+                    and all(
+                        hasattr(loaded.transformer_model, name)
+                        for name in (
+                            "pos_enc", "pos_enc_m5", "pos_enc_m15",
+                            "pos_enc_h1", "pos_enc_h4", "pos_enc_d1",
+                        )
+                    )
+                ),
+                "regime_film": bool(
+                    metadata.get("enable_regime_film") is True
+                    and any(key.startswith("regime_film.") for key in model_keys)
+                ),
+                "learned_tf_input_scales": all(
+                    finite_nonzero_tensor(f"tf_input_scale_{tf}")
+                    for tf in ("m5", "m15", "h1", "h4", "d1")
+                ),
+                "specialist_fusion": bool(
+                    isinstance(specialist, dict)
+                    and specialist.get("enabled") is True
+                    and any(key.startswith("specialist_encoder.") for key in model_keys)
+                ),
+                "learned_direction_evidence_fusion": bool(
+                    isinstance(fusion_metadata, dict)
+                    and not _fusion_metadata_failures(fusion_metadata)
+                    and all(
+                        key in model_keys
+                        for key in (
+                            "evidence_fusion_norm.weight",
+                            "evidence_fusion_norm.bias",
+                            "evidence_fusion_in.weight",
+                            "evidence_fusion_in.bias",
+                            "evidence_fusion_out.weight",
+                            "evidence_fusion_out.bias",
+                        )
+                    )
+                ),
+                "canonical_trade_flat_from_final_logits": bool(
+                    direction_contract
+                    and direction_contract.get("public_trade_flat_formula")
+                    == "[max(direction_logits[LONG],direction_logits[SHORT]),direction_logits[FLAT]]"
+                ),
+                "retired_direction_state_absent": not any(
+                    key == "mtf_dir_scale"
+                    or key.startswith(
+                        (
+                            "head_public_trade.",
+                            "head_public_flat.",
+                            "head_public_side.",
+                            "hierarchical_ctx_prior_adapter.",
+                            "hierarchical_ctx_direction_calibration.",
+                        )
+                    )
+                    for key in model_keys
+                ),
+                "final_calibrated_logits_only": bool(
+                    direction_contract
+                    and direction_contract.get("selection_mode")
+                    == MODEL_DIRECTION_SELECTION_MODE
+                    and direction_contract.get("output_stage")
+                    == "final_model_forward_after_learned_evidence_fusion_and_calibration"
+                ),
+                "hold_horizon_blocked": bool(
+                    "head_hold_horizon.weight" not in model_keys
+                    and "hold_horizon" in MODEL_NATIVE_BLOCKED_HEADS
+                ),
+            }
+        )
+        if not isinstance(mtf, dict) or mtf.get("enabled") is not True or mtf.get("v2_mode") is not True:
+            failures.append("bundle does not expose exact five-timeframe MTF v2")
+        if not isinstance(specialist, dict):
+            failures.append("bundle specialist_fusion metadata missing")
+        else:
+            if tuple((specialist.get("input_indices") or {}).keys()) != tuple(specialists):
+                failures.append("bundle specialist set/order mismatch")
+            if tuple(specialist.get("trainable_specialists") or ()) != tuple(specialists):
+                failures.append("bundle trainable specialist set/order mismatch")
+            if _canonical_sha256(specialist.get("specialist_model_contract")) != _canonical_sha256(
+                MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
+            ):
+                failures.append("bundle specialist model contract payload mismatch")
+            for flag in (
+                "specialist_model_contract_valid",
+                "specialist_model_contract_set_exact",
+                "specialist_model_contract_owned_objectives_match",
+                "specialist_model_contract_signal_families_match",
+                "specialist_model_contract_support_heads_match",
+                "specialist_model_contract_model_roles_match",
+            ):
+                if specialist.get(flag) is not True:
+                    failures.append(f"bundle specialist_fusion.{flag} is not true")
+        failures.extend(
+            f"bundle full-stack component inactive: {name}"
+            for name, value in full_stack.items()
+            if name != "multi_tf_timeframes" and value is not True
+        )
+        if metadata.get("sanity_bundle") is True:
+            failures.append("sanity bundle cannot prove smoke-train edge")
+
+    observed_state_sha = _sha256_file(state_path)
+    if not _HEX64_RE.fullmatch(observed_state_sha):
+        failures.append("bundle state SHA-256 is unavailable")
+    elif metadata and (
+        metadata.get("state_dict_sha256") != observed_state_sha
+        or lock.get("model_sha256") != observed_state_sha
+    ):
+        failures.append("bundle state SHA-256 differs across metadata/lock/file")
+
+    report = {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "metadata_path": str(metadata_path),
+        "metadata_sha256": _sha256_file(metadata_path),
+        "lock_path": str(lock_path),
+        "lock_sha256": _sha256_file(lock_path),
+        "state_path": str(state_path),
+        "state_sha256": observed_state_sha,
+        "state_sha256_matches_metadata_and_lock": bool(
+            observed_state_sha
+            and metadata.get("state_dict_sha256") == observed_state_sha
+            and lock.get("model_sha256") == observed_state_sha
+        ),
+        "signal_dim": int(metadata.get("seq_input_dim") or -1),
+        "snap_signal_dim": int(metadata.get("snap_input_dim") or -1),
+        "seq_len": int(metadata.get("seq_len") or -1),
+        "ctx_cont_dim": int(metadata.get("ctx_cont_dim") or -1),
+        "ctx_cat_dim": int(metadata.get("ctx_cat_dim") or -1),
+        "active_heads": active_heads,
+        "blocked_heads": blocked_heads,
+        "specialist_groups": specialists,
+        "specialist_model_contract_sha256": MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT_SHA256,
+        "full_stack": full_stack,
+    }
+    for key, expected in (
+        ("signal_dim", MODEL_NATIVE_SIGNAL_DIM),
+        ("snap_signal_dim", MODEL_NATIVE_SIGNAL_DIM),
+        ("seq_len", MODEL_NATIVE_SEQ_LEN),
+        ("ctx_cont_dim", MODEL_NATIVE_CTX_CONT_DIM),
+        ("ctx_cat_dim", MODEL_NATIVE_CTX_CAT_DIM),
+    ):
+        if report[key] != expected:
+            failures.append(f"bundle {key}={report[key]} expected={expected}")
+    report["decision"] = "PASS" if not failures else "FAIL"
+    report["failures"] = failures
+    return report, metadata, direction_contract, loaded
+
+
+def _numeric(frame: pd.DataFrame, column: str) -> np.ndarray:
+    if column not in frame:
+        raise RuntimeError(f"prediction evidence missing column {column}")
+    values = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=np.float64)
+    if values.shape != (len(frame),) or not np.isfinite(values).all():
+        raise RuntimeError(
+            f"prediction evidence {column} must be finite shape ({len(frame)},)"
+        )
+    return values
+
+
+def _matrix(frame: pd.DataFrame, column: str, width: int) -> np.ndarray:
+    if column not in frame:
+        raise RuntimeError(f"prediction evidence missing column {column}")
+    try:
+        values = np.stack(
+            [np.asarray(row, dtype=np.float64) for row in frame[column].to_numpy()]
+        )
+    except Exception as exc:
+        raise RuntimeError(f"prediction evidence {column} is not a dense vector") from exc
+    if values.shape != (len(frame), width) or not np.isfinite(values).all():
+        raise RuntimeError(
+            f"prediction evidence {column} must be finite shape ({len(frame)},{width})"
+        )
+    return values
+
+
+def _prefixed_matrix(frame: pd.DataFrame, prefix: str, width: int) -> np.ndarray:
+    columns = [f"{prefix}_{index}" for index in range(width)]
+    missing = [column for column in columns if column not in frame]
+    if missing:
+        raise RuntimeError(f"prediction evidence missing vector columns: {missing}")
+    values = np.column_stack([_numeric(frame, column) for column in columns])
+    return values
+
+
+def _wilson_lower(successes: int, trials: int, *, z_score: float = WILSON_Z_SCORE) -> float:
+    """Return the finite lower Wilson score bound for a binomial proportion."""
+
+    successes_i = int(successes)
+    trials_i = int(trials)
+    z = float(z_score)
+    if trials_i <= 0:
+        return 0.0
+    if successes_i < 0 or successes_i > trials_i:
+        raise ValueError(
+            f"Wilson successes={successes_i} outside [0,{trials_i}]"
+        )
+    if not math.isfinite(z) or z <= 0.0:
+        raise ValueError(f"Wilson z_score must be finite and positive, got {z!r}")
+    proportion = successes_i / trials_i
+    z_squared = z * z
+    denominator = 1.0 + z_squared / trials_i
+    centre = proportion + z_squared / (2.0 * trials_i)
+    radius = z * math.sqrt(
+        proportion * (1.0 - proportion) / trials_i
+        + z_squared / (4.0 * trials_i * trials_i)
+    )
+    lower = (centre - radius) / denominator
+    return float(min(1.0, max(0.0, lower)))
+
+
+def _direction_metrics(
+    frame: pd.DataFrame,
+    *,
+    context: str,
+    support_scope: str = "global",
+) -> dict[str, Any]:
+    if support_scope not in {"global", "context"}:
+        raise ValueError(f"unknown direction support_scope={support_scope!r}")
+    failures: list[str] = []
+    rows = int(len(frame))
+    labels = _numeric(frame, "y_direction").astype(np.int64)
+    predictions = _numeric(frame, "pred_direction").astype(np.int64)
+    if not set(labels).issubset({0, 1, 2}) or not set(predictions).issubset({0, 1, 2}):
+        failures.append("direction labels/predictions contain values outside LONG/SHORT/FLAT")
+    confusion = np.zeros((3, 3), dtype=np.int64)
+    for label, prediction in zip(labels, predictions, strict=True):
+        if label in {0, 1, 2} and prediction in {0, 1, 2}:
+            confusion[int(label), int(prediction)] += 1
+    label_counts = confusion.sum(axis=1)
+    prediction_counts = confusion.sum(axis=0)
+    accuracy = float(np.trace(confusion) / rows) if rows else 0.0
+    majority = float(label_counts.max() / rows) if rows else 1.0
+    recalls = np.divide(
+        np.diag(confusion),
+        label_counts,
+        out=np.full(3, np.nan, dtype=np.float64),
+        where=label_counts > 0,
+    )
+    precisions = np.divide(
+        np.diag(confusion),
+        prediction_counts,
+        out=np.full(3, np.nan, dtype=np.float64),
+        where=prediction_counts > 0,
+    )
+    balanced_accuracy = float(np.nanmean(recalls)) if np.isfinite(recalls).all() else 0.0
+    trade_mask = predictions != 2
+    trade_rows = int(trade_mask.sum())
+    trade_precision = (
+        float(np.mean(predictions[trade_mask] == labels[trade_mask]))
+        if trade_rows
+        else 0.0
+    )
+    trade_successes = int(np.sum(predictions[trade_mask] == labels[trade_mask]))
+    trade_wilson_lower = _wilson_lower(trade_successes, trade_rows)
+    class_successes = np.diag(confusion).astype(np.int64, copy=False)
+    class_wilson_lower = np.asarray(
+        [
+            _wilson_lower(int(class_successes[index]), int(prediction_counts[index]))
+            for index in range(3)
+        ],
+        dtype=np.float64,
+    )
+    if support_scope == "global":
+        required_trade_rows = MIN_TRADE_ROWS
+        required_trade_precision = MIN_TRADE_DIRECTION_PRECISION
+        required_trade_wilson_lower = MIN_TRADE_PRECISION_WILSON_LOWER
+        required_prediction_rows_per_class: int | None = (
+            MIN_PREDICTION_ROWS_PER_CLASS
+        )
+        required_class_wilson_lower: float | None = (
+            MIN_CLASS_PRECISION_WILSON_LOWER
+        )
+    else:
+        required_trade_rows = MIN_CONTEXT_TRADE_ROWS
+        required_trade_precision = MIN_CONTEXT_TRADE_DIRECTION_PRECISION
+        required_trade_wilson_lower = (
+            MIN_CONTEXT_TRADE_PRECISION_WILSON_LOWER
+        )
+        required_prediction_rows_per_class = None
+        required_class_wilson_lower = None
+    probabilities = np.column_stack(
+        [_numeric(frame, "p_long"), _numeric(frame, "p_short"), _numeric(frame, "p_flat")]
+    )
+    true_prob = probabilities[np.arange(rows), labels] if rows else np.asarray([])
+    log_loss = float(-np.mean(np.log(np.clip(true_prob, 1e-12, 1.0)))) if rows else None
+
+    if rows <= 0:
+        failures.append("direction evidence has zero rows")
+    if np.any(label_counts <= 0):
+        failures.append("direction evidence does not contain all three label classes")
+    if np.any(prediction_counts <= 0):
+        failures.append("direction model does not emit all LONG/SHORT/FLAT classes")
+    if accuracy < MIN_DIRECTION_ACCURACY:
+        failures.append(
+            f"accuracy={accuracy:.6f} below {MIN_DIRECTION_ACCURACY:.6f}"
+        )
+    if balanced_accuracy < MIN_BALANCED_ACCURACY:
+        failures.append(
+            f"balanced_accuracy={balanced_accuracy:.6f} below "
+            f"{MIN_BALANCED_ACCURACY:.6f}"
+        )
+    if trade_rows < required_trade_rows:
+        failures.append(
+            f"trade_rows={trade_rows} below required support={required_trade_rows}"
+        )
+    if trade_precision < required_trade_precision:
+        failures.append(
+            f"trade_direction_precision={trade_precision:.6f} below "
+            f"{required_trade_precision:.6f}"
+        )
+    if trade_wilson_lower < required_trade_wilson_lower:
+        failures.append(
+            f"trade_direction_precision_wilson_lower={trade_wilson_lower:.6f} "
+            f"below {required_trade_wilson_lower:.6f}"
+        )
+    for index, name in enumerate(CLASS_NAMES):
+        if (
+            required_prediction_rows_per_class is not None
+            and int(prediction_counts[index]) < required_prediction_rows_per_class
+        ):
+            failures.append(
+                f"{name} prediction_rows={int(prediction_counts[index])} below "
+                f"required support={required_prediction_rows_per_class}"
+            )
+        if not np.isfinite(precisions[index]) or precisions[index] < MIN_CLASS_PRECISION:
+            failures.append(
+                f"{name} precision={precisions[index]!r} below {MIN_CLASS_PRECISION:.6f}"
+            )
+        if (
+            required_class_wilson_lower is not None
+            and class_wilson_lower[index] < required_class_wilson_lower
+        ):
+            failures.append(
+                f"{name} precision_wilson_lower={class_wilson_lower[index]:.6f} "
+                f"below {required_class_wilson_lower:.6f}"
+            )
+    if accuracy <= majority:
+        failures.append(
+            f"accuracy={accuracy:.6f} does not beat majority={majority:.6f}"
+        )
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": [f"{context}: {failure}" for failure in failures],
         "rows": rows,
         "accuracy": accuracy,
         "majority_baseline_accuracy": majority,
-        "beats_majority_baseline": bool(accuracy > majority),
-        "label_counts": label_counts,
-        "prediction_counts": prediction_counts,
-        "label_rate": label_rate,
-        "prediction_rate": prediction_rate,
-        "prediction_to_label_rate": {
-            name: (
-                float(prediction_rate.get(name, 0.0)) / max(float(label_rate.get(name, 0.0)), 1e-12)
-            )
-            for name in CLASS_NAMES.values()
+        "beats_majority_baseline": accuracy > majority,
+        "balanced_accuracy": balanced_accuracy,
+        "support_scope": support_scope,
+        "wilson_confidence_level": WILSON_CONFIDENCE_LEVEL,
+        "wilson_z_score": WILSON_Z_SCORE,
+        "trade_rows": trade_rows,
+        "trade_successes": trade_successes,
+        "minimum_trade_rows": required_trade_rows,
+        "trade_coverage": float(trade_rows / rows) if rows else 0.0,
+        "trade_direction_precision": trade_precision,
+        "minimum_trade_direction_precision": required_trade_precision,
+        "trade_direction_precision_wilson_lower": trade_wilson_lower,
+        "minimum_trade_precision_wilson_lower": required_trade_wilson_lower,
+        "minimum_prediction_rows_per_class": required_prediction_rows_per_class,
+        "minimum_class_precision_wilson_lower": required_class_wilson_lower,
+        "log_loss": log_loss,
+        "label_counts": {name: int(label_counts[i]) for i, name in enumerate(CLASS_NAMES)},
+        "prediction_counts": {
+            name: int(prediction_counts[i]) for i, name in enumerate(CLASS_NAMES)
         },
-        "mean_probability": {
-            CLASS_NAMES[i]: float(probs[:, i].mean()) if probs.size else 0.0
-            for i in range(3)
+        "precision": {
+            name: (float(precisions[i]) if np.isfinite(precisions[i]) else None)
+            for i, name in enumerate(CLASS_NAMES)
         },
-        "max_abs_logit": float(np.nanmax(np.abs(logits))) if logits.size else 0.0,
+        "precision_successes": {
+            name: int(class_successes[i]) for i, name in enumerate(CLASS_NAMES)
+        },
+        "precision_wilson_lower": {
+            name: float(class_wilson_lower[i])
+            for i, name in enumerate(CLASS_NAMES)
+        },
+        "recall": {
+            name: (float(recalls[i]) if np.isfinite(recalls[i]) else None)
+            for i, name in enumerate(CLASS_NAMES)
+        },
+        "confusion_matrix": confusion.tolist(),
     }
 
 
-def _direction_distribution_contract(direction: dict[str, Any]) -> dict[str, Any]:
-    rows = int(direction.get("rows") or 0)
-    label_counts = direction.get("label_counts") if isinstance(direction.get("label_counts"), dict) else {}
-    prediction_counts = (
-        direction.get("prediction_counts") if isinstance(direction.get("prediction_counts"), dict) else {}
-    )
-    failures: list[str] = []
-    class_rows: dict[str, dict[str, float | int]] = {}
-    for name in CLASS_NAMES.values():
-        label_count = int(label_counts.get(name) or 0)
-        prediction_count = int(prediction_counts.get(name) or 0)
-        label_rate = float(label_count) / float(rows) if rows > 0 else 0.0
-        prediction_rate = float(prediction_count) / float(rows) if rows > 0 else 0.0
-        required_prediction_rate = 0.0
-        if label_rate >= MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE:
-            required_prediction_rate = max(
-                MIN_DIRECTION_CLASS_PRED_RATE,
-                label_rate * MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO,
-            )
-            if prediction_rate < required_prediction_rate:
-                failures.append(
-                    f"{name} prediction_rate={prediction_rate:.6f} below required "
-                    f"{required_prediction_rate:.6f} for label_rate={label_rate:.6f}"
-                )
-        class_rows[name] = {
-            "label_count": label_count,
-            "prediction_count": prediction_count,
-            "label_rate": label_rate,
-            "prediction_rate": prediction_rate,
-            "prediction_to_label_rate": prediction_rate / max(label_rate, 1e-12),
-            "required_prediction_rate": required_prediction_rate,
-        }
-    if rows <= 0:
-        failures.append("direction distribution has zero rows")
-    if rows > 0 and not label_counts:
-        failures.append("direction distribution missing label_counts")
-    if rows > 0 and not prediction_counts:
-        failures.append("direction distribution missing prediction_counts")
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "rows": rows,
-        "min_label_rate_for_coverage": MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE,
-        "min_prediction_rate": MIN_DIRECTION_CLASS_PRED_RATE,
-        "min_prediction_to_label_rate": MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO,
-        "classes": class_rows,
-        "failures": failures,
-    }
-
-
-def _direction_slice_contract(
-    direction_logits: np.ndarray,
-    labels: np.ndarray,
-    ctx_cat: np.ndarray,
-    ctx_cat_names: list[str],
-    *,
-    min_rows: int = MIN_DIRECTION_SLICE_ROWS,
-) -> dict[str, Any]:
-    logits = np.asarray(direction_logits, dtype=np.float64)
-    y = np.asarray(labels, dtype=np.int64).ravel()
-    cat = np.asarray(ctx_cat)
-    if cat.ndim == 1:
-        cat = cat.reshape(-1, 1)
-    if logits.shape[0] != y.shape[0] or cat.shape[0] != y.shape[0]:
-        raise RuntimeError(
-            "direction slice row mismatch: "
-            f"logits={logits.shape[0]} labels={y.shape[0]} ctx_cat={cat.shape[0]}"
-        )
-    names = list(ctx_cat_names or [])
-    if len(names) < cat.shape[1]:
-        names.extend(f"ctx_cat_{idx}" for idx in range(len(names), cat.shape[1]))
-
+def _context_slice_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     failures: list[str] = []
     fields: dict[str, Any] = {}
-    audited_slice_count = 0
-    skipped_slice_count = 0
-    for col in range(cat.shape[1]):
-        field_name = str(names[col])
-        raw_values = cat[:, col]
-        finite = np.isfinite(raw_values.astype(np.float64, copy=False))
-        field_slices: dict[str, Any] = {}
-        for raw_value in sorted(set(int(v) for v in raw_values[finite].ravel())):
-            mask = finite & (raw_values.astype(np.int64, copy=False) == int(raw_value))
-            rows = int(mask.sum())
-            if rows < int(min_rows):
-                skipped_slice_count += 1
-                field_slices[str(raw_value)] = {
-                    "decision": "SKIP_INSUFFICIENT_ROWS",
-                    "rows": rows,
-                    "min_rows": int(min_rows),
-                }
-                continue
-            metrics = _direction_metrics(logits[mask], y[mask])
-            active_label_class_count = sum(
-                1
-                for rate in (metrics.get("label_rate") or {}).values()
-                if float(rate) >= MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE
+    for field in CONTEXT_POCKET_FIELDS:
+        if field not in frame:
+            failures.append(f"{split}: context evidence missing {field}")
+            continue
+        values = sorted(str(value) for value in frame[field].dropna().unique())
+        if field == "session" and tuple(values) != tuple(sorted(EXPECTED_SESSIONS)):
+            failures.append(
+                f"{split}: session set mismatch observed={values} "
+                f"expected={sorted(EXPECTED_SESSIONS)}"
             )
-            if active_label_class_count < 2:
-                skipped_slice_count += 1
-                field_slices[str(raw_value)] = {
-                    "decision": "SKIP_LOW_LABEL_DIVERSITY",
-                    "rows": rows,
-                    "min_rows": int(min_rows),
-                    "active_label_class_count": int(active_label_class_count),
-                    "label_counts": metrics["label_counts"],
+        if field == "vol_regime" and len(values) < 2:
+            failures.append(f"{split}: fewer than two volatility regimes are represented")
+        slices: dict[str, Any] = {}
+        for value in values:
+            scoped = frame[frame[field].astype(str) == value]
+            if len(scoped) < MIN_CONTEXT_ROWS:
+                row = {
+                    "decision": "FAIL",
+                    "failures": [
+                        f"{split}/{field}={value}: rows={len(scoped)} below {MIN_CONTEXT_ROWS}"
+                    ],
+                    "rows": int(len(scoped)),
                 }
-                continue
-            audited_slice_count += 1
-            distribution = _direction_distribution_contract(metrics)
-            slice_failures: list[str] = []
-            if not bool(metrics.get("beats_majority_baseline")):
-                slice_failures.append(
-                    f"accuracy={float(metrics.get('accuracy') or 0.0):.6f} does not beat "
-                    f"majority={float(metrics.get('majority_baseline_accuracy') or 0.0):.6f}"
+            else:
+                row = _direction_metrics(
+                    scoped,
+                    context=f"{split}/{field}={value}",
+                    support_scope="context",
                 )
-            if str(distribution.get("decision")) != "PASS":
-                slice_failures.extend(str(item) for item in distribution.get("failures", []))
-            if slice_failures:
-                failures.extend(
-                    f"{field_name}={raw_value}: {failure}"
-                    for failure in slice_failures
-                )
-            field_slices[str(raw_value)] = {
-                "decision": "PASS" if not slice_failures else "FAIL",
-                "rows": rows,
-                "accuracy": metrics["accuracy"],
-                "majority_baseline_accuracy": metrics["majority_baseline_accuracy"],
-                "beats_majority_baseline": metrics["beats_majority_baseline"],
-                "label_counts": metrics["label_counts"],
-                "prediction_counts": metrics["prediction_counts"],
-                "direction_distribution_contract": distribution,
-                "failures": slice_failures,
-            }
-        fields[field_name] = {
-            "finite": bool(finite.all()),
-            "slice_count": len(field_slices),
-            "slices": field_slices,
-        }
-        if not bool(finite.all()):
-            failures.append(f"{field_name}: non-finite categorical slice values")
-
-    if cat.shape[1] <= 0:
-        failures.append("direction slice contract has no categorical context columns")
-    if audited_slice_count <= 0:
-        failures.append("direction slice contract has no audited slices with sufficient rows")
-
+            slices[value] = row
+            failures.extend(row["failures"])
+        fields[field] = {"values": values, "slices": slices}
     return {
         "decision": "PASS" if not failures else "FAIL",
-        "min_rows": int(min_rows),
-        "ctx_cat_names": names[: cat.shape[1]],
-        "audited_slice_count": int(audited_slice_count),
-        "skipped_slice_count": int(skipped_slice_count),
+        "failures": failures,
+        "minimum_rows_per_slice": MIN_CONTEXT_ROWS,
+        "minimum_trade_rows_per_slice": MIN_CONTEXT_TRADE_ROWS,
+        "minimum_trade_direction_precision": (
+            MIN_CONTEXT_TRADE_DIRECTION_PRECISION
+        ),
+        "minimum_trade_precision_wilson_lower": (
+            MIN_CONTEXT_TRADE_PRECISION_WILSON_LOWER
+        ),
         "fields": fields,
-        "failures": failures,
     }
 
 
-def _gate_stats(gate: np.ndarray, names: list[str]) -> dict[str, Any]:
-    arr = np.asarray(gate, dtype=np.float64)
-    if arr.ndim != 2:
-        raise RuntimeError(f"specialist gate must have shape (N,S), got {arr.shape}")
-    row_sum = arr.sum(axis=1)
-    entropy = -(arr * np.log(np.maximum(arr, 1e-12))).sum(axis=1)
-    mean_weight = arr.mean(axis=0) if arr.size else np.zeros((len(names),), dtype=np.float64)
-    if len(names) != arr.shape[1]:
-        names = [f"specialist_{i}" for i in range(arr.shape[1])]
-    return {
-        "rows": int(arr.shape[0]),
-        "specialist_count": int(arr.shape[1]),
-        "finite": bool(np.isfinite(arr).all()),
-        "row_sum_max_abs_error": float(np.max(np.abs(row_sum - 1.0))) if row_sum.size else 0.0,
-        "entropy_mean": _safe_mean(entropy),
-        "entropy_min": float(np.nanmin(entropy)) if entropy.size else None,
-        "mean_weight": {name: float(mean_weight[i]) for i, name in enumerate(names)},
-        "mean_weight_min": float(np.nanmin(mean_weight)) if mean_weight.size else None,
-        "mean_weight_max": float(np.nanmax(mean_weight)) if mean_weight.size else None,
-        "active_specialist_count_gt_1pct": int(np.sum(mean_weight > 0.01)) if mean_weight.size else 0,
-    }
-
-
-def _specialist_gate_failures(
-    *,
-    split: str,
-    gate_report: dict[str, Any] | None,
-    specialist_names: list[str],
-    required_specialists: tuple[str, ...],
-    min_active_specialists: int,
-    min_gate_entropy: float,
-) -> list[str]:
-    if gate_report is None:
-        return [f"{split}: specialist_fusion enabled/required but model emitted no specialist_gate"]
-
+def _specialist_gate_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     failures: list[str] = []
-    names = set(str(name) for name in specialist_names)
-    expected = set(str(name) for name in required_specialists)
-    missing = [name for name in required_specialists if name not in names]
-    if missing:
-        failures.append(f"{split}: specialist_fusion metadata missing required specialists: {missing}")
-    extra = sorted(names - expected)
-    if extra:
-        failures.append(f"{split}: specialist_fusion metadata has non-required specialists: {extra}")
-
-    if int(gate_report.get("specialist_count") or 0) != len(specialist_names):
+    gate = _matrix(frame, "specialist_gate", len(MODEL_NATIVE_REQUIRED_SPECIALISTS))
+    row_error = float(np.max(np.abs(gate.sum(axis=1) - 1.0)))
+    mean = gate.mean(axis=0)
+    std = gate.std(axis=0)
+    entropy = -np.sum(np.clip(gate, 1e-12, 1.0) * np.log(np.clip(gate, 1e-12, 1.0)), axis=1)
+    top_counts = np.bincount(np.argmax(gate, axis=1), minlength=gate.shape[1])
+    if np.any(gate < 0.0) or row_error > 1e-5:
+        failures.append(f"{split}: specialist gate is not a normalized probability vector")
+    for index, specialist in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS):
+        if mean[index] <= MIN_SPECIALIST_MEAN_WEIGHT:
+            failures.append(
+                f"{split}: {specialist} mean gate weight={mean[index]:.9f} is pass-through"
+            )
+        if std[index] <= MIN_SPECIALIST_GATE_STD:
+            failures.append(f"{split}: {specialist} gate is constant")
+        if top_counts[index] <= 0:
+            failures.append(f"{split}: {specialist} is never top-ranked")
+    entropy_mean = float(entropy.mean())
+    if entropy_mean < MIN_SPECIALIST_GATE_ENTROPY:
         failures.append(
-            f"{split}: specialist_gate width={gate_report.get('specialist_count')} "
-            f"does not match metadata groups={len(specialist_names)}"
+            f"{split}: specialist gate entropy={entropy_mean:.6f} below "
+            f"{MIN_SPECIALIST_GATE_ENTROPY:.6f}"
         )
-
-    active_count = int(gate_report.get("active_specialist_count_gt_1pct") or 0)
-    if active_count < int(min_active_specialists):
-        failures.append(
-            f"{split}: specialist_gate collapsed active_specialist_count_gt_1pct={active_count} "
-            f"below minimum {int(min_active_specialists)}"
-        )
-
-    mean_weight = gate_report.get("mean_weight") if isinstance(gate_report.get("mean_weight"), dict) else {}
-    collapsed_required = [
-        name
-        for name in required_specialists
-        if float(mean_weight.get(name) or 0.0) <= 0.01
-    ]
-    if collapsed_required:
-        failures.append(
-            f"{split}: required specialist gate weights collapsed below 1pct: {collapsed_required}"
-        )
-
-    entropy_mean = gate_report.get("entropy_mean")
-    if entropy_mean is None or float(entropy_mean) < float(min_gate_entropy):
-        failures.append(
-            f"{split}: specialist_gate entropy_mean={entropy_mean} below minimum {float(min_gate_entropy)}"
-        )
-    return failures
-
-
-def _bundle_dataset_kwargs(meta: dict[str, Any], m5_prebuilt_path: Path) -> dict[str, Any]:
-    mtf = meta.get("multi_tf") if isinstance(meta.get("multi_tf"), dict) else {}
-    if not bool(mtf.get("enabled", False)):
-        return {}
-    if not m5_prebuilt_path.is_file():
-        raise FileNotFoundError(f"multi-TF bundle requires M5 prebuilt: {m5_prebuilt_path}")
-    seq_len = int(mtf.get("m15_seq_len", 96))
     return {
-        "enable_multi_tf": True,
-        "m5_prebuilt_path": m5_prebuilt_path,
-        "multi_tf_seq_len": seq_len,
-        "multi_tf_closed_bar": bool(float(mtf.get("target_availability_shift_minutes", 0.0) or 0.0) > 0.0),
-        "per_tf_seq_lens": {
-            "M5": int(mtf.get("m5_seq_len", seq_len) or seq_len),
-            "M15": int(mtf.get("m15_seq_len", seq_len) or seq_len),
-            "H1": int(mtf.get("h1_seq_len", seq_len) or seq_len),
-            "H4": int(mtf.get("h4_seq_len", seq_len) or seq_len),
-            "D1": int(mtf.get("d1_seq_len", seq_len) or seq_len),
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "finite": bool(np.isfinite(gate).all()),
+        "row_sum_max_abs_error": row_error,
+        "entropy_mean": entropy_mean,
+        "mean_weight": {
+            name: float(mean[index])
+            for index, name in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        },
+        "std_weight": {
+            name: float(std[index])
+            for index, name in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        },
+        "top_rank_count": {
+            name: int(top_counts[index])
+            for index, name in enumerate(MODEL_NATIVE_REQUIRED_SPECIALISTS)
         },
     }
 
 
-def _specialist_names(meta: dict[str, Any]) -> list[str]:
-    cfg = meta.get("specialist_fusion") if isinstance(meta.get("specialist_fusion"), dict) else {}
-    indices = cfg.get("input_indices") if isinstance(cfg.get("input_indices"), dict) else {}
-    return sorted(str(name) for name in indices.keys())
-
-
-def _specialist_model_contract_report(
-    contract: dict[str, Any] | None,
-    *,
-    contract_mode: str = "foundation_seq146",
+def _active_head_evidence_contract(
+    frame: pd.DataFrame, *, split: str
 ) -> dict[str, Any]:
-    observed = contract if isinstance(contract, dict) else {}
     failures: list[str] = []
-    expected_contract = specialist_model_contract_for_mode(contract_mode)
-    observed_keys = {str(name) for name in observed}
-    expected_keys = {str(name) for name in expected_contract}
-    if observed_keys != expected_keys:
-        failures.append(
-            "specialist model contract set mismatch: "
-            f"observed={sorted(observed_keys)} expected={sorted(expected_keys)}"
-        )
-
-    owned_objectives_match = True
-    support_heads_match = True
-    signal_families_match = True
-    model_roles_match = True
-    for name, expected_spec in expected_contract.items():
-        observed_spec = observed.get(name)
-        if not isinstance(observed_spec, dict):
-            failures.append(f"specialist model contract missing spec for {name}")
-            owned_objectives_match = False
-            support_heads_match = False
-            signal_families_match = False
-            model_roles_match = False
-            continue
-        if str(observed_spec.get("model_role") or "") != str(expected_spec.get("model_role") or ""):
-            failures.append(f"specialist model contract model_role mismatch: {name}")
-            model_roles_match = False
-        checks = (
-            ("owned_objectives", "owned objectives", "owned_objectives_match"),
-            ("supports_heads", "support heads", "support_heads_match"),
-            ("primary_signal_families", "signal families", "signal_families_match"),
-        )
-        for field, label, flag in checks:
-            observed_values = tuple(str(x) for x in observed_spec.get(field) or ())
-            expected_values = tuple(str(x) for x in expected_spec.get(field) or ())
-            if observed_values != expected_values:
-                failures.append(f"specialist model contract {label} mismatch: {name}")
-                if flag == "owned_objectives_match":
-                    owned_objectives_match = False
-                elif flag == "support_heads_match":
-                    support_heads_match = False
-                elif flag == "signal_families_match":
-                    signal_families_match = False
-
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "contract_mode": str(contract_mode),
-        "valid": not failures,
-        "set_exact": observed_keys == expected_keys,
-        "owned_objectives_match": owned_objectives_match,
-        "support_heads_match": support_heads_match,
-        "signal_families_match": signal_families_match,
-        "model_roles_match": model_roles_match,
-        "observed_specialists": sorted(observed_keys),
-        "expected_specialists": sorted(expected_keys),
-        "failures": failures,
-    }
-
-
-def _head_contract_report(
-    *,
-    target_audit: dict[str, Any],
-    capabilities: dict[str, Any],
-    split_reports: dict[str, Any],
-    contract_mode: str = "foundation_seq146",
-) -> dict[str, Any]:
-    contract = target_audit.get("target_head_contract") if isinstance(target_audit.get("target_head_contract"), dict) else {}
-    base_active_heads = [str(head) for head in contract.get("active_training_heads", []) if str(head)]
-    blocked_heads = [str(head) for head in contract.get("blocked_heads", []) if str(head)]
-    supported_heads = set(str(head) for head in capabilities.get("supported_heads", []) if str(head))
-    declared_heads = set(str(head) for head in capabilities.get("declared_active_heads", []) if str(head))
-    state_dict_heads = set(str(head) for head in capabilities.get("state_dict_heads", []) if str(head))
-    smart_extra_heads = [
-        head
-        for head in SMART_EXTRA_ACTIVE_HEADS
-        if str(contract_mode) == "smart_seq520_candidate"
-        and (head in declared_heads or head in supported_heads or head in state_dict_heads)
-    ]
-    active_heads = list(dict.fromkeys([*base_active_heads, *smart_extra_heads]))
-    output_keys_by_split = {
-        str(split): [str(key) for key in (row.get("output_keys_seen") or [])]
-        for split, row in split_reports.items()
-        if isinstance(row, dict)
-    }
-    output_shapes_by_split = {
-        str(split): {
-            str(key): [list(shape) for shape in (shapes or [])]
-            for key, shapes in ((row.get("output_shapes_seen") or {}).items())
+    heads: dict[str, Any] = {}
+    # p_long/p_short/p_flat are canonical final-logit prediction evidence even
+    # though fields with those names are forbidden as *model inputs*.  Only
+    # the retired bridge diagnostics and anchor/delta outputs are invalid here.
+    forbidden = sorted(
+        {
+            "p_hat",
+            "uncertainty_score",
+            "margin_top1_top2",
+            "entropy",
+            "anchor_logits",
+            "delta_logits",
+            "anchor_gate",
+        }.intersection(frame.columns)
+    )
+    forbidden.extend(
+        sorted(column for column in frame.columns if "hold_horizon" in column)
+    )
+    if forbidden:
+        failures.append(f"{split}: forbidden prediction columns: {sorted(set(forbidden))}")
+    for head, columns in _SCALAR_HEAD_EVIDENCE.items():
+        head_failures: list[str] = []
+        for column in columns:
+            try:
+                values = _numeric(frame, column)
+                if float(np.std(values)) <= 1e-8:
+                    raise RuntimeError(
+                        f"prediction evidence {column} is constant/pass-through"
+                    )
+            except RuntimeError as exc:
+                head_failures.append(str(exc))
+        heads[head] = {
+            "decision": "PASS" if not head_failures else "FAIL",
+            "columns": list(columns),
+            "failures": head_failures,
         }
-        for split, row in split_reports.items()
-        if isinstance(row, dict)
-    }
-    expected_output_specs = {
-        head: _head_output_specs(head)
-        for head in active_heads
-        if head in HEAD_OUTPUT_KEYS and head in HEAD_OUTPUT_TRAILING_SHAPES
-    }
-    expected_output_keys = {
-        head: [key for key, _ in specs]
-        for head, specs in expected_output_specs.items()
-    }
-    expected_output_shapes = {
-        head: {key: shape for key, shape in specs}
-        for head, specs in expected_output_specs.items()
-    }
-
-    failures: list[str] = []
-    if str(target_audit.get("decision")) != "PASS":
-        failures.append(f"target audit decision is not PASS: {target_audit.get('decision')}")
-    if not contract:
-        failures.append("target audit does not contain target_head_contract")
-    if not active_heads:
-        failures.append("target_head_contract active_training_heads is empty")
-    missing_output_contract = [head for head in active_heads if head not in HEAD_OUTPUT_KEYS]
-    if missing_output_contract:
-        failures.append(f"no smoke-audit output-key contract for active heads: {missing_output_contract}")
-    missing_shape_contract = [head for head in active_heads if head not in HEAD_OUTPUT_TRAILING_SHAPES]
-    if missing_shape_contract:
-        failures.append(f"no smoke-audit output-shape contract for active heads: {missing_shape_contract}")
-
-    missing_supported = [head for head in active_heads if head not in supported_heads]
-    if missing_supported:
-        failures.append(f"bundle capabilities missing active heads: {missing_supported}")
-    missing_declared = [head for head in active_heads if head not in declared_heads]
-    if missing_declared:
-        failures.append(f"bundle train_recipe.active_heads missing active heads: {missing_declared}")
-    missing_state = [head for head in active_heads if head not in state_dict_heads]
-    if missing_state:
-        failures.append(f"bundle state_dict missing active heads: {missing_state}")
-
-    approved_heads = set(active_heads) | set(blocked_heads) | set(SMART_ALLOWED_INTERNAL_HEADS)
-    extra_supported = sorted(supported_heads - approved_heads)
-    if extra_supported:
-        failures.append(f"bundle capabilities contain unapproved heads outside target contract: {extra_supported}")
-    extra_declared = sorted(declared_heads - approved_heads)
-    if extra_declared:
-        failures.append(f"bundle train_recipe.active_heads contains unapproved heads: {extra_declared}")
-    extra_state = sorted(state_dict_heads - approved_heads)
-    if extra_state:
-        failures.append(f"bundle state_dict contains unapproved heads outside target contract: {extra_state}")
-
-    blocked_present = sorted(
-        set(blocked_heads)
-        & (supported_heads | declared_heads | state_dict_heads)
-    )
-    if blocked_present:
-        failures.append(f"bundle contains blocked heads: {blocked_present}")
-
-    for split, keys in output_keys_by_split.items():
-        seen = set(keys)
-        missing_keys = [
-            f"{head}->{key}"
-            for head, specs in expected_output_specs.items()
-            for key, _ in specs
-            if key not in seen
-        ]
-        if missing_keys:
-            failures.append(f"{split}: missing forward outputs for active heads: {missing_keys}")
-        split_shapes = output_shapes_by_split.get(split, {})
-        shape_failures = []
-        for head, specs in expected_output_specs.items():
-            for key, expected_shape in specs:
-                if key not in seen:
-                    continue
-                actual_shapes = split_shapes.get(key) or []
-                if expected_shape not in actual_shapes:
-                    shape_failures.append(f"{head}->{key} expected_tail={expected_shape} actual_tails={actual_shapes}")
-        if shape_failures:
-            failures.append(f"{split}: wrong forward output shapes for active heads: {shape_failures}")
-        blocked_keys = []
-        for head in blocked_heads:
-            if head not in HEAD_OUTPUT_KEYS or head not in HEAD_OUTPUT_TRAILING_SHAPES:
-                continue
-            for key, _ in _head_output_specs(head):
-                if key in seen:
-                    blocked_keys.append(f"{head}->{key}")
-        if blocked_keys:
-            failures.append(f"{split}: blocked heads emitted forward outputs: {blocked_keys}")
-
+        failures.extend(f"{split}/{head}: {failure}" for failure in head_failures)
+    for head, vectors in _VECTOR_HEAD_EVIDENCE.items():
+        head_failures = []
+        for column, width in vectors.items():
+            try:
+                if width == 1:
+                    values = _numeric(frame, column).reshape(-1, 1)
+                elif column in frame:
+                    values = _matrix(frame, column, width)
+                else:
+                    values = _prefixed_matrix(frame, column, width)
+                if not bool(np.any(np.std(values, axis=0) > 1e-8)):
+                    raise RuntimeError(
+                        f"prediction evidence {column} is constant/pass-through"
+                    )
+            except RuntimeError as exc:
+                head_failures.append(str(exc))
+        if head == "trade_side_hierarchy":
+            for column in _TRADE_HIERARCHY_SCALARS:
+                try:
+                    values = _numeric(frame, column)
+                    if float(np.std(values)) <= 1e-8:
+                        raise RuntimeError(
+                            f"prediction evidence {column} is constant/pass-through"
+                        )
+                except RuntimeError as exc:
+                    head_failures.append(str(exc))
+        heads[head] = {
+            "decision": "PASS" if not head_failures else "FAIL",
+            "vectors": dict(vectors),
+            "failures": head_failures,
+        }
+        failures.extend(f"{split}/{head}: {failure}" for failure in head_failures)
+    observed_heads = tuple(heads)
+    if set(observed_heads) != set(MODEL_NATIVE_ACTIVE_HEADS):
+        failures.append(
+            f"{split}: active evidence head set mismatch observed={sorted(observed_heads)} "
+            f"expected={sorted(MODEL_NATIVE_ACTIVE_HEADS)}"
+        )
     return {
         "decision": "PASS" if not failures else "FAIL",
-        "target_audit_decision": str(target_audit.get("decision")),
-        "contract_mode": str(contract_mode),
-        "target_active_training_heads": base_active_heads,
-        "smart_extra_active_heads": smart_extra_heads,
-        "active_training_heads": active_heads,
-        "blocked_heads": blocked_heads,
-        "supported_heads": sorted(supported_heads),
-        "declared_active_heads": sorted(declared_heads),
-        "state_dict_heads": sorted(state_dict_heads),
-        "expected_output_keys": expected_output_keys,
-        "expected_output_shapes": expected_output_shapes,
-        "output_keys_by_split": output_keys_by_split,
-        "output_shapes_by_split": output_shapes_by_split,
         "failures": failures,
+        "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
+        "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+        "heads": heads,
     }
 
 
-def _safe_float(value: Any, default: float = 0.0) -> float:
-    try:
-        out = float(value)
-    except (TypeError, ValueError):
-        return float(default)
-    return out if np.isfinite(out) else float(default)
-
-
-def _three_float_list(value: Any, default: list[float]) -> list[float]:
-    if isinstance(value, str):
-        parts = [part.strip() for part in value.split(",")]
-    elif isinstance(value, (list, tuple)):
-        parts = list(value)
-    else:
-        return list(default)
-    if len(parts) != 3:
-        return list(default)
-    out = [_safe_float(part, np.nan) for part in parts]
-    if any(not np.isfinite(part) for part in out):
-        return list(default)
-    return [float(part) for part in out]
-
-
-def _bool_value(value: Any, default: bool = False) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off"}:
-            return False
-    if value is None:
-        return bool(default)
-    return bool(value)
-
-
-def _path_calibration_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
-    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
-    active_heads = {
-        str(head)
-        for head in (
-            recipe.get("active_heads")
-            or capabilities.get("declared_active_heads")
-            or capabilities.get("supported_heads")
-            or []
-        )
-        if str(head)
-    }
-    path_weight = _safe_float(recipe.get("path_quality_rank_weight", meta.get("path_quality_rank_weight", 0.0)))
-    path_margin = _safe_float(recipe.get("path_quality_rank_margin", meta.get("path_quality_rank_margin", 0.0)))
-    path_quantile = _safe_float(recipe.get("path_quality_rank_quantile", meta.get("path_quality_rank_quantile", 0.0)))
-    bad_weight = _safe_float(
-        recipe.get("bad_path_quality_rank_weight", meta.get("bad_path_quality_rank_weight", 0.0))
-    )
-    bad_margin = _safe_float(
-        recipe.get("bad_path_quality_rank_margin", meta.get("bad_path_quality_rank_margin", 0.0))
-    )
-    bad_quantile = _safe_float(
-        recipe.get("bad_path_quality_rank_quantile", meta.get("bad_path_quality_rank_quantile", 0.0))
-    )
-    failures: list[str] = []
-    if "path_quality" in active_heads:
-        if path_weight <= 0.0:
-            failures.append("path_quality active head requires positive path_quality_rank_weight")
-        if not bool(recipe.get("path_quality_rank_full_batch")):
-            failures.append("path_quality active head requires path_quality_rank_full_batch=true")
-        if path_margin <= 0.0:
-            failures.append("path_quality active head requires positive path_quality_rank_margin")
-        if path_quantile < 0.05 or path_quantile > 0.45:
-            failures.append("path_quality active head requires path_quality_rank_quantile in [0.05, 0.45]")
-    if "bad_path" in active_heads:
-        if bad_weight <= 0.0:
-            failures.append("bad_path active head requires positive bad_path_quality_rank_weight")
-        if bad_margin <= 0.0:
-            failures.append("bad_path active head requires positive bad_path_quality_rank_margin")
-        if bad_quantile < 0.05 or bad_quantile > 0.45:
-            failures.append("bad_path active head requires bad_path_quality_rank_quantile in [0.05, 0.45]")
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "active_heads": sorted(active_heads),
-        "path_quality_active": "path_quality" in active_heads,
-        "bad_path_active": "bad_path" in active_heads,
-        "path_quality_rank_full_batch": bool(recipe.get("path_quality_rank_full_batch")),
-        "path_quality_rank_weight": path_weight,
-        "path_quality_rank_margin": path_margin,
-        "path_quality_rank_quantile": path_quantile,
-        "bad_path_quality_rank_weight": bad_weight,
-        "bad_path_quality_rank_margin": bad_margin,
-        "bad_path_quality_rank_quantile": bad_quantile,
-        "failures": failures,
-    }
-
-
-def _direction_balance_recipe_contract(
-    meta: dict[str, Any],
-    capabilities: dict[str, Any],
-    *,
-    contract_mode: str = "foundation_seq146",
-) -> dict[str, Any]:
-    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
-    active_heads = {
-        str(head)
-        for head in (
-            recipe.get("active_heads")
-            or capabilities.get("declared_active_heads")
-            or capabilities.get("supported_heads")
-            or []
-        )
-        if str(head)
-    }
-    pred_balance_alpha = _safe_float(recipe.get("pred_balance_alpha", meta.get("pred_balance_alpha", 0.0)))
-    pred_balance_target = str(recipe.get("pred_balance_target", meta.get("pred_balance_target", ""))).strip().lower()
-    pred_balance_class_weights = _three_float_list(
-        recipe.get("pred_balance_class_weights", meta.get("pred_balance_class_weights")),
-        [1.0, 1.0, 1.0],
-    )
-    enable_mtf_direction_head = bool(meta.get("enable_mtf_direction_head", False))
-    mtf_dir_aux_weight_present = ("mtf_dir_aux_weight" in recipe) or ("mtf_dir_aux_weight" in meta)
-    mtf_dir_aux_weight = _safe_float(recipe.get("mtf_dir_aux_weight", meta.get("mtf_dir_aux_weight", 0.0)))
-    mtf_dir_aux_uses_direction_balance_repair = bool(
-        recipe.get(
-            "mtf_dir_aux_uses_direction_balance_repair",
-            meta.get("mtf_dir_aux_uses_direction_balance_repair", False),
-        )
-    )
-    mtf_dir_aux_balance_repair_required = bool(
-        contract_mode == "smart_seq520_candidate"
-        and enable_mtf_direction_head
-        and mtf_dir_aux_weight > 0.0
-    )
-    direction_ce_scale = _safe_float(recipe.get("direction_ce_scale", meta.get("direction_ce_scale", 0.0)))
-    hierarchical_entry_heads_enabled = bool(
-        recipe.get(
-            "hierarchical_entry_heads_enabled",
-            meta.get("hierarchical_entry_heads_enabled", False),
-        )
-    )
-    side_validity_head_enabled = bool(
-        recipe.get(
-            "side_validity_head_enabled",
-            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
-                "enabled",
-                meta.get("side_validity_head_enabled", False),
-            )
-            if isinstance(meta.get("hierarchical_entry_heads"), dict)
-            else meta.get("side_validity_head_enabled", False),
-        )
-    )
-    hier_side_validity_weight = _safe_float(
-        recipe.get(
-            "hier_side_validity_weight",
-            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
-                "loss_weight",
-                meta.get("hier_side_validity_weight", 0.0),
-            )
-            if isinstance(meta.get("hierarchical_entry_heads"), dict)
-            else meta.get("hier_side_validity_weight", 0.0),
-        )
-    )
-    hier_side_validity_min_utility_bps = _safe_float(
-        recipe.get(
-            "hier_side_validity_min_utility_bps",
-            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
-                "min_utility_bps",
-                meta.get("hier_side_validity_min_utility_bps", 0.0),
-            )
-            if isinstance(meta.get("hierarchical_entry_heads"), dict)
-            else meta.get("hier_side_validity_min_utility_bps", 0.0),
-        )
-    )
-    hier_side_validity_pos_weight_cap = _safe_float(
-        recipe.get(
-            "hier_side_validity_pos_weight_cap",
-            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
-                "pos_weight_cap",
-                meta.get("hier_side_validity_pos_weight_cap", 0.0),
-            )
-            if isinstance(meta.get("hierarchical_entry_heads"), dict)
-            else meta.get("hier_side_validity_pos_weight_cap", 0.0),
-        )
-    )
-    trendline_rail_head_enabled = bool(
-        recipe.get(
-            "trendline_rail_head_enabled",
-            (meta.get("trendline_rail_head") or {}).get("enabled", meta.get("trendline_rail_head_enabled", False))
-            if isinstance(meta.get("trendline_rail_head"), dict)
-            else meta.get("trendline_rail_head_enabled", False),
-        )
-    )
-    trendline_rail_aux_weight = _safe_float(
-        recipe.get(
-            "trendline_rail_aux_weight",
-            (meta.get("trendline_rail_head") or {}).get("aux_weight", meta.get("trendline_rail_aux_weight", 0.0))
-            if isinstance(meta.get("trendline_rail_head"), dict)
-            else meta.get("trendline_rail_aux_weight", 0.0),
-        )
-    )
-    trendline_rail_wrong_side_weight = _safe_float(
-        recipe.get(
-            "trendline_rail_wrong_side_weight",
-            (meta.get("trendline_rail_head") or {}).get(
-                "wrong_side_weight",
-                meta.get("trendline_rail_wrong_side_weight", 0.0),
-            )
-            if isinstance(meta.get("trendline_rail_head"), dict)
-            else meta.get("trendline_rail_wrong_side_weight", 0.0),
-        )
-    )
-    hier_legacy_ce_mult = _safe_float(
-        recipe.get(
-            "hier_legacy_ce_mult",
-            meta.get("hier_legacy_ce_mult", 0.0),
-        )
-    )
-    residual_scale = _safe_float(
-        recipe.get(
-            "residual_scale",
-            meta.get("residual_scale", -1.0),
-        )
-    )
-    anchor_eps = _safe_float(
-        recipe.get(
-            "anchor_eps",
-            meta.get("anchor_eps", -1.0),
-        )
-    )
-    anchor_gate_enabled = bool(
-        recipe.get(
-            "anchor_gate_enabled",
-            meta.get("anchor_gate_enabled", False),
-        )
-    )
-    anchor_gate_init = _safe_float(
-        recipe.get(
-            "anchor_gate_init",
-            (meta.get("anchor_gate") or {}).get("init", meta.get("anchor_gate_init", 1.0))
-            if isinstance(meta.get("anchor_gate"), dict)
-            else meta.get("anchor_gate_init", 1.0),
-        )
-    )
-    ckpt_monitor = str(recipe.get("ckpt_monitor", meta.get("ckpt_monitor", ""))).strip().lower()
-    ckpt_class_balance_guard_weight = _safe_float(
-        recipe.get(
-            "ckpt_class_balance_guard_weight",
-            meta.get("ckpt_class_balance_guard_weight", 0.0),
-        )
-    )
-    ckpt_class_balance_min_pred_to_label = _safe_float(
-        recipe.get(
-            "ckpt_class_balance_min_pred_to_label",
-            meta.get("ckpt_class_balance_min_pred_to_label", 0.0),
-        )
-    )
-    ckpt_class_balance_min_pred_rate = _safe_float(
-        recipe.get(
-            "ckpt_class_balance_min_pred_rate",
-            meta.get("ckpt_class_balance_min_pred_rate", 0.0),
-        )
-    )
-    ckpt_direction_slice_guard = _bool_value(
-        recipe.get(
-            "ckpt_direction_slice_guard",
-            meta.get("ckpt_direction_slice_guard", False),
-        )
-    )
-    direction_min_pred_rate_loss_weight = _safe_float(
-        recipe.get(
-            "direction_min_pred_rate_loss_weight",
-            meta.get("direction_min_pred_rate_loss_weight", 0.0),
-        )
-    )
-    direction_min_pred_rate_fraction = _safe_float(
-        recipe.get(
-            "direction_min_pred_rate_fraction",
-            meta.get("direction_min_pred_rate_fraction", 0.0),
-        )
-    )
-    direction_min_pred_rate_floor = _safe_float(
-        recipe.get(
-            "direction_min_pred_rate_floor",
-            meta.get("direction_min_pred_rate_floor", 0.0),
-        )
-    )
-    direction_min_pred_rate_softmax_temperature = _safe_float(
-        recipe.get(
-            "direction_min_pred_rate_softmax_temperature",
-            meta.get("direction_min_pred_rate_softmax_temperature", 0.0),
-        )
-    )
-    direction_global_prior_match_weight = _safe_float(
-        recipe.get(
-            "direction_global_prior_match_weight",
-            meta.get("direction_global_prior_match_weight", -1.0),
-        )
-    )
-    direction_global_prior_match_tolerance = _safe_float(
-        recipe.get(
-            "direction_global_prior_match_tolerance",
-            meta.get("direction_global_prior_match_tolerance", -1.0),
-        )
-    )
-    direction_global_prior_match_min_label_rate = _safe_float(
-        recipe.get(
-            "direction_global_prior_match_min_label_rate",
-            meta.get("direction_global_prior_match_min_label_rate", -1.0),
-        )
-    )
-    direction_slice_balanced_ce_weight = _safe_float(
-        recipe.get(
-            "direction_slice_balanced_ce_weight",
-            meta.get("direction_slice_balanced_ce_weight", -1.0),
-        )
-    )
-    direction_slice_balanced_ce_min_label_rate = _safe_float(
-        recipe.get(
-            "direction_slice_balanced_ce_min_label_rate",
-            meta.get("direction_slice_balanced_ce_min_label_rate", -1.0),
-        )
-    )
-    direction_slice_balanced_ce_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_balanced_ce_min_rows",
-                meta.get("direction_slice_balanced_ce_min_rows", -1.0),
-            )
-        )
-    )
-    direction_slice_true_margin_weight = _safe_float(
-        recipe.get(
-            "direction_slice_true_margin_weight",
-            meta.get("direction_slice_true_margin_weight", -1.0),
-        )
-    )
-    direction_slice_true_margin = _safe_float(
-        recipe.get(
-            "direction_slice_true_margin",
-            meta.get("direction_slice_true_margin", -1.0),
-        )
-    )
-    direction_slice_true_margin_min_label_rate = _safe_float(
-        recipe.get(
-            "direction_slice_true_margin_min_label_rate",
-            meta.get("direction_slice_true_margin_min_label_rate", -1.0),
-        )
-    )
-    direction_slice_true_margin_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_true_margin_min_rows",
-                meta.get("direction_slice_true_margin_min_rows", -1.0),
-            )
-        )
-    )
-    direction_slice_accuracy_edge_weight = _safe_float(
-        recipe.get(
-            "direction_slice_accuracy_edge_weight",
-            meta.get("direction_slice_accuracy_edge_weight", -1.0),
-        )
-    )
-    direction_slice_accuracy_edge_margin = _safe_float(
-        recipe.get(
-            "direction_slice_accuracy_edge_margin",
-            meta.get("direction_slice_accuracy_edge_margin", -1.0),
-        )
-    )
-    direction_slice_confusion_pair_weight = _safe_float(
-        recipe.get(
-            "direction_slice_confusion_pair_weight",
-            meta.get("direction_slice_confusion_pair_weight", -1.0),
-        )
-    )
-    direction_slice_confusion_pair_margin = _safe_float(
-        recipe.get(
-            "direction_slice_confusion_pair_margin",
-            meta.get("direction_slice_confusion_pair_margin", -1.0),
-        )
-    )
-    direction_slice_accuracy_edge_min_label_rate = _safe_float(
-        recipe.get(
-            "direction_slice_accuracy_edge_min_label_rate",
-            meta.get("direction_slice_accuracy_edge_min_label_rate", -1.0),
-        )
-    )
-    direction_slice_accuracy_edge_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_accuracy_edge_min_rows",
-                meta.get("direction_slice_accuracy_edge_min_rows", -1.0),
-            )
-        )
-    )
-    direction_slice_prior_match_weight = _safe_float(
-        recipe.get(
-            "direction_slice_prior_match_weight",
-            meta.get("direction_slice_prior_match_weight", -1.0),
-        )
-    )
-    direction_slice_prior_match_tolerance = _safe_float(
-        recipe.get(
-            "direction_slice_prior_match_tolerance",
-            meta.get("direction_slice_prior_match_tolerance", -1.0),
-        )
-    )
-    direction_slice_prior_match_min_label_rate = _safe_float(
-        recipe.get(
-            "direction_slice_prior_match_min_label_rate",
-            meta.get("direction_slice_prior_match_min_label_rate", -1.0),
-        )
-    )
-    direction_slice_prior_match_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_prior_match_min_rows",
-                meta.get("direction_slice_prior_match_min_rows", -1.0),
-            )
-        )
-    )
-    direction_slice_balanced_sampler = _bool_value(
-        recipe.get(
-            "direction_slice_balanced_sampler",
-            meta.get("direction_slice_balanced_sampler", False),
-        )
-    )
-    direction_slice_balanced_sampler_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_balanced_sampler_min_rows",
-                meta.get("direction_slice_balanced_sampler_min_rows", -1.0),
-            )
-        )
-    )
-    direction_slice_hard_red_stop_patience = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_hard_red_stop_patience",
-                meta.get("direction_slice_hard_red_stop_patience", -1.0),
-            )
-        )
-    )
-    direction_slice_hard_red_stop_min_epochs = int(
-        _safe_float(
-            recipe.get(
-                "direction_slice_hard_red_stop_min_epochs",
-                meta.get("direction_slice_hard_red_stop_min_epochs", -1.0),
-            )
-        )
-    )
-    direction_vs_flat_margin_weight = _safe_float(
-        recipe.get(
-            "direction_vs_flat_margin_weight",
-            meta.get("direction_vs_flat_margin_weight", 0.0),
-        )
-    )
-    direction_vs_flat_margin = _safe_float(
-        recipe.get(
-            "direction_vs_flat_margin",
-            meta.get("direction_vs_flat_margin", 0.0),
-        )
-    )
-    direction_utility_margin_weight = _safe_float(
-        recipe.get(
-            "direction_utility_margin_weight",
-            meta.get("direction_utility_margin_weight", 0.0),
-        )
-    )
-    direction_utility_min_gap_bps = _safe_float(
-        recipe.get(
-            "direction_utility_min_gap_bps",
-            meta.get("direction_utility_min_gap_bps", 999.0),
-        )
-    )
-    direction_utility_logit_margin = _safe_float(
-        recipe.get(
-            "direction_utility_logit_margin",
-            meta.get("direction_utility_logit_margin", 0.0),
-        )
-    )
-    direction_side_utility_conviction_weight = _safe_float(
-        recipe.get(
-            "direction_side_utility_conviction_weight",
-            meta.get("direction_side_utility_conviction_weight", 0.0),
-        )
-    )
-    direction_side_utility_conviction_min_gap_bps = _safe_float(
-        recipe.get(
-            "direction_side_utility_conviction_min_gap_bps",
-            meta.get("direction_side_utility_conviction_min_gap_bps", 999.0),
-        )
-    )
-    direction_side_utility_conviction_logit_margin = _safe_float(
-        recipe.get(
-            "direction_side_utility_conviction_logit_margin",
-            meta.get("direction_side_utility_conviction_logit_margin", 0.0),
-        )
-    )
-    direction_utility_trade_conviction_weight = _safe_float(
-        recipe.get(
-            "direction_utility_trade_conviction_weight",
-            meta.get("direction_utility_trade_conviction_weight", 0.0),
-        )
-    )
-    direction_utility_trade_conviction_min_gap_bps = _safe_float(
-        recipe.get(
-            "direction_utility_trade_conviction_min_gap_bps",
-            meta.get("direction_utility_trade_conviction_min_gap_bps", 999.0),
-        )
-    )
-    direction_utility_trade_conviction_min_utility_bps = _safe_float(
-        recipe.get(
-            "direction_utility_trade_conviction_min_utility_bps",
-            meta.get("direction_utility_trade_conviction_min_utility_bps", 999.0),
-        )
-    )
-    direction_utility_trade_conviction_max_bad_path = _safe_float(
-        recipe.get(
-            "direction_utility_trade_conviction_max_bad_path",
-            meta.get("direction_utility_trade_conviction_max_bad_path", 999.0),
-        )
-    )
-    direction_utility_trade_conviction_logit_margin = _safe_float(
-        recipe.get(
-            "direction_utility_trade_conviction_logit_margin",
-            meta.get("direction_utility_trade_conviction_logit_margin", 0.0),
-        )
-    )
-    direction_utility_triad_ce_weight = _safe_float(
-        recipe.get(
-            "direction_utility_triad_ce_weight",
-            meta.get("direction_utility_triad_ce_weight", 0.0),
-        )
-    )
-    direction_utility_triad_ce_min_gap_bps = _safe_float(
-        recipe.get(
-            "direction_utility_triad_ce_min_gap_bps",
-            meta.get("direction_utility_triad_ce_min_gap_bps", 999.0),
-        )
-    )
-    direction_utility_triad_ce_min_utility_bps = _safe_float(
-        recipe.get(
-            "direction_utility_triad_ce_min_utility_bps",
-            meta.get("direction_utility_triad_ce_min_utility_bps", 999.0),
-        )
-    )
-    direction_utility_triad_ce_max_bad_path = _safe_float(
-        recipe.get(
-            "direction_utility_triad_ce_max_bad_path",
-            meta.get("direction_utility_triad_ce_max_bad_path", 999.0),
-        )
-    )
-    direction_utility_triad_ce_class_weight_cap = _safe_float(
-        recipe.get(
-            "direction_utility_triad_ce_class_weight_cap",
-            meta.get("direction_utility_triad_ce_class_weight_cap", 0.0),
-        )
-    )
-    _hierarchical_direction_meta = (
-        meta.get("hierarchical_direction_composition")
-        if isinstance(meta.get("hierarchical_direction_composition"), dict)
-        else {}
-    )
-    direction_hierarchical_composition = bool(
-        recipe.get(
-            "direction_hierarchical_composition",
-            _hierarchical_direction_meta.get("enabled", False),
-        )
-    )
-    hier_compose_residual_logit_cap = _safe_float(
-        recipe.get(
-            "hier_compose_residual_logit_cap",
-            _hierarchical_direction_meta.get(
-                "residual_logit_cap",
-                meta.get("hier_compose_residual_logit_cap", 0.0),
-            ),
-        )
-    )
-    hier_compose_residual_side_neutral = _bool_value(
-        recipe.get(
-            "hier_compose_residual_side_neutral",
-            _hierarchical_direction_meta.get(
-                "residual_side_neutral",
-                meta.get("hier_compose_residual_side_neutral", False),
-            ),
-        )
-    )
-    hier_compose_public_flat_from_trade = _bool_value(
-        recipe.get(
-            "hier_compose_public_flat_from_trade",
-            _hierarchical_direction_meta.get(
-                "public_flat_from_trade",
-                meta.get("hier_compose_public_flat_from_trade", False),
-            ),
-        )
-    )
-    hier_public_direction_composition = str(
-        recipe.get(
-            "hier_public_direction_composition",
-            _hierarchical_direction_meta.get(
-                "public_direction_composition",
-                meta.get("hier_public_direction_composition", "logprob"),
-            ),
-        )
-    )
-    hier_public_direction_detach_side_grad = _bool_value(
-        recipe.get(
-            "hier_public_direction_detach_side_grad",
-            _hierarchical_direction_meta.get(
-                "public_direction_detach_side_grad",
-                meta.get("hier_public_direction_detach_side_grad", False),
-            ),
-        )
-    )
-    _hier_entry_meta = meta.get("hierarchical_entry_heads") if isinstance(meta.get("hierarchical_entry_heads"), dict) else {}
-    _hier_ctx_prior_meta = (
-        _hierarchical_direction_meta.get("ctx_prior_adapter")
-        if isinstance(_hierarchical_direction_meta.get("ctx_prior_adapter"), dict)
-        else (
-            _hier_entry_meta.get("ctx_prior_adapter")
-            if isinstance(_hier_entry_meta.get("ctx_prior_adapter"), dict)
-            else {}
-        )
-    )
-    hier_ctx_prior_adapter = _bool_value(
-        recipe.get(
-            "hier_ctx_prior_adapter",
-            _hier_ctx_prior_meta.get(
-                "enabled",
-                meta.get("hier_ctx_prior_adapter", False),
-            ),
-        )
-    )
-    hier_ctx_prior_adapter_scale = _safe_float(
-        recipe.get(
-            "hier_ctx_prior_adapter_scale",
-            _hier_ctx_prior_meta.get(
-                "scale",
-                meta.get("hier_ctx_prior_adapter_scale", 0.0),
-            ),
-        )
-    )
-    _hier_public_trade_meta = (
-        _hierarchical_direction_meta.get("public_trade_head")
-        if isinstance(_hierarchical_direction_meta.get("public_trade_head"), dict)
-        else {}
-    )
-    hier_public_trade_head = _bool_value(
-        recipe.get(
-            "hier_public_trade_head",
-            _hier_public_trade_meta.get(
-                "enabled",
-                meta.get("hier_public_trade_head", False),
-            ),
-        )
-    )
-    _hier_public_flat_meta = (
-        _hierarchical_direction_meta.get("public_flat_head")
-        if isinstance(_hierarchical_direction_meta.get("public_flat_head"), dict)
-        else {}
-    )
-    hier_public_flat_head = _bool_value(
-        recipe.get(
-            "hier_public_flat_head",
-            _hier_public_flat_meta.get(
-                "enabled",
-                meta.get("hier_public_flat_head", False),
-            ),
-        )
-    )
-    _hier_public_trade_dir_margin_bridge_meta = (
-        _hierarchical_direction_meta.get("public_trade_dir_margin_bridge")
-        if isinstance(_hierarchical_direction_meta.get("public_trade_dir_margin_bridge"), dict)
-        else {}
-    )
-    hier_public_trade_dir_margin_bridge = _bool_value(
-        recipe.get(
-            "hier_public_trade_dir_margin_bridge",
-            _hier_public_trade_dir_margin_bridge_meta.get(
-                "enabled",
-                meta.get("hier_public_trade_dir_margin_bridge", False),
-            ),
-        )
-    )
-    hier_public_trade_dir_margin_bridge_scale = _safe_float(
-        recipe.get(
-            "hier_public_trade_dir_margin_bridge_scale",
-            _hier_public_trade_dir_margin_bridge_meta.get(
-                "scale",
-                meta.get("hier_public_trade_dir_margin_bridge_scale", 0.0),
-            ),
-        )
-    )
-    hier_public_trade_dir_margin_bridge_cap = _safe_float(
-        recipe.get(
-            "hier_public_trade_dir_margin_bridge_cap",
-            _hier_public_trade_dir_margin_bridge_meta.get(
-                "cap",
-                meta.get("hier_public_trade_dir_margin_bridge_cap", 0.0),
-            ),
-        )
-    )
-    _hier_public_side_meta = (
-        _hierarchical_direction_meta.get("public_side_head")
-        if isinstance(_hierarchical_direction_meta.get("public_side_head"), dict)
-        else {}
-    )
-    hier_public_side_head = _bool_value(
-        recipe.get(
-            "hier_public_side_head",
-            _hier_public_side_meta.get(
-                "enabled",
-                meta.get("hier_public_side_head", False),
-            ),
-        )
-    )
-    _hier_public_side_dir_margin_bridge_meta = (
-        _hierarchical_direction_meta.get("public_side_dir_margin_bridge")
-        if isinstance(_hierarchical_direction_meta.get("public_side_dir_margin_bridge"), dict)
-        else {}
-    )
-    hier_public_side_dir_margin_bridge = _bool_value(
-        recipe.get(
-            "hier_public_side_dir_margin_bridge",
-            _hier_public_side_dir_margin_bridge_meta.get(
-                "enabled",
-                meta.get("hier_public_side_dir_margin_bridge", False),
-            ),
-        )
-    )
-    hier_public_side_dir_margin_bridge_scale = _safe_float(
-        recipe.get(
-            "hier_public_side_dir_margin_bridge_scale",
-            _hier_public_side_dir_margin_bridge_meta.get(
-                "scale",
-                meta.get("hier_public_side_dir_margin_bridge_scale", 0.0),
-            ),
-        )
-    )
-    hier_public_side_dir_margin_bridge_cap = _safe_float(
-        recipe.get(
-            "hier_public_side_dir_margin_bridge_cap",
-            _hier_public_side_dir_margin_bridge_meta.get(
-                "cap",
-                meta.get("hier_public_side_dir_margin_bridge_cap", 0.0),
-            ),
-        )
-    )
-    _hier_public_side_head_residual_cap_meta = (
-        _hier_public_side_meta.get("residual_cap_loss")
-        if isinstance(_hier_public_side_meta.get("residual_cap_loss"), dict)
-        else {}
-    )
-    hier_public_side_head_residual_cap_weight = _safe_float(
-        recipe.get(
-            "hier_public_side_head_residual_cap_weight",
-            _hier_public_side_head_residual_cap_meta.get(
-                "weight",
-                meta.get("hier_public_side_head_residual_cap_weight", 0.0),
-            ),
-        )
-    )
-    hier_public_side_head_residual_cap = _safe_float(
-        recipe.get(
-            "hier_public_side_head_residual_cap",
-            _hier_public_side_head_residual_cap_meta.get(
-                "cap",
-                meta.get("hier_public_side_head_residual_cap", 0.0),
-            ),
-        )
-    )
-    _hier_ctx_direction_meta = (
-        _hierarchical_direction_meta.get("ctx_direction_calibration")
-        if isinstance(_hierarchical_direction_meta.get("ctx_direction_calibration"), dict)
-        else {}
-    )
-    hier_ctx_direction_calibration = _bool_value(
-        recipe.get(
-            "hier_ctx_direction_calibration",
-            _hier_ctx_direction_meta.get(
-                "enabled",
-                meta.get("hier_ctx_direction_calibration", False),
-            ),
-        )
-    )
-    hier_ctx_direction_calibration_scale = _safe_float(
-        recipe.get(
-            "hier_ctx_direction_calibration_scale",
-            _hier_ctx_direction_meta.get(
-                "scale",
-                meta.get("hier_ctx_direction_calibration_scale", 0.0),
-            ),
-        )
-    )
-    hier_ctx_direction_calibration_cap = _safe_float(
-        recipe.get(
-            "hier_ctx_direction_calibration_cap",
-            _hier_ctx_direction_meta.get(
-                "cap",
-                meta.get("hier_ctx_direction_calibration_cap", 0.0),
-            ),
-        )
-    )
-    _hier_trade_prior_meta = (
-        _hier_entry_meta.get("trade_prior_supervision")
-        if isinstance(_hier_entry_meta.get("trade_prior_supervision"), dict)
-        else {}
-    )
-    _hier_slice_side_meta = (
-        _hier_entry_meta.get("slice_side_supervision")
-        if isinstance(_hier_entry_meta.get("slice_side_supervision"), dict)
-        else {}
-    )
-    hier_trade_global_prior_match_weight = _safe_float(
-        recipe.get(
-            "hier_trade_global_prior_match_weight",
-            _hier_trade_prior_meta.get(
-                "global_prior_match_weight",
-                meta.get("hier_trade_global_prior_match_weight", 0.0),
-            ),
-        )
-    )
-    hier_trade_global_prior_match_tolerance = _safe_float(
-        recipe.get(
-            "hier_trade_global_prior_match_tolerance",
-            _hier_trade_prior_meta.get(
-                "global_prior_match_tolerance",
-                meta.get("hier_trade_global_prior_match_tolerance", 1.0),
-            ),
-        )
-    )
-    hier_trade_global_prior_match_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_trade_global_prior_match_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "global_prior_match_min_label_rate",
-                meta.get("hier_trade_global_prior_match_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_trade_prior_match_weight = _safe_float(
-        recipe.get(
-            "hier_slice_trade_prior_match_weight",
-            _hier_trade_prior_meta.get(
-                "prior_match_weight",
-                meta.get("hier_slice_trade_prior_match_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_trade_prior_match_tolerance = _safe_float(
-        recipe.get(
-            "hier_slice_trade_prior_match_tolerance",
-            _hier_trade_prior_meta.get(
-                "prior_match_tolerance",
-                meta.get("hier_slice_trade_prior_match_tolerance", 1.0),
-            ),
-        )
-    )
-    hier_slice_trade_prior_match_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_slice_trade_prior_match_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "prior_match_min_label_rate",
-                meta.get("hier_slice_trade_prior_match_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_trade_prior_match_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "hier_slice_trade_prior_match_min_rows",
-                _hier_trade_prior_meta.get(
-                    "prior_match_min_rows",
-                    meta.get("hier_slice_trade_prior_match_min_rows", -1.0),
-                ),
-            )
-        )
-    )
-    hier_slice_trade_accuracy_edge_weight = _safe_float(
-        recipe.get(
-            "hier_slice_trade_accuracy_edge_weight",
-            _hier_trade_prior_meta.get(
-                "accuracy_edge_weight",
-                meta.get("hier_slice_trade_accuracy_edge_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_trade_accuracy_edge_margin = _safe_float(
-        recipe.get(
-            "hier_slice_trade_accuracy_edge_margin",
-            _hier_trade_prior_meta.get(
-                "accuracy_edge_margin",
-                meta.get("hier_slice_trade_accuracy_edge_margin", 0.0),
-            ),
-        )
-    )
-    hier_flat_logit_margin_weight = _safe_float(
-        recipe.get(
-            "hier_flat_logit_margin_weight",
-            _hier_trade_prior_meta.get(
-                "flat_logit_margin_weight",
-                meta.get("hier_flat_logit_margin_weight", 0.0),
-            ),
-        )
-    )
-    hier_flat_logit_margin = _safe_float(
-        recipe.get(
-            "hier_flat_logit_margin",
-            _hier_trade_prior_meta.get(
-                "flat_logit_margin",
-                meta.get("hier_flat_logit_margin", 0.0),
-            ),
-        )
-    )
-    hier_flat_logit_margin_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_flat_logit_margin_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "flat_logit_margin_min_label_rate",
-                meta.get("hier_flat_logit_margin_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_flat_logit_margin_weight = _safe_float(
-        recipe.get(
-            "hier_slice_flat_logit_margin_weight",
-            _hier_trade_prior_meta.get(
-                "slice_flat_logit_margin_weight",
-                meta.get("hier_slice_flat_logit_margin_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_flat_logit_margin = _safe_float(
-        recipe.get(
-            "hier_slice_flat_logit_margin",
-            _hier_trade_prior_meta.get(
-                "slice_flat_logit_margin",
-                meta.get("hier_slice_flat_logit_margin", 0.0),
-            ),
-        )
-    )
-    hier_slice_flat_logit_margin_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_slice_flat_logit_margin_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "slice_flat_logit_margin_min_label_rate",
-                meta.get("hier_slice_flat_logit_margin_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_flat_logit_margin_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "hier_slice_flat_logit_margin_min_rows",
-                _hier_trade_prior_meta.get(
-                    "slice_flat_logit_margin_min_rows",
-                    meta.get("hier_slice_flat_logit_margin_min_rows", -1.0),
-                ),
-            )
-        )
-    )
-    hier_public_flat_consistency_weight = _safe_float(
-        recipe.get(
-            "hier_public_flat_consistency_weight",
-            _hier_trade_prior_meta.get(
-                "public_flat_consistency_weight",
-                meta.get("hier_public_flat_consistency_weight", 0.0),
-            ),
-        )
-    )
-    hier_public_flat_consistency_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_public_flat_consistency_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "public_flat_consistency_min_label_rate",
-                meta.get("hier_public_flat_consistency_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_flat_consistency_weight = _safe_float(
-        recipe.get(
-            "hier_slice_public_flat_consistency_weight",
-            _hier_trade_prior_meta.get(
-                "slice_public_flat_consistency_weight",
-                meta.get("hier_slice_public_flat_consistency_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_flat_consistency_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_slice_public_flat_consistency_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "slice_public_flat_consistency_min_label_rate",
-                meta.get("hier_slice_public_flat_consistency_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_flat_consistency_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "hier_slice_public_flat_consistency_min_rows",
-                _hier_trade_prior_meta.get(
-                    "slice_public_flat_consistency_min_rows",
-                    meta.get("hier_slice_public_flat_consistency_min_rows", -1.0),
-                ),
-            )
-        )
-    )
-    hier_public_trade_flat_margin_weight = _safe_float(
-        recipe.get(
-            "hier_public_trade_flat_margin_weight",
-            _hier_trade_prior_meta.get(
-                "public_trade_flat_margin_weight",
-                meta.get("hier_public_trade_flat_margin_weight", 0.0),
-            ),
-        )
-    )
-    hier_public_trade_flat_margin = _safe_float(
-        recipe.get(
-            "hier_public_trade_flat_margin",
-            _hier_trade_prior_meta.get(
-                "public_trade_flat_margin",
-                meta.get("hier_public_trade_flat_margin", 0.0),
-            ),
-        )
-    )
-    hier_public_trade_flat_margin_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_public_trade_flat_margin_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "public_trade_flat_margin_min_label_rate",
-                meta.get("hier_public_trade_flat_margin_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_trade_flat_margin_weight = _safe_float(
-        recipe.get(
-            "hier_slice_public_trade_flat_margin_weight",
-            _hier_trade_prior_meta.get(
-                "slice_public_trade_flat_margin_weight",
-                meta.get("hier_slice_public_trade_flat_margin_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_trade_flat_margin = _safe_float(
-        recipe.get(
-            "hier_slice_public_trade_flat_margin",
-            _hier_trade_prior_meta.get(
-                "slice_public_trade_flat_margin",
-                meta.get("hier_slice_public_trade_flat_margin", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_trade_flat_margin_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_slice_public_trade_flat_margin_min_label_rate",
-            _hier_trade_prior_meta.get(
-                "slice_public_trade_flat_margin_min_label_rate",
-                meta.get("hier_slice_public_trade_flat_margin_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_public_trade_flat_margin_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "hier_slice_public_trade_flat_margin_min_rows",
-                _hier_trade_prior_meta.get(
-                    "slice_public_trade_flat_margin_min_rows",
-                    meta.get("hier_slice_public_trade_flat_margin_min_rows", -1.0),
-                ),
-            )
-        )
-    )
-    hier_slice_side_ce_weight = _safe_float(
-        recipe.get(
-            "hier_slice_side_ce_weight",
-            _hier_slice_side_meta.get(
-                "balanced_ce_weight",
-                meta.get("hier_slice_side_ce_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_true_margin_weight = _safe_float(
-        recipe.get(
-            "hier_slice_side_true_margin_weight",
-            _hier_slice_side_meta.get(
-                "true_margin_weight",
-                meta.get("hier_slice_side_true_margin_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_true_margin = _safe_float(
-        recipe.get(
-            "hier_slice_side_true_margin",
-            _hier_slice_side_meta.get(
-                "true_margin",
-                meta.get("hier_slice_side_true_margin", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_accuracy_edge_weight = _safe_float(
-        recipe.get(
-            "hier_slice_side_accuracy_edge_weight",
-            _hier_slice_side_meta.get(
-                "accuracy_edge_weight",
-                meta.get("hier_slice_side_accuracy_edge_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_accuracy_edge_margin = _safe_float(
-        recipe.get(
-            "hier_slice_side_accuracy_edge_margin",
-            _hier_slice_side_meta.get(
-                "accuracy_edge_margin",
-                meta.get("hier_slice_side_accuracy_edge_margin", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_slice_side_min_label_rate",
-            _hier_slice_side_meta.get(
-                "min_label_rate",
-                meta.get("hier_slice_side_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "hier_slice_side_min_rows",
-                _hier_slice_side_meta.get(
-                    "min_rows",
-                    meta.get("hier_slice_side_min_rows", -1.0),
-                ),
-            )
-        )
-    )
-    hier_side_global_prior_match_weight = _safe_float(
-        recipe.get(
-            "hier_side_global_prior_match_weight",
-            _hier_slice_side_meta.get(
-                "global_prior_match_weight",
-                meta.get("hier_side_global_prior_match_weight", 0.0),
-            ),
-        )
-    )
-    hier_side_global_prior_match_tolerance = _safe_float(
-        recipe.get(
-            "hier_side_global_prior_match_tolerance",
-            _hier_slice_side_meta.get(
-                "global_prior_match_tolerance",
-                meta.get("hier_side_global_prior_match_tolerance", 1.0),
-            ),
-        )
-    )
-    hier_side_global_prior_match_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_side_global_prior_match_min_label_rate",
-            _hier_slice_side_meta.get(
-                "global_prior_match_min_label_rate",
-                meta.get("hier_side_global_prior_match_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_prior_match_weight = _safe_float(
-        recipe.get(
-            "hier_slice_side_prior_match_weight",
-            _hier_slice_side_meta.get(
-                "prior_match_weight",
-                meta.get("hier_slice_side_prior_match_weight", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_prior_match_tolerance = _safe_float(
-        recipe.get(
-            "hier_slice_side_prior_match_tolerance",
-            _hier_slice_side_meta.get(
-                "prior_match_tolerance",
-                meta.get("hier_slice_side_prior_match_tolerance", 1.0),
-            ),
-        )
-    )
-    hier_slice_side_prior_match_min_label_rate = _safe_float(
-        recipe.get(
-            "hier_slice_side_prior_match_min_label_rate",
-            _hier_slice_side_meta.get(
-                "prior_match_min_label_rate",
-                meta.get("hier_slice_side_prior_match_min_label_rate", 0.0),
-            ),
-        )
-    )
-    hier_slice_side_prior_match_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "hier_slice_side_prior_match_min_rows",
-                _hier_slice_side_meta.get(
-                    "prior_match_min_rows",
-                    meta.get("hier_slice_side_prior_match_min_rows", -1.0),
-                ),
-            )
-        )
-    )
-    direction_flat_starvation_weight = _safe_float(
-        recipe.get(
-            "direction_flat_starvation_weight",
-            meta.get("direction_flat_starvation_weight", 0.0),
-        )
-    )
-    direction_flat_starvation_min_label_rate = _safe_float(
-        recipe.get(
-            "direction_flat_starvation_min_label_rate",
-            meta.get("direction_flat_starvation_min_label_rate", 0.0),
-        )
-    )
-    direction_flat_starvation_min_rows = int(
-        _safe_float(
-            recipe.get(
-                "direction_flat_starvation_min_rows",
-                meta.get("direction_flat_starvation_min_rows", -1.0),
-            )
-        )
-    )
-    direction_flat_starvation_pred_fraction = _safe_float(
-        recipe.get(
-            "direction_flat_starvation_pred_fraction",
-            meta.get("direction_flat_starvation_pred_fraction", 0.0),
-        )
-    )
-    direction_flat_starvation_pred_floor = _safe_float(
-        recipe.get(
-            "direction_flat_starvation_pred_floor",
-            meta.get("direction_flat_starvation_pred_floor", 0.0),
-        )
-    )
-    direction_flat_starvation_logit_margin = _safe_float(
-        recipe.get(
-            "direction_flat_starvation_logit_margin",
-            meta.get("direction_flat_starvation_logit_margin", 0.0),
-        )
-    )
-    best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
-    public_trade_flat_hard_rate_guard_required = meta.get(
-        "public_trade_flat_hard_rate_guard_required"
-    )
-    best_public_trade_flat_hard_rate_guard_ok = meta.get(
-        "best_public_trade_flat_hard_rate_guard_ok"
-    )
-    best_direction_slice_contract_ok = meta.get("best_direction_slice_contract_ok")
-    ckpt_balance_guard_required = (
-        ckpt_class_balance_guard_weight > 0.0
-        and (
-            ckpt_class_balance_min_pred_to_label > 0.0
-            or ckpt_class_balance_min_pred_rate > 0.0
-        )
-    )
-    failures: list[str] = []
-    if "direction" in active_heads:
-        if pred_balance_alpha < 0.05:
-            failures.append("direction active head requires pred_balance_alpha >= 0.05")
-        if pred_balance_alpha > 0.50:
-            failures.append("direction active head requires pred_balance_alpha <= 0.50")
-        if pred_balance_target != "label":
-            failures.append("direction active head requires pred_balance_target=label")
-        if direction_ce_scale <= 0.0:
-            failures.append("direction active head requires positive direction_ce_scale")
-        if ckpt_monitor != "dir_acc":
-            failures.append("direction active head requires ckpt_monitor=dir_acc")
-        if contract_mode == "smart_seq520_candidate":
-            if pred_balance_alpha < SMART_DIRECTION_BALANCE_MIN_ALPHA:
-                failures.append(
-                    "smart direction active head requires pred_balance_alpha >= "
-                    f"{SMART_DIRECTION_BALANCE_MIN_ALPHA:.2f}"
-                )
-            if direction_ce_scale < SMART_DIRECTION_CE_SCALE_MIN:
-                failures.append(
-                    "smart direction active head requires direction_ce_scale >= "
-                    f"{SMART_DIRECTION_CE_SCALE_MIN:.2f}"
-                )
-            if pred_balance_class_weights != SMART_DIRECTION_BALANCE_CLASS_WEIGHTS:
-                failures.append(
-                    "smart direction active head requires pred_balance_class_weights="
-                    + ",".join(str(value) for value in SMART_DIRECTION_BALANCE_CLASS_WEIGHTS)
-            )
-            if not hierarchical_entry_heads_enabled:
-                failures.append("smart direction active head requires hierarchical_entry_heads_enabled=true")
-            if not side_validity_head_enabled:
-                failures.append("smart direction active head requires side_validity_head_enabled=true")
-            if hier_side_validity_weight < SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN:
-                failures.append(
-                    "smart direction active head requires hier_side_validity_weight >= "
-                    f"{SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN:.2f}"
-                )
-            if not trendline_rail_head_enabled:
-                failures.append("smart direction active head requires trendline_rail_head_enabled=true")
-            if trendline_rail_aux_weight < SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN:
-                failures.append(
-                    "smart direction active head requires trendline_rail_aux_weight >= "
-                    f"{SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN:.2f}"
-                )
-            if trendline_rail_wrong_side_weight < SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN:
-                failures.append(
-                    "smart direction active head requires trendline_rail_wrong_side_weight >= "
-                    f"{SMART_DIRECTION_TRENDLINE_RAIL_WRONG_SIDE_WEIGHT_MIN:.2f}"
-                )
-            if hier_legacy_ce_mult < SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN:
-                failures.append(
-                    "smart direction active head requires hier_legacy_ce_mult >= "
-                    f"{SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN:.2f}"
-                )
-            if abs(residual_scale - SMART_DIRECTION_RESIDUAL_SCALE) > 1e-12:
-                failures.append(
-                    "smart direction active head requires residual_scale="
-                    f"{SMART_DIRECTION_RESIDUAL_SCALE:.2f}"
-                )
-            if abs(anchor_eps - SMART_DIRECTION_ANCHOR_EPS) > 1e-18:
-                failures.append(
-                    "smart direction active head requires anchor_eps="
-                    f"{SMART_DIRECTION_ANCHOR_EPS:.0e}"
-                )
-            if not anchor_gate_enabled:
-                failures.append("smart direction active head requires anchor_gate_enabled=true")
-            if anchor_gate_init > SMART_DIRECTION_ANCHOR_GATE_INIT_MAX:
-                failures.append(
-                    "smart direction active head requires anchor_gate_init <= "
-                    f"{SMART_DIRECTION_ANCHOR_GATE_INIT_MAX:.2f}"
-                )
-            if ckpt_class_balance_guard_weight < SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires ckpt_class_balance_guard_weight >= "
-                    f"{SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT:.2f}"
-                )
-            if ckpt_class_balance_min_pred_to_label < SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL:
-                failures.append(
-                    "smart direction active head requires ckpt_class_balance_min_pred_to_label >= "
-                    f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL:.2f}"
-                )
-            if ckpt_class_balance_min_pred_rate < SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:
-                failures.append(
-                    "smart direction active head requires ckpt_class_balance_min_pred_rate >= "
-                    f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:.2f}"
-                )
-            if not ckpt_direction_slice_guard:
-                failures.append("smart direction active head requires ckpt_direction_slice_guard=true")
-            if direction_min_pred_rate_loss_weight < SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_min_pred_rate_loss_weight >= "
-                    f"{SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:.2f}"
-                )
-            if direction_min_pred_rate_fraction < SMART_DIRECTION_MIN_PRED_RATE_FRACTION:
-                failures.append(
-                    "smart direction active head requires direction_min_pred_rate_fraction >= "
-                    f"{SMART_DIRECTION_MIN_PRED_RATE_FRACTION:.2f}"
-                )
-            if direction_min_pred_rate_floor < SMART_DIRECTION_MIN_PRED_RATE_FLOOR:
-                failures.append(
-                    "smart direction active head requires direction_min_pred_rate_floor >= "
-                    f"{SMART_DIRECTION_MIN_PRED_RATE_FLOOR:.2f}"
-                )
-            if not (
-                0.0
-                < direction_min_pred_rate_softmax_temperature
-                <= SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires direction_min_pred_rate_softmax_temperature "
-                    f"in (0.0, {SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX:.2f}]"
-                )
-            if direction_global_prior_match_weight < SMART_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_global_prior_match_weight >= "
-                    f"{SMART_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT:.2f}"
-                )
-            if direction_global_prior_match_tolerance > SMART_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE:
-                failures.append(
-                    "smart direction active head requires direction_global_prior_match_tolerance <= "
-                    f"{SMART_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE:.2f}"
-                )
-            if (
-                abs(
-                    direction_global_prior_match_min_label_rate
-                    - SMART_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE
-                )
-                > 1e-12
-            ):
-                failures.append(
-                    "smart direction active head requires direction_global_prior_match_min_label_rate="
-                    f"{SMART_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
-                )
-            if direction_slice_balanced_ce_weight < SMART_DIRECTION_SLICE_BALANCED_CE_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_slice_balanced_ce_weight >= "
-                    f"{SMART_DIRECTION_SLICE_BALANCED_CE_WEIGHT:.2f}"
-                )
-            if (
-                abs(
-                    direction_slice_balanced_ce_min_label_rate
-                    - SMART_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE
-                )
-                > 1e-12
-            ):
-                failures.append(
-                    "smart direction active head requires direction_slice_balanced_ce_min_label_rate="
-                    f"{SMART_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE:.2f}"
-                )
-            if direction_slice_balanced_ce_min_rows != SMART_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires direction_slice_balanced_ce_min_rows="
-                    f"{SMART_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS}"
-                )
-            if direction_slice_true_margin_weight < SMART_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_slice_true_margin_weight >= "
-                    f"{SMART_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT:.2f}"
-                )
-            if direction_slice_true_margin < SMART_DIRECTION_SLICE_TRUE_MARGIN:
-                failures.append(
-                    "smart direction active head requires direction_slice_true_margin >= "
-                    f"{SMART_DIRECTION_SLICE_TRUE_MARGIN:.2f}"
-                )
-            if (
-                abs(
-                    direction_slice_true_margin_min_label_rate
-                    - SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE
-                )
-                > 1e-12
-            ):
-                failures.append(
-                    "smart direction active head requires direction_slice_true_margin_min_label_rate="
-                    f"{SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE:.2f}"
-                )
-            if direction_slice_true_margin_min_rows != SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires direction_slice_true_margin_min_rows="
-                    f"{SMART_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS}"
-                )
-            if direction_slice_accuracy_edge_weight < SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_slice_accuracy_edge_weight >= "
-                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT:.2f}"
-                )
-            if direction_slice_accuracy_edge_margin < SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:
-                failures.append(
-                    "smart direction active head requires direction_slice_accuracy_edge_margin >= "
-                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN:.2f}"
-                )
-            if direction_slice_confusion_pair_weight < SMART_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_slice_confusion_pair_weight >= "
-                    f"{SMART_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT:.2f}"
-                )
-            if direction_slice_confusion_pair_margin < SMART_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:
-                failures.append(
-                    "smart direction active head requires direction_slice_confusion_pair_margin >= "
-                    f"{SMART_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN:.2f}"
-                )
-            if (
-                abs(
-                    direction_slice_accuracy_edge_min_label_rate
-                    - SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE
-                )
-                > 1e-12
-            ):
-                failures.append(
-                    "smart direction active head requires direction_slice_accuracy_edge_min_label_rate="
-                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE:.2f}"
-                )
-            if direction_slice_accuracy_edge_min_rows != SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires direction_slice_accuracy_edge_min_rows="
-                    f"{SMART_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS}"
-                )
-            if direction_slice_prior_match_weight < SMART_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_slice_prior_match_weight >= "
-                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT:.2f}"
-                )
-            if direction_slice_prior_match_tolerance > SMART_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE:
-                failures.append(
-                    "smart direction active head requires direction_slice_prior_match_tolerance <= "
-                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE:.2f}"
-                )
-            if (
-                abs(
-                    direction_slice_prior_match_min_label_rate
-                    - SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE
-                )
-                > 1e-12
-            ):
-                failures.append(
-                    "smart direction active head requires direction_slice_prior_match_min_label_rate="
-                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
-                )
-            if direction_slice_prior_match_min_rows != SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires direction_slice_prior_match_min_rows="
-                    f"{SMART_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS}"
-                )
-            if not bool(direction_slice_balanced_sampler):
-                failures.append(
-                    "smart direction active head requires direction_slice_balanced_sampler=true"
-                )
-            if direction_slice_balanced_sampler_min_rows != SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires direction_slice_balanced_sampler_min_rows="
-                    f"{SMART_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS}"
-                )
-            if direction_slice_hard_red_stop_patience != SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE:
-                failures.append(
-                    "smart direction active head requires direction_slice_hard_red_stop_patience="
-                    f"{SMART_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE}"
-                )
-            if direction_slice_hard_red_stop_min_epochs != SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS:
-                failures.append(
-                    "smart direction active head requires direction_slice_hard_red_stop_min_epochs="
-                    f"{SMART_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS}"
-                )
-            if direction_vs_flat_margin_weight < SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_vs_flat_margin_weight >= "
-                    f"{SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:.2f}"
-                )
-            if direction_vs_flat_margin < SMART_DIRECTION_VS_FLAT_MARGIN:
-                failures.append(
-                    "smart direction active head requires direction_vs_flat_margin >= "
-                    f"{SMART_DIRECTION_VS_FLAT_MARGIN:.2f}"
-                )
-            if direction_utility_margin_weight < SMART_DIRECTION_UTILITY_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_utility_margin_weight >= "
-                    f"{SMART_DIRECTION_UTILITY_MARGIN_WEIGHT:.2f}"
-                )
-            if direction_utility_min_gap_bps > SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX:
-                failures.append(
-                    "smart direction active head requires direction_utility_min_gap_bps <= "
-                    f"{SMART_DIRECTION_UTILITY_MIN_GAP_BPS_MAX:.1f}"
-                )
-            if direction_utility_logit_margin < SMART_DIRECTION_UTILITY_LOGIT_MARGIN:
-                failures.append(
-                    "smart direction active head requires direction_utility_logit_margin >= "
-                    f"{SMART_DIRECTION_UTILITY_LOGIT_MARGIN:.2f}"
-                )
-            if direction_side_utility_conviction_weight < SMART_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_side_utility_conviction_weight >= "
-                    f"{SMART_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT:.2f}"
-                )
-            if (
-                direction_side_utility_conviction_min_gap_bps
-                > SMART_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires direction_side_utility_conviction_min_gap_bps <= "
-                    f"{SMART_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS_MAX:.1f}"
-                )
-            if (
-                direction_side_utility_conviction_logit_margin
-                < SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN
-            ):
-                failures.append(
-                    "smart direction active head requires direction_side_utility_conviction_logit_margin >= "
-                    f"{SMART_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN:.2f}"
-                )
-            if direction_utility_trade_conviction_weight < SMART_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_utility_trade_conviction_weight >= "
-                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT:.2f}"
-                )
-            if (
-                direction_utility_trade_conviction_min_gap_bps
-                > SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires direction_utility_trade_conviction_min_gap_bps <= "
-                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS_MAX:.1f}"
-                )
-            if (
-                direction_utility_trade_conviction_min_utility_bps
-                > SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires direction_utility_trade_conviction_min_utility_bps <= "
-                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS_MAX:.1f}"
-                )
-            if (
-                direction_utility_trade_conviction_max_bad_path
-                > SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires direction_utility_trade_conviction_max_bad_path <= "
-                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH_MAX:.2f}"
-                )
-            if (
-                direction_utility_trade_conviction_logit_margin
-                < SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN
-            ):
-                failures.append(
-                    "smart direction active head requires direction_utility_trade_conviction_logit_margin >= "
-                    f"{SMART_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN:.2f}"
-                )
-            if direction_utility_triad_ce_weight < SMART_DIRECTION_UTILITY_TRIAD_CE_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_utility_triad_ce_weight >= "
-                    f"{SMART_DIRECTION_UTILITY_TRIAD_CE_WEIGHT:.2f}"
-                )
-            if direction_utility_triad_ce_min_gap_bps > SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX:
-                failures.append(
-                    "smart direction active head requires direction_utility_triad_ce_min_gap_bps <= "
-                    f"{SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS_MAX:.1f}"
-                )
-            if (
-                direction_utility_triad_ce_min_utility_bps
-                > SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires direction_utility_triad_ce_min_utility_bps <= "
-                    f"{SMART_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS_MAX:.1f}"
-                )
-            if direction_utility_triad_ce_max_bad_path > SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX:
-                failures.append(
-                    "smart direction active head requires direction_utility_triad_ce_max_bad_path <= "
-                    f"{SMART_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH_MAX:.2f}"
-                )
-            if direction_utility_triad_ce_class_weight_cap < SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN:
-                failures.append(
-                    "smart direction active head requires direction_utility_triad_ce_class_weight_cap >= "
-                    f"{SMART_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP_MIN:.1f}"
-                )
-            if direction_hierarchical_composition is not SMART_DIRECTION_HIERARCHICAL_COMPOSITION_REQUIRED:
-                failures.append("smart direction active head requires direction_hierarchical_composition=true")
-            if hier_compose_residual_logit_cap < SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN:
-                failures.append(
-                    "smart direction active head requires hier_compose_residual_logit_cap >= "
-                    f"{SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MIN:.2f}"
-                )
-            if hier_compose_residual_logit_cap > SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX:
-                failures.append(
-                    "smart direction active head requires hier_compose_residual_logit_cap <= "
-                    f"{SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_LOGIT_CAP_MAX:.2f}"
-                )
-            if hier_compose_residual_side_neutral is not SMART_DIRECTION_HIER_COMPOSE_RESIDUAL_SIDE_NEUTRAL_REQUIRED:
-                failures.append("smart direction active head requires hier_compose_residual_side_neutral=true")
-            if (
-                hier_compose_public_flat_from_trade
-                is not SMART_DIRECTION_HIER_COMPOSE_PUBLIC_FLAT_FROM_TRADE_REQUIRED
-            ):
-                failures.append("smart direction active head requires hier_compose_public_flat_from_trade=true")
-            if (
-                hier_public_direction_composition
-                != SMART_DIRECTION_HIER_PUBLIC_DIRECTION_COMPOSITION_REQUIRED
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_direction_composition=margin_maxnorm_confidence"
-                )
-            if (
-                hier_public_direction_detach_side_grad
-                is not SMART_DIRECTION_HIER_PUBLIC_DIRECTION_DETACH_SIDE_GRAD_REQUIRED
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_direction_detach_side_grad=true"
-                )
-            if hier_ctx_prior_adapter is not SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_REQUIRED:
-                failures.append("smart direction active head requires hier_ctx_prior_adapter=true")
-            if hier_ctx_prior_adapter_scale < SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN:
-                failures.append(
-                    "smart direction active head requires hier_ctx_prior_adapter_scale >= "
-                    f"{SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MIN:.2f}"
-                )
-            if hier_ctx_prior_adapter_scale > SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX:
-                failures.append(
-                    "smart direction active head requires hier_ctx_prior_adapter_scale <= "
-                    f"{SMART_DIRECTION_HIER_CTX_PRIOR_ADAPTER_SCALE_MAX:.2f}"
-                )
-            if hier_public_side_head is not SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_REQUIRED:
-                failures.append("smart direction active head requires hier_public_side_head=true")
-            if (
-                hier_public_side_dir_margin_bridge
-                is not SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_REQUIRED
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_dir_margin_bridge=true"
-                )
-            if (
-                hier_public_side_dir_margin_bridge_scale
-                < SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_dir_margin_bridge_scale >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MIN:.2f}"
-                )
-            if (
-                hier_public_side_dir_margin_bridge_scale
-                > SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_dir_margin_bridge_scale <= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_SCALE_MAX:.2f}"
-                )
-            if (
-                hier_public_side_dir_margin_bridge_cap
-                < SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_dir_margin_bridge_cap >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MIN:.2f}"
-                )
-            if (
-                hier_public_side_dir_margin_bridge_cap
-                > SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_dir_margin_bridge_cap <= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_DIR_MARGIN_BRIDGE_CAP_MAX:.2f}"
-                )
-            if (
-                hier_public_side_head_residual_cap_weight
-                < SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_head_residual_cap_weight >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT_MIN:.2f}"
-                )
-            if (
-                hier_public_side_head_residual_cap_weight
-                > SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_head_residual_cap_weight <= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_WEIGHT_MAX:.2f}"
-                )
-            if (
-                hier_public_side_head_residual_cap
-                < SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_head_residual_cap >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_MIN:.2f}"
-                )
-            if (
-                hier_public_side_head_residual_cap
-                > SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_side_head_residual_cap <= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_SIDE_HEAD_RESIDUAL_CAP_MAX:.2f}"
-                )
-            if hier_public_trade_head is not SMART_DIRECTION_HIER_PUBLIC_TRADE_HEAD_REQUIRED:
-                failures.append("smart direction active head requires hier_public_trade_head=true")
-            if hier_public_flat_head is not SMART_DIRECTION_HIER_PUBLIC_FLAT_HEAD_REQUIRED:
-                failures.append("smart direction active head requires hier_public_flat_head=true")
-            if (
-                hier_public_trade_dir_margin_bridge
-                is not SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_REQUIRED
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_trade_dir_margin_bridge=true"
-                )
-            if (
-                hier_public_trade_dir_margin_bridge_scale
-                < SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_trade_dir_margin_bridge_scale >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MIN:.2f}"
-                )
-            if (
-                hier_public_trade_dir_margin_bridge_scale
-                > SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_trade_dir_margin_bridge_scale <= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_SCALE_MAX:.2f}"
-                )
-            if (
-                hier_public_trade_dir_margin_bridge_cap
-                < SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_trade_dir_margin_bridge_cap >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MIN:.2f}"
-                )
-            if (
-                hier_public_trade_dir_margin_bridge_cap
-                > SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_trade_dir_margin_bridge_cap <= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_DIR_MARGIN_BRIDGE_CAP_MAX:.2f}"
-                )
-            if hier_ctx_direction_calibration is not SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_REQUIRED:
-                failures.append("smart direction active head requires hier_ctx_direction_calibration=true")
-            if (
-                hier_ctx_direction_calibration_scale
-                < SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN
-            ):
-                failures.append(
-                    "smart direction active head requires hier_ctx_direction_calibration_scale >= "
-                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MIN:.2f}"
-                )
-            if (
-                hier_ctx_direction_calibration_scale
-                > SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX
-            ):
-                failures.append(
-                    "smart direction active head requires hier_ctx_direction_calibration_scale <= "
-                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_SCALE_MAX:.2f}"
-                )
-            if hier_ctx_direction_calibration_cap < SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN:
-                failures.append(
-                    "smart direction active head requires hier_ctx_direction_calibration_cap >= "
-                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MIN:.2f}"
-                )
-            if hier_ctx_direction_calibration_cap > SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX:
-                failures.append(
-                    "smart direction active head requires hier_ctx_direction_calibration_cap <= "
-                    f"{SMART_DIRECTION_HIER_CTX_DIRECTION_CALIBRATION_CAP_MAX:.2f}"
-                )
-            if hier_trade_global_prior_match_weight < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_trade_global_prior_match_weight >= "
-                    f"{SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT:.2f}"
-                )
-            if hier_trade_global_prior_match_tolerance > SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:
-                failures.append(
-                    "smart direction active head requires hier_trade_global_prior_match_tolerance <= "
-                    f"{SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
-                )
-            if hier_trade_global_prior_match_min_label_rate < SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires hier_trade_global_prior_match_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_trade_prior_match_weight < SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_slice_trade_prior_match_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT:.2f}"
-                )
-            if hier_slice_trade_prior_match_tolerance > SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX:
-                failures.append(
-                    "smart direction active head requires hier_slice_trade_prior_match_tolerance <= "
-                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
-                )
-            if hier_slice_trade_prior_match_min_label_rate < SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires hier_slice_trade_prior_match_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_trade_prior_match_min_rows < SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires hier_slice_trade_prior_match_min_rows >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS}"
-                )
-            if (
-                hier_slice_trade_accuracy_edge_weight
-                < SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT
-            ):
-                failures.append(
-                    "smart direction active head requires "
-                    "hier_slice_trade_accuracy_edge_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT:.2f}"
-                )
-            if (
-                hier_slice_trade_accuracy_edge_margin
-                < SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN
-            ):
-                failures.append(
-                    "smart direction active head requires "
-                    "hier_slice_trade_accuracy_edge_margin >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN:.2f}"
-                )
-            if hier_flat_logit_margin_weight < SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_flat_logit_margin_weight >= "
-                    f"{SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_WEIGHT:.2f}"
-                )
-            if hier_flat_logit_margin < SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN:
-                failures.append(
-                    "smart direction active head requires hier_flat_logit_margin >= "
-                    f"{SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN:.2f}"
-                )
-            if hier_flat_logit_margin_min_label_rate < SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires hier_flat_logit_margin_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_flat_logit_margin_weight < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_slice_flat_logit_margin_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT:.2f}"
-                )
-            if hier_slice_flat_logit_margin < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN:
-                failures.append(
-                    "smart direction active head requires hier_slice_flat_logit_margin >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN:.2f}"
-                )
-            if (
-                hier_slice_flat_logit_margin_min_label_rate
-                < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE
-            ):
-                failures.append(
-                    "smart direction active head requires hier_slice_flat_logit_margin_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_flat_logit_margin_min_rows < SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires hier_slice_flat_logit_margin_min_rows >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS}"
-                )
-            if hier_public_flat_consistency_weight < SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_public_flat_consistency_weight >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_WEIGHT:.2f}"
-                )
-            if (
-                hier_public_flat_consistency_min_label_rate
-                < SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_flat_consistency_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.2f}"
-                )
-            if (
-                hier_slice_public_flat_consistency_weight
-                < SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT
-            ):
-                failures.append(
-                    "smart direction active head requires hier_slice_public_flat_consistency_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_WEIGHT:.2f}"
-                )
-            if (
-                hier_slice_public_flat_consistency_min_label_rate
-                < SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE
-            ):
-                failures.append(
-                    "smart direction active head requires "
-                    "hier_slice_public_flat_consistency_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_LABEL_RATE:.2f}"
-                )
-            if (
-                hier_slice_public_flat_consistency_min_rows
-                < SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS
-            ):
-                failures.append(
-                    "smart direction active head requires hier_slice_public_flat_consistency_min_rows >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_FLAT_CONSISTENCY_MIN_ROWS}"
-                )
-            if hier_public_trade_flat_margin_weight < SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_public_trade_flat_margin_weight >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:.2f}"
-                )
-            if hier_public_trade_flat_margin < SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN:
-                failures.append(
-                    "smart direction active head requires hier_public_trade_flat_margin >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN:.2f}"
-                )
-            if (
-                hier_public_trade_flat_margin_min_label_rate
-                < SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-            ):
-                failures.append(
-                    "smart direction active head requires hier_public_trade_flat_margin_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:.2f}"
-                )
-            if (
-                hier_slice_public_trade_flat_margin_weight
-                < SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT
-            ):
-                failures.append(
-                    "smart direction active head requires hier_slice_public_trade_flat_margin_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_WEIGHT:.2f}"
-                )
-            if hier_slice_public_trade_flat_margin < SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN:
-                failures.append(
-                    "smart direction active head requires hier_slice_public_trade_flat_margin >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN:.2f}"
-                )
-            if (
-                hier_slice_public_trade_flat_margin_min_label_rate
-                < SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE
-            ):
-                failures.append(
-                    "smart direction active head requires "
-                    "hier_slice_public_trade_flat_margin_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_LABEL_RATE:.2f}"
-                )
-            if (
-                hier_slice_public_trade_flat_margin_min_rows
-                < SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS
-            ):
-                failures.append(
-                    "smart direction active head requires hier_slice_public_trade_flat_margin_min_rows >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_PUBLIC_TRADE_FLAT_MARGIN_MIN_ROWS}"
-                )
-            if hier_slice_side_ce_weight < SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_ce_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_CE_WEIGHT:.2f}"
-                )
-            if hier_slice_side_true_margin_weight < SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_true_margin_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT:.2f}"
-                )
-            if hier_slice_side_true_margin < SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_true_margin >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_TRUE_MARGIN:.2f}"
-                )
-            if (
-                hier_slice_side_accuracy_edge_weight
-                < SMART_DIRECTION_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT
-            ):
-                failures.append(
-                    "smart direction active head requires "
-                    "hier_slice_side_accuracy_edge_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT:.2f}"
-                )
-            if (
-                hier_slice_side_accuracy_edge_margin
-                < SMART_DIRECTION_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN
-            ):
-                failures.append(
-                    "smart direction active head requires "
-                    "hier_slice_side_accuracy_edge_margin >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN:.2f}"
-                )
-            if hier_slice_side_min_label_rate < SMART_DIRECTION_HIER_SLICE_SIDE_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_side_min_rows < SMART_DIRECTION_HIER_SLICE_SIDE_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_min_rows >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_MIN_ROWS}"
-                )
-            if hier_side_global_prior_match_weight < SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_side_global_prior_match_weight >= "
-                    f"{SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT:.2f}"
-                )
-            if hier_side_global_prior_match_tolerance > SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:
-                failures.append(
-                    "smart direction active head requires hier_side_global_prior_match_tolerance <= "
-                    f"{SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
-                )
-            if hier_side_global_prior_match_min_label_rate < SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires hier_side_global_prior_match_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_side_prior_match_weight < SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_prior_match_weight >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT:.2f}"
-                )
-            if hier_slice_side_prior_match_tolerance > SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE_MAX:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_prior_match_tolerance <= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE_MAX:.2f}"
-                )
-            if hier_slice_side_prior_match_min_label_rate < SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_prior_match_min_label_rate >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE:.2f}"
-                )
-            if hier_slice_side_prior_match_min_rows < SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires hier_slice_side_prior_match_min_rows >= "
-                    f"{SMART_DIRECTION_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS}"
-                )
-            if direction_flat_starvation_weight < SMART_DIRECTION_FLAT_STARVATION_WEIGHT:
-                failures.append(
-                    "smart direction active head requires direction_flat_starvation_weight >= "
-                    f"{SMART_DIRECTION_FLAT_STARVATION_WEIGHT:.2f}"
-                )
-            if direction_flat_starvation_min_label_rate < SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:
-                failures.append(
-                    "smart direction active head requires direction_flat_starvation_min_label_rate >= "
-                    f"{SMART_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE:.2f}"
-                )
-            if direction_flat_starvation_min_rows < SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS:
-                failures.append(
-                    "smart direction active head requires direction_flat_starvation_min_rows >= "
-                    f"{SMART_DIRECTION_FLAT_STARVATION_MIN_ROWS}"
-                )
-            if direction_flat_starvation_pred_fraction < SMART_DIRECTION_FLAT_STARVATION_PRED_FRACTION:
-                failures.append(
-                    "smart direction active head requires direction_flat_starvation_pred_fraction >= "
-                    f"{SMART_DIRECTION_FLAT_STARVATION_PRED_FRACTION:.2f}"
-                )
-            if direction_flat_starvation_pred_floor < SMART_DIRECTION_FLAT_STARVATION_PRED_FLOOR:
-                failures.append(
-                    "smart direction active head requires direction_flat_starvation_pred_floor >= "
-                    f"{SMART_DIRECTION_FLAT_STARVATION_PRED_FLOOR:.2f}"
-                )
-            if direction_flat_starvation_logit_margin < SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:
-                failures.append(
-                    "smart direction active head requires direction_flat_starvation_logit_margin >= "
-                    f"{SMART_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN:.2f}"
-                )
-            if public_trade_flat_hard_rate_guard_required is not True:
-                failures.append(
-                    "smart direction active head requires "
-                    "public_trade_flat_hard_rate_guard_required=true"
-                )
-            if best_public_trade_flat_hard_rate_guard_ok is not True:
-                failures.append(
-                    "smart direction active head requires "
-                    "best_public_trade_flat_hard_rate_guard_ok=true"
-                )
-            if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
-                failures.append(
-                    "smart direction active head with MTF aux head enabled requires "
-                    "mtf_dir_aux_weight present in bundle metadata (missing key would "
-                    "silently default to 0.0 and skip the balance-repair requirement)"
-                )
-            if mtf_dir_aux_balance_repair_required and not mtf_dir_aux_uses_direction_balance_repair:
-                failures.append(
-                    "smart direction active head with MTF aux requires "
-                    "mtf_dir_aux_uses_direction_balance_repair=true"
-                )
-        if ckpt_balance_guard_required and best_direction_balance_guard_ok is not True:
-            failures.append("direction active head requires best_direction_balance_guard_ok=true")
-        if ckpt_direction_slice_guard and best_direction_slice_contract_ok is not True:
-            failures.append("direction active head requires best_direction_slice_contract_ok=true")
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "active_heads": sorted(active_heads),
-        "direction_active": "direction" in active_heads,
-        "contract_mode": contract_mode,
-        "pred_balance_alpha": pred_balance_alpha,
-        "pred_balance_target": pred_balance_target,
-        "pred_balance_class_weights": pred_balance_class_weights,
-        "enable_mtf_direction_head": enable_mtf_direction_head,
-        "mtf_dir_aux_weight": mtf_dir_aux_weight,
-        "mtf_dir_aux_balance_repair_required": mtf_dir_aux_balance_repair_required,
-        "mtf_dir_aux_uses_direction_balance_repair": mtf_dir_aux_uses_direction_balance_repair,
-        "direction_ce_scale": direction_ce_scale,
-        "hierarchical_entry_heads_enabled": hierarchical_entry_heads_enabled,
-        "side_validity_head_enabled": side_validity_head_enabled,
-        "hier_side_validity_weight": hier_side_validity_weight,
-        "hier_side_validity_min_utility_bps": hier_side_validity_min_utility_bps,
-        "hier_side_validity_pos_weight_cap": hier_side_validity_pos_weight_cap,
-        "trendline_rail_head_enabled": trendline_rail_head_enabled,
-        "trendline_rail_aux_weight": trendline_rail_aux_weight,
-        "trendline_rail_wrong_side_weight": trendline_rail_wrong_side_weight,
-        "hier_legacy_ce_mult": hier_legacy_ce_mult,
-        "residual_scale": residual_scale,
-        "anchor_eps": anchor_eps,
-        "anchor_gate_enabled": anchor_gate_enabled,
-        "anchor_gate_init": anchor_gate_init,
-        "ckpt_monitor": ckpt_monitor,
-        "ckpt_class_balance_guard_weight": ckpt_class_balance_guard_weight,
-        "ckpt_class_balance_min_pred_to_label": ckpt_class_balance_min_pred_to_label,
-        "ckpt_class_balance_min_pred_rate": ckpt_class_balance_min_pred_rate,
-        "ckpt_direction_slice_guard": ckpt_direction_slice_guard,
-        "direction_min_pred_rate_loss_weight": direction_min_pred_rate_loss_weight,
-        "direction_min_pred_rate_fraction": direction_min_pred_rate_fraction,
-        "direction_min_pred_rate_floor": direction_min_pred_rate_floor,
-        "direction_min_pred_rate_softmax_temperature": direction_min_pred_rate_softmax_temperature,
-        "direction_global_prior_match_weight": direction_global_prior_match_weight,
-        "direction_global_prior_match_tolerance": direction_global_prior_match_tolerance,
-        "direction_global_prior_match_min_label_rate": direction_global_prior_match_min_label_rate,
-        "direction_slice_balanced_ce_weight": direction_slice_balanced_ce_weight,
-        "direction_slice_balanced_ce_min_label_rate": direction_slice_balanced_ce_min_label_rate,
-        "direction_slice_balanced_ce_min_rows": direction_slice_balanced_ce_min_rows,
-        "direction_slice_true_margin_weight": direction_slice_true_margin_weight,
-        "direction_slice_true_margin": direction_slice_true_margin,
-        "direction_slice_true_margin_min_label_rate": direction_slice_true_margin_min_label_rate,
-        "direction_slice_true_margin_min_rows": direction_slice_true_margin_min_rows,
-        "direction_slice_accuracy_edge_weight": direction_slice_accuracy_edge_weight,
-        "direction_slice_accuracy_edge_margin": direction_slice_accuracy_edge_margin,
-        "direction_slice_confusion_pair_weight": direction_slice_confusion_pair_weight,
-        "direction_slice_confusion_pair_margin": direction_slice_confusion_pair_margin,
-        "direction_slice_accuracy_edge_min_label_rate": direction_slice_accuracy_edge_min_label_rate,
-        "direction_slice_accuracy_edge_min_rows": direction_slice_accuracy_edge_min_rows,
-        "direction_slice_prior_match_weight": direction_slice_prior_match_weight,
-        "direction_slice_prior_match_tolerance": direction_slice_prior_match_tolerance,
-        "direction_slice_prior_match_min_label_rate": direction_slice_prior_match_min_label_rate,
-        "direction_slice_prior_match_min_rows": direction_slice_prior_match_min_rows,
-        "direction_slice_balanced_sampler": direction_slice_balanced_sampler,
-        "direction_slice_balanced_sampler_min_rows": direction_slice_balanced_sampler_min_rows,
-        "direction_slice_hard_red_stop_patience": direction_slice_hard_red_stop_patience,
-        "direction_slice_hard_red_stop_min_epochs": direction_slice_hard_red_stop_min_epochs,
-        "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
-        "direction_vs_flat_margin": direction_vs_flat_margin,
-        "direction_utility_margin_weight": direction_utility_margin_weight,
-        "direction_utility_min_gap_bps": direction_utility_min_gap_bps,
-        "direction_utility_logit_margin": direction_utility_logit_margin,
-        "direction_side_utility_conviction_weight": direction_side_utility_conviction_weight,
-        "direction_side_utility_conviction_min_gap_bps": direction_side_utility_conviction_min_gap_bps,
-        "direction_side_utility_conviction_logit_margin": direction_side_utility_conviction_logit_margin,
-        "direction_utility_trade_conviction_weight": direction_utility_trade_conviction_weight,
-        "direction_utility_trade_conviction_min_gap_bps": direction_utility_trade_conviction_min_gap_bps,
-        "direction_utility_trade_conviction_min_utility_bps": direction_utility_trade_conviction_min_utility_bps,
-        "direction_utility_trade_conviction_max_bad_path": direction_utility_trade_conviction_max_bad_path,
-        "direction_utility_trade_conviction_logit_margin": direction_utility_trade_conviction_logit_margin,
-        "direction_utility_triad_ce_weight": direction_utility_triad_ce_weight,
-        "direction_utility_triad_ce_min_gap_bps": direction_utility_triad_ce_min_gap_bps,
-        "direction_utility_triad_ce_min_utility_bps": direction_utility_triad_ce_min_utility_bps,
-        "direction_utility_triad_ce_max_bad_path": direction_utility_triad_ce_max_bad_path,
-        "direction_utility_triad_ce_class_weight_cap": direction_utility_triad_ce_class_weight_cap,
-        "direction_hierarchical_composition": direction_hierarchical_composition,
-        "hier_compose_residual_logit_cap": hier_compose_residual_logit_cap,
-        "hier_compose_residual_side_neutral": hier_compose_residual_side_neutral,
-        "hier_compose_public_flat_from_trade": hier_compose_public_flat_from_trade,
-        "hier_public_direction_composition": hier_public_direction_composition,
-        "hier_public_direction_detach_side_grad": hier_public_direction_detach_side_grad,
-        "hier_public_trade_head": hier_public_trade_head,
-        "hier_public_flat_head": hier_public_flat_head,
-        "hier_public_trade_dir_margin_bridge": hier_public_trade_dir_margin_bridge,
-        "hier_public_trade_dir_margin_bridge_scale": hier_public_trade_dir_margin_bridge_scale,
-        "hier_public_trade_dir_margin_bridge_cap": hier_public_trade_dir_margin_bridge_cap,
-        "hier_public_side_head": hier_public_side_head,
-        "hier_public_side_dir_margin_bridge": hier_public_side_dir_margin_bridge,
-        "hier_public_side_dir_margin_bridge_scale": hier_public_side_dir_margin_bridge_scale,
-        "hier_public_side_dir_margin_bridge_cap": hier_public_side_dir_margin_bridge_cap,
-        "hier_public_side_head_residual_cap_weight": hier_public_side_head_residual_cap_weight,
-        "hier_public_side_head_residual_cap": hier_public_side_head_residual_cap,
-        "hier_ctx_prior_adapter": hier_ctx_prior_adapter,
-        "hier_ctx_prior_adapter_scale": hier_ctx_prior_adapter_scale,
-        "hier_ctx_direction_calibration": hier_ctx_direction_calibration,
-        "hier_ctx_direction_calibration_scale": hier_ctx_direction_calibration_scale,
-        "hier_ctx_direction_calibration_cap": hier_ctx_direction_calibration_cap,
-        "hier_trade_global_prior_match_weight": hier_trade_global_prior_match_weight,
-        "hier_trade_global_prior_match_tolerance": hier_trade_global_prior_match_tolerance,
-        "hier_trade_global_prior_match_min_label_rate": hier_trade_global_prior_match_min_label_rate,
-        "hier_slice_trade_prior_match_weight": hier_slice_trade_prior_match_weight,
-        "hier_slice_trade_prior_match_tolerance": hier_slice_trade_prior_match_tolerance,
-        "hier_slice_trade_prior_match_min_label_rate": hier_slice_trade_prior_match_min_label_rate,
-        "hier_slice_trade_prior_match_min_rows": hier_slice_trade_prior_match_min_rows,
-        "hier_slice_trade_accuracy_edge_weight": hier_slice_trade_accuracy_edge_weight,
-        "hier_slice_trade_accuracy_edge_margin": hier_slice_trade_accuracy_edge_margin,
-        "hier_flat_logit_margin_weight": hier_flat_logit_margin_weight,
-        "hier_flat_logit_margin": hier_flat_logit_margin,
-        "hier_flat_logit_margin_min_label_rate": hier_flat_logit_margin_min_label_rate,
-        "hier_slice_flat_logit_margin_weight": hier_slice_flat_logit_margin_weight,
-        "hier_slice_flat_logit_margin": hier_slice_flat_logit_margin,
-        "hier_slice_flat_logit_margin_min_label_rate": hier_slice_flat_logit_margin_min_label_rate,
-        "hier_slice_flat_logit_margin_min_rows": hier_slice_flat_logit_margin_min_rows,
-        "hier_public_flat_consistency_weight": hier_public_flat_consistency_weight,
-        "hier_public_flat_consistency_min_label_rate": hier_public_flat_consistency_min_label_rate,
-        "hier_slice_public_flat_consistency_weight": hier_slice_public_flat_consistency_weight,
-        "hier_slice_public_flat_consistency_min_label_rate": (
-            hier_slice_public_flat_consistency_min_label_rate
-        ),
-        "hier_slice_public_flat_consistency_min_rows": hier_slice_public_flat_consistency_min_rows,
-        "hier_public_trade_flat_margin_weight": hier_public_trade_flat_margin_weight,
-        "hier_public_trade_flat_margin": hier_public_trade_flat_margin,
-        "hier_public_trade_flat_margin_min_label_rate": hier_public_trade_flat_margin_min_label_rate,
-        "hier_slice_public_trade_flat_margin_weight": hier_slice_public_trade_flat_margin_weight,
-        "hier_slice_public_trade_flat_margin": hier_slice_public_trade_flat_margin,
-        "hier_slice_public_trade_flat_margin_min_label_rate": (
-            hier_slice_public_trade_flat_margin_min_label_rate
-        ),
-        "hier_slice_public_trade_flat_margin_min_rows": hier_slice_public_trade_flat_margin_min_rows,
-        "hier_slice_side_ce_weight": hier_slice_side_ce_weight,
-        "hier_slice_side_true_margin_weight": hier_slice_side_true_margin_weight,
-        "hier_slice_side_true_margin": hier_slice_side_true_margin,
-        "hier_slice_side_accuracy_edge_weight": hier_slice_side_accuracy_edge_weight,
-        "hier_slice_side_accuracy_edge_margin": hier_slice_side_accuracy_edge_margin,
-        "hier_slice_side_min_label_rate": hier_slice_side_min_label_rate,
-        "hier_slice_side_min_rows": hier_slice_side_min_rows,
-        "hier_side_global_prior_match_weight": hier_side_global_prior_match_weight,
-        "hier_side_global_prior_match_tolerance": hier_side_global_prior_match_tolerance,
-        "hier_side_global_prior_match_min_label_rate": hier_side_global_prior_match_min_label_rate,
-        "hier_slice_side_prior_match_weight": hier_slice_side_prior_match_weight,
-        "hier_slice_side_prior_match_tolerance": hier_slice_side_prior_match_tolerance,
-        "hier_slice_side_prior_match_min_label_rate": hier_slice_side_prior_match_min_label_rate,
-        "hier_slice_side_prior_match_min_rows": hier_slice_side_prior_match_min_rows,
-        "direction_flat_starvation_weight": direction_flat_starvation_weight,
-        "direction_flat_starvation_min_label_rate": direction_flat_starvation_min_label_rate,
-        "direction_flat_starvation_min_rows": direction_flat_starvation_min_rows,
-        "direction_flat_starvation_pred_fraction": direction_flat_starvation_pred_fraction,
-        "direction_flat_starvation_pred_floor": direction_flat_starvation_pred_floor,
-        "direction_flat_starvation_logit_margin": direction_flat_starvation_logit_margin,
-        "ckpt_balance_guard_required": ckpt_balance_guard_required,
-        "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
-        "public_trade_flat_hard_rate_guard_required": public_trade_flat_hard_rate_guard_required,
-        "best_public_trade_flat_hard_rate_guard_ok": best_public_trade_flat_hard_rate_guard_ok,
-        "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
-        "failures": failures,
-    }
-
-
-def _tail_direction_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
-    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
-    active_heads = {
-        str(head)
-        for head in (
-            recipe.get("active_heads")
-            or capabilities.get("declared_active_heads")
-            or capabilities.get("supported_heads")
-            or []
-        )
-        if str(head)
-    }
-    weight = _safe_float(recipe.get("tail_direction_ce_weight", meta.get("tail_direction_ce_weight", 0.0)))
-    quantile = _safe_float(
-        recipe.get("tail_direction_quality_quantile", meta.get("tail_direction_quality_quantile", 0.0))
-    )
-    min_batch = int(_safe_float(recipe.get("tail_direction_min_batch", meta.get("tail_direction_min_batch", 0))))
-    failures: list[str] = []
-    if "direction" in active_heads:
-        if weight <= 0.0:
-            failures.append("direction active head requires positive tail_direction_ce_weight")
-        if quantile < 0.50 or quantile > 0.95:
-            failures.append("direction active head requires tail_direction_quality_quantile in [0.50, 0.95]")
-        if min_batch < 2:
-            failures.append("direction active head requires tail_direction_min_batch >= 2")
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "active_heads": sorted(active_heads),
-        "direction_active": "direction" in active_heads,
-        "tail_direction_ce_weight": weight,
-        "tail_direction_quality_quantile": quantile,
-        "tail_direction_min_batch": min_batch,
-        "tail_direction_mask": "directional_tradable_clean_path_top_quality",
-        "failures": failures,
-    }
-
-
-def _symmetric_validation_recipe_contract(
-    meta: dict[str, Any],
-    capabilities: dict[str, Any],
-    *,
-    contract_mode: str = "foundation_seq146",
-) -> dict[str, Any]:
-    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
-    active_heads = {
-        str(head)
-        for head in (
-            recipe.get("active_heads")
-            or capabilities.get("declared_active_heads")
-            or capabilities.get("supported_heads")
-            or []
-        )
-        if str(head)
-    }
-    symmetric_negatives = _bool_value(recipe.get("symmetric_negatives", meta.get("symmetric_negatives", False)))
-    selector_masked_aux = _bool_value(recipe.get("selector_masked_aux", meta.get("selector_masked_aux", False)))
-    validation_objective_matches_train = _bool_value(
-        recipe.get(
-            "validation_objective_matches_train",
-            meta.get("validation_objective_matches_train", False),
-        )
-    )
-    aux_selector_mode = str(recipe.get("aux_selector_mode", meta.get("aux_selector_mode", ""))).strip()
-    clean_edge_target_mode = str(recipe.get("clean_edge_target_mode", meta.get("clean_edge_target_mode", ""))).strip()
-    survival_target_mode = str(recipe.get("survival_target_mode", meta.get("survival_target_mode", ""))).strip()
-    bad_path_ce_in_direction_loss = _bool_value(
-        recipe.get("bad_path_ce_in_direction_loss", meta.get("bad_path_ce_in_direction_loss", False))
-    )
-    bad_path_prob_penalty_in_validation = _bool_value(
-        recipe.get(
-            "bad_path_prob_penalty_in_validation",
-            meta.get("bad_path_prob_penalty_in_validation", False),
-        )
-    )
-    symmetric_short_prob_penalties = _bool_value(
-        recipe.get("symmetric_short_prob_penalties", meta.get("symmetric_short_prob_penalties", False))
-    )
-    symmetric_clean_edge_rank = _bool_value(
-        recipe.get("symmetric_clean_edge_rank", meta.get("symmetric_clean_edge_rank", False))
-    )
-    hierarchical_entry_heads_enabled = _bool_value(
-        recipe.get("hierarchical_entry_heads_enabled", meta.get("hierarchical_entry_heads_enabled", False))
-    )
-    side_validity_head_enabled = _bool_value(
-        recipe.get(
-            "side_validity_head_enabled",
-            (meta.get("hierarchical_entry_heads") or {}).get("side_validity", {}).get(
-                "enabled",
-                meta.get("side_validity_head_enabled", False),
-            )
-            if isinstance(meta.get("hierarchical_entry_heads"), dict)
-            else meta.get("side_validity_head_enabled", False),
-        )
-    )
-    trendline_rail_head_enabled = _bool_value(
-        recipe.get(
-            "trendline_rail_head_enabled",
-            (meta.get("trendline_rail_head") or {}).get("enabled", meta.get("trendline_rail_head_enabled", False))
-            if isinstance(meta.get("trendline_rail_head"), dict)
-            else meta.get("trendline_rail_head_enabled", False),
-        )
-    )
-    xau_side_specific_repair = bool(
-        contract_mode == "smart_seq520_candidate"
-        and (
-            hierarchical_entry_heads_enabled
-            or side_validity_head_enabled
-            or trendline_rail_head_enabled
-            or "side_validity" in active_heads
-            or "trendline_rail" in active_heads
-            or "trade_side_hierarchy" in active_heads
-        )
-    )
-    expected_bad_path_prob_penalty_in_validation = not xau_side_specific_repair
-    failures: list[str] = []
-    if contract_mode == "smart_seq520_candidate":
-        if not symmetric_negatives:
-            failures.append("smart symmetric validation requires symmetric_negatives=true")
-        if not selector_masked_aux:
-            failures.append("smart symmetric validation requires selector_masked_aux=true")
-        if not validation_objective_matches_train:
-            failures.append("smart symmetric validation requires validation_objective_matches_train=true")
-        if aux_selector_mode != "long_short_union":
-            failures.append("smart symmetric validation requires aux_selector_mode=long_short_union")
-        if clean_edge_target_mode != "bidir":
-            failures.append("smart symmetric validation requires clean_edge_target_mode=bidir")
-        if survival_target_mode != "bidir":
-            failures.append("smart symmetric validation requires survival_target_mode=bidir")
-        if "bad_path" in active_heads:
-            if not bad_path_ce_in_direction_loss:
-                failures.append("smart bad_path active head requires bad_path_ce_in_direction_loss=true")
-            if xau_side_specific_repair and bad_path_prob_penalty_in_validation:
-                failures.append(
-                    "smart XAU side-specific bad_path repair requires "
-                    "bad_path_prob_penalty_in_validation=false"
-                )
-            if (not xau_side_specific_repair) and (not bad_path_prob_penalty_in_validation):
-                failures.append("smart bad_path active head requires bad_path_prob_penalty_in_validation=true")
-        if not symmetric_short_prob_penalties:
-            failures.append("smart symmetric validation requires symmetric_short_prob_penalties=true")
-        if "clean_edge" in active_heads and not symmetric_clean_edge_rank:
-            failures.append("smart clean_edge active head requires symmetric_clean_edge_rank=true")
-    return {
-        "decision": "PASS" if not failures else "FAIL",
-        "active_heads": sorted(active_heads),
-        "contract_mode": contract_mode,
-        "symmetric_negatives": symmetric_negatives,
-        "selector_masked_aux": selector_masked_aux,
-        "validation_objective_matches_train": validation_objective_matches_train,
-        "aux_selector_mode": aux_selector_mode,
-        "clean_edge_target_mode": clean_edge_target_mode,
-        "survival_target_mode": survival_target_mode,
-        "bad_path_ce_in_direction_loss": bad_path_ce_in_direction_loss,
-        "bad_path_prob_penalty_in_validation": bad_path_prob_penalty_in_validation,
-        "expected_bad_path_prob_penalty_in_validation": expected_bad_path_prob_penalty_in_validation,
-        "xau_side_specific_repair": xau_side_specific_repair,
-        "hierarchical_entry_heads_enabled": hierarchical_entry_heads_enabled,
-        "side_validity_head_enabled": side_validity_head_enabled,
-        "trendline_rail_head_enabled": trendline_rail_head_enabled,
-        "symmetric_short_prob_penalties": symmetric_short_prob_penalties,
-        "symmetric_clean_edge_rank": symmetric_clean_edge_rank,
-        "failures": failures,
-    }
-
-
-def _pretrain_manifest_contract_report(
-    manifest_path: Path | None,
-    *,
-    expected_bundle_dir: Path,
-    expected_dataset_dir: Path,
-) -> dict[str, Any] | None:
-    if manifest_path is None:
+def _spearman(left: np.ndarray, right: np.ndarray) -> float | None:
+    left = np.asarray(left, dtype=np.float64)
+    right = np.asarray(right, dtype=np.float64)
+    if left.shape != right.shape or left.size < 3:
         return None
-    manifest = _read_json(manifest_path)
+    if np.nanstd(left) <= 1e-12 or np.nanstd(right) <= 1e-12:
+        return None
+    value = pd.Series(left).rank(method="average").corr(
+        pd.Series(right).rank(method="average")
+    )
+    return float(value) if value is not None and np.isfinite(value) else None
+
+
+def _utility_evidence_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     failures: list[str] = []
-    inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), dict) else {}
-    hashes = manifest.get("artifact_sha256") if isinstance(manifest.get("artifact_sha256"), dict) else {}
-    contracts = manifest.get("preflight_contracts") if isinstance(manifest.get("preflight_contracts"), dict) else {}
-
-    schema_version = str(manifest.get("schema_version") or "")
-    allowed_schema_versions = {
-        "entry_foundation_smoke_train_run_manifest_v1",
-        "entry_foundation_candidate_train_run_manifest_v1",
-    }
-    if schema_version not in allowed_schema_versions:
-        failures.append(f"unexpected pretrain manifest schema_version={manifest.get('schema_version')}")
-    if str(Path(str(manifest.get("out_bundle_dir") or "")).expanduser().resolve()) != str(expected_bundle_dir):
-        failures.append("pretrain manifest out_bundle_dir does not match audited bundle_dir")
-    dataset_input = (
-        inputs.get("smoke_dataset_dir")
-        or inputs.get("candidate_dataset_dir")
-        or inputs.get("foundation_dataset_dir")
-        or ""
-    )
-    if str(Path(str(dataset_input)).expanduser().resolve()) != str(expected_dataset_dir):
-        failures.append("pretrain manifest smoke_dataset_dir does not match audited dataset_dir")
-    if bool(manifest.get("promotion_shadow_live_allowed")) is not False:
-        failures.append("pretrain manifest must keep promotion_shadow_live_allowed=false")
-    if bool(manifest.get("trainer_started_by_manifest_writer")) is not False:
-        failures.append("pretrain manifest writer must not mark trainer_started_by_manifest_writer=true")
-
-    if schema_version == "entry_foundation_candidate_train_run_manifest_v1":
-        expected_hash_keys = (
-            "candidate_readiness",
-            "smoke_bundle_audit",
-            "specialist_audit",
-        )
-    else:
-        expected_hash_keys = (
-            "training_readiness",
-            "feature_audit",
-            "target_audit",
-            "specialist_audit",
-            "foundation_guardrails",
-            "smoke_dataset_manifest",
-            "worktree_hygiene",
-        )
-    missing_hashes = [key for key in expected_hash_keys if not hashes.get(key)]
-    if missing_hashes:
-        failures.append(f"pretrain manifest missing artifact hashes: {missing_hashes}")
-    path_by_hash_key = {
-        "training_readiness": inputs.get("training_readiness_json"),
-        "feature_audit": inputs.get("feature_audit_json"),
-        "target_audit": inputs.get("target_audit_json"),
-        "specialist_audit": inputs.get("specialist_audit_json"),
-        "foundation_guardrails": inputs.get("foundation_guardrails_json"),
-        "smoke_dataset_manifest": inputs.get("smoke_dataset_manifest"),
-        "worktree_hygiene": inputs.get("worktree_hygiene_json"),
-        "candidate_readiness": inputs.get("candidate_readiness_json"),
-        "smoke_bundle_audit": inputs.get("smoke_bundle_audit_json"),
-    }
-    hash_checks: dict[str, dict[str, Any]] = {}
-    for key in expected_hash_keys:
-        raw_path = path_by_hash_key.get(key)
-        if not raw_path:
-            failures.append(f"pretrain manifest missing input path for hash key: {key}")
-            continue
-        path = Path(str(raw_path)).expanduser().resolve()
-        expected = str(hashes.get(key) or "")
-        hash_checks[key] = _artifact_hash_check(path, expected)
-        if not hash_checks[key]["ok"]:
-            failures.append(f"pretrain manifest artifact hash mismatch: {key}")
-
-    readiness = contracts.get("training_readiness") if isinstance(contracts.get("training_readiness"), dict) else {}
-    candidate_readiness = (
-        contracts.get("candidate_readiness")
-        if isinstance(contracts.get("candidate_readiness"), dict)
-        else {}
-    )
-    smoke_edge = contracts.get("smoke_edge_audit") if isinstance(contracts.get("smoke_edge_audit"), dict) else {}
-    feature = contracts.get("feature_foundation") if isinstance(contracts.get("feature_foundation"), dict) else {}
-    target = contracts.get("target_foundation") if isinstance(contracts.get("target_foundation"), dict) else {}
-    specialist = contracts.get("specialist_contract") if isinstance(contracts.get("specialist_contract"), dict) else {}
-    smoke_dataset = contracts.get("smoke_dataset") if isinstance(contracts.get("smoke_dataset"), dict) else {}
-    worktree = contracts.get("worktree_hygiene") if isinstance(contracts.get("worktree_hygiene"), dict) else {}
-    contract_mode = str(
-        manifest.get("specialist_contract_mode")
-        or specialist.get("contract_mode")
-        or specialist.get("audit_contract_mode")
-        or "foundation_seq146"
-    )
-    expected_required_specialists = set(required_training_specialists_for_mode(contract_mode))
-    expected_model_contract = specialist_model_contract_for_mode(contract_mode)
-
-    if schema_version == "entry_foundation_candidate_train_run_manifest_v1":
-        if str(candidate_readiness.get("decision")) != "READY_FOR_CANDIDATE_TRAINING_VEDTAK":
-            failures.append(
-                "candidate pretrain manifest candidate_readiness decision is not READY_FOR_CANDIDATE_TRAINING_VEDTAK"
-            )
-        if str(candidate_readiness.get("artifact_provenance_decision")) != "PASS":
-            failures.append("candidate pretrain manifest candidate_readiness artifact_provenance decision is not PASS")
-        candidate_fingerprints = (
-            candidate_readiness.get("artifact_fingerprints")
-            if isinstance(candidate_readiness.get("artifact_fingerprints"), dict)
-            else {}
-        )
-        if not candidate_fingerprints:
-            failures.append("candidate pretrain manifest candidate_readiness artifact fingerprints are missing")
-        for key in ("smoke_bundle_audit", "specialist_audit"):
-            fingerprint = candidate_fingerprints.get(key)
-            if not isinstance(fingerprint, dict):
-                failures.append(f"candidate pretrain manifest candidate_readiness missing artifact fingerprint: {key}")
-                continue
-            fingerprint_path = fingerprint.get("path")
-            manifest_path_for_key = path_by_hash_key.get(key)
-            fingerprint_sha = str(fingerprint.get("sha256") or "")
-            manifest_sha = str(hashes.get(key) or "")
-            if (
-                fingerprint_path
-                and manifest_path_for_key
-                and str(Path(str(fingerprint_path)).expanduser().resolve())
-                != str(Path(str(manifest_path_for_key)).expanduser().resolve())
-                and not (
-                    fingerprint_sha
-                    and manifest_sha
-                    and fingerprint_sha == manifest_sha
-                    and bool(hash_checks.get(key, {}).get("ok"))
-                )
-            ):
-                failures.append(
-                    f"candidate pretrain manifest candidate_readiness artifact fingerprint path mismatch: {key}"
-                )
-            if fingerprint_sha != manifest_sha:
-                failures.append(
-                    f"candidate pretrain manifest candidate_readiness artifact fingerprint hash mismatch: {key}"
-                )
-        if str(smoke_edge.get("decision")) != "PASS":
-            failures.append(f"candidate pretrain smoke edge audit decision is not PASS: {smoke_edge.get('decision')}")
-        smoke_edge_required_specialists = {
-            str(name) for name in smoke_edge.get("required_training_specialists", []) if str(name)
+    for column in _REQUIRED_TARGET_EVIDENCE:
+        try:
+            _numeric(frame, column)
+        except RuntimeError as exc:
+            failures.append(f"{split}: {exc}")
+    correlations: dict[str, float | None] = {}
+    if not failures:
+        pairs = {
+            "path_quality": ("path_quality_pred", "path_quality_bps", 1),
+            "bad_path_vs_path_quality": ("bad_path_prob", "path_quality_bps", -1),
+            "mfe_first_n": ("mfe_first_n_pred", "mfe_first_n_bps", 1),
+            "position_size": ("position_size_pred", "y_position_size_target", 1),
+            "long_path_utility": (
+                "long_path_utility_pred_bps",
+                "y_long_path_utility_bps",
+                1,
+            ),
+            "short_path_utility": (
+                "short_path_utility_pred_bps",
+                "y_short_path_utility_bps",
+                1,
+            ),
         }
-        smoke_edge_specialist_groups = {
-            str(name) for name in smoke_edge.get("specialist_groups", []) if str(name)
-        }
-        if smoke_edge_required_specialists != expected_required_specialists:
-            failures.append(
-                "candidate pretrain smoke edge required specialists were not exact: "
-                f"{sorted(smoke_edge_required_specialists)}"
-            )
-        if smoke_edge_specialist_groups != expected_required_specialists:
-            failures.append(
-                "candidate pretrain smoke edge specialist groups were not exact: "
-                f"{sorted(smoke_edge_specialist_groups)}"
-            )
-        if str(smoke_edge.get("pretrain_manifest_contract_decision")) != "PASS":
-            failures.append("candidate pretrain smoke edge audit did not validate its own pretrain manifest")
-        if not bool(smoke_edge.get("feature_objective_coverage_all_present")):
-            failures.append("candidate pretrain smoke edge feature objective coverage is not all-present")
-        if not bool(smoke_edge.get("feature_objective_liveness_all_live")):
-            failures.append("candidate pretrain smoke edge feature objective liveness is not all-live")
-        if not bool(smoke_edge.get("feature_source_field_liveness_all_live")):
-            failures.append("candidate pretrain smoke edge feature source-field liveness is not all-live")
-        if not bool(smoke_edge.get("specialist_active_heads_match_target")):
-            failures.append("candidate pretrain smoke edge specialist active heads did not match target")
-        if not bool(smoke_edge.get("specialist_blocked_heads_match_target")):
-            failures.append("candidate pretrain smoke edge specialist blocked heads did not match target")
-        if not bool(smoke_edge.get("specialist_objective_routing_all_present_and_expected")):
-            failures.append("candidate pretrain smoke edge specialist routing is not all-present")
-        if not bool(smoke_edge.get("specialist_model_contract_valid")):
-            failures.append("candidate pretrain smoke edge specialist model contract is not valid")
-        if not bool(smoke_edge.get("specialist_model_contract_set_exact")):
-            failures.append("candidate pretrain smoke edge specialist model contract set is not exact")
-        if not bool(smoke_edge.get("specialist_model_contract_owned_objectives_match")):
-            failures.append("candidate pretrain smoke edge specialist model contract owned objectives do not match")
-        if not bool(smoke_edge.get("smoke_dataset_audit_provenance_all_artifacts_present")):
-            failures.append("candidate pretrain smoke edge did not preserve smoke-dataset audit artifacts")
-        if not bool(smoke_edge.get("smoke_dataset_audit_provenance_all_artifact_hashes_present")):
-            failures.append("candidate pretrain smoke edge did not preserve smoke-dataset audit artifact hashes")
-        if not bool(smoke_edge.get("worktree_critical_gate_review_ok")):
-            failures.append("candidate pretrain smoke edge did not preserve worktree critical gate review")
-    else:
-        if not bool(readiness.get("foundation_contract_ready_for_smoke")):
-            failures.append("pretrain manifest readiness foundation_contract_ready_for_smoke is not true")
-        if str(readiness.get("artifact_provenance_decision")) != "PASS":
-            failures.append(
-                "pretrain manifest readiness artifact_provenance decision is not PASS"
-            )
-        readiness_fingerprints = (
-            readiness.get("artifact_fingerprints")
-            if isinstance(readiness.get("artifact_fingerprints"), dict)
-            else {}
-        )
-        if not readiness_fingerprints:
-            failures.append("pretrain manifest readiness artifact fingerprints are missing")
-        for key in expected_hash_keys:
-            if key == "training_readiness":
-                continue
-            fingerprint = readiness_fingerprints.get(key) if isinstance(readiness_fingerprints, dict) else None
-            if not isinstance(fingerprint, dict):
-                failures.append(f"pretrain manifest readiness missing artifact fingerprint: {key}")
-                continue
-            fingerprint_path = fingerprint.get("path")
-            manifest_path_for_key = path_by_hash_key.get(key)
-            if (
-                fingerprint_path
-                and manifest_path_for_key
-                and str(Path(str(fingerprint_path)).expanduser().resolve())
-                != str(Path(str(manifest_path_for_key)).expanduser().resolve())
-            ):
-                failures.append(f"pretrain manifest readiness artifact fingerprint path mismatch: {key}")
-            if str(fingerprint.get("sha256") or "") != str(hashes.get(key) or ""):
-                failures.append(f"pretrain manifest readiness artifact fingerprint hash mismatch: {key}")
-        if str(feature.get("decision")) != "PASS":
-            failures.append(f"pretrain feature contract decision is not PASS: {feature.get('decision')}")
-        if not bool(feature.get("foundation_objective_coverage_all_present")):
-            failures.append("pretrain feature contract objective coverage is not all-present")
-        if not bool(feature.get("foundation_objective_liveness_all_live")):
-            failures.append("pretrain feature contract objective liveness is not all-live")
-        if not bool(feature.get("foundation_source_field_liveness_all_live")):
-            failures.append("pretrain feature contract source-field liveness is not all-live")
-        for row in feature.get("foundation_objective_coverage") or []:
-            if int((row or {}).get("missing_count") or 0) != 0:
-                failures.append(f"pretrain feature objective has missing features: {(row or {}).get('objective')}")
-        for row in feature.get("foundation_objective_liveness") or []:
-            if (
-                int((row or {}).get("missing_count") or 0) != 0
-                or int((row or {}).get("nonfinite_count") or 0) != 0
-                or int((row or {}).get("near_constant_count") or 0) != 0
-            ):
+        for name, (prediction, target, sign) in pairs.items():
+            rho = _spearman(_numeric(frame, prediction), _numeric(frame, target))
+            correlations[name] = rho
+            if rho is None or sign * rho <= 0.0:
                 failures.append(
-                    f"pretrain feature objective liveness failed: "
-                    f"{(row or {}).get('split')}:{(row or {}).get('objective')}"
+                    f"{split}: {name} Spearman={rho} lacks required sign {sign:+d}"
                 )
-        source_liveness_rows = feature.get("foundation_source_field_liveness") or []
-        if not source_liveness_rows:
-            failures.append("pretrain feature source-field liveness rows are missing")
-        min_source_active_rate = float(feature.get("min_required_source_active_rate") or 0.0)
-        min_source_active_count = int(feature.get("min_required_source_active_count") or 1)
-        for row in source_liveness_rows:
-            if (
-                not bool((row or {}).get("observed"))
-                or int((row or {}).get("nonfinite_count") or 0) != 0
-                or bool((row or {}).get("near_constant"))
-                or int((row or {}).get("active_count") or 0) < min_source_active_count
-                or float((row or {}).get("active_rate") or 0.0) < min_source_active_rate
-            ):
-                failures.append(
-                    f"pretrain feature source-field liveness failed: "
-                    f"{(row or {}).get('split')}:{(row or {}).get('source_field')}"
-                )
-        for split, row in (feature.get("foundation_source_fields_by_split") or {}).items():
-            if int((row or {}).get("source_missing_count") or 0) != 0:
-                failures.append(f"pretrain foundation source fields missing for split={split}")
-        allowed_smoke_dataset_schemas = {
-            "entry_foundation_seq146_smoke_dataset_v1",
-            "entry_foundation_seq215_smoke_dataset_v1",
-            "entry_smart_seq520_smoke_dataset_v1",
-        }
-        if str(smoke_dataset.get("schema_version")) not in allowed_smoke_dataset_schemas:
-            failures.append(
-                "pretrain smoke dataset contract schema is not an approved foundation smoke schema: "
-                f"{smoke_dataset.get('schema_version')}"
-            )
-        if (
-            str(smoke_dataset.get("audit_provenance_schema_version"))
-            != "entry_foundation_smoke_dataset_audit_provenance_v1"
-        ):
-            failures.append("pretrain smoke dataset contract audit provenance schema is invalid")
-        if not bool(smoke_dataset.get("audit_provenance_all_artifacts_present")):
-            failures.append("pretrain smoke dataset contract audit artifacts are not all present")
-        if not bool(smoke_dataset.get("audit_provenance_all_artifact_hashes_present")):
-            failures.append("pretrain smoke dataset contract audit artifact hashes are missing")
-        smoke_dataset_artifacts = (
-            smoke_dataset.get("audit_provenance_artifacts")
-            if isinstance(smoke_dataset.get("audit_provenance_artifacts"), dict)
-            else {}
-        )
-        for key in ("feature_audit", "target_audit", "specialist_audit"):
-            row = smoke_dataset_artifacts.get(key) if isinstance(smoke_dataset_artifacts.get(key), dict) else {}
-            if not row:
-                failures.append(f"pretrain smoke dataset contract missing audit artifact: {key}")
-                continue
-            manifest_path_for_key = path_by_hash_key.get(key)
-            if (
-                row.get("path")
-                and manifest_path_for_key
-                and str(Path(str(row.get("path"))).expanduser().resolve())
-                != str(Path(str(manifest_path_for_key)).expanduser().resolve())
-            ):
-                failures.append(f"pretrain smoke dataset contract audit path mismatch: {key}")
-            if str(row.get("sha256") or "") != str(hashes.get(key) or ""):
-                failures.append(f"pretrain smoke dataset contract audit hash mismatch: {key}")
-        split_hashes = smoke_dataset.get("split_hashes") if isinstance(smoke_dataset.get("split_hashes"), dict) else {}
-        for split in ("train", "val", "test"):
-            split_row = split_hashes.get(split) if isinstance(split_hashes.get(split), dict) else {}
-            if not split_row:
-                failures.append(f"pretrain smoke dataset contract missing split hash row: {split}")
-                continue
-            for field in ("source_manifest_sha256", "out_parquet_sha256", "out_manifest_sha256"):
-                value = str(split_row.get(field) or "")
-                if len(value) != 64:
-                    failures.append(f"pretrain smoke dataset contract missing {field}: {split}")
-    if str(target.get("decision")) != "PASS":
-        failures.append(f"pretrain target contract decision is not PASS: {target.get('decision')}")
-    if not target.get("active_training_heads"):
-        failures.append("pretrain target contract has no active_training_heads")
-    target_active_heads = set(str(head) for head in target.get("active_training_heads") or [] if str(head))
-    target_blocked_heads = set(str(head) for head in target.get("blocked_heads") or [] if str(head))
-    specialist_active_heads = set(str(head) for head in specialist.get("architecture_active_heads") or [] if str(head))
-    specialist_blocked_heads = set(str(head) for head in specialist.get("architecture_blocked_heads") or [] if str(head))
-    specialist_required_training = {
-        str(name) for name in specialist.get("required_training_specialists", []) if str(name)
-    }
-    specialist_trainable = {str(name) for name in specialist.get("trainable_specialists", []) if str(name)}
-    specialist_model_contract = (
-        specialist.get("specialist_model_contract")
-        if isinstance(specialist.get("specialist_model_contract"), dict)
-        else {}
-    )
-    specialist_model_contract_keys = {str(name) for name in specialist_model_contract}
-    expected_model_contract_keys = {str(name) for name in expected_model_contract}
-    specialist_model_owned = {
-        str(name): tuple(str(x) for x in (spec or {}).get("owned_objectives") or ())
-        for name, spec in specialist_model_contract.items()
-        if isinstance(spec, dict)
-    }
-    expected_model_owned = {
-        str(name): tuple(str(x) for x in spec.get("owned_objectives") or ())
-        for name, spec in expected_model_contract.items()
-    }
-    specialist_model_support_heads = {
-        str(name): tuple(str(x) for x in (spec or {}).get("supports_heads") or ())
-        for name, spec in specialist_model_contract.items()
-        if isinstance(spec, dict)
-    }
-    specialist_model_signal_families = {
-        str(name): tuple(str(x) for x in (spec or {}).get("primary_signal_families") or ())
-        for name, spec in specialist_model_contract.items()
-        if isinstance(spec, dict)
-    }
-    train_manifest_with_loader_contract = schema_version in {
-        "entry_foundation_smoke_train_run_manifest_v1",
-        "entry_foundation_candidate_train_run_manifest_v1",
-    }
-    if train_manifest_with_loader_contract:
-        if specialist_required_training != expected_required_specialists:
-            failures.append(
-                "pretrain specialist required training set is not exact: "
-                f"{sorted(specialist_required_training)}"
-            )
-        if specialist_trainable != expected_required_specialists:
-            failures.append(
-                "pretrain trainer specialist-fusion loader trainable set is not exact: "
-                f"{sorted(specialist_trainable)}"
-            )
-        if not bool(specialist.get("specialist_model_contract_valid")):
-            failures.append("pretrain specialist model contract is not valid")
-        if specialist.get("specialist_model_contract_failures"):
-            failures.append(
-                "pretrain specialist model contract has failures: "
-                f"{specialist.get('specialist_model_contract_failures')}"
-            )
-        if specialist_model_contract_keys != expected_model_contract_keys:
-            failures.append(
-                "pretrain specialist model contract trainable set is not exact: "
-                f"{sorted(specialist_model_contract_keys)}"
-            )
-        if specialist_model_owned != expected_model_owned:
-            failures.append(
-                "pretrain specialist model contract owned objectives mismatch: "
-                f"{specialist_model_owned}"
-            )
-        for specialist_name in sorted(expected_required_specialists):
-            support_heads = set(specialist_model_support_heads.get(specialist_name) or ())
-            if not support_heads:
-                failures.append(f"pretrain specialist model contract has no support heads: {specialist_name}")
-            if support_heads - set(SPECIALIST_FUSION_ACTIVE_HEADS):
-                failures.append(
-                    f"pretrain specialist model contract references inactive heads: "
-                    f"{specialist_name} {sorted(support_heads - set(SPECIALIST_FUSION_ACTIVE_HEADS))}"
-                )
-            if not specialist_model_signal_families.get(specialist_name):
-                failures.append(f"pretrain specialist model contract has no signal families: {specialist_name}")
-    if specialist_active_heads != target_active_heads or specialist_active_heads != set(SPECIALIST_FUSION_ACTIVE_HEADS):
-        failures.append(
-            "pretrain specialist architecture active heads do not match target contract: "
-            f"specialist={sorted(specialist_active_heads)} target={sorted(target_active_heads)}"
-        )
-    if specialist_blocked_heads != target_blocked_heads or specialist_blocked_heads != set(SPECIALIST_FUSION_BLOCKED_HEADS):
-        failures.append(
-            "pretrain specialist architecture blocked heads do not match target contract: "
-            f"specialist={sorted(specialist_blocked_heads)} target={sorted(target_blocked_heads)}"
-        )
-    active_blocked_overlap = sorted(specialist_active_heads & specialist_blocked_heads)
-    if active_blocked_overlap:
-        failures.append(f"pretrain specialist architecture has active/blocked head overlap: {active_blocked_overlap}")
-    if not bool(specialist.get("foundation_objective_routing_all_present_and_expected")):
-        failures.append("pretrain specialist contract exact objective routing is not all-present")
-    if not bool(specialist.get("specialist_input_liveness_all_live")):
-        failures.append("pretrain specialist input liveness is not all-live")
-    for row in specialist.get("foundation_objective_routing") or []:
-        if int((row or {}).get("missing_count") or 0) != 0 or int((row or {}).get("misrouted_count") or 0) != 0:
-            failures.append(f"pretrain specialist objective not exactly routed: {(row or {}).get('objective')}")
-    for row in specialist.get("specialist_input_liveness") or []:
-        if (
-            int((row or {}).get("nonfinite_count") or 0) != 0
-            or int((row or {}).get("live_feature_count") or 0)
-            < int((row or {}).get("min_required_live_feature_count") or 1)
-        ):
-            failures.append(
-                f"pretrain specialist input liveness failed: "
-                f"{(row or {}).get('split')}:{(row or {}).get('specialist')}"
-            )
-    smoke_manifest_with_worktree_contract = schema_version == "entry_foundation_smoke_train_run_manifest_v1"
-    worktree_critical_gate_review_ok: bool | None = None
-    if smoke_manifest_with_worktree_contract:
-        if not worktree:
-            failures.append("pretrain manifest missing worktree hygiene contract")
-            worktree_critical_gate_review_ok = False
-        else:
-            critical_gate_review = (
-                worktree.get("foundation_cleanup_critical_gate_review")
-                if isinstance(worktree.get("foundation_cleanup_critical_gate_review"), dict)
-                else {}
-            )
-            critical_count = int(critical_gate_review.get("critical_gate_path_count") or 0)
-            critical_ok_count = int(critical_gate_review.get("ok_count") or 0)
-            critical_missing = critical_gate_review.get("missing_from_repo") or []
-            critical_dirty_missing = critical_gate_review.get("dirty_missing_from_stage") or []
-            worktree_critical_gate_review_ok = (
-                critical_count > 0
-                and critical_ok_count == critical_count
-                and not critical_missing
-                and not critical_dirty_missing
-            )
-            if not worktree_critical_gate_review_ok:
-                failures.append(
-                    "pretrain worktree hygiene critical gate review is not complete: "
-                    f"ok={critical_ok_count}/{critical_count} "
-                    f"missing={len(critical_missing)} dirty_missing_stage={len(critical_dirty_missing)}"
-                )
-
     return {
         "decision": "PASS" if not failures else "FAIL",
-        "manifest_path": str(manifest_path),
-        "schema_version": manifest.get("schema_version"),
-        "manifest_variant": str(
-            manifest.get("manifest_variant")
-            or manifest.get("candidate_variant")
-            or contract_mode
-        ),
-        "candidate_variant": str(
-            manifest.get("candidate_variant")
-            or manifest.get("manifest_variant")
-            or contract_mode
-        ),
-        "run_mode": manifest.get("run_mode"),
-        "specialist_contract_mode": contract_mode,
-        "expected_required_training_specialists": sorted(expected_required_specialists),
-        "artifact_hash_checks": hash_checks,
-        "feature_objective_coverage_all_present": (
-            smoke_edge.get("feature_objective_coverage_all_present")
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else feature.get("foundation_objective_coverage_all_present")
-        ),
-        "feature_objective_liveness_all_live": (
-            smoke_edge.get("feature_objective_liveness_all_live")
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else feature.get("foundation_objective_liveness_all_live")
-        ),
-        "feature_source_field_liveness_all_live": (
-            smoke_edge.get("feature_source_field_liveness_all_live")
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else feature.get("foundation_source_field_liveness_all_live")
-        ),
-        "smoke_edge_required_specialists_exact": (
-            {
-                str(name) for name in smoke_edge.get("required_training_specialists", []) if str(name)
-            }
-            == expected_required_specialists
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else None
-        ),
-        "smoke_edge_specialist_groups_exact": (
-            {
-                str(name) for name in smoke_edge.get("specialist_groups", []) if str(name)
-            }
-            == expected_required_specialists
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else None
-        ),
-        "smoke_edge_specialist_model_contract_valid": (
-            bool(smoke_edge.get("specialist_model_contract_valid"))
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else None
-        ),
-        "smoke_edge_specialist_model_contract_set_exact": (
-            bool(smoke_edge.get("specialist_model_contract_set_exact"))
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else None
-        ),
-        "smoke_edge_specialist_model_contract_owned_objectives_match": (
-            bool(smoke_edge.get("specialist_model_contract_owned_objectives_match"))
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else None
-        ),
-        "specialist_objective_routing_all_present_and_expected": specialist.get(
-            "foundation_objective_routing_all_present_and_expected"
-        ),
-        "specialist_input_liveness_all_live": specialist.get("specialist_input_liveness_all_live"),
-        "specialist_required_training_set_exact": (
-            {
-                str(name) for name in specialist.get("required_training_specialists", []) if str(name)
-            }
-            == expected_required_specialists
-            if train_manifest_with_loader_contract
-            else None
-        ),
-        "specialist_trainable_set_exact": (
-            {
-                str(name) for name in specialist.get("trainable_specialists", []) if str(name)
-            }
-            == expected_required_specialists
-            if train_manifest_with_loader_contract
-            else None
-        ),
-        "specialist_model_contract_valid": (
-            bool(specialist.get("specialist_model_contract_valid"))
-            and not specialist.get("specialist_model_contract_failures")
-            if train_manifest_with_loader_contract
-            else None
-        ),
-        "specialist_model_contract_set_exact": (
-            {
-                str(name) for name in (
-                    specialist.get("specialist_model_contract")
-                    if isinstance(specialist.get("specialist_model_contract"), dict)
-                    else {}
-                )
-            }
-            == expected_required_specialists
-            if train_manifest_with_loader_contract
-            else None
-        ),
-        "specialist_model_contract_owned_objectives_match": (
-            {
-                str(name): tuple(str(x) for x in (spec or {}).get("owned_objectives") or ())
-                for name, spec in (
-                    specialist.get("specialist_model_contract")
-                    if isinstance(specialist.get("specialist_model_contract"), dict)
-                    else {}
-                ).items()
-                if isinstance(spec, dict)
-            }
-            == {
-                str(name): tuple(str(x) for x in spec.get("owned_objectives") or ())
-                for name, spec in expected_model_contract.items()
-            }
-            if train_manifest_with_loader_contract
-            else None
-        ),
-        "smoke_dataset_audit_provenance_all_artifacts_present": smoke_dataset.get(
-            "audit_provenance_all_artifacts_present"
-        )
-        if schema_version == "entry_foundation_smoke_train_run_manifest_v1"
-        else smoke_edge.get("smoke_dataset_audit_provenance_all_artifacts_present"),
-        "smoke_dataset_audit_provenance_all_artifact_hashes_present": smoke_dataset.get(
-            "audit_provenance_all_artifact_hashes_present"
-        )
-        if schema_version == "entry_foundation_smoke_train_run_manifest_v1"
-        else smoke_edge.get("smoke_dataset_audit_provenance_all_artifact_hashes_present"),
-        "smoke_edge_worktree_critical_gate_review_ok": (
-            smoke_edge.get("worktree_critical_gate_review_ok")
-            if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
-            else None
-        ),
-        "specialist_active_heads_match_target": (
-            target_active_heads == specialist_active_heads == set(SPECIALIST_FUSION_ACTIVE_HEADS)
-        ),
-        "specialist_blocked_heads_match_target": (
-            target_blocked_heads == specialist_blocked_heads == set(SPECIALIST_FUSION_BLOCKED_HEADS)
-            and not active_blocked_overlap
-        ),
-        "target_active_training_heads": target.get("active_training_heads") or [],
-        "target_blocked_heads": target.get("blocked_heads") or [],
-        "worktree_hygiene_decision": worktree.get("decision"),
-        "worktree_critical_gate_review_ok": worktree_critical_gate_review_ok,
         "failures": failures,
+        "spearman": correlations,
     }
 
 
-def _audit_split(
-    *,
-    model: torch.nn.Module,
-    device: torch.device,
-    parquet_path: Path,
-    seq_len: int,
-    batch_size: int,
-    dataset_kwargs: dict[str, Any],
-    specialist_names: list[str],
-    ctx_cat_names: list[str],
-) -> tuple[dict[str, Any], list[str]]:
-    failures: list[str] = []
-    dataset = EntryV10CtxDataset(
-        parquet_path=parquet_path,
-        seq_len=seq_len,
-        allow_constant_labels=True,
-        **dataset_kwargs,
-    )
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
-    chunks: dict[str, list[np.ndarray]] = {
-        "direction_logits": [],
-        "path_quality_pred": [],
-        "bad_path_prob": [],
-        "labels": [],
-        "ctx_cat": [],
-        "path_quality_target": [],
-        "bad_path_target": [],
-        "specialist_gate": [],
+def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
+    direction = _direction_metrics(frame, context=split)
+    distribution_failures = [
+        failure
+        for failure in direction["failures"]
+        if (
+            "class" in failure
+            or "precision" in failure
+            or "emit all" in failure
+            or "prediction_rows" in failure
+            or "required support" in failure
+        )
+    ]
+    distribution = {
+        "decision": "PASS" if not distribution_failures else "FAIL",
+        "failures": distribution_failures,
+        "label_counts": direction["label_counts"],
+        "prediction_counts": direction["prediction_counts"],
+        "precision": direction["precision"],
+        "recall": direction["recall"],
     }
-    output_keys_seen: set[str] = set()
-    output_shapes_seen: dict[str, set[tuple[int, ...]]] = {}
-
-    with torch.no_grad():
-        for batch in loader:
-            seq_x = batch["seq_x"].to(device)
-            snap_x = batch["snap_x"].to(device)
-            ctx_cat = batch["ctx_cat"].to(device)
-            ctx_cont = batch["ctx_cont"].to(device)
-            out = model(
-                seq_x,
-                snap_x,
-                ctx_cat=ctx_cat,
-                ctx_cont=ctx_cont,
-                **_multi_tf_kwargs_from_batch(batch, device),
-            )
-            output_keys_seen.update(str(key) for key in out.keys())
-            for key, value in out.items():
-                if hasattr(value, "detach"):
-                    output_shapes_seen.setdefault(str(key), set()).add(tuple(int(dim) for dim in value.shape[1:]))
-                    if not bool(torch.isfinite(value).all().item()):
-                        failures.append(f"{parquet_path.name}: non-finite model output {key}")
-            direction_logits = out["direction_logits"]
-            if tuple(direction_logits.shape[-1:]) != (3,):
-                failures.append(f"{parquet_path.name}: direction_logits shape={tuple(direction_logits.shape)}")
-            chunks["direction_logits"].append(direction_logits.detach().cpu().float().numpy())
-            chunks["labels"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
-            chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
-            chunks["path_quality_target"].append(batch["path_quality_bps"].detach().cpu().float().numpy())
-            chunks["bad_path_target"].append(batch["y_bad_path"].detach().cpu().float().numpy())
-            chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
-            chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
-            if "specialist_gate" in out:
-                chunks["specialist_gate"].append(out["specialist_gate"].detach().cpu().float().numpy())
-
-    arr = {
-        key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32)
-        for key, value in chunks.items()
-    }
-    direction = _direction_metrics(arr["direction_logits"], arr["labels"])
-    direction_distribution = _direction_distribution_contract(direction)
-    direction_slice = _direction_slice_contract(
-        arr["direction_logits"],
-        arr["labels"],
-        arr["ctx_cat"],
-        ctx_cat_names,
-    )
-    path_quality_spearman = _spearman(arr["path_quality_pred"], arr["path_quality_target"])
-    bad_path_spearman = _spearman(arr["bad_path_prob"], arr["path_quality_target"])
-    gate_report = None
-    if len(chunks["specialist_gate"]) > 0:
-        gate = np.concatenate(chunks["specialist_gate"], axis=0)
-        gate_report = _gate_stats(gate, specialist_names)
-        if not bool(gate_report["finite"]):
-            failures.append(f"{parquet_path.name}: specialist gate has non-finite values")
-        if float(gate_report["row_sum_max_abs_error"]) > 1e-4:
-            failures.append(
-                f"{parquet_path.name}: specialist gate row sums drift by {gate_report['row_sum_max_abs_error']}"
-            )
-
-    report = {
-        "parquet_path": str(parquet_path),
-        "rows": int(direction["rows"]),
+    context = _context_slice_contract(frame, split=split)
+    gate = _specialist_gate_contract(frame, split=split)
+    heads = _active_head_evidence_contract(frame, split=split)
+    utility = _utility_evidence_contract(frame, split=split)
+    failures = [
+        *direction["failures"],
+        *distribution["failures"],
+        *context["failures"],
+        *gate["failures"],
+        *heads["failures"],
+        *utility["failures"],
+    ]
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "rows": int(len(frame)),
         "direction": direction,
-        "direction_distribution_contract": direction_distribution,
-        "direction_slice_contract": direction_slice,
-        "path_quality": {
-            "target_mean_bps": _safe_mean(arr["path_quality_target"]),
-            "pred_mean_bps": _safe_mean(arr["path_quality_pred"]),
-            "pred_vs_target_spearman": path_quality_spearman,
-        },
-        "bad_path": {
-            "target_rate": _safe_mean(arr["bad_path_target"]),
-            "prob_mean": _safe_mean(arr["bad_path_prob"]),
-            "prob_vs_path_quality_spearman": bad_path_spearman,
-        },
-        "specialist_gate": gate_report,
-        "output_keys_seen": sorted(output_keys_seen),
-        "output_shapes_seen": {
-            key: [list(shape) for shape in sorted(shapes)]
-            for key, shapes in sorted(output_shapes_seen.items())
+        "direction_distribution_contract": distribution,
+        "context_slice_contract": context,
+        "specialist_gate": gate,
+        "active_head_evidence": heads,
+        "utility_evidence": utility,
+        "public_trade_flat_contract": {
+            "decision": "PASS",
+            "failures": [],
+            "formula_exact": True,
+            "argmax_consistent": True,
+            "source": "validated immutable final-logit prediction evidence",
         },
     }
-    return report, failures
 
 
-def _require_edge_failures(
-    split: str, split_report: dict[str, Any], *, edge_test_scope: str = "strict"
-) -> list[str]:
-    """Split-level edge checks. Returns hard failures.
+def _write_markdown(path: Path, report: Mapping[str, Any]) -> None:
+    def _metric(value: Any) -> str:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return "n/a"
+        return f"{number:.6f}" if math.isfinite(number) else "n/a"
 
-    edge_test_scope="strict" (default): every edge check is a hard failure on
-    every split. Non-strict scopes are forbidden for XAU direction repair; a
-    slice/path failure must block the artifact instead of becoming a logged-only
-    diagnostic.
-    """
-    if edge_test_scope != "strict":
-        raise ValueError(
-            "[ENTRY_SMOKE_AUDIT_NO_EDGE_FALLBACK] "
-            f"edge_test_scope={edge_test_scope!r} is forbidden; use strict"
-        )
-    failures: list[str] = []
-    if not bool(split_report["direction"]["beats_majority_baseline"]):
-        failures.append(f"{split}: direction accuracy does not beat majority baseline")
-    distribution_contract = split_report.get("direction_distribution_contract") or {}
-    if str(distribution_contract.get("decision")) != "PASS":
-        failures.append(
-            f"{split}: direction distribution collapsed: "
-            f"{distribution_contract.get('failures')}"
-        )
-    slice_contract = split_report.get("direction_slice_contract") or {}
-    if str(slice_contract.get("decision")) != "PASS":
-        failures.append(
-            f"{split}: direction slice diagnostics failed: "
-            f"{slice_contract.get('failures')}"
-        )
-    path_rho = split_report["path_quality"]["pred_vs_target_spearman"]
-    if path_rho is None or float(path_rho) <= 0.0:
-        failures.append(f"{split}: path_quality_pred is not positively related to path_quality_bps")
-    bad_path_rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
-    if bad_path_rho is None or float(bad_path_rho) >= 0.0:
-        failures.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
-    return failures
-
-
-def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
-        "# Entry Foundation Smoke Bundle Audit",
+        "# Entry model-native seq513 smoke bundle audit",
         "",
         f"- Decision: `{report['decision']}`",
         f"- Bundle: `{report['bundle_dir']}`",
         f"- Dataset: `{report['dataset_dir']}`",
-        f"- Require edge: `{report['require_edge']}`",
-        f"- Edge test scope: `{report.get('edge_test_scope', 'strict')}`",
-        f"- Require head contract: `{report['require_head_contract']}`",
+        f"- Foundation policy: `{report.get('foundation_audit_policy_sha256', 'missing')}`",
         f"- Failure count: `{len(report['failures'])}`",
+        "- Promotion/shadow/live authority: `false`",
         "",
-        "## Failures",
+        "## Statistical direction proof",
         "",
+        "| split | rows | trade rows | accuracy | balanced accuracy | trade precision | trade Wilson lower |",
+        "|---|---:|---:|---:|---:|---:|---:|",
     ]
-    if report["failures"]:
-        lines.extend([f"- {failure}" for failure in report["failures"]])
-    else:
-        lines.append("- None")
-    bundle_specialist_contract = report.get("bundle_specialist_model_contract")
-    if isinstance(bundle_specialist_contract, dict):
-        lines.extend(
-            [
-                "",
-                "## Bundle Specialist Model Contract",
-                "",
-                f"- Decision: `{bundle_specialist_contract.get('decision')}`",
-                f"- Set exact: `{bundle_specialist_contract.get('set_exact')}`",
-                f"- Owned objectives match: `{bundle_specialist_contract.get('owned_objectives_match')}`",
-                f"- Support heads match: `{bundle_specialist_contract.get('support_heads_match')}`",
-                f"- Signal families match: `{bundle_specialist_contract.get('signal_families_match')}`",
-                f"- Model roles match: `{bundle_specialist_contract.get('model_roles_match')}`",
-            ]
-        )
-    pretrain = report.get("pretrain_manifest_contract")
-    if isinstance(pretrain, dict):
-        lines.extend(
-            [
-                "",
-                "## Pretrain Manifest",
-                "",
-                f"- Decision: `{pretrain.get('decision')}`",
-                f"- Manifest: `{pretrain.get('manifest_path')}`",
-                f"- Feature objective coverage: `{pretrain.get('feature_objective_coverage_all_present')}`",
-                f"- Feature objective liveness: `{pretrain.get('feature_objective_liveness_all_live')}`",
-                f"- Feature source-field liveness: `{pretrain.get('feature_source_field_liveness_all_live')}`",
-                f"- Specialist objective routing: `{pretrain.get('specialist_objective_routing_all_present_and_expected')}`",
-                f"- Specialist input liveness: `{pretrain.get('specialist_input_liveness_all_live')}`",
-                f"- Specialist active heads match target: `{pretrain.get('specialist_active_heads_match_target')}`",
-                f"- Specialist blocked heads match target: `{pretrain.get('specialist_blocked_heads_match_target')}`",
-                f"- Specialist model contract valid: `{pretrain.get('specialist_model_contract_valid')}`",
-                f"- Specialist model contract set exact: `{pretrain.get('specialist_model_contract_set_exact')}`",
-                f"- Specialist model contract owned objectives match: `{pretrain.get('specialist_model_contract_owned_objectives_match')}`",
-            ]
-        )
-    lines.extend(["", "## Split Metrics", ""])
-    for split, row in report["splits"].items():
-        direction = row["direction"]
-        bad_path = row["bad_path"]
-        direction_slice = row.get("direction_slice_contract") or {}
+    splits = report.get("splits")
+    for split in DATA_SPLITS:
+        split_report = splits.get(split, {}) if isinstance(splits, Mapping) else {}
+        direction = split_report.get("direction", {})
+        if not isinstance(direction, Mapping):
+            direction = {}
         lines.append(
-            f"- `{split}` rows={row['rows']} acc={direction['accuracy']:.4f} "
-            f"majority={direction['majority_baseline_accuracy']:.4f} "
-            f"beats_majority={direction['beats_majority_baseline']} "
-            f"direction_slices={direction_slice.get('decision')} "
-            f"bad_path_rho={bad_path['prob_vs_path_quality_spearman']}"
+            "| "
+            + " | ".join(
+                (
+                    split,
+                    str(direction.get("rows", "n/a")),
+                    str(direction.get("trade_rows", "n/a")),
+                    _metric(direction.get("accuracy")),
+                    _metric(direction.get("balanced_accuracy")),
+                    _metric(direction.get("trade_direction_precision")),
+                    _metric(direction.get("trade_direction_precision_wilson_lower")),
+                )
+            )
+            + " |"
         )
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    policy = _SMOKE_EDGE_POLICY
+    lines.extend(
+        [
+            "",
+            "Required global evidence: "
+            f"trade rows >= `{policy['min_trade_rows']}`, each predicted class >= "
+            f"`{policy['min_prediction_rows_per_class']}`, trade precision/Wilson >= "
+            f"`{policy['min_trade_direction_precision']:.2f}`/"
+            f"`{policy['min_trade_precision_wilson_lower']:.2f}`, and each "
+            f"LONG/SHORT/FLAT precision/Wilson >= `{policy['min_class_precision']:.2f}`/"
+            f"`{policy['min_class_precision_wilson_lower']:.2f}`.",
+            "",
+            "## Per-class precision evidence",
+            "",
+            "| split/class | predicted rows | successes | precision | Wilson lower |",
+            "|---|---:|---:|---:|---:|",
+        ]
+    )
+    for split in DATA_SPLITS:
+        split_report = splits.get(split, {}) if isinstance(splits, Mapping) else {}
+        direction = split_report.get("direction", {})
+        if not isinstance(direction, Mapping):
+            direction = {}
+        counts = direction.get("prediction_counts", {})
+        successes = direction.get("precision_successes", {})
+        precision = direction.get("precision", {})
+        wilson = direction.get("precision_wilson_lower", {})
+        for class_name in CLASS_NAMES:
+            lines.append(
+                "| "
+                + " | ".join(
+                    (
+                        f"{split}/{class_name}",
+                        str(counts.get(class_name, "n/a")) if isinstance(counts, Mapping) else "n/a",
+                        str(successes.get(class_name, "n/a")) if isinstance(successes, Mapping) else "n/a",
+                        _metric(precision.get(class_name)) if isinstance(precision, Mapping) else "n/a",
+                        _metric(wilson.get(class_name)) if isinstance(wilson, Mapping) else "n/a",
+                    )
+                )
+                + " |"
+            )
+    lines.extend(
+        [
+            "",
+            "Context slices additionally require at least "
+            f"`{policy['min_rows_per_context_slice']}` rows, "
+            f"`{policy['min_context_trade_rows']}` emitted trades, and trade "
+            f"precision/Wilson >= `{policy['min_context_trade_direction_precision']:.2f}`/"
+            f"`{policy['min_context_trade_precision_wilson_lower']:.2f}`.",
+            "",
+            "## Failures",
+            "",
+        ]
+    )
+    failures = list(report.get("failures") or [])
+    lines.extend(f"- {failure}" for failure in failures)
+    if not failures:
+        lines.append("- None")
+    atomic_write_text(path, "\n".join(lines) + "\n")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    if str(getattr(args, "edge_test_scope", "strict") or "strict").strip() != "strict":
-        raise ValueError(
-            "[ENTRY_SMOKE_AUDIT_NO_EDGE_FALLBACK] "
-            f"edge_test_scope={getattr(args, 'edge_test_scope', None)!r} is forbidden; use strict"
-        )
-    bundle_dir = Path(args.bundle_dir).expanduser().resolve()
-    dataset_dir = Path(args.dataset_dir).expanduser().resolve()
+    failures: list[str] = []
+    device = _device_arg(args.device)
+    bundle_dir = Path(args.bundle_dir).expanduser().absolute()
+    dataset_dir = Path(args.dataset_dir).expanduser().absolute()
     out_dir = Path(args.out_dir).expanduser().resolve()
-    m5_prebuilt = Path(args.m5_prebuilt_path).expanduser().resolve()
-    mtf_cache_dir = Path(args.multi_tf_cache_dir).expanduser().resolve() if args.multi_tf_cache_dir else None
-    splits = _parse_csv(args.splits)
-    device = torch.device(_device_arg(args.device))
+    try:
+        bundle_dir = _timestamped_directory(bundle_dir, label="bundle")
+    except RuntimeError as exc:
+        failures.append(str(exc))
+        bundle_dir = bundle_dir.resolve()
+    try:
+        dataset_dir = _timestamped_directory(dataset_dir, label="dataset")
+    except RuntimeError as exc:
+        failures.append(str(exc))
+        dataset_dir = dataset_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if mtf_cache_dir and mtf_cache_dir.exists():
-        os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
+    manifests, dataset_signal_contract = _dataset_manifest_contract(
+        dataset_dir=dataset_dir,
+        manifests={
+            "val": Path(args.val_manifest_json),
+            "test": Path(args.test_manifest_json),
+        },
+    )
+    failures.extend(f"dataset_manifest: {failure}" for failure in manifests["failures"])
 
-    failures: list[str] = []
-    bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
-    model = bundle.transformer_model
-    model.eval()
-    meta = dict(bundle.metadata)
-    seq_len = int(meta.get("seq_len") or 96)
-    specialist_cfg = meta.get("specialist_fusion") if isinstance(meta.get("specialist_fusion"), dict) else {}
-    specialist_enabled = bool(specialist_cfg.get("enabled", False))
-    specialist_contract_mode = str(specialist_cfg.get("contract_mode") or "foundation_seq146")
-    required_specialists = tuple(required_training_specialists_for_mode(specialist_contract_mode))
-    min_active_specialists = (
-        len(required_specialists)
-        if int(args.min_active_specialists) <= 0
-        else int(args.min_active_specialists)
-    )
-    specialist_names = _specialist_names(meta)
-    ctx_cat_names = [str(name) for name in (meta.get("ordered_ctx_cat_names") or []) if str(name)]
-    if args.require_specialist_fusion and not specialist_enabled:
-        failures.append("bundle metadata does not enable specialist_fusion")
-    bundle_specialist_model_contract = _specialist_model_contract_report(
-        specialist_cfg.get("specialist_model_contract")
-        if isinstance(specialist_cfg.get("specialist_model_contract"), dict)
-        else None,
-        contract_mode=specialist_contract_mode,
-    )
-    if args.require_specialist_fusion:
-        if not bool(specialist_cfg.get("specialist_model_contract_valid")):
-            failures.append("bundle metadata specialist model contract is not declared valid")
-        if specialist_cfg.get("specialist_model_contract_failures"):
-            failures.append(
-                "bundle metadata specialist model contract carries failures: "
-                f"{specialist_cfg.get('specialist_model_contract_failures')}"
-            )
-        if not bool(bundle_specialist_model_contract["valid"]):
-            failures.extend(
-                f"bundle metadata specialist model contract: {failure}"
-                for failure in bundle_specialist_model_contract["failures"]
-            )
-    path_calibration_recipe_contract = _path_calibration_recipe_contract(meta, bundle.capabilities)
-    failures.extend(
-        f"path_calibration_recipe: {failure}"
-        for failure in path_calibration_recipe_contract.get("failures", [])
-    )
-    direction_balance_recipe_contract = _direction_balance_recipe_contract(
-        meta,
-        bundle.capabilities,
-        contract_mode=specialist_contract_mode,
-    )
-    failures.extend(
-        f"direction_balance_recipe: {failure}"
-        for failure in direction_balance_recipe_contract.get("failures", [])
-    )
-    tail_direction_recipe_contract = _tail_direction_recipe_contract(meta, bundle.capabilities)
-    failures.extend(
-        f"tail_direction_recipe: {failure}"
-        for failure in tail_direction_recipe_contract.get("failures", [])
-    )
-    symmetric_validation_recipe_contract = _symmetric_validation_recipe_contract(
-        meta,
-        bundle.capabilities,
-        contract_mode=specialist_contract_mode,
-    )
-    failures.extend(
-        f"symmetric_validation_recipe: {failure}"
-        for failure in symmetric_validation_recipe_contract.get("failures", [])
-    )
-
-    dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt)
-    split_reports: dict[str, Any] = {}
-    for split in splits:
-        split_path = _split_file(dataset_dir, split)
-        split_report, split_failures = _audit_split(
-            model=model,
-            device=device,
-            parquet_path=split_path,
-            seq_len=seq_len,
-            batch_size=int(args.batch_size),
-            dataset_kwargs=dataset_kwargs,
-            specialist_names=specialist_names,
-            ctx_cat_names=ctx_cat_names,
+    input_audits: dict[str, Any] = {}
+    for name, raw_path in (
+        ("target", args.target_audit_json),
+        ("specialist", args.specialist_audit_json),
+        ("pretrain", args.pretrain_audit_json),
+    ):
+        audit_report, _ = _input_audit_contract(
+            name=name,
+            path=Path(raw_path),
+            dataset_dir=dataset_dir,
         )
-        split_reports[split] = split_report
-        failures.extend(split_failures)
-        if args.require_specialist_fusion:
-            failures.extend(
-                _specialist_gate_failures(
-                    split=split,
-                    gate_report=split_report["specialist_gate"],
-                    specialist_names=specialist_names,
-                    required_specialists=required_specialists,
-                    min_active_specialists=int(min_active_specialists),
-                    min_gate_entropy=float(args.min_gate_entropy),
-                )
-        )
-        if args.require_edge:
-            edge_failures = _require_edge_failures(
-                split, split_report, edge_test_scope=str(args.edge_test_scope)
-            )
-            failures.extend(edge_failures)
-
-    head_contract = None
-    if args.require_head_contract:
-        target_audit = _read_json(Path(args.target_audit_json).expanduser().resolve())
-        head_contract = _head_contract_report(
-            target_audit=target_audit,
-            capabilities=bundle.capabilities,
-            split_reports=split_reports,
-            contract_mode=specialist_contract_mode,
-        )
-        failures.extend([f"head_contract: {failure}" for failure in head_contract["failures"]])
-
-    pretrain_manifest_path = (
-        Path(args.pretrain_manifest_json).expanduser().resolve()
-        if str(args.pretrain_manifest_json or "").strip()
-        else None
-    )
-    pretrain_manifest_contract = _pretrain_manifest_contract_report(
-        pretrain_manifest_path,
-        expected_bundle_dir=bundle_dir,
-        expected_dataset_dir=dataset_dir,
-    )
-    if pretrain_manifest_contract is not None:
+        input_audits[name] = audit_report
         failures.extend(
-            f"pretrain_manifest: {failure}"
-            for failure in pretrain_manifest_contract.get("failures", [])
+            f"input_audit/{name}: {failure}"
+            for failure in audit_report["failures"]
         )
-    manifest_variant = str(
-        (pretrain_manifest_contract or {}).get("manifest_variant")
-        or (pretrain_manifest_contract or {}).get("candidate_variant")
-        or specialist_contract_mode
-    )
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    bundle_contract, metadata, direction_contract, _ = _bundle_contract_report(
+        bundle_dir=bundle_dir,
+        device=device,
+    )
+    failures.extend(
+        f"bundle_contract: {failure}" for failure in bundle_contract["failures"]
+    )
+    training_objective = _model_native_training_objective_contract_report(
+        bundle_dir=bundle_dir,
+        metadata=metadata,
+    )
+    failures.extend(
+        f"model_native_training_objective: {failure}"
+        for failure in training_objective["failures"]
+    )
+    if dataset_signal_contract and metadata.get("model_native_signal_contract") != dataset_signal_contract:
+        failures.append("bundle and dataset model-native signal contracts differ")
+
+    prediction_evidence: dict[str, Any] = {}
+    prediction_report: dict[str, Any] = {}
+    prediction_path = Path(args.predictions_parquet).expanduser().resolve()
+    prediction_report_path = Path(args.prediction_report_json).expanduser().resolve()
+    prediction_frame = pd.DataFrame()
+    try:
+        prediction_path, prediction_report, prediction_evidence = (
+            resolve_and_validate_prediction_evidence(
+                prediction_path,
+                prediction_report_path=prediction_report_path,
+                bundle_dir=bundle_dir,
+                dataset_dir=dataset_dir,
+            )
+        )
+        if prediction_evidence.get("schema_version") != PREDICTION_EVIDENCE_SCHEMA_VERSION:
+            raise RuntimeError("prediction evidence schema mismatch")
+        if tuple(sorted(prediction_evidence.get("splits") or ())) != tuple(sorted(DATA_SPLITS)):
+            raise RuntimeError("prediction evidence must contain exactly val,test")
+        models = tuple(prediction_evidence.get("models") or ())
+        if len(models) != 1:
+            raise RuntimeError(f"prediction evidence must contain exactly one model: {models}")
+        prediction_frame = pd.read_parquet(prediction_path)
+    except Exception as exc:
+        failures.append(f"prediction_evidence: {exc}")
+
+    split_reports: dict[str, Any] = {}
+    if not prediction_frame.empty:
+        observed_splits = tuple(sorted(str(value) for value in prediction_frame["split"].unique()))
+        if observed_splits != tuple(sorted(DATA_SPLITS)):
+            failures.append(
+                f"prediction frame split mismatch: {observed_splits} != {tuple(sorted(DATA_SPLITS))}"
+            )
+        for split in DATA_SPLITS:
+            scoped = prediction_frame[
+                prediction_frame["split"].astype(str) == split
+            ].reset_index(drop=True)
+            try:
+                split_report = _split_contract(scoped, split=split)
+            except Exception as exc:
+                split_report = {
+                    "decision": "FAIL",
+                    "failures": [f"{split}: smoke metric evaluation failed: {exc}"],
+                    "rows": int(len(scoped)),
+                }
+            split_reports[split] = split_report
+            failures.extend(
+                f"split/{split}: {failure}" for failure in split_report["failures"]
+            )
+    else:
+        for split in DATA_SPLITS:
+            split_reports[split] = {
+                "decision": "FAIL",
+                "failures": [f"{split}: prediction evidence unavailable"],
+                "rows": 0,
+            }
+
+    head_contract_failures = []
+    if bundle_contract.get("active_heads") != list(MODEL_NATIVE_ACTIVE_HEADS):
+        head_contract_failures.append("bundle active-head set/order mismatch")
+    if bundle_contract.get("blocked_heads") != list(MODEL_NATIVE_BLOCKED_HEADS):
+        head_contract_failures.append("bundle blocked-head set/order mismatch")
+    if any(
+        ((split_reports.get(split) or {}).get("active_head_evidence") or {}).get("decision")
+        != "PASS"
+        for split in DATA_SPLITS
+    ):
+        head_contract_failures.append("prediction evidence does not prove every active head")
+    head_contract = {
+        "decision": "PASS" if not head_contract_failures else "FAIL",
+        "failures": head_contract_failures,
+        "active_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
+        "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+    }
+    failures.extend(f"head_contract: {failure}" for failure in head_contract_failures)
+
+    edge_failures = [
+        failure
+        for split in DATA_SPLITS
+        for failure in (split_reports.get(split) or {}).get("failures", [])
+    ]
+    direction_edge_proven = all(
+        ((split_reports.get(split) or {}).get("direction") or {}).get("decision")
+        == "PASS"
+        for split in DATA_SPLITS
+    )
+    context_slice_edge_proven = all(
+        ((split_reports.get(split) or {}).get("context_slice_contract") or {}).get(
+            "decision"
+        )
+        == "PASS"
+        for split in DATA_SPLITS
+    )
+    path_quality_edge_proven = all(
+        float(
+            (((split_reports.get(split) or {}).get("utility_evidence") or {}).get(
+                "spearman"
+            ) or {}).get("path_quality")
+            or 0.0
+        )
+        > 0.0
+        for split in DATA_SPLITS
+    )
+    bad_path_edge_proven = all(
+        float(
+            (((split_reports.get(split) or {}).get("utility_evidence") or {}).get(
+                "spearman"
+            ) or {}).get("bad_path_vs_path_quality")
+            or 0.0
+        )
+        < 0.0
+        for split in DATA_SPLITS
+    )
+    edge_contract = {
+        "decision": "PASS" if not edge_failures else "FAIL",
+        "failures": edge_failures,
+        "direction_edge_proven": direction_edge_proven,
+        "context_slice_edge_proven": context_slice_edge_proven,
+        "path_quality_edge_proven": path_quality_edge_proven,
+        "bad_path_edge_proven": bad_path_edge_proven,
+    }
+
+    gate_liveness_proven = all(
+        ((split_reports.get(split) or {}).get("specialist_gate") or {}).get(
+            "decision"
+        )
+        == "PASS"
+        for split in DATA_SPLITS
+    )
+    specialist_contract = {
+        "decision": "PASS" if gate_liveness_proven else "FAIL",
+        "failures": [] if gate_liveness_proven else ["specialist gate liveness is unproven"],
+        "specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "gate_liveness_proven": gate_liveness_proven,
+    }
+    all_active_heads_live = all(
+        ((split_reports.get(split) or {}).get("active_head_evidence") or {}).get(
+            "decision"
+        )
+        == "PASS"
+        for split in DATA_SPLITS
+    )
+    full_stack_live = bundle_contract.get("decision") == "PASS"
+    liveness_failures: list[str] = []
+    if not all_active_heads_live:
+        liveness_failures.append("one or more active heads lack finite prediction evidence")
+    if not gate_liveness_proven:
+        liveness_failures.append("one or more specialists lack live gate evidence")
+    if not full_stack_live:
+        liveness_failures.append("strict bundle loader did not prove the complete learned stack")
+    liveness_contract = {
+        "decision": "PASS" if not liveness_failures else "FAIL",
+        "failures": liveness_failures,
+        "all_active_heads_live": all_active_heads_live,
+        "all_specialists_live": gate_liveness_proven,
+        "full_stack_live": full_stack_live,
+        "zero_init_pass_through_absent": full_stack_live,
+    }
+
+    bundle_artifacts = {
+        "bundle_metadata": {
+            "path": bundle_contract["metadata_path"],
+            "sha256": bundle_contract["metadata_sha256"],
+        },
+        "master_transformer_lock": {
+            "path": bundle_contract["lock_path"],
+            "sha256": bundle_contract["lock_sha256"],
+        },
+        "model_state_dict": {
+            "path": bundle_contract["state_path"],
+            "sha256": bundle_contract["state_sha256"],
+        },
+    }
+
+    created = datetime.now(timezone.utc)
+    stamp = created.strftime("%Y%m%dT%H%M%S%fZ")
+    md_path = out_dir / f"{REPORT_PREFIX}_{stamp}.md"
     report = {
-        "schema_version": "entry_foundation_smoke_bundle_audit_v1",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "schema_version": SCHEMA_VERSION,
+        "created_utc": created.isoformat(),
         "decision": "PASS" if not failures else "FAIL",
-        "manifest_variant": manifest_variant,
-        "candidate_variant": manifest_variant,
+        "failures": failures,
+        **foundation_audit_policy_binding(),
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "sequence_length": MODEL_NATIVE_SEQ_LEN,
+        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "bundle_dir": str(bundle_dir),
         "dataset_dir": str(dataset_dir),
-        "data_splits": splits,
-        "device": str(device),
-        "batch_size": int(args.batch_size),
-        "require_edge": bool(args.require_edge),
-        "edge_test_scope": str(args.edge_test_scope),
-        "require_specialist_fusion": bool(args.require_specialist_fusion),
-        "specialist_contract_mode": specialist_contract_mode,
-        "required_training_specialists": list(required_specialists),
-        "min_active_specialists": int(min_active_specialists),
-        "min_gate_entropy": float(args.min_gate_entropy),
-        "require_head_contract": bool(args.require_head_contract),
-        "target_audit_json": str(Path(args.target_audit_json).expanduser().resolve()),
+        "data_splits": list(DATA_SPLITS),
+        "device": device,
+        "model_native_readiness_contract": model_native_readiness_contract_metadata(),
+        "direction_decision_contract": direction_contract,
+        "bundle_artifacts": bundle_artifacts,
+        "model_native_training_objective_contract": training_objective,
+        "bundle_contract": bundle_contract,
+        "dataset_manifests": manifests,
+        "input_audits": input_audits,
         "head_contract": head_contract,
-        "pretrain_manifest_json": str(pretrain_manifest_path) if pretrain_manifest_path else "",
-        "pretrain_manifest_contract": pretrain_manifest_contract,
-        "path_calibration_recipe_contract": path_calibration_recipe_contract,
-        "direction_balance_recipe_contract": direction_balance_recipe_contract,
-        "tail_direction_recipe_contract": tail_direction_recipe_contract,
-        "symmetric_validation_recipe_contract": symmetric_validation_recipe_contract,
-        "bundle_specialist_model_contract": bundle_specialist_model_contract,
-        "bundle_summary": {
-            "manifest_variant": manifest_variant,
-            "candidate_variant": manifest_variant,
-            "specialist_contract_mode": specialist_contract_mode,
-            "seq_len": seq_len,
-            "seq_input_dim": int(meta.get("seq_input_dim") or 0),
-            "snap_input_dim": int(meta.get("snap_input_dim") or 0),
-            "ctx_cont_dim": int(meta.get("ctx_cont_dim") or 0),
-            "ctx_cat_dim": int(meta.get("ctx_cat_dim") or 0),
-            "sanity_bundle": bool(meta.get("sanity_bundle")),
-            "multi_tf_enabled": bool((meta.get("multi_tf") or {}).get("enabled", False)),
-            "specialist_fusion_enabled": specialist_enabled,
-            "specialist_groups": specialist_names,
-            "specialist_model_contract_declared_valid": bool(
-                specialist_cfg.get("specialist_model_contract_valid")
-            ),
-            "specialist_model_contract_valid": bool(bundle_specialist_model_contract["valid"]),
-            "specialist_model_contract_set_exact": bool(bundle_specialist_model_contract["set_exact"]),
-            "specialist_model_contract_owned_objectives_match": bool(
-                bundle_specialist_model_contract["owned_objectives_match"]
-            ),
-            "specialist_model_contract_support_heads_match": bool(
-                bundle_specialist_model_contract["support_heads_match"]
-            ),
-            "specialist_model_contract_signal_families_match": bool(
-                bundle_specialist_model_contract["signal_families_match"]
-            ),
-            "specialist_model_contract_model_roles_match": bool(
-                bundle_specialist_model_contract["model_roles_match"]
-            ),
-            "capabilities": bundle.capabilities,
-        },
+        "specialist_contract": specialist_contract,
+        "liveness_contract": liveness_contract,
+        "prediction_evidence": prediction_evidence,
+        "prediction_report_json": str(prediction_report_path),
+        "prediction_report_sha256": _sha256_file(prediction_report_path),
+        "prediction_report_schema_version": prediction_report.get("schema_version"),
         "splits": split_reports,
-        "failures": failures,
+        "edge_contract": edge_contract,
+        "activation_authority": False,
+        "promotion_shadow_live_allowed": False,
+        "dynamic_sizing_live_allowed": False,
+        "md_path": str(md_path),
     }
-    json_path = out_dir / f"ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_{timestamp}.json"
-    md_path = out_dir / f"ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_{timestamp}.md"
-    report["json_path"] = str(json_path)
-    report["md_path"] = str(md_path)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    if report["decision"] == "PASS":
+        try:
+            require_smoke_bundle_audit_contract(
+                report,
+                context="SMOKE_AUDIT_PUBLISH",
+            )
+        except RuntimeError as exc:
+            report["failures"].append(str(exc))
+            report["decision"] = "FAIL"
+    json_path, report = write_immutable_json_event(out_dir, REPORT_PREFIX, report)
     _write_markdown(md_path, report)
-    latest_json = out_dir / "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
-    latest_md = out_dir / "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.md"
-    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
-
     if not args.quiet:
         print(
             json.dumps(
                 {
                     "decision": report["decision"],
-                    "bundle_dir": report["bundle_dir"],
-                    "dataset_dir": report["dataset_dir"],
-                    "failures": report["failures"],
-                    "json_path": report["json_path"],
-                    "md_path": report["md_path"],
+                    "failure_count": len(report["failures"]),
+                    "json_path": str(json_path),
+                    "md_path": str(md_path),
                 },
                 indent=2,
                 sort_keys=True,
-                default=_json_default,
             )
         )
-    if args.fail_on_audit_fail and failures:
-        raise SystemExit(2)
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bundle-dir", default=str(FOUNDATION_SPECIALIST_SANITY_BUNDLE_DIR))
-    ap.add_argument("--dataset-dir", default=str(FOUNDATION_SMOKE_DATASET_DIR))
-    ap.add_argument("--splits", default="val,test")
-    ap.add_argument("--batch-size", type=int, default=128)
-    ap.add_argument("--device", default="cpu")
-    ap.add_argument("--m5-prebuilt-path", default=str(DEFAULT_M5_PREBUILT))
-    ap.add_argument("--multi-tf-cache-dir", default=str(DEFAULT_MTF_CACHE_DIR))
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    ap.add_argument("--require-edge", action="store_true")
-    ap.add_argument(
-        "--edge-test-scope",
-        choices=("strict",),
-        default="strict",
-        help=(
-            "strict only: all edge checks hard-fail on every split. Non-strict scopes are "
-            "forbidden for XAU direction repair."
-        ),
-    )
-    ap.add_argument("--require-specialist-fusion", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--require-head-contract", action="store_true")
-    ap.add_argument("--target-audit-json", default=str(TARGET_AUDIT_LATEST))
-    ap.add_argument("--pretrain-manifest-json", default="")
-    ap.add_argument("--min-active-specialists", type=int, default=0)
-    ap.add_argument("--min-gate-entropy", type=float, default=0.05)
-    ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--quiet", action="store_true")
-    return ap
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bundle-dir", required=True)
+    parser.add_argument("--dataset-dir", required=True)
+    parser.add_argument("--val-manifest-json", required=True)
+    parser.add_argument("--test-manifest-json", required=True)
+    parser.add_argument("--predictions-parquet", required=True)
+    parser.add_argument("--prediction-report-json", required=True)
+    parser.add_argument("--target-audit-json", required=True)
+    parser.add_argument("--specialist-audit-json", required=True)
+    parser.add_argument("--pretrain-audit-json", required=True)
+    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
+    parser.add_argument("--quiet", action="store_true")
+    return parser
 
 
 def main() -> int:
-    run(build_parser().parse_args())
-    return 0
+    report = run(build_parser().parse_args())
+    return 0 if report["decision"] == "PASS" else 2
 
 
 if __name__ == "__main__":

@@ -16,8 +16,7 @@ import math
 import os
 import sys
 import time
-from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -28,7 +27,11 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from gx1.features.htf_features import (
-    build_multi_tf_per_bar_features_v2, MULTI_TF_PER_BAR_FEATURES_V2,
+    build_multi_tf_per_bar_features_v2,
+    HTF_V2_MATRIX_CONTRACT,
+    MULTI_TF_PER_BAR_FEATURES_V2,
+    MULTI_TF_RESAMPLE_RULES,
+    validate_causal_feature_matrix,
 )
 # Round-number proximity: import the ONE-TRUTH compute (group_a_features) — no duplicated math.
 from gx1.features.group_a_features import (
@@ -38,30 +41,87 @@ _AUG_ROUND_ON = os.environ.get("GX1_ROUND_NUMBER", "0") == "1"
 
 TF_NAMES = ("M5", "M15", "H1", "H4", "D1")
 
+
+class CausalContextWarmupError(RuntimeError):
+    """Required causal history does not yet exist for this source prefix."""
+
 def _pertf_name(tf: str, feat: str) -> str:
     base = f"{tf.lower()}_{feat}"
     return base if feat.endswith("_v2") else base + "_v2"
 
-# ── Closed-bar leak guard for the per-TF V2-cache asof (ENV-GATED, 2026-06-18) ────────────────────
+# ── Immutable closed-bar contract for the per-TF V2-cache asof ────────────────────────────────
 # The MULTI_TF_V2 cache is START-stamped (resample label='left'); a bare searchsorted(side='right') at an
 # intraday decision picks the SAME-period still-FORMING D1/H4/H1 bar (features use the full bar's FUTURE
 # close) = forward leak. Proven: the V2 per-TF adds gave +0.18 naive AUC that COLLAPSES to ~0 causal. These
-# helpers feed the V2 per-TF scalars (and 16 cemented V10 ctx_cont features). GATED so the CURRENT cement
-# (trained on the old leaky asof) keeps train==serve while LIVE, and the OPTION-B rebuild (V10+IQL+V3+exit
-# retrained leak-free) sets GX1_PERTF_CLOSED_BAR=1; the launcher pins it ON with the new chain at cement-flip.
-# Default OFF = byte-identical to historical behavior. Pick the last HTF bar CLOSED by the M5 decision moment
+# helpers feed the V2 per-TF scalars and model-native context. The leaky mode is
+# retired: every caller selects the last HTF bar closed by the M5 decision moment
 # (M5 closes 5min after label ts): a bar started at S is closed by D iff S <= D - bar_duration; M5 → unchanged.
-_PERTF_CLOSED_BAR = os.environ.get("GX1_PERTF_CLOSED_BAR", "0") == "1"
 _DECISION_M5_NS = 300_000_000_000  # M5 bar closes 5min after its label ts
 from gx1.features.htf_features import MULTI_TF_SHIFT as _MTF_SHIFT
 _TF_SHIFT_NS = {tf: int(_MTF_SHIFT[tf].value) for tf in TF_NAMES}
 
 def _cache_cutoff_ns(ts_ns: int, tf: str) -> int:
-    """asof cutoff for the per-TF V2 cache. GX1_PERTF_CLOSED_BAR=1 → last bar CLOSED by the M5 decision
-    moment (leak-free); else legacy bare ts_ns (start-stamped, picks the forming bar). M5 → unchanged."""
-    if not _PERTF_CLOSED_BAR:
-        return ts_ns
+    """Return the latest start-stamped ``tf`` row closed at decision time."""
+    if tf not in _TF_SHIFT_NS:
+        raise RuntimeError(f"[CTX_CAUSALITY] unsupported timeframe: {tf!r}")
     return ts_ns + _DECISION_M5_NS - _TF_SHIFT_NS[tf]
+
+
+def compute_smc_swing_dip_interaction(
+    smc_swing_state: np.ndarray | pd.Series,
+    dip_proximity_m5: np.ndarray | pd.Series,
+) -> np.ndarray:
+    """Compute the categorical SMC-state×dip interaction without frame fit.
+
+    ``smc_swing_state`` is the canonical fixed enum 0..4. The retired
+    implementation divided it by ``max(abs(state))`` over the supplied frame;
+    appending a future state therefore rewrote historical model inputs. A fixed
+    denominator of four preserves the established full-enum encoding while
+    making every row prefix-invariant.
+    """
+    state = np.asarray(smc_swing_state, dtype=np.float64)
+    dip = np.asarray(dip_proximity_m5, dtype=np.float64)
+    if state.ndim != 1 or dip.ndim != 1 or state.shape != dip.shape or state.size == 0:
+        raise RuntimeError(
+            "[CTX_CAUSALITY] smc_swing_state and dip_proximity_m5 must be "
+            "non-empty equal-length 1D arrays"
+        )
+    if not np.isfinite(state).all() or not np.isfinite(dip).all():
+        raise RuntimeError("[CTX_CAUSALITY] SMC×dip sources must be finite")
+    if not np.equal(state, np.rint(state)).all() or np.any((state < 0.0) | (state > 4.0)):
+        raise RuntimeError("[CTX_CAUSALITY] smc_swing_state must use exact enum values 0..4")
+    if np.any((dip < 0.0) | (dip > 1.0)):
+        raise RuntimeError("[CTX_CAUSALITY] dip_proximity_m5 must be within [0, 1]")
+    return ((state / 4.0) * dip).astype(np.float32)
+
+
+def trim_causal_context_warmup_prefix(
+    frame: pd.DataFrame,
+    required_columns: tuple[str, ...] | list[str],
+) -> pd.DataFrame:
+    """Remove only a contiguous non-finite prefix from causal feature output.
+
+    Warmup absence is represented as unavailable data, never as a numeric
+    sentinel. A non-finite value after the first complete row is corruption and
+    fails closed. Callers must still enforce their own sequence-length minimum.
+    """
+    required = list(required_columns)
+    missing = [name for name in required if name not in frame.columns]
+    if missing:
+        raise RuntimeError(f"[CTX_WARMUP_TRIM] required columns missing: {missing}")
+    values = frame[required].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
+    invalid = ~np.isfinite(values).all(axis=1)
+    if not invalid.any():
+        return frame
+    first_valid = int(np.argmax(~invalid)) if (~invalid).any() else len(frame)
+    if first_valid == len(frame):
+        raise RuntimeError("[CTX_WARMUP_TRIM] no complete causal context row exists")
+    if not invalid[:first_valid].all() or invalid[first_valid:].any():
+        raise RuntimeError("[CTX_WARMUP_TRIM] non-finite context is not a contiguous warmup prefix")
+    trimmed = frame.iloc[first_valid:].copy()
+    trimmed.attrs.update(frame.attrs)
+    trimmed.attrs["causal_context_warmup_rows_trimmed"] = first_valid
+    return trimmed
 
 PER_TF_FEATURE_NAMES = tuple(
     _pertf_name(tf, feat) for tf in TF_NAMES for feat in MULTI_TF_PER_BAR_FEATURES_V2
@@ -81,6 +141,12 @@ GROUP_A_FEATURE_NAMES = (
     "dist_to_d1_hi_atr",  "dist_to_d1_lo_atr",
     "long_win_rate_last10",  "long_mean_pnl_last10",
     "long_n_consec_losses",  "long_time_since_last_close_min",
+    "short_win_rate_last10", "short_mean_pnl_last10",
+    "short_n_consec_losses", "short_time_since_last_close_min",
+)
+PORTFOLIO_FEATURE_NAMES = (
+    "long_win_rate_last10", "long_mean_pnl_last10",
+    "long_n_consec_losses", "long_time_since_last_close_min",
     "short_win_rate_last10", "short_mean_pnl_last10",
     "short_n_consec_losses", "short_time_since_last_close_min",
 )
@@ -169,6 +235,37 @@ class AugmentContext:
     trade_history: pd.DataFrame
 
 
+def _require_utc_timestamp(value: object, *, context: str) -> pd.Timestamp:
+    ts = pd.Timestamp(value)
+    if pd.isna(ts) or ts.tzinfo is None or ts.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError(f"[{context}] timestamp must be finite UTC: {value!r}")
+    return ts.tz_convert("UTC")
+
+
+def _validate_m5_frame(df: pd.DataFrame, *, context: str) -> pd.DataFrame:
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        raise RuntimeError(f"[{context}] M5 source must be a non-empty DataFrame")
+    if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is None:
+        raise RuntimeError(f"[{context}] M5 source needs a timezone-aware UTC DatetimeIndex")
+    if any(pd.Timestamp(ts).utcoffset() != pd.Timedelta(0) for ts in df.index[:1]):
+        raise RuntimeError(f"[{context}] M5 source index must be UTC")
+    if df.index.hasnans or not df.index.is_monotonic_increasing or not df.index.is_unique:
+        raise RuntimeError(f"[{context}] M5 timestamps must be finite, unique and chronological")
+    missing = [name for name in ("high", "low", "close") if name not in df.columns]
+    if missing:
+        raise RuntimeError(f"[{context}] M5 source missing exact columns: {missing}")
+    numeric = df.loc[:, ["high", "low", "close"]].apply(pd.to_numeric, errors="coerce")
+    values = numeric.to_numpy(dtype=np.float64)
+    if not np.isfinite(values).all():
+        raise RuntimeError(f"[{context}] M5 OHLC sources must be finite")
+    high = numeric["high"].to_numpy(dtype=np.float64)
+    low = numeric["low"].to_numpy(dtype=np.float64)
+    close = numeric["close"].to_numpy(dtype=np.float64)
+    if np.any(low <= 0.0) or np.any(high < low) or np.any(close < low) or np.any(close > high):
+        raise RuntimeError(f"[{context}] M5 OHLC geometry is invalid")
+    return numeric
+
+
 def _build_resampled_ohlc_array(df: pd.DataFrame, rule: str) -> tuple:
     """Return (ts_int64, high, low) for resampled bars."""
     resamp = df.resample(rule).agg({"high": "max", "low": "min"}).dropna()
@@ -181,41 +278,72 @@ def _build_atr_percentile_array(df: pd.DataFrame, ts_ns: np.ndarray, window_days
 
     Uses Wilder ATR-14. Returns array of percentiles in [0, 1].
     """
-    h, l, c = df["high"], df["low"], df["close"]
+    if isinstance(window_days, bool) or not isinstance(window_days, int) or window_days <= 0:
+        raise RuntimeError("[CTX_VOL_PERCENTILE] window_days must be a positive integer")
+    numeric = _validate_m5_frame(df, context="CTX_VOL_PERCENTILE")
+    ts_ns = np.asarray(ts_ns, dtype=np.int64)
+    if ts_ns.ndim != 1 or len(ts_ns) != len(numeric):
+        raise RuntimeError("[CTX_VOL_PERCENTILE] timestamp/source length mismatch")
+    if np.any(np.diff(ts_ns) <= 0):
+        raise RuntimeError("[CTX_VOL_PERCENTILE] timestamps must be strictly chronological")
+    high, low, close = numeric["high"], numeric["low"], numeric["close"]
     tr = pd.concat([
-        (h - l).abs(),
-        (h - c.shift(1)).abs(),
-        (l - c.shift(1)).abs(),
+        (high - low).abs(),
+        (high - close.shift(1)).abs(),
+        (low - close.shift(1)).abs(),
     ], axis=1).max(axis=1)
-    atr = tr.ewm(alpha=1/14, adjust=False).mean().bfill().to_numpy(np.float64)
-    # Rolling 1yr percentile via numpy: for each i, percentile rank of atr[i] within
-    # atr[i-WIN:i+1]. WIN = bars in 1yr (M5: 365*24*12 = 105k, H1: 365*24 = 8.7k).
-    n_per_day = int(round(86400 / (ts_ns[1] - ts_ns[0]) * 1e9)) if len(ts_ns) > 1 else 288
-    window = window_days * n_per_day
-    pct = np.full(len(atr), 0.5, dtype=np.float32)
-    # Simple loop — for full M5 (455K) this is 455K iters with each doing a sort on N=105K.
-    # Use approximation: compute percentile from sample of last 1000 values per stride.
-    # For speed: compute on STRIDED sample then ffill.
-    stride = max(1, len(atr) // 50000)   # ~50K computations max
-    for i in range(window, len(atr), stride):
-        recent = atr[max(0, i - window):i + 1]
-        if len(recent) >= 10:
-            pct[i] = float((recent < atr[i]).mean())
-    # Forward-fill between strided computations
-    pct = pd.Series(pct).ffill().fillna(0.5).to_numpy(dtype=np.float32)
+    atr = tr.ewm(alpha=1 / 14, adjust=False).mean().to_numpy(np.float64)
+    if not np.isfinite(atr).all() or np.any(atr <= 0.0):
+        raise RuntimeError("[CTX_VOL_PERCENTILE] causal ATR must be finite and positive")
+
+    # Exact O(N log N) trailing rank.  The retired strided approximation left
+    # the entire first window at a fabricated 0.5 and carried old ranks between
+    # strides.  Coordinate compression + a Fenwick tree provides the strict
+    # ``count(previous/current ATR < current ATR) / window_count`` definition
+    # for every row without consulting any future value.
+    ranks = np.searchsorted(np.unique(atr), atr).astype(np.int64, copy=False)
+    tree = np.zeros(int(ranks.max()) + 2, dtype=np.int64)
+
+    def _add(rank: int, delta: int) -> None:
+        node = rank + 1
+        while node < len(tree):
+            tree[node] += delta
+            node += node & -node
+
+    def _count_less(rank: int) -> int:
+        total = 0
+        node = rank
+        while node > 0:
+            total += int(tree[node])
+            node -= node & -node
+        return total
+
+    pct = np.empty(len(atr), dtype=np.float32)
+    left = 0
+    lookback_ns = int(pd.Timedelta(days=window_days).value)
+    for i, rank in enumerate(ranks):
+        cutoff = int(ts_ns[i]) - lookback_ns
+        while left < i and int(ts_ns[left]) < cutoff:
+            _add(int(ranks[left]), -1)
+            left += 1
+        _add(int(rank), 1)
+        count = i - left + 1
+        pct[i] = np.float32(_count_less(int(rank)) / count)
+    if not np.isfinite(pct).all() or np.any((pct < 0.0) | (pct > 1.0)):
+        raise RuntimeError("[CTX_VOL_PERCENTILE] invalid causal percentile output")
     return pct
 
 
-def _build_daily_pivots(df: pd.DataFrame) -> dict[str, dict]:
-    """Compute classic pivots R1/R2/S1/S2 per day, keyed by date_str (YYYY-MM-DD)."""
+def _build_daily_pivots(df: pd.DataFrame) -> dict[pd.Timestamp, dict[str, float]]:
+    """Compute classic pivots per trading day for later prior-day lookup."""
     daily = df.resample("1D").agg({"high": "max", "low": "min", "close": "last"}).dropna()
     out = {}
     for ts, row in daily.iterrows():
-        h, l, c = float(row["high"]), float(row["low"]), float(row["close"])
-        pp = (h + l + c) / 3.0
-        out[ts.strftime("%Y-%m-%d")] = {
-            "R1": 2 * pp - l,  "R2": pp + (h - l),
-            "S1": 2 * pp - h,  "S2": pp - (h - l),
+        high, low, close = float(row["high"]), float(row["low"]), float(row["close"])
+        pp = (high + low + close) / 3.0
+        out[pd.Timestamp(ts).tz_convert("UTC")] = {
+            "R1": 2 * pp - low,  "R2": pp + (high - low),
+            "S1": 2 * pp - high,  "S2": pp - (high - low),
         }
     return out
 
@@ -260,43 +388,57 @@ def _build_trade_history(journal_dir: Path, suffix: str = "live_v12_4") -> pd.Da
 
 
 def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
-    """Fail-closed (rule 4): a multi-TF V2 cache ending long before the M5 build data
-    means the build SILENTLY used a STALE cache — the 2026-06-05 audit footgun, where
-    builders loaded the 05-22 cache via the GX1_V10_MULTI_TF_V2_CACHE_DIR env-default
-    while building on fresh cv3 (silent train/serve feature skew). Raise if the cache's
-    newest bar lags the M5 cutoff by > GX1_MTF_CACHE_MAX_LAG_DAYS (default 2). Bypass
-    only for an explicit OOT/replay build via GX1_MTF_CACHE_ALLOW_STALE=1 (logged loud).
-    Covers ALL build paths because every one funnels through build_context().
-    """
-    if not multi_tf:
-        return
-    try:
-        m5_last = int(pd.Timestamp(m5_df.index[-1]).value)
-        cache_last = max(
-            int(np.asarray(df.attrs["ts_int64"]).max())
-            for df in multi_tf.values()
-            if getattr(df, "attrs", None) and len(df.attrs.get("ts_int64", []))
-        )
-    except (ValueError, KeyError, IndexError):
-        return  # can't determine cutoff — don't block
-    lag_days = (m5_last - cache_last) / 86_400e9
-    print(f"[MTF_CACHE] m5_cutoff={pd.Timestamp(m5_last)} cache_cutoff={pd.Timestamp(cache_last)} "
-          f"lag={lag_days:.1f}d", flush=True)
-    if os.environ.get("GX1_MTF_CACHE_ALLOW_STALE", "0").strip().lower() in ("1", "true", "yes", "on"):
-        print("[MTF_CACHE_STALE] freshness check BYPASSED via GX1_MTF_CACHE_ALLOW_STALE=1", flush=True)
-        return
-    max_lag = float(os.environ.get("GX1_MTF_CACHE_MAX_LAG_DAYS", "2"))
-    if lag_days > max_lag:
+    """Require the exact causal cache and finite evidence at the final cutoff."""
+    if not isinstance(multi_tf, dict):
+        raise RuntimeError("[MTF_CACHE_CONTRACT] multi_tf must be an explicit dictionary")
+    if set(multi_tf) != set(TF_NAMES):
         raise RuntimeError(
-            f"[MTF_CACHE_STALE] multi-TF V2 cache ends {lag_days:.1f} days before the M5 build data "
-            f"(cache={pd.Timestamp(cache_last)}, data={pd.Timestamp(m5_last)}); refusing to build on a "
-            f"stale cache. Regenerate prebuild_multi_tf_cache_v2.py for this cutoff and set "
-            f"GX1_V10_MULTI_TF_V2_CACHE_DIR, or set GX1_MTF_CACHE_ALLOW_STALE=1 for an explicit OOT replay."
+            f"[MTF_CACHE_CONTRACT] exact TF keys required: expected={list(TF_NAMES)} "
+            f"observed={sorted(map(str, multi_tf))}"
         )
+    m5_last = int(pd.Timestamp(m5_df.index[-1]).value)
+    expected_width = len(MULTI_TF_PER_BAR_FEATURES_V2)
+    for tf in TF_NAMES:
+        feats = multi_tf[tf]
+        if not isinstance(feats, pd.DataFrame) or feats.empty:
+            raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} cache must be a non-empty DataFrame")
+        ts_arr = np.asarray(feats.attrs.get("ts_int64"), dtype=np.int64)
+        values = np.asarray(feats.attrs.get("feats_np"))
+        if ts_arr.ndim != 1 or len(ts_arr) != len(feats) or np.any(np.diff(ts_arr) <= 0):
+            raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} timestamps are missing or invalid")
+        if feats.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT:
+            raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} exact causal matrix contract missing")
+        warmup_rows = validate_causal_feature_matrix(
+            values,
+            expected_width=expected_width,
+            context=f"MTF_CACHE_CONTRACT_{tf}",
+        )
+        if feats.attrs.get("causal_warmup_rows") != warmup_rows:
+            raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} warmup metadata mismatch")
+        closed_cutoff = _cache_cutoff_ns(m5_last, tf)
+        expected = (
+            m5_df.resample(MULTI_TF_RESAMPLE_RULES[tf])
+            .agg({"high": "max", "low": "min", "close": "last"})
+            .dropna()
+            .index.view("int64")
+        )
+        expected_right = int(np.searchsorted(expected, closed_cutoff, side="right"))
+        cache_right = int(np.searchsorted(ts_arr, closed_cutoff, side="right"))
+        if expected_right == 0 or cache_right == 0:
+            raise RuntimeError(f"[MTF_CACHE_CONTRACT] {tf} has no closed history at final cutoff")
+        expected_latest = int(expected[expected_right - 1])
+        cache_latest = int(ts_arr[cache_right - 1])
+        if cache_latest != expected_latest:
+            raise RuntimeError(
+                f"[MTF_CACHE_STALE] {tf} cache cannot cover the final closed bar: "
+                f"cache_latest={pd.Timestamp(cache_latest, tz='UTC')} "
+                f"expected_latest={pd.Timestamp(expected_latest, tz='UTC')}"
+            )
 
 
 def build_context(m5_df: pd.DataFrame, multi_tf: dict, journal_dir: Path) -> AugmentContext:
     """Pre-compute all caches ONCE. Heavy upfront cost, fast per-candidate after."""
+    _validate_m5_frame(m5_df, context="CTX_BUILD")
     _assert_multi_tf_cache_fresh(m5_df, multi_tf)  # fail-closed on stale multi-TF cache (rule 4)
     ts_ns = m5_df.index.values.astype("datetime64[ns]").astype(np.int64)
     h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "1h")
@@ -334,6 +476,7 @@ def build_context(m5_df: pd.DataFrame, multi_tf: dict, journal_dir: Path) -> Aug
 
 
 def _session_overlap(ts: pd.Timestamp) -> dict[str, float]:
+    ts = _require_utc_timestamp(ts, context="CTX_SESSION")
     h = ts.hour
     asia, eu, us = h in ASIA_HOURS, h in EU_HOURS, h in US_HOURS
     return {
@@ -344,28 +487,41 @@ def _session_overlap(ts: pd.Timestamp) -> dict[str, float]:
     }
 
 
+def _tf_cache_row(ctx: AugmentContext, tf: str, ts_ns: int) -> np.ndarray:
+    if tf not in ctx.multi_tf:
+        raise RuntimeError(f"[CTX_MTF_SOURCE] missing exact timeframe {tf}")
+    feats = ctx.multi_tf[tf]
+    ts_arr = np.asarray(feats.attrs.get("ts_int64"), dtype=np.int64)
+    values = np.asarray(feats.attrs.get("feats_np"), dtype=np.float64)
+    if ts_arr.ndim != 1 or values.shape != (len(ts_arr), len(MULTI_TF_PER_BAR_FEATURES_V2)):
+        raise RuntimeError(f"[CTX_MTF_SOURCE] malformed {tf} cache arrays")
+    right = int(np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right"))
+    if right == 0:
+        raise CausalContextWarmupError(
+            f"[CTX_MTF_WARMUP] no closed {tf} row at {pd.Timestamp(ts_ns, tz='UTC')}"
+        )
+    warmup_rows = feats.attrs.get("causal_warmup_rows")
+    if (
+        isinstance(warmup_rows, bool)
+        or not isinstance(warmup_rows, (int, np.integer))
+        or not 0 <= int(warmup_rows) <= len(ts_arr)
+    ):
+        raise RuntimeError(f"[CTX_MTF_SOURCE] malformed {tf} warmup metadata")
+    if right - 1 < int(warmup_rows):
+        raise CausalContextWarmupError(
+            f"[CTX_MTF_WARMUP] {tf} indicator row is not fully warmed at decision cutoff"
+        )
+    row = values[right - 1]
+    if not np.isfinite(row).all():
+        raise RuntimeError(f"[CTX_MTF_SOURCE] non-finite {tf} row at decision cutoff")
+    return row
+
+
 def _per_tf_all(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     """O(log N) lookup of all 25 features per TF using V2 cache's int64 arrays."""
     out: dict[str, float] = {}
     for tf in TF_NAMES:
-        feats = ctx.multi_tf.get(tf)
-        if feats is None or len(feats) == 0:
-            for feat in MULTI_TF_PER_BAR_FEATURES_V2:
-                out[_pertf_name(tf, feat)] = 0.0
-            continue
-        ts_arr = feats.attrs.get("ts_int64")
-        feats_arr = feats.attrs.get("feats_np")
-        if ts_arr is None or feats_arr is None:
-            for feat in MULTI_TF_PER_BAR_FEATURES_V2:
-                out[_pertf_name(tf, feat)] = 0.0
-            continue
-        # last bar CLOSED by the M5 decision moment when GX1_PERTF_CLOSED_BAR=1 (else legacy bare ts_ns)
-        right = np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right")
-        if right == 0:
-            for feat in MULTI_TF_PER_BAR_FEATURES_V2:
-                out[_pertf_name(tf, feat)] = 0.0
-            continue
-        row = feats_arr[right - 1]
+        row = _tf_cache_row(ctx, tf, ts_ns)
         for j, feat in enumerate(MULTI_TF_PER_BAR_FEATURES_V2):
             out[_pertf_name(tf, feat)] = float(row[j])
     return out
@@ -373,57 +529,64 @@ def _per_tf_all(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
 
 def _vol_term(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     """ATR ratios across TFs at ts_ns — uses V2 cache."""
-    def _last_atr(tf):
-        feats = ctx.multi_tf.get(tf)
-        if feats is None: return 0.0
-        ts_arr = feats.attrs["ts_int64"]
-        right = np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right")  # closed-bar when gated
-        if right == 0: return 0.0
-        feats_np = feats.attrs["feats_np"]
-        # atr_bps_14 is feature index 0 in MULTI_TF_PER_BAR_FEATURES_V2
-        return float(feats_np[right - 1, 0])
+    def _last_atr(tf: str) -> float:
+        value = float(_tf_cache_row(ctx, tf, ts_ns)[0])
+        if not np.isfinite(value):
+            raise RuntimeError(f"[CTX_VOL_TERM] {tf} atr_bps_14 must be finite and positive")
+        if value <= 0.0:
+            raise CausalContextWarmupError(f"[CTX_VOL_TERM_WARMUP] {tf} ATR is not warmed")
+        return value
     a_m5 = _last_atr("M5"); a_m15 = _last_atr("M15")
     a_h1 = _last_atr("H1"); a_h4 = _last_atr("H4"); a_d1 = _last_atr("D1")
     return {
-        "atr_ratio_m5_h4":  min(50.0, a_m5 / max(a_h4, 1e-3)),
-        "atr_ratio_m15_d1": min(50.0, a_m15 / max(a_d1, 1e-3)),
-        "atr_ratio_h1_d1":  min(50.0, a_h1 / max(a_d1, 1e-3)),
-        "atr_ratio_m5_m15": min(50.0, a_m5 / max(a_m15, 1e-3)),
+        "atr_ratio_m5_h4":  min(50.0, a_m5 / a_h4),
+        "atr_ratio_m15_d1": min(50.0, a_m15 / a_d1),
+        "atr_ratio_h1_d1":  min(50.0, a_h1 / a_d1),
+        "atr_ratio_m5_m15": min(50.0, a_m5 / a_m15),
     }
 
 
 def _vol_pct(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     """Lookup pre-computed M5 / H1 ATR percentile at ts_ns."""
-    m5_idx = np.searchsorted(ctx.m5_ts_ns, ts_ns, side="right") - 1
-    m5_pct = float(ctx.m5_atr_pct_1yr[m5_idx]) if m5_idx >= 0 else 0.5
-    h1_idx = np.searchsorted(ctx.h1_atr_pct_ts_ns, _cache_cutoff_ns(ts_ns, "H1"), side="right") - 1  # closed-bar when gated
-    h1_pct = float(ctx.h1_atr_pct_1yr[h1_idx]) if h1_idx >= 0 else 0.5
+    m5_idx = int(np.searchsorted(ctx.m5_ts_ns, ts_ns, side="left"))
+    if m5_idx >= len(ctx.m5_ts_ns) or int(ctx.m5_ts_ns[m5_idx]) != int(ts_ns):
+        raise RuntimeError("[CTX_VOL_PERCENTILE] decision timestamp is not an exact M5 source row")
+    h1_right = int(
+        np.searchsorted(ctx.h1_atr_pct_ts_ns, _cache_cutoff_ns(ts_ns, "H1"), side="right")
+    )
+    if h1_right == 0:
+        raise CausalContextWarmupError(
+            "[CTX_VOL_PERCENTILE_WARMUP] no closed H1 percentile row at decision time"
+        )
+    m5_pct = float(ctx.m5_atr_pct_1yr[m5_idx])
+    h1_pct = float(ctx.h1_atr_pct_1yr[h1_right - 1])
+    if not np.isfinite([m5_pct, h1_pct]).all():
+        raise RuntimeError("[CTX_VOL_PERCENTILE] percentile sources must be finite")
     return {"vol_pct_m5_1yr": m5_pct, "vol_pct_h1_1yr": h1_pct}
 
 
 def _pivots(ctx: AugmentContext, ts: pd.Timestamp, current_atr: float, current_price: float) -> dict[str, float]:
     """Lookup prior-day pivots — O(1) dict lookup."""
-    prior_date = (ts - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    p = ctx.daily_pivot_by_date.get(prior_date)
-    if p is None:
-        # try 2 days back for weekends
-        prior_date = (ts - pd.Timedelta(days=2)).strftime("%Y-%m-%d")
-        p = ctx.daily_pivot_by_date.get(prior_date)
-    if p is None:
-        return {"dist_to_R1_atr": 0.0, "dist_to_R2_atr": 0.0,
-                "dist_to_S1_atr": 0.0, "dist_to_S2_atr": 0.0}
-    atr_safe = max(current_atr, 1e-3)
+    ts = _require_utc_timestamp(ts, context="CTX_PIVOT")
+    if not np.isfinite(current_atr) or current_atr <= 0.0 or not np.isfinite(current_price):
+        raise RuntimeError("[CTX_PIVOT] price and ATR must be finite; ATR must be positive")
+    target_day = ts.normalize()
+    eligible_days = [day for day in ctx.daily_pivot_by_date if day < target_day]
+    if not eligible_days:
+        raise CausalContextWarmupError("[CTX_PIVOT_WARMUP] no completed prior trading day")
+    p = ctx.daily_pivot_by_date[max(eligible_days)]
     return {
-        "dist_to_R1_atr": (current_price - p["R1"]) / atr_safe,
-        "dist_to_R2_atr": (current_price - p["R2"]) / atr_safe,
-        "dist_to_S1_atr": (current_price - p["S1"]) / atr_safe,
-        "dist_to_S2_atr": (current_price - p["S2"]) / atr_safe,
+        "dist_to_R1_atr": (current_price - p["R1"]) / current_atr,
+        "dist_to_R2_atr": (current_price - p["R2"]) / current_atr,
+        "dist_to_S1_atr": (current_price - p["S1"]) / current_atr,
+        "dist_to_S2_atr": (current_price - p["S2"]) / current_atr,
     }
 
 
 def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, current_atr: float) -> dict[str, float]:
     """Distance to nearest unswept high/low per TF — uses pre-resampled arrays."""
-    atr_safe = max(current_atr, 1e-3)
+    if not np.isfinite(current_atr) or current_atr <= 0.0 or not np.isfinite(current_price):
+        raise RuntimeError("[CTX_LIQUIDITY] price and ATR must be finite; ATR must be positive")
     out: dict[str, float] = {}
     for tf_name, ts_arr, hi_arr, lo_arr, lookback in (
         ("m5",  ctx.m5_ts_ns,  ctx.m5_high,  ctx.m5_low,  240),
@@ -432,45 +595,47 @@ def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, curr
         ("h4",  ctx.h4_ts_ns,  ctx.h4_high,  ctx.h4_low,  168),
         ("d1",  ctx.d1_ts_ns,  ctx.d1_high,  ctx.d1_low,  60),
     ):
-        right = np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf_name.upper()), side="right")  # closed-bar when gated
-        if right == 0:
-            out[f"dist_to_{tf_name}_hi_atr"] = 0.0
-            out[f"dist_to_{tf_name}_lo_atr"] = 0.0
-            continue
-        left = max(0, right - lookback)
+        right = int(np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf_name.upper()), side="right"))
+        if right < lookback:
+            raise CausalContextWarmupError(
+                f"[CTX_LIQUIDITY_WARMUP] {tf_name.upper()} requires {lookback} closed rows; "
+                f"observed={right}"
+            )
+        left = right - lookback
         window_hi = hi_arr[left:right]
         window_lo = lo_arr[left:right]
-        # Nearest UNSWEPT high above current
+        # Positive means an unswept level still exists beyond price. If none
+        # exists, the nearest already-swept level is retained with a negative
+        # sign instead of a fabricated zero-distance level.
         highs_above = window_hi[window_hi > current_price]
-        out[f"dist_to_{tf_name}_hi_atr"] = (
-            float((highs_above.min() - current_price) / atr_safe) if len(highs_above) > 0 else 0.0
-        )
+        nearest_hi = float(highs_above.min()) if len(highs_above) else float(window_hi.max())
+        out[f"dist_to_{tf_name}_hi_atr"] = float((nearest_hi - current_price) / current_atr)
         lows_below = window_lo[window_lo < current_price]
-        out[f"dist_to_{tf_name}_lo_atr"] = (
-            float((current_price - lows_below.max()) / atr_safe) if len(lows_below) > 0 else 0.0
-        )
+        nearest_lo = float(lows_below.max()) if len(lows_below) else float(window_lo.min())
+        out[f"dist_to_{tf_name}_lo_atr"] = float((current_price - nearest_lo) / current_atr)
     return out
 
 
 def _per_side_perf(ctx: AugmentContext, ts: pd.Timestamp, lookback_n: int = 10) -> dict[str, float]:
     """Lookup last-N closures before ts from pre-built trade history."""
-    default = {
-        "long_win_rate_last10": 0.5, "long_mean_pnl_last10": 0.0,
-        "long_n_consec_losses": 0.0, "long_time_since_last_close_min": 240.0,
-        "short_win_rate_last10": 0.5, "short_mean_pnl_last10": 0.0,
-        "short_n_consec_losses": 0.0, "short_time_since_last_close_min": 240.0,
-    }
+    if isinstance(lookback_n, bool) or not isinstance(lookback_n, int) or lookback_n <= 0:
+        raise RuntimeError("[CTX_PORTFOLIO] lookback_n must be a positive integer")
     if len(ctx.trade_history) == 0:
-        return default
+        raise CausalContextWarmupError("[CTX_PORTFOLIO_WARMUP] no closed-trade history")
     th = ctx.trade_history
     eligible = th[th["close_ts"] <= ts]
     if eligible.empty:
-        return default
-    out = dict(default)
+        raise CausalContextWarmupError("[CTX_PORTFOLIO_WARMUP] no trade closed by decision time")
+    out: dict[str, float] = {}
     for side in ("long", "short"):
         side_df = eligible[eligible["side"] == side].tail(lookback_n)
-        if side_df.empty: continue
-        pnls = side_df["pnl_bps"].to_numpy()
+        if side_df.empty:
+            raise CausalContextWarmupError(
+                f"[CTX_PORTFOLIO_WARMUP] no closed {side} trade by decision time"
+            )
+        pnls = side_df["pnl_bps"].to_numpy(dtype=np.float64)
+        if not np.isfinite(pnls).all():
+            raise RuntimeError(f"[CTX_PORTFOLIO] non-finite {side} pnl evidence")
         out[f"{side}_win_rate_last10"] = float((pnls > 0).mean())
         out[f"{side}_mean_pnl_last10"] = float(pnls.mean())
         # consec losses from end backwards
@@ -492,8 +657,16 @@ def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> 
     out: dict[str, float] = {}
     # DIP per TF: proximity-to-low × sigmoid(ema20-slope)
     for tf in ("m5", "m15", "h1", "h4", "d1"):
-        dist_lo = float(liq_out.get(f"dist_to_{tf}_lo_atr", 2.0))
-        slope = float(per_tf_out.get(f"{tf}_ema20_slope_atr_v2", 0.0))
+        dist_name = f"dist_to_{tf}_lo_atr"
+        slope_name = f"{tf}_ema20_slope_atr_v2"
+        if dist_name not in liq_out or slope_name not in per_tf_out:
+            raise RuntimeError(
+                f"[CTX_DIP_STRUCT] exact sources required: {dist_name}, {slope_name}"
+            )
+        dist_lo = float(liq_out[dist_name])
+        slope = float(per_tf_out[slope_name])
+        if not np.isfinite([dist_lo, slope]).all():
+            raise RuntimeError(f"[CTX_DIP_STRUCT] non-finite source for {tf}")
         dip_prox = max(0.0, min(1.0, 1.0 - dist_lo / 2.0))
         recovery = 1.0 / (1.0 + math.exp(-slope * 5.0))
         out[f"dip_proximity_{tf}_v3"] = dip_prox
@@ -501,8 +674,14 @@ def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> 
     # STRUCTURE per TF: HH/HL/LH/LL via mom_5 + mom_20 signs
     pback = {}
     for tf in ("m5", "m15", "h1", "h4", "d1"):
-        m5_mom = float(per_tf_out.get(f"{tf}_mom_5_atr_v2", 0.0))
-        m20_mom = float(per_tf_out.get(f"{tf}_mom_20_atr_v2", 0.0))
+        mom5_name = f"{tf}_mom_5_atr_v2"
+        mom20_name = f"{tf}_mom_20_atr_v2"
+        if mom5_name not in per_tf_out or mom20_name not in per_tf_out:
+            raise RuntimeError(f"[CTX_DIP_STRUCT] exact momentum sources required for {tf}")
+        m5_mom = float(per_tf_out[mom5_name])
+        m20_mom = float(per_tf_out[mom20_name])
+        if not np.isfinite([m5_mom, m20_mom]).all():
+            raise RuntimeError(f"[CTX_DIP_STRUCT] non-finite momentum source for {tf}")
         out[f"struct_continuation_up_{tf}_v3"] = float((m20_mom > 0) and (m5_mom > 0))
         out[f"struct_pullback_in_uptrend_{tf}_v3"] = float((m20_mom > 0) and (m5_mom < 0))
         out[f"struct_continuation_down_{tf}_v3"] = float((m20_mom < 0) and (m5_mom < 0))
@@ -589,24 +768,29 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
     return out
 
 
-def augment_candidate(ctx: AugmentContext, ts: pd.Timestamp) -> dict[str, float]:
+def augment_candidate(
+    ctx: AugmentContext,
+    ts: pd.Timestamp,
+    *,
+    include_portfolio: bool = True,
+) -> dict[str, float]:
     """Fast per-candidate compute: O(log N) lookups for all V2 + dip/struct features."""
-    ts_ns = ts.value if hasattr(ts, "value") else pd.Timestamp(ts).value
-    m5_idx = np.searchsorted(ctx.m5_ts_ns, ts_ns, side="right") - 1
-    if m5_idx < 0:
-        return {**{k: 0.0 for k in PER_TF_FEATURE_NAMES}, **{k: 0.0 for k in GROUP_A_FEATURE_NAMES},
-                **{k: 0.0 for k in DIP_STRUCT_FEATURE_NAMES}, **{k: 0.0 for k in FVG_FEATURE_NAMES}}
+    if not isinstance(include_portfolio, bool):
+        raise TypeError("[CTX_CANDIDATE] include_portfolio must be bool")
+    ts = _require_utc_timestamp(ts, context="CTX_CANDIDATE")
+    ts_ns = int(ts.value)
+    m5_idx = int(np.searchsorted(ctx.m5_ts_ns, ts_ns, side="left"))
+    if m5_idx >= len(ctx.m5_ts_ns) or int(ctx.m5_ts_ns[m5_idx]) != ts_ns:
+        raise RuntimeError(f"[CTX_CANDIDATE] decision timestamp is not an exact M5 row: {ts}")
     current_price = float(ctx.m5_close[m5_idx])
-    m5_feats = ctx.multi_tf.get("M5")
-    if m5_feats is not None and m5_feats.attrs.get("feats_np") is not None:
-        m5_ts_arr = m5_feats.attrs["ts_int64"]
-        right = np.searchsorted(m5_ts_arr, ts_ns, side="right")
-        if right > 0:
-            current_atr = float(m5_feats.attrs["feats_np"][right - 1, 0] / 1e4 * current_price)
-        else:
-            current_atr = 1.5
-    else:
-        current_atr = 1.5
+    atr_bps = float(_tf_cache_row(ctx, "M5", ts_ns)[0])
+    if not np.isfinite(current_price) or current_price <= 0.0:
+        raise RuntimeError("[CTX_CANDIDATE] current M5 close must be finite and positive")
+    if not np.isfinite(atr_bps):
+        raise RuntimeError("[CTX_CANDIDATE] current M5 atr_bps_14 must be finite and positive")
+    if atr_bps <= 0.0:
+        raise CausalContextWarmupError("[CTX_CANDIDATE_WARMUP] current M5 ATR is not warmed")
+    current_atr = atr_bps / 1e4 * current_price
 
     out: dict[str, float] = {}
     per_tf = _per_tf_all(ctx, ts_ns)
@@ -619,23 +803,72 @@ def augment_candidate(ctx: AugmentContext, ts: pd.Timestamp) -> dict[str, float]
     if _AUG_ROUND_ON:
         out.update(_round_number_levels(current_price, current_atr))   # 5 (env-gated)
     out.update(liq)                                            # 10 (5 TFs × hi/lo)
-    out.update(_per_side_perf(ctx, ts))                        # 8
+    if include_portfolio:
+        out.update(_per_side_perf(ctx, ts))                    # 8
     out.update(_dip_struct_5tf(per_tf, liq))                   # 38 (dip + struct)
     if _FVG_ON:
         out.update(_fvg_5tf(ctx, ts_ns, current_price, current_atr))   # 6 (3 TFs × {dist, active})
+    required_group_a = set(GROUP_A_FEATURE_NAMES)
+    if not include_portfolio:
+        required_group_a.difference_update(PORTFOLIO_FEATURE_NAMES)
+    required = set(PER_TF_FEATURE_NAMES) | required_group_a | set(DIP_STRUCT_FEATURE_NAMES)
+    if _FVG_ON:
+        required.update(FVG_FEATURE_NAMES)
+    missing = sorted(required - set(out))
+    if missing:
+        raise RuntimeError(f"[CTX_CANDIDATE] derived feature contract incomplete: {missing}")
+    values = np.asarray([out[name] for name in sorted(required)], dtype=np.float64)
+    if not np.isfinite(values).all():
+        raise RuntimeError("[CTX_CANDIDATE] derived feature contract contains non-finite values")
     return out
 
 
-DEFAULT_MULTI_TF_V2_CACHE_DIR = "/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE"
+def compute_attach_rows(
+    ctx,
+    ts_index: pd.DatetimeIndex,
+    lo: int,
+    hi: int,
+    *,
+    extract: list,
+) -> dict:
+    """Per-row augment_candidate loop for rows [lo, hi) against a FULL context.
+
+    Extracted from attach_group_a_dip_struct_ctx_columns so callers can
+    parallelize the row loop across workers while every worker indexes the
+    SAME full-series context arrays (exact parity by construction; the
+    trailing-1yr percentile arrays are precomputed in build_context from the
+    complete frame). Rows outside [lo, hi) stay NaN in the returned arrays.
+    """
+    n = len(ts_index)
+    cols = {k: np.full(n, np.nan, dtype=np.float32) for k in extract}
+    complete_started = False
+    for i in range(lo, hi):
+        ts = ts_index[i]
+        try:
+            feat = augment_candidate(ctx, ts, include_portfolio=False)
+        except CausalContextWarmupError:
+            if complete_started:
+                raise RuntimeError(
+                    f"[CTX_CONT_PARITY] causal source gap after warmup at {ts}"
+                )
+            continue
+        complete_started = True
+        for k in extract:
+            if k not in feat:
+                raise RuntimeError(f"[CTX_CONT_PARITY] derived feature missing: {k}")
+            value = float(feat[k])
+            if not np.isfinite(value):
+                raise RuntimeError(f"[CTX_CONT_PARITY] non-finite derived feature: {k}")
+            cols[k][i] = value
+    return cols
 
 
 def attach_group_a_dip_struct_ctx_columns(
     df: pd.DataFrame,
     *,
-    cache_dir: str | None = None,
-    multi_tf: dict | None = None,
+    multi_tf: dict,
     journal_label: str = "parity",
-    smc_col_candidates: tuple[str, ...] = ("smc_swing_state", "smc_swing_state_canon_v1"),
+    smc_col: str = "smc_swing_state",
 ) -> pd.DataFrame:
     """Add the 24 GROUP-A parity + 36 dip/struct ctx_cont columns to ``df`` in place.
 
@@ -648,19 +881,40 @@ def attach_group_a_dip_struct_ctx_columns(
       - ``df`` has lowercase ``high``/``low``/``close`` columns.
       - ``df`` has a ``time`` column OR a tz-aware ``DatetimeIndex``.
 
-    Idempotent: returns immediately if all 60 columns are already present.
-    Mirrors the cemented-V10 builder block exactly (including the
-    ``struct_smc_swing_x_dip_v3`` SMC×dip-proximity derivation).
+    Existing derived columns are never trusted or passed through: they are
+    overwritten from the exact sources on every call. ``multi_tf`` is explicit
+    and mandatory, so serving cannot silently fall back to a stale disk cache.
+    """
+    ctx, ts_index, extract, dip_from_aug = build_attach_context(
+        df, multi_tf=multi_tf, journal_label=journal_label, smc_col=smc_col
+    )
+    cols = compute_attach_rows(ctx, ts_index, 0, len(df), extract=extract)
+    return finalize_attach_columns(
+        df, cols, smc_col=smc_col, dip_from_aug=dip_from_aug
+    )
+
+
+def build_attach_context(
+    df: pd.DataFrame,
+    *,
+    multi_tf: dict,
+    journal_label: str = "parity",
+    smc_col: str = "smc_swing_state",
+):
+    """Validate ``df`` and build the FULL-series augment context.
+
+    Factored from attach_group_a_dip_struct_ctx_columns so a parallel caller
+    can build the context once (full series -> exact trailing-1yr arrays) and
+    fan the row loop out over workers.
     """
     from gx1.contracts.signal_bridge_v3 import (
         ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
         ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
     )
-    from gx1.features.htf_features import load_multi_tf_v2_cache
-
-    need = list(_GROUP_A) + list(_DIP_STRUCT)
-    if all(c in df.columns for c in need):
-        return df
+    if not isinstance(multi_tf, dict):
+        raise RuntimeError("[CTX_CONT_PARITY] explicit multi_tf source is required")
+    if smc_col not in df.columns:
+        raise RuntimeError(f"[CTX_CONT_PARITY] exact SMC source missing: {smc_col}")
 
     for c in ("high", "low", "close"):
         if c not in df.columns:
@@ -668,27 +922,18 @@ def attach_group_a_dip_struct_ctx_columns(
                 f"[CTX_CONT_PARITY] df missing required OHLC column '{c}'"
             )
     if "time" in df.columns:
-        ts_index = pd.to_datetime(df["time"], utc=True)
+        raw_time = pd.to_datetime(df["time"], utc=True, errors="coerce")
+        ts_index = pd.DatetimeIndex(raw_time)
     elif isinstance(df.index, pd.DatetimeIndex):
-        ts_index = pd.to_datetime(df.index, utc=True)
+        ts_index = pd.DatetimeIndex(pd.to_datetime(df.index, utc=True, errors="coerce"))
     else:
         raise RuntimeError("[CTX_CONT_PARITY] df needs a 'time' column or DatetimeIndex")
+    if ts_index.hasnans or not ts_index.is_monotonic_increasing or not ts_index.is_unique:
+        raise RuntimeError("[CTX_CONT_PARITY] timestamps must be finite, unique and chronological")
 
     m5 = df[["high", "low", "close"]].copy()
-    m5.index = ts_index.to_numpy()
-    m5 = m5.sort_index()
-    # Multi-TF source: either an explicitly-provided in-memory bundle (LIVE serve passes
-    # the mtf it just built from this SAME cv3 → staleness structurally impossible, no
-    # on-disk dependency) OR the on-disk V2 cache (BUILD pipeline: pinned cv3 + a freshly
-    # regenerated workspace cache). Both come from build_multi_tf_per_bar_features_v2() on
-    # the same bars and the features are causal/asof, so for any decision ts the values are
-    # bit-identical → train==serve preserved either way. (rule: make running-stale
-    # IMPOSSIBLE for live, not "remember to refresh the cache".)
-    if multi_tf is None:
-        cache = cache_dir or os.environ.get(
-            "GX1_V10_MULTI_TF_V2_CACHE_DIR", DEFAULT_MULTI_TF_V2_CACHE_DIR
-        )
-        multi_tf = load_multi_tf_v2_cache(cache)
+    m5.index = ts_index
+    _validate_m5_frame(m5, context="CTX_CONT_PARITY")
     ctx = build_context(
         m5, multi_tf,
         journal_dir=Path(f"/nonexistent_{journal_label}_journal"),
@@ -696,27 +941,40 @@ def attach_group_a_dip_struct_ctx_columns(
 
     dip_from_aug = [f for f in _DIP_STRUCT if f != "struct_smc_swing_x_dip_v3"]
     extract = list(_GROUP_A) + dip_from_aug + ["dip_proximity_m5_v3"]
-    cols = {k: np.zeros(len(df), dtype=np.float32) for k in extract}
-    for i, ts in enumerate(pd.DatetimeIndex(ts_index)):
-        feat = augment_candidate(ctx, ts)
-        for k in extract:
-            cols[k][i] = float(feat.get(k, 0.0))
+    return ctx, ts_index, extract, dip_from_aug
+
+
+def finalize_attach_columns(
+    df: pd.DataFrame,
+    cols: dict,
+    *,
+    smc_col: str,
+    dip_from_aug: list,
+) -> pd.DataFrame:
+    """Assemble the attach output columns onto ``df`` (post-row-loop steps)."""
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
+    )
     out_cols = {k: cols[k] for k in (list(_GROUP_A) + dip_from_aug)}
 
-    # struct_smc_swing_x_dip_v3 = clip(smc_swing_state / max|·|, -1, 1) × dip_proximity_m5_v3
-    smc_col = next((c for c in smc_col_candidates if c in df.columns), None)
-    if smc_col is not None:
-        sw = pd.to_numeric(df[smc_col], errors="coerce").fillna(0.0).to_numpy(np.float32)
-        max_abs = float(np.abs(sw).max()) if len(sw) else 1.0
-        sw_norm = np.clip(sw / max(max_abs, 1.0), -1.0, 1.0)
-        out_cols["struct_smc_swing_x_dip_v3"] = (sw_norm * cols["dip_proximity_m5_v3"]).astype(np.float32)
-    else:
-        out_cols["struct_smc_swing_x_dip_v3"] = np.zeros(len(df), dtype=np.float32)
+    sw = pd.to_numeric(df[smc_col], errors="coerce").to_numpy(np.float64)
+    valid = np.isfinite(cols["dip_proximity_m5_v3"])
+    interaction = np.full(len(df), np.nan, dtype=np.float32)
+    if not valid.any():
+        raise RuntimeError("[CTX_CONT_PARITY] no complete causal context row exists")
+    interaction[valid] = compute_smc_swing_dip_interaction(
+        sw[valid],
+        cols["dip_proximity_m5_v3"][valid],
+    )
+    out_cols["struct_smc_swing_x_dip_v3"] = interaction
     new_cols = pd.DataFrame(out_cols, index=df.index)
     existing = [c for c in new_cols.columns if c in df.columns]
     if existing:
         df = df.drop(columns=existing)
-    return pd.concat([df, new_cols], axis=1)
+    result = pd.concat([df, new_cols], axis=1)
+    result.attrs.update(df.attrs)
+    result.attrs["causal_context_warmup_rows"] = int(np.count_nonzero(~valid))
+    return result
 
 
 def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
@@ -767,31 +1025,29 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
         )
         # Reorder back to original df order
         merged = merged.set_index("decision_ts_utc").reindex(cand_idx).reset_index(drop=True)
-        for src_col, dst_col in zip(
-            ["smc_swing_state","smc_bos_up","smc_bos_down","smc_choch",
-             "smc_sweep_up","smc_sweep_down","smc_sweep_size_atr",
-             "smc_bars_since_sweep","smc_premium_discount","smc_premium_state"],
-            GROUP_S_SMC_FEATURE_NAMES,
-        ):
-            if src_col in merged.columns:
-                df[dst_col] = merged[src_col].fillna(0.0).to_numpy(dtype=np.float32)
-            else:
-                df[dst_col] = np.zeros(n, dtype=np.float32)
+        smc_sources = [
+            "smc_swing_state", "smc_bos_up", "smc_bos_down", "smc_choch",
+            "smc_sweep_up", "smc_sweep_down", "smc_sweep_size_atr",
+            "smc_bars_since_sweep", "smc_premium_discount", "smc_premium_state",
+        ]
+        missing_smc = [name for name in smc_sources if name not in merged.columns]
+        if missing_smc:
+            raise RuntimeError(f"[AUG_V2_SMC] canonical SMC sources missing: {missing_smc}")
+        for src_col, dst_col in zip(smc_sources, GROUP_S_SMC_FEATURE_NAMES):
+            values = pd.to_numeric(merged[src_col], errors="coerce").to_numpy(dtype=np.float64)
+            if not np.isfinite(values).all():
+                raise RuntimeError(f"[AUG_V2_SMC] missing/non-finite asof values for {src_col}")
+            df[dst_col] = values.astype(np.float32)
     else:
-        # No SMC cache → fill zeros (graceful fallback for non-canonical-v3 sources)
-        for dst_col in GROUP_S_SMC_FEATURE_NAMES:
-            df[dst_col] = np.zeros(n, dtype=np.float32)
+        raise RuntimeError("[AUG_V2_SMC] explicit non-empty canonical SMC cache is required")
 
     # 2026-05-24 PM: struct_smc_swing_x_dip_v3 = SMC swing state × M5 dip proximity.
     # Computed here (after SMC join) since needs both signals.
-    if "smc_swing_state_canon_v1" in df.columns and "dip_proximity_m5_v3" in df.columns:
-        sw = pd.to_numeric(df["smc_swing_state_canon_v1"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-        max_abs = float(np.abs(sw).max()) if len(sw) else 1.0
-        sw_norm = np.clip(sw / max(max_abs, 1.0), -1.0, 1.0)
-        dp = pd.to_numeric(df["dip_proximity_m5_v3"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-        df["struct_smc_swing_x_dip_v3"] = (sw_norm * dp).astype(np.float32)
-    else:
-        df["struct_smc_swing_x_dip_v3"] = np.zeros(n, dtype=np.float32)
+    if "smc_swing_state_canon_v1" not in df.columns or "dip_proximity_m5_v3" not in df.columns:
+        raise RuntimeError("[AUG_V2_SMC] exact SMC swing and dip sources are required")
+    sw = pd.to_numeric(df["smc_swing_state_canon_v1"], errors="coerce").to_numpy(dtype=np.float64)
+    dp = pd.to_numeric(df["dip_proximity_m5_v3"], errors="coerce").to_numpy(dtype=np.float64)
+    df["struct_smc_swing_x_dip_v3"] = compute_smc_swing_dip_interaction(sw, dp)
 
     out_pq.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out_pq, index=False)
@@ -814,6 +1070,13 @@ def main() -> int:
     )
     out_per_week = out_dir / "per_week"
     out_per_week.mkdir(parents=True, exist_ok=True)
+    existing_outputs = sorted(out_per_week.glob("*.parquet"))
+    existing_manifests = sorted(out_dir.glob("manifest*.json"))
+    if existing_outputs or existing_manifests:
+        raise RuntimeError(
+            "[AUG_V2_OUTPUT_NOT_CLEAN] refusing stale/pass-through artifacts; use a new empty "
+            f"--out-dir (weekly={len(existing_outputs)} manifests={len(existing_manifests)})"
+        )
     print(f"[AUG_V2] source: {args.forward_outcome_dir}")
     print(f"[AUG_V2] output: {out_dir}")
     print(f"[AUG_V2] new cols per row: {len(PER_TF_FEATURE_NAMES) + len(GROUP_A_FEATURE_NAMES)} "
@@ -836,19 +1099,30 @@ def main() -> int:
     # 2026-05-24 BUG-3 FIX: load SMC features from canonical_v3 prebuilt
     print(f"[AUG_V2] loading SMC features from canonical_v3 prebuilt...")
     t_smc = time.time()
-    smc_cache = pd.DataFrame()
-    try:
-        smc_cols = ["time"] + [
-            "smc_swing_state","smc_bos_up","smc_bos_down","smc_choch",
-            "smc_sweep_up","smc_sweep_down","smc_sweep_size_atr",
-            "smc_bars_since_sweep","smc_premium_discount","smc_premium_state",
-        ]
-        smc_cache = pd.read_parquet(args.m5_prebuilt, columns=smc_cols)
-        smc_cache["time"] = pd.to_datetime(smc_cache["time"], utc=True)
-        print(f"[AUG_V2]   SMC cache loaded: {len(smc_cache):,} rows × {len(smc_cols)-1} cols "
-              f"in {time.time()-t_smc:.1f}s")
-    except Exception as exc:
-        print(f"[AUG_V2]   WARN: SMC load failed ({exc}) → SMC features will be zero")
+    smc_cols = ["time"] + [
+        "smc_swing_state","smc_bos_up","smc_bos_down","smc_choch",
+        "smc_sweep_up","smc_sweep_down","smc_sweep_size_atr",
+        "smc_bars_since_sweep","smc_premium_discount","smc_premium_state",
+    ]
+    smc_cache = pd.read_parquet(args.m5_prebuilt, columns=smc_cols)
+    smc_cache["time"] = pd.to_datetime(smc_cache["time"], utc=True, errors="coerce")
+    smc_times = pd.DatetimeIndex(smc_cache["time"])
+    if (
+        smc_cache.empty
+        or smc_times.hasnans
+        or not smc_times.is_unique
+        or not smc_times.is_monotonic_increasing
+        or not smc_times.equals(m5_df.index)
+    ):
+        raise RuntimeError("[AUG_V2_SMC] SMC timestamps must exactly equal canonical M5 source")
+    smc_values = smc_cache[smc_cols[1:]].apply(pd.to_numeric, errors="coerce").to_numpy(np.float64)
+    if not np.isfinite(smc_values).all():
+        raise RuntimeError("[AUG_V2_SMC] canonical SMC sources must be finite")
+    swing = smc_values[:, 0]
+    if not np.equal(swing, np.rint(swing)).all() or np.any((swing < 0.0) | (swing > 4.0)):
+        raise RuntimeError("[AUG_V2_SMC] smc_swing_state must use exact enum 0..4")
+    print(f"[AUG_V2]   SMC cache loaded: {len(smc_cache):,} rows × {len(smc_cols)-1} cols "
+          f"in {time.time()-t_smc:.1f}s")
 
     week_files = sorted((args.forward_outcome_dir / "per_week").glob("forward_outcomes_*.parquet"))
     if args.n_weeks_test > 0:
@@ -858,13 +1132,9 @@ def main() -> int:
 
     total_n = 0; total_t = 0.0
     week_rows: dict[str, int] = {}
-    skipped_existing: list[str] = []
     errors: list[str] = []
     for i, wp in enumerate(week_files):
         out_pq = out_per_week / wp.name
-        if out_pq.exists():
-            skipped_existing.append(wp.name)
-            continue
         try:
             s = augment_week(wp, out_pq, ctx, smc_cache=smc_cache)
             week_rows[wp.name] = int(s["n"])
@@ -900,7 +1170,7 @@ def main() -> int:
                       ("GX1_ROUND_NUMBER", "GX1_FVG_FEATURES", "GX1_SMC_SWEEP_RECLAIM")},
         "n_week_files_seen": len(week_files),
         "n_built": len(week_rows),
-        "n_skipped_existing": len(skipped_existing),
+        "n_skipped_existing": 0,
         "rows_built_total": total_n,
         "per_week_rows": week_rows,
         "errors": errors,

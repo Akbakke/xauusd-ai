@@ -55,9 +55,7 @@ os.environ.setdefault("FEATURE_BUILD_TIMEOUT_MS", "600000")
 from gx1.features.basic_v1 import build_basic_v1
 from gx1.features.feature_state import FeatureState
 from gx1.utils.feature_context import set_feature_state
-from gx1.scripts import (
-    materialize_build_iql_offline_data_contract_research_only_v1 as contract_gate,
-)
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
 
 
 ACTION = "BUILD_CANONICAL_FEATURES_V1"

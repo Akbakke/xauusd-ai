@@ -52,7 +52,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.scripts import materialize_build_iql_offline_data_contract_research_only_v1 as contract_gate
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
 from gx1.scripts import materialize_exit_hold_exit_now_mdp_reward_contract_v1 as mdp_gate
 
 

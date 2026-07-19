@@ -1,7 +1,6 @@
 """Entry trend/EMA specialist extension features.
 
-This layer is deliberately pure and report-only until a later dataset rebuild
-chooses to include it. It derives causal trend/EMA mechanism features from the
+This canonical layer derives causal trend/EMA mechanism features from exact,
 already materialized Entry snap/context fields.
 """
 from __future__ import annotations
@@ -105,15 +104,14 @@ def missing_trend_ema_source_fields(feature_names: Iterable[str]) -> list[str]:
     return [name for name in TREND_EMA_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
     if name not in index:
-        return np.full(x.shape[0], float(default), dtype=np.float32)
-    arr = np.asarray(x[:, index[name]], dtype=np.float32)
-    return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
+        raise RuntimeError(f"trend/EMA required source field missing: {name}")
+    return np.asarray(x[:, index[name]], dtype=np.float32)
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    return np.clip(arr, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -187,20 +185,32 @@ def build_entry_trend_ema_layer(
     x = np.asarray(x, dtype=np.float32)
     if x.ndim != 2:
         raise RuntimeError(f"trend/EMA input matrix must be 2D, got {x.shape}")
+    if x.shape[0] == 0:
+        raise RuntimeError("trend/EMA input matrix must contain at least one row")
     if x.shape[1] != len(feature_names):
         raise RuntimeError(
             f"trend/EMA feature name count {len(feature_names)} does not match matrix width {x.shape[1]}"
         )
+    if len(feature_names) != len(set(feature_names)):
+        duplicates = sorted({name for name in feature_names if feature_names.count(name) > 1})
+        raise RuntimeError(f"trend/EMA duplicate feature names: {duplicates[:10]}")
     missing = missing_trend_ema_source_fields(feature_names)
     if missing:
         raise RuntimeError(f"trend/EMA required source fields missing: {missing}")
+    if not np.isfinite(x).all():
+        bad_rows, bad_cols = np.where(~np.isfinite(x))
+        examples = [
+            {"row": int(row), "feature": feature_names[int(col)]}
+            for row, col in zip(bad_rows[:10], bad_cols[:10])
+        ]
+        raise RuntimeError(f"trend/EMA input matrix contains non-finite values: {examples}")
 
     idx = _name_index(feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     m5_ema = _tanh(c("snap._v1_ema_diff"))
     m5_slope = _tanh(c("snap.ema20_slope"))

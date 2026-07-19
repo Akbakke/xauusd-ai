@@ -57,6 +57,7 @@ def main() -> int:
         MULTI_TF_FEATURE_COUNT_V2,
         MULTI_TF_PER_BAR_FEATURES_V2,
         MULTI_TF_SHIFT,
+        HTF_V2_CACHE_BUILDER_VERSION,
     )
     import pyarrow.parquet as pq
 
@@ -64,17 +65,19 @@ def main() -> int:
     print(f"[CACHE_V2] m5_prebuilt: {args.m5_prebuilt}")
     print(f"[CACHE_V2] out_dir: {args.out_dir}")
 
-    cols = ["time", "open", "high", "low", "close"]
-    if "volume" in pq.ParquetFile(args.m5_prebuilt).schema_arrow.names:
-        cols.append("volume")
+    cols = ["time", "open", "high", "low", "close", "volume"]
+    missing = [name for name in cols if name not in pq.ParquetFile(args.m5_prebuilt).schema_arrow.names]
+    if missing:
+        raise RuntimeError(
+            f"[CACHE_V2_SOURCE_CONTRACT] exact canonical OHLCV source missing: {missing}"
+        )
     print(f"[LOAD] {args.m5_prebuilt.name} cols={cols}")
     m5 = pd.read_parquet(args.m5_prebuilt, columns=cols)
     m5["time"] = pd.to_datetime(m5["time"], utc=True)
     m5 = m5.set_index("time").sort_index()
     for c in ("open", "high", "low", "close"):
         m5[c] = m5[c].astype(np.float32)
-    if "volume" in m5.columns:
-        m5["volume"] = m5["volume"].astype(np.float32)
+    m5["volume"] = m5["volume"].astype(np.float32)
     print(f"[LOAD] {len(m5):,} M5 bars, range {m5.index[0]} → {m5.index[-1]}")
 
     print(f"[BUILD] V2 multi-TF features (5 TFs × {MULTI_TF_FEATURE_COUNT_V2} feats)...")
@@ -84,7 +87,7 @@ def main() -> int:
         "feature_count": int(MULTI_TF_FEATURE_COUNT_V2),
         "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
         "shift_contract": {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()},
-        "builder_version": "prebuild_multi_tf_cache_v2_feature_order_shift_manifest_20260713",
+        "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
         "m5_prebuilt_source": str(args.m5_prebuilt.resolve()),
         "m5_prebuilt_source_sha256": _sha256_file(args.m5_prebuilt),
         "tfs": {},
@@ -103,6 +106,7 @@ def main() -> int:
             "ts_npy": ts_path.name,
             "first_ts_ns": int(ts_int64[0]),
             "last_ts_ns": int(ts_int64[-1]),
+            "causal_warmup_rows": int(df.attrs["causal_warmup_rows"]),
         }
         print(f"  [SAVED] {tf}: {feats_np.shape} → {feats_path.name} "
               f"+ ts.npy ({feats_path.stat().st_size/1e6:.2f} MB feats)")

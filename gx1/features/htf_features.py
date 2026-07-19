@@ -10,12 +10,9 @@ Reproduces the same five context features that
   - H4_trend_sign_cat (categorical 0/1/2)
 
 These are the 4 multi-timeframe ctx_cont features and the 1 ctx_cat feature
-that were previously hard-coded to constants in
-`gx1/execution/entry_context_features.py`. The hard-coding was harmless in
-backtest because `oanda_demo_runner.py` overwrites with prebuilt values
-before the values reach XGB - but the constants were dead code that would
-become an active drift bug the moment we ran without prebuilt features
-(e.g., real OANDA live trading).
+that an older, now-retired context helper replaced with constants. Active
+model-native state construction requires the observed values and fails closed
+when they are unavailable.
 
 Public API:
 
@@ -99,11 +96,21 @@ def _resample_ohlc(df: pd.DataFrame, rule: str) -> pd.DataFrame:
 
 
 def _resample_ohlcv(df: pd.DataFrame, rule: str) -> pd.DataFrame:
-    """V2-extension: also aggregates volume (sum) — needed for VWAP per TF."""
-    agg = {"open": "first", "high": "max", "low": "min",
-           "close": _last_valid, "volume": "sum"}
-    cols = [c for c in agg.keys() if c in df.columns]
-    return df[cols].resample(rule).agg({c: agg[c] for c in cols}).dropna(how="all")
+    """Aggregate the exact observed OHLCV source needed by the V2 model path."""
+    required = ("open", "high", "low", "close", "volume")
+    missing = [name for name in required if name not in df.columns]
+    if missing:
+        raise RuntimeError(
+            f"HTF_V2_VOLUME_SOURCE_MISSING: exact OHLCV source required; missing={missing}"
+        )
+    agg = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": _last_valid,
+        "volume": "sum",
+    }
+    return df.loc[:, list(required)].resample(rule).agg(agg).dropna(how="all")
 
 
 def _last_closed_at_or_before(
@@ -132,12 +139,20 @@ def _last_closed_int_at_or_before(
     return int(val)
 
 
-def _validate_m5_input(m5_candles: pd.DataFrame) -> None:
+def _validate_m5_input(
+    m5_candles: pd.DataFrame,
+    *,
+    require_volume: bool = False,
+) -> None:
     if not isinstance(m5_candles, pd.DataFrame):
         raise TypeError(
             f"HTF_INPUT_FAIL: m5_candles must be DataFrame, got {type(m5_candles).__name__}"
         )
+    if m5_candles.empty:
+        raise RuntimeError("HTF_INPUT_FAIL: m5_candles must be non-empty")
     required_cols = ["open", "high", "low", "close"]
+    if require_volume:
+        required_cols.append("volume")
     missing = [c for c in required_cols if c not in m5_candles.columns]
     if missing:
         raise RuntimeError(
@@ -146,6 +161,42 @@ def _validate_m5_input(m5_candles: pd.DataFrame) -> None:
     if not isinstance(m5_candles.index, pd.DatetimeIndex):
         raise RuntimeError(
             "HTF_INPUT_FAIL: m5_candles index must be DatetimeIndex"
+        )
+    if m5_candles.index.tz is None:
+        raise RuntimeError("HTF_INPUT_FAIL: m5_candles index must be timezone-aware UTC")
+    if any(pd.Timestamp(ts).utcoffset() != pd.Timedelta(0) for ts in m5_candles.index[:1]):
+        raise RuntimeError("HTF_INPUT_FAIL: m5_candles index must be UTC")
+    if (
+        m5_candles.index.hasnans
+        or not m5_candles.index.is_unique
+        or not m5_candles.index.is_monotonic_increasing
+    ):
+        raise RuntimeError(
+            "HTF_INPUT_FAIL: timestamps must be finite, unique and chronological"
+        )
+    numeric = m5_candles.loc[:, required_cols].apply(pd.to_numeric, errors="coerce")
+    values = numeric.to_numpy(dtype=np.float64)
+    if not np.isfinite(values).all():
+        raise RuntimeError("HTF_INPUT_FAIL: exact OHLCV sources must be finite")
+    open_values = numeric["open"].to_numpy(dtype=np.float64)
+    high_values = numeric["high"].to_numpy(dtype=np.float64)
+    low_values = numeric["low"].to_numpy(dtype=np.float64)
+    close_values = numeric["close"].to_numpy(dtype=np.float64)
+    if (
+        np.any(open_values <= 0.0)
+        or np.any(high_values <= 0.0)
+        or np.any(low_values <= 0.0)
+        or np.any(close_values <= 0.0)
+        or np.any(high_values < close_values)
+        or np.any(low_values > close_values)
+        or np.any(high_values < low_values)
+        or (require_volume and np.any(high_values < open_values))
+        or (require_volume and np.any(low_values > open_values))
+    ):
+        raise RuntimeError("HTF_INPUT_FAIL: OHLC geometry is invalid")
+    if require_volume and np.any(numeric["volume"].to_numpy(dtype=np.float64) <= 0.0):
+        raise RuntimeError(
+            "HTF_V2_VOLUME_SOURCE_INVALID: observed volume must be finite and positive"
         )
 
 
@@ -466,6 +517,8 @@ MULTI_TF_PER_BAR_FEATURES_V2 = (
     "trend_age_bars_norm",    # bars since last EMA stack flip, normalized log
 )
 MULTI_TF_FEATURE_COUNT_V2 = len(MULTI_TF_PER_BAR_FEATURES_V2)   # = 25
+HTF_V2_CACHE_BUILDER_VERSION = "prebuild_multi_tf_cache_v2_causal_no_fallback_20260717"
+HTF_V2_MATRIX_CONTRACT = "HTF_V2_CAUSAL_MATRIX_V1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # V3 (2026-06-10): V2 + ema20_50_diff_atr — the LEARNED EMA20×EMA50 cross/distance
@@ -532,17 +585,17 @@ def compute_per_bar_features(ohlc: pd.DataFrame) -> pd.DataFrame:
     c = df["close"]
     o = df["open"]
     h = df["high"]
-    l = df["low"]
+    low = df["low"]
 
     # Realistic ATR floor: 1 bps of close (= 0.01% of price)
     # Prevents division-by-near-zero outliers in low-volatility periods.
-    atr14 = _atr(h, l, c, 14)
+    atr14 = _atr(h, low, c, 14)
     atr_floor = np.maximum(c * 1e-4, 1e-3)   # at least 0.01% of close, min 0.001
     atr_safe = np.maximum(atr14, atr_floor)
 
     # Price-relative scale-invariant features
     out["close_open_pct"] = ((c - o) / np.maximum(o, 1e-6)).fillna(0.0)        # ≈ [-0.05, 0.05]
-    out["high_low_atr"] = ((h - l) / atr_safe).fillna(0.0)                      # ≈ [0, 5]
+    out["high_low_atr"] = ((h - low) / atr_safe).fillna(0.0)                    # ≈ [0, 5]
     out["close_open_atr"] = ((c - o) / atr_safe).fillna(0.0)                    # ≈ [-3, 3]
 
     # Close-to-close returns (bps) — winsorize to ±500 bps (5%)
@@ -564,15 +617,15 @@ def compute_per_bar_features(ohlc: pd.DataFrame) -> pd.DataFrame:
 
     # Position in last 20-bar range
     rolling_high = h.rolling(20, min_periods=1).max()
-    rolling_low = l.rolling(20, min_periods=1).min()
+    rolling_low = low.rolling(20, min_periods=1).min()
     span = np.maximum(rolling_high - rolling_low, atr_floor)
     out["range_pos_20"] = ((c - rolling_low) / span).clip(0.0, 1.0)
 
     # Body / wick fractions
-    bar_range = np.maximum(h - l, atr_floor)
+    bar_range = np.maximum(h - low, atr_floor)
     body = (c - o).abs()
     upper_wick = h - df[["open", "close"]].max(axis=1)
-    lower_wick = df[["open", "close"]].min(axis=1) - l
+    lower_wick = df[["open", "close"]].min(axis=1) - low
     out["body_pct"] = (body / bar_range).clip(0.0, 1.0)
     out["upper_wick_pct"] = (upper_wick / bar_range).clip(0.0, 1.0)
     out["lower_wick_pct"] = (lower_wick / bar_range).clip(0.0, 1.0)
@@ -589,43 +642,56 @@ def compute_per_bar_features(ohlc: pd.DataFrame) -> pd.DataFrame:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _rolling_vwap(close: pd.Series, volume: pd.Series, window: int) -> pd.Series:
-    """Rolling N-bar VWAP. Uses 1.0 volume when zero/missing (degenerate guard)."""
-    v = volume.fillna(0).where(volume > 0, 1.0)
-    pv = close * v
+    """Rolling N-bar VWAP from observed volume only."""
+    if volume.isna().any() or (~np.isfinite(volume.to_numpy(dtype=np.float64))).any():
+        raise RuntimeError("HTF_V2_VOLUME_SOURCE_INVALID: rolling VWAP volume is non-finite")
+    if (volume <= 0.0).any():
+        raise RuntimeError("HTF_V2_VOLUME_SOURCE_INVALID: rolling VWAP volume must be positive")
+    pv = close * volume
     pv_sum = pv.rolling(window, min_periods=1).sum()
-    v_sum = v.rolling(window, min_periods=1).sum()
-    return pv_sum / np.maximum(v_sum, 1e-12)
+    v_sum = volume.rolling(window, min_periods=1).sum()
+    return pv_sum / v_sum
 
 
 def _session_vwap(close: pd.Series, volume: pd.Series) -> pd.Series:
     """VWAP reset at each calendar day's midnight UTC."""
-    v = volume.fillna(0).where(volume > 0, 1.0)
-    pv = close * v
+    if volume.isna().any() or (~np.isfinite(volume.to_numpy(dtype=np.float64))).any():
+        raise RuntimeError("HTF_V2_VOLUME_SOURCE_INVALID: session VWAP volume is non-finite")
+    if (volume <= 0.0).any():
+        raise RuntimeError("HTF_V2_VOLUME_SOURCE_INVALID: session VWAP volume must be positive")
+    pv = close * volume
     # Group by date — cumulative within day
     grp = close.index.normalize()
     pv_cs = pv.groupby(grp).cumsum()
-    v_cs = v.groupby(grp).cumsum()
-    return pv_cs / np.maximum(v_cs, 1e-12)
+    v_cs = volume.groupby(grp).cumsum()
+    return pv_cs / v_cs
 
 
-def _adx14(h: pd.Series, l: pd.Series, c: pd.Series, n: int = 14) -> pd.Series:
-    """Welles Wilder's ADX. Returns 0..100 series indexed like c."""
-    up = h.diff()
-    dn = -l.diff()
+def _adx14(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    n: int = 14,
+) -> pd.Series:
+    """Welles Wilder's ADX with explicit causal warmup."""
+    up = high.diff()
+    dn = -low.diff()
     plus_dm = np.where((up > dn) & (up > 0), up, 0.0)
     minus_dm = np.where((dn > up) & (dn > 0), dn, 0.0)
-    plus_dm = pd.Series(plus_dm, index=c.index)
-    minus_dm = pd.Series(minus_dm, index=c.index)
+    plus_dm = pd.Series(plus_dm, index=close.index)
+    minus_dm = pd.Series(minus_dm, index=close.index)
     tr = pd.concat([
-        (h - l).abs(),
-        (h - c.shift(1)).abs(),
-        (l - c.shift(1)).abs(),
+        (high - low).abs(),
+        (high - close.shift(1)).abs(),
+        (low - close.shift(1)).abs(),
     ], axis=1).max(axis=1)
     atr = tr.ewm(alpha=1.0/n, adjust=False).mean()
     plus_di = 100.0 * plus_dm.ewm(alpha=1.0/n, adjust=False).mean() / np.maximum(atr, 1e-12)
     minus_di = 100.0 * minus_dm.ewm(alpha=1.0/n, adjust=False).mean() / np.maximum(atr, 1e-12)
     dx = 100.0 * (plus_di - minus_di).abs() / np.maximum(plus_di + minus_di, 1e-12)
-    return dx.ewm(alpha=1.0/n, adjust=False).mean().fillna(0.0)
+    adx = dx.ewm(alpha=1.0/n, adjust=False).mean()
+    adx.iloc[: 2 * n - 1] = np.nan
+    return adx
 
 
 def _regime_class(stack_aligned: pd.Series, ema200_slope: pd.Series, atr_safe: pd.Series) -> pd.Series:
@@ -637,10 +703,14 @@ def _regime_class(stack_aligned: pd.Series, ema200_slope: pd.Series, atr_safe: p
     3 = downtrend_low (stack=-1, slope >= -0.3 ATR)
     4 = downtrend_high (stack=-1, slope < -0.3 ATR)
     """
-    slope_atr = ema200_slope / np.maximum(atr_safe, 1e-9)
-    out = pd.Series(0, index=stack_aligned.index, dtype=int)
-    out[stack_aligned == 1] = np.where(slope_atr[stack_aligned == 1] > 0.3, 2, 1)
-    out[stack_aligned == -1] = np.where(slope_atr[stack_aligned == -1] < -0.3, 4, 3)
+    slope_atr = ema200_slope / atr_safe
+    valid = stack_aligned.notna() & slope_atr.notna()
+    out = pd.Series(np.nan, index=stack_aligned.index, dtype=np.float64)
+    out.loc[valid] = 0.0
+    up = valid & (stack_aligned == 1)
+    down = valid & (stack_aligned == -1)
+    out.loc[up] = np.where(slope_atr.loc[up] > 0.3, 2.0, 1.0)
+    out.loc[down] = np.where(slope_atr.loc[down] < -0.3, 4.0, 3.0)
     return out
 
 
@@ -651,68 +721,100 @@ def _trend_age_bars(stack_aligned: pd.Series) -> pd.Series:
     return stack_aligned.groupby(chg).cumcount().astype(float)
 
 
+def validate_causal_feature_matrix(
+    values,
+    *,
+    expected_width: int,
+    context: str,
+) -> int:
+    """Validate an exact feature matrix and return its warmup-prefix length.
+
+    A model feature may be unavailable only in one chronological prefix. Once a
+    complete row exists, every later row must be finite. Numeric sentinels are
+    deliberately not introduced here.
+    """
+    arr = np.asarray(values)
+    if arr.ndim != 2 or arr.shape[1] != int(expected_width) or arr.shape[0] == 0:
+        raise RuntimeError(
+            f"[{context}] feature matrix must have non-zero shape (N, {expected_width}); "
+            f"observed={arr.shape}"
+        )
+    try:
+        numeric = arr.astype(np.float64, copy=False)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"[{context}] feature matrix must be numeric") from exc
+    if np.isinf(numeric).any():
+        raise RuntimeError(f"[{context}] feature matrix contains infinity")
+    complete = np.isfinite(numeric).all(axis=1)
+    if not complete.any():
+        return int(len(numeric))
+    first_complete = int(np.argmax(complete))
+    if not complete[first_complete:].all():
+        raise RuntimeError(
+            f"[{context}] non-finite feature rows are not one causal warmup prefix"
+        )
+    return first_complete
+
+
 def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
                                 feature_set: tuple = MULTI_TF_PER_BAR_FEATURES_V2) -> pd.DataFrame:
-    """V2 multi-TF per-bar features — 25 cols. Requires OHLCV (volume needed for VWAP).
+    """Compute the exact causal V2/V3 per-bar feature contract from OHLCV.
 
-    Backward compat: if volume missing, falls back to volume=1 (tick-equal-weight VWAP).
+    Initial indicator warmup remains NaN. Consumers must request a fully
+    observed historical window; they may not replace missing history with a
+    neutral numeric value.
     """
-    if not all(c in ohlcv.columns for c in ("open", "high", "low", "close")):
-        raise RuntimeError(f"compute_per_bar_features_v2: missing OHLC cols")
-    df = ohlcv[["open", "high", "low", "close"]].astype(np.float64).copy()
-    if "volume" in ohlcv.columns:
-        df["volume"] = pd.to_numeric(ohlcv["volume"], errors="coerce").fillna(0).astype(np.float64)
-    else:
-        df["volume"] = 1.0   # tick-equal-weight fallback
+    requested = tuple(feature_set)
+    if requested not in (MULTI_TF_PER_BAR_FEATURES_V2, MULTI_TF_PER_BAR_FEATURES_V3):
+        raise RuntimeError(
+            "HTF_V2_FEATURE_CONTRACT_MISMATCH: feature_set must be the exact V2 or V3 contract"
+        )
+    _validate_m5_input(ohlcv, require_volume=True)
+    df = ohlcv[["open", "high", "low", "close", "volume"]].astype(np.float64).copy()
     out = pd.DataFrame(index=df.index, dtype=np.float64)
 
-    c = df["close"]; o = df["open"]; h = df["high"]; l = df["low"]; v = df["volume"]
+    c = df["close"]
+    o = df["open"]
+    h = df["high"]
+    low = df["low"]
+    v = df["volume"]
 
-    atr14 = _atr(h, l, c, 14)
+    atr14 = _atr(h, low, c, 14)
     atr_floor = np.maximum(c * 1e-4, 1e-3)
     atr_safe = np.maximum(atr14, atr_floor)
 
     # ─── KEPT (9) ────────────────────────────────────────────────────
-    out["atr_bps_14"] = (atr14 / np.maximum(c, 1e-6) * 1e4).clip(0, 500).fillna(0.0)
+    out["atr_bps_14"] = (atr14 / c * 1e4).clip(0, 500)
     rsi = _rsi(c, 14)
-    out["rsi14_centered"] = ((rsi - 50.0) / 50.0).clip(-1.0, 1.0).fillna(0.0)
-    # 2026-05-24 FIX: ffill close before shift so D1/H4 with sparse warmup don't
-    # produce zeros from NaN propagation. Previously D1 mom_20 was DEAD because
-    # shift(20) on sparse D1 series → NaN → fillna(0) → constant zero column.
-    c_ffilled = c.ffill()
+    rsi.iloc[:14] = np.nan
+    out["rsi14_centered"] = ((rsi - 50.0) / 50.0).clip(-1.0, 1.0)
     for k in (5, 20):
-        delta = c_ffilled - c_ffilled.shift(k)
-        out[f"mom_{k}_atr"] = (delta / atr_safe).clip(-10.0, 10.0).fillna(0.0)
-    out["close_open_atr"] = ((c - o) / atr_safe).fillna(0.0).clip(-10.0, 10.0)
-    bar_range = np.maximum(h - l, atr_floor)
+        delta = c - c.shift(k)
+        out[f"mom_{k}_atr"] = (delta / atr_safe).clip(-10.0, 10.0)
+    out["close_open_atr"] = ((c - o) / atr_safe).clip(-10.0, 10.0)
+    bar_range = np.maximum(h - low, atr_floor)
     body = (c - o).abs()
     upper_wick = h - df[["open", "close"]].max(axis=1)
-    lower_wick = df[["open", "close"]].min(axis=1) - l
+    lower_wick = df[["open", "close"]].min(axis=1) - low
     out["body_pct"] = (body / bar_range).clip(0.0, 1.0)
     out["upper_wick_pct"] = (upper_wick / bar_range).clip(0.0, 1.0)
     out["lower_wick_pct"] = (lower_wick / bar_range).clip(0.0, 1.0)
-    # 2026-05-24 PM: ffill ema20 too (used in stack check line 603). Audit caught
-    # that only ema50/100/200 were ffill'd in Bug 1 fix, leaving ema20 NaN-vulnerable
-    # in early warmup → stack-check evaluates NaN>x as False → bull=0 silent.
-    ema20 = _ema(c, 20).ffill()
-    out["ema20_dist_atr"] = ((c - ema20) / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+    ema20 = _ema(c, 20)
+    out["ema20_dist_atr"] = ((c - ema20) / atr_safe).clip(-10.0, 10.0)
 
     # ─── NEW: EMA stack (3 dist + 3 slopes) ──────────────────────────
-    # 2026-05-24 FIX: ffill EMA series before stack-check. Without ffill, NaN in
-    # any EMA (early warmup, especially on resampled D1/H4 with <200 bars history)
-    # silently dropped stack_aligned to 0 → dead feature on D1/H4/M15.
-    ema50 = _ema(c, 50).ffill()
-    ema100 = _ema(c, 100).ffill()
-    ema200 = _ema(c, 200).ffill()
-    out["ema50_dist_atr"] = ((c - ema50) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
-    out["ema100_dist_atr"] = ((c - ema100) / atr_safe).clip(-20.0, 20.0).fillna(0.0)
-    out["ema200_dist_atr"] = ((c - ema200) / atr_safe).clip(-30.0, 30.0).fillna(0.0)
-    out["ema20_slope_atr"] = ((ema20 - ema20.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
-    out["ema50_slope_atr"] = ((ema50 - ema50.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
-    out["ema200_slope_atr"] = ((ema200 - ema200.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+    ema50 = _ema(c, 50)
+    ema100 = _ema(c, 100)
+    ema200 = _ema(c, 200)
+    out["ema50_dist_atr"] = ((c - ema50) / atr_safe).clip(-15.0, 15.0)
+    out["ema100_dist_atr"] = ((c - ema100) / atr_safe).clip(-20.0, 20.0)
+    out["ema200_dist_atr"] = ((c - ema200) / atr_safe).clip(-30.0, 30.0)
+    out["ema20_slope_atr"] = ((ema20 - ema20.shift(5)) / atr_safe).clip(-5.0, 5.0)
+    out["ema50_slope_atr"] = ((ema50 - ema50.shift(5)) / atr_safe).clip(-5.0, 5.0)
+    out["ema200_slope_atr"] = ((ema200 - ema200.shift(5)) / atr_safe).clip(-5.0, 5.0)
     # V3 (additive): EMA20×EMA50 cross/distance in ATR units. Always computed (cheap — both EMAs are
     # already above); only RETURNED when feature_set=V3 (else dropped by the V2 column filter below).
-    out["ema20_50_diff_atr"] = ((ema20 - ema50) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
+    out["ema20_50_diff_atr"] = ((ema20 - ema50) / atr_safe).clip(-15.0, 15.0)
 
     # ─── NEW: EMA-stack regime (2) ───────────────────────────────────
     # 2026-05-24: now uses ffill'd EMAs above + checks full stack (50<100<200) for
@@ -723,7 +825,7 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
     stack[bull] = 1
     stack[bear] = -1
     out["ema_stack_aligned_v2"] = stack.astype(float)
-    out["regime_class_id"] = _regime_class(stack, ema200 - ema200.shift(5), atr_safe).astype(float)
+    out["regime_class_id"] = _regime_class(stack, ema200 - ema200.shift(5), atr_safe)
 
     # ─── NEW: VWAP family (4) ────────────────────────────────────────
     # 2026-05-24 FIX: session_vwap on D1 is degenerate (one bar per day → VWAP=close
@@ -739,45 +841,60 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
         vwap_sess = _rolling_vwap(c, v, 5)  # 5-day VWAP as "session" proxy
     else:
         vwap_sess = _session_vwap(c, v)
-    out["vwap_session_dist_atr"] = ((c - vwap_sess) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
+    out["vwap_session_dist_atr"] = ((c - vwap_sess) / atr_safe).clip(-15.0, 15.0)
     vwap20 = _rolling_vwap(c, v, 20)
-    out["vwap20_dist_atr"] = ((c - vwap20) / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+    out["vwap20_dist_atr"] = ((c - vwap20) / atr_safe).clip(-10.0, 10.0)
     vwap96 = _rolling_vwap(c, v, 96)
-    out["vwap96_dist_atr"] = ((c - vwap96) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
-    out["vwap_session_slope_atr"] = ((vwap_sess - vwap_sess.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+    out["vwap96_dist_atr"] = ((c - vwap96) / atr_safe).clip(-15.0, 15.0)
+    out["vwap_session_slope_atr"] = ((vwap_sess - vwap_sess.shift(5)) / atr_safe).clip(-5.0, 5.0)
 
     # ─── NEW: Bollinger + trend strength (4) ─────────────────────────
-    sma20 = c.rolling(20, min_periods=1).mean()
-    std20 = c.rolling(20, min_periods=1).std().fillna(0.0)
+    sma20 = c.rolling(20, min_periods=20).mean()
+    std20 = c.rolling(20, min_periods=20).std()
     bb_upper = sma20 + 2.0 * std20
     bb_lower = sma20 - 2.0 * std20
     bb_width = (bb_upper - bb_lower)
-    out["bb_position"] = ((c - bb_lower) / np.maximum(bb_width, atr_floor)).clip(0.0, 1.0).fillna(0.5)
-    out["bb_width_atr"] = (bb_width / atr_safe).clip(0.0, 20.0).fillna(0.0)
-    adx = _adx14(h, l, c, 14)
-    out["adx_centered"] = ((adx - 25.0) / 25.0).clip(-1.0, 3.0).fillna(0.0)
+    out["bb_position"] = ((c - bb_lower) / np.maximum(bb_width, atr_floor)).clip(0.0, 1.0)
+    out["bb_width_atr"] = (bb_width / atr_safe).clip(0.0, 20.0)
+    adx = _adx14(h, low, c, 14)
+    out["adx_centered"] = ((adx - 25.0) / 25.0).clip(-1.0, 3.0)
     # log1p(bars_since_flip) / log1p(500) — normalized 0..1, saturates at 500 bars
     age = _trend_age_bars(stack).clip(upper=500.0)
-    out["trend_age_bars_norm"] = (np.log1p(age) / np.log1p(500.0)).fillna(0.0)
+    out["trend_age_bars_norm"] = np.log1p(age) / np.log1p(500.0)
 
-    return out[list(feature_set)].astype(np.float32)
+    result = out[list(requested)].astype(np.float32)
+    validate_causal_feature_matrix(
+        result.to_numpy(copy=False),
+        expected_width=len(requested),
+        context="HTF_V2_CAUSAL_FEATURES",
+    )
+    return result
 
 
 def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
-    """V2 multi-TF builder. Requires OHLCV (will tick-equal-weight if volume missing).
+    """Build the exact causal V2 feature tables from observed M5 OHLCV.
 
     Resamples M5 → M5/M15/H1/H4/D1, computes V2 25-feature set per TF.
     Result attaches .attrs["ts_int64"] and .attrs["feats_np"] for fast slicing
     (same fast-path API as V1).
     """
-    _validate_m5_input(m5_df)
+    _validate_m5_input(m5_df, require_volume=True)
     result = {}
     for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
         resampled = _resample_ohlcv(m5_df, rule)
         resampled = resampled.dropna(subset=["open", "high", "low", "close"])
         feats = compute_per_bar_features_v2(resampled)
-        feats.attrs["ts_int64"] = feats.index.values.astype("datetime64[ns]").astype(np.int64)
-        feats.attrs["feats_np"] = feats.fillna(0.0).to_numpy(dtype=np.float32, copy=True)
+        ts_int64 = feats.index.asi8.astype(np.int64, copy=True)
+        feats_np = feats.to_numpy(dtype=np.float32, copy=True)
+        warmup_rows = validate_causal_feature_matrix(
+            feats_np,
+            expected_width=MULTI_TF_FEATURE_COUNT_V2,
+            context=f"HTF_V2_{tf_name}",
+        )
+        feats.attrs["ts_int64"] = ts_int64
+        feats.attrs["feats_np"] = feats_np
+        feats.attrs["causal_warmup_rows"] = warmup_rows
+        feats.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
         result[tf_name] = feats
     return result
 
@@ -793,29 +910,63 @@ def attach_v2_mtf_per_bar_scalars(
 
     Shared by the live serve loader (v12_state_from_prebuilt._augment_cv3_with_v2_mtf_scalars) AND the
     V3 exit builder so train==serve by construction (was duplicated -> the build join drifted to a stale
-    vintage matching serve only 88-95%). build_multi_tf_per_bar_features_v2(m5_df) -> for each TF asof-shift
-    via MULTI_TF_SHIFT (only-closed-bars searchsorted) onto target_ts_ns -> {tf_lower}_{live_frag}_v2 arrays.
-    per_tf_map = [(live_frag, src_col), ...]. Returns dict[col -> np.ndarray(len(target_ts_ns), float64)];
-    0.0 where no closed TF bar exists yet.
+    vintage matching serve only 88-95%). build_multi_tf_per_bar_features_v2(m5_df) -> for each TF uses
+    ``M5 label + 5 minutes - TF duration`` (only-closed-bars searchsorted) onto target_ts_ns ->
+    {tf_lower}_{live_frag}_v2 arrays.
+    per_tf_map = [(live_frag, src_col), ...]. Returns dict[col ->
+    np.ndarray(len(target_ts_ns), float64)]. Unavailable causal warmup remains
+    NaN and must be trimmed by the owning state contract.
     """
     tf_feats = build_multi_tf_per_bar_features_v2(m5_df)
     target_ts_ns = np.asarray(target_ts_ns, dtype=np.int64)
+    if target_ts_ns.ndim != 1 or len(target_ts_ns) == 0 or np.any(np.diff(target_ts_ns) <= 0):
+        raise RuntimeError(
+            "HTF_V2_PROJECTION_TARGET_INVALID: target timestamps must be non-empty, "
+            "unique and chronological"
+        )
+    requested_tfs = tuple(str(name).lower() for name in tfs)
+    unknown_tfs = [name for name in requested_tfs if name.upper() not in MULTI_TF_SHIFT]
+    if unknown_tfs or len(set(requested_tfs)) != len(requested_tfs):
+        raise RuntimeError(f"HTF_V2_PROJECTION_TF_INVALID: tfs={requested_tfs}")
+    projection = tuple((str(live_frag), str(src_col)) for live_frag, src_col in per_tf_map)
+    if not projection or len(set(projection)) != len(projection):
+        raise RuntimeError("HTF_V2_PROJECTION_MAP_INVALID: projection map must be non-empty and unique")
     out: dict = {}
-    for tf_lower in tfs:
+    for tf_lower in requested_tfs:
         tf_key = tf_lower.upper()
-        tf_df = tf_feats.get(tf_key)
-        if tf_df is None or len(tf_df) == 0:
-            continue
-        tf_ts_ns = tf_df.index.values.astype("datetime64[ns]").astype(np.int64)
-        cutoffs = target_ts_ns - int(MULTI_TF_SHIFT[tf_key].value)
+        tf_df = tf_feats[tf_key]
+        tf_ts_ns = np.asarray(tf_df.attrs.get("ts_int64"), dtype=np.int64)
+        values_np = np.asarray(tf_df.attrs.get("feats_np"))
+        if tf_ts_ns.shape != (len(tf_df),) or np.any(np.diff(tf_ts_ns) <= 0):
+            raise RuntimeError(f"HTF_V2_PROJECTION_SOURCE_INVALID: malformed {tf_key} timestamps")
+        validate_causal_feature_matrix(
+            values_np,
+            expected_width=MULTI_TF_FEATURE_COUNT_V2,
+            context=f"HTF_V2_PROJECTION_{tf_key}",
+        )
+        decision_close_ns = target_ts_ns + int(MULTI_TF_SHIFT["M5"].value)
+        cutoffs = decision_close_ns - int(MULTI_TF_SHIFT[tf_key].value)
         right = np.searchsorted(tf_ts_ns, cutoffs, side="right") - 1
         valid_mask = right >= 0
         safe_idx = np.clip(right, 0, len(tf_ts_ns) - 1)
-        for live_frag, src_col in per_tf_map:
-            if (tf_lower, live_frag) in skip or src_col not in tf_df.columns:
+        for live_frag, src_col in projection:
+            if (tf_lower, live_frag) in skip:
                 continue
-            values = tf_df[src_col].to_numpy(dtype=np.float64)
-            out[f"{tf_lower}_{live_frag}_v2"] = np.where(valid_mask, values[safe_idx], 0.0)
+            if src_col not in tf_df.columns:
+                raise RuntimeError(
+                    f"HTF_V2_PROJECTION_SOURCE_MISSING: {tf_key}.{src_col}"
+                )
+            values = tf_df[src_col].to_numpy(dtype=np.float64, copy=False)
+            projected = np.full(len(target_ts_ns), np.nan, dtype=np.float64)
+            projected[valid_mask] = values[safe_idx[valid_mask]]
+            out[f"{tf_lower}_{live_frag}_v2"] = projected
+    if not out:
+        raise RuntimeError("HTF_V2_PROJECTION_EMPTY: projection produced no features")
+    validate_causal_feature_matrix(
+        np.column_stack(list(out.values())),
+        expected_width=len(out),
+        context="HTF_V2_PROJECTION",
+    )
     return out
 
 
@@ -824,7 +975,7 @@ def attach_v2_mtf_per_bar_scalars(
 # `{tf}_*_v2` scalars REGIME_V4 needs (R1 regime_class_id / R2 trend_age_bars_norm /
 # R3 ema_stack_aligned, plus the mom/rsi/atr_bps/slope/lower_wick context). This is the
 # 5-TF/9-feature REGIME version (m5 ADDED 2026-06-05, user vedtak: regime ALL-5) — NOT the
-# older 4-TF/8-feature XGB-v7 projection in v12_live_features.V2_MTF_PER_TF_FEATURES.
+# older 4-TF/8-feature XGB-v7 projection (retired; its module v12_live_features is deleted).
 # The live serve loader (v12_state_from_prebuilt._V2_MTF_PER_TF imports THIS) AND the
 # canonical_incremental daemon (BASE34 ctx recompute) AND the build (add_ctx_cont) all use
 # these so the daemon-maintained BASE34 regime cols are train==serve by construction.
@@ -850,21 +1001,12 @@ def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
     ONE TRUTH shared by the live serve loader, the build (add_ctx_cont), and the
     canonical_incremental daemon — so the daemon-maintained BASE34 regime columns are
     computed the SAME way the training BASE34 was (no train≠serve, no carry-forward freeze).
-    Idempotent: returns unchanged if the scalars are already present. Fail-soft on missing
-    OHLC (returns unchanged) so a degenerate frame never crashes the live append; the
-    REGIME_V4 block downstream is itself fail-closed if its inputs are still absent.
+    Existing derived columns are overwritten from the exact source so stale or
+    externally injected values cannot pass through this owner.
     """
-    probe = f"{REGIME_V4_V2_MTF_TFS[0]}_{REGIME_V4_V2_MTF_PER_TF[0][0]}_v2"
-    if probe in cv3.columns:
-        return cv3
-    ohlc = ["open", "high", "low", "close"]
-    if any(c not in cv3.columns for c in ohlc):
-        return cv3
-    m5_df = cv3[ohlc].astype(np.float64).copy()
-    m5_df["volume"] = (
-        cv3["volume"].astype(np.float64) if "volume" in cv3.columns else 1.0
-    )
-    ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
+    _validate_m5_input(cv3, require_volume=True)
+    m5_df = cv3[["open", "high", "low", "close", "volume"]].astype(np.float64).copy()
+    ts_ns = cv3.index.asi8.astype(np.int64, copy=False)
     for _col, _vals in attach_v2_mtf_per_bar_scalars(
         m5_df, ts_ns, REGIME_V4_V2_MTF_PER_TF, REGIME_V4_V2_MTF_TFS, REGIME_V4_V2_MTF_SKIP
     ).items():
@@ -873,7 +1015,7 @@ def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
 
 
 def load_multi_tf_v2_cache(cache_dir) -> dict:
-    """Load a pre-built V2 multi-TF cache (see scripts/prebuild_multi_tf_cache_v2.py).
+    """Load a pre-built V2 cache (see gx1/scripts/prebuild_multi_tf_cache_v2.py).
 
     Returns the same dict shape as build_multi_tf_per_bar_features_v2(): one
     DataFrame per TF (M5/M15/H1/H4/D1) with .attrs["ts_int64"] and
@@ -884,17 +1026,88 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
     import json
     from pathlib import Path as _P
     cache_dir = _P(cache_dir)
-    manifest = json.loads((cache_dir / "manifest.json").read_text())
+    manifest_path = cache_dir / "manifest.json"
+    if not manifest_path.is_file():
+        raise RuntimeError(f"HTF_V2_CACHE_MANIFEST_MISSING: {manifest_path}")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"HTF_V2_CACHE_MANIFEST_INVALID: {manifest_path}") from exc
+    if not isinstance(manifest, dict):
+        raise RuntimeError("HTF_V2_CACHE_MANIFEST_INVALID: root must be an object")
+    expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
+    contracts = {
+        "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
+        "feature_count": MULTI_TF_FEATURE_COUNT_V2,
+        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+        "shift_contract": expected_shift,
+    }
+    for name, expected in contracts.items():
+        if manifest.get(name) != expected:
+            raise RuntimeError(
+                f"HTF_V2_CACHE_CONTRACT_MISMATCH: {name} observed={manifest.get(name)!r} "
+                f"expected={expected!r}"
+            )
+    source_sha = str(manifest.get("m5_prebuilt_source_sha256") or "")
+    if len(source_sha) != 64 or any(ch not in "0123456789abcdef" for ch in source_sha.lower()):
+        raise RuntimeError("HTF_V2_CACHE_CONTRACT_MISMATCH: source SHA-256 is missing or invalid")
+    tf_manifest = manifest.get("tfs")
+    if not isinstance(tf_manifest, dict) or set(tf_manifest) != set(MULTI_TF_RESAMPLE_RULES):
+        raise RuntimeError(
+            "HTF_V2_CACHE_CONTRACT_MISMATCH: exact M5/M15/H1/H4/D1 entries required"
+        )
     out = {}
-    for tf_name, info in manifest["tfs"].items():
-        feats_np = np.load(cache_dir / info["feats_npy"], mmap_mode="r")
-        ts_int64 = np.load(cache_dir / info["ts_npy"], mmap_mode="r")
+    for tf_name in MULTI_TF_RESAMPLE_RULES:
+        info = tf_manifest[tf_name]
+        if not isinstance(info, dict):
+            raise RuntimeError(f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} entry must be an object")
+        feats_name = str(info.get("feats_npy") or "")
+        ts_name = str(info.get("ts_npy") or "")
+        if _P(feats_name).name != feats_name or _P(ts_name).name != ts_name:
+            raise RuntimeError(f"HTF_V2_CACHE_CONTRACT_MISMATCH: unsafe {tf_name} cache filenames")
+        feats_path = cache_dir / feats_name
+        ts_path = cache_dir / ts_name
+        if not feats_path.is_file() or not ts_path.is_file():
+            raise RuntimeError(f"HTF_V2_CACHE_FILE_MISSING: {tf_name}")
+        feats_np = np.load(feats_path, mmap_mode="r", allow_pickle=False)
+        ts_int64 = np.load(ts_path, mmap_mode="r", allow_pickle=False)
+        if feats_np.dtype != np.dtype(np.float32) or ts_int64.dtype != np.dtype(np.int64):
+            raise RuntimeError(
+                f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} requires float32 features/int64 timestamps"
+            )
+        if ts_int64.ndim != 1 or np.any(np.diff(ts_int64) <= 0):
+            raise RuntimeError(f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} timestamps invalid")
+        warmup_rows = validate_causal_feature_matrix(
+            feats_np,
+            expected_width=MULTI_TF_FEATURE_COUNT_V2,
+            context=f"HTF_V2_CACHE_{tf_name}",
+        )
+        if warmup_rows == len(feats_np):
+            raise RuntimeError(f"HTF_V2_CACHE_WARMUP_INCOMPLETE: {tf_name} has no complete row")
+        expected_meta = {
+            "n_bars": int(len(ts_int64)),
+            "feature_count": MULTI_TF_FEATURE_COUNT_V2,
+            "first_ts_ns": int(ts_int64[0]),
+            "last_ts_ns": int(ts_int64[-1]),
+            "causal_warmup_rows": warmup_rows,
+        }
+        for name, expected in expected_meta.items():
+            if info.get(name) != expected:
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name}.{name} "
+                    f"observed={info.get(name)!r} expected={expected!r}"
+                )
         # Reconstruct minimal DataFrame (only index + attrs matter for fast-path).
         idx = pd.DatetimeIndex(ts_int64.astype("datetime64[ns]"), tz="UTC")
-        # NOTE: keep DataFrame columns minimal — fast-path uses attrs only.
-        df = pd.DataFrame(np.empty((len(idx), feats_np.shape[1]), dtype=np.float32), index=idx)
+        df = pd.DataFrame(
+            np.empty((len(idx), feats_np.shape[1]), dtype=np.float32),
+            index=idx,
+            columns=MULTI_TF_PER_BAR_FEATURES_V2,
+        )
         df.attrs["ts_int64"] = np.ascontiguousarray(ts_int64).astype(np.int64, copy=False)
         df.attrs["feats_np"] = np.ascontiguousarray(feats_np).astype(np.float32, copy=False)
+        df.attrs["causal_warmup_rows"] = warmup_rows
+        df.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
         out[tf_name] = df
     return out
 
@@ -931,8 +1144,9 @@ def get_last_n_at_or_before(
 ) -> np.ndarray:
     """Slice the last `n` per-bar feature rows whose close-time is <= (target_ts - tf_shift).
 
-    Returns: (n, n_features) float32 array. If fewer than n bars are available
-    (warmup not satisfied), the result is left-padded with zeros.
+    Returns an exact finite ``(n, n_features)`` float32 array. Missing history,
+    indicator warmup, malformed cache metadata, and non-finite evidence are hard
+    errors; this owner never pads or substitutes a neutral value.
 
     `tf_shift` enforces the "only closed bars" invariant: e.g. for H1, target=12:35
     means we use H1 bars closing at-or-before 11:35 (the 11:00 H1 bar, since
@@ -942,38 +1156,51 @@ def get_last_n_at_or_before(
     are present (set by build_multi_tf_per_bar_features), we use numpy
     searchsorted on int64 timestamps — ~100× faster than pandas .loc.
     """
-    # V2: infer pad dim from feats so this works for both V1 (17) and V2 (25).
-    pad_dim = MULTI_TF_FEATURE_COUNT
-    if feats is not None and len(feats) > 0:
-        pad_dim = int(feats.shape[1])
+    if not isinstance(feats, pd.DataFrame) or feats.empty:
+        raise RuntimeError("HTF_WINDOW_SOURCE_MISSING: exact non-empty feature table required")
+    if isinstance(n, bool) or not isinstance(n, (int, np.integer)) or int(n) <= 0:
+        raise RuntimeError(f"HTF_WINDOW_LENGTH_INVALID: n={n!r}")
+    n = int(n)
+    if not isinstance(tf_shift, pd.Timedelta) or tf_shift <= pd.Timedelta(0):
+        raise RuntimeError(f"HTF_WINDOW_SHIFT_INVALID: tf_shift={tf_shift!r}")
+    target = pd.Timestamp(target_ts)
+    if target.tzinfo is None or target.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError("HTF_WINDOW_TARGET_INVALID: target_ts must be timezone-aware UTC")
+    if feats.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT:
+        raise RuntimeError(
+            "HTF_WINDOW_SOURCE_CONTRACT_MISSING: refusing legacy/pandas fallback feature table"
+        )
 
-    if feats is None or len(feats) == 0:
-        return np.zeros((n, pad_dim), dtype=np.float32)
+    ts_int64 = np.asarray(feats.attrs.get("ts_int64"))
+    feats_np = np.asarray(feats.attrs.get("feats_np"))
+    width = int(feats.shape[1])
+    if (
+        ts_int64.dtype != np.dtype(np.int64)
+        or ts_int64.shape != (len(feats),)
+        or feats_np.dtype != np.dtype(np.float32)
+        or feats_np.shape != (len(feats), width)
+    ):
+        raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: malformed exact cache arrays")
+    warmup_rows = feats.attrs.get("causal_warmup_rows")
+    if (
+        isinstance(warmup_rows, bool)
+        or not isinstance(warmup_rows, (int, np.integer))
+        or not 0 <= int(warmup_rows) <= len(feats)
+    ):
+        raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: causal warmup metadata missing")
 
-    # Fast path: pre-computed int64 timestamps + numpy feature array
-    ts_int64 = feats.attrs.get("ts_int64")
-    feats_np = feats.attrs.get("feats_np")
-    if ts_int64 is not None and feats_np is not None:
-        target_ns = pd.Timestamp(target_ts).value
-        shift_ns = int(tf_shift.value)
-        cutoff_ns = target_ns - shift_ns
-        right = np.searchsorted(ts_int64, cutoff_ns, side="right")
-        if right == 0:
-            return np.zeros((n, pad_dim), dtype=np.float32)
-        left = max(0, right - n)
-        tail = feats_np[left:right]
-        if tail.shape[0] < n:
-            pad = np.zeros((n - tail.shape[0], pad_dim), dtype=np.float32)
-            tail = np.concatenate([pad, tail], axis=0)
-        return tail
-
-    # Fallback: pandas .loc (slower) — for old caches without attrs
-    cutoff = pd.Timestamp(target_ts) - tf_shift
-    eligible = feats.loc[feats.index <= cutoff]
-    if eligible.empty:
-        return np.zeros((n, pad_dim), dtype=np.float32)
-    tail = eligible.tail(n).fillna(0.0).to_numpy(dtype=np.float32, copy=True)
-    if tail.shape[0] < n:
-        pad = np.zeros((n - tail.shape[0], pad_dim), dtype=np.float32)
-        tail = np.concatenate([pad, tail], axis=0)
-    return tail
+    cutoff_ns = int(target.value) - int(tf_shift.value)
+    right = int(np.searchsorted(ts_int64, cutoff_ns, side="right"))
+    if right < n:
+        raise RuntimeError(
+            f"HTF_WINDOW_HISTORY_INSUFFICIENT: need={n} closed_rows={right} target={target.isoformat()}"
+        )
+    left = right - n
+    if left < int(warmup_rows):
+        raise RuntimeError(
+            f"HTF_WINDOW_WARMUP_INCOMPLETE: first_row={left} warmup_rows={int(warmup_rows)}"
+        )
+    tail = np.asarray(feats_np[left:right], dtype=np.float32)
+    if tail.shape != (n, width) or not np.isfinite(tail).all():
+        raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: selected feature evidence is non-finite")
+    return np.ascontiguousarray(tail)

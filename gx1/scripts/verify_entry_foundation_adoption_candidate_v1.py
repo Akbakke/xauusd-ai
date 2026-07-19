@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Verify a staged Entry foundation dataset before making it active.
+"""Verify immutable model-native seq513 evidence before adoption review.
 
-This is an adoption proof, not an activation step. It does not change active
-latest audit paths, start training, promote a bundle, or touch shadow/live.
+This report-only gate never activates a dataset, starts training or replay,
+selects a trading direction, or touches shadow/live state.  It accepts only
+explicit newest immutable evidence and fails closed on any partial contract.
 """
 from __future__ import annotations
 
@@ -13,222 +14,403 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from gx1.features.entry_foundation_structure_v1 import (
-    FOUNDATION_STRUCTURE_FEATURE_NAMES,
-    FOUNDATION_STRUCTURE_FEATURE_VERSION,
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    foundation_audit_policy_binding,
+    require_foundation_audit_report_policy,
 )
-from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT
-from gx1.scripts.verify_entry_training_readiness_v1 import REQUIRED_SPECIALISTS
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    MODEL_NATIVE_BASE_ACTIVE_HEADS,
+    MODEL_NATIVE_BLOCKED_HEADS,
+    MODEL_NATIVE_REQUIRED_SPECIALISTS,
+    artifact_fingerprint_checks,
+    artifact_fingerprints,
+    model_native_readiness_contract_metadata,
+    readiness_check as _check,
+    require_model_native_readiness_contract,
+    sha256_file,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_signal_contract,
+)
+from gx1.contracts.immutable_event_authority_v1 import (
+    require_newest_immutable_event,
+    write_immutable_json_event,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
+)
 
 
-DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_foundation_adoption_candidate_20260629_v1"
-DEFAULT_EXPECTED_SMOKE_ROWS = {"train": 4095, "val": 1536, "test": 1536}
-
-
-def _json_default(obj: Any) -> Any:
-    if isinstance(obj, Path):
-        return str(obj)
-    return str(obj)
+SPLITS = ("train", "val", "test")
+REPORT_SCHEMA_VERSION = "entry_model_native_adoption_candidate_v1"
+EVENT_PREFIX = "ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE"
+SMOKE_REPORT_SCHEMA = "entry_model_native_seq513_smoke_manifest_v1"
+SMOKE_REPORT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
+SMOKE_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
+SMOKE_DATASET_SCHEMA = "entry_model_native_seq513_smoke_dataset_v1"
+SMOKE_SPLIT_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v1"
+AUDIT_EVENT_PREFIXES = {
+    "feature_audit": "ENTRY_FEATURE_FOUNDATION_AUDIT",
+    "target_audit": "ENTRY_TARGET_FOUNDATION_AUDIT",
+    "specialist_audit": "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT",
+}
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        raise RuntimeError(f"missing JSON artifact: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"invalid JSON evidence {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"JSON evidence root is not an object: {path}")
+    return payload
 
 
-def _sha256_file(path: Path) -> str | None:
-    if not path.exists() or not path.is_file():
-        return None
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _fingerprint(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"path": str(path), "exists": False, "size_bytes": None, "mtime_ns": None, "sha256": None}
-    stat = path.stat()
-    return {
-        "path": str(path),
-        "exists": True,
-        "size_bytes": int(stat.st_size),
-        "mtime_ns": int(stat.st_mtime_ns),
-        "sha256": _sha256_file(path),
-    }
-
-
-def _check(name: str, ok: bool, details: dict[str, Any] | None = None) -> dict[str, Any]:
-    return {"name": name, "ok": bool(ok), "details": details or {}}
-
-
-def _split_file(dataset_dir: Path, split: str, suffix: str) -> Path | None:
-    matches = sorted(dataset_dir.glob(f"*_{split}{suffix}"))
-    return matches[0] if len(matches) == 1 else None
-
-
-def _balanced_label_counts(counts: dict[str, Any]) -> bool:
-    if set(str(k) for k in counts) != {"0", "1", "2"}:
+def _same_path(value: Any, expected: Path) -> bool:
+    if not isinstance(value, str) or not value.strip():
         return False
-    values = [int(counts[str(k)]) for k in ("0", "1", "2")]
-    return min(values) > 0 and len(set(values)) == 1
+    try:
+        return Path(value).expanduser().resolve() == expected.resolve()
+    except (OSError, RuntimeError):
+        return False
 
 
-def _dataset_checks(dataset_dir: Path) -> list[dict[str, Any]]:
-    checks = [_check("candidate dataset dir exists", dataset_dir.exists() and dataset_dir.is_dir(), {"dataset_dir": str(dataset_dir)})]
-    for split in ("train", "val", "test"):
-        parquet = _split_file(dataset_dir, split, ".parquet")
-        manifest = _split_file(dataset_dir, split, ".manifest.json")
-        checks.append(
-            _check(
-                f"{split} split parquet exists exactly once",
-                parquet is not None and parquet.exists(),
-                {"matches": [str(p) for p in sorted(dataset_dir.glob(f'*_{split}.parquet'))]},
-            )
+def _sha256_json(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _canonical_equal(left: Any, right: Any) -> bool:
+    try:
+        return json.dumps(
+            left,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ) == json.dumps(
+            right,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
         )
-        checks.append(
-            _check(
-                f"{split} split manifest exists exactly once",
-                manifest is not None and manifest.exists(),
-                {"matches": [str(p) for p in sorted(dataset_dir.glob(f'*_{split}.manifest.json'))]},
-            )
+    except (TypeError, ValueError):
+        return False
+
+
+def _split_candidates(dataset_dir: Path, split: str) -> tuple[list[Path], list[Path]]:
+    return (
+        sorted(dataset_dir.glob(f"*_{split}.parquet")),
+        sorted(dataset_dir.glob(f"*_{split}.manifest.json")),
+    )
+
+
+def _dataset_contract(
+    dataset_dir: Path,
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, Path]]:
+    checks = [
+        _check(
+            "model-native candidate dataset directory exists",
+            dataset_dir.is_dir(),
+            {"dataset_dir": str(dataset_dir)},
         )
-        if manifest is None or not manifest.exists():
-            continue
-        data = _read_json(manifest)
-        signal_bridge = ((data.get("extra") or {}).get("signal_bridge") or {})
-        extension = signal_bridge.get("seq_structure_extension_v1") or {}
-        fields = [str(x) for x in signal_bridge.get("fields", [])]
+    ]
+    split_rows: dict[str, dict[str, Any]] = {}
+    artifacts: dict[str, Path] = {}
+    contracts: list[dict[str, Any]] = []
+    for split in SPLITS:
+        parquets, manifests = _split_candidates(dataset_dir, split)
+        parquet = parquets[0].absolute() if len(parquets) == 1 else None
+        manifest_path = manifests[0].absolute() if len(manifests) == 1 else None
         checks.extend(
             [
-                _check(f"{split} signal fields are seq146", len(fields) == 146, {"field_count": len(fields)}),
                 _check(
-                    f"{split} seq/snap input dims are 146",
-                    int(signal_bridge.get("seq_input_dim") or 0) == 146
-                    and int(signal_bridge.get("snap_input_dim") or 0) == 146,
-                    {
-                        "seq_input_dim": signal_bridge.get("seq_input_dim"),
-                        "snap_input_dim": signal_bridge.get("snap_input_dim"),
-                    },
+                    f"{split} parquet exists exactly once",
+                    parquet is not None and parquet.is_file(),
+                    {"candidates": [str(path) for path in parquets]},
                 ),
                 _check(
-                    f"{split} seq structure extension dim is 105",
-                    int(signal_bridge.get("seq_structure_extension_dim") or 0) == 105,
-                    {"seq_structure_extension_dim": signal_bridge.get("seq_structure_extension_dim")},
-                ),
-                _check(
-                    f"{split} foundation structure version matches code",
-                    str(extension.get("foundation_structure_feature_version")) == FOUNDATION_STRUCTURE_FEATURE_VERSION,
-                    {
-                        "emitted": extension.get("foundation_structure_feature_version"),
-                        "code": FOUNDATION_STRUCTURE_FEATURE_VERSION,
-                    },
-                ),
-                _check(
-                    f"{split} foundation structure feature count matches code",
-                    int(extension.get("foundation_structure_feature_count") or 0)
-                    == len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
-                    {
-                        "emitted": extension.get("foundation_structure_feature_count"),
-                        "expected": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
-                    },
-                ),
-                _check(
-                    f"{split} all foundation structure features selected",
-                    bool(extension.get("foundation_structure_all_required_selected"))
-                    and int(extension.get("foundation_structure_missing_feature_count") or 0) == 0,
-                    {
-                        "all_required": extension.get("foundation_structure_all_required_selected"),
-                        "missing_count": extension.get("foundation_structure_missing_feature_count"),
-                    },
+                    f"{split} manifest exists exactly once",
+                    manifest_path is not None and manifest_path.is_file(),
+                    {"candidates": [str(path) for path in manifests]},
                 ),
             ]
         )
-    return checks
+        if parquet is None or manifest_path is None:
+            continue
+        artifacts[f"dataset_{split}_parquet"] = parquet
+        artifacts[f"dataset_{split}_manifest"] = manifest_path
+        manifest = _read_json(manifest_path)
+        extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+        bridge = (
+            extra.get("signal_bridge")
+            if isinstance(extra.get("signal_bridge"), dict)
+            else {}
+        )
+        contract = (
+            extra.get("model_native_signal_contract")
+            if isinstance(extra.get("model_native_signal_contract"), dict)
+            else {}
+        )
+        contract_error = ""
+        try:
+            require_model_native_signal_contract(
+                contract,
+                context=f"ADOPTION_DATASET_{split.upper()}",
+            )
+        except RuntimeError as exc:
+            contract_error = str(exc)
+        fields = [str(value) for value in bridge.get("fields", [])]
+        output_path = str(manifest.get("output_data_path") or "")
+        row = {
+            "parquet_path": str(parquet),
+            "manifest_path": str(manifest_path),
+            "parquet_sha256": sha256_file(parquet),
+            "manifest_sha256": sha256_file(manifest_path),
+            "schema_version": manifest.get("schema_version"),
+            "manifest_variant": manifest.get("manifest_variant"),
+            "expected_seq_snap_width": manifest.get("expected_seq_snap_width"),
+            "output_data_path": output_path,
+            "contract_mode": extra.get("contract_mode"),
+            "direction_logit_mode": extra.get("direction_logit_mode"),
+            "neutral_xgb_bridge": extra.get("neutral_xgb_bridge"),
+            "seq_input_dim": bridge.get("seq_input_dim"),
+            "snap_input_dim": bridge.get("snap_input_dim"),
+            "field_count": len(fields),
+            "contract_error": contract_error,
+        }
+        split_rows[split] = row
+        if not contract_error:
+            contracts.append(contract)
+        checks.append(
+            _check(
+                f"{split} carries the exact model-native seq513 signal contract",
+                not contract_error
+                and manifest.get("schema_version") == SMOKE_SPLIT_SCHEMA
+                and manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE
+                and int(manifest.get("expected_seq_snap_width") or 0)
+                == MODEL_NATIVE_SIGNAL_DIM
+                and _same_path(output_path, parquet)
+                and extra.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE
+                and extra.get("direction_logit_mode")
+                == MODEL_NATIVE_DIRECTION_LOGIT_MODE
+                and extra.get("neutral_xgb_bridge") is False
+                and int(bridge.get("seq_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
+                and int(bridge.get("snap_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
+                and fields == contract.get("fields"),
+                row,
+            )
+        )
+    checks.append(
+        _check(
+            "train val test signal contracts are identical",
+            len(contracts) == len(SPLITS)
+            and all(contract == contracts[0] for contract in contracts[1:]),
+            {"validated_contract_count": len(contracts)},
+        )
+    )
+    return checks, split_rows, artifacts
 
 
-def _feature_audit_checks(report: dict[str, Any], audit_path: Path, dataset_dir: Path) -> list[dict[str, Any]]:
+def _base_evidence_checks(
+    report: dict[str, Any],
+    *,
+    schema_version: str,
+    audit_kind: str,
+    dataset_dir: Path,
+) -> list[dict[str, Any]]:
+    policy_error = ""
+    try:
+        require_foundation_audit_report_policy(
+            report,
+            audit_kind=audit_kind,
+            context="ADOPTION_FOUNDATION_AUDIT",
+        )
+    except RuntimeError as exc:
+        policy_error = str(exc)
     return [
-        _check("feature audit artifact exists", audit_path.exists(), {"path": str(audit_path)}),
-        _check("feature audit PASS", str(report.get("decision")) == "PASS", {"decision": report.get("decision")}),
-        _check("feature audit has zero failures", not report.get("failures"), {"failures": report.get("failures")}),
         _check(
-            "feature audit points at candidate dataset",
-            str(report.get("dataset_dir")) == str(dataset_dir),
-            {"dataset_dir": report.get("dataset_dir"), "candidate_dataset_dir": str(dataset_dir)},
+            "evidence schema is exact",
+            report.get("schema_version") == schema_version,
+            {"schema_version": report.get("schema_version")},
         ),
         _check(
-            "feature audit foundation structure version matches code",
-            str(report.get("foundation_structure_feature_version")) == FOUNDATION_STRUCTURE_FEATURE_VERSION,
+            "evidence decision is PASS with zero failures",
+            report.get("decision") == "PASS" and not report.get("failures"),
             {
-                "audit_foundation_structure_feature_version": report.get("foundation_structure_feature_version"),
-                "code_foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
+                "decision": report.get("decision"),
+                "failures": report.get("failures"),
             },
         ),
         _check(
-            "feature audit preserved all required foundation selection",
-            int(report.get("foundation_missing_from_manifest_count") or 0) == 0
-            and bool(report.get("manifest_foundation_all_required_selected")),
+            "evidence dataset matches the explicit seq513 candidate",
+            _same_path(report.get("dataset_dir"), dataset_dir),
             {
-                "foundation_missing_from_manifest_count": report.get("foundation_missing_from_manifest_count"),
-                "manifest_foundation_all_required_selected": report.get("manifest_foundation_all_required_selected"),
+                "expected_dataset_dir": str(dataset_dir),
+                "reported_dataset_dir": report.get("dataset_dir"),
             },
         ),
         _check(
-            "feature audit objective and source liveness all live",
-            bool(report.get("foundation_objective_coverage_all_present"))
-            and bool(report.get("foundation_objective_liveness_all_live"))
-            and bool(report.get("foundation_source_field_liveness_all_live")),
+            "foundation audit policy identity and full payload are exact",
+            not policy_error,
+            {"error": policy_error},
+        ),
+        _check(
+            "foundation audit covers exact train val test split order",
+            tuple(report.get("data_splits") or ())
+            == FOUNDATION_AUDIT_DATA_SPLITS,
             {
-                "foundation_objective_coverage_all_present": report.get("foundation_objective_coverage_all_present"),
-                "foundation_objective_liveness_all_live": report.get("foundation_objective_liveness_all_live"),
-                "foundation_source_field_liveness_all_live": report.get("foundation_source_field_liveness_all_live"),
+                "expected": list(FOUNDATION_AUDIT_DATA_SPLITS),
+                "observed": report.get("data_splits"),
             },
         ),
     ]
 
 
-def _target_audit_checks(report: dict[str, Any], audit_path: Path, dataset_dir: Path) -> list[dict[str, Any]]:
+def _feature_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, Any]]:
     return [
-        _check("target audit artifact exists", audit_path.exists(), {"path": str(audit_path)}),
-        _check("target audit PASS", str(report.get("decision")) == "PASS", {"decision": report.get("decision")}),
-        _check("target audit has zero failures", not report.get("failures"), {"failures": report.get("failures")}),
-        _check(
-            "target audit points at candidate dataset",
-            str(report.get("dataset_dir")) == str(dataset_dir),
-            {"dataset_dir": report.get("dataset_dir"), "candidate_dataset_dir": str(dataset_dir)},
+        *_base_evidence_checks(
+            report,
+            schema_version="entry_feature_foundation_audit_v1",
+            audit_kind="feature",
+            dataset_dir=dataset_dir,
         ),
-        _check("target audit has head contract", isinstance(report.get("target_head_contract"), dict)),
+        _check(
+            "feature audit covers all 479 model-native selected features",
+            int(report.get("selected_feature_count") or 0)
+            == MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+            {"selected_feature_count": report.get("selected_feature_count")},
+        ),
+        _check(
+            "feature objective and source liveness are fully live",
+            report.get("foundation_objective_coverage_all_present") is True
+            and report.get("foundation_objective_liveness_all_live") is True
+            and report.get("foundation_source_field_liveness_all_live") is True,
+            {
+                "objective_coverage": report.get(
+                    "foundation_objective_coverage_all_present"
+                ),
+                "objective_liveness": report.get(
+                    "foundation_objective_liveness_all_live"
+                ),
+                "source_liveness": report.get(
+                    "foundation_source_field_liveness_all_live"
+                ),
+            },
+        ),
     ]
 
 
-def _specialist_audit_checks(report: dict[str, Any], audit_path: Path, dataset_dir: Path) -> list[dict[str, Any]]:
-    required = {str(x) for x in report.get("required_training_specialists", []) if str(x)}
+def _target_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, Any]]:
+    contract = (
+        report.get("target_head_contract")
+        if isinstance(report.get("target_head_contract"), dict)
+        else {}
+    )
+    active = tuple(str(value) for value in contract.get("active_training_heads", []))
+    blocked = tuple(str(value) for value in contract.get("blocked_heads", []))
     return [
-        _check("specialist audit artifact exists", audit_path.exists(), {"path": str(audit_path)}),
-        _check("specialist audit PASS", str(report.get("decision")) == "PASS", {"decision": report.get("decision")}),
-        _check("specialist audit has zero failures", not report.get("failures"), {"failures": report.get("failures")}),
-        _check(
-            "specialist audit points at candidate dataset",
-            str(report.get("dataset_dir")) == str(dataset_dir),
-            {"dataset_dir": report.get("dataset_dir"), "candidate_dataset_dir": str(dataset_dir)},
-        ),
-        _check("specialist signal dim is 146", int(report.get("signal_field_count") or 0) == 146),
-        _check("specialist selected extension count is 105", int(report.get("selected_feature_count") or 0) == 105),
-        _check(
-            "specialist required training set is exact",
-            required == set(REQUIRED_SPECIALISTS),
-            {"expected": list(REQUIRED_SPECIALISTS), "actual": sorted(required)},
+        *_base_evidence_checks(
+            report,
+            schema_version="entry_target_foundation_audit_v1",
+            audit_kind="target",
+            dataset_dir=dataset_dir,
         ),
         _check(
-            "specialist feature routing and liveness are live",
-            bool(report.get("specialist_input_liveness_all_live"))
-            and bool(report.get("foundation_objective_routing_all_present_and_expected")),
+            "target audit head contract is exact model-native base",
+            active == MODEL_NATIVE_BASE_ACTIVE_HEADS
+            and blocked == MODEL_NATIVE_BLOCKED_HEADS,
             {
-                "specialist_input_liveness_all_live": report.get("specialist_input_liveness_all_live"),
-                "foundation_objective_routing_all_present_and_expected": report.get(
+                "expected_active_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
+                "observed_active_heads": list(active),
+                "expected_blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+                "observed_blocked_heads": list(blocked),
+            },
+        ),
+    ]
+
+
+def _specialist_checks(
+    report: dict[str, Any], dataset_dir: Path
+) -> list[dict[str, Any]]:
+    required = tuple(
+        str(value) for value in report.get("required_training_specialists", [])
+    )
+    architecture = (
+        report.get("architecture_contract")
+        if isinstance(report.get("architecture_contract"), dict)
+        else {}
+    )
+    fusion = (
+        architecture.get("recommended_fusion")
+        if isinstance(architecture.get("recommended_fusion"), dict)
+        else {}
+    )
+    return [
+        *_base_evidence_checks(
+            report,
+            schema_version="entry_specialist_feature_group_audit_v1",
+            audit_kind="specialist",
+            dataset_dir=dataset_dir,
+        ),
+        _check(
+            "specialist audit uses exact model-native seq513 dimensions",
+            report.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE
+            and int(report.get("signal_field_count") or 0)
+            == MODEL_NATIVE_SIGNAL_DIM
+            and int(report.get("selected_feature_count") or 0)
+            == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+            and int(architecture.get("input_dim") or 0)
+            == MODEL_NATIVE_SIGNAL_DIM,
+            {
+                "contract_mode": report.get("contract_mode"),
+                "signal_field_count": report.get("signal_field_count"),
+                "selected_feature_count": report.get("selected_feature_count"),
+                "architecture_input_dim": architecture.get("input_dim"),
+            },
+        ),
+        _check(
+            "specialist set and model-role contract are exact",
+            required == MODEL_NATIVE_REQUIRED_SPECIALISTS
+            and _canonical_equal(
+                report.get("specialist_model_contract"),
+                MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
+            )
+            and report.get("specialist_model_contract_valid") is True,
+            {
+                "expected_specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+                "observed_specialists": list(required),
+                "specialist_model_contract_valid": report.get(
+                    "specialist_model_contract_valid"
+                ),
+            },
+        ),
+        _check(
+            "specialist fusion heads and liveness are exact",
+            tuple(fusion.get("active_heads", [])) == MODEL_NATIVE_BASE_ACTIVE_HEADS
+            and tuple(fusion.get("blocked_heads", []))
+            == MODEL_NATIVE_BLOCKED_HEADS
+            and report.get("specialist_input_liveness_all_live") is True
+            and report.get(
+                "foundation_objective_routing_all_present_and_expected"
+            )
+            is True,
+            {
+                "fusion_active_heads": fusion.get("active_heads"),
+                "fusion_blocked_heads": fusion.get("blocked_heads"),
+                "specialist_input_liveness_all_live": report.get(
+                    "specialist_input_liveness_all_live"
+                ),
+                "objective_routing_all_present": report.get(
                     "foundation_objective_routing_all_present_and_expected"
                 ),
             },
@@ -236,181 +418,152 @@ def _specialist_audit_checks(report: dict[str, Any], audit_path: Path, dataset_d
     ]
 
 
-def _smoke_dataset_checks(
-    smoke_dir: Path,
-    dataset_dir: Path,
-    audit_paths: dict[str, Path],
+def _smoke_checks(
+    report: dict[str, Any],
     *,
-    expected_rows: dict[str, int],
+    dataset_dir: Path,
+    split_rows: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    manifest_path = smoke_dir / "SMOKE_DATASET_MANIFEST.json"
-    checks = [
-        _check("candidate smoke dataset manifest exists", manifest_path.exists(), {"path": str(manifest_path)}),
-    ]
-    if not manifest_path.exists():
-        return checks
-    report = _read_json(manifest_path)
-    splits = report.get("splits") if isinstance(report.get("splits"), dict) else {}
-    provenance = report.get("audit_provenance") if isinstance(report.get("audit_provenance"), dict) else {}
-    provenance_artifacts = provenance.get("artifacts") if isinstance(provenance.get("artifacts"), dict) else {}
-
-    def artifact_matches(name: str) -> bool:
-        row = provenance_artifacts.get(name) if isinstance(provenance_artifacts.get(name), dict) else {}
-        path = audit_paths[name]
-        return (
-            bool(row.get("exists"))
-            and str(row.get("path")) == str(path)
-            and isinstance(row.get("sha256"), str)
-            and row.get("sha256") == _sha256_file(path)
-        )
-
-    def source_manifest_hash_matches(split: str) -> bool:
-        row = splits.get(split) if isinstance(splits.get(split), dict) else {}
-        path = Path(str(row.get("source_manifest") or ""))
-        return path.exists() and row.get("source_manifest_sha256") == _sha256_file(path)
-
-    def output_hashes_match(split: str) -> bool:
-        row = splits.get(split) if isinstance(splits.get(split), dict) else {}
-        parquet = Path(str(row.get("out_path") or ""))
-        manifest = Path(str(row.get("out_manifest") or ""))
-        return (
-            parquet.exists()
-            and manifest.exists()
-            and row.get("out_parquet_sha256") == _sha256_file(parquet)
-            and row.get("out_manifest_sha256") == _sha256_file(manifest)
-        )
-
-    checks.extend(
-        [
-            _check(
-                "candidate smoke dataset schema is foundation smoke v1",
-                report.get("schema_version") == "entry_foundation_seq146_smoke_dataset_v1",
-                {"schema_version": report.get("schema_version")},
-            ),
-            _check(
-                "candidate smoke dataset points at candidate source",
-                str(report.get("source_dir")) == str(dataset_dir),
-                {"source_dir": report.get("source_dir"), "candidate_dataset_dir": str(dataset_dir)},
-            ),
-            _check(
-                "candidate smoke row counts match readiness contract",
-                all(int((splits.get(split) or {}).get("rows") or 0) == rows for split, rows in expected_rows.items()),
-                {
-                    "expected_rows": expected_rows,
-                    "actual_rows": {split: (splits.get(split) or {}).get("rows") for split in expected_rows},
-                },
-            ),
-            _check(
-                "candidate smoke labels are class-balanced",
-                all(_balanced_label_counts((splits.get(split) or {}).get("label_counts") or {}) for split in expected_rows),
-                {"label_counts": {split: (splits.get(split) or {}).get("label_counts") for split in expected_rows}},
-            ),
-            _check(
-                "candidate smoke records exact audit artifact provenance",
-                str(provenance.get("schema_version")) == "entry_foundation_smoke_dataset_audit_provenance_v1"
-                and all(artifact_matches(name) for name in audit_paths),
-                {"audit_paths": {name: str(path) for name, path in audit_paths.items()}, "provenance": provenance_artifacts},
-            ),
-            _check(
-                "candidate smoke records source manifest hashes",
-                all(source_manifest_hash_matches(split) for split in expected_rows),
-                {"splits": {split: (splits.get(split) or {}) for split in expected_rows}},
-            ),
-            _check(
-                "candidate smoke output hashes match files",
-                all(output_hashes_match(split) for split in expected_rows),
-                {"splits": {split: (splits.get(split) or {}) for split in expected_rows}},
-            ),
-        ]
+    split_artifacts = (
+        report.get("split_artifacts")
+        if isinstance(report.get("split_artifacts"), dict)
+        else {}
     )
-    return checks
+    embedded = (
+        report.get("smoke_manifest")
+        if isinstance(report.get("smoke_manifest"), dict)
+        else {}
+    )
+    embedded_splits = (
+        embedded.get("splits") if isinstance(embedded.get("splits"), dict) else {}
+    )
+    contract_error = ""
+    try:
+        require_model_native_readiness_contract(
+            report.get("model_native_readiness_contract"),
+            context="ADOPTION_SMOKE_MANIFEST",
+        )
+    except RuntimeError as exc:
+        contract_error = str(exc)
 
+    def split_matches(split: str) -> bool:
+        expected = split_rows.get(split) or {}
+        observed = split_artifacts.get(split) or {}
+        compact = embedded_splits.get(split) or {}
+        return (
+            int(observed.get("rows") or 0) > 0
+            and _same_path(observed.get("output_data_path"), Path(expected.get("parquet_path") or "/"))
+            and _same_path(observed.get("manifest_path"), Path(expected.get("manifest_path") or "/"))
+            and observed.get("parquet_sha256") == expected.get("parquet_sha256")
+            and observed.get("manifest_sha256") == expected.get("manifest_sha256")
+            and int(observed.get("seq_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
+            and int(observed.get("snap_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
+            and int(observed.get("field_count") or 0) == MODEL_NATIVE_SIGNAL_DIM
+            and compact.get("out_parquet_sha256") == expected.get("parquet_sha256")
+            and compact.get("out_manifest_sha256") == expected.get("manifest_sha256")
+            and int(compact.get("seq_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
+            and int(compact.get("snap_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM
+            and int(compact.get("field_count") or 0) == MODEL_NATIVE_SIGNAL_DIM
+        )
 
-def _write_markdown(path: Path, report: dict[str, Any]) -> None:
-    lines = [
-        "# Entry Foundation Adoption Candidate",
-        "",
-        f"- Decision: `{report['decision']}`",
-        f"- Candidate ready for activation: `{report['candidate_ready_for_activation']}`",
-        f"- Training allowed: `{report['training_allowed']}`",
-        f"- Next required action: `{report['next_required_action']}`",
-        "",
-        "## Gates",
-        "",
+    side_effects = (
+        report.get("side_effects_started")
+        if isinstance(report.get("side_effects_started"), dict)
+        else {}
+    )
+    return [
+        _check(
+            "smoke manifest report is exact and green",
+            report.get("schema_version") == SMOKE_REPORT_SCHEMA
+            and report.get("decision") == SMOKE_REPORT_DECISION
+            and report.get("report_only") is True
+            and report.get("manifest_embedded") is True
+            and not report.get("failures"),
+            {
+                "schema_version": report.get("schema_version"),
+                "decision": report.get("decision"),
+                "failures": report.get("failures"),
+            },
+        ),
+        _check(
+            "smoke manifest carries exact model-native readiness contract",
+            not contract_error,
+            {"error": contract_error},
+        ),
+        _check(
+            "smoke manifest points at the explicit seq513 candidate",
+            report.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE
+            and int(report.get("expected_seq_snap_width") or 0)
+            == MODEL_NATIVE_SIGNAL_DIM
+            and _same_path(report.get("smart_smoke_dataset_dir"), dataset_dir)
+            and embedded.get("schema_version") == SMOKE_DATASET_SCHEMA
+            and embedded.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE
+            and int(embedded.get("expected_seq_snap_width") or 0)
+            == MODEL_NATIVE_SIGNAL_DIM
+            and _same_path(embedded.get("dataset_dir"), dataset_dir),
+            {
+                "smart_smoke_dataset_dir": report.get("smart_smoke_dataset_dir"),
+                "embedded_dataset_dir": embedded.get("dataset_dir"),
+            },
+        ),
+        _check(
+            "smoke manifest is content-bound to all split artifacts",
+            set(split_artifacts) == set(SPLITS)
+            and set(embedded_splits) == set(SPLITS)
+            and set(split_rows) == set(SPLITS)
+            and all(split_matches(split) for split in SPLITS)
+            and report.get("manifest_sha256") == _sha256_json(embedded),
+            {
+                "manifest_sha256": report.get("manifest_sha256"),
+                "computed_manifest_sha256": _sha256_json(embedded),
+            },
+        ),
+        _check(
+            "smoke evidence starts no training replay or live side effect",
+            bool(side_effects)
+            and all(value is False for value in side_effects.values())
+            and report.get("training_allowed") is False
+            and report.get("replay_allowed") is False
+            and report.get("shadow_live_allowed") is False,
+            {"side_effects_started": side_effects},
+        ),
     ]
-    for gate in report["gates"]:
-        lines.append(f"- `{gate['name']}`: {gate['decision']} ({gate['passed']}/{gate['total']} checks)")
-    lines.extend(["", "## Failures", ""])
-    if report["failures"]:
-        lines.extend([f"- {row['gate']}: {row['check']}" for row in report["failures"]])
-    else:
-        lines.append("- None")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
-    feature_audit = Path(args.feature_audit_json).expanduser().resolve()
-    target_audit = Path(args.target_audit_json).expanduser().resolve()
-    specialist_audit = Path(args.specialist_audit_json).expanduser().resolve()
-    smoke_dir = Path(args.smoke_dataset_dir).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
+    evidence_paths = {
+        "feature_audit": Path(args.feature_audit_json).expanduser().resolve(),
+        "target_audit": Path(args.target_audit_json).expanduser().resolve(),
+        "specialist_audit": Path(args.specialist_audit_json).expanduser().resolve(),
+        "smoke_manifest": Path(args.smoke_manifest_json).expanduser().resolve(),
+    }
+    for name, prefix in AUDIT_EVENT_PREFIXES.items():
+        require_newest_immutable_event(evidence_paths[name], prefix)
+    require_newest_immutable_event(evidence_paths["smoke_manifest"], SMOKE_EVENT_PREFIX)
 
-    expected_smoke_rows = {
-        "train": int(args.expected_smoke_train_rows),
-        "val": int(args.expected_smoke_val_rows),
-        "test": int(args.expected_smoke_test_rows),
-    }
-    audit_paths = {
-        "feature_audit": feature_audit,
-        "target_audit": target_audit,
-        "specialist_audit": specialist_audit,
-    }
-    artifacts = {
-        "candidate_dataset_dir": str(dataset_dir),
-        "candidate_smoke_dataset_dir": str(smoke_dir),
-        **{name: str(path) for name, path in audit_paths.items()},
-    }
-    artifact_fingerprints = {
-        name: _fingerprint(path)
-        for name, path in {
-            "feature_audit": feature_audit,
-            "target_audit": target_audit,
-            "specialist_audit": specialist_audit,
-            "smoke_dataset_manifest": smoke_dir / "SMOKE_DATASET_MANIFEST.json",
-        }.items()
-    }
-    feature_report = _read_json(feature_audit)
-    target_report = _read_json(target_audit)
-    specialist_report = _read_json(specialist_audit)
+    reports = {name: _read_json(path) for name, path in evidence_paths.items()}
+    dataset_checks, split_rows, dataset_artifacts = _dataset_contract(dataset_dir)
+    artifacts = {**evidence_paths, **dataset_artifacts}
+    fingerprints = artifact_fingerprints(artifacts)
     gate_checks = {
-        "candidate_dataset": _dataset_checks(dataset_dir),
-        "feature_audit": _feature_audit_checks(feature_report, feature_audit, dataset_dir),
-        "target_audit": _target_audit_checks(target_report, target_audit, dataset_dir),
-        "specialist_audit": _specialist_audit_checks(specialist_report, specialist_audit, dataset_dir),
-        "smoke_dataset": _smoke_dataset_checks(
-            smoke_dir,
-            dataset_dir,
-            audit_paths,
-            expected_rows=expected_smoke_rows,
+        "candidate_dataset": dataset_checks,
+        "feature_audit": _feature_checks(reports["feature_audit"], dataset_dir),
+        "target_audit": _target_checks(reports["target_audit"], dataset_dir),
+        "specialist_audit": _specialist_checks(
+            reports["specialist_audit"], dataset_dir
         ),
-        "artifact_fingerprints": [
-            _check(
-                "all adoption artifacts have sha256 fingerprints",
-                all(
-                    bool(row.get("exists"))
-                    and isinstance(row.get("sha256"), str)
-                    and len(str(row.get("sha256"))) == 64
-                    for row in artifact_fingerprints.values()
-                ),
-                {"artifact_fingerprints": artifact_fingerprints},
-            )
-        ],
+        "smoke_manifest": _smoke_checks(
+            reports["smoke_manifest"],
+            dataset_dir=dataset_dir,
+            split_rows=split_rows,
+        ),
+        "artifact_provenance": artifact_fingerprint_checks(fingerprints),
     }
-    gates = []
+    gates: list[dict[str, Any]] = []
     for name, checks in gate_checks.items():
-        passed = sum(1 for check in checks if check["ok"])
+        passed = sum(bool(check.get("ok")) for check in checks)
         gates.append(
             {
                 "name": name,
@@ -421,79 +574,70 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             }
         )
     failures = [
-        {"gate": gate["name"], "check": check["name"], "details": check.get("details") or {}}
+        {
+            "gate": gate["name"],
+            "check": check["name"],
+            "details": check.get("details") or {},
+        }
         for gate in gates
         for check in gate["checks"]
-        if not check["ok"]
+        if not check.get("ok")
     ]
-    decision = "PASS" if not failures else "NOT_READY"
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ready = not failures
     report = {
-        "schema_version": "entry_foundation_adoption_candidate_v1",
+        "schema_version": REPORT_SCHEMA_VERSION,
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "decision": decision,
-        "candidate_ready_for_activation": decision == "PASS",
-        "training_allowed": False,
-        "activation_allowed_without_vedtak": False,
-        "next_required_action": (
-            "explicit vedtak to switch active foundation dataset/audit paths, "
-            "then rerun scripts/entry_next_edge_control.sh train-readiness"
-            if decision == "PASS"
-            else "fix failing adoption-candidate gates, then rerun this verifier"
+        "decision": (
+            "READY_FOR_MODEL_NATIVE_ADOPTION_REVIEW"
+            if ready
+            else "BLOCKED_MODEL_NATIVE_ADOPTION_REVIEW"
         ),
-        "artifacts": artifacts,
-        "artifact_fingerprints": artifact_fingerprints,
-        "expected_smoke_rows": expected_smoke_rows,
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        **foundation_audit_policy_binding(),
+        "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "model_native_readiness_contract": model_native_readiness_contract_metadata(),
+        "report_only": True,
+        "adoption_evidence_ready": bool(ready),
+        "candidate_ready_for_activation": False,
+        "training_allowed": False,
+        "replay_allowed": False,
+        "activation_allowed_without_vedtak": False,
+        "shadow_live_allowed": False,
+        "direction_selection_authority": False,
+        "dataset_dir": str(dataset_dir),
+        "artifacts": {name: str(path) for name, path in artifacts.items()},
+        "artifact_fingerprints": fingerprints,
+        "split_contracts": split_rows,
         "gates": gates,
         "failures": failures,
+        "next_required_gate": (
+            "explicit model-native adoption review; this report grants no activation authority"
+            if ready
+            else "repair exact seq513/head/specialist evidence and publish new immutable events"
+        ),
     }
-    json_path = out_dir / f"ENTRY_FOUNDATION_ADOPTION_CANDIDATE_{timestamp}.json"
-    md_path = out_dir / f"ENTRY_FOUNDATION_ADOPTION_CANDIDATE_{timestamp}.md"
-    report["json_path"] = str(json_path)
-    report["md_path"] = str(md_path)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
-    _write_markdown(md_path, report)
-    latest_json = out_dir / "ENTRY_FOUNDATION_ADOPTION_CANDIDATE_latest.json"
-    latest_md = out_dir / "ENTRY_FOUNDATION_ADOPTION_CANDIDATE_latest.md"
-    latest_json.write_text(json_path.read_text(encoding="utf-8"), encoding="utf-8")
-    latest_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+    _, report = write_immutable_json_event(out_dir, EVENT_PREFIX, report)
     if not args.quiet:
-        print(
-            json.dumps(
-                {
-                    "decision": report["decision"],
-                    "failures": report["failures"],
-                    "json_path": report["json_path"],
-                    "next_required_action": report["next_required_action"],
-                },
-                indent=2,
-                sort_keys=True,
-                default=_json_default,
-            )
-        )
+        print(json.dumps(report, indent=2, sort_keys=True))
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset-dir", required=True)
-    ap.add_argument("--feature-audit-json", required=True)
-    ap.add_argument("--target-audit-json", required=True)
-    ap.add_argument("--specialist-audit-json", required=True)
-    ap.add_argument("--smoke-dataset-dir", required=True)
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    ap.add_argument("--expected-smoke-train-rows", type=int, default=DEFAULT_EXPECTED_SMOKE_ROWS["train"])
-    ap.add_argument("--expected-smoke-val-rows", type=int, default=DEFAULT_EXPECTED_SMOKE_ROWS["val"])
-    ap.add_argument("--expected-smoke-test-rows", type=int, default=DEFAULT_EXPECTED_SMOKE_ROWS["test"])
-    ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--quiet", action="store_true")
-    return ap
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dataset-dir", required=True)
+    parser.add_argument("--feature-audit-json", required=True)
+    parser.add_argument("--target-audit-json", required=True)
+    parser.add_argument("--specialist-audit-json", required=True)
+    parser.add_argument("--smoke-manifest-json", required=True)
+    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--quiet", action="store_true")
+    return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
     report = run(args)
-    if args.fail_on_not_ready and report["decision"] != "PASS":
+    if not report["adoption_evidence_ready"]:
         return 1
     return 0
 

@@ -1,7 +1,3 @@
-import argparse
-import json
-from pathlib import Path
-
 import numpy as np
 import pytest
 
@@ -12,7 +8,6 @@ from gx1.features.entry_session_regime_interactions_v1 import (
     missing_session_regime_interaction_source_fields,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
-from gx1.scripts.materialize_entry_session_regime_interaction_manifest_v1 import run
 
 
 def _matrix(names: list[str], n: int = 6) -> np.ndarray:
@@ -22,9 +17,9 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     def set_col(name: str, values) -> None:
         x[:, idx[name]] = np.asarray(values, dtype=np.float32)
 
-    set_col("ret_1", [0.5, 1.0, 3.0, 2.0, 4.0, -4.0])
-    set_col("ret_5", [1.0, 2.0, 8.0, 5.0, 8.0, -8.0])
-    set_col("ret_20", [2.0, 4.0, 18.0, 8.0, 15.0, -15.0])
+    set_col("snap.ret_1", [0.5, 1.0, 3.0, 2.0, 4.0, -4.0])
+    set_col("snap.ret_5", [1.0, 2.0, 8.0, 5.0, 8.0, -8.0])
+    set_col("snap.ret_20", [2.0, 4.0, 18.0, 8.0, 15.0, -15.0])
     set_col("ctx_cont.minutes_since_session_open", [0, 15, 120, 180, 240, 300])
     set_col("ctx_cont.minutes_to_next_session_boundary", [180, 90, 45, 10, 180, 5])
     set_col("ctx_cont.session_change_flag", [1, 0, 0, 0, 0, 1])
@@ -77,13 +72,6 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     return x
 
 
-def _emitted_alias(name: str) -> str:
-    for prefix in ("ctx_cont.", "ctx_cat."):
-        if name.startswith(prefix):
-            return name.removeprefix(prefix)
-    return name
-
-
 def test_session_regime_interaction_layer_is_finite_and_causal_shape() -> None:
     names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
     out, out_names = build_entry_session_regime_interaction_layer(_matrix(names), names)
@@ -120,20 +108,30 @@ def test_session_regime_interaction_layer_is_finite_and_causal_shape() -> None:
     assert out[4, idx["session_regime.session_momentum_structure_alignment_score"]] > 0.0
 
 
-def test_session_regime_interaction_layer_accepts_emitted_context_aliases() -> None:
+def test_session_regime_interaction_layer_rejects_unprefixed_aliases() -> None:
     names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
-    alias_names = [_emitted_alias(name) for name in names]
-    canonical_out, canonical_names = build_entry_session_regime_interaction_layer(_matrix(names), names)
-    alias_out, alias_feature_names = build_entry_session_regime_interaction_layer(_matrix(names), alias_names)
+    alias_names = [
+        "spread_bps" if name == "ctx_cont.spread_bps" else name
+        for name in names
+    ]
 
-    assert tuple(alias_feature_names) == tuple(canonical_names)
-    np.testing.assert_allclose(alias_out, canonical_out, rtol=0.0, atol=0.0)
+    assert missing_session_regime_interaction_source_fields(alias_names) == [
+        "ctx_cont.spread_bps"
+    ]
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_SESSION_REGIME_INTERACTION_MISSING_SOURCE_FIELDS",
+    ):
+        build_entry_session_regime_interaction_layer(
+            np.zeros((2, len(alias_names)), dtype=np.float32),
+            alias_names,
+        )
 
 
 def test_session_regime_source_contract_and_routing_are_explicit() -> None:
     assert len(SESSION_REGIME_INTERACTION_SOURCE_FIELDS) == len(set(SESSION_REGIME_INTERACTION_SOURCE_FIELDS))
     assert len(SESSION_REGIME_INTERACTION_SOURCE_FIELDS) == 52
-    assert "ret_1" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
+    assert "snap.ret_1" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert "ctx_cont.spread_bps" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert "ctx_cont.micro_acceleration" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert "ctx_cat.vol_regime_id" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
@@ -148,13 +146,10 @@ def test_session_regime_source_contract_and_routing_are_explicit() -> None:
     assert missing_session_regime_interaction_source_fields(SESSION_REGIME_INTERACTION_SOURCE_FIELDS) == []
     assert missing_session_regime_interaction_source_fields(
         [
-            "spread_bps" if name == "ctx_cont.spread_bps" else
-            "vol_regime_id" if name == "ctx_cat.vol_regime_id" else
-            "spread_bucket" if name == "ctx_cat.spread_bucket" else
-            name
+            "spread_bps" if name == "ctx_cont.spread_bps" else name
             for name in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
         ]
-    ) == []
+    ) == ["ctx_cont.spread_bps"]
     missing = missing_session_regime_interaction_source_fields(
         name for name in SESSION_REGIME_INTERACTION_SOURCE_FIELDS if name != "ctx_cont.spread_bps"
     )
@@ -169,20 +164,20 @@ def test_session_regime_source_contract_and_routing_are_explicit() -> None:
         assert classify_entry_specialist_feature(feature) == "session_regime_encoder"
 
 
-def test_session_regime_interaction_layer_sanitizes_nonfinite_inputs() -> None:
+def test_session_regime_interaction_layer_rejects_nonfinite_inputs() -> None:
     names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
     x = _matrix(names)
     idx = {name: i for i, name in enumerate(names)}
     x[1, idx["ctx_cont.spread_bps"]] = np.nan
     x[2, idx["ctx_cont.atr_bps"]] = 0.0
-    x[3, idx["ret_5"]] = np.inf
+    x[3, idx["snap.ret_5"]] = np.inf
     x[4, idx["ctx_cat.vol_regime_id"]] = -np.inf
 
-    out, out_names = build_entry_session_regime_interaction_layer(x, names)
-
-    assert tuple(out_names) == SESSION_REGIME_INTERACTION_FEATURE_NAMES
-    assert out.shape == (6, 68)
-    assert np.isfinite(out).all()
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_SESSION_REGIME_INTERACTION_SOURCE_NONFINITE",
+    ):
+        build_entry_session_regime_interaction_layer(x, names)
 
 
 def test_session_regime_interaction_layer_does_not_read_future_rows() -> None:
@@ -195,22 +190,3 @@ def test_session_regime_interaction_layer_does_not_read_future_rows() -> None:
     changed_out, _ = build_entry_session_regime_interaction_layer(changed_future, names)
 
     np.testing.assert_allclose(changed_out[:-1], base_out[:-1], rtol=0.0, atol=0.0)
-
-
-def test_session_regime_manifest_script_is_report_only(tmp_path: Path) -> None:
-    report = run(
-        argparse.Namespace(
-            out_dir=str(tmp_path),
-            quiet=True,
-            fail_on_audit_fail=True,
-        )
-    )
-
-    assert report["decision"] == "READY_FOR_CHALLENGER_MANIFEST_REVIEW"
-    assert report["training_allowed"] is False
-    assert report["replay_allowed"] is False
-    assert report["iql_allowed"] is False
-    latest = tmp_path / "ENTRY_SESSION_REGIME_INTERACTION_MANIFEST_latest.json"
-    data = json.loads(latest.read_text(encoding="utf-8"))
-    assert data["selected_features"] == list(SESSION_REGIME_INTERACTION_FEATURE_NAMES)
-    assert data["specialist"] == "session_regime_encoder"

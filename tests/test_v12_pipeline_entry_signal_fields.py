@@ -1,38 +1,70 @@
 import pandas as pd
+import numpy as np
+import pytest
 from pathlib import Path
 
-from gx1.execution.v12_pipeline import (
-    _entry_decision_latency_fields,
-    _entry_signal_fields_from_candidate,
-    _latest_closed_m5_start,
-)
-from gx1.scripts.audit_smart_direction_contribution_v1 import (
-    _expected_utility_contract_failures,
+from gx1.scripts.audit_model_native_direction_evidence_v1 import (
+    _chosen_side,
     _selected,
 )
-from gx1.scripts.audit_smart_direction_live_like_pockets_v1 import (
+from gx1.scripts.audit_model_native_direction_pockets_v1 import (
+    MODEL_DIRECTION_SELECTION_MODE,
     _assert_selection_score_mode,
     _decision,
+    _model_direction_contract_failures,
     _side_from_predictions,
     _selected_from_predictions,
 )
+from tests.model_native_serve_gate_support import passing_direction_repair_pockets
 
 
-def test_entry_signal_fields_expose_margin_for_runner_sizing():
-    fields = _entry_signal_fields_from_candidate(
+def _canonical_model_direction_predictions() -> pd.DataFrame:
+    probabilities = np.asarray(
+        [
+            [0.80, 0.10, 0.10],
+            [0.10, 0.75, 0.15],
+            [0.10, 0.10, 0.80],
+        ],
+        dtype=np.float64,
+    )
+    direction_logits = np.log(probabilities)
+    public_logits = np.column_stack(
+        [np.max(direction_logits[:, :2], axis=1), direction_logits[:, 2]]
+    )
+    return pd.DataFrame(
         {
-            "margin": 0.42,
-            "p_hat": 0.72,
-            "uncertainty_score": 0.28,
-            "entropy_v1": 0.81,
+            "selection_score_mode": [MODEL_DIRECTION_SELECTION_MODE] * 3,
+            "pred_direction": [0, 1, 2],
+            "direction_logits": direction_logits.tolist(),
+            "public_trade_flat_decision_logits": public_logits.tolist(),
+            "p_long": probabilities[:, 0],
+            "p_short": probabilities[:, 1],
+            "p_flat": probabilities[:, 2],
+            "public_trade_probability": [0.88888889, 0.83333333, 0.11111111],
+            "public_flat_probability": [0.11111111, 0.16666667, 0.88888889],
+            "public_trade_flat_margin": [2.07944154, 1.60943791, -2.07944154],
+            "public_trade_flat_hard_decision": [0, 0, 1],
         }
     )
 
-    assert fields["margin"] == 0.42
-    assert fields["margin_top1_top2"] == 0.42
-    assert fields["p_hat"] == 0.72
-    assert fields["uncertainty_score"] == 0.28
-    assert fields["entropy_v1"] == 0.81
+
+def _passing_direction_pocket_summaries() -> dict[str, dict[str, object]]:
+    summaries = passing_direction_repair_pockets()
+    short_template = dict(summaries["rising_channel_support_touch"])
+    long_template = dict(summaries["falling_channel_resistance_touch"])
+    for name in (
+        "intraday_bull",
+        "intraday_bull__htf_bull",
+        "intraday_bull__htf_bear",
+    ):
+        summaries[name] = dict(short_template)
+    for name in (
+        "intraday_bear",
+        "intraday_bear__htf_bear",
+        "intraday_bear__htf_bull",
+    ):
+        summaries[name] = dict(long_template)
+    return summaries
 
 
 def test_v12_pipeline_default_loader_calls_smart_serving_gate() -> None:
@@ -46,18 +78,12 @@ def test_v12_pipeline_default_loader_calls_smart_serving_gate() -> None:
     assert "assert_smart_serving_gate()" in text
 
 
-def test_entry_signal_fields_fallback_to_margin_top1_top2():
-    fields = _entry_signal_fields_from_candidate({"margin_top1_top2": 0.35})
-
-    assert fields["margin"] == 0.35
-    assert fields["margin_top1_top2"] == 0.35
-
-
 def test_entry_decision_latency_uses_t_plus_5_availability():
+    from gx1.execution.v12_pipeline import _entry_decision_latency_fields
+
     fields = _entry_decision_latency_fields(
         pd.Timestamp("2026-07-09T12:18:00Z"),
         pd.Timestamp("2026-07-09T12:05:00Z"),
-        latency_cap_sec=90.0,
     )
 
     assert fields["decision_ts"] == "2026-07-09 12:05:00+00:00"
@@ -68,17 +94,78 @@ def test_entry_decision_latency_uses_t_plus_5_availability():
 
 
 def test_entry_decision_latency_allows_fresh_signal_inside_cap():
+    from gx1.execution.v12_pipeline import _entry_decision_latency_fields
+
     fields = _entry_decision_latency_fields(
         pd.Timestamp("2026-07-09T12:10:00Z"),
         pd.Timestamp("2026-07-09T12:05:00Z"),
-        latency_cap_sec=90.0,
     )
 
     assert fields["entry_signal_latency_sec"] == 0.0
     assert fields["entry_signal_stale"] is False
 
 
+def test_entry_validation_failure_does_not_consume_fresh_m5_bucket():
+    from gx1.execution.v12_pipeline import (
+        ENTRY_SEQ_LEN,
+        EntryDecisionUnavailable,
+        V12Pipeline,
+    )
+
+    class _SmartEntry:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def predict_live_bar(self, _loader, _decision_m5):
+            self.calls += 1
+            return {}
+
+    smart = _SmartEntry()
+    pipeline = V12Pipeline(
+        prebuilt_loader=object(),
+        exit_xgb=object(),
+        smart_entry=smart,
+    )
+    decision_m5 = pd.Timestamp("2026-07-09T12:05:00Z")
+    pipeline._last_augmented = pd.DataFrame(
+        {"atr_bps": [np.nan] * ENTRY_SEQ_LEN},
+        index=pd.date_range(
+            end=decision_m5,
+            periods=ENTRY_SEQ_LEN,
+            freq="5min",
+        ),
+    )
+    pipeline._refresh_entry_canonical = lambda _now: None
+
+    for _ in range(2):
+        with pytest.raises(EntryDecisionUnavailable) as exc_info:
+            pipeline.make_entry_decision(
+                pd.Timestamp("2026-07-09T12:10:00Z"),
+                bid=3300.0,
+                ask=3300.2,
+            )
+        assert exc_info.value.reason == "model_native_atr_invalid"
+        assert pipeline._last_smart_bucket is None
+
+    assert smart.calls == 2
+
+
+def test_entry_decision_latency_does_not_floor_away_subminute_staleness():
+    from gx1.execution.v12_pipeline import _entry_decision_latency_fields
+
+    fields = _entry_decision_latency_fields(
+        pd.Timestamp("2026-07-09T12:06:31Z"),
+        pd.Timestamp("2026-07-09T12:00:00Z"),
+    )
+
+    assert fields["entry_signal_latency_sec"] == 91.0
+    assert fields["entry_signal_latency_cap_sec"] == 90.0
+    assert fields["entry_signal_stale"] is True
+
+
 def test_latest_closed_m5_start_excludes_current_forming_bar():
+    from gx1.execution.v12_pipeline import _latest_closed_m5_start
+
     assert _latest_closed_m5_start(pd.Timestamp("2026-07-09T12:07:00Z")) == pd.Timestamp(
         "2026-07-09T12:00:00Z"
     )
@@ -87,89 +174,39 @@ def test_latest_closed_m5_start_excludes_current_forming_bar():
     )
 
 
-def test_smart_direction_pocket_gate_fails_rising_support_short_bias():
-    template = {
-        "rows": 0,
-        "selected_rows": 0,
-        "selected_side_short_rate": 0.0,
-        "selected_side_long_rate": 0.0,
-        "selected_mean_proxy_pnl_bps": 1.0,
-    }
-    summaries = {
-        "intraday_bull": dict(template),
-        "intraday_bull__htf_bull": dict(template),
-        "intraday_bull__htf_bear": dict(template),
-        "intraday_bear": dict(template),
-        "intraday_bear__htf_bear": dict(template),
-        "intraday_bear__htf_bull": dict(template),
-        "rising_channel_support_touch": {
-            **template,
-            "rows": 30,
-            "selected_rows": 30,
-            "selected_side_short_rate": 0.50,
-            "selected_mean_proxy_pnl_bps": 5.0,
-        },
-        "falling_channel_resistance_touch": dict(template),
-        "support_retest_continuation": dict(template),
-        "resistance_retest_continuation": dict(template),
-        "rising_channel_support_continuation": dict(template),
-        "falling_channel_resistance_continuation": dict(template),
-        "countertrend_short_trap": dict(template),
-        "countertrend_long_trap": dict(template),
-        "short_high_mae_low_mfe_early_failure": dict(template),
-        "long_high_mae_low_mfe_early_failure": dict(template),
-    }
+def test_model_native_direction_pocket_gate_fails_rising_support_short_bias():
+    summaries = _passing_direction_pocket_summaries()
+    summaries["rising_channel_support_touch"].update(
+        selected_side_short_count=60,
+        selected_side_short_rate=0.50,
+        selected_side_short_wilson_upper_95=0.60,
+    )
 
-    decision, failures = _decision(0.35, 30, summaries)
+    decision, failures = _decision(summaries)
 
     assert decision == "FAIL"
     assert any("rising_channel_support_touch selected SHORT rate" in x for x in failures)
 
 
-def test_smart_direction_pocket_gate_fails_countertrend_short_trap() -> None:
-    template = {
-        "rows": 0,
-        "selected_rows": 0,
-        "selected_side_short_rate": 0.0,
-        "selected_side_long_rate": 0.0,
-        "selected_mean_proxy_pnl_bps": 1.0,
-    }
-    summaries = {
-        "intraday_bull": dict(template),
-        "intraday_bull__htf_bull": dict(template),
-        "intraday_bull__htf_bear": dict(template),
-        "intraday_bear": dict(template),
-        "intraday_bear__htf_bear": dict(template),
-        "intraday_bear__htf_bull": dict(template),
-        "rising_channel_support_touch": dict(template),
-        "falling_channel_resistance_touch": dict(template),
-        "support_retest_continuation": dict(template),
-        "resistance_retest_continuation": dict(template),
-        "rising_channel_support_continuation": dict(template),
-        "falling_channel_resistance_continuation": dict(template),
-        "countertrend_short_trap": {
-            **template,
-            "rows": 30,
-            "selected_rows": 30,
-            "selected_side_short_rate": 0.60,
-            "selected_mean_proxy_pnl_bps": -4.0,
-        },
-        "countertrend_long_trap": dict(template),
-        "short_high_mae_low_mfe_early_failure": dict(template),
-        "long_high_mae_low_mfe_early_failure": dict(template),
-    }
+def test_model_native_direction_pocket_gate_fails_countertrend_short_trap() -> None:
+    summaries = _passing_direction_pocket_summaries()
+    summaries["countertrend_short_trap"].update(
+        selected_side_short_count=72,
+        selected_side_short_rate=0.60,
+        selected_side_short_wilson_upper_95=0.70,
+        selected_mean_proxy_pnl_bps=-4.0,
+    )
 
-    decision, failures = _decision(0.35, 30, summaries)
+    decision, failures = _decision(summaries)
 
     assert decision == "FAIL"
     assert any("countertrend_short_trap selected SHORT rate" in x for x in failures)
-    assert any("countertrend_short_trap selected mean proxy pnl" in x for x in failures)
 
 
 def test_smart_direction_pocket_gate_fails_low_support_wrong_side() -> None:
     template = {
-        "rows": 0,
-        "selected_rows": 0,
+        "rows": 30,
+        "selected_rows": 30,
         "selected_side_short_count": 0,
         "selected_side_long_count": 0,
         "selected_side_short_rate": 0.0,
@@ -201,131 +238,161 @@ def test_smart_direction_pocket_gate_fails_low_support_wrong_side() -> None:
         "long_high_mae_low_mfe_early_failure": dict(template),
     }
 
-    decision, failures = _decision(0.35, 30, summaries)
+    decision, failures = _decision(summaries)
 
     assert decision == "FAIL"
     assert any("rising_channel_support_touch selected SHORT count" in x for x in failures)
 
 
-def test_direction_contribution_selection_uses_expected_utility_threshold() -> None:
-    frame = pd.DataFrame(
-        {
-            "edge_score": [0.01, 0.90],
-            "selection_score": [4.0, -1.0],
-            "selection_score_threshold": [0.0, 0.0],
-        }
+def test_direction_pocket_utility_is_an_offline_launch_gate_only() -> None:
+    summaries = _passing_direction_pocket_summaries()
+    summaries["rising_channel_support_touch"][
+        "selected_mean_proxy_pnl_bps"
+    ] = -999.0
+
+    decision, failures = _decision(summaries)
+
+    assert decision == "FAIL"
+    assert any("selected mean proxy pnl -999.00 <= 0.00" in failure for failure in failures)
+
+
+def test_model_native_direction_pocket_gate_fails_when_edge_support_is_empty() -> None:
+    summaries = _passing_direction_pocket_summaries()
+    for row in summaries.values():
+        row.update(rows=0, selected_rows=0)
+
+    decision, failures = _decision(summaries)
+
+    assert decision == "FAIL"
+    assert any("pocket support 0 < 100" in failure for failure in failures)
+    assert any("direction edge is unproven" in failure for failure in failures)
+
+
+def test_direction_audits_use_model_argmax_including_flat_without_threshold() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame["edge_score"] = [-99.0, 99.0, 99.0]
+    frame["selection_score"] = [99.0, -99.0, 99.0]
+    frame["selection_score_threshold"] = [100.0, -100.0, -100.0]
+    frame["expected_utility_long_bps"] = [-10.0, 50.0, 50.0]
+    frame["expected_utility_short_bps"] = [50.0, -10.0, -10.0]
+    frame["trade_side"] = [1, 0, 0]
+    frame["action"] = ["SHORT", "LONG", "LONG"]
+
+    assert _model_direction_contract_failures(frame) == []
+    assert _side_from_predictions(frame).tolist() == [0, 1, 2]
+    assert _chosen_side(frame).tolist() == [0, 1, 2]
+    assert _selected_from_predictions(frame).tolist() == [True, True, False]
+    assert _selected(frame).tolist() == [True, True, False]
+
+
+def test_direction_audits_require_model_direction_selection_mode() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame["selection_score_mode"] = ["expected_utility"] * len(frame)
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any("selection_score_mode mismatch" in item for item in failures)
+    assert any(MODEL_DIRECTION_SELECTION_MODE in item for item in failures)
+    assert _assert_selection_score_mode(frame)
+
+
+def test_direction_audits_require_canonical_public_trade_flat_columns() -> None:
+    frame = _canonical_model_direction_predictions().drop(
+        columns=["public_trade_flat_margin"]
     )
 
-    selected = _selected(frame, edge_threshold=0.145)
+    failures = _model_direction_contract_failures(frame)
 
-    assert selected.tolist() == [True, False]
+    assert any("missing prediction columns" in item for item in failures)
+    assert any("public_trade_flat_margin" in item for item in failures)
 
 
-def test_direction_audits_default_expected_utility_threshold_to_zero() -> None:
-    frame = pd.DataFrame(
-        {
-            "edge_score": [0.99, 0.01],
-            "selection_score_mode": ["expected_utility", "expected_utility"],
-            "selection_score": [-0.1, 0.2],
-        }
+def test_direction_audits_reject_pred_direction_probability_argmax_mismatch() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame.loc[0, "pred_direction"] = 1
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any("pred_direction mismatches" in item for item in failures)
+
+
+def test_direction_audits_reject_public_hard_decision_vs_pred_direction() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame.loc[2, "public_trade_flat_hard_decision"] = 0
+    frame.loc[2, "public_trade_probability"] = 0.80
+    frame.loc[2, "public_flat_probability"] = 0.20
+    frame.loc[2, "public_trade_flat_margin"] = 1.0
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any("hard_decision mismatches pred_direction" in item for item in failures)
+
+
+def test_direction_audits_reject_public_probability_and_margin_disagreement() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame.loc[0, "public_trade_flat_hard_decision"] = 1
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any("hard_decision mismatches canonical public probabilities" in item for item in failures)
+    assert any("hard_decision mismatches canonical public margin" in item for item in failures)
+
+
+def test_direction_audits_reject_noncanonical_public_pair_surface() -> None:
+    frame = _canonical_model_direction_predictions()
+    frame.loc[0, "public_trade_probability"] = 0.80
+    frame.loc[0, "public_flat_probability"] = 0.20
+    frame.loc[0, "public_trade_flat_margin"] = 1.38629436
+
+    failures = _model_direction_contract_failures(frame)
+
+    assert any(
+        "public trade/FLAT probabilities do not match final direction" in item
+        for item in failures
+    )
+    assert any(
+        "public trade/FLAT margin does not match final direction" in item
+        for item in failures
     )
 
-    assert _selected(frame, edge_threshold=0.145).tolist() == [False, True]
-    assert _selected_from_predictions(frame, edge_threshold=0.145).tolist() == [False, True]
+
+def test_direction_audit_sources_expose_no_selection_threshold_cli() -> None:
+    root = Path(__file__).resolve().parents[1]
+    sources = [
+        root / "gx1/scripts/audit_model_native_direction_pockets_v1.py",
+        root / "gx1/scripts/audit_model_native_direction_evidence_v1.py",
+    ]
+
+    for source in sources:
+        text = source.read_text(encoding="utf-8")
+        assert '"--edge-threshold"' not in text
+        assert '"--selection-score-threshold"' not in text
 
 
-def test_direction_pocket_audit_can_override_expected_utility_threshold() -> None:
-    frame = pd.DataFrame(
-        {
-            "edge_score": [0.99, 0.01],
-            "selection_score_mode": ["expected_utility", "expected_utility"],
-            "selection_score": [4.0, 11.0],
-            "selection_score_threshold": [0.0, 0.0],
-        }
-    )
+def test_model_native_pocket_audit_is_exact_seq513_and_immutable_only() -> None:
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "gx1/scripts/audit_model_native_direction_pockets_v1.py"
+    ).read_text(encoding="utf-8")
 
-    selected = _selected_from_predictions(
-        frame,
-        edge_threshold=0.145,
-        selection_score_threshold_override=10.0,
-    )
-
-    assert selected.tolist() == [False, True]
-
-
-def test_direction_pocket_audit_requires_expected_utility_prediction_surface() -> None:
-    legacy = pd.DataFrame({"edge_score": [0.5], "trade_side": [1]})
-    expected = pd.DataFrame(
-        {
-            "selection_score_mode": ["expected_utility"],
-            "selection_score": [1.0],
-            "selection_score_threshold": [0.0],
-            "trade_side": [0],
-            "expected_utility_long_bps": [7.0],
-            "expected_utility_short_bps": [-2.0],
-            "expected_utility_side": [0],
-        }
-    )
-
-    assert _assert_selection_score_mode(expected, "expected_utility") == []
-    assert any("selection_score_mode mismatch" in item for item in _assert_selection_score_mode(legacy, "expected_utility"))
-
-
-def test_direction_pocket_audit_rejects_stale_selected_action_for_expected_utility() -> None:
-    frame = pd.DataFrame(
-        {
-            "selection_score_mode": ["expected_utility", "expected_utility"],
-            "selection_score": [-1.0, 2.0],
-            "selection_score_threshold": [0.0, 0.0],
-            "trade_side": [0, 1],
-            "expected_utility_long_bps": [4.0, -3.0],
-            "expected_utility_short_bps": [-1.0, 5.0],
-            "expected_utility_side": [0, 1],
-            "selected": [True, True],
-            "action": ["TAKE_SHORT_NOW", "TAKE_LONG_NOW"],
-        }
-    )
-
-    assert _selected_from_predictions(frame, edge_threshold=0.145).tolist() == [False, True]
-    failures = _assert_selection_score_mode(frame, "expected_utility")
-    assert any("selected column mismatches" in item for item in failures)
-    assert any("action column mismatches" in item for item in failures)
-
-
-def test_direction_pocket_audit_rejects_stale_trade_side_for_expected_utility() -> None:
-    frame = pd.DataFrame(
-        {
-            "selection_score_mode": ["expected_utility"],
-            "selection_score": [3.0],
-            "selection_score_threshold": [0.0],
-            "trade_side": [1],
-            "expected_utility_long_bps": [8.0],
-            "expected_utility_short_bps": [-4.0],
-            "expected_utility_side": [0],
-        }
-    )
-
-    assert _side_from_predictions(frame).tolist() == [0]
-    failures = _assert_selection_score_mode(frame, "expected_utility")
-    assert any("trade_side mismatches" in item for item in failures)
-
-
-def test_direction_contribution_audit_rejects_stale_expected_utility_action() -> None:
-    frame = pd.DataFrame(
-        {
-            "selection_score_mode": ["expected_utility"],
-            "selection_score": [2.0],
-            "selection_score_threshold": [0.0],
-            "trade_side": [1],
-            "expected_utility_long_bps": [9.0],
-            "expected_utility_short_bps": [-1.0],
-            "expected_utility_side": [0],
-            "selected": [True],
-            "action": ["TAKE_SHORT_NOW"],
-        }
-    )
-
-    failures = _expected_utility_contract_failures(frame)
-
-    assert any("trade_side mismatches" in item for item in failures)
-    assert any("action side mismatches" in item for item in failures)
+    assert "MODEL_NATIVE_SIGNAL_DIM" in source
+    assert "require_model_native_signal_contract(" in source
+    assert "EXPECTED_CTX_CONT_DIM = 142" in source
+    assert "EXPECTED_CTX_CAT_DIM = 5" in source
+    assert "MODEL_NATIVE_DIRECTION_POCKET_AUDIT" in source
+    assert "MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION" in source
+    assert '"--dataset-parquet"' in source
+    assert '"--bundle-metadata-json"' in source
+    assert '"--max-bad-side-rate"' not in source
+    assert '"--min-selected-rows"' not in source
+    assert '"--min-mean-proxy-pnl-bps"' not in source
+    assert '"--split"' not in source
+    assert '"--model-name"' not in source
+    assert "replace_latest_json_mirror" not in source
+    assert "_latest.json" not in source
+    assert "_latest.md" not in source
+    assert "_first_named_column" not in source
+    assert "required=False" not in source
+    assert "smart520" not in source.lower()
+    assert "audit_thresholds_are_live_direction_rules" in source
+    assert "argmax(final_model_forward_after_learned_evidence_fusion_and_calibration.direction_logits)" in source

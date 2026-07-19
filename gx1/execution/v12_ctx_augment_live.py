@@ -33,7 +33,7 @@ Features added (32 total):
     - _v1_int_slope_h1_us                  # _v1h1_slope3 * _v1_is_US
 
   Regime / bucket categoricals (4):
-    - trend_regime_id                      # 0/1/2 from price_vs_ema50_atr
+    - trend_regime_id                      # 0/1/2 from exact D1 distance (legacy cat)
     - vol_regime_id                        # 0..4 percentile rank of atr_bps
     - atr_bucket                           # = vol_regime_id
     - spread_bucket                        # 0..4 percentile rank of spread_bps
@@ -70,7 +70,6 @@ in normal vol regimes.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -132,7 +131,9 @@ def _align_last_closed(target_idx: pd.DatetimeIndex,
     """
     shifted = htf_series.copy()
     shifted.index = shifted.index + shift
-    aligned = shifted.reindex(target_idx, method="ffill")
+    decision_idx = target_idx + pd.Timedelta(minutes=5)
+    aligned = shifted.reindex(decision_idx, method="ffill")
+    aligned.index = target_idx
     return aligned
 
 
@@ -210,8 +211,10 @@ def _add_session_features(cv3: pd.DataFrame) -> None:
     # as basic_v1.py:984/988.
     is_eu = (sess_tag == "EU").astype(np.float64)
     is_us = (sess_tag == "US").astype(np.float64)
-    is_eu_shifted = np.roll(is_eu.to_numpy(), 1); is_eu_shifted[0] = 0.0
-    is_us_shifted = np.roll(is_us.to_numpy(), 1); is_us_shifted[0] = 0.0
+    is_eu_shifted = np.roll(is_eu.to_numpy(), 1)
+    is_eu_shifted[0] = 0.0
+    is_us_shifted = np.roll(is_us.to_numpy(), 1)
+    is_us_shifted[0] = 0.0
     cv3["_v1_is_EU"] = is_eu_shifted
     cv3["_v1_is_US"] = is_us_shifted
 
@@ -268,13 +271,11 @@ def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
 
 def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     """Mutates cv3: D1_dist_from_ema200_atr, H1_range_compression_ratio,
-    D1_atr_percentile_252, M15_range_compression_ratio, H4_trend_sign_cat."""
-    # A1 FIX (2026-06-04): if cv3 already carries these HTF features, KEEP them.
-    # The prebuilt (add_ctx_cont_columns_to_prebuilt.py) computes them over the FULL
-    # history (D1 EMA200 / rolling(252,252)). Recomputing here over the short serve/rescore
-    # window (~45d) badly skews the long-lookback D1 feats — measured |Δ| median 0.41 on the
-    # 0..1 D1_atr_percentile_252 vs training. So when the caller passes the prebuilt (which
-    # has the correct full-history values), do NOT clobber them with a short-window recompute.
+    D1_atr_percentile_252, M15_range_compression_ratio, H4_trend_sign_cat.
+
+    Existing derived columns are overwritten. Indicator convergence is exposed
+    as one NaN prefix and must be trimmed by the owning common-history contract.
+    """
     _htf_cols = (
         "D1_dist_from_ema200_atr",
         "D1_atr_percentile_252",
@@ -282,82 +283,89 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         "M15_range_compression_ratio",
         "H4_trend_sign_cat",
     )
-    if all(c in cv3.columns for c in _htf_cols):
-        return
-    # Ensure df_m5 is DatetimeIndex'd
+    if not isinstance(cv3.index, pd.DatetimeIndex) or cv3.index.tz is None:
+        raise RuntimeError("[LIVE_HTF_SOURCE] target requires a timezone-aware UTC DatetimeIndex")
+    if any(pd.Timestamp(ts).utcoffset() != pd.Timedelta(0) for ts in cv3.index[:1]):
+        raise RuntimeError("[LIVE_HTF_SOURCE] target index must be UTC")
+    if cv3.empty or cv3.index.hasnans or not cv3.index.is_unique or not cv3.index.is_monotonic_increasing:
+        raise RuntimeError("[LIVE_HTF_SOURCE] target must be non-empty, unique and chronological")
     m5 = df_m5.copy()
     if "time" in m5.columns and not isinstance(m5.index, pd.DatetimeIndex):
-        m5["time"] = pd.to_datetime(m5["time"], utc=True)
+        m5["time"] = pd.to_datetime(m5["time"], utc=True, errors="coerce")
         m5 = m5.set_index("time")
+    from gx1.features.htf_features import (
+        D1_EMA200_MIN_BARS,
+        D1_PCTL252_MIN_BARS,
+        H1_ATR100_MIN_BARS,
+        H4_EMA50_MIN_BARS,
+        M15_ATR100_MIN_BARS,
+        validate_causal_feature_matrix,
+    )
+    from gx1.features.htf_features import _validate_m5_input as _validate_htf_source
+    _validate_htf_source(m5)
+    if not cv3.index.isin(m5.index).all():
+        raise RuntimeError("[LIVE_HTF_SOURCE] raw M5 source does not cover every target timestamp")
 
-    # D1 features — A1 2026-06-04: STRICT warmup floors matching gx1.features.htf_features
-    # (D1_EMA200_MIN_BARS=220, D1_PCTL252_MIN_BARS=270). A too-short serve/rescore window
-    # now fails-closed to the cement-neutral default instead of writing an unconverged
-    # (loose) value (was 29% of bars off by >0.40 on D1_atr_percentile_252). Normal live is
-    # unaffected: the preserve-guard above keeps the prebuilt's full-history HTF when present.
     df_d1 = _resample_ohlc(m5, "1D")
-    if len(df_d1) >= 220:  # EMA200 converged
-        d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
-        d1_ema200 = _ema(d1_mid, 200)
-        d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14).ffill()
-        d1_dist = (d1_mid - d1_ema200) / np.maximum(d1_atr14, ATR_EPS)
-        cv3["D1_dist_from_ema200_atr"] = _align_last_closed(
-            cv3.index, d1_dist, pd.Timedelta(days=1)
-        ).fillna(0.0).to_numpy(dtype=float)
-        # D1_atr_percentile_252 — only with the FULL 252 window (strict min_periods=252)
-        if len(df_d1) >= 270:
-            def _pctl_last(arr):
-                a = np.asarray(arr, dtype=float)
-                if not np.isfinite(a).all():
-                    return float("nan")
-                return float((a <= a[-1]).mean())
-            atr_pctl = d1_atr14.rolling(252, min_periods=252).apply(_pctl_last, raw=True).ffill()
-            cv3["D1_atr_percentile_252"] = _align_last_closed(
-                cv3.index, atr_pctl, pd.Timedelta(days=1)
-            ).fillna(0.5).to_numpy(dtype=float)
-        else:
-            cv3["D1_atr_percentile_252"] = 0.5
-    else:
-        cv3["D1_dist_from_ema200_atr"] = 0.0
-        cv3["D1_atr_percentile_252"] = 0.5
+    d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
+    d1_ema200 = _ema(d1_mid, 200)
+    d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14)
+    d1_dist = (d1_mid - d1_ema200) / np.maximum(d1_atr14, ATR_EPS)
+    d1_dist.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
+    cv3["D1_dist_from_ema200_atr"] = _align_last_closed(
+        cv3.index, d1_dist, pd.Timedelta(days=1)
+    ).to_numpy(dtype=float)
+
+    def _pctl_last(arr):
+        values = np.asarray(arr, dtype=float)
+        if not np.isfinite(values).all():
+            return float("nan")
+        return float((values <= values[-1]).mean())
+
+    atr_pctl = d1_atr14.rolling(252, min_periods=252).apply(_pctl_last, raw=True)
+    atr_pctl.iloc[: D1_PCTL252_MIN_BARS - 1] = np.nan
+    cv3["D1_atr_percentile_252"] = _align_last_closed(
+        cv3.index, atr_pctl, pd.Timedelta(days=1)
+    ).to_numpy(dtype=float)
 
     # H1 features (H1_ATR100_MIN_BARS=120 — ATR100 converged)
-    df_h1 = _resample_ohlc(m5, "1H")
-    if len(df_h1) >= 120:
-        h1_atr14 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 14).ffill()
-        h1_atr100 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 100).ffill()
-        h1_comp = h1_atr14 / np.maximum(h1_atr100, ATR_EPS)
-        cv3["H1_range_compression_ratio"] = _align_last_closed(
-            cv3.index, h1_comp, pd.Timedelta(hours=1)
-        ).fillna(1.0).to_numpy(dtype=float)
-    else:
-        cv3["H1_range_compression_ratio"] = 1.0
+    df_h1 = _resample_ohlc(m5, "1h")
+    h1_atr14 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 14)
+    h1_atr100 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 100)
+    h1_comp = h1_atr14 / np.maximum(h1_atr100, ATR_EPS)
+    h1_comp.iloc[: H1_ATR100_MIN_BARS - 1] = np.nan
+    cv3["H1_range_compression_ratio"] = _align_last_closed(
+        cv3.index, h1_comp, pd.Timedelta(hours=1)
+    ).to_numpy(dtype=float)
 
     # M15 features (M15_ATR100_MIN_BARS=200)
     df_m15 = _resample_ohlc(m5, "15min")
-    if len(df_m15) >= 200:
-        m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14).ffill()
-        m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100).ffill()
-        m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
-        cv3["M15_range_compression_ratio"] = _align_last_closed(
-            cv3.index, m15_comp, pd.Timedelta(minutes=15)
-        ).fillna(1.0).to_numpy(dtype=float)
-    else:
-        cv3["M15_range_compression_ratio"] = 1.0
+    m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14)
+    m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100)
+    m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
+    m15_comp.iloc[: M15_ATR100_MIN_BARS - 1] = np.nan
+    cv3["M15_range_compression_ratio"] = _align_last_closed(
+        cv3.index, m15_comp, pd.Timedelta(minutes=15)
+    ).to_numpy(dtype=float)
 
     # H4 trend sign categorical (H4_EMA50_MIN_BARS=80 — EMA50 converged)
-    df_h4 = _resample_ohlc(m5, "4H")
-    if len(df_h4) >= 80:
-        h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
-        h4_ema50 = _ema(h4_mid, 50)
-        diff = (h4_mid - h4_ema50).to_numpy(dtype=float)
-        sign = np.sign(np.where(np.isfinite(diff), diff, 0.0)).astype(np.int64)
-        sign_cat = (sign + 1).astype(np.int64)  # {-1,0,+1} → {0,1,2}
-        sign_series = pd.Series(sign_cat, index=df_h4.index, dtype="int64")
-        h4_aligned = _align_last_closed(cv3.index, sign_series, pd.Timedelta(hours=4))
-        cv3["H4_trend_sign_cat"] = h4_aligned.fillna(1).astype(np.int64).to_numpy()
-    else:
-        cv3["H4_trend_sign_cat"] = 1
+    df_h4 = _resample_ohlc(m5, "4h")
+    h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
+    h4_ema50 = _ema(h4_mid, 50)
+    diff = h4_mid - h4_ema50
+    sign_series = (np.sign(diff) + 1.0).astype(np.float64)
+    sign_series.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
+    cv3["H4_trend_sign_cat"] = _align_last_closed(
+        cv3.index, sign_series, pd.Timedelta(hours=4)
+    ).to_numpy(dtype=float)
+
+    htf_values = cv3.loc[:, _htf_cols].to_numpy(dtype=np.float64)
+    warmup_rows = validate_causal_feature_matrix(
+        htf_values,
+        expected_width=len(_htf_cols),
+        context="LIVE_HTF_CAUSAL",
+    )
+    cv3.attrs["causal_htf_warmup_rows"] = warmup_rows
 
 
 def _add_micro_features(cv3: pd.DataFrame) -> None:
@@ -395,22 +403,24 @@ def _add_swing_features(cv3: pd.DataFrame) -> None:
 
 def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
     """Mutates cv3: trend_regime_id, vol_regime_id, atr_bucket, spread_bucket."""
-    # trend_regime_id: 3-bin trend regime. MIRRORS add_ctx_cont_columns_to_prebuilt.py (one-truth).
-    # 2026-06-03 (BIG-8): old price_vs_ema50_atr basis was DEGENERATE (constant=1). When
-    # GX1_TREND_REGIME_FROM_D1=1, bucket by the TRUE D1 trend signal D1_dist_from_ema200_atr
-    # (computed above in this same function). Default OFF = cement-compatible (cement V10's
-    # ctx_cat embedding was trained on the old values); the regime-robust retrain enables it.
-    import os as _os
-    if _os.environ.get("GX1_TREND_REGIME_FROM_D1", "0") == "1" and "D1_dist_from_ema200_atr" in cv3.columns:
-        d = cv3["D1_dist_from_ema200_atr"].astype(float).to_numpy()
-        d = np.where(np.isfinite(d), d, 0.0)
-        cv3["trend_regime_id"] = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
-    elif "price_vs_ema50_atr" in cv3.columns:
-        p = cv3["price_vs_ema50_atr"].astype(float).to_numpy()
-        p = np.where(np.isfinite(p), p, 0.0)
-        cv3["trend_regime_id"] = np.where(p < -0.5, 0, np.where(p <= 0.5, 1, 2)).astype(np.int64)
-    else:
-        cv3["trend_regime_id"] = 1
+    # The legacy categorical has one immutable source: exact D1 distance. The
+    # price-vs-EMA signal remains separate continuous model evidence.
+    if "D1_dist_from_ema200_atr" not in cv3.columns:
+        raise RuntimeError("[REGIME] exact D1_dist_from_ema200_atr source missing")
+    from gx1.features.htf_features import validate_causal_feature_matrix
+    d = pd.to_numeric(cv3["D1_dist_from_ema200_atr"], errors="coerce").to_numpy(np.float64)
+    d_warmup = validate_causal_feature_matrix(
+        d[:, None],
+        expected_width=1,
+        context="TREND_REGIME_D1_SOURCE",
+    )
+    trend = np.full(len(d), np.nan, dtype=np.float64)
+    trend[d_warmup:] = np.where(
+        d[d_warmup:] < -1.0,
+        0.0,
+        np.where(d[d_warmup:] <= 1.0, 1.0, 2.0),
+    )
+    cv3["trend_regime_id"] = trend
     # vol_regime_id / atr_bucket / spread_bucket: bucket atr_bps/spread_bps into 0..4.
     # 2026-06-13 audit FIX: digitize against FROZEN full-history edges (frame-invariant, so daemon /
     # entry-serve / exit / build all agree = training) instead of a frame-relative percentile rank
@@ -478,12 +488,28 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
     add_volume_features(out)
     # REGIME_V4 (2026-06-03): multi-TF regime CONDITIONING + 'regime is shifting' CHANGE-
     # DETECTION features. ONE-TRUTH: identical gx1.features.regime_v4_features helper as the
-    # build-side (add_ctx_cont_columns_to_prebuilt.py) — cannot drift. Default OFF = bit-parity
-    # (inert until the Phase-C contract bump + retrain). Sources are already on `out`: per-TF
+    # build-side (add_ctx_cont_columns_to_prebuilt.py) — cannot drift. Sources are already on `out`: per-TF
     # regime/trend-age/ema-stack from v12_state_from_prebuilt._V2_MTF_PER_TF, D1_dist from
     # _add_htf_features above. `out` is full-history time-ordered (same as the volume helper).
-    import os as _os
-    if _os.environ.get("GX1_REGIME_V4", "0") == "1":
-        from gx1.features.regime_v4_features import add_regime_v4_features
-        add_regime_v4_features(out)
+    from gx1.features.regime_v4_features import (
+        REGIME_V4_DERIVED_COLS,
+        REGIME_V4_SOURCE_COLS,
+        add_regime_v4_features,
+    )
+    add_regime_v4_features(out)
+    from gx1.scripts.augment_forward_outcome_v2 import trim_causal_context_warmup_prefix
+    htf_required = [
+        "D1_dist_from_ema200_atr",
+        "D1_atr_percentile_252",
+        "H1_range_compression_ratio",
+        "M15_range_compression_ratio",
+        "H4_trend_sign_cat",
+        "trend_regime_id",
+    ]
+    out = trim_causal_context_warmup_prefix(
+        out,
+        htf_required + list(REGIME_V4_SOURCE_COLS) + list(REGIME_V4_DERIVED_COLS),
+    )
+    out["trend_regime_id"] = out["trend_regime_id"].astype(np.int64)
+    out["H4_trend_sign_cat"] = out["H4_trend_sign_cat"].astype(np.int64)
     return out

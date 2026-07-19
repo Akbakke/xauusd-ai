@@ -42,8 +42,34 @@ def compute_swing_structure_features(
     Bit-identical to the pre-2026-06-24 live `_add_swing_features` (causal-fixed variant).
     """
     h = np.asarray(high, dtype=np.float64)
-    l = np.asarray(low, dtype=np.float64)
+    low_values = np.asarray(low, dtype=np.float64)
     c = np.asarray(close, dtype=np.float64)
+    if h.ndim != 1 or low_values.ndim != 1 or c.ndim != 1:
+        raise RuntimeError(
+            "SWING_STRUCTURE_SOURCE_NOT_1D: "
+            f"high={h.shape} low={low_values.shape} close={c.shape}"
+        )
+    if not (len(h) == len(low_values) == len(c)) or len(c) == 0:
+        raise RuntimeError(
+            "SWING_STRUCTURE_SOURCE_LENGTH_INVALID: "
+            f"high={len(h)} low={len(low_values)} close={len(c)}"
+        )
+    if (
+        not np.isfinite(h).all()
+        or not np.isfinite(low_values).all()
+        or not np.isfinite(c).all()
+    ):
+        raise RuntimeError("SWING_STRUCTURE_SOURCE_NONFINITE")
+    if np.any(h <= 0.0) or np.any(low_values <= 0.0) or np.any(c <= 0.0):
+        raise RuntimeError("SWING_STRUCTURE_SOURCE_NONPOSITIVE")
+    if np.any(h < low_values) or np.any(h < c) or np.any(low_values > c):
+        raise RuntimeError("SWING_STRUCTURE_SOURCE_GEOMETRY_INVALID")
+    if isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1:
+        raise RuntimeError(f"SWING_STRUCTURE_LOOKBACK_INVALID: {lookback!r}")
+    if isinstance(atr_period, bool) or not isinstance(atr_period, int) or atr_period < 1:
+        raise RuntimeError(f"SWING_STRUCTURE_ATR_PERIOD_INVALID: {atr_period!r}")
+    if not np.isfinite(float(eps)) or float(eps) <= 0.0:
+        raise RuntimeError(f"SWING_STRUCTURE_EPS_INVALID: {eps!r}")
     n = len(c)
 
     # ATR = TR rolling-mean (pandas rolling, matching the live/train convention).
@@ -51,7 +77,10 @@ def compute_swing_structure_features(
     if n:
         prev_close[0] = c[0]
         prev_close[1:] = c[:-1]
-    tr = np.maximum(np.abs(h - l), np.maximum(np.abs(h - prev_close), np.abs(l - prev_close)))
+    tr = np.maximum(
+        np.abs(h - low_values),
+        np.maximum(np.abs(h - prev_close), np.abs(low_values - prev_close)),
+    )
     atr = pd.Series(tr).rolling(window=atr_period, min_periods=1).mean().to_numpy()
     atr_safe = np.clip(atr, eps, None)
 
@@ -62,7 +91,11 @@ def compute_swing_structure_features(
     for i in range(lookback, n - lookback):
         if h[i] > h[i - lookback:i].max() and h[i] > h[i + 1:i + lookback + 1].max():
             pivot_high[i] = True
-        if l[i] < l[i - lookback:i].min() and l[i] < l[i + 1:i + lookback + 1].min():
+        if (
+            low_values[i] < low_values[i - lookback : i].min()
+            and low_values[i]
+            < low_values[i + 1 : i + lookback + 1].min()
+        ):
             pivot_low[i] = True
 
     # Confirmation-lag forward fill: reflect a pivot at bar j only from bar j+lookback.
@@ -71,15 +104,17 @@ def compute_swing_structure_features(
     last_high_idx = np.empty(n, dtype=np.int64)
     last_low_idx = np.empty(n, dtype=np.int64)
     last_high = float(h[0]) if n else 0.0
-    last_low = float(l[0]) if n else 0.0
+    last_low = float(low_values[0]) if n else 0.0
     last_hi_i = 0
     last_lo_i = 0
     for i in range(n):
         j = i - lookback
         if j >= 0 and pivot_high[j]:
-            last_high = float(h[j]); last_hi_i = j
+            last_high = float(h[j])
+            last_hi_i = j
         if j >= 0 and pivot_low[j]:
-            last_low = float(l[j]); last_lo_i = j
+            last_low = float(low_values[j])
+            last_lo_i = j
         last_high_vals[i] = last_high
         last_low_vals[i] = last_low
         last_high_idx[i] = last_hi_i
@@ -94,10 +129,16 @@ def compute_swing_structure_features(
     retracement[down_mask] = (c[down_mask] - last_low_vals[down_mask]) / denom[down_mask]
     retracement = np.clip(retracement, 0.0, 1.0)
 
-    return {
+    result = {
         "dist_last_swing_high_atr": ((c - last_high_vals) / atr_safe).astype(np.float32),
         "dist_last_swing_low_atr": ((c - last_low_vals) / atr_safe).astype(np.float32),
         "bars_since_swing_high": (idx - last_high_idx).astype(np.float32),
         "bars_since_swing_low": (idx - last_low_idx).astype(np.float32),
         "retracement_from_last_impulse": retracement.astype(np.float32),
     }
+    if tuple(result) != SWING_FEATURE_NAMES_V1 or any(
+        values.shape != (n,) or not np.isfinite(values).all()
+        for values in result.values()
+    ):
+        raise RuntimeError("SWING_STRUCTURE_OUTPUT_INVALID")
+    return result

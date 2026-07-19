@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """GX1 "Jarvis" live dashboard — zero-dependency local status page.
 
-A single self-contained, READ-ONLY view of the live XAUUSD paper-trading stack:
-how far the bot is from a trade (conviction proximity vs the live gate), whether
-we are "on the minute" (data freshness), stack health, market + today's tally.
+A single self-contained, READ-ONLY view of the XAUUSD paper-trading stack:
+the model's exact LONG/SHORT/FLAT argmax and learned diagnostics, data freshness,
+stack health, execution state, proof-bound learned sizing, and today's tally.
 
 ONE-TRUTH: it reads the SAME live sources the operator inspects by hand —
-  • the paper journal (per-poll v12_decision: q-values, advantage-over-skip, V10 lean)
+  • the paper journal (exact model direction, hierarchy, path and sizing evidence)
   • the canonical_incremental daemon log (prebuilt cutoff = data freshness)
-  • live process status via pgrep (runner / collector / canonical / counterfactual)
-  • the running runner's OWN env (/proc/PID/environ) for the live operating point
-    (GX1_CONVICTION_THR / SKIP_ASIA / SIZING_MODE) — never a hardcoded guess
-It NEVER writes to any live file and NEVER touches the cement/contract/prebuilts
+  • live process status via pgrep (runner / collector / canonical)
+  • the journaled sizing application (mode, calibrated fraction, capacity, units)
+It NEVER writes to any live file and NEVER touches contracts or feature data
 or any process (pgrep/proc reads only). Stdlib only — no new deps.
 
 Run:   /home/andre2/src/GX1_ENGINE/.venv/bin/python scripts/gx1_dashboard.py [--port 8787] [--host 0.0.0.0]
@@ -22,9 +21,11 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import math
 import os
 import re
 import subprocess
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -34,8 +35,6 @@ RUNS = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 JOURNAL_GLOB = str(RUNS / "v12_paper_journal_*.jsonl")
 CANON_LOG = RUNS / "logs" / "canonical_incremental.log"
 WANTS = Path.home() / ".config/systemd/user/default.target.wants/gx1-paper-runner.service"
-DEFAULT_THR = -37.71
-
 _count_cache: dict[str, tuple[float, dict]] = {}
 
 
@@ -48,21 +47,15 @@ def _pgrep(pattern: str) -> list[int]:
         return []
 
 
-def _proc_env(pid: int | None, key: str, default=None):
-    if not pid:
-        return default
-    try:
-        for kv in Path(f"/proc/{pid}/environ").read_bytes().split(b"\0"):
-            if kv.startswith(key.encode() + b"="):
-                return kv.split(b"=", 1)[1].decode()
-    except Exception:
-        pass
-    return default
-
-
-def _latest_journal():
-    files = sorted(glob.glob(JOURNAL_GLOB))
-    return files[-1] if files else None
+def _latest_journal(max_age_seconds: float = 3600.0):
+    """Return only a recently written journal; never present an old run as live."""
+    files = glob.glob(JOURNAL_GLOB)
+    if not files:
+        return None
+    latest = max(files, key=os.path.getmtime)
+    if time.time() - os.path.getmtime(latest) > max_age_seconds:
+        return None
+    return latest
 
 
 def _tail_lines(path, nbytes=200_000):
@@ -99,7 +92,7 @@ def _today_counts(path):
     cached = _count_cache.get(path)
     if cached and cached[0] == mt:
         return cached[1]
-    counts = {"SKIP": 0, "TAKE_LONG": 0, "TAKE_SHORT": 0, "total": 0}
+    counts = {"SKIP": 0, "TAKE_LONG_NOW": 0, "TAKE_SHORT_NOW": 0, "total": 0}
     try:
         with open(path) as f:
             for line in f:
@@ -221,11 +214,6 @@ def _trades_summary(open_records):
 def build_status() -> dict:
     now = datetime.now(timezone.utc)
     rpid = (_pgrep("v12_paper_runner") or [None])[0]
-    thr = DEFAULT_THR
-    try:
-        thr = float(_proc_env(rpid, "GX1_CONVICTION_THR", DEFAULT_THR))
-    except Exception:
-        pass
 
     jrnl = _latest_journal()
     dec = _last_decision(jrnl) if jrnl else None
@@ -234,30 +222,101 @@ def build_status() -> dict:
     cutoff_dt = _parse_ts(cutoff)
     cutoff_lag = round((now - cutoff_dt).total_seconds() / 60, 1) if cutoff_dt else None
 
-    conv = None
+    model = None
     market = None
+    sizing = None
     dec_age = None
     if dec:
         vd = dec["v12_decision"]
-        al, ash = vd.get("advantage_over_skip_long"), vd.get("advantage_over_skip_short")
-        if al is not None and ash is not None:
-            raw = max(al, ash)
-            conv = {
-                "raw_adv": round(raw, 1), "thr": round(thr, 2), "dist": round(raw - thr, 1),
-                "side": "LONG" if al >= ash else "SHORT", "would_take": raw >= thr,
-                "p_long": vd.get("v10_p_long"), "p_short": vd.get("v10_p_short"),
-                "q_skip": vd.get("q_skip"), "q_take_long": vd.get("q_take_long"),
-                "q_take_short": vd.get("q_take_short"),
+        try:
+            probs = [float(value) for value in vd["direction_probs"]]
+            if len(probs) != 3 or not all(math.isfinite(value) for value in probs):
+                raise ValueError("direction_probs must contain three finite values")
+            if any(value < 0.0 or value > 1.0 for value in probs) or not math.isclose(
+                sum(probs), 1.0, rel_tol=1e-6, abs_tol=1e-7
+            ):
+                raise ValueError("direction_probs is not a probability simplex")
+            direction_index = max(range(3), key=probs.__getitem__)
+            directions = ("LONG", "SHORT", "FLAT")
+            direction = str(vd["model_direction"])
+            if direction != directions[direction_index] or vd.get("model_direction_index") != direction_index:
+                raise ValueError("direction argmax/index/name parity failure")
+            expected_action = ("TAKE_LONG_NOW", "TAKE_SHORT_NOW", "SKIP")[direction_index]
+            if vd.get("action") != expected_action:
+                raise ValueError("model action disagrees with direction argmax")
+            required_scalars = {}
+            for key in (
+                "p_trade",
+                "p_flat_hier",
+                "path_quality_pred",
+                "tradable_prob",
+                "bad_path_prob",
+                "tf_agreement_pred",
+                "position_size_pred",
+            ):
+                value = float(vd[key])
+                if not math.isfinite(value):
+                    raise ValueError(f"{key} is non-finite")
+                required_scalars[key] = value
+            ordered = sorted(probs, reverse=True)
+            model = {
+                "contract_error": None,
+                "direction": direction,
+                "direction_index": direction_index,
+                "action": expected_action,
+                "p_long": probs[0],
+                "p_short": probs[1],
+                "p_flat": probs[2],
+                "argmax_prob": probs[direction_index],
+                "argmax_margin": ordered[0] - ordered[1],
+                "public_decision": vd["public_trade_flat_decision"],
+                "specialist_gate": vd["specialist_gate"],
+                "mtf_trend_evidence": vd["mtf_trend_evidence"],
+                "side_utility": vd["side_utility"],
+                **required_scalars,
             }
-        feats = dec.get("features", {})
+        except (KeyError, TypeError, ValueError) as exc:
+            model = {"contract_error": str(exc)}
+
+        spread_value = dec.get("spread_bps")
+        try:
+            spread_value = float(spread_value)
+            if not math.isfinite(spread_value) or spread_value < 0.0:
+                raise ValueError
+            spread_value = round(spread_value, 2)
+        except (TypeError, ValueError):
+            spread_value = None
         market = {
             "bid": dec.get("bid"), "ask": dec.get("ask"),
-            "spread_bps": round(dec.get("spread_bps", 0), 2),
-            "session": (feats.get("session") or "?").upper(),
-            "vol_regime": feats.get("vol_regime"),
-            "action": vd.get("action"), "gate_reason": dec.get("gate_reason"),
-            "n_open_trades": dec.get("n_open_trades", 0),
+            "spread_bps": spread_value,
+            "session": vd.get("session"),
+            "action": vd.get("action"),
+            "execution_status": dec.get("order_status") or dec.get("gate_reason"),
+            "n_open_trades": dec.get("n_open_trades"),
         }
+        sizing_application = dec.get("sizing_application")
+        if isinstance(sizing_application, dict):
+            sizing = {
+                "mode": sizing_application.get("sizing_mode"),
+                "fraction": sizing_application.get("calibrated_size_fraction"),
+                "capacity_units": sizing_application.get("capacity_units"),
+                "units": sizing_application.get("units"),
+                "authorized_order": sizing_application.get("authorized_order"),
+                "no_order_reason": sizing_application.get("no_order_reason"),
+            }
+        else:
+            authority = ((vd.get("_v10_snapshot") or {}).get(
+                "sizing_authority_contract"
+            ) or {})
+            sizing = {
+                "mode": authority.get("adoption_mode"),
+                "fraction": None,
+                "capacity_units": None,
+                "units": dec.get("units"),
+                "authorized_order": False,
+                "no_order_reason": dec.get("sizing_unavailable_evidence")
+                or dec.get("sizing_no_order_reason"),
+            }
         dt = _parse_ts(dec.get("ts_utc"))
         dec_age = round((now - dt).total_seconds() / 60, 1) if dt else None
 
@@ -267,11 +326,10 @@ def build_status() -> dict:
             "runner": rpid is not None,
             "collector": bool(_pgrep("v12_oanda_data_collector")),
             "canonical": bool(_pgrep("v12_canonical_incremental")),
-            "counterfactual": bool(_pgrep("v12_daily_counterfactual")),
             "git_clean": _git_clean(),
             "auto_recover": WANTS.is_symlink(),
         },
-        "conviction": conv,
+        "model": model,
         "data": {
             "cutoff": cutoff, "cutoff_lag_min": cutoff_lag,
             "last_decision_ts": dec.get("ts_utc") if dec else None,
@@ -281,9 +339,8 @@ def build_status() -> dict:
         "today": counts,
         "trades": _trades_summary(dec.get("open_trade_records") if dec else None),
         "op": {
-            "conviction_thr": round(thr, 2),
-            "skip_asia": _proc_env(rpid, "GX1_SKIP_ASIA", "?"),
-            "sizing": _proc_env(rpid, "GX1_SIZING_MODE", "?"),
+            "direction": "exact_long_short_flat_argmax",
+            "sizing": sizing,
             "max_trades": _proc_cmdline_arg(rpid, "--max-trades", 3),
         },
         "journal": os.path.basename(jrnl) if jrnl else None,
@@ -314,8 +371,6 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14p
 .hero .big.grn{color:var(--grn)}.hero .big.amb{color:var(--amb)}.hero .big.red{color:#ff8a93}
 .gauge{position:relative;height:18px;border-radius:10px;background:#0a1018;border:1px solid var(--line);margin:16px 0 8px;overflow:hidden}
 .gfill{position:absolute;left:0;top:0;bottom:0;border-radius:10px 0 0 10px;transition:width .5s ease,background .5s}
-.gthr{position:absolute;top:-5px;bottom:-5px;width:2px;background:#fff;box-shadow:0 0 8px #fff}
-.gthr span{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--dim);white-space:nowrap}
 .rowflex{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #16213400}
 .kv .k{color:var(--dim)}.kv .v{color:#fff;font-weight:600}
@@ -341,17 +396,17 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14p
 <div class="grid">
 
   <div class="card hero col8">
-    <h3>Nærhet til trade · conviction-gate</h3>
+    <h3>Modellretning · eksakt LONG / SHORT / FLAT argmax</h3>
     <div class="rowflex">
-      <div><div class="big" id="convBig">—</div><div class="muted" id="convSub">venter på data…</div></div>
+      <div><div class="big" id="dirBig">—</div><div class="muted" id="dirSub">venter på modellbevis…</div></div>
       <div style="flex:1;min-width:220px">
-        <div class="gauge"><div class="gfill" id="gfill"></div><div class="gthr" id="gthr"><span>trigger</span></div></div>
-        <div class="muted mono" id="convScale"></div>
+        <div class="gauge"><div class="gfill" id="gfill"></div></div>
+        <div class="muted mono" id="probScale"></div>
       </div>
     </div>
     <div class="rowflex" style="margin-top:14px">
-      <div style="min-width:160px"><div class="muted">V10 lener</div><div class="lean"><div class="l" id="leanL"></div><div class="s" id="leanS"></div></div><div class="muted mono" id="leanTxt"></div></div>
-      <div><div class="muted">Q (skip / long / short)</div><div class="mono" id="qvals" style="color:#fff">—</div></div>
+      <div style="min-width:190px"><div class="muted">retningens sannsynligheter</div><div class="lean"><div class="l" id="leanL"></div><div class="s" id="leanS"></div></div><div class="muted mono" id="leanTxt"></div></div>
+      <div><div class="muted">lærte støttehoder</div><div class="mono" id="modelEvidence" style="color:#fff">—</div></div>
     </div>
   </div>
 
@@ -374,7 +429,7 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14p
       <div><div class="muted">spread</div><div class="big2 mono" id="spread">—</div></div>
       <div><div class="muted">sesjon</div><div class="big2" id="sess">—</div></div>
     </div>
-    <div class="kv" style="margin-top:8px"><span class="k">gate</span><span class="v" id="gate">—</span></div>
+    <div class="kv" style="margin-top:8px"><span class="k">execution-status</span><span class="v" id="gate">—</span></div>
     <div class="kv"><span class="k">åpne trades</span><span class="v mono" id="open">—</span></div>
   </div>
 
@@ -407,6 +462,8 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14p
 <script>
 const $=id=>document.getElementById(id);
 function fmtAge(m){if(m==null)return"—";if(m<1)return"akkurat nå";if(m<60)return m.toFixed(1)+" min siden";return (m/60).toFixed(1)+" t siden";}
+function pct(v){return v==null?"—":(100*v).toFixed(1)+"%";}
+function num(v,d=2){return v==null?"—":Number(v).toFixed(d);}
 function dotClass(v){return v===true?"dot ok":(v===false?"dot":"dot warn");}
 function tickClock(){const d=new Date();$("clock").textContent=d.toISOString().slice(11,19)+"Z";}
 setInterval(tickClock,1000);tickClock();
@@ -416,24 +473,25 @@ async function refresh(){
   const r=await fetch('/status.json',{cache:'no-store'});const s=await r.json();
   $("conn").textContent="● tilkoblet";$("conn").style.color="var(--grn)";$("pulse").style.background="var(--grn)";
 
-  // conviction
-  const c=s.conviction;
-  if(c){
-    if(c.would_take){$("convBig").textContent="🟢 TRADE-KLAR";$("convBig").className="big grn";$("convSub").textContent="conviction over terskel — "+c.side;}
-    else{const d=Math.abs(c.dist);$("convBig").textContent=d.toFixed(0)+" bps";$("convBig").className="big "+(d<20?"amb":(d<60?"":"red"));$("convSub").textContent="unna en trade ("+c.side+" nærmest · raw_adv "+c.raw_adv+" vs "+c.thr+")";}
-    // gauge: map [thr-200, thr+60] -> 0..100
-    const lo=c.thr-200, hi=c.thr+60, span=hi-lo;
-    const pct=Math.max(0,Math.min(100,(c.raw_adv-lo)/span*100));
-    const tpct=Math.max(0,Math.min(100,(c.thr-lo)/span*100));
-    const g=$("gfill");g.style.width=pct+"%";
-    g.style.background=c.would_take?"linear-gradient(90deg,#1b8f6e,var(--grn))":(Math.abs(c.dist)<20?"linear-gradient(90deg,#8a6a1e,var(--amb))":"linear-gradient(90deg,#3a1820,var(--red))");
-    $("gthr").style.left=tpct+"%";
-    $("convScale").textContent="skala "+lo.toFixed(0)+" … "+hi.toFixed(0)+" bps";
-    const pl=(c.p_long||0)*100, ps=(c.p_short||0)*100, pf=Math.max(0,100-pl-ps);
+  // Exact model-native direction and learned evidence; no live threshold.
+  const c=s.model;
+  if(c && !c.contract_error){
+    const cls=c.direction==="LONG"?"grn":(c.direction==="SHORT"?"red":"amb");
+    $("dirBig").textContent=c.direction;$("dirBig").className="big "+cls;
+    $("dirSub").textContent="modellens eneste retning · offentlig beslutning "+c.public_decision+" · argmax-margin "+pct(c.argmax_margin);
+    const prob=Math.max(0,Math.min(100,100*c.argmax_prob));
+    const g=$("gfill");g.style.width=prob+"%";
+    g.style.background=c.direction==="LONG"?"linear-gradient(90deg,#1b8f6e,var(--grn))":(c.direction==="SHORT"?"linear-gradient(90deg,#6b1e2b,var(--red))":"linear-gradient(90deg,#8a6a1e,var(--amb))");
+    $("probScale").textContent="argmax "+pct(c.argmax_prob)+" · p(trade) "+pct(c.p_trade)+" · p(flat|hierarki) "+pct(c.p_flat_hier);
+    const pl=100*c.p_long, ps=100*c.p_short, pf=100*c.p_flat;
     $("leanL").style.width=pl+"%";$("leanS").style.width=ps+"%";
-    $("leanTxt").textContent="long "+pl.toFixed(0)+"% · short "+ps.toFixed(0)+"% · flat "+pf.toFixed(0)+"%";
-    $("qvals").textContent=[c.q_skip,c.q_take_long,c.q_take_short].map(x=>x==null?"—":x.toFixed(0)).join("  /  ");
-  } else {$("convBig").textContent="—";$("convSub").textContent="ingen fersk beslutning (runner laster?)";}
+    $("leanTxt").textContent="long "+pl.toFixed(1)+"% · short "+ps.toFixed(1)+"% · flat "+pf.toFixed(1)+"%";
+    $("modelEvidence").textContent="path "+num(c.path_quality_pred)+" · tradable "+pct(c.tradable_prob)+" · bad-path "+pct(c.bad_path_prob)+" · TF "+pct(c.tf_agreement_pred)+" · size-head "+pct(c.position_size_pred)+" (evidens)";
+  } else if(c && c.contract_error){
+    $("dirBig").textContent="BLOCK";$("dirBig").className="big red";
+    $("dirSub").textContent="modellkontrakt ugyldig: "+c.contract_error;
+    $("gfill").style.width="0%";$("probScale").textContent="ingen bevist retning";$("modelEvidence").textContent="—";
+  } else {$("dirBig").textContent="—";$("dirSub").textContent="ingen fersk modellbeslutning";$("gfill").style.width="0%";}
 
   // data freshness
   const d=s.data;const lag=d.cutoff_lag_min;
@@ -442,7 +500,7 @@ async function refresh(){
   $("cutoff").textContent=d.cutoff||"—";$("decAge").textContent=fmtAge(d.last_decision_age_min);
 
   // health pills
-  const h=s.health;const labels={runner:"paper_runner",collector:"collector",canonical:"canonical_incr",counterfactual:"counterfactual",git_clean:"git rent",auto_recover:"auto-recover"};
+  const h=s.health;const labels={runner:"paper_runner",collector:"collector",canonical:"canonical_incr",git_clean:"git rent",auto_recover:"auto-recover"};
   $("pills").innerHTML=Object.keys(labels).map(k=>`<div class="pill"><span class="${dotClass(h[k])}"></span>${labels[k]}</div>`).join("");
   const allok=Object.values(h).every(v=>v===true);
   $("pulse").style.background=allok?"var(--grn)":"var(--amb)";
@@ -451,14 +509,15 @@ async function refresh(){
   const m=s.market;
   if(m){$("px").textContent=(m.bid!=null?m.bid:"—")+" / "+(m.ask!=null?m.ask:"—");
     $("spread").textContent=(m.spread_bps!=null?m.spread_bps:"—")+" bps";
-    $("sess").textContent=m.session||"—";$("gate").textContent=m.gate_reason||"—";
-    $("open").textContent=m.n_open_trades+" / "+(s.op.max_trades||3);}
+    $("sess").textContent=m.session||"—";$("gate").textContent=m.execution_status||"—";
+    $("open").textContent=(m.n_open_trades??"—")+" / "+(s.op.max_trades||3);}
 
   // today
   const t=s.today||{};
   $("cTot").textContent=t.total??"—";$("cSkip").textContent=t.SKIP??"—";
-  $("cTake").textContent=((t.TAKE_LONG||0)+(t.TAKE_SHORT||0));
-  $("op").textContent="thr "+s.op.conviction_thr+" · skip-asia "+s.op.skip_asia+" · sizing "+s.op.sizing;
+  $("cTake").textContent=((t.TAKE_LONG_NOW||0)+(t.TAKE_SHORT_NOW||0));
+  const sz=s.op.sizing||{};const frac=sz.fraction==null?"—":(100*Number(sz.fraction)).toFixed(1)+"%";
+  $("op").textContent="direction exact argmax · sizing "+(sz.mode||"unavailable")+" · fraction "+frac+" · "+(sz.units??0)+"u";
   $("jrnl").textContent=s.journal||"—";
 
   // trades / P&L

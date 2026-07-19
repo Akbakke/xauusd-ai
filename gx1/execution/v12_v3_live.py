@@ -301,9 +301,10 @@ class V3LiveInference:
         # V3 (2026-06-04 train==serve parity): compute the 4 volume features M1-NATIVE on the window's
         # raw M1 volume+close (constitution: exit is ALWAYS M1, never coarsen). The old serve path left
         # idx 91-94 to the M5-ffill branch above (M5-window z/pct, constant per 5-M1 epoch) which the
-        # M1-native build (materialize_build_v3_training_dataset_v2:313-321) cannot match. Activates once
+        # canonical M1-native feature definition cannot match. Activates once
         # the base34 prebuilt carries raw `volume`+`close` (added by the canonical daemon; materializes at
-        # the prebuilt rebuild). Fail-soft until then — if volume absent, the M5-ffill values above stand.
+        # the prebuilt rebuild). Missing raw inputs are handled by the explicit
+        # V3 input contract below; they are not evidence that a deleted builder exists.
         if "volume" in win.columns and ("close" in win.columns or "bid_close" in win.columns):
             from gx1.features.volume_features import VOLUME_FEATURE_NAMES, compute_volume_features
             _vw = pd.DataFrame({

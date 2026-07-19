@@ -1,0 +1,1052 @@
+#!/usr/bin/env python3
+"""Materialize a report-only model-native seq513 smoke dataset manifest event.
+
+This script verifies an already-built model-native seq513 smoke dataset and writes a
+manifest/report under the report directory only. It does not rebuild data, copy
+parquets, start training, run replay, distill IQL, or touch shadow/live paths.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pyarrow.parquet as pq
+
+from gx1.contracts.entry_model_native_signal_v1 import (
+    FORBIDDEN_LEGACY_BRIDGE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SIGNAL_DIM,
+    model_native_signal_contract_failures,
+)
+from gx1.contracts.entry_model_native_readiness_v1 import (
+    model_native_readiness_contract_metadata,
+)
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.models.entry_v10.direction_decision_contract import (
+    model_direction_decision_contract_metadata,
+)
+
+
+SPLITS = ("train", "val", "test")
+SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v1"
+SPLIT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_split_manifest_v1"
+REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v1"
+MANIFEST_VARIANT = MODEL_NATIVE_CONTRACT_MODE
+EXPECTED_SEQ_SNAP_WIDTH = MODEL_NATIVE_SIGNAL_DIM
+DEFAULT_STEM = "v10_model_native_seq513_smoke__HOLD_03B"
+SMART_SPECIALIST_CONTRACT_MODE = MODEL_NATIVE_CONTRACT_MODE
+EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
+_TIMESTAMPED_JSON_RE = re.compile(
+    r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
+)
+POST_REBUILD_READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
+REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS = (
+    "smart rebuild preflight decision is ready",
+    "smart rebuild preflight proves feature harmony",
+    "smart rebuild preflight proves feature orchestration",
+    "smart rebuild preflight manifest hash matches post-rebuild manifest",
+    "smart rebuild preflight planned dataset matches audited dataset",
+)
+RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
+DEFAULT_MEMORY_CAP = "22G"
+DEFAULT_SWAP_CAP = "2G"
+PATH_CALIBRATION_RECIPE_CONTRACT = {
+    "path_quality_rank_full_batch": True,
+    "path_quality_rank_weight": 2.0,
+    "path_quality_rank_margin": 0.25,
+    "path_quality_rank_quantile": 0.25,
+    "bad_path_quality_rank_weight": 2.0,
+    "bad_path_quality_rank_margin": 0.25,
+    "bad_path_quality_rank_quantile": 0.25,
+}
+PATH_CALIBRATION_ENV_TEMPLATE = {
+    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "2.00",
+    "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN": "0.25",
+    "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE": "0.25",
+    "ENTRY_PATH_QUALITY_RANK_WEIGHT": "2.00",
+    "ENTRY_PATH_QUALITY_RANK_MARGIN": "0.25",
+    "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
+}
+DIRECTION_BALANCE_RECIPE_CONTRACT = {
+    "pred_balance_alpha": 0.50,
+    "pred_balance_target": "label",
+    "pred_balance_class_weights": [1.0, 1.0, 4.0],
+    "direction_ce_scale": 4.00,
+    "ckpt_monitor": "dir_acc",
+    "ckpt_class_balance_guard_weight": 0.50,
+    "ckpt_class_balance_min_pred_to_label": 0.35,
+    "ckpt_class_balance_min_pred_rate": 0.05,
+    "ckpt_direction_slice_guard": True,
+    "direction_min_pred_rate_loss_weight": 12.00,
+    "direction_min_pred_rate_fraction": 0.50,
+    "direction_min_pred_rate_floor": 0.05,
+    "direction_min_pred_rate_softmax_temperature": 0.05,
+    "direction_global_prior_match_weight": 8.00,
+    "direction_global_prior_match_tolerance": 0.02,
+    "direction_global_prior_match_min_label_rate": 0.10,
+    "direction_slice_min_pred_rate_loss_weight": 8.00,
+    "direction_slice_min_pred_rate_fraction": 0.50,
+    "direction_slice_min_pred_rate_floor": 0.05,
+    "direction_slice_min_label_rate": 0.10,
+    "direction_slice_min_rows": 8,
+    "direction_slice_ctx_cat_indices": "0,1,2,3,4",
+    "direction_slice_recall_loss_weight": 4.00,
+    "direction_slice_recall_prob_floor": 0.30,
+    "direction_slice_recall_min_label_rate": 0.10,
+    "direction_slice_recall_min_rows": 8,
+    "direction_slice_balanced_ce_weight": 2.00,
+    "direction_slice_balanced_ce_min_label_rate": 0.10,
+    "direction_slice_balanced_ce_min_rows": 8,
+    "direction_slice_true_margin_weight": 2.00,
+    "direction_slice_true_margin": 0.10,
+    "direction_slice_true_margin_min_label_rate": 0.10,
+    "direction_slice_true_margin_min_rows": 8,
+    "direction_slice_accuracy_edge_weight": 4.00,
+    "direction_slice_accuracy_edge_margin": 0.02,
+    "direction_slice_confusion_pair_weight": 4.00,
+    "direction_slice_confusion_pair_margin": 0.02,
+    "direction_slice_accuracy_edge_min_label_rate": 0.10,
+    "direction_slice_accuracy_edge_min_rows": 8,
+    "direction_slice_prior_match_weight": 3.00,
+    "direction_slice_prior_match_tolerance": 0.02,
+    "direction_slice_prior_match_min_label_rate": 0.10,
+    "direction_slice_prior_match_min_rows": 8,
+    "direction_slice_loss_aggregation": "mean_max",
+    "direction_slice_balanced_sampler": True,
+    "direction_slice_balanced_sampler_min_rows": 8,
+    "direction_slice_hard_red_stop_patience": 3,
+    "direction_slice_hard_red_stop_min_epochs": 6,
+    "direction_vs_flat_margin_weight": 4.00,
+    "direction_vs_flat_margin": 0.10,
+    "direction_utility_margin_weight": 4.00,
+    "direction_utility_min_gap_bps": 15.0,
+    "direction_utility_logit_margin": 0.10,
+    "direction_side_utility_conviction_weight": 6.00,
+    "direction_side_utility_conviction_min_gap_bps": 15.0,
+    "direction_side_utility_conviction_logit_margin": 0.10,
+    "direction_utility_trade_conviction_weight": 8.00,
+    "direction_utility_trade_conviction_min_gap_bps": 15.0,
+    "direction_utility_trade_conviction_min_utility_bps": 0.0,
+    "direction_utility_trade_conviction_max_bad_path": 0.50,
+    "direction_utility_trade_conviction_logit_margin": 0.10,
+    "direction_utility_triad_ce_weight": 8.00,
+    "direction_utility_triad_ce_min_gap_bps": 15.0,
+    "direction_utility_triad_ce_min_utility_bps": 0.0,
+    "direction_utility_triad_ce_max_bad_path": 0.50,
+    "direction_utility_triad_ce_class_weight_cap": 4.0,
+    "hier_trade_global_prior_match_weight": 4.00,
+    "hier_trade_global_prior_match_tolerance": 0.02,
+    "hier_trade_global_prior_match_min_label_rate": 0.10,
+    "hier_slice_trade_prior_match_weight": 4.00,
+    "hier_slice_trade_prior_match_tolerance": 0.02,
+    "hier_slice_trade_prior_match_min_label_rate": 0.10,
+    "hier_slice_trade_prior_match_min_rows": 8,
+    "hier_flat_logit_margin_weight": 8.00,
+    "hier_flat_logit_margin": 0.10,
+    "hier_flat_logit_margin_min_label_rate": 0.10,
+    "hier_slice_flat_logit_margin_weight": 8.00,
+    "hier_slice_flat_logit_margin": 0.10,
+    "hier_slice_flat_logit_margin_min_label_rate": 0.10,
+    "hier_slice_flat_logit_margin_min_rows": 8,
+    "hier_slice_side_ce_weight": 4.00,
+    "hier_slice_side_true_margin_weight": 3.00,
+    "hier_slice_side_true_margin": 0.10,
+    "hier_slice_side_min_label_rate": 0.10,
+    "hier_slice_side_min_rows": 8,
+    "hier_side_global_prior_match_weight": 4.00,
+    "hier_side_global_prior_match_tolerance": 0.02,
+    "hier_side_global_prior_match_min_label_rate": 0.10,
+    "hier_slice_side_prior_match_weight": 4.00,
+    "hier_slice_side_prior_match_tolerance": 0.02,
+    "hier_slice_side_prior_match_min_label_rate": 0.10,
+    "hier_slice_side_prior_match_min_rows": 8,
+    "direction_flat_starvation_weight": 8.00,
+    "direction_flat_starvation_min_label_rate": 0.10,
+    "direction_flat_starvation_min_rows": 8,
+    "direction_flat_starvation_pred_fraction": 0.50,
+    "direction_flat_starvation_pred_floor": 0.10,
+    "direction_flat_starvation_logit_margin": 0.10,
+    "hier_trade_weight": 2.00,
+    "hier_side_weight": 1.75,
+    "hier_utility_weight": 1.00,
+    "hier_bad_path_weight": 1.25,
+    "hier_mae_weight": 0.35,
+    "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    "hierarchical_entry_heads_enabled": True,
+    "side_validity_head_enabled": True,
+    "hier_side_validity_weight": 1.50,
+    "hier_side_validity_min_utility_bps": 15.0,
+    "hier_side_validity_pos_weight_cap": 8.0,
+    "trendline_rail_head_enabled": True,
+    "trendline_rail_aux_weight": 1.00,
+    "trendline_rail_utility_margin_weight": 5.00,
+    "trendline_rail_margin": 1.00,
+    "trendline_rail_utility_margin_bps": 30.0,
+    "anchor_gate_enabled": False,
+}
+DIRECTION_BALANCE_ENV_TEMPLATE = {
+    "ENTRY_PRED_BALANCE_ALPHA": "0.50",
+    "ENTRY_PRED_BALANCE_TARGET": "label",
+    "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,4.0",
+    "ENTRY_DIRECTION_CE_SCALE": "4.00",
+    "GX1_V10_CKPT_MONITOR": "dir_acc",
+    "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.50",
+    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.35",
+    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.05",
+    "ENTRY_CKPT_DIRECTION_SLICE_GUARD": "1",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "12.00",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.50",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.05",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE": "0.05",
+    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION": "0.50",
+    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR": "0.05",
+    "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES": "0,1,2,3,4",
+    "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT": "4.00",
+    "ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
+    "ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT": "2.00",
+    "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT": "2.00",
+    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN": "0.10",
+    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT": "4.00",
+    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN": "0.02",
+    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT": "4.00",
+    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN": "0.02",
+    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT": "3.00",
+    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean_max",
+    "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER": "1",
+    "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE": "3",
+    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
+    "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
+    "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
+    "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": "6.00",
+    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH": "0.50",
+    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN": "0.10",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS": "15.0",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS": "0.0",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
+    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
+    "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "8.00",
+    "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION": "0.50",
+    "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR": "0.10",
+    "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN": "0.10",
+    "ENTRY_HIER_TRADE_WEIGHT": "2.00",
+    "ENTRY_HIER_SIDE_WEIGHT": "1.75",
+    "ENTRY_HIER_UTILITY_WEIGHT": "1.00",
+    "ENTRY_HIER_BAD_PATH_WEIGHT": "1.25",
+    "ENTRY_HIER_MAE_WEIGHT": "0.35",
+    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "1.50",
+    "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "15.0",
+    "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "8.0",
+    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT": "4.00",
+    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS": "8",
+    "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN": "0.02",
+    "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT": "8.00",
+    "ENTRY_HIER_FLAT_LOGIT_MARGIN": "0.10",
+    "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT": "8.00",
+    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN": "0.10",
+    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS": "8",
+    "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "3.00",
+    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN": "0.02",
+    "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_MIN_ROWS": "8",
+    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT": "4.00",
+    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT": "4.00",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE": "0.02",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
+    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS": "8",
+    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": "1.00",
+}
+TAIL_DIRECTION_RECIPE_CONTRACT = {
+    "tail_direction_ce_weight": 0.35,
+    "tail_direction_quality_quantile": 0.70,
+    "tail_direction_min_batch": 8,
+    "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+}
+TAIL_DIRECTION_ENV_TEMPLATE = {
+    "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.35",
+    "ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE": "0.70",
+    "ENTRY_TAIL_DIRECTION_MIN_BATCH": "8",
+}
+DIRECTION_CONTEXT_SLICE_CONTRACT = {
+    "source": "post_smoke_audit.direction_slice_contract",
+    "ctx_cat_names": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
+    "min_rows": 64,
+    "requires_majority_baseline": True,
+    "requires_class_distribution_coverage": True,
+    "skips_low_label_diversity": True,
+}
+CANONICAL_DIRECTION_DECISION_CONTRACT = model_direction_decision_contract_metadata()
+SIDE_EFFECTS_STARTED = {
+    "dataset_rebuild": False,
+    "training": False,
+    "replay": False,
+    "iql_distillation": False,
+    "shadow": False,
+    "live": False,
+}
+REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS = tuple(SIDE_EFFECTS_STARTED)
+
+
+def _json_default(obj: Any) -> Any:
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        value = float(obj)
+        return value if np.isfinite(value) else None
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return str(obj)
+
+
+def _sha256_file(path: Path) -> str | None:
+    if not path.exists() or not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _is_sha256(value: Any) -> bool:
+    text = str(value or "").strip().lower()
+    return len(text) == 64 and all(ch in "0123456789abcdef" for ch in text)
+
+
+def _artifact_meta(path: Path) -> dict[str, Any]:
+    return {
+        "path": str(path),
+        "exists": bool(path.exists()),
+        "size_bytes": int(path.stat().st_size) if path.exists() else None,
+        "sha256": _sha256_file(path),
+    }
+
+
+def _require_timestamped_evidence_path(path: Path, *, label: str) -> None:
+    if path.name.endswith("_latest.json") or not _TIMESTAMPED_JSON_RE.fullmatch(
+        path.name
+    ):
+        raise RuntimeError(
+            f"{label} must be an explicit timestamped JSON evidence event, got {path}"
+        )
+
+
+def _sha256_json(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _read_json_or_empty(path: Path) -> dict[str, Any]:
+    if not path.exists() or not path.is_file():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
+def _check(name: str, ok: bool, details: Any = None) -> dict[str, Any]:
+    return {"name": name, "ok": bool(ok), "details": details if details is not None else {}}
+
+
+def _path_calibration_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("path_calibration_recipe_contract")
+    env_template = contract.get("path_calibration_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != PATH_CALIBRATION_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items())
+
+
+def _direction_balance_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("direction_balance_recipe_contract")
+    env_template = contract.get("direction_balance_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != DIRECTION_BALANCE_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items())
+
+
+def _tail_direction_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("tail_direction_recipe_contract")
+    env_template = contract.get("tail_direction_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != TAIL_DIRECTION_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in TAIL_DIRECTION_ENV_TEMPLATE.items())
+
+
+def _direction_context_slice_ok(contract: dict[str, Any]) -> bool:
+    return (
+        contract.get("requires_direction_context_slice_contract") is True
+        and contract.get("direction_context_slice_contract") == DIRECTION_CONTEXT_SLICE_CONTRACT
+    )
+
+
+def _canonical_direction_decision_ok(contract: dict[str, Any]) -> bool:
+    return (
+        contract.get("requires_canonical_direction_decision_contract") is True
+        and contract.get("canonical_direction_decision_contract")
+        == CANONICAL_DIRECTION_DECISION_CONTRACT
+    )
+
+
+def _explicit_vedtak_id_ok(vedtak_id: str) -> bool:
+    value = str(vedtak_id or "").strip()
+    placeholders = {
+        "",
+        "<id>",
+        "<vedtak-id>",
+        "<MODEL_NATIVE_SEQ513_SMOKE_VEDTAK_ID>",
+        "TODO",
+        "TBD",
+    }
+    return value not in placeholders and "<" not in value and ">" not in value
+
+
+def _split_candidates(dataset_dir: Path, split: str) -> tuple[list[Path], list[Path]]:
+    parquets = sorted(dataset_dir.glob(f"*_{split}.parquet")) if dataset_dir.exists() else []
+    manifests = sorted(dataset_dir.glob(f"*_{split}.manifest.json")) if dataset_dir.exists() else []
+    return parquets, manifests
+
+
+def _resolve_manifest_output_path(manifest: dict[str, Any], default_path: Path | None) -> Path | None:
+    raw = str(manifest.get("output_data_path") or "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    return default_path.resolve() if default_path is not None else None
+
+
+def _stack_list_column(values: Any, dtype: np.dtype) -> np.ndarray:
+    items = list(values)
+    if not items:
+        return np.asarray([], dtype=dtype)
+    try:
+        return np.stack(items).astype(dtype, copy=False)
+    except ValueError:
+        return np.stack([np.stack(item) for item in items]).astype(dtype, copy=False)
+
+
+def _sample_seq_snap_shapes(path: Path, *, sample_rows: int, batch_size: int) -> dict[str, Any]:
+    if not path.exists():
+        return {"ok": False, "errors": ["missing parquet"], "rows": 0}
+    errors: list[str] = []
+    try:
+        pf = pq.ParquetFile(path)
+    except Exception as exc:
+        return {"ok": False, "errors": [f"open parquet failed: {type(exc).__name__}: {exc}"], "rows": 0}
+    schema_names = set(pf.schema_arrow.names)
+    missing = [name for name in ("seq", "snap") if name not in schema_names]
+    if missing:
+        return {
+            "ok": False,
+            "errors": [f"missing columns: {missing}"],
+            "rows": int(pf.metadata.num_rows or 0),
+            "schema_columns": sorted(schema_names),
+        }
+    total_rows = int(pf.metadata.num_rows or 0)
+    if total_rows <= 0:
+        return {"ok": False, "errors": ["empty parquet"], "rows": 0, "schema_columns": sorted(schema_names)}
+
+    scan_limit = min(total_rows, int(sample_rows))
+    scanned = 0
+    shape_examples: dict[str, Any] = {}
+    nonfinite = {"seq": 0, "snap": 0}
+    for batch in pf.iter_batches(batch_size=int(batch_size), columns=["seq", "snap"]):
+        if scanned >= scan_limit:
+            break
+        pdf = batch.to_pandas()
+        remaining = scan_limit - scanned
+        if len(pdf) > remaining:
+            pdf = pdf.iloc[:remaining].copy()
+        if pdf.empty:
+            continue
+        try:
+            seq = _stack_list_column(pdf["seq"], np.float32)
+            snap = _stack_list_column(pdf["snap"], np.float32)
+        except Exception as exc:
+            errors.append(f"seq/snap stack failed: {type(exc).__name__}: {exc}")
+            scanned += int(len(pdf))
+            continue
+        shape_examples = {"seq": list(seq.shape), "snap": list(snap.shape)}
+        if seq.ndim != 3 or int(seq.shape[-1]) != EXPECTED_SEQ_SNAP_WIDTH:
+            errors.append(
+                f"seq width mismatch got={list(seq.shape)} expected_last_dim={EXPECTED_SEQ_SNAP_WIDTH}"
+            )
+        if snap.ndim != 2 or int(snap.shape[-1]) != EXPECTED_SEQ_SNAP_WIDTH:
+            errors.append(
+                f"snap width mismatch got={list(snap.shape)} expected_last_dim={EXPECTED_SEQ_SNAP_WIDTH}"
+            )
+        if not errors:
+            nonfinite["seq"] += int((~np.isfinite(seq)).sum())
+            nonfinite["snap"] += int((~np.isfinite(snap)).sum())
+        scanned += int(len(pdf))
+
+    if scanned <= 0:
+        errors.append("no seq/snap rows scanned")
+    if any(count != 0 for count in nonfinite.values()):
+        errors.append(f"nonfinite seq/snap values: {nonfinite}")
+    return {
+        "ok": bool(scanned > 0 and not errors),
+        "rows": total_rows,
+        "scanned_rows": int(scanned),
+        "sample_rows": int(sample_rows),
+        "shape_examples": shape_examples,
+        "nonfinite_counts": nonfinite,
+        "errors": errors,
+    }
+
+
+def _split_summary(dataset_dir: Path, split: str, *, sample_rows: int, batch_size: int) -> dict[str, Any]:
+    parquets, manifests = _split_candidates(dataset_dir, split)
+    parquet_path = parquets[0].resolve() if len(parquets) == 1 else None
+    manifest_path = manifests[0].resolve() if len(manifests) == 1 else None
+    manifest = _read_json_or_empty(manifest_path) if manifest_path is not None else {}
+    output_path = _resolve_manifest_output_path(manifest, parquet_path)
+    extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
+    signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+    fields = [str(x) for x in signal_bridge.get("fields", []) if str(x).strip()]
+    shape_probe = (
+        _sample_seq_snap_shapes(output_path, sample_rows=sample_rows, batch_size=batch_size)
+        if output_path is not None
+        else {"ok": False, "errors": ["missing output_data_path"], "rows": 0}
+    )
+    return {
+        "split": split,
+        "parquet_candidates": [str(path) for path in parquets],
+        "manifest_candidates": [str(path) for path in manifests],
+        "parquet_candidate_count": int(len(parquets)),
+        "manifest_candidate_count": int(len(manifests)),
+        "parquet_path": str(parquet_path) if parquet_path is not None else "",
+        "manifest_path": str(manifest_path) if manifest_path is not None else "",
+        "parquet_exists": bool(parquet_path is not None and parquet_path.exists()),
+        "manifest_exists": bool(manifest_path is not None and manifest_path.exists()),
+        "output_data_path": str(output_path) if output_path is not None else "",
+        "output_data_exists": bool(output_path is not None and output_path.exists()),
+        "manifest_output_matches_split_parquet": bool(
+            output_path is not None and parquet_path is not None and output_path == parquet_path
+        ),
+        "rows": int(shape_probe.get("rows") or 0),
+        "manifest_sha256": _sha256_file(manifest_path) if manifest_path is not None else None,
+        "parquet_sha256": _sha256_file(output_path) if output_path is not None else None,
+        "manifest_variant": str(manifest.get("manifest_variant") or ""),
+        "expected_seq_snap_width": int(manifest.get("expected_seq_snap_width") or 0),
+        "schema_version": str(manifest.get("schema_version") or ""),
+        "seq_input_dim": int(signal_bridge.get("seq_input_dim") or 0),
+        "snap_input_dim": int(signal_bridge.get("snap_input_dim") or 0),
+        "field_count": int(len(fields)),
+        "fields": fields,
+        "contract_mode": str(extra.get("contract_mode") or ""),
+        "direction_logit_mode": str(extra.get("direction_logit_mode") or ""),
+        "neutral_xgb_bridge": bool(extra.get("neutral_xgb_bridge", False)),
+        "model_native_signal_contract": extra.get("model_native_signal_contract"),
+        "shape_probe": shape_probe,
+    }
+
+
+def _future_command_contracts(
+    *,
+    dataset_dir: Path,
+    specialist_audit_json: Path,
+    vedtak_id: str,
+    memory_cap: str,
+    swap_cap: str,
+) -> dict[str, Any]:
+    train_parquet = dataset_dir / f"{DEFAULT_STEM}_train.parquet"
+    env_prefix = [
+        "env",
+        *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()],
+        *[f"{key}={value}" for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items()],
+        *[f"{key}={value}" for key, value in TAIL_DIRECTION_ENV_TEMPLATE.items()],
+    ]
+    train_inner = [
+        *env_prefix,
+        ".venv/bin/python",
+        "-m",
+        "gx1.models.entry_v10.entry_v10_ctx_train_v3",
+        "--train",
+        "--vedtak",
+        vedtak_id,
+        "--dataset_dir",
+        str(dataset_dir),
+        "--dataset_train_parquet",
+        str(train_parquet),
+        "--epochs",
+        "1",
+        "--batch_size",
+        "64",
+        "--num-workers",
+        "0",
+        "--enable-specialist-fusion",
+        "--specialist-audit-json",
+        str(specialist_audit_json),
+        "--specialist-contract-mode",
+        SMART_SPECIALIST_CONTRACT_MODE,
+        "--enable-xau-direction-repair-heads",
+    ]
+    return {
+        "smart_smoke_manifest": {
+            "mode": "report_only_manifest_materialization",
+            "requires_explicit_vedtak": True,
+            "explicit_vedtak_id": vedtak_id,
+            "mutates_only_report_dir": True,
+            "starts_training": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+        },
+        "smart_smoke_train": {
+            "mode": "future_train_contract_not_executed",
+            "implemented_in_control_surface": True,
+            "requires_trainer_surface_enablement": False,
+            "execution_allowed_now": False,
+            "argv_template": [
+                RAM_CAP_RUNNER,
+                "--mem",
+                memory_cap,
+                "--swap",
+                swap_cap,
+                "--",
+                *train_inner,
+            ],
+            "inner_train_argv_template": train_inner,
+            "requires_explicit_vedtak": True,
+            "explicit_vedtak_id": vedtak_id,
+            "requires_ram_cap": True,
+            "ram_cap_runner": RAM_CAP_RUNNER,
+            "memory_cap": memory_cap,
+            "swap_cap": swap_cap,
+            "num_workers": 0,
+            "requires_path_calibration_recipe_contract": True,
+            "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
+            "path_calibration_env_template": dict(PATH_CALIBRATION_ENV_TEMPLATE),
+            "requires_direction_balance_recipe_contract": True,
+            "direction_balance_recipe_contract": dict(DIRECTION_BALANCE_RECIPE_CONTRACT),
+            "direction_balance_env_template": dict(DIRECTION_BALANCE_ENV_TEMPLATE),
+            "requires_tail_direction_recipe_contract": True,
+            "tail_direction_recipe_contract": dict(TAIL_DIRECTION_RECIPE_CONTRACT),
+            "tail_direction_env_template": dict(TAIL_DIRECTION_ENV_TEMPLATE),
+            "requires_direction_context_slice_contract": True,
+            "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
+            "requires_canonical_direction_decision_contract": True,
+            "canonical_direction_decision_contract": dict(
+                CANONICAL_DIRECTION_DECISION_CONTRACT
+            ),
+            "started_by_this_report": False,
+            "starts_training_if_executed": True,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
+            "manifest_variant": MANIFEST_VARIANT,
+            "specialist_contract_mode": SMART_SPECIALIST_CONTRACT_MODE,
+        },
+    }
+
+
+def _build_smoke_manifest(
+    *,
+    dataset_dir: Path,
+    vedtak_id: str,
+    splits: dict[str, dict[str, Any]],
+    future_command_contracts: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "report_only": True,
+        "manifest_variant": MANIFEST_VARIANT,
+        "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
+        "explicit_vedtak_id": vedtak_id,
+        "out_dir": str(dataset_dir),
+        "dataset_dir": str(dataset_dir),
+        "stem": DEFAULT_STEM,
+        "splits": {
+            split: {
+                "rows": int(row["rows"]),
+                "out_parquet": row["output_data_path"],
+                "out_manifest": row["manifest_path"],
+                "out_parquet_sha256": row["parquet_sha256"],
+                "out_manifest_sha256": row["manifest_sha256"],
+                "split_manifest_schema_version": row["schema_version"],
+                "seq_input_dim": int(row["seq_input_dim"]),
+                "snap_input_dim": int(row["snap_input_dim"]),
+                "field_count": int(row["field_count"]),
+            }
+            for split, row in splits.items()
+        },
+        "future_command_contracts": future_command_contracts,
+        "side_effects_started": dict(SIDE_EFFECTS_STARTED),
+    }
+
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    post_rebuild_readiness_json = Path(args.post_rebuild_readiness_json).expanduser().resolve()
+    specialist_audit_json = Path(args.smart_specialist_audit_json).expanduser().resolve()
+    _require_timestamped_evidence_path(
+        post_rebuild_readiness_json,
+        label="post-rebuild readiness",
+    )
+    _require_timestamped_evidence_path(
+        specialist_audit_json,
+        label="specialist audit",
+    )
+    out_dir = Path(args.out_dir).expanduser().resolve()
+    vedtak_id = str(args.vedtak_id or "").strip()
+    memory_cap = str(args.memory_cap or DEFAULT_MEMORY_CAP)
+    swap_cap = str(args.swap_cap or DEFAULT_SWAP_CAP)
+    sample_rows = int(args.sample_rows)
+    batch_size = int(args.batch_size)
+
+    post_rebuild_readiness = _read_json_or_empty(post_rebuild_readiness_json)
+    post_rebuild_refresh_contract = (
+        post_rebuild_readiness.get("post_rebuild_refresh_command_contract")
+        if isinstance(post_rebuild_readiness.get("post_rebuild_refresh_command_contract"), dict)
+        else {}
+    )
+    raw_dataset_dir = str(args.smart_smoke_dataset_dir or "").strip()
+    contract_dataset_dir = str(post_rebuild_refresh_contract.get("smart_smoke_dataset_dir") or "").strip()
+    dataset_dir_source = "argument"
+    dataset_dir_missing = not bool(raw_dataset_dir)
+    dataset_dir = Path(raw_dataset_dir).expanduser().resolve()
+    splits = {
+        split: _split_summary(dataset_dir, split, sample_rows=sample_rows, batch_size=batch_size)
+        for split in SPLITS
+    }
+    post_rebuild_side_effects = (
+        post_rebuild_readiness.get("side_effects_started")
+        if isinstance(post_rebuild_readiness.get("side_effects_started"), dict)
+        else {}
+    )
+    post_rebuild_side_effects_closed = (
+        all(key in post_rebuild_side_effects for key in REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS)
+        and all(post_rebuild_side_effects.get(key) is False for key in REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS)
+    )
+    post_rebuild_checks = {
+        str(row.get("name") or ""): row
+        for row in post_rebuild_readiness.get("checks", [])
+        if isinstance(row, dict)
+    }
+    missing_post_rebuild_orchestration_checks = [
+        name for name in REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS if name not in post_rebuild_checks
+    ]
+    failed_post_rebuild_orchestration_checks = [
+        name for name in REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS
+        if name in post_rebuild_checks and not bool(post_rebuild_checks[name].get("ok"))
+    ]
+    future_command_contracts = _future_command_contracts(
+        dataset_dir=dataset_dir,
+        specialist_audit_json=specialist_audit_json,
+        vedtak_id=vedtak_id,
+        memory_cap=memory_cap,
+        swap_cap=swap_cap,
+    )
+    checks: list[dict[str, Any]] = [
+        _check(
+            "explicit model-native seq513 smoke vedtak id is provided",
+            _explicit_vedtak_id_ok(vedtak_id),
+            {"vedtak_id": vedtak_id},
+        ),
+        _check(
+            "smart smoke dataset directory is explicit or pinned by post-rebuild readiness",
+            not dataset_dir_missing,
+            {
+                "dataset_dir_source": dataset_dir_source,
+                "argument_smart_smoke_dataset_dir": raw_dataset_dir,
+                "post_rebuild_contract_smart_smoke_dataset_dir": contract_dataset_dir,
+                "resolved_smart_smoke_dataset_dir": str(dataset_dir),
+            },
+        ),
+        _check(
+            "smart post-rebuild readiness report exists",
+            post_rebuild_readiness_json.exists(),
+            _artifact_meta(post_rebuild_readiness_json),
+        ),
+        _check(
+            "smart post-rebuild readiness decision is ready",
+            post_rebuild_readiness.get("decision") == POST_REBUILD_READY_DECISION,
+            {"decision": post_rebuild_readiness.get("decision"), "expected": POST_REBUILD_READY_DECISION},
+        ),
+        _check(
+            "smart post-rebuild readiness proves orchestration provenance",
+            not missing_post_rebuild_orchestration_checks
+            and not failed_post_rebuild_orchestration_checks,
+            {
+                "required_checks": list(REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS),
+                "missing_checks": missing_post_rebuild_orchestration_checks,
+                "failed_checks": failed_post_rebuild_orchestration_checks,
+            },
+        ),
+        _check(
+            "smart post-rebuild refresh contract points at this smoke dataset",
+            str(Path(str(post_rebuild_refresh_contract.get("smart_smoke_dataset_dir") or "")).expanduser().resolve())
+            == str(dataset_dir),
+            {
+                "reported_smart_smoke_dataset_dir": post_rebuild_refresh_contract.get("smart_smoke_dataset_dir"),
+                "actual_smart_smoke_dataset_dir": str(dataset_dir),
+            },
+        ),
+        _check(
+            "smart post-rebuild refresh contract starts no trainer replay iql shadow live",
+            post_rebuild_refresh_contract.get("all_commands_avoid_training_replay_iql_shadow_live") is True
+            and post_rebuild_side_effects_closed,
+            {
+                "all_commands_avoid_training_replay_iql_shadow_live": post_rebuild_refresh_contract.get(
+                    "all_commands_avoid_training_replay_iql_shadow_live"
+                ),
+                "required_side_effect_keys": list(REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS),
+                "side_effects_started": post_rebuild_side_effects,
+            },
+        ),
+        _check("smart smoke dataset directory exists", dataset_dir.exists(), {"dataset_dir": str(dataset_dir)}),
+        _check(
+            "exact train val test split parquets exist",
+            all(row["parquet_candidate_count"] == 1 for row in splits.values()),
+            splits,
+        ),
+        _check(
+            "exact train val test split manifests exist",
+            all(row["manifest_candidate_count"] == 1 for row in splits.values()),
+            splits,
+        ),
+        _check(
+            "split manifest output_data_path exists and matches split parquet",
+            all(row["output_data_exists"] and row["manifest_output_matches_split_parquet"] for row in splits.values()),
+            splits,
+        ),
+        _check(
+            "split hashes are present for train val test",
+            all(_is_sha256(row["parquet_sha256"]) and _is_sha256(row["manifest_sha256"]) for row in splits.values()),
+            splits,
+        ),
+        _check(
+            "split manifests use model-native seq513 split schema",
+            all(row["schema_version"] == SPLIT_SCHEMA_VERSION for row in splits.values()),
+            {split: row["schema_version"] for split, row in splits.items()},
+        ),
+        _check(
+            "split manifests pin model-native seq513 candidate",
+            all(row["manifest_variant"] == MANIFEST_VARIANT for row in splits.values()),
+            {split: row["manifest_variant"] for split, row in splits.items()},
+        ),
+        _check(
+            "split manifests pin expected seq snap width 513",
+            all(row["expected_seq_snap_width"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
+            {split: row["expected_seq_snap_width"] for split, row in splits.items()},
+        ),
+        _check(
+            "split signal seq and snap dims are 513",
+            all(row["seq_input_dim"] == EXPECTED_SEQ_SNAP_WIDTH and row["snap_input_dim"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
+            splits,
+        ),
+        _check(
+            "split signal field counts are 513",
+            all(row["field_count"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
+            {split: row["field_count"] for split, row in splits.items()},
+        ),
+        _check(
+            "split parquet seq and snap samples have width 513",
+            all(bool(row["shape_probe"].get("ok")) for row in splits.values()),
+            {split: row["shape_probe"] for split, row in splits.items()},
+        ),
+        _check(
+            "split manifests carry exact model-native signal contract",
+            all(
+                row["contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
+                and row["direction_logit_mode"] == MODEL_NATIVE_DIRECTION_LOGIT_MODE
+                and row["neutral_xgb_bridge"] is False
+                and not model_native_signal_contract_failures(
+                    row["model_native_signal_contract"]
+                    if isinstance(row["model_native_signal_contract"], dict)
+                    else {}
+                )
+                and isinstance(row["model_native_signal_contract"], dict)
+                and row["fields"]
+                == row["model_native_signal_contract"].get("fields")
+                and not (set(row["fields"]) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS))
+                for row in splits.values()
+            ),
+            splits,
+        ),
+        _check("side effects remain closed", all(value is False for value in SIDE_EFFECTS_STARTED.values()), SIDE_EFFECTS_STARTED),
+        _check(
+            "future train contract requires RAM cap and num_workers zero",
+            future_command_contracts["smart_smoke_train"]["requires_ram_cap"] is True
+            and future_command_contracts["smart_smoke_train"]["ram_cap_runner"] == RAM_CAP_RUNNER
+            and future_command_contracts["smart_smoke_train"]["num_workers"] == 0
+            and "--num-workers" in future_command_contracts["smart_smoke_train"]["inner_train_argv_template"],
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares path-quality and bad-path rank recipe",
+            _path_calibration_recipe_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares direction balance recipe",
+            _direction_balance_recipe_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares tail direction recipe",
+            _tail_direction_recipe_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares direction context slice audit",
+            _direction_context_slice_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares canonical derived direction pair",
+            _canonical_direction_decision_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
+    ]
+    failures = [check for check in checks if not check["ok"]]
+    ready = not failures
+    decision = (
+        "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
+        if ready
+        else "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_READINESS"
+    )
+    smoke_manifest = (
+        _build_smoke_manifest(
+            dataset_dir=dataset_dir,
+            vedtak_id=vedtak_id,
+            splits=splits,
+            future_command_contracts=future_command_contracts,
+        )
+        if ready
+        else {}
+    )
+    created_utc = datetime.now(timezone.utc).isoformat()
+    report = {
+        "schema_version": REPORT_SCHEMA_VERSION,
+        "created_utc": created_utc,
+        "decision": decision,
+        "model_native_readiness_contract": (
+            model_native_readiness_contract_metadata()
+        ),
+        "report_only": True,
+        "manifest_variant": MANIFEST_VARIANT,
+        "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
+        "explicit_vedtak_id": vedtak_id if _explicit_vedtak_id_ok(vedtak_id) else None,
+        "smart_smoke_dataset_dir": str(dataset_dir),
+        "smart_smoke_dataset_dir_source": dataset_dir_source,
+        "out_dir": str(out_dir),
+        "manifest_embedded": bool(ready),
+        "manifest_sha256": _sha256_json(smoke_manifest) if ready else None,
+        "smoke_manifest": smoke_manifest,
+        "post_rebuild_readiness": _artifact_meta(post_rebuild_readiness_json),
+        "specialist_audit": _artifact_meta(specialist_audit_json),
+        "split_artifacts": splits,
+        "future_command_contracts": future_command_contracts,
+        "checks": checks,
+        "failures": failures,
+        "blockers": [row["name"] for row in failures],
+        "training_allowed": False,
+        "replay_allowed": False,
+        "iql_allowed": False,
+        "shadow_live_allowed": False,
+        "control_surface_mutated": False,
+        "mutations_outside_report_dir": False,
+        "side_effects_started": dict(SIDE_EFFECTS_STARTED),
+        "next_required_gate": (
+            "review the materialized smoke manifest and integrate a separate vedtak-gated control path"
+            if ready
+            else "repair missing or invalid model-native seq513 smoke split artifacts before any train/replay/IQL/shadow/live path"
+        ),
+    }
+    evidence_binding = {
+        "post_rebuild_readiness": report["post_rebuild_readiness"],
+        "specialist_audit": report["specialist_audit"],
+        "split_artifacts": report["split_artifacts"],
+    }
+    report["evidence_binding_sha256"] = _sha256_json(evidence_binding)
+    _, report = write_immutable_json_event(out_dir, EVENT_PREFIX, report)
+    if not args.quiet:
+        print(json.dumps(report, indent=2, sort_keys=True, default=_json_default))
+    if failures:
+        raise SystemExit(2)
+    return report
+
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--smart-smoke-dataset-dir", required=True)
+    ap.add_argument("--post-rebuild-readiness-json", required=True)
+    ap.add_argument("--smart-specialist-audit-json", required=True)
+    ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--vedtak-id", "--vedtak", dest="vedtak_id", required=True)
+    ap.add_argument("--memory-cap", default=DEFAULT_MEMORY_CAP)
+    ap.add_argument("--swap-cap", default=DEFAULT_SWAP_CAP)
+    ap.add_argument("--sample-rows", type=int, default=32)
+    ap.add_argument("--batch-size", type=int, default=32)
+    ap.add_argument("--quiet", action="store_true")
+    return ap
+
+
+def main() -> int:
+    run(build_parser().parse_args())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

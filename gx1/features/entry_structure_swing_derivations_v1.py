@@ -1,10 +1,4 @@
-"""Causal structure/swing quality derivations for Entry research gates.
-
-This module is intentionally not wired into the active seq146/seq215 manifests.
-It derives higher-order structure/swing signals from already materialized
-closed-bar ``chart.*`` and ``ctx_cont.*`` fields so the next foundation rebuild
-can add them behind the normal feature, specialist and readiness audits.
-"""
+"""Strict causal structure/swing derivations for model-native Entry."""
 from __future__ import annotations
 
 from typing import Iterable
@@ -12,7 +6,9 @@ from typing import Iterable
 import numpy as np
 
 
-STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = "entry_structure_swing_derivations_v1_20260630_causal_quality_state_v3"
+STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = (
+    "entry_structure_swing_derivations_v1_20260717_exact_sources_fail_closed"
+)
 STRUCTURE_SWING_DERIVATION_FEATURE_PREFIX = "chart.structure_swing_"
 
 STRUCTURE_TFS = ("m5", "m15", "h1", "h4", "d1")
@@ -89,23 +85,28 @@ STRUCTURE_SWING_DERIVATION_FEATURE_NAMES = tuple(
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
-    return {str(name): i for i, name in enumerate(names)}
+    return {name: i for i, name in enumerate(names)}
 
 
 def missing_structure_swing_derivation_source_fields(feature_names: Iterable[str]) -> list[str]:
-    available = {str(name) for name in feature_names}
+    available = set(feature_names)
     return [name for name in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS if name not in available]
 
 
-def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
+def _col(x: np.ndarray, index: dict[str, int], name: str) -> np.ndarray:
     if name not in index:
         raise RuntimeError(f"structure/swing derivation required source field missing: {name}")
     arr = np.asarray(x[:, index[name]], dtype=np.float32)
-    return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
+    if not np.isfinite(arr).all():
+        raise RuntimeError(f"STRUCTURE_SWING_DERIVATION_SOURCE_NONFINITE: {name}")
+    return arr
 
 
 def _clip(arr: np.ndarray, lo: float = -25.0, hi: float = 25.0) -> np.ndarray:
-    return np.clip(np.nan_to_num(arr, nan=0.0, posinf=hi, neginf=lo), lo, hi).astype(np.float32, copy=False)
+    values = np.asarray(arr, dtype=np.float32)
+    if not np.isfinite(values).all():
+        raise RuntimeError("STRUCTURE_SWING_DERIVATION_DERIVATION_NONFINITE")
+    return np.clip(values, lo, hi).astype(np.float32, copy=False)
 
 
 def _clip01(arr: np.ndarray) -> np.ndarray:
@@ -142,8 +143,6 @@ def _depth_quality(depth: np.ndarray) -> np.ndarray:
 
 def _mean_fields(c, names: Iterable[str]) -> np.ndarray:
     fields = [_clip01(c(name)) for name in names]
-    if not fields:
-        return np.zeros(0, dtype=np.float32)
     return np.vstack(fields).mean(axis=0).astype(np.float32)
 
 
@@ -164,16 +163,40 @@ def build_entry_structure_swing_derivation_layer(
     """Build deterministic, closed-bar structure/swing quality features."""
     x = np.asarray(x, dtype=np.float32)
     if x.ndim != 2:
-        raise RuntimeError(f"structure/swing derivation input matrix must be 2D, got {x.shape}")
+        raise RuntimeError(f"STRUCTURE_SWING_DERIVATION_INPUT_NOT_2D: shape={x.shape}")
+    if x.shape[0] == 0 or x.shape[1] == 0:
+        raise RuntimeError(f"STRUCTURE_SWING_DERIVATION_INPUT_EMPTY: shape={x.shape}")
+    if x.shape[1] != len(feature_names):
+        raise RuntimeError(
+            "STRUCTURE_SWING_DERIVATION_FEATURE_NAME_DIM_MISMATCH: "
+            f"cols={x.shape[1]} names={len(feature_names)}"
+        )
+    if any(not isinstance(name, str) or not name for name in feature_names):
+        raise RuntimeError("STRUCTURE_SWING_DERIVATION_FEATURE_NAME_INVALID")
+    if len(feature_names) != len(set(feature_names)):
+        seen: set[str] = set()
+        duplicates = sorted(
+            {name for name in feature_names if name in seen or seen.add(name)}
+        )
+        raise RuntimeError(
+            f"STRUCTURE_SWING_DERIVATION_DUPLICATE_FEATURE_NAMES: {duplicates[:20]}"
+        )
     idx = _name_index(feature_names)
     missing = missing_structure_swing_derivation_source_fields(feature_names)
     if missing:
         raise RuntimeError(f"structure/swing derivation required source fields missing: {missing}")
+    if not np.isfinite(x).all():
+        bad_rows, bad_cols = np.where(~np.isfinite(x))
+        examples = [
+            {"row": int(row), "feature": feature_names[int(col)]}
+            for row, col in zip(bad_rows[:10], bad_cols[:10])
+        ]
+        raise RuntimeError(f"STRUCTURE_SWING_DERIVATION_SOURCE_NONFINITE: {examples}")
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
-    def c(name: str, default: float = 0.0) -> np.ndarray:
-        return _col(x, idx, name, default=default)
+    def c(name: str) -> np.ndarray:
+        return _col(x, idx, name)
 
     hh = _clip01(c("chart.foundation_hh_state"))
     hl = _clip01(c("chart.foundation_hl_state"))
@@ -200,16 +223,16 @@ def build_entry_structure_swing_derivation_layer(
 
     bos_up_recent = _clip01(
         c("chart.foundation_bos_up_recent_tau24")
-        + 0.25 * _age_recency(c("chart.foundation_bos_up_age_bars", default=96.0))
+        + 0.25 * _age_recency(c("chart.foundation_bos_up_age_bars"))
     )
     bos_down_recent = _clip01(
         c("chart.foundation_bos_down_recent_tau24")
-        + 0.25 * _age_recency(c("chart.foundation_bos_down_age_bars", default=96.0))
+        + 0.25 * _age_recency(c("chart.foundation_bos_down_age_bars"))
     )
     bos_balance = _clip(c("chart.foundation_bos_recent_balance") + bos_up_recent - bos_down_recent, -2.0, 2.0)
     choch_recent = _clip01(
         c("chart.foundation_choch_recent_tau24")
-        + 0.25 * _age_recency(c("chart.foundation_choch_age_bars", default=96.0))
+        + 0.25 * _age_recency(c("chart.foundation_choch_age_bars"))
     )
 
     impulse_direction = _clip(c("chart.foundation_impulse_direction"), -2.0, 2.0)
@@ -237,8 +260,8 @@ def build_entry_structure_swing_derivation_layer(
     dist_low = _clip(c("ctx_cont.dist_last_swing_low_atr"), -8.0, 8.0)
     swing_high_proximity = _clip01(_prox_abs(dist_high))
     swing_low_proximity = _clip01(_prox_abs(dist_low))
-    swing_high_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_high", default=96.0), tau=48.0))
-    swing_low_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_low", default=96.0), tau=48.0))
+    swing_high_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_high"), tau=48.0))
+    swing_low_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_low"), tau=48.0))
     swing_break_up = _clip01(_pos(dist_high) / 2.0)
     swing_break_down = _clip01(_neg(dist_low) / 2.0)
     swing_room_up = _clip01(_neg(dist_high) / 4.0)

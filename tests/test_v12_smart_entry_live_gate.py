@@ -2,13 +2,60 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from gx1.execution import v12_smart_entry_live as live
+from gx1.contracts.immutable_event_authority_v1 import (
+    select_latest_immutable_event,
+    write_immutable_json_event,
+)
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
+)
+from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
+    direction_evidence_fusion_metadata,
+)
+from gx1.contracts.entry_model_native_state_v2 import (
+    MODEL_NATIVE_HISTORY_MODE,
+    MODEL_NATIVE_RANK_TRANSFORM,
+    MODEL_NATIVE_STATE_SCHEMA_VERSION,
+    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+)
+from gx1.contracts.model_native_serve_gate_v1 import (
+    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
+    DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
+    DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
+    DIRECTION_POCKET_MIN_SELECTED_ROWS,
+    DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT,
+    DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
+    MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
+    MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
+    SERVE_PARITY_ENV_PINS,
+    SERVE_PARITY_FORWARD_TOL,
+    SERVE_PARITY_SAMPLE_COUNT,
+    SERVE_PARITY_SAMPLING_CONTRACT,
+    SERVE_PARITY_STATE_TOL,
+    UTC_TIME_COVERAGE_SCHEMA_VERSION,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    model_direction_decision_contract_metadata,
+)
+from gx1.execution.v12_paper_runner import (
+    MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS,
+    require_executable_model_native_entry_decision,
+)
+from gx1.features.htf_features import HTF_V2_MATRIX_CONTRACT
+from tests.model_native_serve_gate_support import (
+    passing_direction_repair_pockets,
+    passing_serve_parity_liveness_sections,
+)
+from tests.model_native_sizing_support import unverified_learned_sizing_authority
 
 
 REQUIRED_REPAIR_POCKETS = {
@@ -25,6 +72,16 @@ REQUIRED_REPAIR_POCKETS = {
 }
 
 
+def _coverage(rows: int = 1_000) -> dict[str, object]:
+    return {
+        "schema_version": UTC_TIME_COVERAGE_SCHEMA_VERSION,
+        "rows": rows,
+        "first_utc": "2026-01-01T00:00:00+00:00",
+        "last_utc": "2026-04-10T00:00:00+00:00",
+        "utc_ns_sha256": "c" * 64,
+    }
+
+
 def _write_gate_artifacts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -32,16 +89,23 @@ def _write_gate_artifacts(
     pockets: dict[str, dict],
     git_commit: str = "unit-clean-commit",
     normalize_pockets: bool = True,
+    audit_selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE,
+    operating_selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE,
+    parity_overrides: dict | None = None,
+    direction_overrides: dict | None = None,
 ) -> Path:
     bundle_dir = tmp_path / "bundle"
     bundle_dir.mkdir()
     rank_ref = tmp_path / "smart520_rank_reference_xau_direction_repair.npz"
+    fit_start = pd.Timestamp("2026-05-21T00:00:00Z")
+    fit_end = pd.Timestamp("2026-06-14T23:59:59Z")
     np.savez_compressed(
         rank_ref,
-        time_ns=np.asarray([pd.Timestamp("2026-05-21T00:00:00Z").value], dtype=np.int64),
-        vol_regime_id=np.asarray([2], dtype=np.int64),
-        spread_bucket=np.asarray([0], dtype=np.int64),
-        atr_pinned=np.asarray([1.0], dtype=np.float64),
+        schema_version=np.asarray([MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION]),
+        fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
+        fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
+        fit_row_count=np.asarray([1], dtype=np.int64),
+        explicit_vedtak_id=np.asarray(["MODEL_NATIVE_LIVE_GATE_PYTEST"]),
         atr_bps_sorted=np.asarray([10.0], dtype=np.float64),
         spread_bps_sorted=np.asarray([1.0], dtype=np.float64),
     )
@@ -49,68 +113,187 @@ def _write_gate_artifacts(
     rank_ref.with_suffix(rank_ref.suffix + ".json").write_text(
         json.dumps(
             {
-                "schema_version": "smart520_rank_reference_v1",
-                "out_npz": str(rank_ref),
+                "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+                "fit_scope": "train_only",
+                "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
+                "row_level_state_present": False,
+                "explicit_vedtak_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
+                "out_npz": str(rank_ref.resolve()),
                 "out_npz_sha256": rank_ref_sha,
-                "row_count": 1,
-                "time_min": "2026-05-21 00:00:00+00:00",
-                "time_max": "2026-05-21 00:00:00+00:00",
-                "source_parquet_sha256": "a" * 64,
+                "fit_start_utc": str(fit_start),
+                "fit_end_utc": str(fit_end),
+                "fit_row_count": 1,
             }
         ),
         encoding="utf-8",
     )
     state_contract = {
-        "schema_version": "smart520_state_contract_v1",
-        "frame_anchor_utc": "2026-05-21 00:00:00+00:00",
-        "model_range_start_utc": "2020-11-09 00:00:00+00:00",
-        "rank_reference_end_utc": "2026-06-14 23:59:59+00:00",
-        "rank_reference_npz": str(rank_ref),
+        "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
+        "feature_history_start_utc": "2020-11-09 00:00:00+00:00",
+        "rank_fit_start_utc": str(fit_start),
+        "rank_fit_end_utc": str(fit_end),
+        "rank_reference_npz": str(rank_ref.resolve()),
         "rank_reference_npz_sha256": rank_ref_sha,
-        "time_split_reference_split": "test",
+        "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+        "normalization_fit_scope": "train_only",
+        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
+        "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
+        "split_reset_allowed": False,
+        "post_fit_rows_in_rank_reference": False,
+        "runtime_rule_free": True,
+        "explicit_vedtak_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
     }
-    (bundle_dir / "bundle_metadata.json").write_text(
-        json.dumps({"smart520_state_contract": state_contract}),
+    metadata_path = bundle_dir / "bundle_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "model_native_state_contract": state_contract,
+                "direction_decision_contract": model_direction_decision_contract_metadata(),
+                "model_native_direction_evidence_fusion": (
+                    direction_evidence_fusion_metadata()
+                ),
+            }
+        ),
         encoding="utf-8",
     )
-    now = pd.Timestamp.now(tz="UTC").isoformat()
-    parity_path = tmp_path / "SMART520_SERVE_PARITY_latest.json"
-    direction_path = tmp_path / "SMART_DIRECTION_LIVE_LIKE_POCKET_AUDIT_latest.json"
+    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+    lock_path.write_text(
+        json.dumps(
+            {
+                "model_native_direction_evidence_fusion": (
+                    direction_evidence_fusion_metadata()
+                )
+            }
+        ),
+        encoding="utf-8",
+    )
+    metadata_sha = hashlib.sha256(metadata_path.read_bytes()).hexdigest()
+    lock_sha = hashlib.sha256(lock_path.read_bytes()).hexdigest()
+    now = datetime.now(timezone.utc).isoformat()
+    parity_root = tmp_path / "parity"
+    direction_root = tmp_path / "direction"
+    dataset_dir = "/home/andre2/GX1_DATA/runs/v10_dataset_6yr_smartctx_xau_direction_repair"
+    dataset_parquet = f"{dataset_dir}/entry_model_native_test.parquet"
+    prediction_path = "/home/andre2/GX1_DATA/reports/xau_direction_repair_predictions.parquet"
+    prediction_evidence = {
+        "schema_version": "entry_candidate_model_direction_prediction_evidence_v1",
+        "authoritative": True,
+        "path": prediction_path,
+        "sha256": "a" * 64,
+        "bundle_metadata_path": str(metadata_path.resolve()),
+        "bundle_metadata_sha256": metadata_sha,
+    }
+    prediction_report_evidence = {
+        "json_path": "/home/andre2/GX1_DATA/reports/ENTRY_CANDIDATE_SELECTIVE_EDGE_20260717T120000123456Z.json",
+        "sha256": "b" * 64,
+    }
+    test_coverage = {
+        "dataset": _coverage(),
+        "predictions": _coverage(),
+        "exact_match": True,
+    }
+    common_gate_contract = {
+        "contract_version": MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
+        "split": "test",
+        "model_name": "candidate",
+        "dataset_dir": dataset_dir,
+        "dataset_parquet": dataset_parquet,
+        "dataset_parquet_sha256": "d" * 64,
+        "prediction_evidence": prediction_evidence,
+        "prediction_report_evidence": prediction_report_evidence,
+        "test_coverage": test_coverage,
+    }
+    parity_liveness = passing_serve_parity_liveness_sections(
+        int(test_coverage["dataset"]["rows"]),
+        bundle_dir=str(bundle_dir.resolve()),
+        bundle_metadata_sha256=metadata_sha,
+        master_transformer_lock_sha256=lock_sha,
+    )
     if normalize_pockets:
         pockets = {name: _passing_pocket_metrics(name, row) for name, row in pockets.items()}
-    parity_path.write_text(
-        json.dumps(
-            {
-                "decision": "PASS",
-                "created_utc": now,
-                "live_prebuilt_cutoff": now,
-                "bundle_dir": str(bundle_dir),
-                "dataset_dir": "/home/andre2/GX1_DATA/runs/v10_dataset_6yr_smartctx_xau_direction_repair",
-                "git_commit": git_commit,
-                "smart520_state_contract": state_contract,
-            }
-        ),
-        encoding="utf-8",
+    parity_path, _ = write_immutable_json_event(
+        parity_root,
+        "MODEL_NATIVE_SERVE_PARITY",
+        {
+            "schema_version": MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
+            "decision": "PASS",
+            "failures": [],
+            "created_utc": now,
+            "live_prebuilt_cutoff": now,
+            "bundle_dir": str(bundle_dir),
+            **common_gate_contract,
+            "git_commit": git_commit,
+            "model_native_state_contract": state_contract,
+            "n_bars": SERVE_PARITY_SAMPLE_COUNT,
+            "sampling_contract": SERVE_PARITY_SAMPLING_CONTRACT,
+            "state_tol": SERVE_PARITY_STATE_TOL,
+            "forward_tol": SERVE_PARITY_FORWARD_TOL,
+            "env_pins": dict(SERVE_PARITY_ENV_PINS),
+            "sampled_test_coverage": _coverage(SERVE_PARITY_SAMPLE_COUNT),
+            "state_parity": {
+                "n_compared": SERVE_PARITY_SAMPLE_COUNT,
+                "tolerance": SERVE_PARITY_STATE_TOL,
+            },
+            "forward_parity": {
+                "n_compared": SERVE_PARITY_SAMPLE_COUNT,
+                "tolerance": SERVE_PARITY_FORWARD_TOL,
+                "per_head_tolerance": parity_liveness[
+                    "forward_parity_per_head_tolerance"
+                ],
+            },
+            "direction_calibration_parity": parity_liveness[
+                "direction_calibration_parity"
+            ],
+            "test_prediction_liveness": parity_liveness[
+                "test_prediction_liveness"
+            ],
+            "specialist_decision_influence": parity_liveness[
+                "specialist_decision_influence"
+            ],
+            "upstream_context_decision_influence": parity_liveness[
+                "upstream_context_decision_influence"
+            ],
+            "multi_tf_decision_influence": parity_liveness[
+                "multi_tf_decision_influence"
+            ],
+            "direction_evidence_fusion_influence": parity_liveness[
+                "direction_evidence_fusion_influence"
+            ],
+            "pinned_predictions": prediction_path,
+            **(parity_overrides or {}),
+        },
     )
-    direction_path.write_text(
-        json.dumps(
-            {
-                "decision": "PASS",
-                "created_utc": now,
-                "max_bad_side_rate": 0.35,
-                "min_selected_rows": 30,
-                "bundle_dir": str(bundle_dir),
-                "predictions_parquet": "/home/andre2/GX1_DATA/reports/xau_direction_repair_predictions.parquet",
-                "dataset_dir": "/home/andre2/GX1_DATA/runs/v10_dataset_6yr_smartctx_xau_direction_repair",
-                "required_selection_score_mode": "expected_utility",
-                "observed_selection_score_modes": ["expected_utility"],
-                "pockets": pockets,
-            }
-        ),
-        encoding="utf-8",
+    direction_path, _ = write_immutable_json_event(
+        direction_root,
+        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
+        {
+            "schema_version": "model_native_direction_pocket_audit_v1",
+            "decision": "PASS",
+            "failures": [],
+            "created_utc": now,
+            **common_gate_contract,
+            "max_bad_side_rate": DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
+            "max_bad_side_wilson_upper_95": (
+                DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+            ),
+            "wilson_confidence_level": DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
+            "min_selected_rows": DIRECTION_POCKET_MIN_SELECTED_ROWS,
+            "min_mean_proxy_pnl_bps_exclusive": (
+                DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
+            ),
+            "spread_aware_proxy_pnl_contract": (
+                DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT
+            ),
+            "bundle_dir": str(bundle_dir),
+            "predictions_parquet": prediction_path,
+            "required_selection_score_mode": audit_selection_mode,
+            "observed_selection_score_modes": [audit_selection_mode],
+            "pockets": pockets,
+            **(direction_overrides or {}),
+        },
     )
-    monkeypatch.setattr(live, "SMART_PARITY_GATE_LATEST", parity_path)
-    monkeypatch.setattr(live, "SMART_DIRECTION_AUDIT_LATEST", direction_path)
+    monkeypatch.setattr(live, "SMART_PARITY_GATE_ROOT", parity_root)
+    monkeypatch.setattr(live, "MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT", direction_root)
     monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_AGE_HOURS", 0.0)
     monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS", 0.0)
     monkeypatch.setattr(live, "SMART_DIRECTION_AUDIT_MAX_AGE_HOURS", 0.0)
@@ -119,45 +302,36 @@ def _write_gate_artifacts(
 
     import gx1_guards.artifacts as artifacts
 
+    launch_entry = {
+        "path": str(bundle_dir),
+        "contract_mode": live.MODEL_NATIVE_CONTRACT_MODE,
+        "operating_point": {
+            "selection_score": operating_selection_mode,
+            "max_trades": 3,
+        },
+        "xau_direction_launch_state": {
+            "serve_gate_evidence": {
+                "model_native_serve_parity": {
+                    "json_path": str(parity_path),
+                    "sha256": hashlib.sha256(parity_path.read_bytes()).hexdigest(),
+                },
+                "model_native_direction_pocket_audit": {
+                    "json_path": str(direction_path),
+                    "sha256": hashlib.sha256(direction_path.read_bytes()).hexdigest(),
+                },
+            }
+        },
+    }
     monkeypatch.setattr(
         artifacts,
         "load_decision_entry",
-        lambda name: {
-            "path": str(bundle_dir),
-            "contract_mode": "smart_seq520_candidate",
-            "operating_point": {
-                "edge_score_threshold": 0.145,
-                "selection_score": "expected_utility",
-                "expected_utility_threshold_bps": 0.0,
-                "sessions": ["US"],
-            },
-        },
+        lambda name: launch_entry,
     )
     return bundle_dir
 
 
 def _passing_pocket_metrics(name: str, overrides: dict | None = None) -> dict:
-    short_bad = {
-        "rising_channel_support_touch",
-        "support_retest_continuation",
-        "rising_channel_support_continuation",
-        "countertrend_short_trap",
-        "short_high_mae_low_mfe_early_failure",
-    }
-    long_bad = {
-        "falling_channel_resistance_touch",
-        "resistance_retest_continuation",
-        "falling_channel_resistance_continuation",
-        "countertrend_long_trap",
-        "long_high_mae_low_mfe_early_failure",
-    }
-    row = {
-        "rows": 40,
-        "selected_rows": 30,
-        "selected_side_long_rate": 0.20 if name in long_bad else 0.80,
-        "selected_side_short_rate": 0.20 if name in short_bad else 0.80,
-        "selected_mean_proxy_pnl_bps": 12.0,
-    }
+    row = dict(passing_direction_repair_pockets()[name])
     if overrides:
         row.update(overrides)
     return row
@@ -196,6 +370,159 @@ def test_smart_serving_gate_accepts_direction_audit_with_repair_pockets(
     assert report["bundle_dir"] == str(bundle_dir)
 
 
+@pytest.mark.parametrize(
+    "direction_overrides",
+    [
+        {"split": "val"},
+        {"model_name": "baseline"},
+        {"max_bad_side_rate": 0.20},
+        {"min_selected_rows": 1},
+        {"min_selected_rows": 31},
+        {"min_mean_proxy_pnl_bps_exclusive": -1.0},
+    ],
+)
+def test_smart_serving_gate_requires_exact_direction_audit_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    direction_overrides: dict,
+) -> None:
+    _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        direction_overrides=direction_overrides,
+    )
+
+    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
+        live.assert_smart_serving_gate()
+
+
+@pytest.mark.parametrize(
+    "parity_overrides",
+    [
+        {"split": "val"},
+        {"n_bars": 64},
+        {"state_tol": 1e-4},
+        {"forward_tol": 1e-2},
+        {"env_pins": {"CUDA_VISIBLE_DEVICES": "0"}},
+        {"sampling_contract": "caller_window_v0"},
+    ],
+)
+def test_smart_serving_gate_requires_exact_parity_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    parity_overrides: dict,
+) -> None:
+    _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        parity_overrides=parity_overrides,
+    )
+
+    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
+        live.assert_smart_serving_gate()
+
+
+def test_smart_serving_gate_newer_red_beats_older_bound_pass(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+    )
+    old_path = select_latest_immutable_event(
+        live.SMART_PARITY_GATE_ROOT,
+        "MODEL_NATIVE_SERVE_PARITY",
+    )
+    assert old_path is not None
+    payload = json.loads(old_path.read_text(encoding="utf-8"))
+    payload.pop("json_path")
+    payload["created_utc"] = (
+        datetime.fromisoformat(payload["created_utc"]) + pd.Timedelta(seconds=1)
+    ).isoformat()
+    payload["decision"] = "FAIL"
+    payload["failures"] = ["newest red"]
+    write_immutable_json_event(
+        live.SMART_PARITY_GATE_ROOT,
+        "MODEL_NATIVE_SERVE_PARITY",
+        payload,
+    )
+    (live.SMART_PARITY_GATE_ROOT / "MODEL_NATIVE_SERVE_PARITY_latest.json").write_text(
+        json.dumps({"decision": "PASS"}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="parity decision='FAIL'"):
+        live.assert_smart_serving_gate()
+
+
+def test_smart_serving_gate_blocks_malformed_newest_event(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+    )
+    old_path = select_latest_immutable_event(
+        live.SMART_PARITY_GATE_ROOT,
+        "MODEL_NATIVE_SERVE_PARITY",
+    )
+    assert old_path is not None
+    old = json.loads(old_path.read_text(encoding="utf-8"))
+    filename_time = datetime.fromisoformat(old["created_utc"]) + pd.Timedelta(seconds=2)
+    malformed = live.SMART_PARITY_GATE_ROOT / (
+        "MODEL_NATIVE_SERVE_PARITY_" + filename_time.strftime("%Y%m%dT%H%M%S%fZ") + ".json"
+    )
+    malformed.write_text(
+        json.dumps(
+            {
+                "created_utc": old["created_utc"],
+                "json_path": str(malformed),
+                "decision": "FAIL",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="invalid TRAIN==SERVE parity event authority"):
+        live.assert_smart_serving_gate()
+
+
+def test_smart_serving_gate_blocks_ambiguous_newest_event_timestamp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+    )
+    old_path = select_latest_immutable_event(
+        live.SMART_PARITY_GATE_ROOT,
+        "MODEL_NATIVE_SERVE_PARITY",
+    )
+    assert old_path is not None
+    payload = json.loads(old_path.read_text(encoding="utf-8"))
+    payload.pop("json_path")
+    payload["created_utc"] = (
+        datetime.fromisoformat(payload["created_utc"]) + pd.Timedelta(seconds=3)
+    ).isoformat()
+    for scope in ("a", "b"):
+        write_immutable_json_event(
+            live.SMART_PARITY_GATE_ROOT / scope,
+            "MODEL_NATIVE_SERVE_PARITY",
+            payload,
+        )
+
+    with pytest.raises(RuntimeError, match="duplicate newest"):
+        live.assert_smart_serving_gate()
+
+
 def test_smart_serving_gate_rejects_empty_direction_pocket_metrics(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -226,20 +553,37 @@ def test_smart_serving_gate_rejects_git_commit_mismatch(
         live.assert_smart_serving_gate()
 
 
-def test_smart_serving_gate_requires_expected_utility_direction_audit(
+@pytest.mark.parametrize("old_mode", ["expected_utility", "edge_score", "MODEL_DIRECTION_ARGMAX"])
+def test_smart_serving_gate_requires_exact_model_direction_argmax_audit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    old_mode: str,
 ) -> None:
     _write_gate_artifacts(
         tmp_path,
         monkeypatch,
         pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        audit_selection_mode=old_mode,
     )
-    data = json.loads(live.SMART_DIRECTION_AUDIT_LATEST.read_text(encoding="utf-8"))
-    data["required_selection_score_mode"] = "edge_score"
-    live.SMART_DIRECTION_AUDIT_LATEST.write_text(json.dumps(data), encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="expected_utility"):
+    with pytest.raises(RuntimeError, match="required_selection_score_mode must be exactly"):
+        live.assert_smart_serving_gate()
+
+
+@pytest.mark.parametrize("old_mode", ["expected_utility", "edge_score", "unknown"])
+def test_smart_serving_gate_rejects_old_or_unknown_operating_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    old_mode: str,
+) -> None:
+    _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        operating_selection_mode=old_mode,
+    )
+
+    with pytest.raises(RuntimeError, match="operating_point.selection_score must be exactly"):
         live.assert_smart_serving_gate()
 
 
@@ -252,9 +596,14 @@ def test_smart_serving_gate_rejects_stale_xau_dataset_marker(
         monkeypatch,
         pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
     )
-    data = json.loads(live.SMART_DIRECTION_AUDIT_LATEST.read_text(encoding="utf-8"))
+    direction_path = select_latest_immutable_event(
+        live.MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT,
+        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
+    )
+    assert direction_path is not None
+    data = json.loads(direction_path.read_text(encoding="utf-8"))
     data["dataset_dir"] = "/home/andre2/GX1_DATA/runs/v10_dataset_smart_candidate_20260630"
-    live.SMART_DIRECTION_AUDIT_LATEST.write_text(json.dumps(data), encoding="utf-8")
+    direction_path.write_text(json.dumps(data), encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="stale XAU repair marker"):
         live.assert_smart_serving_gate()
@@ -269,15 +618,20 @@ def test_smart_serving_gate_rejects_stale_parity_dataset_marker(
         monkeypatch,
         pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
     )
-    data = json.loads(live.SMART_PARITY_GATE_LATEST.read_text(encoding="utf-8"))
+    parity_path = select_latest_immutable_event(
+        live.SMART_PARITY_GATE_ROOT,
+        "MODEL_NATIVE_SERVE_PARITY",
+    )
+    assert parity_path is not None
+    data = json.loads(parity_path.read_text(encoding="utf-8"))
     data["dataset_dir"] = "/home/andre2/GX1_DATA/runs/v10_dataset_smart_candidate_julyext_20260705"
-    live.SMART_PARITY_GATE_LATEST.write_text(json.dumps(data), encoding="utf-8")
+    parity_path.write_text(json.dumps(data), encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="parity dataset_dir references stale"):
         live.assert_smart_serving_gate()
 
 
-def test_smart_serving_gate_rejects_stale_rank_reference_marker(
+def test_smart_serving_gate_rejects_tampered_rank_reference_event_binding(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -286,13 +640,18 @@ def test_smart_serving_gate_rejects_stale_rank_reference_marker(
         monkeypatch,
         pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
     )
-    data = json.loads(live.SMART_PARITY_GATE_LATEST.read_text(encoding="utf-8"))
-    data["smart520_state_contract"]["rank_reference_npz"] = (
+    parity_path = select_latest_immutable_event(
+        live.SMART_PARITY_GATE_ROOT,
+        "MODEL_NATIVE_SERVE_PARITY",
+    )
+    assert parity_path is not None
+    data = json.loads(parity_path.read_text(encoding="utf-8"))
+    data["model_native_state_contract"]["rank_reference_npz"] = (
         "/home/andre2/GX1_DATA/models/smart520_rank_reference_julyext_20260708.npz"
     )
-    live.SMART_PARITY_GATE_LATEST.write_text(json.dumps(data), encoding="utf-8")
+    parity_path.write_text(json.dumps(data), encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="rank_reference_npz references stale marker"):
+    with pytest.raises(RuntimeError, match="binding mismatch"):
         live.assert_smart_serving_gate()
 
 
@@ -318,12 +677,17 @@ def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Pat
             "2026-07-08T12:05:00Z",
         ]
     )
-    frame = pd.DataFrame(index=idx)
+    frame = pd.DataFrame({"fixture_feature": [1.0, 2.0]}, index=idx)
     frame.attrs["ts_int64"] = idx.asi8.astype("int64")
     frame.attrs["feats_np"] = np.asarray([[1.0], [2.0]], dtype=np.float32)
+    frame.attrs["causal_warmup_rows"] = 0
+    frame.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
     engine = live.SmartEntryLiveInference(
         bundle_dir=tmp_path,
-        operating_point={"edge_score_threshold": 0.10, "sessions": ["US"]},
+        operating_point={
+            "selection_score": live.MODEL_DIRECTION_SELECTION_MODE,
+            "max_trades": 3,
+        },
     )
     engine._per_tf_seq_lens = {"M5": 1}
     engine._multi_tf_shift = {"M5": pd.Timedelta(minutes=5)}
@@ -336,154 +700,642 @@ def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Pat
     assert float(out["seq_m5"][0, 0, 0].item()) == 2.0
 
 
-def test_smart_decision_preserves_trendline_rail_evidence(tmp_path: Path) -> None:
+def _softmax(values: list[float] | tuple[float, ...]) -> list[float]:
+    arr = np.asarray(values, dtype=np.float64)
+    exp = np.exp(arr - np.max(arr))
+    return (exp / exp.sum()).tolist()
+
+
+def _sigmoid(value: float) -> float:
+    return float(1.0 / (1.0 + np.exp(-float(value))))
+
+
+def _decision_engine(tmp_path: Path, selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE):
     engine = live.SmartEntryLiveInference(
         bundle_dir=tmp_path,
         operating_point={
-            "edge_score_threshold": 0.10,
-            "sessions": ["US"],
-            "selection_score": "expected_utility",
-            "expected_utility_threshold_bps": 0.0,
+            "selection_score": selection_mode,
+            "max_trades": 3,
         },
     )
-    head = {
+    # These unit tests exercise direction/runtime-envelope parity without
+    # claiming executable capital authority. The exact learned-sizing schema
+    # is still mandatory; its adoption event remains deliberately unverified.
+    engine._sizing_authority = unverified_learned_sizing_authority()
+    return engine
+
+
+def _decision_head(
+    direction_logits: tuple[float, float, float] = (5.0, 1.0, 0.0),
+    public_logits: tuple[float, float] = (5.0, 0.0),
+) -> dict:
+    direction_probs = _softmax(direction_logits)
+    public_probs = _softmax(public_logits)
+    direction_index = int(np.argmax(np.asarray(direction_logits, dtype=np.float64)))
+    public_index = int(np.argmax(np.asarray(public_logits, dtype=np.float64)))
+    side_logits = [2.0, 0.0]
+    side_bad_path_logits = [-2.0, 1.0]
+    side_validity_logits = [2.5, -1.0]
+    rail_logits = [1.0, -1.0, 0.5, -0.5, 0.25, -0.25]
+    bad_path_logit = -1.0
+    tradable_logit = 1.0
+    tf_agreement_logit = 0.5
+    position_size_logit = 0.25
+    clean_edge_logit = 0.75
+    survival_logit = 1.25
+    return {
         "time": pd.Timestamp("2026-07-08T18:00:00Z"),
-        "session_id": 3,
-        "p_long": 0.21,
-        "p_short": 0.62,
-        "p_flat": 0.17,
-        "edge_score": 0.45,
-        "trade_side": 1,
+        "session_id": 0,  # ASIA is outside the legacy sessions=[US] gate.
+        "raw_direction_logits": list(direction_logits),
+        "direction_logits": list(direction_logits),
+        "direction_probs": direction_probs,
+        "model_direction_index": direction_index,
+        "model_direction": ("LONG", "SHORT", "FLAT")[direction_index],
+        "p_long": direction_probs[0],
+        "p_short": direction_probs[1],
+        "p_flat": direction_probs[2],
+        "edge_score": max(direction_probs[0], direction_probs[1]) - direction_probs[2],
+        "public_trade_flat_decision_logits": list(public_logits),
+        "public_trade_flat_decision_probs": public_probs,
+        "public_trade_flat_decision_index": public_index,
+        "public_trade_flat_decision": ("TRADE", "FLAT")[public_index],
+        "p_trade": public_probs[0],
+        "p_flat_hier": public_probs[1],
+        "model_native_logits": [0.4, -0.2, 0.1],
+        "path_quality_raw": 1.5,
+        "path_quality": 1.5,
         "path_quality_pred": 1.5,
-        "bad_path_prob": 0.08,
-        "tradable_prob": 0.73,
+        "mfe_first_n": 12.0,
+        "bad_path_logit_raw": bad_path_logit,
+        "bad_path_logit": bad_path_logit,
+        "bad_path_prob": _sigmoid(bad_path_logit),
+        "tradable_logit": tradable_logit,
+        "tradable_prob": _sigmoid(tradable_logit),
         "mfe_first_n_pred": 12.0,
-        "side_validity_logit": [2.0, -2.0],
-        "long_validity_prob": 0.88,
-        "short_validity_prob": 0.12,
-        "expected_utility_invalid_side_penalty_bps": 35.0,
-        "expected_utility_long_invalid_side_penalty_bps": 4.2,
-        "expected_utility_short_invalid_side_penalty_bps": 30.8,
-        "expected_utility_long_bps": 12.0,
-        "expected_utility_short_bps": -4.0,
-        "expected_utility_side": 0,
-        "geometry_rising_support_rail_long_pressure": 0.82,
-        "geometry_rising_support_rail_short_trap_pressure": 0.76,
-        "geometry_falling_resistance_rail_short_pressure": 0.03,
-        "geometry_falling_resistance_rail_long_trap_pressure": 0.04,
-        "trendline_rail_long_evidence": 0.43,
-        "trendline_rail_short_evidence": 0.395,
-        "trendline_rail_long_minus_short": 0.035,
-        "mtf_trend_evidence": 0.71,
+        "clean_edge_logit": clean_edge_logit,
+        "clean_edge_prob": _sigmoid(clean_edge_logit),
+        "survival_logit": survival_logit,
+        "survival_prob": _sigmoid(survival_logit),
+        "dip_pred": [float(value) / 10.0 for value in range(18)],
+        "forecast_pred": [0.1, 0.2, 0.3, 0.4],
+        "timing_pred": [float(value) / 20.0 for value in range(12)],
+        "tail_risk_pred": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06],
+        "vol_forecast_pred": [0.5, 0.75, 1.0],
+        "specialist_names": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "specialist_gate": [1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)]
+        * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "p_long_given_trade": _softmax(side_logits)[0],
+        "p_short_given_trade": _softmax(side_logits)[1],
+        "side_logits": side_logits,
+        "trade_logit": tradable_logit,
+        "side_probs": _softmax(side_logits),
+        "side_utility": [12.0, -4.0],
+        "side_bad_path_logit": side_bad_path_logits,
+        "long_bad_path_prob": _sigmoid(side_bad_path_logits[0]),
+        "short_bad_path_prob": _sigmoid(side_bad_path_logits[1]),
+        "side_validity_logit": side_validity_logits,
+        "long_validity_prob": _sigmoid(side_validity_logits[0]),
+        "short_validity_prob": _sigmoid(side_validity_logits[1]),
+        "side_mae": [-3.0, -8.0],
+        "mtf_dir_logits": [2.0, 0.0, -1.0],
+        "mtf_dir_probs": _softmax((2.0, 0.0, -1.0)),
+        "geometry_channel_edge_pressure": 0.4,
+        "geometry_rising_support_rail_long_pressure": 0.7,
+        "geometry_rising_support_rail_short_trap_pressure": 0.2,
+        "geometry_falling_resistance_rail_short_pressure": 0.1,
+        "geometry_falling_resistance_rail_long_trap_pressure": 0.05,
+        "trendline_rail_logits": rail_logits,
+        "trendline_rail_probs": [_sigmoid(value) for value in rail_logits],
+        "mtf_trend_evidence": 0.65,
+        "calibration_version": "test-v1",
+        "direction_calibration_enabled": True,
+        "direction_calibration_temperature": 1.0,
+        "direction_calibration_bias": [0.0, 0.0, 0.0],
+        "path_calibration_enabled": True,
+        "path_calibration": {
+            "enabled": True,
+            "version": "test-v1",
+            "path_quality_scale": 1.0,
+            "path_quality_shift": 0.0,
+            "bad_path_temperature": 1.0,
+            "bad_path_bias": 0.0,
+        },
+        "tf_agreement_logit": tf_agreement_logit,
+        "tf_agreement_pred": _sigmoid(tf_agreement_logit),
+        "path_quality_log_var": 0.0,
+        "path_quality_std": 1.0,
+        "position_size_logit": position_size_logit,
+        "position_size_pred": _sigmoid(position_size_logit),
     }
 
-    decision = engine.decide(head, atr_bps=9.0)
+
+@pytest.mark.parametrize(
+    ("direction_logits", "public_logits", "expected_direction", "expected_action", "expected_side"),
+    [
+        ((5.0, 1.0, 0.0), (5.0, 0.0), "LONG", "TAKE_LONG_NOW", 0),
+        ((1.0, 5.0, 0.0), (5.0, 0.0), "SHORT", "TAKE_SHORT_NOW", 1),
+        ((0.0, 1.0, 5.0), (1.0, 5.0), "FLAT", "SKIP", None),
+    ],
+)
+def test_smart_decision_follows_final_model_argmax_exactly(
+    tmp_path: Path,
+    direction_logits: tuple[float, float, float],
+    public_logits: tuple[float, float],
+    expected_direction: str,
+    expected_action: str,
+    expected_side: int | None,
+) -> None:
+    engine = _decision_engine(tmp_path)
+
+    decision = engine.decide(
+        _decision_head(direction_logits=direction_logits, public_logits=public_logits),
+        atr_bps=9.0,
+    )
     snapshot = decision["_v10_snapshot"]
 
-    assert decision["action"] == "TAKE_LONG_NOW"
-    assert decision["selection_score_mode"] == "expected_utility"
-    assert decision["legacy_trade_side"] == 1
-    assert decision["expected_utility_side"] == 0
-    assert decision["selected_side"] == 0
-    assert decision["geometry_rising_support_rail_long_pressure"] == 0.82
-    assert decision["geometry_rising_support_rail_short_trap_pressure"] == 0.76
-    assert decision["trendline_rail_long_minus_short"] == 0.035
-    assert decision["long_validity_prob"] == 0.88
-    assert decision["short_validity_prob"] == 0.12
-    assert decision["expected_utility_long_invalid_side_penalty_bps"] == 4.2
-    assert snapshot["geometry_rising_support_rail_long_pressure"] == 0.82
-    assert snapshot["trendline_rail_long_minus_short"] == 0.035
-    assert snapshot["long_validity_prob"] == 0.88
-    assert snapshot["legacy_trade_side"] == 1
-    assert snapshot["selected_side"] == 0
-
-
-def test_smart_decision_recomputes_expected_utility_side_when_missing(tmp_path: Path) -> None:
-    engine = live.SmartEntryLiveInference(
-        bundle_dir=tmp_path,
-        operating_point={
-            "edge_score_threshold": 0.10,
-            "sessions": ["US"],
-            "selection_score": "expected_utility",
-            "expected_utility_threshold_bps": 0.0,
-        },
+    assert decision["action"] == expected_action
+    assert decision["model_direction"] == expected_direction
+    assert decision["selected_side"] == expected_side
+    assert decision["selection_score_mode"] == live.MODEL_DIRECTION_SELECTION_MODE
+    assert "selection_score_threshold" not in decision
+    assert decision["session"] == "ASIA"
+    assert "smart_skip_reason" not in decision
+    assert decision["policy"] == "xau_seq513_model_native_direction_argmax_v1"
+    assert set(snapshot) == set(MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS)
+    assert snapshot["runtime_evidence_schema_version"] == (
+        "entry_model_native_runtime_evidence_v1"
     )
-    head = {
-        "time": pd.Timestamp("2026-07-08T18:00:00Z"),
-        "session_id": 3,
-        "p_long": 0.55,
-        "p_short": 0.45,
-        "p_flat": 0.0,
-        "edge_score": 0.45,
-        "trade_side": 0,
-        "path_quality_pred": 1.5,
-        "bad_path_prob": 0.08,
-        "tradable_prob": 0.73,
-        "mfe_first_n_pred": 12.0,
-        "expected_utility_long_bps": -2.0,
-        "expected_utility_short_bps": 8.0,
+    assert snapshot["model_policy"] == decision["policy"]
+    assert snapshot["session_id"] == 0
+    assert snapshot["session"] == decision["session"]
+    assert snapshot["model_direction"] == expected_direction
+    assert snapshot["selected_side"] == expected_side
+    assert decision["side_utility"] == [12.0, -4.0]
+    assert decision["trendline_rail_logits"] == [1.0, -1.0, 0.5, -0.5, 0.25, -0.25]
+    assert not any(key.startswith("expected_utility") for key in decision)
+    assert not any(key.startswith("expected_utility") for key in snapshot)
+
+
+def test_actual_smart_decision_keyset_forms_exact_executable_pipeline_envelope(
+    tmp_path: Path,
+) -> None:
+    head = _decision_head()
+    head.update(
+        {
+            "context_age_m5_bars": 0,
+            "context_cutoff_ts": "2026-07-08T18:00:00+00:00",
+            "context_refresh_in_flight": False,
+            "context_mtf_incremental": False,
+        }
+    )
+    decision = _decision_engine(tmp_path).decide(head, atr_bps=9.0)
+    timing = {
+        "decision_available_ts": "2026-07-08T18:05:00+00:00",
+        "entry_signal_latency_sec": 30.0,
+        "context_cutoff_ts": decision["context_cutoff_ts"],
+        "context_age_m5_bars": decision["context_age_m5_bars"],
+    }
+    decision["_v10_snapshot"] = {**decision["_v10_snapshot"], **timing}
+    decision.update(
+        {
+            "decision_available_ts": timing["decision_available_ts"],
+            "entry_signal_latency_sec": timing["entry_signal_latency_sec"],
+            "entry_signal_latency_min": 0.5,
+            "entry_signal_latency_cap_sec": 90.0,
+            "entry_signal_stale": False,
+        }
+    )
+
+    assert set(decision) == set(MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS)
+    assert require_executable_model_native_entry_decision(
+        decision,
+        "2026-07-08T18:05:00+00:00",
+    ) == decision["_v10_snapshot"]
+
+
+@pytest.mark.parametrize(
+    "retired_key",
+    [
+        "expected_utility_long_bps",
+        "expected_utility_short_bps",
+        "expected_utility_side",
+        "selection_score_threshold",
+        "q_take_long",
+    ],
+)
+def test_smart_decision_rejects_retired_live_overlay_fields(
+    tmp_path: Path,
+    retired_key: str,
+) -> None:
+    head = _decision_head()
+    head[retired_key] = 0.0
+
+    with pytest.raises(RuntimeError, match="retired live overlay fields are forbidden"):
+        _decision_engine(tmp_path).decide(head, atr_bps=9.0)
+
+
+def test_smart_decision_rejects_unknown_head_overlay_even_with_new_name(
+    tmp_path: Path,
+) -> None:
+    head = _decision_head()
+    head["trend_veto"] = False
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"decision head exact schema mismatch:.*trend_veto",
+    ):
+        _decision_engine(tmp_path).decide(head, atr_bps=9.0)
+
+
+def test_smart_decision_rejects_partial_context_evidence_envelope(
+    tmp_path: Path,
+) -> None:
+    head = _decision_head()
+    head["context_age_m5_bars"] = 0
+
+    with pytest.raises(RuntimeError, match="decision head exact schema mismatch"):
+        _decision_engine(tmp_path).decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("model_direction", "SHORT"),
+        ("model_direction_index", 1),
+        ("public_trade_flat_decision", "FLAT"),
+        ("public_trade_flat_decision_index", 1),
+        ("p_trade", 0.1),
+        ("edge_score", -100.0),
+    ],
+)
+def test_smart_decision_rejects_reported_ssot_metadata_mismatch(
+    tmp_path: Path,
+    field: str,
+    replacement: object,
+) -> None:
+    head = _decision_head()
+    head[field] = replacement
+
+    with pytest.raises(RuntimeError, match="decision SSOT"):
+        _decision_engine(tmp_path).decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize("selection_mode", ["expected_utility", "edge_score", "unknown", "MODEL_DIRECTION_ARGMAX"])
+def test_smart_decision_rejects_old_unknown_or_nonexact_selection_mode(
+    tmp_path: Path,
+    selection_mode: str,
+) -> None:
+    with pytest.raises(RuntimeError, match="selection_score must be exactly"):
+        _decision_engine(tmp_path, selection_mode=selection_mode)
+
+
+@pytest.mark.parametrize(
+    "stale_key",
+    ["edge_score_threshold", "expected_utility_threshold_bps", "sessions"],
+)
+def test_smart_entry_rejects_stale_runtime_direction_operating_point_keys(
+    tmp_path: Path,
+    stale_key: str,
+) -> None:
+    operating_point = {
+        "selection_score": live.MODEL_DIRECTION_SELECTION_MODE,
+        "max_trades": 3,
+        stale_key: ["US"] if stale_key == "sessions" else 999.0,
     }
 
-    decision = engine.decide(head, atr_bps=9.0)
+    with pytest.raises(RuntimeError, match="operating_point contract mismatch"):
+        live.SmartEntryLiveInference(
+            bundle_dir=tmp_path,
+            operating_point=operating_point,
+        )
 
-    assert decision["action"] == "TAKE_SHORT_NOW"
-    assert decision["selected_side"] == 1
 
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "direction_logits",
+        "direction_probs",
+        "public_trade_flat_decision_logits",
+        "public_trade_flat_decision_probs",
+    ],
+)
+def test_smart_decision_rejects_missing_direction_ssot(
+    tmp_path: Path,
+    missing_field: str,
+) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head()
+    del head[missing_field]
 
-def test_smart_decision_requires_expected_utility_heads_in_expected_utility_mode(tmp_path: Path) -> None:
-    engine = live.SmartEntryLiveInference(
-        bundle_dir=tmp_path,
-        operating_point={
-            "edge_score_threshold": 0.10,
-            "sessions": ["US"],
-            "selection_score": "expected_utility",
-            "expected_utility_threshold_bps": 0.0,
-        },
-    )
-    head = {
-        "time": pd.Timestamp("2026-07-08T18:00:00Z"),
-        "session_id": 3,
-        "p_long": 0.55,
-        "p_short": 0.45,
-        "p_flat": 0.0,
-        "edge_score": 0.45,
-        "trade_side": 0,
-        "path_quality_pred": 1.5,
-        "bad_path_prob": 0.08,
-        "tradable_prob": 0.73,
-        "mfe_first_n_pred": 12.0,
-    }
-
-    with pytest.raises(RuntimeError, match="requires utility heads"):
+    with pytest.raises(RuntimeError, match=missing_field):
         engine.decide(head, atr_bps=9.0)
 
 
-def test_smart_decision_rejects_mismatched_expected_utility_side(tmp_path: Path) -> None:
-    engine = live.SmartEntryLiveInference(
-        bundle_dir=tmp_path,
-        operating_point={
-            "edge_score_threshold": 0.10,
-            "sessions": ["US"],
-            "selection_score": "expected_utility",
-            "expected_utility_threshold_bps": 0.0,
-        },
-    )
-    head = {
-        "time": pd.Timestamp("2026-07-08T18:00:00Z"),
-        "session_id": 3,
-        "p_long": 0.55,
-        "p_short": 0.45,
-        "p_flat": 0.0,
-        "edge_score": 0.45,
-        "trade_side": 0,
-        "path_quality_pred": 1.5,
-        "bad_path_prob": 0.08,
-        "tradable_prob": 0.73,
-        "mfe_first_n_pred": 12.0,
-        "expected_utility_long_bps": -2.0,
-        "expected_utility_short_bps": 8.0,
-        "expected_utility_side": 0,
+@pytest.mark.parametrize(
+    "field",
+    [
+        "direction_logits",
+        "direction_probs",
+        "public_trade_flat_decision_logits",
+        "public_trade_flat_decision_probs",
+    ],
+)
+def test_smart_decision_rejects_nonfinite_direction_ssot(tmp_path: Path, field: str) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head()
+    head[field][0] = float("nan")
+
+    with pytest.raises(RuntimeError, match="non-finite"):
+        engine.decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "error"),
+    [
+        ("direction_probs", [0.1, 0.8, 0.1], "direction_probs do not match"),
+        (
+            "public_trade_flat_decision_probs",
+            [0.1, 0.9],
+            "public_trade_flat_decision_probs do not match",
+        ),
+    ],
+)
+def test_smart_decision_rejects_logits_probability_mismatch(
+    tmp_path: Path,
+    field: str,
+    replacement: list[float],
+    error: str,
+) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head()
+    head[field] = replacement
+
+    with pytest.raises(RuntimeError, match=error):
+        engine.decide(head, atr_bps=9.0)
+
+
+def test_smart_decision_rejects_trade_flat_vs_three_class_surface_mismatch(tmp_path: Path) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head(direction_logits=(5.0, 1.0, 0.0), public_logits=(0.0, 3.0))
+
+    with pytest.raises(RuntimeError, match="not the canonical"):
+        engine.decide(head, atr_bps=9.0)
+
+
+def test_smart_decision_rejects_noncanonical_pair_even_when_argmax_matches(tmp_path: Path) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head(direction_logits=(5.0, 1.0, 0.0), public_logits=(4.0, 0.0))
+
+    with pytest.raises(RuntimeError, match="not the canonical"):
+        engine.decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "path_quality_pred",
+        "bad_path_logit",
+        "tradable_logit",
+        "clean_edge_logit",
+        "survival_logit",
+        "dip_pred",
+        "forecast_pred",
+        "timing_pred",
+        "tail_risk_pred",
+        "vol_forecast_pred",
+        "specialist_gate",
+        "side_utility",
+        "mtf_dir_logits",
+        "trendline_rail_logits",
+        "tf_agreement_logit",
+        "path_quality_log_var",
+        "position_size_logit",
+    ],
+)
+def test_smart_decision_requires_complete_model_native_evidence_surface(
+    tmp_path: Path,
+    missing_field: str,
+) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head()
+    del head[missing_field]
+
+    with pytest.raises(RuntimeError, match="decision head exact schema mismatch"):
+        engine.decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "error"),
+    [
+        ("bad_path_prob", 0.99, "bad_path_prob does not match"),
+        ("tradable_prob", 0.01, "tradable_prob does not match"),
+        ("clean_edge_prob", 0.01, "clean_edge_prob does not match"),
+        ("tf_agreement_pred", 0.01, "tf_agreement_pred does not match"),
+        ("position_size_pred", 0.01, "position_size_pred does not match"),
+        ("specialist_gate", [1.0] * 8, "not a probability simplex"),
+    ],
+)
+def test_smart_decision_rejects_inconsistent_learned_diagnostics(
+    tmp_path: Path,
+    field: str,
+    replacement: object,
+    error: str,
+) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head()
+    head[field] = replacement
+
+    with pytest.raises(RuntimeError, match=error):
+        engine.decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize("session_id", [-1, 4, 1.5, float("nan")])
+def test_smart_decision_rejects_invalid_session_evidence(
+    tmp_path: Path,
+    session_id: float,
+) -> None:
+    engine = _decision_engine(tmp_path)
+    head = _decision_head()
+    head["session_id"] = session_id
+
+    with pytest.raises(RuntimeError, match="session_id"):
+        engine.decide(head, atr_bps=9.0)
+
+
+@pytest.mark.parametrize("atr_bps", [0.0, -1.0, float("nan"), float("inf")])
+def test_smart_decision_rejects_nonpositive_or_nonfinite_atr_evidence(
+    tmp_path: Path,
+    atr_bps: float,
+) -> None:
+    with pytest.raises(RuntimeError, match="finite and positive"):
+        _decision_engine(tmp_path).decide(_decision_head(), atr_bps=atr_bps)
+
+
+def _forward_states() -> dict:
+    evidence_names = [
+        "chart.geometry_channel_edge_pressure",
+        "chart.geometry_rising_support_rail_long_pressure",
+        "chart.geometry_rising_support_rail_short_trap_pressure",
+        "chart.geometry_falling_resistance_rail_short_pressure",
+        "chart.geometry_falling_resistance_rail_long_trap_pressure",
+        "trend.mtf_confluence_trend_direction_score",
+    ]
+    return {
+        "times": [pd.Timestamp("2026-07-08T18:00:00Z")],
+        "seq": np.zeros((1, 2, 1), dtype=np.float32),
+        "snap": np.asarray([[0.4, 0.7, 0.2, 0.1, 0.05, 0.65]], dtype=np.float32),
+        "ctx_cont": np.zeros((1, 1), dtype=np.float32),
+        "ctx_cat": np.zeros((1, 1), dtype=np.int64),
+        "_evidence_names": evidence_names,
     }
 
-    with pytest.raises(RuntimeError, match="expected_utility_side mismatch"):
-        engine.decide(head, atr_bps=9.0)
+
+def _forward_outputs() -> dict:
+    return {
+        "raw_direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
+        "direction_logits": torch.tensor([[5.0, 1.0, 0.0]], dtype=torch.float32),
+        "public_trade_flat_decision_logits": torch.tensor([[5.0, 0.0]], dtype=torch.float32),
+        "model_native_logits": torch.tensor([[0.4, -0.2, 0.1]], dtype=torch.float32),
+        "mtf_dir_logits": torch.tensor([[2.0, 0.0, -1.0]], dtype=torch.float32),
+        "side_logits": torch.tensor([[2.0, 0.0]], dtype=torch.float32),
+        "side_utility": torch.tensor([[12.0, -4.0]], dtype=torch.float32),
+        "side_bad_path_logit": torch.tensor([[-2.0, 1.0]], dtype=torch.float32),
+        "side_mae": torch.tensor([[-3.0, -8.0]], dtype=torch.float32),
+        "side_validity_logit": torch.tensor([[2.5, -1.0]], dtype=torch.float32),
+        "trendline_rail_logits": torch.tensor(
+            [[1.0, -1.0, 0.5, -0.5, 0.25, -0.25]], dtype=torch.float32
+        ),
+        "path_quality": torch.tensor([[1.5]], dtype=torch.float32),
+        "path_quality_raw": torch.tensor([[1.5]], dtype=torch.float32),
+        "bad_path_logit": torch.tensor([[-1.0]], dtype=torch.float32),
+        "bad_path_logit_raw": torch.tensor([[-1.0]], dtype=torch.float32),
+        "tradable_logit": torch.tensor([[1.0]], dtype=torch.float32),
+        "trade_logit": torch.tensor([[1.0]], dtype=torch.float32),
+        "mfe_first_n": torch.tensor([[12.0]], dtype=torch.float32),
+        "clean_edge_logit": torch.tensor([[0.75]], dtype=torch.float32),
+        "survival_logit": torch.tensor([[1.25]], dtype=torch.float32),
+        "dip_pred": torch.arange(18, dtype=torch.float32).reshape(1, 18) / 10.0,
+        "forecast_pred": torch.tensor([[0.1, 0.2, 0.3, 0.4]], dtype=torch.float32),
+        "timing_pred": torch.arange(12, dtype=torch.float32).reshape(1, 12) / 20.0,
+        "tail_risk_pred": torch.tensor(
+            [[0.01, 0.02, 0.03, 0.04, 0.05, 0.06]], dtype=torch.float32
+        ),
+        "vol_forecast_pred": torch.tensor([[0.5, 0.75, 1.0]], dtype=torch.float32),
+        "specialist_gate": torch.full(
+            (1, len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)),
+            1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+            dtype=torch.float32,
+        ),
+        "tf_agreement_logit": torch.tensor([[0.5]], dtype=torch.float32),
+        "path_quality_log_var": torch.tensor([[0.0]], dtype=torch.float32),
+        "position_size_logit": torch.tensor([[0.25]], dtype=torch.float32),
+    }
+
+
+def _prepare_forward_engine(tmp_path: Path, outputs: dict) -> live.SmartEntryLiveInference:
+    engine = _decision_engine(tmp_path)
+    states = _forward_states()
+    engine._meta = {
+        "ordered_signal_names": states["_evidence_names"],
+        "direction_calibration": {
+            "enabled": True,
+            "version": "test-v1",
+            "temperature": 1.0,
+            "bias": [0.0, 0.0, 0.0],
+        },
+        "path_calibration": {
+            "enabled": True,
+            "version": "test-v1",
+            "path_quality_scale": 1.0,
+            "path_quality_shift": 0.0,
+            "bad_path_temperature": 1.0,
+            "bad_path_bias": 0.0,
+        },
+        "specialist_fusion": {
+            "trainable_specialists": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        },
+    }
+    engine._model = lambda *args, **kwargs: outputs
+    engine._multi_tf_window_tensors = lambda *args, **kwargs: {}
+    return engine
+
+
+def test_forward_states_requires_model_public_trade_flat_ssot(tmp_path: Path) -> None:
+    outputs = _forward_outputs()
+    del outputs["public_trade_flat_decision_logits"]
+    engine = _prepare_forward_engine(tmp_path, outputs)
+
+    with pytest.raises(RuntimeError, match="missing required SSOT 'public_trade_flat_decision_logits'"):
+        engine.forward_states(_forward_states())
+
+
+def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path: Path) -> None:
+    engine = _prepare_forward_engine(tmp_path, _forward_outputs())
+
+    head = engine.forward_states(_forward_states())[0]
+
+    assert set(head) == set(live.MODEL_NATIVE_DECISION_HEAD_REQUIRED_FIELDS)
+    assert head["model_direction"] == "LONG"
+    assert head["public_trade_flat_decision"] == "TRADE"
+    assert len(head["mtf_dir_logits"]) == 3
+    assert len(head["side_probs"]) == 2
+    assert head["side_utility"] == [12.0, -4.0]
+    assert len(head["side_bad_path_logit"]) == 2
+    assert len(head["side_validity_logit"]) == 2
+    assert len(head["side_mae"]) == 2
+    assert len(head["trendline_rail_logits"]) == 6
+    assert len(head["dip_pred"]) == 18
+    assert len(head["forecast_pred"]) == 4
+    assert len(head["timing_pred"]) == 12
+    assert len(head["tail_risk_pred"]) == 6
+    assert len(head["vol_forecast_pred"]) == 3
+    assert head["specialist_names"] == list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)
+    assert sum(head["specialist_gate"]) == pytest.approx(1.0)
+    assert head["mtf_trend_evidence"] == pytest.approx(0.65)
+    assert not any(key.startswith("expected_utility") for key in head)
+    assert 0.0 < head["tf_agreement_pred"] < 1.0
+    assert head["path_quality_std"] == pytest.approx(1.0)
+    assert 0.0 < head["position_size_pred"] < 1.0
+
+
+@pytest.mark.parametrize(
+    "missing_head",
+    [
+        "mtf_dir_logits",
+        "side_logits",
+        "side_utility",
+        "side_bad_path_logit",
+        "side_mae",
+        "side_validity_logit",
+        "trendline_rail_logits",
+        "clean_edge_logit",
+        "survival_logit",
+        "dip_pred",
+        "forecast_pred",
+        "timing_pred",
+        "tail_risk_pred",
+        "vol_forecast_pred",
+        "specialist_gate",
+        "tf_agreement_logit",
+        "path_quality_log_var",
+    ],
+)
+def test_forward_states_fails_closed_on_missing_model_native_evidence_head(
+    tmp_path: Path,
+    missing_head: str,
+) -> None:
+    outputs = _forward_outputs()
+    del outputs[missing_head]
+    engine = _prepare_forward_engine(tmp_path, outputs)
+
+    with pytest.raises(RuntimeError, match=rf"missing required SSOT '{missing_head}'"):
+        engine.forward_states(_forward_states())
+
+
+def test_forward_states_requires_learned_sizing_evidence_head(tmp_path: Path) -> None:
+    outputs = _forward_outputs()
+    del outputs["position_size_logit"]
+    engine = _prepare_forward_engine(tmp_path, outputs)
+
+    with pytest.raises(RuntimeError, match="missing required SSOT 'position_size_logit'"):
+        engine.forward_states(_forward_states())

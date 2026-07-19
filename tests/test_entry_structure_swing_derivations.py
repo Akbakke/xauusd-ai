@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
 from gx1.features.entry_structure_swing_derivations_v1 import (
@@ -128,7 +129,7 @@ def test_structure_swing_derivations_capture_quality_state_and_routing() -> None
     assert out[3, idx["chart.structure_swing_swing_compression_setup"]] > out[1, idx["chart.structure_swing_swing_compression_setup"]]
 
 
-def test_structure_swing_derivations_keep_outputs_finite_under_bad_inputs() -> None:
+def test_structure_swing_derivations_reject_nonfinite_inputs() -> None:
     names = list(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS)
     x = _matrix(names)
     idx = {name: i for i, name in enumerate(names)}
@@ -138,11 +139,8 @@ def test_structure_swing_derivations_keep_outputs_finite_under_bad_inputs() -> N
     x[4, idx["chart.foundation_bos_up_recent_tau24"]] = np.nan
     x[5, idx["chart.foundation_pullback_depth_norm"]] = np.inf
 
-    out, out_names = build_entry_structure_swing_derivation_layer(x, names)
-
-    assert tuple(out_names) == EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
-    assert out.shape == (8, 28)
-    assert np.isfinite(out).all()
+    with pytest.raises(RuntimeError, match="STRUCTURE_SWING_DERIVATION_SOURCE_NONFINITE"):
+        build_entry_structure_swing_derivation_layer(x, names)
 
 
 def test_structure_swing_derivations_do_not_read_future_rows() -> None:
