@@ -165,6 +165,14 @@ _LARGE_ARTIFACT_KEYS = {
     "test_parquet",
     "m5_prebuilt_path",
 }
+TRAINER_ARTIFACT_HASH_ENV = {
+    "train_manifest_json": "GX1_ENTRY_TRAIN_MANIFEST_SHA256",
+    "val_manifest_json": "GX1_ENTRY_VAL_MANIFEST_SHA256",
+    "test_manifest_json": "GX1_ENTRY_TEST_MANIFEST_SHA256",
+    "train_parquet": "GX1_ENTRY_TRAIN_PARQUET_SHA256",
+    "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
+    "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
+}
 
 
 class LaunchContractError(RuntimeError):
@@ -712,7 +720,13 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
         trainer_path=trainer_path,
         capped_runner_path=capped_runner_path,
     )
-    return _validate_recipe_env(recipe)
+    env_rows = _validate_recipe_env(recipe)
+    recipe_bindings = recipe["artifact_bindings"]
+    env_rows.extend(
+        f"{env_name}={recipe_bindings[key]['sha256']}"
+        for key, env_name in TRAINER_ARTIFACT_HASH_ENV.items()
+    )
+    return env_rows
 
 
 def build_parser() -> argparse.ArgumentParser:

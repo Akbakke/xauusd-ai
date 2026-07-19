@@ -4,6 +4,27 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-19 — exact split and serving identities precede execution
+
+Smoke/candidate wrappers and the trainer must receive explicit TRAIN/VAL/TEST
+manifest and parquet paths. The validated recipe binds all six hashes; the
+trainer rechecks regular canonical paths, hash bytes, manifest self-path,
+vedtak lineage, distinctness and common signal/state contracts. Split globbing
+and TRAIN-stem inference are retired.
+
+Live serving must load parity and direction-audit events from the exact
+launch-declared path/SHA before checking newest immutable-event authority. A
+failed model decision is `MODEL_DECISION_UNAVAILABLE`, not `FLAT` or `SKIP`.
+Downstream execution may refuse an order for safety/sizing facts, but it cannot
+threshold, veto, flip or replace model direction.
+
+## 2026-07-19 — invalidated rebuild authority cannot be recycled
+
+`XAU_SEQ513_REBUILD_20260718_V1` is historical RED evidence only. Its window
+values remain useful as the intended next-build window, but its ID cannot
+authorize a new ranking, rebuild, smoke or candidate run. A new explicit
+vedtak is required after the abstention-baseline decision; no name is inferred.
+
 ## 2026-07-19 — abstention metadata is not empirical admission evidence
 
 The report-only `model-native-abstention-probe` metadata run is terminal

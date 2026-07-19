@@ -47,6 +47,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
@@ -1469,108 +1470,149 @@ def _set_deterministic(seed: int, device: torch.device, deterministic: bool) -> 
         log.warning("[FAST_TRAIN] init failed: %r", _e)
 
 # -----------------------------------------------------------------------------
-# Dataset resolution (manifest or dir)
+# Exact immutable dataset identity
 # -----------------------------------------------------------------------------
-def _resolve_train_val_parquets(
-    dataset_manifest: Optional[Path],
-    dataset_dir: Optional[Path],
-    gx1_data: Path,
-    train_parquet_hint: Optional[Path] = None,
-) -> Tuple[Path, Path]:
-    """Resolve (train_parquet, val_parquet). Exactly one of dataset_manifest or dataset_dir must be set.
-    When dataset_dir is set, train/val are matched by strict suffix *_train.parquet / *_val.parquet.
-    If train_parquet_hint is provided, that path is used as train and val is inferred (same stem, _val.parquet).
-    """
-    if dataset_manifest is not None and dataset_dir is not None:
+_TRAIN_ARTIFACT_HASH_ENV = {
+    "train_manifest": "GX1_ENTRY_TRAIN_MANIFEST_SHA256",
+    "val_manifest": "GX1_ENTRY_VAL_MANIFEST_SHA256",
+    "test_manifest": "GX1_ENTRY_TEST_MANIFEST_SHA256",
+    "train_parquet": "GX1_ENTRY_TRAIN_PARQUET_SHA256",
+    "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
+    "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
+}
+_SMOKE_SPLIT_MANIFEST_SCHEMA_VERSION = (
+    "entry_model_native_seq513_smoke_split_manifest_v1"
+)
+
+
+def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
+    raw = Path(path).expanduser()
+    if not raw.is_absolute():
+        raise RuntimeError(f"[ENTRY_TRAIN_ARTIFACT_PATH_NOT_ABSOLUTE] {label}={raw}")
+    if raw.is_symlink() or not raw.is_file():
+        raise RuntimeError(f"[ENTRY_TRAIN_ARTIFACT_NOT_REGULAR] {label}={raw}")
+    resolved = raw.resolve()
+    if resolved != raw or any("latest" in part.lower() for part in raw.parts):
+        raise RuntimeError(f"[ENTRY_TRAIN_ARTIFACT_PATH_MUTABLE] {label}={raw}")
+    return resolved
+
+
+def _expected_train_artifact_sha256(label: str) -> str:
+    env_name = _TRAIN_ARTIFACT_HASH_ENV[label]
+    value = str(os.environ.get(env_name) or "").strip().lower()
+    if len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
+        raise RuntimeError(f"[ENTRY_TRAIN_ARTIFACT_HASH_ENV_INVALID] {env_name}")
+    return value
+
+
+def _resolve_explicit_train_split_artifacts(
+    *,
+    train_manifest: Path,
+    val_manifest: Path,
+    test_manifest: Path,
+    train_parquet: Path,
+    val_parquet: Path,
+    test_parquet: Path,
+    vedtak: str,
+    profile: str,
+) -> Tuple[Dict[str, Path], Dict[str, Path]]:
+    """Verify the six launch-bound dataset artifacts without discovery/inference."""
+
+    manifests = {
+        "train": _explicit_regular_artifact(train_manifest, label="train_manifest"),
+        "val": _explicit_regular_artifact(val_manifest, label="val_manifest"),
+        "test": _explicit_regular_artifact(test_manifest, label="test_manifest"),
+    }
+    parquets = {
+        "train": _explicit_regular_artifact(train_parquet, label="train_parquet"),
+        "val": _explicit_regular_artifact(val_parquet, label="val_parquet"),
+        "test": _explicit_regular_artifact(test_parquet, label="test_parquet"),
+    }
+    all_paths = tuple(manifests.values()) + tuple(parquets.values())
+    if len(set(all_paths)) != len(all_paths):
+        raise RuntimeError("[ENTRY_TRAIN_SPLIT_ARTIFACT_PATHS_NOT_DISTINCT]")
+    parents = {path.parent for path in all_paths}
+    if len(parents) != 1:
         raise RuntimeError(
-            "[ENTRY_V10_CTX_DATASET_ARGS] Use only one of --dataset_manifest or --dataset_dir"
-        )
-    if dataset_manifest is None and dataset_dir is None:
-        raise RuntimeError(
-            "[ENTRY_V10_CTX_DATASET_ARGS] Provide --dataset_manifest or --dataset_dir"
+            f"[ENTRY_TRAIN_SPLIT_ARTIFACT_PARENT_MISMATCH] parents={sorted(map(str, parents))}"
         )
 
-    if dataset_manifest is not None:
-        p = Path(dataset_manifest).expanduser().resolve()
-        if not p.exists():
-            raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_MISSING] {p}")
-        if p.suffix.lower() != ".json":
-            raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_NOT_JSON] {p}")
-        data = json.loads(p.read_text(encoding="utf-8"))
-        train_path = Path(data.get("output_data_path", "")).expanduser().resolve()
-        if not train_path.is_absolute():
-            train_path = (p.parent / train_path).resolve()
-        if not train_path.exists():
-            raise RuntimeError(f"[ENTRY_V10_CTX_TRAIN_PARQUET_MISSING] {train_path}")
-        # Val: same dir, stem with _train -> _val
-        stem = train_path.stem
-        if stem.endswith("_train"):
-            val_stem = stem[: -len("_train")] + "_val"
-        else:
-            val_stem = stem.replace("train", "val", 1) if "train" in stem else stem + "_val"
-        val_path = train_path.parent / f"{val_stem}.parquet"
-        if not val_path.exists():
+    reference_contract: Dict[str, Any] | None = None
+    reference_state_contract: Dict[str, Any] | None = None
+    for split in ("train", "val", "test"):
+        manifest_path = manifests[split]
+        parquet_path = parquets[split]
+        for label, path in (
+            (f"{split}_manifest", manifest_path),
+            (f"{split}_parquet", parquet_path),
+        ):
+            expected_sha = _expected_train_artifact_sha256(label)
+            observed_sha = _sha256_file(path)
+            if observed_sha != expected_sha:
+                raise RuntimeError(
+                    f"[ENTRY_TRAIN_ARTIFACT_SHA256_MISMATCH] {label} "
+                    f"expected={expected_sha} observed={observed_sha}"
+                )
+
+        try:
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
             raise RuntimeError(
-                f"[ENTRY_V10_CTX_VAL_PARQUET_MISSING] {val_path} (inferred from train)"
-            )
-        return train_path, val_path
-
-    # dataset_dir: strict suffix match _train.parquet / _val.parquet only
-    d = Path(dataset_dir).expanduser().resolve()
-    if not d.is_dir():
-        raise RuntimeError(f"[ENTRY_V10_CTX_DATASET_DIR_MISSING] {d}")
-    parquets = list(d.glob("*.parquet"))
-    train_candidates = [f for f in parquets if f.stem.endswith("_train")]
-    val_candidates = [f for f in parquets if f.stem.endswith("_val")]
-
-    if train_parquet_hint is not None:
-        train_path = Path(train_parquet_hint).expanduser().resolve()
-        if not train_path.exists():
-            raise RuntimeError(f"[ENTRY_V10_CTX_TRAIN_PARQUET_MISSING] {train_path}")
-        if not train_path.stem.endswith("_train"):
+                f"[ENTRY_TRAIN_SPLIT_MANIFEST_INVALID_JSON] {split}={manifest_path}: {exc}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_NOT_OBJECT] {split}")
+        expected_schema = (
+            _SMOKE_SPLIT_MANIFEST_SCHEMA_VERSION
+            if profile == "smoke"
+            else MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+        )
+        if payload.get("schema_version") != expected_schema:
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_SCHEMA_MISMATCH] {split}")
+        if payload.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE:
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_MODE_MISMATCH] {split}")
+        declared_raw = str(payload.get("output_data_path") or "").strip()
+        declared = Path(declared_raw).expanduser()
+        if not declared.is_absolute() or declared != parquet_path:
             raise RuntimeError(
-                f"[ENTRY_V10_CTX_TRAIN_STEM] train_parquet_hint stem must end with _train, got {train_path.stem}"
+                f"[ENTRY_TRAIN_SPLIT_MANIFEST_SELF_PATH_MISMATCH] {split}: "
+                f"declared={declared_raw!r} expected={parquet_path}"
             )
-        val_stem = train_path.stem[: -len("_train")] + "_val"
-        val_path = train_path.parent / f"{val_stem}.parquet"
-        if not val_path.exists():
-            raise RuntimeError(f"[ENTRY_V10_CTX_VAL_PARQUET_MISSING] {val_path} (inferred from train)")
-        log.info("[DATASET_RESOLVE] train=%s val=%s", train_path, val_path)
-        return train_path, val_path
-
-    if len(train_candidates) != 1:
-        raise RuntimeError(
-            f"[ENTRY_V10_CTX_NO_TRAIN_PARQUET] expected exactly one *_train.parquet in {d}, got {len(train_candidates)}"
+        if not manifest_path.name.endswith(
+            f"_{split}.manifest.json"
+        ) or not parquet_path.name.endswith(f"_{split}.parquet"):
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_FILENAME_MISMATCH] {split}")
+        contract = _signal_contract_from_manifest_obj(payload)
+        if reference_contract is None:
+            reference_contract = contract
+        elif contract != reference_contract:
+            raise RuntimeError("[ENTRY_TRAIN_SPLIT_SIGNAL_CONTRACT_MISMATCH]")
+        extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+        state_contract = (
+            extra.get("model_native_state_contract")
+            if isinstance(extra.get("model_native_state_contract"), dict)
+            else None
         )
-    if len(val_candidates) != 1:
-        raise RuntimeError(
-            f"[ENTRY_V10_CTX_NO_VAL_PARQUET] expected exactly one *_val.parquet in {d}, got {len(val_candidates)}"
+        if state_contract is None or state_contract.get("explicit_vedtak_id") != vedtak:
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_VEDTAK_LINEAGE_MISMATCH] {split}")
+        if reference_state_contract is None:
+            reference_state_contract = state_contract
+        elif state_contract != reference_state_contract:
+            raise RuntimeError("[ENTRY_TRAIN_SPLIT_STATE_CONTRACT_MISMATCH]")
+        if _sha256_file(manifest_path) != _expected_train_artifact_sha256(
+            f"{split}_manifest"
+        ):
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_CHANGED] {split}")
+        log.info(
+            "[ENTRY_DATASET_MANIFEST_PROOF] split=%s manifest=%s parquet=%s sha256=%s",
+            split,
+            manifest_path,
+            parquet_path,
+            _expected_train_artifact_sha256(f"{split}_parquet"),
         )
-    train_path = train_candidates[0].resolve()
-    val_path = val_candidates[0].resolve()
-    log.info("[DATASET_RESOLVE] train=%s val=%s", train_path, val_path)
-    return train_path, val_path
-
-
-def _log_manifest_proof(dataset_manifest: Optional[Path]) -> None:
-    if dataset_manifest is None:
-        raise RuntimeError("[ENTRY_MODEL_NATIVE_DATASET_MANIFEST_REQUIRED]")
-    p = Path(dataset_manifest).expanduser().resolve()
-    if not p.exists():
-        raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_MISSING] {p}")
-    if p.suffix.lower() != ".json":
-        raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_NOT_JSON] {p}")
-    contract = _signal_contract_from_manifest_obj(
-        json.loads(p.read_text(encoding="utf-8"))
-    )
-    log.info(
-        "[ENTRY_DATASET_MANIFEST_PROOF] manifest=%s contract_mode=%s "
-        "signal_dim=%d signal_contract_sha256=%s",
-        p,
-        contract["contract_mode"],
-        int(contract["seq_input_dim"]),
-        contract["model_native_signal_contract"]["static_contract_sha256"],
-    )
+    return manifests, parquets
 
 
 def _signal_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -1976,82 +2018,6 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
         if count:
             failures.append(f"{split_name}: {reason}: mismatches={count}")
     return failures
-
-
-def _resolve_test_parquet(
-    dataset_manifest: Optional[Path],
-    dataset_dir: Optional[Path],
-    test_parquet: Optional[Path],
-    gx1_data: Path,
-    bundle_dir: Optional[Path] = None,
-) -> Path:
-    """
-    Resolve test parquet. Priority:
-    1) Explicit --test_parquet
-    2) From --dataset_dir: single *test*.parquet
-    3) From --dataset_manifest: infer _test.parquet from train stem
-    """
-    if test_parquet is not None:
-        p = Path(test_parquet).expanduser().resolve()
-        _require(p.exists(), f"[ENTRY_V10_CTX_TEST_PARQUET_MISSING] {p}")
-        return p
-
-    if dataset_dir is not None:
-        d = Path(dataset_dir).expanduser().resolve()
-        _require(d.is_dir(), f"[ENTRY_V10_CTX_DATASET_DIR_MISSING] {d}")
-        parquets = list(d.glob("*.parquet"))
-        test_candidates = [f for f in parquets if "test" in f.stem.lower()]
-        if len(test_candidates) == 1:
-            return test_candidates[0]
-        if len(test_candidates) > 1 and bundle_dir is not None:
-            meta_path = Path(bundle_dir).expanduser() / "bundle_metadata.json"
-            if meta_path.exists():
-                try:
-                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                    train_path = Path(meta.get("train_data", "")).expanduser()
-                    if not train_path.is_absolute():
-                        train_path = (d / train_path).resolve()
-                    stem = train_path.stem
-                    if stem.endswith("_train"):
-                        test_stem = stem[: -len("_train")] + "_test"
-                    else:
-                        test_stem = stem.replace("train", "test", 1) if "train" in stem else stem + "_test"
-                    inferred = train_path.parent / f"{test_stem}.parquet"
-                    if inferred.exists():
-                        return inferred
-                except Exception:
-                    pass
-        raise RuntimeError(
-            f"[ENTRY_V10_CTX_TEST_AMBIGUOUS] expected exactly one *test*.parquet in {d}, got {len(test_candidates)}"
-        )
-
-    if dataset_manifest is not None:
-        p = Path(dataset_manifest).expanduser().resolve()
-        if not p.exists():
-            raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_MISSING] {p}")
-        if p.suffix.lower() != ".json":
-            raise RuntimeError(f"[ENTRY_V10_CTX_MANIFEST_NOT_JSON] {p}")
-        data = json.loads(p.read_text(encoding="utf-8"))
-        train_path = Path(data.get("output_data_path", "")).expanduser()
-        if not train_path.is_absolute():
-            train_path = (p.parent / train_path).resolve()
-        if not train_path.exists():
-            raise RuntimeError(f"[ENTRY_V10_CTX_TRAIN_PARQUET_MISSING] {train_path}")
-        stem = train_path.stem
-        if stem.endswith("_train"):
-            test_stem = stem[: -len("_train")] + "_test"
-        else:
-            test_stem = stem.replace("train", "test", 1) if "train" in stem else stem + "_test"
-        test_path = train_path.parent / f"{test_stem}.parquet"
-        if not test_path.exists():
-            raise RuntimeError(
-                f"[ENTRY_V10_CTX_TEST_PARQUET_MISSING] {test_path} (inferred from train)"
-            )
-        return test_path
-
-    raise RuntimeError(
-        "[ENTRY_V10_CTX_TEST_RESOLVE_FAIL] provide --test_parquet or dataset manifest/dir"
-    )
 
 
 def _log_label_distribution(parquet_path: Path, split: str) -> None:
@@ -9762,6 +9728,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser("ENTRY_V10_CTX exact model-native trainer")
     parser.add_argument("--train", action="store_true", required=True)
+    parser.add_argument("--profile", choices=("smoke", "candidate"), required=True)
     parser.add_argument("--vedtak", type=str, required=True)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--device", type=str, default="auto", choices=["cpu", "cuda", "auto"])
@@ -9769,10 +9736,12 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--seq_len", type=int, default=MODEL_NATIVE_SEQ_LEN)
-    parser.add_argument("--dataset_manifest", type=Path, required=True)
-    parser.add_argument("--dataset_dir", type=Path, default=None)
-    parser.add_argument("--dataset_train_parquet", type=Path, default=None)
-    parser.add_argument("--test_parquet", type=Path, required=True)
+    parser.add_argument("--train-manifest-json", type=Path, required=True)
+    parser.add_argument("--val-manifest-json", type=Path, required=True)
+    parser.add_argument("--test-manifest-json", type=Path, required=True)
+    parser.add_argument("--train-parquet", type=Path, required=True)
+    parser.add_argument("--val-parquet", type=Path, required=True)
+    parser.add_argument("--test-parquet", type=Path, required=True)
     parser.add_argument("--out_bundle_dir", type=Path, required=True)
     parser.add_argument("--gx1-data", type=str, required=True)
     parser.add_argument("--num-workers", type=int, default=0)
@@ -9828,20 +9797,20 @@ def main() -> None:
         _WEIGHT_DECAY,
     )
 
-    _log_manifest_proof(args.dataset_manifest)
-    gx1_data = _resolve_gx1_data(args.gx1_data)
-    train_parquet, val_parquet = _resolve_train_val_parquets(
-        args.dataset_manifest,
-        args.dataset_dir,
-        gx1_data,
-        train_parquet_hint=args.dataset_train_parquet,
+    _resolve_gx1_data(args.gx1_data)
+    _manifests, parquets = _resolve_explicit_train_split_artifacts(
+        train_manifest=args.train_manifest_json,
+        val_manifest=args.val_manifest_json,
+        test_manifest=args.test_manifest_json,
+        train_parquet=args.train_parquet,
+        val_parquet=args.val_parquet,
+        test_parquet=args.test_parquet,
+        vedtak=args.vedtak,
+        profile=args.profile,
     )
-    test_parquet = _resolve_test_parquet(
-        args.dataset_manifest,
-        args.dataset_dir,
-        args.test_parquet,
-        gx1_data,
-    )
+    train_parquet = parquets["train"]
+    val_parquet = parquets["val"]
+    test_parquet = parquets["test"]
     _log_label_distribution(test_parquet, split="test")
 
     run_train(

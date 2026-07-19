@@ -177,8 +177,13 @@ ENV_COMMAND+=("${RECIPE_ENV[@]}")
 TRAIN_CMD=(
   "${ENV_COMMAND[@]}"
   "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
-  --train --vedtak "$VEDTAK" --seed "$SEED" --device "$DEVICE"
-  --dataset_manifest "$TRAIN_MANIFEST_JSON" --test_parquet "$TEST_PARQUET"
+  --train --profile "$PROFILE" --vedtak "$VEDTAK" --seed "$SEED" --device "$DEVICE"
+  --train-manifest-json "$TRAIN_MANIFEST_JSON"
+  --val-manifest-json "$VAL_MANIFEST_JSON"
+  --test-manifest-json "$TEST_MANIFEST_JSON"
+  --train-parquet "$TRAIN_PARQUET"
+  --val-parquet "$VAL_PARQUET"
+  --test-parquet "$TEST_PARQUET"
   --out_bundle_dir "$OUT_BUNDLE_DIR" --gx1-data "$GX1_DATA_ROOT"
   --m5-prebuilt-path "$M5_PREBUILT_PATH"
   --seq_len 96 --epochs "$EPOCHS" --lr "$LEARNING_RATE" --batch_size "$BATCH_SIZE"

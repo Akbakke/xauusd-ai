@@ -132,3 +132,24 @@ def test_retired_entry_xgb_v13_prune_report_families_remain_absent() -> None:
     retired = RETIRED_ENTRY_REPORT_FAMILIES + RETIRED_ENTRY_REPORT_FILES
     present = [path for path in retired if (REPO / path).exists()]
     assert present == []
+
+
+def test_stop_live_practice_has_no_retired_shadow_or_counterfactual_branches() -> None:
+    source = (REPO / "scripts/stop_live_practice.sh").read_text(encoding="utf-8")
+    retired = (
+        "noxgb_shadow",
+        "--verify-entry-next-edge-guards",
+        "counterfactual_daemon",
+    )
+    assert all(token not in source for token in retired)
+
+
+def test_stop_live_practice_keeps_current_stack_stop_owners() -> None:
+    source = (REPO / "scripts/stop_live_practice.sh").read_text(encoding="utf-8")
+    required = (
+        'stop_pid paper_runner            "$PAPER_RUNS/paper_runner.pid"',
+        'pgrep -f "gx1.execution.v12_paper_runner"',
+        'stop_pid canonical_incremental   "$PAPER_RUNS/canonical_incremental.pid"',
+        'stop_pid oanda_data_collector    "$PAPER_RUNS/collector.pid"',
+    )
+    assert all(token in source for token in required)

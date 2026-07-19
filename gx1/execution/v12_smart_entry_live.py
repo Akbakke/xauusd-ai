@@ -58,7 +58,7 @@ import torch
 
 from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
-    select_latest_immutable_event,
+    require_newest_immutable_event,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
@@ -205,19 +205,13 @@ MODEL_NATIVE_DECISION_HEAD_CONTEXT_FIELDS = frozenset(
     }
 )
 
-SMART_PARITY_GATE_ROOT = Path(
-    "/home/andre2/GX1_DATA/reports/model_native_serve_parity_v1"
-)
-MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT = Path(
-    "/home/andre2/GX1_DATA/reports/model_native_direction_pocket_audit_v1"
-)
 SMART_PARITY_GATE_MAX_AGE_HOURS = 18.0
 SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS = 18.0
 SMART_DIRECTION_AUDIT_MAX_AGE_HOURS = 18.0
 
 # Fail-closed context-staleness cap for LIVE decisions (serving-wave gap 3): when the
 # last COMPLETED smart-context snapshot lags the decision bar by MORE than this many
-# cv3 M5 bars, entry decisions are SKIPPED (journaled smart_ctx_stale_refresh_pending)
+# cv3 M5 bars, no direction is emitted (journaled smart_ctx_stale_refresh_pending)
 # until the background refresh lands — never decide on rotten context. Steady state is
 # age<=1: the ~2-min refresh finishes well inside one M5 cycle.
 SMART_CTX_MAX_STALENESS_M5 = 0
@@ -225,7 +219,7 @@ SMART_CTX_MAX_STALENESS_M5 = 0
 class SmartContextStaleError(RuntimeError):
     """Raised by predict_live_bar when the context snapshot is older than
     SMART_CTX_MAX_STALENESS_M5 bars behind the decision bar — the pipeline
-    journals it as a SKIP (fail-closed) and retries on the next poll."""
+    journals model-direction unavailability and retries on the next poll."""
 
     def __init__(self, age: int, cap: int, ctx_cutoff: pd.Timestamp, end_ts: pd.Timestamp):
         super().__init__(
@@ -246,30 +240,60 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _load_newest_gate_event(
-    root: Path,
+def _load_declared_gate_event(
+    declaration: object,
     event_prefix: str,
     *,
     label: str,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Load the unique newest immutable serving event and bind its exact bytes."""
+    """Reload one launch-declared gate by exact path and content identity."""
 
+    if not isinstance(declaration, dict) or set(declaration) != {
+        "json_path",
+        "sha256",
+    }:
+        raise RuntimeError(
+            f"[SMART_GATE] {label} declaration must contain exact json_path/sha256"
+        )
+    raw_path = str(declaration.get("json_path") or "").strip()
+    path = Path(raw_path).expanduser()
+    if not path.is_absolute():
+        raise RuntimeError(f"[SMART_GATE] {label} path must be absolute: {raw_path!r}")
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"[SMART_GATE] {label} path is not a regular file: {path}")
+    resolved = path.resolve()
+    if resolved != path or any("latest" in part.lower() for part in path.parts):
+        raise RuntimeError(
+            f"[SMART_GATE] {label} path is not canonical immutable identity: {path}"
+        )
+    expected_sha = str(declaration.get("sha256") or "").strip().lower()
+    if len(expected_sha) != 64 or any(
+        character not in "0123456789abcdef" for character in expected_sha
+    ):
+        raise RuntimeError(f"[SMART_GATE] {label} declaration lacks an exact SHA-256")
     try:
-        path = select_latest_immutable_event(root, event_prefix)
+        require_newest_immutable_event(path, event_prefix)
     except ImmutableEventAuthorityError as exc:
         raise RuntimeError(f"[SMART_GATE] invalid {label} event authority: {exc}") from exc
-    if path is None:
+    raw = path.read_bytes()
+    observed_sha = hashlib.sha256(raw).hexdigest()
+    if observed_sha != expected_sha:
         raise RuntimeError(
-            f"[SMART_GATE] no immutable {label} events under {root}; mutable latest mirrors "
-            "are never launch authority"
+            f"[SMART_GATE] {label} sha256 mismatch: "
+            f"declared={expected_sha} observed={observed_sha}"
         )
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(raw.decode("utf-8"))
     except Exception as exc:
         raise RuntimeError(f"[SMART_GATE] unreadable {label} event {path}: {exc}") from exc
     if not isinstance(payload, dict):
         raise RuntimeError(f"[SMART_GATE] {label} event root is not an object: {path}")
-    return payload, {"json_path": str(path), "sha256": _sha256_file(path)}
+    declared_self = Path(str(payload.get("json_path") or "")).expanduser()
+    if not declared_self.is_absolute() or declared_self.resolve() != path:
+        raise RuntimeError(f"[SMART_GATE] {label} event json_path is not an exact self-reference")
+    if _sha256_file(path) != expected_sha:
+        raise RuntimeError(f"[SMART_GATE] {label} changed while being validated")
+    return payload, {"json_path": str(path), "sha256": expected_sha}
 
 
 def _np1d(value: Any) -> np.ndarray | None:
@@ -764,13 +788,26 @@ def assert_smart_serving_gate() -> dict:
     """
     from gx1_guards.artifacts import load_decision_entry
     entry = load_decision_entry("v10_entry")
-    rep, parity_authority = _load_newest_gate_event(
-        SMART_PARITY_GATE_ROOT,
+    launch_state = entry.get("xau_direction_launch_state")
+    if not isinstance(launch_state, dict):
+        raise RuntimeError(
+            "[SMART_GATE] artifact guard did not return the validated XAU direction launch state"
+        )
+    declared_evidence = launch_state.get("serve_gate_evidence")
+    if not isinstance(declared_evidence, dict) or set(declared_evidence) != {
+        "model_native_serve_parity",
+        "model_native_direction_pocket_audit",
+    }:
+        raise RuntimeError(
+            "[SMART_GATE] XAU direction launch state lacks exact serve_gate_evidence"
+        )
+    rep, parity_authority = _load_declared_gate_event(
+        declared_evidence["model_native_serve_parity"],
         "MODEL_NATIVE_SERVE_PARITY",
         label="TRAIN==SERVE parity",
     )
-    direction_audit, direction_authority = _load_newest_gate_event(
-        MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT,
+    direction_audit, direction_authority = _load_declared_gate_event(
+        declared_evidence["model_native_direction_pocket_audit"],
         "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
         label="direction pocket audit",
     )
@@ -788,24 +825,16 @@ def assert_smart_serving_gate() -> dict:
         )
     )
     problems.extend(cross_gate_contract_failures(rep, direction_audit))
-    launch_state = entry.get("xau_direction_launch_state")
-    if not isinstance(launch_state, dict):
-        problems.append("artifact guard did not return the validated XAU direction launch state")
-    else:
-        declared_evidence = launch_state.get("serve_gate_evidence")
-        if not isinstance(declared_evidence, dict):
-            problems.append("XAU direction launch state lacks serve_gate_evidence")
-        else:
-            for evidence_name, observed in (
-                ("model_native_serve_parity", parity_authority),
-                ("model_native_direction_pocket_audit", direction_authority),
-            ):
-                declared = declared_evidence.get(evidence_name)
-                if declared != observed:
-                    problems.append(
-                        f"XAU direction launch {evidence_name} binding mismatch: "
-                        f"declared={declared!r} newest={observed!r}"
-                    )
+    for evidence_name, observed in (
+        ("model_native_serve_parity", parity_authority),
+        ("model_native_direction_pocket_audit", direction_authority),
+    ):
+        declared = declared_evidence[evidence_name]
+        if declared != observed:
+            problems.append(
+                f"XAU direction launch {evidence_name} binding mismatch: "
+                f"declared={declared!r} observed={observed!r}"
+            )
     if rep.get("decision") != "PASS":
         problems.append(f"parity decision={rep.get('decision')!r} failures={list(rep.get('failures') or [])[:3]}")
     current_commit, worktree_dirty = _smart_gate_git_state()
@@ -1076,8 +1105,6 @@ class SmartEntryLiveInference:
     # EXIT path never touches either — no lock exists to starve it.
     _ctx: SmartCtxSnapshot | None = field(default=None, repr=False)
     _ctx_refresh_thread: threading.Thread | None = field(default=None, repr=False)
-    # per-decision-bucket cache of prepared common-history frame states
-    _last_state_bucket: pd.Timestamp | None = field(default=None)
 
     def __post_init__(self) -> None:
         self.operating_point = require_model_direction_operating_point(
@@ -1296,7 +1323,7 @@ class SmartEntryLiveInference:
         so this read is race-free), then one atomic snapshot swap. Fail-SAFE:
         on error the previous snapshot stays live and the staleness cap
         (SMART_CTX_MAX_STALENESS_M5) turns a persistent failure into journaled
-        entry SKIPs — exits are never affected."""
+        Entry NO_DIRECTION events — exits are never affected."""
         try:
             old = self._ctx
             snap = self._build_ctx_snapshot(cv3)
@@ -1306,7 +1333,7 @@ class SmartEntryLiveInference:
                      snap.cv3_cutoff, snap.build_seconds)
         except Exception as exc:  # noqa: BLE001 — fail-safe: keep prior snapshot
             LOG.error(f"[smart-ctx-refresh] FAILED: {exc} — keeping previous snapshot "
-                      f"(staleness cap will SKIP entries if this persists)")
+                      f"(staleness cap will emit no direction if this persists)")
 
     @staticmethod
     def context_age_m5_bars(cv3: pd.DataFrame, end_ts: pd.Timestamp,
@@ -1551,17 +1578,11 @@ class SmartEntryLiveInference:
                 side_logits = _require_finite_vector(
                     out.get("side_logits"), name="side_logits", size=2, context=f"model forward at {ts}"
                 )
-                side_utility = _require_finite_vector(
-                    out.get("side_utility"), name="side_utility", size=2, context=f"model forward at {ts}"
-                )
                 side_bad_path_logit = _require_finite_vector(
                     out.get("side_bad_path_logit"),
                     name="side_bad_path_logit",
                     size=2,
                     context=f"model forward at {ts}",
-                )
-                side_mae = _require_finite_vector(
-                    out.get("side_mae"), name="side_mae", size=2, context=f"model forward at {ts}"
                 )
                 side_validity_logit = _require_finite_vector(
                     out.get("side_validity_logit"),
@@ -1730,8 +1751,8 @@ class SmartEntryLiveInference:
 
         Fail-closed: raises SmartContextStaleError when the snapshot lags the
         decision bar by more than SMART_CTX_MAX_STALENESS_M5 cv3 bars (the
-        pipeline journals the SKIP and retries next poll). Journals staleness on
-        every result: context_age_m5_bars / context_cutoff_ts /
+        pipeline journals model-direction unavailability and retries next poll).
+        Journals staleness on every result: context_age_m5_bars / context_cutoff_ts /
         context_refresh_in_flight / context_mtf_incremental.
         """
         if self._builder is None or self._model is None:

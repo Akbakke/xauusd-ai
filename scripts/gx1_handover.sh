@@ -9,16 +9,18 @@ PY="$REPO/.venv/bin/python"
 
 usage() {
   cat <<'EOF'
-Usage: scripts/gx1_handover.sh [--verbose]
+Usage: scripts/gx1_handover.sh [--check|--verbose]
 
-Default: compact, hash-bound status. --verbose additionally prints the full
-handover document and raw Python process table.
+Default: compact, hash-bound status. --check prints only the deterministic
+authority fingerprint and minimal source state. --verbose additionally prints
+the full handover document and raw Python process table.
 EOF
 }
 
 mode=compact
 case "${1:-}" in
   "") ;;
+  --check) mode=check ;;
   --verbose) mode=verbose ;;
   -h|--help) usage; exit 0 ;;
   *) printf 'FATAL: unsupported argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
@@ -36,6 +38,47 @@ for source in "${sources[@]}"; do
 done
 [[ -x "$PY" ]] || { echo "FATAL: repository Python is not executable: $PY" >&2; exit 2; }
 cd "$REPO"
+
+if [[ "$mode" == "check" ]]; then
+  mapfile -t git_lines < <(git status --short --untracked-files=all)
+  "$PY" - "${sources[@]}" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+
+paths = tuple(Path(raw) for raw in sys.argv[1:])
+digest = hashlib.sha256()
+digest.update(b"gx1-takeover-authority-v1\0")
+for index, path in enumerate(paths):
+    path_bytes = str(path).encode("utf-8")
+    payload = path.read_bytes()
+    digest.update(index.to_bytes(4, "big"))
+    digest.update(len(path_bytes).to_bytes(8, "big"))
+    digest.update(path_bytes)
+    digest.update(len(payload).to_bytes(8, "big"))
+    digest.update(payload)
+
+try:
+    state = json.loads(paths[-1].read_text(encoding="utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    raise SystemExit(f"FATAL: malformed launch authority: {exc}") from exc
+if not isinstance(state, dict):
+    raise SystemExit("FATAL: malformed launch authority: root must be an object")
+for key in ("decision", "updated_utc"):
+    if not isinstance(state.get(key), str) or not state[key]:
+        raise SystemExit(f"FATAL: malformed launch authority: missing {key}")
+
+print("mode: check")
+print(f"authority_fingerprint: {digest.hexdigest()}")
+print(f"decision: {state['decision']}")
+print(f"updated_utc: {state['updated_utc']}")
+PY
+  echo "head_commit: $(git rev-parse HEAD)"
+  printf 'changed_path_count: %d\n' "${#git_lines[@]}"
+  exit 0
+fi
 
 echo "# GX1 XAU Direction Repair Takeover (compact)"
 echo "mode: $mode"

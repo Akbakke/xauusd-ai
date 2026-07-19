@@ -37,11 +37,23 @@ Preflight, wrapper and builder now require explicit ranking/manifest artifacts
 and validate their lineage, vedtak, source hash and exact TRAIN window. This is
 source-contract proof only, not proof of trading edge.
 
+Smoke/candidate launch and the trainer now require explicit TRAIN/VAL/TEST
+manifest and parquet paths. Exact hashes are emitted only by the validated
+recipe, then rechecked with manifest self-path, vedtak and six-way-distinctness
+contracts. VAL and TEST are never inferred from TRAIN names or directory
+inventory.
+
 No seq513 rebuild chain or training process is running. Active Entry has zero
 imports from `signal_bridge_v1` and `signal_bridge_v3`;
 `entry_model_native_signal_v1` is the exact owner of the 34 base, 142
 continuous-context and 5 categorical-context fields. The retained V3 XGB
 bridge is Exit-only and remains required by two real Exit consumers.
+
+Live gate loading starts from the exact launch-declared event path/SHA rather
+than a fixed-root newest lookup. A failed model `decide()` produces structured
+direction unavailability and leaves the M5 bucket retryable; it cannot become
+synthetic FLAT. Downstream pipeline/runner tests prohibit direction/action
+mutation and post-model trend/session/utility/path threshold authority.
 
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable Entry launch
 decision. Both it and the artifact guard must admit the same immutable bundle
@@ -107,14 +119,16 @@ Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-The repository-wide audit is complete (2026-07-17): stale references,
-zero-reachability files and duplicate owners are removed, contracts are
-hardened (mandatory 305-prefix order, launch-JSON partition constants, one
-latency owner) and the full suite was green (1341/0). The next empirical gate
-is immutable historical selection-benchmark bytes plus exact learned
+The committed source baseline was green at 1,388 passed, 5 skipped and zero
+failures. Subsequent narrow audits removed additional dead stop-script
+branches, bound serving/train artifact identity, and added a compact takeover
+fingerprint; these are source-contract changes, not empirical edge. The next
+empirical gate is immutable historical selection-benchmark bytes plus exact learned
 model-native abstention-probe evidence at comparable OOT coverage. The current
 metadata-only probe is insufficient. Only a green probe may justify returning
-to the hardened seq513 rebuild runbook with a newly matched ranking/manifest;
+to the hardened seq513 rebuild runbook with a newly matched ranking/manifest
+and a **new** explicit vedtak; invalidated
+`XAU_SEQ513_REBUILD_20260718_V1` cannot be reused;
 only an accepted rebuild may advance to smoke. Zero FLAT predictions remains
 hard-red. No accepted rebuild, training result or empirical precision result
 exists yet.

@@ -39,14 +39,25 @@ def _manifest(path: Path, split: str, counts: tuple[int, int, int]) -> str:
 
 
 def _registry(path: Path, *, available: bool, artifact_dir: Path) -> str:
-    artifact_dir.mkdir(exist_ok=True)
+    artifact = artifact_dir.with_suffix(".json")
+    artifact.write_text('{"historical":true}\n', encoding="utf-8")
     return _write_json(
         path,
         {
             "schema_version": "gx1_artifact_selection_v2",
-            "active": {
+            "active": {},
+            "retired": {
+                "v10_entry": {
+                    "status": "REJECTED_BY_XAU_SEQ513_MODEL_NATIVE_CONTRACT",
+                    "artifact_present": True,
+                },
                 "entry_iql": {
-                    "path": str(artifact_dir) if available else None,
+                    "path": str(artifact.resolve()) if available else None,
+                    "sha256": (
+                        hashlib.sha256(artifact.read_bytes()).hexdigest()
+                        if available
+                        else None
+                    ),
                     "status": "HISTORICAL_COMPARISON_ONLY" if available else "RETIRED_ARTIFACT_ABSENT",
                     "artifact_present": available,
                 }
@@ -189,6 +200,37 @@ def test_bound_manifest_hash_mismatch_fails_before_report(tmp_path: Path) -> Non
     with pytest.raises(RuntimeError, match="sha256 mismatch"):
         probe.run(args)
     assert not (tmp_path / "reports").exists()
+
+
+def test_registry_rejects_retired_entry_records_under_active(tmp_path: Path) -> None:
+    args = _base_args(tmp_path)
+    registry_path = Path(args.artifact_registry_json)
+    payload = json.loads(registry_path.read_text(encoding="utf-8"))
+    payload["active"]["entry_iql"] = payload["retired"]["entry_iql"]
+    args.artifact_registry_sha256 = _write_json(registry_path, payload)
+
+    with pytest.raises(RuntimeError, match="non-active Entry records under active"):
+        probe.run(args)
+
+
+def test_repository_registry_has_only_true_decision_roles_under_active() -> None:
+    payload = json.loads(Path("PROJECT_STATE_artifacts.json").read_text(encoding="utf-8"))
+
+    assert "v10_entry" not in payload["active"]
+    assert "entry_iql" not in payload["active"]
+    assert payload["retired"]["v10_entry"]["status"].startswith("REJECTED")
+    assert payload["retired"]["entry_iql"] == {
+        "path": None,
+        "sha256": None,
+        "status": "RETIRED_ARTIFACT_ABSENT",
+        "artifact_present": False,
+        "in_sample_only": False,
+        "note": (
+            "The formerly registered historical Entry-IQL directory is absent as of "
+            "2026-07-19. No benchmark bytes are registered, and Entry-IQL is not an "
+            "Entry authority or fallback."
+        ),
+    }
 
 
 def test_exact_aligned_evidence_can_pass_comparison_but_grants_no_authority(tmp_path: Path) -> None:

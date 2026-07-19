@@ -150,6 +150,55 @@ def test_entry_validation_failure_does_not_consume_fresh_m5_bucket():
     assert smart.calls == 2
 
 
+def test_invalid_model_direction_is_structured_unavailable_not_flat() -> None:
+    from gx1.execution.v12_pipeline import (
+        ENTRY_SEQ_LEN,
+        EntryDecisionUnavailable,
+        V12Pipeline,
+    )
+
+    class _InvalidDirectionEntry:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def predict_live_bar(self, _loader, decision_m5):
+            return {"time": decision_m5}
+
+        def decide(self, _head, *, atr_bps):
+            self.calls += 1
+            assert atr_bps == 12.0
+            raise RuntimeError("direction logits/probability parity mismatch")
+
+    smart = _InvalidDirectionEntry()
+    pipeline = V12Pipeline(
+        prebuilt_loader=object(),
+        exit_xgb=object(),
+        smart_entry=smart,
+    )
+    decision_m5 = pd.Timestamp("2026-07-09T12:05:00Z")
+    pipeline._last_augmented = pd.DataFrame(
+        {"atr_bps": [12.0] * ENTRY_SEQ_LEN},
+        index=pd.date_range(end=decision_m5, periods=ENTRY_SEQ_LEN, freq="5min"),
+    )
+    pipeline._refresh_entry_canonical = lambda _now: None
+
+    for _ in range(2):
+        with pytest.raises(EntryDecisionUnavailable) as exc_info:
+            pipeline.make_entry_decision(
+                pd.Timestamp("2026-07-09T12:10:00Z"),
+                bid=3300.0,
+                ask=3300.2,
+            )
+        assert exc_info.value.reason == "model_native_direction_decision_invalid"
+        assert exc_info.value.evidence["error_type"] == "RuntimeError"
+        assert "parity mismatch" in exc_info.value.evidence["error"]
+        assert "action" not in exc_info.value.evidence
+        assert "model_direction" not in exc_info.value.evidence
+        assert pipeline._last_smart_bucket is None
+
+    assert smart.calls == 2
+
+
 def test_entry_decision_latency_does_not_floor_away_subminute_staleness():
     from gx1.execution.v12_pipeline import _entry_decision_latency_fields
 

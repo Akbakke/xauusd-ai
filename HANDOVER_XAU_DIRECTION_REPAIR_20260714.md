@@ -1,8 +1,9 @@
 # XAUUSD model-native direction handover
 
 Updated 2026-07-19. This is the only GX1 handover document. Run
-`bash scripts/gx1_handover.sh` to print it with repository, disk, RAM and
-process state.
+`bash scripts/gx1_handover.sh` once for the compact repository/launch/process
+snapshot, `--check` on continuations, and `--verbose` only when the full
+document must be printed again.
 
 ## Goal
 
@@ -38,6 +39,11 @@ terminal schema-v2 `RED` record with reason
 The preflight, wrapper and builder now require explicit feature-ranking and
 signal-manifest lineage, matching vedtak/source hash and the exact requested
 TRAIN window. Green source-contract tests prove wiring, not trading edge.
+
+The smoke/candidate launch validators and trainer now bind six explicit split
+artifacts: TRAIN/VAL/TEST manifest plus TRAIN/VAL/TEST parquet. Their exact
+paths and hashes flow through the validated recipe environment; the trainer
+does not infer VAL/TEST from a TRAIN stem or discover a split with glob/latest.
 
 No seq513 rebuild chain or training process is running. A new report-only
 model-native abstention metadata run ended
@@ -133,6 +139,21 @@ to `FLAT`, a cached decision or backlog execution.
   serving paths from the model, trainer, builder and strict bundle loader.
 - Added exact smoke/candidate wrappers with immutable prerequisite bindings;
   no mutable discovery or generic trainer pass-through remains.
+- Removed trainer split discovery/stem inference. Both wrappers forward all
+  six explicit manifest/parquet identities and the trainer revalidates their
+  hashes, self-paths, vedtak lineage, distinctness and shared contract before
+  reading rows.
+- Bound live serving gates to the exact launch-declared event path/SHA before
+  revalidating immutable-event authority. Fixed-roots newest discovery cannot
+  choose a different gate first.
+- Made a failed live `decide()` an explicit retryable
+  `MODEL_DECISION_UNAVAILABLE`, never synthetic `FLAT`/`SKIP`; downstream
+  pipeline/runner tests forbid auxiliary-head direction branches or mutation
+  of the model's direction/action fields.
+- Moved rejected Smart520 and absent Entry-IQL records out of the artifact
+  registry's `active` inventory. Only retained Exit artifacts are active.
+- Added `gx1_handover.sh --check`: a deterministic authority fingerprint and
+  minimal state view for continuations, avoiding repeated all-Markdown reads.
 - Compacted and hardened the canonical smoke bundle audit. It strict-loads the
   bundle and proves state/meta/lock hashes, architecture, objective identity,
   exact 20-head and 23/75-fusion identity, learned-component movement and
@@ -304,9 +325,10 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Use the one issued vedtak ID `XAU_SEQ513_REBUILD_20260718_V1`; it must be
-   bound into rank NPZ, sidecar, build proof, state contract and all split
-   manifests. Wrapper-only console values do not count.
+1. Do **not** reuse invalidated vedtak `XAU_SEQ513_REBUILD_20260718_V1`. Obtain
+   a new explicit rebuild vedtak ID after the abstention-baseline decision; it
+   must be bound into rank NPZ, sidecar, build proof, state contract and all
+   split manifests. Wrapper-only console values do not count.
 2. Materialize a fresh feature-ranking JSON for the exact active TRAIN window.
    Never discover it through a directory glob or lexical/mtime "latest"
    selection.
@@ -362,6 +384,7 @@ the result is `BLOCK`.
 ```bash
 cd /home/andre2/src/GX1_ENGINE
 bash scripts/gx1_handover.sh
+bash scripts/gx1_handover.sh --check
 .venv/bin/python -m json.tool PROJECT_STATE_xau_direction_launch.json
 scripts/entry_next_edge_control.sh --help
 ```

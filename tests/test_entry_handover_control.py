@@ -1,3 +1,4 @@
+import hashlib
 import subprocess
 from pathlib import Path
 
@@ -6,6 +7,12 @@ REPO = Path("/home/andre2/src/GX1_ENGINE")
 HANDOVER = REPO / "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 HANDOVER_VIEWER = REPO / "scripts/gx1_handover.sh"
 CONTROL = REPO / "scripts/entry_next_edge_control.sh"
+AUTHORITY_PATHS = (
+    REPO / "AGENTS.md",
+    REPO / "SYSTEM_MAP.md",
+    HANDOVER,
+    REPO / "PROJECT_STATE_xau_direction_launch.json",
+)
 
 RETAINED_CONTROL_ROUTES = {
     "handover",
@@ -89,6 +96,39 @@ def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> N
     assert "## Required evidence before Entry can open" in rendered_handover
     assert "## Operational takeover" in rendered_handover
     assert rendered_handover.splitlines()[-1] == authoritative_handover.splitlines()[-1]
+
+
+def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
+    result = subprocess.run(
+        ["bash", str(HANDOVER_VIEWER), "--check"],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    digest = hashlib.sha256()
+    digest.update(b"gx1-takeover-authority-v1\0")
+    for index, path in enumerate(AUTHORITY_PATHS):
+        path_bytes = str(path).encode("utf-8")
+        payload = path.read_bytes()
+        digest.update(index.to_bytes(4, "big"))
+        digest.update(len(path_bytes).to_bytes(8, "big"))
+        digest.update(path_bytes)
+        digest.update(len(payload).to_bytes(8, "big"))
+        digest.update(payload)
+
+    assert "mode: check" in result.stdout
+    assert f"authority_fingerprint: {digest.hexdigest()}" in result.stdout
+    assert "decision: BLOCK" in result.stdout
+    assert "head_commit:" in result.stdout
+    assert "changed_path_count:" in result.stdout
+    assert "## Host capacity" not in result.stdout
+    assert "## Active GX1 process groups" not in result.stdout
+    assert "## Full Handover (--verbose)" not in result.stdout
+    assert len(result.stdout.encode("utf-8")) < 320
 
 
 def test_control_surface_handover_alias_uses_current_handover_viewer() -> None:

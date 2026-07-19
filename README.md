@@ -13,7 +13,8 @@ The July-19 seq513 rebuild attempts under
 `XAU_SEQ513_REBUILD_20260718_V1` were terminated and invalidated after a
 feature-ranking TRAIN-window mismatch; no rebuild process or accepted dataset
 exists now, no seq513 training process is running, and partial artifacts have
-no authority. A report-only abstention metadata check is
+no authority. V1 cannot be reused; any future rebuild requires a new explicit
+vedtak after the abstention-baseline decision. A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
 objective weights are not learned evidence. It read zero parquet; immutable
 historical selection-benchmark bytes and exact learned-probe OOT evidence are
@@ -56,6 +57,7 @@ and future-leaking variants are not additional robustness.
 
 ```bash
 bash scripts/gx1_handover.sh
+bash scripts/gx1_handover.sh --check  # continuations with unchanged authority
 .venv/bin/python -m json.tool PROJECT_STATE_xau_direction_launch.json
 scripts/entry_next_edge_control.sh --help
 ```

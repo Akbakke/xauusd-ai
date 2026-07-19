@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -154,6 +155,26 @@ def _args(
         tmp_path / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260716T120001123456Z.json",
         {"decision": "PASS"},
     )
+    values: dict[str, object] = {
+        f"{split}_{kind}": str(
+            dataset_dir
+            / (
+                f"{gate.DEFAULT_STEM}_{split}.parquet"
+                if kind == "parquet"
+                else f"{gate.DEFAULT_STEM}_{split}.manifest.json"
+            )
+        )
+        for split in gate.SPLITS
+        for kind in ("parquet", "manifest_json")
+    }
+    for split in gate.SPLITS:
+        for kind in ("parquet", "manifest"):
+            path = Path(values[f"{split}_{kind if kind == 'parquet' else 'manifest_json'}"])
+            values[f"{split}_{kind}_sha256"] = (
+                hashlib.sha256(path.read_bytes()).hexdigest()
+                if path.is_file()
+                else "0" * 64
+            )
     return argparse.Namespace(
         smart_smoke_dataset_dir=str(dataset_dir),
         post_rebuild_readiness_json=str(post_rebuild or _post_rebuild(tmp_path, dataset_dir)),
@@ -165,6 +186,7 @@ def _args(
         sample_rows=2,
         batch_size=2,
         quiet=True,
+        **values,
     )
 
 
@@ -204,6 +226,26 @@ def test_materializes_one_hash_bound_immutable_manifest_event(tmp_path: Path) ->
     )
     assert report["training_allowed"] is False
     assert not any(report["side_effects_started"].values())
+    train_contract = report["future_command_contracts"]["smart_smoke_train"]
+    argv = train_contract["argv_template"]
+    assert argv == train_contract["wrapper_argv_template"]
+    assert argv[:2] == [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-smoke-train",
+    ]
+    for flag in (
+        "--train-manifest-json",
+        "--val-manifest-json",
+        "--test-manifest-json",
+        "--train-parquet",
+        "--val-parquet",
+        "--test-parquet",
+    ):
+        assert flag in argv
+    joined = " ".join(argv)
+    assert "gx1.models.entry_v10.entry_v10_ctx_train_v3" not in joined
+    assert "--dataset_dir" not in argv
+    assert "--dataset_train_parquet" not in argv
 
     event_path = Path(report["json_path"])
     assert event_path.name.startswith(f"{gate.EVENT_PREFIX}_")
@@ -238,7 +280,7 @@ def test_rejects_mutable_latest_input_before_artifact_reads(tmp_path: Path) -> N
 @pytest.mark.parametrize(
     ("dataset_kwargs", "blocker"),
     [
-        ({"missing_manifest_split": "val"}, "exact train val test split manifests exist"),
+        ({"missing_manifest_split": "val"}, "exact train val test split artifacts exist"),
         ({"width": 512}, "split signal seq and snap dims are 513"),
         ({"schema_version": "stale_split_schema_v1"}, "split manifests use model-native seq513 split schema"),
         ({"exact_signal_contract": False}, "split manifests carry exact model-native signal contract"),
@@ -276,6 +318,30 @@ def test_upstream_acceptance_proof_is_mandatory(tmp_path: Path, missing: str) ->
     assert report["manifest_embedded"] is False
 
 
+def test_explicit_split_hash_and_six_way_identity_fail_closed(tmp_path: Path) -> None:
+    dataset_dir = _dataset(tmp_path)
+    bad_hash = _args(tmp_path, dataset_dir)
+    bad_hash.val_parquet_sha256 = "0" * 64
+
+    hash_report = _run_blocked(bad_hash)
+
+    assert "caller-bound split hashes match train val test bytes" in hash_report["blockers"]
+
+    second_root = tmp_path / "second"
+    second_root.mkdir()
+    second_dataset = _dataset(second_root)
+    duplicate = _args(second_root, second_dataset)
+    duplicate.val_parquet = duplicate.train_parquet
+    duplicate.val_parquet_sha256 = duplicate.train_parquet_sha256
+
+    duplicate_report = _run_blocked(duplicate)
+
+    assert (
+        "train val test split paths are explicit canonical and distinct"
+        in duplicate_report["blockers"]
+    )
+
+
 def test_source_has_one_immutable_writer_and_no_duplicate_outputs() -> None:
     source = Path(gate.__file__).read_text(encoding="utf-8")
     assert source.count("write_immutable_json_event(") == 1
@@ -285,3 +351,21 @@ def test_source_has_one_immutable_writer_and_no_duplicate_outputs() -> None:
     assert "SMOKE_DATASET_MANIFEST.json" not in source
     assert "smart_seq520" not in source.lower()
     assert "fail-on-not-ready" not in source
+    assert "_split_candidates" not in source
+    assert 'glob(f"*_{split}' not in source
+
+
+def test_control_route_requires_all_explicit_split_paths_and_hashes() -> None:
+    source = Path("scripts/entry_next_edge_control.sh").read_text(encoding="utf-8")
+    route = source[
+        source.index("  model-native-smoke-manifest)") :
+        source.index("  model-native-smoke-readiness)")
+    ]
+    for split in gate.SPLITS:
+        for suffix in (
+            "parquet",
+            "parquet-sha256",
+            "manifest-json",
+            "manifest-sha256",
+        ):
+            assert f"--{split}-{suffix}" in route

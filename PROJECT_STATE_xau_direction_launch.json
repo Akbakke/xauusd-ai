@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-19T19:24:51Z",
+  "updated_utc": "2026-07-19T19:47:47Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716",
   "latest_terminal_event_decision": "FAIL",
@@ -25,7 +25,8 @@
     "No fresh immutable 305-mandatory-plus-174-TRAIN-ranked seq513 signal manifest or dataset is accepted; source contracts alone do not prove edge.",
     "The July-19 seq513 attempts under vedtak XAU_SEQ513_REBUILD_20260718_V1 were terminated and invalidated because feature-ranking TRAIN 2020-11-13..2026-03-31 mismatched active TRAIN 2021-03-16..2026-03-31.",
     "No seq513 rebuild chain or training process is running; partial attempt artifacts have no admission or resume authority, and schema-v2 CHAIN_STATUS.json terminally records RED with reason FEATURE_RANKING_TRAIN_WINDOW_MISMATCH and bound hashes.",
-    "Preflight, wrapper and builder now require explicit ranking and signal-manifest lineage, matching vedtak/source hash and exact TRAIN window; this code proof is not an accepted rebuild or trading-edge result.",
+    "No replacement rebuild vedtak has been issued; invalidated XAU_SEQ513_REBUILD_20260718_V1 cannot authorize another attempt.",
+    "Preflight, wrapper, builder and trainer now bind explicit ranking, signal-manifest and TRAIN/VAL/TEST manifest/parquet identities with matching hashes, vedtak/source lineage and exact TRAIN window; this code proof is not an accepted rebuild or trading-edge result.",
     "The 20260716 520-wide dataset contains seven constant neutral-XGB bridge fields and is rejected by the exact 513 model-native contract; a fresh rebuild is required.",
     "The report-only model-native abstention metadata run is BLOCK_ABSTENTION_EMPIRICAL_GATE: FLAT labels are balanced on TRAIN 1400/4095 (34.19%), validation 530/1536 (34.51%), and TEST 516/1536 (33.59%), with positive active FLAT/utility/margin weights, but it read zero parquet and produced no learned-probe evidence.",
     "Immutable historical selection-benchmark bytes and exact learned abstention-probe OOT prediction/evaluation evidence at comparable coverage are absent; metadata cannot authorize rebuild, training, candidate, replay, or launch.",

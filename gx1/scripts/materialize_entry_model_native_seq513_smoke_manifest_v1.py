@@ -460,17 +460,12 @@ def _explicit_vedtak_id_ok(vedtak_id: str) -> bool:
     return value not in placeholders and "<" not in value and ">" not in value
 
 
-def _split_candidates(dataset_dir: Path, split: str) -> tuple[list[Path], list[Path]]:
-    parquets = sorted(dataset_dir.glob(f"*_{split}.parquet")) if dataset_dir.exists() else []
-    manifests = sorted(dataset_dir.glob(f"*_{split}.manifest.json")) if dataset_dir.exists() else []
-    return parquets, manifests
-
-
-def _resolve_manifest_output_path(manifest: dict[str, Any], default_path: Path | None) -> Path | None:
+def _resolve_manifest_output_path(manifest: dict[str, Any]) -> Path | None:
     raw = str(manifest.get("output_data_path") or "").strip()
     if raw:
-        return Path(raw).expanduser().resolve()
-    return default_path.resolve() if default_path is not None else None
+        path = Path(raw).expanduser()
+        return path.resolve() if path.is_absolute() else None
+    return None
 
 
 def _stack_list_column(values: Any, dtype: np.dtype) -> np.ndarray:
@@ -553,38 +548,71 @@ def _sample_seq_snap_shapes(path: Path, *, sample_rows: int, batch_size: int) ->
     }
 
 
-def _split_summary(dataset_dir: Path, split: str, *, sample_rows: int, batch_size: int) -> dict[str, Any]:
-    parquets, manifests = _split_candidates(dataset_dir, split)
-    parquet_path = parquets[0].resolve() if len(parquets) == 1 else None
-    manifest_path = manifests[0].resolve() if len(manifests) == 1 else None
-    manifest = _read_json_or_empty(manifest_path) if manifest_path is not None else {}
-    output_path = _resolve_manifest_output_path(manifest, parquet_path)
+def _split_summary(
+    dataset_dir: Path,
+    split: str,
+    *,
+    parquet_value: str,
+    parquet_sha256: str,
+    manifest_value: str,
+    manifest_sha256: str,
+    sample_rows: int,
+    batch_size: int,
+) -> dict[str, Any]:
+    parquet_input = Path(parquet_value).expanduser()
+    manifest_input = Path(manifest_value).expanduser()
+    parquet_path = parquet_input.resolve()
+    manifest_path = manifest_input.resolve()
+    paths_exact = bool(
+        parquet_input.is_absolute()
+        and manifest_input.is_absolute()
+        and parquet_input == parquet_path
+        and manifest_input == manifest_path
+        and not parquet_input.is_symlink()
+        and not manifest_input.is_symlink()
+        and parquet_path.parent == dataset_dir
+        and manifest_path.parent == dataset_dir
+        and not any("latest" in part.lower() for part in parquet_path.parts)
+        and not any("latest" in part.lower() for part in manifest_path.parts)
+    )
+    manifest = _read_json_or_empty(manifest_path)
+    output_path = _resolve_manifest_output_path(manifest)
     extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
     signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
     fields = [str(x) for x in signal_bridge.get("fields", []) if str(x).strip()]
     shape_probe = (
-        _sample_seq_snap_shapes(output_path, sample_rows=sample_rows, batch_size=batch_size)
-        if output_path is not None
+        _sample_seq_snap_shapes(parquet_path, sample_rows=sample_rows, batch_size=batch_size)
+        if paths_exact and parquet_path.is_file()
         else {"ok": False, "errors": ["missing output_data_path"], "rows": 0}
+    )
+    observed_manifest_sha = _sha256_file(manifest_path)
+    observed_parquet_sha = _sha256_file(parquet_path)
+    hashes_exact = bool(
+        _is_sha256(manifest_sha256)
+        and _is_sha256(parquet_sha256)
+        and observed_manifest_sha == str(manifest_sha256).lower()
+        and observed_parquet_sha == str(parquet_sha256).lower()
     )
     return {
         "split": split,
-        "parquet_candidates": [str(path) for path in parquets],
-        "manifest_candidates": [str(path) for path in manifests],
-        "parquet_candidate_count": int(len(parquets)),
-        "manifest_candidate_count": int(len(manifests)),
-        "parquet_path": str(parquet_path) if parquet_path is not None else "",
-        "manifest_path": str(manifest_path) if manifest_path is not None else "",
-        "parquet_exists": bool(parquet_path is not None and parquet_path.exists()),
-        "manifest_exists": bool(manifest_path is not None and manifest_path.exists()),
+        "parquet_path": str(parquet_path),
+        "manifest_path": str(manifest_path),
+        "explicit_paths_exact": paths_exact,
+        "parquet_exists": bool(parquet_path.is_file()),
+        "manifest_exists": bool(manifest_path.is_file()),
         "output_data_path": str(output_path) if output_path is not None else "",
         "output_data_exists": bool(output_path is not None and output_path.exists()),
         "manifest_output_matches_split_parquet": bool(
-            output_path is not None and parquet_path is not None and output_path == parquet_path
+            output_path is not None
+            and output_path == parquet_path
+            and Path(str(manifest.get("output_data_path"))).expanduser() == parquet_path
         ),
         "rows": int(shape_probe.get("rows") or 0),
-        "manifest_sha256": _sha256_file(manifest_path) if manifest_path is not None else None,
-        "parquet_sha256": _sha256_file(output_path) if output_path is not None else None,
+        "manifest_sha256": observed_manifest_sha,
+        "parquet_sha256": observed_parquet_sha,
+        "expected_manifest_sha256": str(manifest_sha256).lower(),
+        "expected_parquet_sha256": str(parquet_sha256).lower(),
+        "hashes_exact": hashes_exact,
         "manifest_variant": str(manifest.get("manifest_variant") or ""),
         "expected_seq_snap_width": int(manifest.get("expected_seq_snap_width") or 0),
         "schema_version": str(manifest.get("schema_version") or ""),
@@ -603,42 +631,84 @@ def _split_summary(dataset_dir: Path, split: str, *, sample_rows: int, batch_siz
 def _future_command_contracts(
     *,
     dataset_dir: Path,
+    splits: dict[str, dict[str, Any]],
     specialist_audit_json: Path,
     vedtak_id: str,
     memory_cap: str,
     swap_cap: str,
 ) -> dict[str, Any]:
-    train_parquet = dataset_dir / f"{DEFAULT_STEM}_train.parquet"
-    env_prefix = [
-        "env",
-        *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()],
-        *[f"{key}={value}" for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items()],
-        *[f"{key}={value}" for key, value in TAIL_DIRECTION_ENV_TEMPLATE.items()],
-    ]
-    train_inner = [
-        *env_prefix,
-        ".venv/bin/python",
-        "-m",
-        "gx1.models.entry_v10.entry_v10_ctx_train_v3",
-        "--train",
+    wrapper_argv = [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-smoke-train",
         "--vedtak",
         vedtak_id,
-        "--dataset_dir",
+        "--dataset-dir",
         str(dataset_dir),
-        "--dataset_train_parquet",
-        str(train_parquet),
-        "--epochs",
-        "1",
-        "--batch_size",
-        "64",
-        "--num-workers",
-        "0",
-        "--enable-specialist-fusion",
+        "--train-manifest-json",
+        splits["train"]["manifest_path"],
+        "--val-manifest-json",
+        splits["val"]["manifest_path"],
+        "--test-manifest-json",
+        splits["test"]["manifest_path"],
+        "--train-parquet",
+        splits["train"]["parquet_path"],
+        "--val-parquet",
+        splits["val"]["parquet_path"],
+        "--test-parquet",
+        splits["test"]["parquet_path"],
+        "--m5-prebuilt-path",
+        "<IMMUTABLE_TIMESTAMPED_M5_PREBUILT_PATH>",
+        "--full-input-liveness-audit-json",
+        "<IMMUTABLE_TIMESTAMPED_FULL_INPUT_LIVENESS_AUDIT_JSON>",
+        "--feature-audit-json",
+        "<IMMUTABLE_TIMESTAMPED_FEATURE_AUDIT_JSON>",
+        "--target-audit-json",
+        "<IMMUTABLE_TIMESTAMPED_TARGET_AUDIT_JSON>",
         "--specialist-audit-json",
         str(specialist_audit_json),
-        "--specialist-contract-mode",
-        SMART_SPECIALIST_CONTRACT_MODE,
-        "--enable-xau-direction-repair-heads",
+        "--pretrain-audit-json",
+        "<IMMUTABLE_TIMESTAMPED_PRETRAIN_AUDIT_JSON>",
+        "--recipe-audit-json",
+        "<IMMUTABLE_TIMESTAMPED_RECIPE_AUDIT_JSON>",
+        "--smoke-manifest-json",
+        "<THIS_IMMUTABLE_TIMESTAMPED_SMOKE_MANIFEST_JSON>",
+        "--smoke-readiness-json",
+        "<IMMUTABLE_TIMESTAMPED_SMOKE_READINESS_JSON>",
+        "--trainability-readiness-json",
+        "<IMMUTABLE_TIMESTAMPED_TRAINABILITY_READINESS_JSON>",
+        "--out-bundle-dir",
+        "<FRESH_ABSOLUTE_SMOKE_BUNDLE_DIR>",
+        "--gx1-data-root",
+        "<ABSOLUTE_CANONICAL_GX1_DATA_ROOT>",
+        "--device",
+        "cuda",
+        "--seed",
+        "1337",
+        "--epochs",
+        "1",
+        "--batch-size",
+        "64",
+        "--learning-rate",
+        "0.0003",
+        "--early-stop-patience",
+        "1",
+        "--early-stop-min-delta",
+        "0.0",
+        "--grad-clip-norm",
+        "1.0",
+        "--weight-decay",
+        "0.00001",
+        "--multi-tf-scale",
+        "0.5",
+        "--specialist-fusion-scale",
+        "0.25",
+        "--subsample-rows",
+        "10000",
+        "--memory-cap",
+        memory_cap,
+        "--swap-cap",
+        swap_cap,
+        "<EXACTLY_ONE_OF_DRY_RUN_OR_EXECUTE>",
     ]
     return {
         "smart_smoke_manifest": {
@@ -652,27 +722,22 @@ def _future_command_contracts(
             "touches_shadow_or_live": False,
         },
         "smart_smoke_train": {
-            "mode": "future_train_contract_not_executed",
+            "mode": "future_exact_wrapper_contract_not_executed",
             "implemented_in_control_surface": True,
-            "requires_trainer_surface_enablement": False,
+            "control_route": "model-native-smoke-train",
+            "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
             "execution_allowed_now": False,
-            "argv_template": [
-                RAM_CAP_RUNNER,
-                "--mem",
-                memory_cap,
-                "--swap",
-                swap_cap,
-                "--",
-                *train_inner,
-            ],
-            "inner_train_argv_template": train_inner,
+            "argv_template": wrapper_argv,
+            "wrapper_argv_template": wrapper_argv,
             "requires_explicit_vedtak": True,
             "explicit_vedtak_id": vedtak_id,
+            "requires_clean_git": True,
             "requires_ram_cap": True,
             "ram_cap_runner": RAM_CAP_RUNNER,
             "memory_cap": memory_cap,
             "swap_cap": swap_cap,
             "num_workers": 0,
+            "starts_trainer": True,
             "requires_path_calibration_recipe_contract": True,
             "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
             "path_calibration_env_template": dict(PATH_CALIBRATION_ENV_TEMPLATE),
@@ -766,9 +831,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir_missing = not bool(raw_dataset_dir)
     dataset_dir = Path(raw_dataset_dir).expanduser().resolve()
     splits = {
-        split: _split_summary(dataset_dir, split, sample_rows=sample_rows, batch_size=batch_size)
+        split: _split_summary(
+            dataset_dir,
+            split,
+            parquet_value=str(getattr(args, f"{split}_parquet")),
+            parquet_sha256=str(getattr(args, f"{split}_parquet_sha256")),
+            manifest_value=str(getattr(args, f"{split}_manifest_json")),
+            manifest_sha256=str(getattr(args, f"{split}_manifest_sha256")),
+            sample_rows=sample_rows,
+            batch_size=batch_size,
+        )
         for split in SPLITS
     }
+    split_paths = [
+        row[key]
+        for row in splits.values()
+        for key in ("parquet_path", "manifest_path")
+    ]
     post_rebuild_side_effects = (
         post_rebuild_readiness.get("side_effects_started")
         if isinstance(post_rebuild_readiness.get("side_effects_started"), dict)
@@ -792,6 +871,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ]
     future_command_contracts = _future_command_contracts(
         dataset_dir=dataset_dir,
+        splits=splits,
         specialist_audit_json=specialist_audit_json,
         vedtak_id=vedtak_id,
         memory_cap=memory_cap,
@@ -856,13 +936,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check("smart smoke dataset directory exists", dataset_dir.exists(), {"dataset_dir": str(dataset_dir)}),
         _check(
-            "exact train val test split parquets exist",
-            all(row["parquet_candidate_count"] == 1 for row in splits.values()),
+            "train val test split paths are explicit canonical and distinct",
+            all(row["explicit_paths_exact"] for row in splits.values())
+            and len(set(split_paths)) == 6,
             splits,
         ),
         _check(
-            "exact train val test split manifests exist",
-            all(row["manifest_candidate_count"] == 1 for row in splits.values()),
+            "exact train val test split artifacts exist",
+            all(
+                row["parquet_exists"] and row["manifest_exists"]
+                for row in splits.values()
+            ),
             splits,
         ),
         _check(
@@ -871,8 +955,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             splits,
         ),
         _check(
-            "split hashes are present for train val test",
-            all(_is_sha256(row["parquet_sha256"]) and _is_sha256(row["manifest_sha256"]) for row in splits.values()),
+            "caller-bound split hashes match train val test bytes",
+            all(row["hashes_exact"] for row in splits.values()),
             splits,
         ),
         _check(
@@ -926,11 +1010,33 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check("side effects remain closed", all(value is False for value in SIDE_EFFECTS_STARTED.values()), SIDE_EFFECTS_STARTED),
         _check(
-            "future train contract requires RAM cap and num_workers zero",
+            "future train contract uses only the exact wrapper and six explicit splits",
             future_command_contracts["smart_smoke_train"]["requires_ram_cap"] is True
             and future_command_contracts["smart_smoke_train"]["ram_cap_runner"] == RAM_CAP_RUNNER
             and future_command_contracts["smart_smoke_train"]["num_workers"] == 0
-            and "--num-workers" in future_command_contracts["smart_smoke_train"]["inner_train_argv_template"],
+            and future_command_contracts["smart_smoke_train"]["control_route"]
+            == "model-native-smoke-train"
+            and future_command_contracts["smart_smoke_train"]["wrapper_path"]
+            == "scripts/run_entry_model_native_seq513_smoke_train.sh"
+            and future_command_contracts["smart_smoke_train"]["wrapper_argv_template"]
+            == future_command_contracts["smart_smoke_train"]["argv_template"]
+            and all(
+                flag in future_command_contracts["smart_smoke_train"]["argv_template"]
+                for flag in (
+                    "--train-manifest-json",
+                    "--val-manifest-json",
+                    "--test-manifest-json",
+                    "--train-parquet",
+                    "--val-parquet",
+                    "--test-parquet",
+                )
+            )
+            and "gx1.models.entry_v10.entry_v10_ctx_train_v3"
+            not in " ".join(future_command_contracts["smart_smoke_train"]["argv_template"])
+            and "--dataset_dir"
+            not in future_command_contracts["smart_smoke_train"]["argv_template"]
+            and "--dataset_train_parquet"
+            not in future_command_contracts["smart_smoke_train"]["argv_template"],
             future_command_contracts["smart_smoke_train"],
         ),
         _check(
@@ -1033,6 +1139,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--smart-smoke-dataset-dir", required=True)
     ap.add_argument("--post-rebuild-readiness-json", required=True)
     ap.add_argument("--smart-specialist-audit-json", required=True)
+    for split in SPLITS:
+        ap.add_argument(f"--{split}-parquet", required=True)
+        ap.add_argument(f"--{split}-parquet-sha256", required=True)
+        ap.add_argument(f"--{split}-manifest-json", required=True)
+        ap.add_argument(f"--{split}-manifest-sha256", required=True)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--vedtak-id", "--vedtak", dest="vedtak_id", required=True)
     ap.add_argument("--memory-cap", default=DEFAULT_MEMORY_CAP)

@@ -24,6 +24,18 @@ Read in this order:
 
 Run `bash scripts/gx1_handover.sh` for a read-only takeover snapshot.
 
+Token/credit discipline:
+
+- Run the compact snapshot once per root takeover. On continuations and in
+  subagents, run `bash scripts/gx1_handover.sh --check` first; when its
+  `authority_fingerprint` is unchanged, do not reread the authoritative
+  documents or repeat an all-Markdown inventory.
+- `--verbose` is an explicit diagnostic, not a takeover default. Do not print
+  the full handover or a raw process table again after they have been read.
+- Start discovery from the ownership paths in `SYSTEM_MAP.md`. Read exact
+  files or bounded sections and cap search output; broaden a source scan only
+  when the map cannot identify the owner, and record why it was necessary.
+
 ## Hard architecture invariants
 
 ### One Entry decision authority

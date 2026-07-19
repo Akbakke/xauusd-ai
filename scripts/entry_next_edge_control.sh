@@ -194,6 +194,18 @@ case "$cmd" in
       --smart-smoke-dataset-dir \
       --post-rebuild-readiness-json \
       --smart-specialist-audit-json \
+      --train-parquet \
+      --train-parquet-sha256 \
+      --train-manifest-json \
+      --train-manifest-sha256 \
+      --val-parquet \
+      --val-parquet-sha256 \
+      --val-manifest-json \
+      --val-manifest-sha256 \
+      --test-parquet \
+      --test-parquet-sha256 \
+      --test-manifest-json \
+      --test-manifest-sha256 \
       --out-dir \
       --vedtak \
       --memory-cap \

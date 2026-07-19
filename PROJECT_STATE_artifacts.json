@@ -1,8 +1,8 @@
 {
   "schema_version": "gx1_artifact_selection_v2",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-19T19:08:04Z",
-  "note": "Entry and Exit authority are explicit. Entry is blocked by both this registry and PROJECT_STATE_xau_direction_launch.json. Historical Smart520 and Entry-IQL artifacts cannot authorize decisioning. Exit selections and operating-point environment remain retained separately.",
+  "updated_utc": "2026-07-19T19:45:12Z",
+  "note": "Only decision-active artifacts live under active. Entry is blocked because no v10_entry is active and PROJECT_STATE_xau_direction_launch.json is BLOCK. Rejected Smart520 and retired Entry-IQL records live under retired/history and cannot authorize decisioning. Exit selections remain separate.",
   "active": {
     "xgb": {
       "path": "/home/andre2/GX1_DATA/models/xgb_v7_base80_20260526_cpu_PROMOTED_20260708",
@@ -12,25 +12,11 @@
       "vedtak": "SMART_JOINT_POLICY_PROMOTION_20260708",
       "note": "Retained only for the separately active Exit chain. It is forbidden as an Entry direction bridge or anchor."
     },
-    "v10_entry": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_candidate_20260706T152210Z",
-      "status": "BLOCKED_REJECTED_MODEL_NATIVE_CONTRACT",
-      "in_sample_only": false,
-      "contract_mode": "smart_seq520_candidate",
-      "note": "Historical provenance only. The bundle has the retired seven-field neutral-XGB surface and is not loadable for Entry decisioning. No replacement is accepted."
-    },
     "v3_exit": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/v3_train_out_clean/v3_exit_clean_20260608",
       "status": "ACTIVE",
       "in_sample_only": false,
       "note": "Retained clean Exit transformer. Entry model-native cleanup does not change this artifact."
-    },
-    "entry_iql": {
-      "path": null,
-      "status": "RETIRED_ARTIFACT_ABSENT",
-      "artifact_present": false,
-      "in_sample_only": false,
-      "note": "The formerly registered historical Entry-IQL directory is absent as of 2026-07-19. No benchmark bytes are available, and Entry-IQL is not an Entry authority or fallback."
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_deferral_20260707",
@@ -88,6 +74,24 @@
           "GX1_TREND_REGIME_FROM_D1": "1"
         }
       }
+    }
+  },
+  "retired": {
+    "v10_entry": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_candidate_20260706T152210Z",
+      "status": "REJECTED_BY_XAU_SEQ513_MODEL_NATIVE_CONTRACT",
+      "in_sample_only": false,
+      "contract_mode": "smart_seq520_candidate",
+      "artifact_present": true,
+      "note": "Historical provenance only. The bundle has the retired seven-field neutral-XGB surface and is not loadable for Entry decisioning."
+    },
+    "entry_iql": {
+      "path": null,
+      "sha256": null,
+      "status": "RETIRED_ARTIFACT_ABSENT",
+      "artifact_present": false,
+      "in_sample_only": false,
+      "note": "The formerly registered historical Entry-IQL directory is absent as of 2026-07-19. No benchmark bytes are registered, and Entry-IQL is not an Entry authority or fallback."
     }
   },
   "history": [

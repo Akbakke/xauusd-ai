@@ -292,8 +292,15 @@ def _write_gate_artifacts(
             **(direction_overrides or {}),
         },
     )
-    monkeypatch.setattr(live, "SMART_PARITY_GATE_ROOT", parity_root)
-    monkeypatch.setattr(live, "MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT", direction_root)
+    # Test-only handles used to mutate the declared events below. Runtime no
+    # longer owns or scans fixed gate directories.
+    monkeypatch.setattr(live, "SMART_PARITY_GATE_ROOT", parity_root, raising=False)
+    monkeypatch.setattr(
+        live,
+        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT_ROOT",
+        direction_root,
+        raising=False,
+    )
     monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_AGE_HOURS", 0.0)
     monkeypatch.setattr(live, "SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS", 0.0)
     monkeypatch.setattr(live, "SMART_DIRECTION_AUDIT_MAX_AGE_HOURS", 0.0)
@@ -455,7 +462,7 @@ def test_smart_serving_gate_newer_red_beats_older_bound_pass(
         encoding="utf-8",
     )
 
-    with pytest.raises(RuntimeError, match="parity decision='FAIL'"):
+    with pytest.raises(RuntimeError, match="not the newest immutable"):
         live.assert_smart_serving_gate()
 
 
@@ -605,7 +612,7 @@ def test_smart_serving_gate_rejects_stale_xau_dataset_marker(
     data["dataset_dir"] = "/home/andre2/GX1_DATA/runs/v10_dataset_smart_candidate_20260630"
     direction_path.write_text(json.dumps(data), encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="stale XAU repair marker"):
+    with pytest.raises(RuntimeError, match="sha256 mismatch"):
         live.assert_smart_serving_gate()
 
 
@@ -627,7 +634,7 @@ def test_smart_serving_gate_rejects_stale_parity_dataset_marker(
     data["dataset_dir"] = "/home/andre2/GX1_DATA/runs/v10_dataset_smart_candidate_julyext_20260705"
     parity_path.write_text(json.dumps(data), encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="parity dataset_dir references stale"):
+    with pytest.raises(RuntimeError, match="sha256 mismatch"):
         live.assert_smart_serving_gate()
 
 
@@ -651,7 +658,7 @@ def test_smart_serving_gate_rejects_tampered_rank_reference_event_binding(
     )
     parity_path.write_text(json.dumps(data), encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="binding mismatch"):
+    with pytest.raises(RuntimeError, match="sha256 mismatch"):
         live.assert_smart_serving_gate()
 
 

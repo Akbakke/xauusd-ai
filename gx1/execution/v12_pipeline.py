@@ -85,10 +85,6 @@ ENTRY_MAX_CANONICAL_CUTOFF_AGE_SEC = (
 )
 
 
-# ── ID mapping (matches iql_core ACTION_*_ID) ─────────────────────────
-ACTION_LABEL_BY_ID = {0: "SKIP", 1: "TAKE_LONG_NOW", 2: "TAKE_SHORT_NOW"}
-
-
 class EntryDecisionUnavailable(RuntimeError):
     """No model direction exists for this poll; never synthesize FLAT/SKIP."""
 
@@ -688,6 +684,7 @@ class V12Pipeline:
             raise EntryDecisionUnavailable(
                 "smart_entry_failed",
                 error_type=type(exc).__name__,
+                error=str(exc),
                 **latency_fields,
             ) from exc
         # exit-bound snapshot atr_bps = RAW live cv3 row value at T — the
@@ -707,7 +704,26 @@ class V12Pipeline:
                 atr_bps=_atr_raw,
                 **latency_fields,
             )
-        decision = self.smart_entry.decide(head, atr_bps=_atr_raw)
+        try:
+            decision = self.smart_entry.decide(head, atr_bps=_atr_raw)
+            if not isinstance(decision, dict) or not decision:
+                raise RuntimeError(
+                    "model-native decision adapter returned no exact decision mapping"
+                )
+        except Exception as exc:  # noqa: BLE001 - no invalid head may become FLAT
+            LOG.error(
+                "[SMART_ENTRY] decision contract failed for %s: %s — "
+                "no model direction emitted; exit management continues",
+                decision_m5,
+                exc,
+            )
+            raise EntryDecisionUnavailable(
+                "model_native_direction_decision_invalid",
+                decision_m5=str(decision_m5),
+                error_type=type(exc).__name__,
+                error=str(exc),
+                **latency_fields,
+            ) from exc
         decision.update(latency_fields)
         snapshot_raw = decision.get("_v10_snapshot")
         if not isinstance(snapshot_raw, dict) or not snapshot_raw:

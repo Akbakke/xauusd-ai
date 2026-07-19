@@ -204,6 +204,11 @@ specialist, pretrain and readiness audits. It emits only an allowlisted recipe
 to the smoke or candidate wrapper. Mutable `latest`, symlinks, missing hashes,
 unlisted environment overrides and pre-existing output directories fail.
 
+Both wrappers pass the exact TRAIN/VAL/TEST manifest and parquet paths to the
+trainer, together with recipe-bound hashes. The trainer revalidates all six;
+it has no dataset-directory glob, TRAIN-stem VAL/TEST inference or optional
+split fallback.
+
 The only model-native train wrappers are:
 
 - `scripts/run_entry_model_native_seq513_smoke_train.sh`;
@@ -294,6 +299,7 @@ Use:
 
 ```bash
 bash scripts/gx1_handover.sh
+bash scripts/gx1_handover.sh --check
 .venv/bin/python -m json.tool PROJECT_STATE_xau_direction_launch.json
 scripts/entry_next_edge_control.sh --help
 ```
@@ -311,6 +317,8 @@ Current facts:
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
+- invalidated V1 is historical RED evidence and cannot be reused; any future
+  rebuild requires a new explicit vedtak after the baseline decision;
 - no rebuild process is running; partial event artifacts have no authority,
   and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
   `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes;

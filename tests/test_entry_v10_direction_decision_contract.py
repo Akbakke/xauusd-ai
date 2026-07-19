@@ -1,3 +1,4 @@
+import ast
 import inspect
 from pathlib import Path
 
@@ -127,6 +128,131 @@ def test_active_pipeline_has_no_post_model_direction_rewrite() -> None:
     assert "CLUSTER1" not in active_entry_tail
     assert "record_entry_for_cluster" not in active_entry_tail
     assert 'decision.update({"action"' not in active_entry_tail
+
+
+def _function_ast(path: Path, function_name: str, *, class_name: str | None = None) -> ast.AST:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    owner: ast.AST = tree
+    if class_name is not None:
+        owner = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == class_name
+        )
+    return next(
+        node
+        for node in owner.body  # type: ignore[attr-defined]
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == function_name
+    )
+
+
+def _decision_assignment_line(function: ast.AST) -> int:
+    return min(
+        node.lineno
+        for node in ast.walk(function)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "decision" for target in node.targets)
+    )
+
+
+def test_downstream_entry_branches_cannot_promote_auxiliary_evidence_to_authority() -> None:
+    root = Path(__file__).resolve().parents[1]
+    functions = (
+        _function_ast(
+            root / "gx1/execution/v12_pipeline.py",
+            "make_entry_decision",
+            class_name="V12Pipeline",
+        ),
+        _function_ast(root / "gx1/execution/v12_paper_runner.py", "main"),
+    )
+    forbidden_branch_terms = (
+        "edge_score",
+        "selection_score",
+        "p_long",
+        "p_short",
+        "p_flat",
+        "p_trade",
+        "tradable",
+        "bad_path",
+        "path_quality",
+        "utility",
+        "trend",
+        "session",
+        "specialist",
+        "rail",
+        "confidence",
+        "threshold",
+        "veto",
+        "flip",
+    )
+
+    branch_expressions = [
+        ast.unparse(node.test).lower()
+        for function in functions
+        for node in ast.walk(function)
+        if isinstance(node, (ast.If, ast.IfExp, ast.While))
+        and node.lineno >= _decision_assignment_line(function)
+    ]
+    offending = {
+        term: expression
+        for term in forbidden_branch_terms
+        for expression in branch_expressions
+        if term in expression
+    }
+
+    assert offending == {}
+
+
+def test_downstream_entry_chain_never_assigns_a_replacement_direction_or_action() -> None:
+    root = Path(__file__).resolve().parents[1]
+    functions = (
+        _function_ast(
+            root / "gx1/execution/v12_pipeline.py",
+            "make_entry_decision",
+            class_name="V12Pipeline",
+        ),
+        _function_ast(root / "gx1/execution/v12_paper_runner.py", "main"),
+    )
+    authority_fields = {
+        "action",
+        "action_id",
+        "model_direction",
+        "model_direction_index",
+        "direction_logits",
+        "direction_probs",
+    }
+    replacements: list[tuple[int, str]] = []
+    mapping_mutations: list[str] = []
+    for function in functions:
+        decision_line = _decision_assignment_line(function)
+        for node in ast.walk(function):
+            if (
+                isinstance(node, ast.Call)
+                and node.lineno >= decision_line
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "decision"
+                and node.func.attr in {"update", "setdefault"}
+            ):
+                mapping_mutations.append(ast.unparse(node))
+            if not isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                continue
+            if node.lineno < decision_line:
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if not isinstance(target, ast.Subscript):
+                    continue
+                if not isinstance(target.value, ast.Name) or target.value.id != "decision":
+                    continue
+                key = target.slice.value if isinstance(target.slice, ast.Constant) else None
+                if key in authority_fields:
+                    replacements.append((node.lineno, str(key)))
+
+    assert replacements == []
+    assert mapping_mutations == ["decision.update(latency_fields)"]
 
 
 def test_active_pipeline_never_synthesizes_flat_for_unavailable_model() -> None:

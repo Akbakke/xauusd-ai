@@ -151,23 +151,57 @@ def _artifact_registry_probe(path_value: str, sha_value: str) -> tuple[dict[str,
     path, payload = _bound_json(path_value, sha_value, context="artifact registry")
     if payload.get("schema_version") != "gx1_artifact_selection_v2":
         raise RuntimeError("artifact registry schema is invalid")
-    entry_iql = (payload.get("active") or {}).get("entry_iql")
+    active = payload.get("active")
+    if not isinstance(active, dict):
+        raise RuntimeError("artifact registry active inventory is invalid")
+    stale_active = sorted({"v10_entry", "entry_iql"}.intersection(active))
+    if stale_active:
+        raise RuntimeError(
+            f"artifact registry keeps non-active Entry records under active: {stale_active}"
+        )
+    retired = payload.get("retired")
+    if not isinstance(retired, dict) or not isinstance(retired.get("v10_entry"), dict):
+        raise RuntimeError("artifact registry lacks rejected v10_entry retirement state")
+    entry_iql = retired.get("entry_iql")
     if not isinstance(entry_iql, dict):
-        raise RuntimeError("artifact registry lacks exact Entry-IQL state")
+        raise RuntimeError("artifact registry lacks exact retired Entry-IQL state")
     registered_path = entry_iql.get("path")
-    available = (
-        entry_iql.get("artifact_present") is True
-        and isinstance(registered_path, str)
-        and Path(registered_path).is_absolute()
-        and Path(registered_path).is_dir()
-        and not Path(registered_path).is_symlink()
-        and entry_iql.get("status") != "RETIRED_ARTIFACT_ABSENT"
-    )
+    registered_sha = entry_iql.get("sha256")
+    artifact_present = entry_iql.get("artifact_present")
+    status = entry_iql.get("status")
+    available = False
+    if artifact_present is True:
+        benchmark_path = Path(str(registered_path or "")).expanduser()
+        benchmark_sha = str(registered_sha or "").strip().lower()
+        if (
+            status != "HISTORICAL_COMPARISON_ONLY"
+            or not benchmark_path.is_absolute()
+            or benchmark_path.is_symlink()
+            or not benchmark_path.is_file()
+            or benchmark_path.resolve() != benchmark_path
+            or any("latest" in part.lower() for part in benchmark_path.parts)
+            or len(benchmark_sha) != 64
+            or any(character not in "0123456789abcdef" for character in benchmark_sha)
+            or sha256_file(benchmark_path) != benchmark_sha
+        ):
+            raise RuntimeError(
+                "retired Entry-IQL benchmark registration lacks exact path/sha identity"
+            )
+        available = True
+    elif not (
+        artifact_present is False
+        and status == "RETIRED_ARTIFACT_ABSENT"
+        and registered_path is None
+        and registered_sha is None
+    ):
+        raise RuntimeError("retired Entry-IQL absence state is not exact")
     return {
         "path": str(path),
         "sha256": sha_value.lower(),
+        "active_entry_roles_absent": True,
         "entry_iql": {
             "path": entry_iql.get("path"),
+            "sha256": entry_iql.get("sha256"),
             "status": entry_iql.get("status"),
             "artifact_present": entry_iql.get("artifact_present"),
         },
