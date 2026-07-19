@@ -12,7 +12,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from gx1.audit.entry_transformer_feature_audit import _stack_list_column
+from gx1.utils.nested_array_columns_v1 import (
+    stack_nested_array_column as _stack_list_column,
+)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,

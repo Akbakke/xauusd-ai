@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-17T14:38:13Z",
+  "updated_utc": "2026-07-19T19:24:51Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "SMART_SEQ520_XAU_SMOKE_TRADEFLATMARGIN_E6_20260716",
   "latest_terminal_event_decision": "FAIL",
@@ -18,16 +18,22 @@
   "required_ctx_cat_dim": 5,
   "accepted_bundle_dir": null,
   "bundle_metadata_sha256": null,
-  "dataset_event_id": "v10_6yr_rebuild_20260716_fresh_xau_direction_repair",
+  "dataset_event_id": null,
   "accepted_via_vedtak": null,
   "blockers": [
     "No accepted fresh XAU transformer bundle exists.",
-    "No fresh immutable 305-mandatory-plus-174-TRAIN-ranked seq513 signal manifest or dataset exists; source contracts alone do not prove edge.",
+    "No fresh immutable 305-mandatory-plus-174-TRAIN-ranked seq513 signal manifest or dataset is accepted; source contracts alone do not prove edge.",
+    "The July-19 seq513 attempts under vedtak XAU_SEQ513_REBUILD_20260718_V1 were terminated and invalidated because feature-ranking TRAIN 2020-11-13..2026-03-31 mismatched active TRAIN 2021-03-16..2026-03-31.",
+    "No seq513 rebuild chain or training process is running; partial attempt artifacts have no admission or resume authority, and schema-v2 CHAIN_STATUS.json terminally records RED with reason FEATURE_RANKING_TRAIN_WINDOW_MISMATCH and bound hashes.",
+    "Preflight, wrapper and builder now require explicit ranking and signal-manifest lineage, matching vedtak/source hash and exact TRAIN window; this code proof is not an accepted rebuild or trading-edge result.",
     "The 20260716 520-wide dataset contains seven constant neutral-XGB bridge fields and is rejected by the exact 513 model-native contract; a fresh rebuild is required.",
+    "The report-only model-native abstention metadata run is BLOCK_ABSTENTION_EMPIRICAL_GATE: FLAT labels are balanced on TRAIN 1400/4095 (34.19%), validation 530/1536 (34.51%), and TEST 516/1536 (33.59%), with positive active FLAT/utility/margin weights, but it read zero parquet and produced no learned-probe evidence.",
+    "Immutable historical selection-benchmark bytes and exact learned abstention-probe OOT prediction/evaluation evidence at comparable coverage are absent; metadata cannot authorize rebuild, training, candidate, replay, or launch.",
     "Latest bounded fresh smoke hard-red-stopped with zero FLAT predictions and 30 direction-slice failures.",
     "The July-06/July-08 smart candidate is historical and is not launch-valid under the active XAU direction repair.",
     "No canonical joint Entry plus adopted active Exit-V3/Exit-IQL/Strategy-F sizing-only TEST replay proof exists; label-horizon sizing evidence is diagnostic only.",
     "No fresh post-adoption broker runtime sizing parity evidence exists.",
+    "Near-perfect practical precision is not claimed without immutable OOS and live-like empirical proof.",
     "Candidate, replay, Entry-IQL, shadow, demo, live, and promotion remain closed."
   ]
 }

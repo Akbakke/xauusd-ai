@@ -48,9 +48,9 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     require_learned_component_movement_metadata,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
@@ -323,9 +323,9 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CONT_ORDER_INVALID]")
     if len(meta["ordered_ctx_cat_names"]) != int(meta["ctx_cat_dim"]):
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CAT_ORDER_INVALID]")
-    if list(meta["ordered_ctx_cont_names"]) != list(ORDERED_CTX_CONT_NAMES_V3):
+    if list(meta["ordered_ctx_cont_names"]) != list(MODEL_NATIVE_CTX_CONT_FIELDS):
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CONT_ORDER_INVALID]")
-    if list(meta["ordered_ctx_cat_names"]) != list(ORDERED_CTX_CAT_NAMES_V3):
+    if list(meta["ordered_ctx_cat_names"]) != list(MODEL_NATIVE_CTX_CAT_FIELDS):
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_CTX_CAT_ORDER_INVALID]")
     meta_signal_contract = meta["model_native_signal_contract"]
     lock_signal_contract = lock["model_native_signal_contract"]

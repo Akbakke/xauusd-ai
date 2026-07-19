@@ -1,6 +1,6 @@
 # XAUUSD model-native direction handover
 
-Updated 2026-07-17. This is the only GX1 handover document. Run
+Updated 2026-07-19. This is the only GX1 handover document. Run
 `bash scripts/gx1_handover.sh` to print it with repository, disk, RAM and
 process state.
 
@@ -25,8 +25,28 @@ authority. Candidate, replay, paper/demo/live and promotion remain closed.
 Every earlier Entry dataset, bundle and report is rejected by the current
 contract; none can act as launch, direction or compatibility authority.
 
-No rebuild, training or large replay has been run during this cleanup. Green
-source-contract tests prove wiring, not trading edge.
+Vedtak `XAU_SEQ513_REBUILD_20260718_V1` was issued and seq513 rebuild attempts
+ran on 2026-07-19. They were terminated and invalidated: the reused feature
+ranking covered TRAIN `2020-11-13..2026-03-31`, while the active build contract
+was TRAIN `2021-03-16..2026-03-31`, and the then-current preflight omitted that
+nested window check. No rebuild process is running now. No dataset, signal
+manifest, bundle or edge result from those attempts is accepted. Partial
+artifacts are non-authoritative. The event-local `CHAIN_STATUS.json` is now a
+terminal schema-v2 `RED` record with reason
+`FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound vedtak/git/artifact hashes.
+
+The preflight, wrapper and builder now require explicit feature-ranking and
+signal-manifest lineage, matching vedtak/source hash and the exact requested
+TRAIN window. Green source-contract tests prove wiring, not trading edge.
+
+No seq513 rebuild chain or training process is running. A new report-only
+model-native abstention metadata run ended
+`BLOCK_ABSTENTION_EMPIRICAL_GATE`: FLAT labels are balanced at TRAIN
+`1400/4095` (`34.19%`), validation `530/1536` (`34.51%`) and TEST `516/1536`
+(`33.59%`), and the active FLAT, utility and margin weights are positive. The
+run read zero parquet, trained no probe and emitted no learned predictions.
+Historical selection-benchmark bytes and exact learned-probe evidence are
+absent, so it authorizes nothing and proves no edge.
 
 ## Exact Entry contract
 
@@ -53,6 +73,13 @@ source-contract tests prove wiring, not trading edge.
   `TradeState`, journal and daily-review boundaries;
 - exactly 96 bars ending at the latest closed M5 row, with a fixed 90-second
   post-availability decision limit and 390-second canonical-cutoff age limit.
+
+`entry_model_native_signal_v1` is the exact owner of the 34 base, 142
+continuous-context and 5 categorical-context fields. Active Entry has zero
+imports from `signal_bridge_v1` and `signal_bridge_v3`. Missing, invalid or
+session-inconsistent context, including a fabricated ASIA flag, yields
+`MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION`; no bridge or synthetic `FLAT` may
+repair it.
 
 All genuine trend/session/liquidity/volatility/momentum/structure/chart/candle
 evidence remains. Only disconnected rules that could independently veto,
@@ -97,6 +124,10 @@ to `FLAT`, a cached decision or backlog execution.
   dataset builder writes. This intentionally advances the accepted state/rank
   artifact schemas to `model_native_state_contract_v3` and
   `model_native_train_rank_reference_v3`; older artifacts cannot pass.
+- Closed the July-19 feature-ranking lineage gap: preflight, wrapper and builder
+  require explicitly named ranking/manifest artifacts and revalidate their
+  vedtak, source hash and exact TRAIN start/end. A manifest ranked on a
+  different split cannot be reused.
 - Bound the exact eight-specialist partition and all active heads.
 - Removed legacy Entry modes, anchor/neutral-bridge arguments and optional-head
   serving paths from the model, trainer, builder and strict bundle loader.
@@ -136,6 +167,13 @@ to `FLAT`, a cached decision or backlog execution.
   V10 live adapter, duplicate trade-log schema, detached Entry context/live
   feature modules, Entry critic trainers/runtime and manual sizing modules.
 - Removed stale Sniper/XGB/Trial160/seq215 architecture documents.
+- Removed the last active Entry imports from the V1/V3 signal bridges and made
+  the model-native signal contract the one exact base/context owner. The
+  retained V3 XGB bridge remains Exit-only: it owns real ordered 7/41-field
+  validation for two Exit consumers and fails closed on import/order mismatch.
+- Put every retained OANDA backfill writer behind explicit `--vedtak`
+  validation before side effects. The retired Entry-IQL artifact registry
+  entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
 Focused contract suites and full test collection have been green at each
 completed boundary. Re-run the complete verification after the concurrent
@@ -151,10 +189,14 @@ source cleanup settles.
    registry PREFIX ORDER is validated at every manifest consumer; the five
    launch-JSON `required_*` partition constants are enforced against code
    constants; the 90-second Entry latency limit has one numeric owner.
-3. Keep launch state `BLOCK`. Stop before rebuild/train: either requires an
-   explicit `--vedtak` and the complete immutable preflight chain.
+3. Keep launch state `BLOCK`. The metadata-only abstention probe is not the
+   required diagnostic. First bind immutable historical selection-benchmark
+   bytes and produce exact learned-probe OOT evidence at comparable coverage.
+   Only a green empirical probe may justify returning to the hardened rebuild
+   chain with newly matched ranking/manifest inputs; training remains closed
+   until an accepted dataset and all downstream gates exist.
 
-## Rebuild runbook (the next admissible work)
+## Rebuild runbook (contingent on a green abstention probe)
 
 User decision 2026-07-17 (DECISION_LOG): the primary empirical admission
 criterion is ABSTENTION QUALITY — the learned `FLAT` surface must match or
@@ -175,11 +217,15 @@ Verified source material for a fresh seq513 rebuild (immutable, July-16 build):
 
 ## 2026-07-18/19 campaign handover (vedtak XAU_SEQ513_REBUILD_20260718_V1)
 
-STATE AT WRITING: preflight GREEN, dataset rebuild RUNNING (parallel attach,
-14 workers) in event root
-`GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260718_seq513_model_native/`.
-The chain driver auto-continues to liveness + pretrain audit and STOPS at the
-smoke gate with a Telegram ping. Read
+CURRENT STATE: the July-19 attempts in event root
+`GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260718_seq513_model_native/`
+were terminated and invalidated. The feature ranking's TRAIN start was
+`2020-11-13`, not the active `2021-03-16`; the old preflight incorrectly
+reported GREEN because it did not compare the nested ranking window. No build
+process is running, and no partial output is authoritative. In particular, a
+terminal schema-v2 `CHAIN_STATUS.json=RED` now records
+`FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` with exact vedtak/git/ranking/manifest/
+preflight hashes; it cannot be used to resume or select partial artifacts. Read
 `SYSTEM_MAP.md` -> "Pipeline- og ingredienskart" before grepping anything.
 
 ### Built this campaign
@@ -187,10 +233,10 @@ smoke gate with a Telegram ping. Read
 1. `gx1/scripts/materialize_entry_model_native_train_feature_ranker_v1.py` —
    the previously missing ranking producer (deterministic TRAIN-only
    |Spearman| vs 24-bar forward mid return; sha+window-bound CHECKPOINT;
-   parallel GROUP_A attach). Five green tests incl. round-trip through the
-   real manifest producer. RESULT on real data: 226 candidates, all finite
-   scores (top: bars_since_swing_low 0.0755, bars_since_swing_high 0.0733,
-   fib/geometry proximities 0.03-0.05); manifest 305+174 produced.
+   parallel GROUP_A attach). Five source-contract tests included a round-trip
+   through the real manifest producer. The ranking produced during the
+   campaign is invalid for the active split because its TRAIN start differs;
+   its scores and derived 305+174 manifest have no admission authority.
 2. `gx1/scripts/repair_m5_tape_dec2024_from_m1_v1.py` — event-local repair of
    the Dec-2024 canonical M5 geometry defect (2375 impossible rows -> 0) from
    the clean canonical M1; convention proof (high/low EXACT vs M1 aggregation,
@@ -199,10 +245,12 @@ smoke gate with a Telegram ping. Read
 3. Full source cascade rebuilt on the repaired tape: canonical_features_v2 ->
    cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE (current
    builder version) -> FULL_PLUS_CTX (207 cols, column-identical to July-16).
-4. `scripts/run_seq513_rebuild_chain_v1.sh` — resume-safe fail-closed chain
-   driver (ranking -> manifest -> preflight -> build), Telegram ⚙️/🔴/✅,
-   exact-cmdline process watch, proven-partial debris cleared BEFORE
-   preflight, terminal state = all three split manifests.
+4. `scripts/run_seq513_rebuild_chain_v1.sh` — fail-closed chain driver
+   (existing explicit ranking -> fresh manifest -> fresh preflight -> fresh
+   build), with immutable artifact inputs rather than glob/lexical-latest
+   selection or inferred resume. Telegram ⚙️/🔴/✅ and process-watch output are
+   operational signals only; terminal authority still requires all three
+   validated split manifests.
 5. `attach_group_a_dip_struct_ctx_columns` factored into
    build_attach_context / compute_attach_rows / finalize_attach_columns plus
    `attach_group_a_dip_struct_ctx_columns_parallel` in the owner module —
@@ -224,7 +272,7 @@ constant (pinned literals were mutually unsatisfiable); ranker tz bug at the
 final write step (cost one 4.5 h run; checkpoint now makes late failures
 cost seconds).
 
-### Exact window contract (validated by preflight)
+### Exact active window contract
 
 Source (FULL_PLUS) first row 2021-01-04T23:55 (ctx-adder trims own warmup).
 HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16 (GROUP_A warmup 13,439 rows
@@ -232,11 +280,21 @@ HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16 (GROUP_A warmup 13,439 rows
 VAL 2026-04-01..04-30 < TEST 2026-05-01..2026-06-14T23:55 (source's exact
 last bar).
 
+The old preflight did not actually prove this end to end: it accepted a nested
+feature ranking beginning `2020-11-13`. The hardened chain must regenerate and
+bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
+`2026-03-31`; a green status from the invalid attempts cannot be inherited.
+
 ### Open decisions / next work
 
-1. IN FLIGHT: build -> liveness -> pretrain audit -> ✅/🔴 Telegram -> STOP at
-   smoke gate. Smoke needs its own vedtak; zero FLAT predictions is hard-red
-   by definition (DECISION_LOG 2026-07-17 abstention criterion).
+1. No rebuild or training is in flight. Before another heavy rebuild, bind the
+   immutable historical selection-benchmark bytes and run the exact learned
+   model-native abstention probe OOT. The current metadata-only result read no
+   parquet and cannot satisfy this gate. If and only if that probe passes,
+   regenerate the feature ranking and signal manifest for the exact active
+   TRAIN window and rerun the hardened preflight/build chain. Smoke needs its
+   own vedtak; zero FLAT predictions remains hard-red by definition
+   (DECISION_LOG 2026-07-17 abstention criterion).
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
    the event copy is repaired) — separate decision; live Exit serves on it.
 3. Exit env-softeners (3 audit MEDIUMs), ctx v1/v3 dual-owner in the builder
@@ -246,27 +304,30 @@ last bar).
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. User issues ONE vedtak ID (format `XAU_SEQ513_REBUILD_YYYYMMDD_Vn`); it is
+1. Use the one issued vedtak ID `XAU_SEQ513_REBUILD_20260718_V1`; it must be
    bound into rank NPZ, sidecar, build proof, state contract and all split
    manifests. Wrapper-only console values do not count.
-   -> `XAU_SEQ513_REBUILD_20260718_V1` issued 2026-07-18 with the window
-   proposal below confirmed.
-2. `scripts/entry_next_edge_control.sh model-native-rebuild-preflight` with all
-   explicit inputs/windows; preflight must pass before anything writes.
-3. `scripts/rebuild_entry_model_native_seq513_dataset.sh --vedtak … ` with the
-   full explicit argument set (runs capped 30G; produces fresh v3 rank
-   reference, seq513 signal manifest, dataset, split manifests, liveness and
-   pretrain audits).
-4. Split-window PROPOSAL (must be confirmed in the vedtak; chronological,
-   leakage-safe): history-start 2020-11-09T00:00:00Z; train
-   2020-11-09 -> 2026-03-31; val 2026-04-01 -> 2026-04-30; test
-   2026-05-01 -> 2026-06-14 (untouched tail of the source).
-5. `model-native-smoke-manifest` -> `model-native-smoke-readiness` ->
+2. Materialize a fresh feature-ranking JSON for the exact active TRAIN window.
+   Never discover it through a directory glob or lexical/mtime "latest"
+   selection.
+3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with explicit `--vedtak`,
+   `--event-root`, `--feature-ranking-json`, `--signal-manifest` and
+   `--preflight-out-dir`. The ranking must already exist; the manifest path and
+   preflight directory must be fresh. The driver creates and revalidates the
+   manifest, preflight, v3 rank reference, dataset and split/audit outputs and
+   never resumes inferred debris.
+4. Accept the rebuild only from the driver's terminal validated split
+   manifests. Console output, Telegram status, partial files and an earlier
+   preflight cannot substitute for them.
+5. Exact vedtak-bound window: history start `2021-01-05T00:00:00Z`; TRAIN
+   `2021-03-16T00:00:00Z..2026-03-31T23:59:59Z`; validation
+   `2026-04-01..2026-04-30`; TEST `2026-05-01..2026-06-14T23:55:00Z`.
+6. `model-native-smoke-manifest` -> `model-native-smoke-readiness` ->
    `model-native-smoke-train --vedtak … --dry-run` then `--execute`.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.
-6. Candidate chain only after smoke PASS: trainability-readiness ->
+7. Candidate chain only after smoke PASS: trainability-readiness ->
    candidate-train -> calibration -> immutable prediction evidence ->
    unit-normalized replay -> the nine-item evidence list above.
 
@@ -274,6 +335,10 @@ Nothing in this runbook grants run authority by itself; the explicit vedtak
 and green preflight do.
 
 ## Required evidence before Entry can open
+
+Before the rebuild/training sequence can resume, immutable historical
+selection-benchmark bytes and exact learned abstention-probe OOT evidence must
+pass the `BLOCK_ABSTENTION_EMPIRICAL_GATE`; metadata and label counts do not.
 
 1. Fresh exact train/val/test split manifests and seq513 datasets.
 2. Full 513+142+5 field liveness and ordered-hash proof on all splits.

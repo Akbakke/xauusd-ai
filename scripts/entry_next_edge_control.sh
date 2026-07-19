@@ -17,6 +17,7 @@ Model-native seq513 evidence:
   handover
   model-native-state
   model-native-state-selftest
+  model-native-abstention-probe
   model-native-rebuild-preflight
   model-native-adoption-candidate
   model-native-smoke-manifest
@@ -125,17 +126,37 @@ case "$cmd" in
     exec "$PY" -m gx1.scripts.verify_entry_foundation_state_v1 --selftest "$@"
     ;;
 
+  model-native-abstention-probe)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --train-smoke-manifest \
+      --train-smoke-manifest-sha256 \
+      --val-smoke-manifest \
+      --val-smoke-manifest-sha256 \
+      --test-smoke-manifest \
+      --test-smoke-manifest-sha256 \
+      --artifact-registry-json \
+      --artifact-registry-sha256 \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.verify_entry_model_native_abstention_probe_v1 "$@"
+    ;;
+
   model-native-rebuild-preflight)
     reject_non_authoritative_args "$@"
     for flag in \
+      --vedtak \
       --source-parquet \
       --canonical-v2-parquet \
       --signal-manifest \
+      --feature-ranking-json \
       --rank-reference-npz \
       --mtf-cache-dir \
       --tape-root \
       --output \
       --audit-out-dir \
+      --history-start \
       --train-start \
       --train-end \
       --val-start \

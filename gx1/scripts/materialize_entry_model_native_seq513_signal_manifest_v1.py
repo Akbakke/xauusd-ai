@@ -16,7 +16,7 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
@@ -32,6 +32,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_mandatory_full_stack_metadata,
     model_native_signal_contract_metadata,
+    require_model_native_manifest,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -242,7 +243,7 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _load_and_validate_ranking(
+def load_and_validate_train_feature_ranking(
     path: Path,
     *,
     explicit_vedtak_id: str,
@@ -348,6 +349,142 @@ def _load_and_validate_ranking(
     return ranking, names, ranking_file_sha256
 
 
+def validate_signal_manifest_training_lineage(
+    *,
+    manifest_path: Path,
+    feature_ranking_path: Path,
+    expected_vedtak_id: str,
+    expected_source_sha256: str,
+    expected_train_start_utc: object,
+    expected_train_end_utc: object,
+) -> dict[str, Any]:
+    """Revalidate the immutable signal/ranking lineage at a consumer boundary."""
+
+    vedtak_id = require_retrain_vedtak(expected_vedtak_id)
+    raw_manifest_path = _absolute_without_resolving(Path(manifest_path))
+    raw_ranking_path = _absolute_without_resolving(Path(feature_ranking_path))
+    _require_no_symlink_components(raw_manifest_path, field="SIGNAL_MANIFEST")
+    _require_no_symlink_components(raw_ranking_path, field="FEATURE_RANKING")
+    manifest_path = raw_manifest_path.resolve()
+    ranking_path = raw_ranking_path.resolve()
+    if not manifest_path.is_file() or "_latest" in manifest_path.name:
+        raise RuntimeError(f"SIGNAL_MANIFEST_NOT_IMMUTABLE: {manifest_path}")
+    try:
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"SIGNAL_MANIFEST_JSON_INVALID: {manifest_path}") from exc
+    if not isinstance(manifest, Mapping):
+        raise RuntimeError("SIGNAL_MANIFEST_ROOT_NOT_OBJECT")
+
+    exact_top_level = {
+        "schema_version": SIGNAL_MANIFEST_SCHEMA_VERSION,
+        "producer": SIGNAL_MANIFEST_PRODUCER,
+        "producer_version": SIGNAL_MANIFEST_PRODUCER_VERSION,
+        "explicit_vedtak_id": vedtak_id,
+        "decision": "READY_FOR_MODEL_NATIVE_SEQ513_DATASET_REBUILD_MANIFEST",
+        "manifest_only": True,
+        "training_allowed": False,
+        "shadow_live_promotion_allowed": False,
+    }
+    for field, expected in exact_top_level.items():
+        if manifest.get(field) != expected:
+            raise RuntimeError(
+                f"SIGNAL_MANIFEST_{field.upper()}_INVALID: "
+                f"observed={manifest.get(field)!r} expected={expected!r}"
+            )
+    if str(manifest.get("json_path") or "") != str(manifest_path):
+        raise RuntimeError("SIGNAL_MANIFEST_SELF_PATH_MISMATCH")
+    created = _parse_utc(manifest.get("created_utc"), field="manifest_created_utc")
+    _require_timestamp_match(manifest_path, created, ranking=False)
+    signal_contract = require_model_native_manifest(
+        manifest, context="MODEL_NATIVE_SIGNAL_LINEAGE"
+    )
+
+    ranking, ranked_names, ranking_sha256 = load_and_validate_train_feature_ranking(
+        ranking_path,
+        explicit_vedtak_id=vedtak_id,
+    )
+    expected_source_sha256 = _require_sha256(
+        expected_source_sha256,
+        field="expected_source_sha256",
+    )
+    expected_train_start = _parse_utc(
+        expected_train_start_utc,
+        field="expected_train_start_utc",
+    )
+    expected_train_end = _parse_utc(
+        expected_train_end_utc,
+        field="expected_train_end_utc",
+    )
+    ranking_train_start = _parse_utc(
+        ranking["train_start_utc"], field="train_start_utc"
+    )
+    ranking_train_end = _parse_utc(ranking["train_end_utc"], field="train_end_utc")
+    if ranking_train_start != expected_train_start or ranking_train_end != expected_train_end:
+        raise RuntimeError(
+            "FEATURE_RANKING_TRAIN_WINDOW_MISMATCH: "
+            f"ranking={ranking_train_start.isoformat()}..{ranking_train_end.isoformat()} "
+            f"expected={expected_train_start.isoformat()}..{expected_train_end.isoformat()}"
+        )
+    if ranking["source_sha256"] != expected_source_sha256:
+        raise RuntimeError(
+            "FEATURE_RANKING_SOURCE_SHA256_MISMATCH: "
+            f"ranking={ranking['source_sha256']} expected={expected_source_sha256}"
+        )
+    ranking_created = _parse_utc(ranking["created_utc"], field="created_utc")
+    if created <= ranking_created:
+        raise RuntimeError("SIGNAL_MANIFEST_TIMESTAMP_NOT_AFTER_RANKING")
+
+    mandatory_set = set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    eligible_ranked_names = [name for name in ranked_names if name not in mandatory_set]
+    ranked_remainder = eligible_ranked_names[:MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT]
+    expected_selected = [*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *ranked_remainder]
+    expected_ranking_metadata = {
+        "path": str(ranking_path),
+        "sha256": ranking_sha256,
+        "schema_version": ranking["schema_version"],
+        "created_utc": ranking["created_utc"],
+        "producer": ranking["producer"],
+        "producer_version": ranking["producer_version"],
+        "fit_scope": ranking["fit_scope"],
+        "train_start_utc": ranking["train_start_utc"],
+        "train_end_utc": ranking["train_end_utc"],
+        "source_sha256": ranking["source_sha256"],
+        "target_sha256": ranking["target_sha256"],
+        "ranking_order": ranking["ranking_order"],
+        "causality_contract": ranking["causality_contract"],
+        "ranked_feature_count": len(ranked_names),
+        "eligible_ranked_remainder_count": len(eligible_ranked_names),
+        "mandatory_names_in_ranking_count": len(ranked_names)
+        - len(eligible_ranked_names),
+        "ranked_feature_order_sha256": _sha256_json(ranked_names),
+    }
+    if manifest.get("feature_ranking") != expected_ranking_metadata:
+        raise RuntimeError("SIGNAL_MANIFEST_FEATURE_RANKING_METADATA_MISMATCH")
+    if manifest.get("selected_features") != expected_selected:
+        raise RuntimeError("SIGNAL_MANIFEST_SELECTED_FIELDS_NOT_DERIVED_FROM_RANKING")
+    if manifest.get("ranked_remainder_features") != ranked_remainder:
+        raise RuntimeError("SIGNAL_MANIFEST_RANKED_REMAINDER_MISMATCH")
+    if manifest.get("selected_fields_sha256") != _sha256_json(expected_selected):
+        raise RuntimeError("SIGNAL_MANIFEST_SELECTED_FIELDS_SHA256_MISMATCH")
+    if manifest.get("ranked_remainder_fields_sha256") != _sha256_json(ranked_remainder):
+        raise RuntimeError("SIGNAL_MANIFEST_RANKED_REMAINDER_SHA256_MISMATCH")
+    if _sha256_file(ranking_path) != ranking_sha256:
+        raise RuntimeError("FEATURE_RANKING_CHANGED_DURING_LINEAGE_VALIDATION")
+    return {
+        "manifest_path": str(manifest_path),
+        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+        "feature_ranking_path": str(ranking_path),
+        "feature_ranking_sha256": ranking_sha256,
+        "explicit_vedtak_id": vedtak_id,
+        "source_sha256": expected_source_sha256,
+        "train_start_utc": expected_train_start.isoformat(),
+        "train_end_utc": expected_train_end.isoformat(),
+        "model_native_signal_contract": signal_contract,
+    }
+
+
 def _write_fresh_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     encoded = (
@@ -385,7 +522,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError(f"SIGNAL_MANIFEST_OUTPUT_NOT_FRESH: {out}")
     created = _timestamp_from_name(out, _EVENT_NAME_RE, field="SIGNAL_MANIFEST")
 
-    ranking, ranked_names, ranking_file_sha256 = _load_and_validate_ranking(
+    ranking, ranked_names, ranking_file_sha256 = load_and_validate_train_feature_ranking(
         ranking_path,
         explicit_vedtak_id=explicit_vedtak_id,
     )

@@ -19,18 +19,16 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_BRIDGE_FIELDS_V3,
-    PER_BAR_PRICE_STATE_FIELDS_V3,
-)
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
 )
+from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
+from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 
 
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v2"
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v3"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v2"
 )
@@ -39,8 +37,199 @@ RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE = "smart_seq520_candidate"
 MODEL_NATIVE_DIRECTION_LOGIT_MODE = "model_native"
 LEGACY_ANCHOR_DIRECTION_LOGIT_MODE = "xgb_anchor_residual"
 
-MODEL_NATIVE_BASE_FIELDS = tuple(PER_BAR_PRICE_STATE_FIELDS_V3)
-FORBIDDEN_LEGACY_BRIDGE_FIELDS = tuple(ORDERED_BRIDGE_FIELDS_V3)
+# The model-native Entry contract owns these fields directly.  Legacy
+# signal_bridge_v1/v3 may re-export them for retained Exit/XGB consumers, but
+# no Entry authority may import its input order from those compatibility
+# surfaces.
+FORBIDDEN_LEGACY_BRIDGE_FIELDS = (
+    "p_long",
+    "p_short",
+    "p_flat",
+    "p_hat",
+    "uncertainty_score",
+    "margin_top1_top2",
+    "entropy",
+)
+
+MODEL_NATIVE_BASE_FIELDS = (
+    "_v1_atr14",
+    "atr_z",
+    "ret_1",
+    "ret_5",
+    "ret_20",
+    "rvol_20",
+    "body_pct",
+    "wick_asym",
+    "ema20_slope",
+    "pos_vs_ema200",
+    "_v1_pk_sigma20",
+    "_v1_ema_diff",
+    "_v1_close_ema_slope_3",
+    "_v1_clv",
+    "_v1_range_z",
+    "_v1_kama_slope_30",
+    "_v1_tema_slope_20",
+    "_v1_bb_squeeze_20_2",
+    "_v1_bb_bandwidth_delta_10",
+    "_v1_body_share_1",
+    "_v1_kurt_r",
+    "smc_swing_state",
+    "smc_bos_up",
+    "smc_bos_down",
+    "smc_choch",
+    "smc_sweep_up",
+    "smc_sweep_down",
+    "smc_sweep_size_atr",
+    "smc_bars_since_sweep",
+    "smc_premium_discount",
+    "vol_z_20",
+    "vol_ratio_5_20",
+    "vol_pct_96",
+    "signed_vol_z_20",
+)
+
+MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS = (
+    "atr_bps",
+    "spread_bps",
+    "D1_dist_from_ema200_atr",
+    "H1_range_compression_ratio",
+    "D1_atr_percentile_252",
+    "M15_range_compression_ratio",
+    "micro_momentum_3",
+    "micro_momentum_5",
+    "micro_acceleration",
+    "wick_ratio",
+    "distance_ema_fast",
+    "dist_last_swing_high_atr",
+    "dist_last_swing_low_atr",
+    "bars_since_swing_high",
+    "bars_since_swing_low",
+    "retracement_from_last_impulse",
+    "is_ASIA",
+    "minutes_since_session_open",
+    "minutes_to_next_session_boundary",
+    "session_change_flag",
+    "session_tradable",
+)
+MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS[:6]
+
+MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
+    "_v1h1_ema_diff",
+    "_v1h1_atr",
+    "_v1h1_rsi14_z",
+    "_v1h1_slope3",
+    "_v1h1_slope5",
+    "_v1h4_ema_diff",
+    "_v1h4_atr",
+    "_v1h4_rsi14_z",
+    "_v1h4_slope3",
+    "_v1h4_slope5",
+    "d1_atr14_canon_v2",
+    "d1_rsi14_canon_v2",
+    "d1_ema_slope_20_canon_v2",
+    "d1_range_z_20_canon_v2",
+    "d1_close_pct_in_20day_range_canon_v2",
+    "d1_pct_change_5_canon_v2",
+    "m15_rsi14_canon_v2",
+    "m15_range_z_20_canon_v2",
+    "m15_trend_sign_canon_v2",
+)
+
+MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS = (
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "smc_premium_state",
+)
+
+MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS = (
+    "is_asia_eu_overlap",
+    "is_eu_us_overlap",
+    "is_eu_only",
+    "is_us_only",
+    "atr_ratio_m5_h4",
+    "atr_ratio_m15_d1",
+    "atr_ratio_h1_d1",
+    "atr_ratio_m5_m15",
+    "vol_pct_m5_1yr",
+    "vol_pct_h1_1yr",
+    "dist_to_R1_atr",
+    "dist_to_R2_atr",
+    "dist_to_S1_atr",
+    "dist_to_S2_atr",
+    "dist_to_m5_hi_atr",
+    "dist_to_m5_lo_atr",
+    "dist_to_m15_hi_atr",
+    "dist_to_m15_lo_atr",
+    "dist_to_h1_hi_atr",
+    "dist_to_h1_lo_atr",
+    "dist_to_h4_hi_atr",
+    "dist_to_h4_lo_atr",
+    "dist_to_d1_hi_atr",
+    "dist_to_d1_lo_atr",
+)
+
+MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS = (
+    "dip_confirmed_m5_v3",
+    "dip_confirmed_m15_v3",
+    "dip_proximity_h1_v3",
+    "dip_confirmed_h1_v3",
+    "dip_proximity_h4_v3",
+    "dip_confirmed_h4_v3",
+    "dip_proximity_d1_v3",
+    "dip_confirmed_d1_v3",
+    "struct_continuation_up_m5_v3",
+    "struct_pullback_in_uptrend_m5_v3",
+    "struct_continuation_down_m5_v3",
+    "struct_bounce_in_downtrend_m5_v3",
+    "struct_pullback_depth_m5_v3",
+    "struct_continuation_up_m15_v3",
+    "struct_pullback_in_uptrend_m15_v3",
+    "struct_continuation_down_m15_v3",
+    "struct_bounce_in_downtrend_m15_v3",
+    "struct_pullback_depth_m15_v3",
+    "struct_continuation_up_h1_v3",
+    "struct_pullback_in_uptrend_h1_v3",
+    "struct_continuation_down_h1_v3",
+    "struct_bounce_in_downtrend_h1_v3",
+    "struct_pullback_depth_h1_v3",
+    "struct_continuation_up_h4_v3",
+    "struct_pullback_in_uptrend_h4_v3",
+    "struct_continuation_down_h4_v3",
+    "struct_bounce_in_downtrend_h4_v3",
+    "struct_pullback_depth_h4_v3",
+    "struct_continuation_up_d1_v3",
+    "struct_pullback_in_uptrend_d1_v3",
+    "struct_continuation_down_d1_v3",
+    "struct_bounce_in_downtrend_d1_v3",
+    "struct_pullback_depth_d1_v3",
+    "struct_tf_agree_count_v3",
+    "struct_dip_x_uptrend_v3",
+    "struct_smc_swing_x_dip_v3",
+)
+
+MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS = tuple(
+    ENTRY_SMART_CTX_FEATURE_NAMES
+)
+MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = tuple(REGIME_V4_FEATURE_NAMES)
+MODEL_NATIVE_CTX_CONT_FIELDS = (
+    MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS
+    + MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS
+    + MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS
+    + MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
+    + MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
+    + MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS
+    + MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
+)
+MODEL_NATIVE_CTX_CAT_FIELDS = (
+    "session_id",
+    "vol_regime_id",
+    "atr_bucket",
+    "spread_bucket",
+    "H4_trend_sign_cat",
+)
+
 MODEL_NATIVE_BASE_SIGNAL_DIM = 34
 MODEL_NATIVE_SELECTED_FEATURE_COUNT = 479
 MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT = (
@@ -56,6 +245,22 @@ if len(MODEL_NATIVE_BASE_FIELDS) != MODEL_NATIVE_BASE_SIGNAL_DIM:
         "MODEL_NATIVE_BASE_SIGNAL_DIM_MISMATCH: "
         f"fields={len(MODEL_NATIVE_BASE_FIELDS)} expected={MODEL_NATIVE_BASE_SIGNAL_DIM}"
     )
+if len(MODEL_NATIVE_CTX_CONT_FIELDS) != MODEL_NATIVE_CTX_CONT_DIM:
+    raise RuntimeError(
+        "MODEL_NATIVE_CTX_CONT_DIM_MISMATCH: "
+        f"fields={len(MODEL_NATIVE_CTX_CONT_FIELDS)} expected={MODEL_NATIVE_CTX_CONT_DIM}"
+    )
+if len(MODEL_NATIVE_CTX_CAT_FIELDS) != MODEL_NATIVE_CTX_CAT_DIM:
+    raise RuntimeError(
+        "MODEL_NATIVE_CTX_CAT_DIM_MISMATCH: "
+        f"fields={len(MODEL_NATIVE_CTX_CAT_FIELDS)} expected={MODEL_NATIVE_CTX_CAT_DIM}"
+    )
+if len(set(MODEL_NATIVE_CTX_CONT_FIELDS)) != len(MODEL_NATIVE_CTX_CONT_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_DUPLICATE")
+if len(set(MODEL_NATIVE_CTX_CAT_FIELDS)) != len(MODEL_NATIVE_CTX_CAT_FIELDS):
+    raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_DUPLICATE")
+if "trend_regime_id" in MODEL_NATIVE_CTX_CAT_FIELDS:
+    raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_CONTAIN_RETIRED_TREND_BUCKET")
 if set(MODEL_NATIVE_BASE_FIELDS) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_BASE_FIELDS_CONTAIN_FORBIDDEN_BRIDGE_FIELDS")
 if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 174:
@@ -77,6 +282,29 @@ def _sha256_json(value: Any) -> str:
         ensure_ascii=True,
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+MODEL_NATIVE_BASE_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_BASE_FIELDS)
+MODEL_NATIVE_CTX_CONT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CONT_FIELDS)
+MODEL_NATIVE_CTX_CAT_FIELDS_SHA256 = _sha256_json(MODEL_NATIVE_CTX_CAT_FIELDS)
+
+
+def model_native_context_contract_metadata() -> dict[str, Any]:
+    """Return the exact 142-continuous/5-categorical Entry context contract."""
+
+    return {
+        "schema_version": "entry_model_native_context_v1",
+        "tag": "CTX6CAT5",
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "ctx_cont_fields_sha256": MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
+        "ctx_cat_fields_sha256": MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
+        "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
+        "ctx_cont_source_prefix_names": list(
+            MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
+        ),
+    }
 
 
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
@@ -117,14 +345,14 @@ MODEL_NATIVE_STATIC_CONTRACT_SHA256 = _sha256_json(
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
         "base_fields": MODEL_NATIVE_BASE_FIELDS,
+        "base_fields_sha256": MODEL_NATIVE_BASE_FIELDS_SHA256,
         "forbidden_legacy_bridge_fields": FORBIDDEN_LEGACY_BRIDGE_FIELDS,
         "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
         "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
-        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "context_contract": model_native_context_contract_metadata(),
     }
 )
 
@@ -208,6 +436,10 @@ def model_native_signal_contract_metadata(selected_fields: Sequence[str]) -> dic
         "seq_len": MODEL_NATIVE_SEQ_LEN,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
+        "ctx_cont_fields_sha256": MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
+        "ctx_cat_fields_sha256": MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
         "forbidden_legacy_bridge_fields": list(FORBIDDEN_LEGACY_BRIDGE_FIELDS),
         "bridge_dim": 0,
         "bridge_source": None,
@@ -236,6 +468,8 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
         "seq_len": MODEL_NATIVE_SEQ_LEN,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "ctx_cont_fields_sha256": MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
+        "ctx_cat_fields_sha256": MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
         "bridge_dim": 0,
     }
     for key, expected in exact_scalars.items():
@@ -250,6 +484,16 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
     )
     if base_fields != MODEL_NATIVE_BASE_FIELDS:
         failures.append("base_fields order mismatch")
+    ctx_cont_fields = tuple(
+        str(value) for value in (contract.get("ctx_cont_names") or ())
+    )
+    ctx_cat_fields = tuple(
+        str(value) for value in (contract.get("ctx_cat_names") or ())
+    )
+    if ctx_cont_fields != MODEL_NATIVE_CTX_CONT_FIELDS:
+        failures.append("ctx_cont_names order mismatch")
+    if ctx_cat_fields != MODEL_NATIVE_CTX_CAT_FIELDS:
+        failures.append("ctx_cat_names order mismatch")
     if forbidden_declared != FORBIDDEN_LEGACY_BRIDGE_FIELDS:
         failures.append("forbidden_legacy_bridge_fields order mismatch")
     mandatory_declared = contract.get("mandatory_full_stack")

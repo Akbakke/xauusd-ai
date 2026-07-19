@@ -56,16 +56,33 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
 
     assert result.returncode == 0
-    assert "# XAUUSD model-native direction handover" in result.stdout
+    assert "# GX1 XAU Direction Repair Takeover (compact)" in result.stdout
     assert "Build the GX1 trading bot for gold/XAUUSD" in result.stdout
     assert "selects LONG/SHORT/FLAT direction" in result.stdout
     assert "Use this script only: scripts/gx1_handover.sh" in result.stdout
-    assert "no competing" in result.stdout
-    assert "Current terminal status" in result.stdout
-    assert "**BLOCK.**" in result.stdout
+    assert "decision: BLOCK" in result.stdout
+    assert "required_contract_mode: xau_seq513_model_native_direction_v1" in result.stdout
+    assert "active_seq513_chain" in result.stdout
+    assert "## Full Handover (--verbose)" not in result.stdout
+    assert "## Required evidence before Entry can open" not in result.stdout
+    assert len(result.stdout.encode("utf-8")) < len(HANDOVER.read_bytes())
 
+
+def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> None:
+    result = subprocess.run(
+        ["bash", str(HANDOVER_VIEWER), "--verbose"],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0
     authoritative_handover = HANDOVER.read_text(encoding="utf-8")
-    rendered_handover = result.stdout.split("### Handover\n", maxsplit=1)[1]
+    rendered_handover = result.stdout.split(
+        "## Full Handover (--verbose)\n", maxsplit=1
+    )[1]
     assert rendered_handover == authoritative_handover
     assert "## Exact Entry contract" in rendered_handover
     assert "xau_seq513_model_native_direction_v1" in rendered_handover
@@ -85,7 +102,9 @@ def test_control_surface_handover_alias_uses_current_handover_viewer() -> None:
     )
 
     assert result.returncode == 0
-    assert HANDOVER.read_text(encoding="utf-8").splitlines()[0] in result.stdout
+    assert "# GX1 XAU Direction Repair Takeover (compact)" in result.stdout
+    assert "decision: BLOCK" in result.stdout
+    assert "## Full Handover (--verbose)" not in result.stdout
     assert "SMART JOINT POLICY PROMOTED" not in result.stdout
 
 
@@ -158,14 +177,17 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
     )[0]
 
     for flag in (
+        "--vedtak",
         "--source-parquet",
         "--canonical-v2-parquet",
         "--signal-manifest",
+        "--feature-ranking-json",
         "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
         "--output",
         "--audit-out-dir",
+        "--history-start",
         "--train-start",
         "--train-end",
         "--val-start",
@@ -185,6 +207,45 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
         "--verify-large-input-hashes",
     ):
         assert retired not in route
+
+
+def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() -> None:
+    required = {
+        "--vedtak": "XAU_SEQ513_REBUILD_TEST_V1",
+        "--source-parquet": "/tmp/source.parquet",
+        "--canonical-v2-parquet": "/tmp/canonical.parquet",
+        "--signal-manifest": "/tmp/signal.json",
+        "--feature-ranking-json": "/tmp/ranking.json",
+        "--rank-reference-npz": "/tmp/rank.npz",
+        "--mtf-cache-dir": "/tmp/mtf",
+        "--tape-root": "/tmp/tape",
+        "--output": "/tmp/output__HOLD_03B.parquet",
+        "--audit-out-dir": "/tmp/audit",
+        "--history-start": "2020-01-01T00:00:00Z",
+        "--train-start": "2020-01-02T00:00:00Z",
+        "--train-end": "2025-01-01T00:00:00Z",
+        "--val-start": "2025-01-02T00:00:00Z",
+        "--val-end": "2025-06-01T00:00:00Z",
+        "--test-start": "2025-06-02T00:00:00Z",
+        "--test-end": "2026-01-01T00:00:00Z",
+        "--out-dir": "/tmp/reports",
+    }
+
+    for missing in ("--vedtak", "--feature-ranking-json", "--history-start"):
+        argv = ["bash", str(CONTROL), "model-native-rebuild-preflight"]
+        for flag, value in required.items():
+            if flag != missing:
+                argv.extend([flag, value])
+        result = subprocess.run(
+            argv,
+            cwd=REPO,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        assert result.returncode == 2
+        assert f"requires explicit {missing}" in result.stderr
 
 
 def test_obsolete_mega_guardrails_and_plan_tombstone_are_deleted() -> None:

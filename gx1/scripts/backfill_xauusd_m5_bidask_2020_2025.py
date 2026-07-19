@@ -9,12 +9,14 @@ Schema matches canonical tape lane (year=YYYY/part-000.parquet).
 Usage:
     # Backfill 2020-2024 (2025 already exists)
     python gx1/scripts/backfill_xauusd_m5_bidask_2020_2025.py \
+        --vedtak XAU_OANDA_BACKFILL_2020_2024_V1 \
         --start 2020-01-01T00:00:00Z \
         --end 2025-01-01T00:00:00Z \
         --out data/oanda/XAUUSD_M5_2020_2024_bidask.parquet
 
     # Verify against 2025 canonical tape sample
     python gx1/scripts/backfill_xauusd_m5_bidask_2020_2025.py \
+        --vedtak XAU_OANDA_VERIFY_2025_V1 \
         --verify-against /home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL/year=2025/part-000.parquet \
         --verify-window-days 7
 
@@ -31,21 +33,25 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 
 # Add workspace root to path
 workspace_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(workspace_root))
 
-from gx1.execution.oanda_client import OandaClient, OandaClientConfig, OandaAPIError
-from gx1.execution.oanda_credentials import load_oanda_credentials
-from gx1.utils.granularity import granularity_to_minutes, granularity_to_pandas_freq, granularity_to_timedelta
-from gx1.utils.env_loader import load_dotenv_if_present
+from gx1.execution.oanda_client import OandaAPIError, OandaClient, OandaClientConfig  # noqa: E402
+from gx1.execution.oanda_credentials import load_oanda_credentials  # noqa: E402
+from gx1.utils.env_loader import load_dotenv_if_present  # noqa: E402
+from gx1.utils.granularity import (  # noqa: E402
+    granularity_to_minutes,
+    granularity_to_pandas_freq,
+    granularity_to_timedelta,
+)
+from gx1_guards.gates import require_retrain_vedtak  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -560,9 +566,9 @@ def verify_against_sample(
     else:
         log.info("✅ VERIFICATION PASSED")
         log.info(f"  - {len(common_timestamps):,} timestamps compared")
-        log.info(f"  - Schema match: ✅")
-        log.info(f"  - Dtype match: ✅")
-        log.info(f"  - Price values match: ✅")
+        log.info("  - Schema match: ✅")
+        log.info("  - Dtype match: ✅")
+        log.info("  - Price values match: ✅")
         return True
 
 
@@ -619,6 +625,11 @@ def main() -> int:
         description="Backfill XAUUSD M5 candles with bid/ask from OANDA (2020-2025)"
     )
     parser.add_argument(
+        "--vedtak",
+        required=True,
+        help="Explicit auditable decision ID authorizing this external-data operation",
+    )
+    parser.add_argument(
         "--granularity",
         type=str,
         default=GRANULARITY,
@@ -659,6 +670,10 @@ def main() -> int:
     )
     
     args = parser.parse_args()
+
+    # This must run before environment loading, credentials, network access,
+    # checkpoint creation, or dataset/manifest writes.
+    require_retrain_vedtak(args.vedtak)
     
     # Load environment
     load_dotenv_if_present()

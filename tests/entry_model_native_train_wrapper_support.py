@@ -10,8 +10,12 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
@@ -127,6 +131,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     )
     artifacts["full_input_liveness_audit_json"] = liveness_path.resolve()
 
+    feature_selected = canonical_model_native_selected_fields(
+        remainder_prefix="session_regime.train_wrapper_fixture"
+    )
+    feature_signal_contract = model_native_signal_contract_metadata(feature_selected)
+    ranked_remainder = feature_selected[
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:
+    ]
     artifacts["feature_audit_json"] = _write_json(
         evidence_dir / f"ENTRY_FEATURE_AUDIT_{STAMP}.json",
         {
@@ -139,8 +150,29 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "failures": [],
             "dataset_dir": str(dataset_dir),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
-            "base_seq_dim_v3": 34,
-            "selected_feature_count": 479,
+            "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
+            "base_signal_fields": list(MODEL_NATIVE_BASE_FIELDS),
+            "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+            "manifest_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+            "mandatory_selected_feature_count": (
+                MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+            ),
+            "manifest_mandatory_selected_feature_count": (
+                MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+            ),
+            "ranked_remainder_feature_count": (
+                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            ),
+            "manifest_ranked_remainder_feature_count": (
+                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            ),
+            "ranked_remainder_fields_sha256": canonical_json_sha256(
+                ranked_remainder
+            ),
+            "feature_ranking_fit_scope": "train_only",
+            "feature_ranking_sha256": "a" * 64,
+            "model_native_signal_contract": feature_signal_contract,
             "ctx_cont_dim_v3": 142,
             "ctx_cat_dim_v3": 5,
         },

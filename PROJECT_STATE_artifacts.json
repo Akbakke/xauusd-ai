@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_artifact_selection_v2",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-16T00:00:00Z",
+  "updated_utc": "2026-07-19T19:08:04Z",
   "note": "Entry and Exit authority are explicit. Entry is blocked by both this registry and PROJECT_STATE_xau_direction_launch.json. Historical Smart520 and Entry-IQL artifacts cannot authorize decisioning. Exit selections and operating-point environment remain retained separately.",
   "active": {
     "xgb": {
@@ -26,10 +26,11 @@
       "note": "Retained clean Exit transformer. Entry model-native cleanup does not change this artifact."
     },
     "entry_iql": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs/entry_iql_volbal_20260611",
-      "status": "RETIRED",
+      "path": null,
+      "status": "RETIRED_ARTIFACT_ABSENT",
+      "artifact_present": false,
       "in_sample_only": false,
-      "note": "Historical provenance only. Entry-IQL is not an Entry authority or fallback."
+      "note": "The formerly registered historical Entry-IQL directory is absent as of 2026-07-19. No benchmark bytes are available, and Entry-IQL is not an Entry authority or fallback."
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_deferral_20260707",

@@ -11,7 +11,6 @@ import pytest
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     model_native_signal_contract_metadata,
@@ -22,9 +21,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _model_native_state_contract,
@@ -73,8 +72,8 @@ def _extra() -> dict:
             "tag": "CTX6CAT5",
             "ctx_cont_dim": 142,
             "ctx_cat_dim": 5,
-            "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-            "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+            "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+            "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         },
         "model_native_state_contract": {
             "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,

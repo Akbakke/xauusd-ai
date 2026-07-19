@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_BASE_FIELDS
-from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3, ORDERED_CTX_CONT_NAMES_V3
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CAT_FIELDS, MODEL_NATIVE_CTX_CONT_FIELDS
 from gx1.features.entry_model_native_feature_layers_v1 import (
     build_candlestick_derived_layer,
     build_chart_layer,
@@ -19,8 +19,8 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 
 def _valid_inputs(tmp_path: Path, *, rows: int = 240):
     names = [f"snap.{name}" for name in MODEL_NATIVE_BASE_FIELDS]
-    names.extend(f"ctx_cont.{name}" for name in ORDERED_CTX_CONT_NAMES_V3)
-    names.extend(f"ctx_cat.{name}" for name in ORDERED_CTX_CAT_NAMES_V3)
+    names.extend(f"ctx_cont.{name}" for name in MODEL_NATIVE_CTX_CONT_FIELDS)
+    names.extend(f"ctx_cat.{name}" for name in MODEL_NATIVE_CTX_CAT_FIELDS)
     row = np.arange(rows, dtype=np.float64)[:, None]
     column = np.arange(len(names), dtype=np.float64)[None, :]
     matrix = (0.5 + 0.4 * np.sin(row * 0.071 + column * 0.137)).astype(np.float32)

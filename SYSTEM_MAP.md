@@ -73,6 +73,11 @@ shape and forbids the seven retired bridge fields:
 - 142 continuous + 5 categorical context fields;
 - no bridge source and no anchor source.
 
+This contract is the one exact owner of the 34 base, 142 continuous-context
+and 5 categorical-context identities. Active Entry has zero imports from
+`signal_bridge_v1` or `signal_bridge_v3`; those modules cannot supply,
+reorder or repair Entry state.
+
 The complete 479-field order is manifest-owned and hash-bound. The first 305
 positions must exactly equal the immutable causal-layer registry; the final
 174 come from one validated deterministic TRAIN-only ranking. It cannot be
@@ -182,6 +187,17 @@ sidecar repeats it, and the state contract/build proof/split manifests bind it.
 Missing or unequal IDs invalidate the chain; a wrapper-only console value is
 not authorization provenance.
 
+All retained OANDA backfill writers also validate an explicit `--vedtak`
+before creating or modifying files. A missing or invalid decision fails before
+side effects; backfill output never supplies Entry direction authority.
+
+The feature-ranking JSON and its derived seq513 signal manifest are explicit
+immutable inputs, never files selected by glob, mtime or lexical "latest".
+Preflight, wrapper and builder revalidate the nested ranking lineage, vedtak,
+source hash and exact requested TRAIN start/end. A ranking produced for a
+different split cannot authorize a build even when its schema and 305+174
+shape are otherwise valid.
+
 `gx1/contracts/entry_model_native_train_launch_v1.py` binds explicit immutable
 train/val/test manifests, data files, source tape, liveness, feature, target,
 specialist, pretrain and readiness audits. It emits only an allowlisted recipe
@@ -252,6 +268,12 @@ limit raises structured unavailability and emits no `LONG`, `SHORT` or `FLAT`;
 there is no cached-row substitution or backlog execution. Exit retains its
 separate admitted freshness semantics.
 
+The same fail-closed rule applies before inference to the 142+5 context and
+session identity. Missing, invalid or session-inconsistent values, including a
+fabricated ASIA flag, return
+`MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION`; the runtime never manufactures
+context, invokes a bridge or translates the failure to synthetic `FLAT`.
+
 ## Exit boundary
 
 Exit is separately retained. Active Exit V3/Exit-IQL may still consume its
@@ -259,6 +281,12 @@ contracted XGB state. Entry's removal of XGB anchors and Entry-IQL does not
 authorize changing Exit math, M1 cadence, artifacts or operating point.
 Shared offline primitives must have neutral or Exit-owned names and must not
 resurrect an Entry-IQL authority.
+
+The retained V3 XGB bridge is an Exit-only owner of real ordered 7/41-field
+validation for two active Exit consumers. Its import and order checks fail
+closed and are intentionally not deleted as Entry residue. Conversely, the
+retired Entry-IQL record in `PROJECT_STATE_artifacts.json` has `path=null` and
+status `RETIRED_ARTIFACT_ABSENT`; it cannot be resolved as a fallback.
 
 ## Control and current status
 
@@ -278,18 +306,34 @@ Current facts:
 
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
-- no training or rebuild was run during the source cleanup;
+- no seq513 rebuild chain or training process is running;
+- vedtak `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
+  attempts were terminated and invalidated after a reused feature-ranking
+  TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
+  TRAIN window (`2021-03-16..2026-03-31`);
+- no rebuild process is running; partial event artifacts have no authority,
+  and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
+  `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
   detached feature modules, manual sizing modules and stale research launchers
   have been deleted rather than retained as alternatives;
 - no practical-precision or trading-edge claim exists without new immutable OOS
   and live-like proof;
+- the report-only abstention metadata run is
+  `BLOCK_ABSTENTION_EMPIRICAL_GATE`: FLAT labels are balanced on TRAIN
+  (`1400/4095`, `34.19%`), validation (`530/1536`, `34.51%`) and TEST
+  (`516/1536`, `33.59%`) and active FLAT/utility/margin weights are positive,
+  but it read zero parquet and produced no learned-probe evidence;
+- immutable historical selection-benchmark bytes and exact learned-probe OOT
+  evidence are absent; obtaining both is the next empirical gate and the
+  metadata run authorizes no rebuild, training or launch;
 - Entry candidate, replay, paper/demo/live and promotion remain blocked.
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Verifisert 2026-07-19 under vedtak `XAU_SEQ513_REBUILD_20260718_V1`. Les dette
-FØR du rg-jakter i builderen — kartet eier artefakt-DAG-en og kolonne-eierskapet.
+Oppdatert 2026-07-19 for vedtak `XAU_SEQ513_REBUILD_20260718_V1`. Forsøkene ga
+ingen godkjent datasettartefakt; kartet beskriver den herdede, påkrevde
+artefakt-DAG-en og kolonne-eierskapet. Les dette FØR du rg-jakter i builderen.
 
 ### Artefakt-DAG (produsent → output)
 
@@ -316,11 +360,17 @@ FULL_PLUS + cache ─ materialize_entry_model_native_train_feature_ranker_v1
         --train-end --out-dir  (checkpoint: EVENT/_ranker_checkpoint.npz)
         → ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<stamp>.json
   └─ materialize_entry_model_native_seq513_signal_manifest_v1 --feature-ranking-json --out --vedtak
-      └─ entry_next_edge_control.sh model-native-rebuild-preflight <15 flagg>
-          └─ rebuild_entry_model_native_seq513_dataset.sh --vedtak <16 args> (capped 30G)
+      └─ entry_next_edge_control.sh model-native-rebuild-preflight
+            <eksplisitte ranking-/manifeststier og øvrige flagg>
+          └─ rebuild_entry_model_native_seq513_dataset.sh --vedtak
+                <samme eksplisitte ranking-/manifestidentitet og øvrige flagg>
+                (capped 30G)
                 → dataset/*__HOLD_03B_{train,val,test}.parquet + DATASET_BUILD_PROOF.json
-Kjede-driver: scripts/run_seq513_rebuild_chain_v1.sh VEDTAK EVENT (resume-trygg,
-Telegram-ping, stopper ved smoke-gaten).
+Kjede-driver: scripts/run_seq513_rebuild_chain_v1.sh --vedtak --event-root
+--feature-ranking-json --signal-manifest --preflight-out-dir. Ranking må finnes;
+manifeststien og preflight-mappen må være nye. Ingen resume, glob/mtime eller
+leksikalsk latest. Telegram-ping er kun operasjonell status; validerte
+split-manifester er terminal autoritet.
 ```
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
@@ -355,14 +405,20 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 
 ### Kjente feller (verifisert 2026-07-18/19)
 
+- July-19-forsøkene gjenbrukte en feature-ranking med TRAIN-start 2020-11-13
+  mot aktiv TRAIN-start 2021-03-16. Den gamle preflighten sjekket ikke det
+  nestede vinduet og ga derfor falsk GREEN. Forsøkene er terminert/ugyldige;
+  schema-v2 `CHAIN_STATUS.json` er nå terminal `RED` med årsak
+  `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` og bundne hasher.
 - Des-2024-tapedefekten (2375 M5-rader, close utenfor [low, high], syntetiske
   helgebarer) finnes FORTSATT i kanonisk M5-rot og live-prebuilt; kun
   event-kopien er reparert. Kanonisk/live-reparasjon er en egen åpen beslutning.
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- D1_atr_percentile_252 krever 270 ekte D1-handelsdager + 1d shift → modellvindu
-  starter tidligst ~2020-11-13 med tape fra 2020-01-01.
+- Aktiv vinduskontrakt er history-start 2021-01-05, TRAIN
+  2021-03-16..2026-03-31, VAL 2026-04-01..2026-04-30 og TEST
+  2026-05-01..2026-06-14T23:55. Rankingens TRAIN-vindu må matche eksakt.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

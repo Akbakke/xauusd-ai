@@ -4,7 +4,7 @@ Canonical ENTRY_V10_CTX trainer.
 
 ONE UNIVERSE (STRICT):
 - Signal bridge: versioned Entry signal bridge.
-- Context: contract-driven ctx_cont/ctx_cat dimensions from signal_bridge_v3.
+- Context: exact ctx_cont/ctx_cat order from entry_model_native_signal_v1.
 - No RL
 - No legacy
 - No fallback
@@ -34,10 +34,10 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 from sklearn.metrics import accuracy_score
 
 # Canonical context ordering; exact model-native dimensions are verified below.
-from gx1.contracts.signal_bridge_v3 import (
-    DEFAULT_SEQ_LEN_V3,
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_SEQ_LEN,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
@@ -7286,8 +7286,8 @@ def run_train(
     _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SIGNAL_DIM_INVALID] seq={seq_input_dim} snap={snap_input_dim}")
     ctx_cont_dim = int(sample["ctx_cont"].shape[1])
     ctx_cat_dim = int(sample["ctx_cat"].shape[1])
-    ordered_ctx_cont_names = list(ORDERED_CTX_CONT_NAMES_V3)
-    ordered_ctx_cat_names = list(ORDERED_CTX_CAT_NAMES_V3)
+    ordered_ctx_cont_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
+    ordered_ctx_cat_names = list(MODEL_NATIVE_CTX_CAT_FIELDS)
     if len(ordered_ctx_cat_names) != ctx_cat_dim:
         raise RuntimeError(
             f"[CTX_CAT_NAME_DIM_MISMATCH] ordered_ctx_cat_names={len(ordered_ctx_cat_names)} "
@@ -9768,7 +9768,7 @@ def main() -> None:
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--seq_len", type=int, default=DEFAULT_SEQ_LEN_V3)
+    parser.add_argument("--seq_len", type=int, default=MODEL_NATIVE_SEQ_LEN)
     parser.add_argument("--dataset_manifest", type=Path, required=True)
     parser.add_argument("--dataset_dir", type=Path, default=None)
     parser.add_argument("--dataset_train_parquet", type=Path, default=None)

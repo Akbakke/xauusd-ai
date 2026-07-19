@@ -55,6 +55,10 @@ from gx1.features.htf_features import (
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     model_native_aux_target_contract_metadata,
 )
+from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
+    validate_signal_manifest_training_lineage,
+)
+from gx1_guards.gates import require_retrain_vedtak
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -669,9 +673,11 @@ def _freshness_contract(
 
 def _command_contract(
     *,
+    explicit_vedtak_id: str,
     source_parquet: Path,
     canonical_v2_parquet: Path,
     signal_manifest: Path,
+    feature_ranking_json: Path,
     rank_reference_npz: Path,
     mtf_cache_dir: Path,
     tape_root: Path,
@@ -684,13 +690,15 @@ def _command_contract(
     argv_template = [
         "scripts/rebuild_entry_model_native_seq513_dataset.sh",
         "--vedtak",
-        "<EXPLICIT_VEDTAK_ID>",
+        explicit_vedtak_id,
         "--source-parquet",
         str(source_parquet),
         "--canonical-v2-parquet",
         str(canonical_v2_parquet),
         "--signal-manifest",
         str(signal_manifest),
+        "--feature-ranking-json",
+        str(feature_ranking_json),
         "--rank-reference-npz",
         str(rank_reference_npz),
         "--mtf-cache-dir",
@@ -720,7 +728,8 @@ def _command_contract(
         "wrapper": _artifact_meta(REBUILD_WRAPPER),
         "argv_template": argv_template,
         "requires_explicit_vedtak": True,
-        "executable_without_replacing_vedtak_placeholder": False,
+        "explicit_vedtak_id": explicit_vedtak_id,
+        "vedtak_bound_without_placeholder": True,
         "starts_dataset_rebuild": True,
         "starts_training": False,
         "starts_replay": False,
@@ -793,12 +802,16 @@ def _command_contract(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    explicit_vedtak_id = require_retrain_vedtak(getattr(args, "vedtak", None))
     source_parquet = _required_path_arg(args, "source_parquet", "--source-parquet")
     canonical_v2_parquet = _required_path_arg(
         args, "canonical_v2_parquet", "--canonical-v2-parquet"
     )
     signal_manifest_path = _required_path_arg(
         args, "signal_manifest", "--signal-manifest"
+    )
+    feature_ranking_path = _required_path_arg(
+        args, "feature_ranking_json", "--feature-ranking-json"
     )
     rank_reference_npz = _required_path_arg(
         args, "rank_reference_npz", "--rank-reference-npz"
@@ -860,12 +873,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _manifest_timestamp_matches_created(signal_manifest_path, manifest),
         manifest.get("created_utc"),
     )
-    declared_path = str(manifest.get("manifest_json_path") or "").strip()
+    declared_path = str(manifest.get("json_path") or "").strip()
     _check(
         checks,
-        "signal manifest self-path matches when declared",
-        not declared_path
-        or Path(declared_path).expanduser().resolve() == signal_manifest_path,
+        "signal manifest declares its exact immutable self-path",
+        bool(declared_path)
+        and Path(declared_path).expanduser().resolve() == signal_manifest_path,
         declared_path,
     )
     try:
@@ -954,6 +967,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         split_schedule.get("test", {}).get("end"), label="test end"
     )
 
+    signal_lineage: dict[str, Any] = {}
+    signal_lineage_failures: list[str] = []
+    if split_schedule and source_sha:
+        try:
+            signal_lineage = validate_signal_manifest_training_lineage(
+                manifest_path=signal_manifest_path,
+                feature_ranking_path=feature_ranking_path,
+                expected_vedtak_id=explicit_vedtak_id,
+                expected_source_sha256=source_sha,
+                expected_train_start_utc=split_schedule["train"]["start"],
+                expected_train_end_utc=split_schedule["train"]["end"],
+            )
+        except (RuntimeError, TypeError, ValueError) as exc:
+            signal_lineage_failures.append(str(exc))
+    else:
+        signal_lineage_failures.append(
+            "source hash and valid split schedule are required before lineage validation"
+        )
+    _check(
+        checks,
+        "signal manifest binds the explicit ranking, vedtak, source hash, and exact TRAIN window",
+        not signal_lineage_failures,
+        {"lineage": signal_lineage, "failures": signal_lineage_failures},
+    )
+
     source_time = _source_time_contract(
         source_parquet,
         history_start=history_start,
@@ -1024,9 +1062,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     command_contract: dict[str, Any] = {}
     if split_schedule:
         command_contract = _command_contract(
+            explicit_vedtak_id=explicit_vedtak_id,
             source_parquet=source_parquet,
             canonical_v2_parquet=canonical_v2_parquet,
             signal_manifest=signal_manifest_path,
+            feature_ranking_json=feature_ranking_path,
             rank_reference_npz=rank_reference_npz,
             mtf_cache_dir=mtf_cache_dir,
             tape_root=tape_root,
@@ -1044,6 +1084,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,
+        "explicit_vedtak_id": explicit_vedtak_id,
         "training_allowed": False,
         "dataset_rebuild_allowed_without_vedtak": False,
         "dataset_rebuild_allowed_after_explicit_vedtak_review": not failures,
@@ -1084,6 +1125,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 canonical_v2_parquet, sha256=canonical_sha
             ),
             "signal_manifest": _artifact_meta(signal_manifest_path),
+            "feature_ranking_json": _artifact_meta(feature_ranking_path),
             "rank_and_output_freshness": freshness,
             "source_time_contract": source_time,
             "multi_tf_cache": mtf,
@@ -1091,12 +1133,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "specialist_contract": specialist,
         "signal_source_manifest_rows": source_manifest_rows,
+        "signal_training_lineage": signal_lineage,
         "rebuild_command_contract": command_contract,
         "checks": checks,
         "failures": failures,
         "next_required_gate": (
-            "obtain an explicit rebuild vedtak, replace the command placeholder, run the "
-            "immutable capped rebuild, and then prove feature/target/specialist/liveness "
+            "review and execute only the exact vedtak-bound capped rebuild command, then prove "
+            "feature/target/specialist/liveness "
             "contracts before any training review"
         ),
     }
@@ -1112,8 +1155,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Report-only exact model-native seq513 rebuild preflight."
     )
     parser.add_argument("--source-parquet", required=True)
+    parser.add_argument("--vedtak", required=True)
     parser.add_argument("--canonical-v2-parquet", required=True)
     parser.add_argument("--signal-manifest", required=True)
+    parser.add_argument("--feature-ranking-json", required=True)
     parser.add_argument("--rank-reference-npz", required=True)
     parser.add_argument("--mtf-cache-dir", required=True)
     parser.add_argument("--tape-root", required=True)

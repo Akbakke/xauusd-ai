@@ -40,9 +40,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     require_model_native_signal_contract,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1_guards.gates import require_retrain_vedtak
 
@@ -253,8 +253,8 @@ def _validate_split_manifest(
     ctx_cont = [str(name) for name in ctx.get("ctx_cont_names", [])]
     ctx_cat = [str(name) for name in ctx.get("ctx_cat_names", [])]
     if (
-        ctx_cont != list(ORDERED_CTX_CONT_NAMES_V3)
-        or ctx_cat != list(ORDERED_CTX_CAT_NAMES_V3)
+        ctx_cont != list(MODEL_NATIVE_CTX_CONT_FIELDS)
+        or ctx_cat != list(MODEL_NATIVE_CTX_CAT_FIELDS)
         or int(ctx.get("ctx_cont_dim") or -1) != MODEL_NATIVE_CTX_CONT_DIM
         or int(ctx.get("ctx_cat_dim") or -1) != MODEL_NATIVE_CTX_CAT_DIM
     ):

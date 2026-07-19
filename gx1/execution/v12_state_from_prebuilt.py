@@ -94,9 +94,9 @@ def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
     """Run GROUP-A + DIP/STRUCT augmenter in a subprocess. Returns DataFrame
     with ONLY the new ctx_cont columns, indexed identically to cv3 input.
     """
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
-        ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT,
     )
     loader = PrebuiltStateLoader()
     augmented = loader._augment_cv3_with_group_a_and_dip_struct(cv3)
@@ -438,9 +438,9 @@ class PrebuiltStateLoader:
         target = cv3 if cv3 is not None else self._cv3
         if target is None:
             raise RuntimeError("group-A augmentation requires a loaded canonical_v3 frame")
-        from gx1.contracts.signal_bridge_v3 import (
-            ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
-            ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
+        from gx1.contracts.entry_model_native_signal_v1 import (
+            MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
+            MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT,
         )
         missing_ohlc = [c for c in ("open", "high", "low", "close", "volume") if c not in target.columns]
         if missing_ohlc:

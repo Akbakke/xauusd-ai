@@ -1,4 +1,4 @@
-from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3, ORDERED_CTX_CONT_NAMES_V3
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CAT_FIELDS, MODEL_NATIVE_CTX_CONT_FIELDS
 import copy
 
 import pytest
@@ -9,7 +9,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
@@ -48,7 +47,7 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
 
 
 def test_v10_metadata_ctx_cont_names_are_the_exact_full_v3_contract() -> None:
-    assert len(ORDERED_CTX_CONT_NAMES_V3) == MODEL_NATIVE_CTX_CONT_DIM
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM
 
 
 def test_v10_metadata_active_heads_include_enabled_model_native_heads() -> None:
@@ -141,8 +140,8 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "ordered_signal_names": list(signal_contract["fields"]),
-        "ordered_ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-        "ordered_ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+        "ordered_ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ordered_ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         "model_native_signal_contract": signal_contract,
         "model_native_training_objective": training_objective,
         "model_native_direction_evidence_fusion": (

@@ -37,9 +37,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -752,17 +752,17 @@ def main() -> int:
         )
     ctx_cont_names = [str(value) for value in meta["ordered_ctx_cont_names"]]
     ctx_cat_names = [str(value) for value in meta["ordered_ctx_cat_names"]]
-    if len(ORDERED_CTX_CONT_NAMES_V3) != EXPECTED_CTX_CONT_DIM:
+    if len(MODEL_NATIVE_CTX_CONT_FIELDS) != EXPECTED_CTX_CONT_DIM:
         raise RuntimeError(
             "runtime context contract is not the required 142-field model-native surface"
         )
-    if len(ORDERED_CTX_CAT_NAMES_V3) != EXPECTED_CTX_CAT_DIM:
+    if len(MODEL_NATIVE_CTX_CAT_FIELDS) != EXPECTED_CTX_CAT_DIM:
         raise RuntimeError(
             "runtime categorical context contract is not the required 5-field surface"
         )
-    if ctx_cont_names != list(ORDERED_CTX_CONT_NAMES_V3):
+    if ctx_cont_names != list(MODEL_NATIVE_CTX_CONT_FIELDS):
         raise RuntimeError("bundle ordered_ctx_cont_names mismatch exact 142-field contract")
-    if ctx_cat_names != list(ORDERED_CTX_CAT_NAMES_V3):
+    if ctx_cat_names != list(MODEL_NATIVE_CTX_CAT_FIELDS):
         raise RuntimeError("bundle ordered_ctx_cat_names mismatch exact 5-field contract")
     exact_dimensions = {
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,

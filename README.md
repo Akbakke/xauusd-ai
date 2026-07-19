@@ -9,6 +9,15 @@ direction policy.
 Current status: **BLOCKED**. No fresh seq513 bundle is accepted and no Entry
 launch is authorized. The old Smart520 evidence is historical and cannot be
 used for training, replay, paper trading, live trading or promotion.
+The July-19 seq513 rebuild attempts under
+`XAU_SEQ513_REBUILD_20260718_V1` were terminated and invalidated after a
+feature-ranking TRAIN-window mismatch; no rebuild process or accepted dataset
+exists now, no seq513 training process is running, and partial artifacts have
+no authority. A report-only abstention metadata check is
+`BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
+objective weights are not learned evidence. It read zero parquet; immutable
+historical selection-benchmark bytes and exact learned-probe OOT evidence are
+still absent and are the next empirical gate.
 
 ## Active Entry contract
 
@@ -38,8 +47,10 @@ Real trend/session/liquidity/volatility/momentum evidence belongs inside the
 model. Retired filters are only the disconnected rules that could veto, flip,
 threshold or silently pass through a model decision after inference.
 Full-stack coverage is proven by causal timing, field liveness and learned
-influence; duplicate indicator aliases and future-leaking variants are not
-additional robustness.
+connectivity, but coverage alone does not prove useful influence or trading
+edge. Each family's influence and the fused decision must be proved
+empirically on immutable OOS/live-like evidence; duplicate indicator aliases
+and future-leaking variants are not additional robustness.
 
 ## Start here
 

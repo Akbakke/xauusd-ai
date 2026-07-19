@@ -11,9 +11,9 @@ but were never wired into the entry/exit models — this module wires them + der
 The full surface is unconditional in model-native Entry. Missing source columns
 raise; no environment-selected subset or neutral substitute exists.
 
-The feature list (REGIME_V4_FEATURE_NAMES) is what gets appended to the entry ctx_cont
-contract (signal_bridge_v3.ORDERED_CTX_CONT_NAMES_V3) and the EXIT_IO_V8 tail. R1/R2 are
-passthrough (already present); F* are derived here.
+The feature list (REGIME_V4_FEATURE_NAMES) is the tail of the model-native
+Entry ctx_cont contract and the EXIT_IO_V8 tail. R1/R2 are passthrough
+(already present); F* are derived here.
 """
 from __future__ import annotations
 

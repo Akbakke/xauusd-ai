@@ -14,11 +14,11 @@ Missing or mismatched contracts fail closed.  No compatibility fallback exists.
 
 SECTION LINE INDEX (oppdater ved flytting; se ogsaa SYSTEM_MAP.md
 "Pipeline- og ingredienskart"):
-  ~594  _hard_gate_ctx6cat6 (v1 CTX6CAT6-gate)
+  ~594  exact model-native ctx142/cat5 gate
   ~628  _signal_build_contract_from_manifest
   ~674  _build_inline_seq_structure_extension (alle specialist-lag fra merged3)
   ~1799 is_ASIA-derivering ((session_id==0).astype(int8))
-  ~1835 ctx-navn -> ORDERED_CTX_*_NAMES_V3-upgrade
+  ~1835 Entry-owned exact context ordering
   ~1982 df_ctx_cont-konstruksjon
   ~2096 merged3-assembly (labels/path/bad-path + ctx-join)
   ~2115 cv2-lasteliste (V3-navn minus computed-familier)
@@ -52,17 +52,20 @@ import pandas as pd
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+    model_native_context_contract_metadata,
     require_model_native_manifest,
     require_model_native_signal_contract,
 )
@@ -75,11 +78,10 @@ from gx1.contracts.entry_model_native_state_v2 import (
     load_train_rank_reference_v2,
     validate_state_contract_metadata_v2,
 )
-from gx1.features.swing_structure_v1 import compute_swing_structure_features
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CONT_NAMES_V3,
-    ORDERED_CTX_CAT_NAMES_V3,
+from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
+    validate_signal_manifest_training_lineage,
 )
+from gx1.features.swing_structure_v1 import compute_swing_structure_features
 from gx1.time.session_detector import (
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
@@ -607,22 +609,22 @@ def _utc_now_iso() -> str:
     return datetime.utcnow().isoformat() + "Z"
 
 
-def _hard_gate_ctx6cat6() -> Dict[str, Any]:
-    """Fail-fast: ensure the canonical ctx base contract is CTX6CAT6 (ctx_cont_base=6, ctx_cat=6)."""
-    ctx = get_canonical_ctx_contract()
-    tag = str(ctx.get("tag", ""))
-    cont = int(ctx.get("ctx_cont_dim", -1))
-    cat = int(ctx.get("ctx_cat_dim", -1))
-    if tag != "CTX6CAT6" or cont != 6 or cat != 6:
-        raise RuntimeError(
-            f"CTX_CONTRACT_SPLIT_BRAIN: expected CTX6CAT6 base (ctx_cont_base=6, ctx_cat=6) "
-            f"but got tag={tag} cont={cont} cat={cat}"
-        )
-    # Names must exist for stable column mapping
-    if "ctx_cont_names" not in ctx or "ctx_cat_names" not in ctx:
-        raise RuntimeError("CTX_CONTRACT_INVALID: missing ctx_cont_names/ctx_cat_names in contract")
-    if len(ctx["ctx_cont_names"]) != 6 or len(ctx["ctx_cat_names"]) != 6:
-        raise RuntimeError("CTX_CONTRACT_INVALID: ctx base names length must be 6/6")
+def _hard_gate_model_native_context() -> Dict[str, Any]:
+    """Return the exact Entry-owned 142/5 context contract or fail closed."""
+
+    ctx = model_native_context_contract_metadata()
+    if tuple(ctx.get("ctx_cont_names") or ()) != MODEL_NATIVE_CTX_CONT_FIELDS:
+        raise RuntimeError("MODEL_NATIVE_CTX_CONT_FIELDS_ORDER_MISMATCH")
+    if tuple(ctx.get("ctx_cat_names") or ()) != MODEL_NATIVE_CTX_CAT_FIELDS:
+        raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_ORDER_MISMATCH")
+    if tuple(ctx.get("ctx_cont_source_prefix_names") or ()) != (
+        MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
+    ):
+        raise RuntimeError("MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_ORDER_MISMATCH")
+    if int(ctx.get("ctx_cont_dim", -1)) != MODEL_NATIVE_CTX_CONT_DIM:
+        raise RuntimeError("MODEL_NATIVE_CTX_CONT_DIM_MISMATCH")
+    if int(ctx.get("ctx_cat_dim", -1)) != MODEL_NATIVE_CTX_CAT_DIM:
+        raise RuntimeError("MODEL_NATIVE_CTX_CAT_DIM_MISMATCH")
     return ctx
 
 
@@ -1242,16 +1244,15 @@ def _compute_bad_path_first_n(
 # Manifest writing
 # -----------------------------------------------------------------------------
 def _model_native_ctx_contract_metadata() -> Dict[str, Any]:
-    return {
-        "tag": f"CTX6CAT{MODEL_NATIVE_CTX_CAT_DIM}",
-        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
-        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
-        "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-        "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
-        "ctx_cont_micro_features": list(MICRO_FEATURE_NAMES),
-        "ctx_cont_swing_features": list(SWING_FEATURE_NAMES),
-        "ctx_cont_session_features": list(SESSION_CTX_CONT_NAMES),
-    }
+    ctx = model_native_context_contract_metadata()
+    ctx.update(
+        {
+            "ctx_cont_micro_features": list(MICRO_FEATURE_NAMES),
+            "ctx_cont_swing_features": list(SWING_FEATURE_NAMES),
+            "ctx_cont_session_features": list(SESSION_CTX_CONT_NAMES),
+        }
+    )
+    return ctx
 
 
 def _require_model_native_manifest_contract(
@@ -1461,8 +1462,8 @@ def write_manifest(
             "ctx_tag": ctx_tag,
             "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
             "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
-            "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-            "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+            "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+            "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
             "ctx_cont_micro_features": list(ctx_cont_micro),
             "ctx_cont_swing_features": list(ctx_cont_swing),
             "signal_bridge_id": signal_bridge_id,
@@ -1693,7 +1694,7 @@ def build_dataset_canonical(
     streaming_batch_size: int = 5000,     # V2 batch rows per ParquetWriter flush
     source_parquet_override: Optional[Path] = None,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-    ctx = _hard_gate_ctx6cat6()
+    ctx = _hard_gate_model_native_context()
     signal_build_contract = _signal_build_contract_from_manifest(seq_structure_manifest_path)
     active_base_signal_fields = list(signal_build_contract["base_fields"])
 
@@ -1848,13 +1849,13 @@ def build_dataset_canonical(
     )
 
     # 6) Build ctx features
-    ctx_cont_names = list(ctx["ctx_cont_names"])
+    ctx_cont_names = list(ctx["ctx_cont_source_prefix_names"])
     # ctx_cat is the unconditional five-field model-native contract; the stale
     # degenerate trend_regime_id base anchor is excluded. This also fixes the
     # H4 case: the v3 contract uses capital "H4_trend_sign_cat" exactly as add_ctx_cont emits it
     # (the v1 base used lowercase "h4_trend_sign_cat", which mismatched the prebuilt column).
-    # Symmetric with the ctx_cont_names = ORDERED_CTX_CONT_NAMES_V3 upgrade later in this builder.
-    ctx_cat_names = list(ORDERED_CTX_CAT_NAMES_V3)
+    # Symmetric with the ctx_cont_names = MODEL_NATIVE_CTX_CONT_FIELDS upgrade later in this builder.
+    ctx_cat_names = list(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     # 7) Assemble per-bar signal dataframe (time aligned)
     df_sig = pd.DataFrame({"time": df["time"].to_numpy()})
@@ -2128,10 +2129,10 @@ def build_dataset_canonical(
     # IQL) — they do NOT exist in any source parquet, so exclude them from the
     # load requirement and instead pull raw `volume`.
     from gx1.features.volume_features import VOLUME_FEATURE_NAMES as _VOLUME_FEAT_NAMES
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A_PARITY,
-        ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT_PARITY,
-        ORDERED_CTX_CONT_ENTRY_SMART_DERIVED as _ENTRY_SMART_DERIVED,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A_PARITY,
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT_PARITY,
+        MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS as _ENTRY_SMART_DERIVED,
     )
     _computed_not_loaded = set(_VOLUME_FEAT_NAMES) | set(_GROUP_A_PARITY) | set(_DIP_STRUCT_PARITY) | set(_ENTRY_SMART_DERIVED)
     # REGIME_V4 per-TF source scalars are produced by the one-truth
@@ -2143,7 +2144,7 @@ def build_dataset_canonical(
     )
     cv2_needed = list((set(
         list(active_base_signal_fields)
-        + list(ORDERED_CTX_CONT_NAMES_V3)
+        + list(MODEL_NATIVE_CTX_CONT_FIELDS)
         + ["volume"]
         + [n for n in _RV4_SOURCE_COLS_EARLY if n != "D1_dist_from_ema200_atr"]
     )) - _computed_not_loaded)
@@ -2282,8 +2283,8 @@ def build_dataset_canonical(
     # TRUTH (V10 sees exactly what the IQL acts on). atr is derived from the M5
     # multi-TF cache inside augment_candidate (matches IQL). Portfolio feats are
     # excluded (journal_dir nonexistent → 0; they're IQL-only state).
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_GROUP_A_PARITY, ORDERED_CTX_CONT_DIP_STRUCT,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS, MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
     )
     # Recompute unconditionally over the explicit common-history frame.  Source
     # parquets may carry older/full-range derived values; trusting those would
@@ -2302,7 +2303,7 @@ def build_dataset_canonical(
     _cache_dir = Path(_cache_dir_raw).expanduser().resolve()
     if not _cache_dir.is_dir():
         raise RuntimeError(f"MULTI_TF_V2_CACHE_MISSING: {_cache_dir}")
-    _group_a_required = list(ORDERED_CTX_CONT_GROUP_A_PARITY) + list(ORDERED_CTX_CONT_DIP_STRUCT)
+    _group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS)
     merged3 = merged3.drop(columns=[name for name in _group_a_required if name in merged3.columns])
     merged3 = _attach_group_a(
         merged3,
@@ -2322,8 +2323,8 @@ def build_dataset_canonical(
     _causal_context_warmup_rows_trimmed = _rows_before_context_trim - len(merged3)
     log.info(
         "[V10_GROUP_A_PARITY] computed %d parity + %d dip/struct features; trimmed warmup rows=%d",
-        len(ORDERED_CTX_CONT_GROUP_A_PARITY),
-        len(ORDERED_CTX_CONT_DIP_STRUCT),
+        len(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS),
         _causal_context_warmup_rows_trimmed,
     )
 
@@ -2370,12 +2371,12 @@ def build_dataset_canonical(
     missing_sig = [f for f in active_base_signal_fields if f not in merged3.columns]
     if missing_sig:
         raise RuntimeError(f"V2_SIGNAL_FIELDS_MISSING after canonical_v2 join: {missing_sig}")
-    missing_ctx = [f for f in ORDERED_CTX_CONT_NAMES_V3 if f not in merged3.columns]
+    missing_ctx = [f for f in MODEL_NATIVE_CTX_CONT_FIELDS if f not in merged3.columns]
     if missing_ctx:
         raise RuntimeError(f"V2_CTX_CONT_FIELDS_MISSING after canonical_v2 join: {missing_ctx}")
 
     # 9) Build the exact model-native seq + snap + context arrays.
-    ctx_cont_names = list(ORDERED_CTX_CONT_NAMES_V3)
+    ctx_cont_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
     if len(ctx_cont_names) != MODEL_NATIVE_CTX_CONT_DIM:
         raise RuntimeError(
             f"MODEL_NATIVE_CTX_CONT_DIM_INVALID: got={len(ctx_cont_names)} expected={MODEL_NATIVE_CTX_CONT_DIM}"
@@ -3435,6 +3436,12 @@ def main() -> None:
         required=True,
         help="Exact model-native selection manifest (34 + 479 = 513 ordered signals).",
     )
+    parser.add_argument(
+        "--feature-ranking-json",
+        type=str,
+        required=True,
+        help="Exact immutable TRAIN-only feature-ranking JSON bound by the signal manifest.",
+    )
 
     # Labels (fixed-hold)
     parser.add_argument("--hold-bars", dest="hold_bars", type=int, default=3, help="Fixed-hold label horizon in M5 bars (default: 3). Must be between 1 and 50.")
@@ -3477,7 +3484,7 @@ def main() -> None:
     )
 
     # Hard gate: ONE UNIVERSE
-    ctx = _hard_gate_ctx6cat6()
+    ctx = _hard_gate_model_native_context()
     log.info(f"[CTX_CONTRACT] OK: tag={ctx['tag']} cont={ctx['ctx_cont_dim']} cat={ctx['ctx_cat_dim']}")
 
     if int(args.seq_len) != MODEL_NATIVE_SEQ_LEN:
@@ -3528,13 +3535,28 @@ def main() -> None:
         train_start=train_start,
         train_end=train_end,
     )
+    signal_lineage = validate_signal_manifest_training_lineage(
+        manifest_path=Path(args.seq_structure_manifest),
+        feature_ranking_path=Path(args.feature_ranking_json),
+        expected_vedtak_id=explicit_vedtak_id,
+        expected_source_sha256=state_contract[
+            "rank_reference_source_parquet_sha256"
+        ],
+        expected_train_start_utc=train_start.isoformat(),
+        expected_train_end_utc=train_end.isoformat(),
+    )
+    if (
+        signal_lineage["model_native_signal_contract"]
+        != main_signal_build_contract["model_native_signal_contract"]
+    ):
+        raise RuntimeError("MODEL_NATIVE_SIGNAL_LINEAGE_CONTRACT_CHANGED")
 
     # Dataset build proof (will be written after output_path resolved)
     proof_payload = {
         "explicit_vedtak_id": explicit_vedtak_id,
-        "ctx_tag": f"CTX6CAT{len(ORDERED_CTX_CAT_NAMES_V3)}",
-        "ctx_cont_dim": int(len(ORDERED_CTX_CONT_NAMES_V3)),
-        "ctx_cat_dim": int(len(ORDERED_CTX_CAT_NAMES_V3)),
+        "ctx_tag": f"CTX6CAT{len(MODEL_NATIVE_CTX_CAT_FIELDS)}",
+        "ctx_cont_dim": int(len(MODEL_NATIVE_CTX_CONT_FIELDS)),
+        "ctx_cat_dim": int(len(MODEL_NATIVE_CTX_CAT_FIELDS)),
         "signal_bridge_id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
         "signal_bridge_contract_sha256": main_signal_build_contract[
             "model_native_signal_contract"
@@ -3544,6 +3566,11 @@ def main() -> None:
         "model_native_signal_contract": main_signal_build_contract[
             "model_native_signal_contract"
         ],
+        "signal_training_lineage": {
+            key: value
+            for key, value in signal_lineage.items()
+            if key != "model_native_signal_contract"
+        },
         "ctx_contract": _model_native_ctx_contract_metadata(),
         "model_native_state_contract": state_contract,
         "hold_bars": hold_bars,

@@ -45,11 +45,20 @@ quintile ranks use one immutable TRAIN-only ECDF whose fit begins at
 `TRAIN_START` and ends exactly at `TRAIN_END`; validation, test and serving
 reuse it without fitting or updating it.
 
-The rank NPZ contains exactly `schema_version`, `fit_start_ns`, `fit_end_ns`,
-`fit_row_count`, `atr_bps_sorted` and `spread_bps_sorted`. Per-row timestamps,
-categories and pinned ATR state are forbidden. Its sidecar binds source and
-artifact hashes, declares `fit_scope=train_only`, and proves that no validation
-or test rows are stored.
+The rank NPZ contains exactly seven keys: `schema_version`,
+`explicit_vedtak_id`, `fit_start_ns`, `fit_end_ns`, `fit_row_count`,
+`atr_bps_sorted` and `spread_bps_sorted`. Per-row timestamps, categories and
+pinned ATR state are forbidden. Its sidecar binds source and artifact hashes,
+declares `fit_scope=train_only`, and proves that no validation or test rows are
+stored.
+
+The deterministic feature-ranking JSON that selects the final 174 specialist
+fields and the derived seq513 signal manifest are explicit immutable inputs.
+Preflight, rebuild wrapper and dataset builder all revalidate their nested
+lineage, explicit vedtak, source hash and exact TRAIN start/end against the
+requested build. A directory glob, mtime or lexical "latest" result is not an
+artifact identity. Any mismatch invalidates the entire attempt; partial files
+and non-terminal chain-status records cannot be promoted or resumed as proof.
 
 TRAIN, validation, test and serving all compute features from the same explicit
 `feature_history_start_utc`; split-local rolling-state resets are forbidden.

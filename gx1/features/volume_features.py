@@ -13,7 +13,8 @@ XAUUSD OANDA `volume` is tick-volume (count of price updates) — a robust proxy
 for participation/activity. All features are self-normalising (z-score / ratio /
 percentile) so absolute tick-count scale and broker differences wash out.
 
-Wired into the V10 seq via signal_bridge_v3.PER_BAR_PRICE_STATE_FIELDS_V3.
+Wired into the Entry base surface via
+entry_model_native_signal_v1.MODEL_NATIVE_BASE_FIELDS.
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-# Ordered, frozen — the contract appends these to PER_BAR_PRICE_STATE_FIELDS_V3.
+# Ordered, frozen — the model-native contract appends this exact volume tail.
 VOLUME_FEATURE_NAMES = [
     "vol_z_20",          # volume z-score over trailing 20 M5 bars (surge detector)
     "vol_ratio_5_20",    # SMA5(vol)/SMA20(vol) - 1 (fast-vs-slow activity)

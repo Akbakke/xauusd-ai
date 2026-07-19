@@ -45,8 +45,18 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 
-from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
-from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+    MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
+    MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS,
+    MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS,
+    MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS,
+)
 
 
 SIGNAL_BRIDGE_ID_V3 = "XGB_SIGNAL_BRIDGE_V3"
@@ -81,49 +91,7 @@ assert ANCHOR_INDICES_V3 == (0, 1, 2), "anchor indices must remain (0,1,2)"
 # ---------------------------------------------------------------------------
 # 30 features per M5 bar. Identical to v2 except `atr` is replaced with
 # `_v1_atr14` (the v3-pruning kept `_v1_atr14` and dropped the redundant `atr`).
-PER_BAR_PRICE_STATE_FIELDS_V3: List[str] = [
-    # Volatility / momentum / returns (10) — `atr` dropped, `_v1_atr14` substituted
-    "_v1_atr14",                      # M5 ATR(14) — was `atr` in v2
-    "atr_z",                          # ATR z-score over 50 bars
-    "ret_1",                          # last bar return (bps)
-    "ret_5",                          # 5-bar return (bps)
-    "ret_20",                         # 20-bar return
-    "rvol_20",                        # 20-bar realized vol (bps)
-    "body_pct",                       # body / bar-range
-    "wick_asym",                      # (upper - lower) / wick-total
-    "ema20_slope",                    # EMA(20) slope
-    "pos_vs_ema200",                  # (close - ema200) / ema200 (bps)
-    # _v1 family (10 — `_v1_atr14` moved up, replaced here by `_v1_pk_sigma20`)
-    "_v1_pk_sigma20",                 # Parkinson sigma — substitute slot
-    "_v1_ema_diff",                   # canonical _v1 EMA diff
-    "_v1_close_ema_slope_3",          # short-term momentum
-    "_v1_clv",                        # close location value
-    "_v1_range_z",                    # range z-score
-    "_v1_kama_slope_30",              # KAMA slope
-    "_v1_tema_slope_20",              # TEMA slope
-    "_v1_bb_squeeze_20_2",            # Bollinger squeeze
-    "_v1_bb_bandwidth_delta_10",      # BB bandwidth change
-    "_v1_body_share_1",               # body share
-    "_v1_kurt_r",                     # return kurtosis
-    # SMC features (9 — UNCHANGED from v2)
-    "smc_swing_state",
-    "smc_bos_up",
-    "smc_bos_down",
-    "smc_choch",
-    "smc_sweep_up",
-    "smc_sweep_down",
-    "smc_sweep_size_atr",
-    "smc_bars_since_sweep",
-    "smc_premium_discount",
-    # Volume / order-flow (4 — 2026-05-26). Derived from raw `volume` (+ `close`)
-    # via gx1.features.volume_features.compute_volume_features — ONE TRUTH shared
-    # by the V10 builder (training) and augment_canonical_v3 (serving). XAU OANDA
-    # `volume` is tick-volume; all 4 are self-normalising (z/ratio/percentile).
-    "vol_z_20",
-    "vol_ratio_5_20",
-    "vol_pct_96",
-    "signed_vol_z_20",
-]
+PER_BAR_PRICE_STATE_FIELDS_V3: List[str] = list(MODEL_NATIVE_BASE_FIELDS)
 PRICE_STATE_DIM_V3 = len(PER_BAR_PRICE_STATE_FIELDS_V3)  # 34 (was 30; +4 volume)
 
 
@@ -143,65 +111,19 @@ DEFAULT_SEQ_LEN_V3 = 96  # unchanged from v2
 # CTX_CONT fields (option α — drop 3 v2 features pruned in canonical_v3, add 5 new)
 # ---------------------------------------------------------------------------
 # v1 prefix (21 features) UNCHANGED — preserves prefix-load compat
-ORDERED_CTX_CONT_V1_PREFIX: List[str] = [
-    "atr_bps",
-    "spread_bps",
-    "D1_dist_from_ema200_atr",
-    "H1_range_compression_ratio",
-    "D1_atr_percentile_252",
-    "M15_range_compression_ratio",
-    "micro_momentum_3",
-    "micro_momentum_5",
-    "micro_acceleration",
-    "wick_ratio",
-    "distance_ema_fast",
-    "dist_last_swing_high_atr",
-    "dist_last_swing_low_atr",
-    "bars_since_swing_high",
-    "bars_since_swing_low",
-    "retracement_from_last_impulse",
-    "is_ASIA",
-    "minutes_since_session_open",
-    "minutes_to_next_session_boundary",
-    "session_change_flag",
-    "session_tradable",
-]
+ORDERED_CTX_CONT_V1_PREFIX: List[str] = list(
+    MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS
+)
 
 # v2 extension reduced — drop 3 features pruned in canonical_v3
-ORDERED_CTX_CONT_V2_EXTENSION_RETAINED: List[str] = [
-    # H1 (5 retained — _v1h1_vwap_drift dropped)
-    "_v1h1_ema_diff",
-    "_v1h1_atr",
-    "_v1h1_rsi14_z",
-    "_v1h1_slope3",
-    "_v1h1_slope5",
-    # H4 (5, UNCHANGED)
-    "_v1h4_ema_diff",
-    "_v1h4_atr",
-    "_v1h4_rsi14_z",
-    "_v1h4_slope3",
-    "_v1h4_slope5",
-    # D1 (6, UNCHANGED)
-    "d1_atr14_canon_v2",
-    "d1_rsi14_canon_v2",
-    "d1_ema_slope_20_canon_v2",
-    "d1_range_z_20_canon_v2",
-    "d1_close_pct_in_20day_range_canon_v2",
-    "d1_pct_change_5_canon_v2",
-    # M15 (3 retained — m15_atr14_canon_v2 + m15_ema_slope_5_canon_v2 dropped)
-    "m15_rsi14_canon_v2",
-    "m15_range_z_20_canon_v2",
-    "m15_trend_sign_canon_v2",
-]
+ORDERED_CTX_CONT_V2_EXTENSION_RETAINED: List[str] = list(
+    MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS
+)
 
 # v3 NEW additions (5 features new in canonical_v3)
-ORDERED_CTX_CONT_V3_EXTENSION: List[str] = [
-    "hour_sin",
-    "hour_cos",
-    "dow_sin",
-    "dow_cos",
-    "smc_premium_state",
-]
+ORDERED_CTX_CONT_V3_EXTENSION: List[str] = list(
+    MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS
+)
 
 # 2026-05-26 — GROUP-A market-parity extension (24). Gives V10 the SAME market/
 # structure features the Entry/Exit-IQL decide on (dip-distance, pivots, vol-term,
@@ -209,68 +131,31 @@ ORDERED_CTX_CONT_V3_EXTENSION: List[str] = [
 # IQL acts on — no asymmetry. Portfolio features (long/short_*) are deliberately
 # EXCLUDED (IQL-only state, would be 0 in training → train/serve skew). Order +
 # names MUST match group_a_features.GROUP_A_FEATURE_NAMES market subset.
-ORDERED_CTX_CONT_GROUP_A_PARITY: List[str] = [
-    # session overlap (4)
-    "is_asia_eu_overlap", "is_eu_us_overlap", "is_eu_only", "is_us_only",
-    # vol term structure (4)
-    "atr_ratio_m5_h4", "atr_ratio_m15_d1", "atr_ratio_h1_d1", "atr_ratio_m5_m15",
-    # vol percentile (2)
-    "vol_pct_m5_1yr", "vol_pct_h1_1yr",
-    # pivots (4)
-    "dist_to_R1_atr", "dist_to_R2_atr", "dist_to_S1_atr", "dist_to_S2_atr",
-    # liquidity / dip-distance, both directions, all 5 TFs (10)
-    "dist_to_m5_hi_atr", "dist_to_m5_lo_atr",
-    "dist_to_m15_hi_atr", "dist_to_m15_lo_atr",
-    "dist_to_h1_hi_atr", "dist_to_h1_lo_atr",
-    "dist_to_h4_hi_atr", "dist_to_h4_lo_atr",
-    "dist_to_d1_hi_atr", "dist_to_d1_lo_atr",
-]
+ORDERED_CTX_CONT_GROUP_A_PARITY: List[str] = list(
+    MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
+)
 
 # DIP/STRUCT parity extension (36). Gives model-native Entry explicit
 # dip/proximity and HH/HL/LH/LL continuation/pullback/bounce/depth evidence,
 # plus cross-TF combinations, from augment_forward_outcome_v2._dip_struct_5tf.
-ORDERED_CTX_CONT_DIP_STRUCT: List[str] = [
-    # DIP (8) — dip_proximity_m5/m15 dropped (saturated); confirmed kept for all 5
-    "dip_confirmed_m5_v3", "dip_confirmed_m15_v3",
-    "dip_proximity_h1_v3", "dip_confirmed_h1_v3",
-    "dip_proximity_h4_v3", "dip_confirmed_h4_v3",
-    "dip_proximity_d1_v3", "dip_confirmed_d1_v3",
-    # STRUCT per TF (25): continuation_up / pullback_in_uptrend / continuation_down /
-    # bounce_in_downtrend / pullback_depth × {m5,m15,h1,h4,d1}
-    "struct_continuation_up_m5_v3", "struct_pullback_in_uptrend_m5_v3",
-    "struct_continuation_down_m5_v3", "struct_bounce_in_downtrend_m5_v3", "struct_pullback_depth_m5_v3",
-    "struct_continuation_up_m15_v3", "struct_pullback_in_uptrend_m15_v3",
-    "struct_continuation_down_m15_v3", "struct_bounce_in_downtrend_m15_v3", "struct_pullback_depth_m15_v3",
-    "struct_continuation_up_h1_v3", "struct_pullback_in_uptrend_h1_v3",
-    "struct_continuation_down_h1_v3", "struct_bounce_in_downtrend_h1_v3", "struct_pullback_depth_h1_v3",
-    "struct_continuation_up_h4_v3", "struct_pullback_in_uptrend_h4_v3",
-    "struct_continuation_down_h4_v3", "struct_bounce_in_downtrend_h4_v3", "struct_pullback_depth_h4_v3",
-    "struct_continuation_up_d1_v3", "struct_pullback_in_uptrend_d1_v3",
-    "struct_continuation_down_d1_v3", "struct_bounce_in_downtrend_d1_v3", "struct_pullback_depth_d1_v3",
-    # cross-TF combos (3)
-    "struct_tf_agree_count_v3", "struct_dip_x_uptrend_v3", "struct_smc_swing_x_dip_v3",
-]
+ORDERED_CTX_CONT_DIP_STRUCT: List[str] = list(
+    MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
+)
 
 # 2026-06-26 — ENTRY smart-context promotion (19). These started as audit-only
 # nonlinear summaries of already-active seq/ctx inputs. They are now promoted to
 # ctx_cont because diagnostics found consistent edge in S/R proximity, SMC
 # recency/pressure, liquidity proximity, and multi-TF dip aggregation. Computed by
 # gx1.features.entry_smart_context in builder + batch/live inference.
-ORDERED_CTX_CONT_ENTRY_SMART_DERIVED: List[str] = list(ENTRY_SMART_CTX_FEATURE_NAMES)
+ORDERED_CTX_CONT_ENTRY_SMART_DERIVED: List[str] = list(
+    MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS
+)
 
 # REGIME_V4 tail: 18 multi-TF regime conditioning/change-detection features.
 # This is mandatory in the active contract and shares its exact owner with EXIT_IO_V8.
-ORDERED_CTX_CONT_REGIME_V4: List[str] = list(REGIME_V4_FEATURE_NAMES)
+ORDERED_CTX_CONT_REGIME_V4: List[str] = list(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
 
-ORDERED_CTX_CONT_NAMES_V3: List[str] = (
-    ORDERED_CTX_CONT_V1_PREFIX
-    + ORDERED_CTX_CONT_V2_EXTENSION_RETAINED
-    + ORDERED_CTX_CONT_V3_EXTENSION
-    + ORDERED_CTX_CONT_GROUP_A_PARITY
-    + ORDERED_CTX_CONT_DIP_STRUCT
-    + ORDERED_CTX_CONT_ENTRY_SMART_DERIVED
-    + ORDERED_CTX_CONT_REGIME_V4
-)
+ORDERED_CTX_CONT_NAMES_V3: List[str] = list(MODEL_NATIVE_CTX_CONT_FIELDS)
 CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # exact active contract: 142
 
 
@@ -280,10 +165,7 @@ CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # exact active contract: 142
 _CTX_CAT_ALL_V3: List[str] = [
     "session_id",
     "trend_regime_id",
-    "vol_regime_id",
-    "atr_bucket",
-    "spread_bucket",
-    "H4_trend_sign_cat",
+    *MODEL_NATIVE_CTX_CAT_FIELDS[1:],
 ]
 # Phase 0a/R4 (2026-06-04, audit + user vedtak): when REGIME_V4 is ON, DROP the trend_regime_id
 # categorical. It was degenerate (const=1 on the price_vs_ema50 basis; const-bucket-2 on the D1
@@ -292,9 +174,7 @@ _CTX_CAT_ALL_V3: List[str] = [
 # m15/h1/h4/d1 + trend-age + cross-TF agreement) — "all smart, no hardcoded bucket". Multi-TF is
 # UNAFFECTED (ctx_cat is a separate shared-vocab embedding from the seq branches; REGIME_V4 adds
 # per-TF regime). The degenerate legacy trend bucket is never part of the active contract.
-ORDERED_CTX_CAT_NAMES_V3: List[str] = [
-    c for c in _CTX_CAT_ALL_V3 if c != "trend_regime_id"
-]
+ORDERED_CTX_CAT_NAMES_V3: List[str] = list(MODEL_NATIVE_CTX_CAT_FIELDS)
 CTX_CAT_DIM_V3 = len(ORDERED_CTX_CAT_NAMES_V3)  # exact active contract: 5
 
 

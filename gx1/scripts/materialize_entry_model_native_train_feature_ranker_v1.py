@@ -42,9 +42,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -160,9 +160,9 @@ def _load_train_frame(
     # GROUP_A + DIP_STRUCT ctx columns are not carried by the source parquet;
     # recompute them through the SAME one-truth augmenter the dataset builder
     # uses (identical values by construction), then trim the causal warmup.
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_DIP_STRUCT,
-        ORDERED_CTX_CONT_GROUP_A_PARITY,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
     )
     from gx1.features.htf_features import load_multi_tf_v2_cache
     from gx1.scripts.augment_forward_outcome_v2 import (
@@ -171,8 +171,8 @@ def _load_train_frame(
 
     if not mtf_cache_dir.is_dir():
         raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_MISSING: {mtf_cache_dir}")
-    group_a_required = list(ORDERED_CTX_CONT_GROUP_A_PARITY) + list(
-        ORDERED_CTX_CONT_DIP_STRUCT
+    group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
     )
     frame = frame.drop(
         columns=[name for name in group_a_required if name in frame.columns]
@@ -205,7 +205,7 @@ def _load_train_frame(
     # (build_entry_v10_ctx_training_dataset_v3.py:1799-1800).
     if "is_ASIA" not in frame.columns:
         frame["is_ASIA"] = (frame["session_id"].astype(int) == 0).astype(np.int8)
-    missing_ctx = [n for n in ORDERED_CTX_CONT_NAMES_V3 if n not in frame.columns]
+    missing_ctx = [n for n in MODEL_NATIVE_CTX_CONT_FIELDS if n not in frame.columns]
     if missing_ctx:
         raise RuntimeError(
             f"FEATURE_RANKER_CTX_INCOMPLETE_AFTER_DERIVATION: {missing_ctx[:10]} "
@@ -215,8 +215,8 @@ def _load_train_frame(
     missing_base = [f for f in MODEL_NATIVE_BASE_FIELDS if f not in frame.columns]
     if missing_base:
         raise RuntimeError(f"FEATURE_RANKER_BASE_FIELDS_MISSING: {missing_base}")
-    source_ctx_cont = [n for n in ORDERED_CTX_CONT_NAMES_V3 if n in frame.columns]
-    missing_cat = [n for n in ORDERED_CTX_CAT_NAMES_V3 if n not in frame.columns]
+    source_ctx_cont = [n for n in MODEL_NATIVE_CTX_CONT_FIELDS if n in frame.columns]
+    missing_cat = [n for n in MODEL_NATIVE_CTX_CAT_FIELDS if n not in frame.columns]
     if missing_cat:
         raise RuntimeError(f"FEATURE_RANKER_CTX_CAT_MISSING: {missing_cat}")
     return frame, source_ctx_cont
@@ -238,7 +238,7 @@ def _compute_candidate_matrix(
         frame,
         requested_features=list(candidates),
         ctx_cont_names=list(source_ctx_cont),
-        ctx_cat_names=list(ORDERED_CTX_CAT_NAMES_V3),
+        ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
         source_parquet=source_parquet,
         source_contract_label="train_feature_ranker_v1",
     )

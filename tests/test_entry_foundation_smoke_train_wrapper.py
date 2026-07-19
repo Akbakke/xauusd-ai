@@ -4,6 +4,13 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_BASE_SIGNAL_DIM
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    LaunchContractError,
+    _validate_feature_audit_signal_partition,
+)
 from tests.entry_model_native_train_wrapper_support import (
     VEDTAK,
     build_wrapper_contract,
@@ -73,6 +80,32 @@ def test_smoke_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -
     assert "--mtf-dir-scale-init" not in result.stdout
     assert "--enable-" not in result.stdout
     assert not paths["out_bundle_dir"].exists()
+
+
+def test_train_launch_rejects_legacy_base_field_and_swapped_mandatory_prefix(
+    tmp_path: Path,
+) -> None:
+    _args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    feature = json.loads(paths["feature_audit_json"].read_text(encoding="utf-8"))
+    _validate_feature_audit_signal_partition(feature)
+
+    stale_base = dict(feature)
+    stale_base.pop("base_signal_dim")
+    stale_base["base_seq_dim_v3"] = MODEL_NATIVE_BASE_SIGNAL_DIM
+    with pytest.raises(LaunchContractError, match="base signal width mismatch"):
+        _validate_feature_audit_signal_partition(stale_base)
+
+    swapped = json.loads(json.dumps(feature))
+    contract = swapped["model_native_signal_contract"]
+    contract["selected_fields"][0], contract["selected_fields"][1] = (
+        contract["selected_fields"][1],
+        contract["selected_fields"][0],
+    )
+    with pytest.raises(
+        LaunchContractError,
+        match="mandatory_registry_prefix_order_violation",
+    ):
+        _validate_feature_audit_signal_partition(swapped)
 
 
 def test_smoke_wrapper_rejects_mutable_pointer_path(tmp_path: Path) -> None:

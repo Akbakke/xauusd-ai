@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CONT_NAMES_V3
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIELDS
 from gx1.features.entry_smart_context import (
     ENTRY_SMART_CTX_FEATURE_NAMES,
     add_entry_smart_context_features,
@@ -50,7 +50,7 @@ def _base_frame(n: int = 96) -> pd.DataFrame:
 
 
 def test_entry_smart_features_are_active_contract_features() -> None:
-    names = list(ORDERED_CTX_CONT_NAMES_V3)
+    names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
 
     assert len(names) == len(set(names))
     assert all(name in names for name in ENTRY_SMART_CTX_FEATURE_NAMES)

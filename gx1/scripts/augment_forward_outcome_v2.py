@@ -219,11 +219,19 @@ class AugmentContext:
     # Per-TF cache (from V2 multi-TF builder): {tf: feats_df_with_attrs}
     multi_tf: dict
     # Resampled H1/H4 OHLC for liquidity zones
-    h1_ts_ns: np.ndarray; h1_high: np.ndarray; h1_low: np.ndarray
-    h4_ts_ns: np.ndarray; h4_high: np.ndarray; h4_low: np.ndarray
+    h1_ts_ns: np.ndarray
+    h1_high: np.ndarray
+    h1_low: np.ndarray
+    h4_ts_ns: np.ndarray
+    h4_high: np.ndarray
+    h4_low: np.ndarray
     # 2026-05-24 Bug 2 fix: M15 + D1 for liquidity zones
-    m15_ts_ns: np.ndarray; m15_high: np.ndarray; m15_low: np.ndarray
-    d1_ts_ns: np.ndarray;  d1_high: np.ndarray;  d1_low: np.ndarray
+    m15_ts_ns: np.ndarray
+    m15_high: np.ndarray
+    m15_low: np.ndarray
+    d1_ts_ns: np.ndarray
+    d1_high: np.ndarray
+    d1_low: np.ndarray
     # Pre-computed ATR percentile arrays — at each M5 bar, current ATR vs trailing-1yr
     m5_atr_pct_1yr: np.ndarray
     h1_atr_pct_1yr: np.ndarray      # per-H1-bar
@@ -360,8 +368,10 @@ def _build_trade_history(journal_dir: Path, suffix: str = "live_v12_4") -> pd.Da
         try:
             with fp.open() as f:
                 for line in f:
-                    try: e = json.loads(line)
-                    except json.JSONDecodeError: continue
+                    try:
+                        e = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
                     otrs = e.get("open_trade_records") or []
                     cur_ids = {str(r["trade_id"]) for r in otrs if r.get("trade_id")}
                     for r in otrs:
@@ -536,8 +546,11 @@ def _vol_term(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
         if value <= 0.0:
             raise CausalContextWarmupError(f"[CTX_VOL_TERM_WARMUP] {tf} ATR is not warmed")
         return value
-    a_m5 = _last_atr("M5"); a_m15 = _last_atr("M15")
-    a_h1 = _last_atr("H1"); a_h4 = _last_atr("H4"); a_d1 = _last_atr("D1")
+    a_m5 = _last_atr("M5")
+    a_m15 = _last_atr("M15")
+    a_h1 = _last_atr("H1")
+    a_h4 = _last_atr("H4")
+    a_d1 = _last_atr("D1")
     return {
         "atr_ratio_m5_h4":  min(50.0, a_m5 / a_h4),
         "atr_ratio_m15_d1": min(50.0, a_m15 / a_d1),
@@ -641,7 +654,8 @@ def _per_side_perf(ctx: AugmentContext, ts: pd.Timestamp, lookback_n: int = 10) 
         # consec losses from end backwards
         n_consec = 0
         for p in reversed(pnls.tolist()):
-            if p > 0: break
+            if p > 0:
+                break
             n_consec += 1
         out[f"{side}_n_consec_losses"] = float(n_consec)
         mins = max(0.0, min(1440.0, (ts - side_df["close_ts"].iloc[-1]).total_seconds() / 60.0))
@@ -725,13 +739,15 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
             out[f"{tf}_fvg_active"] = float(_math.exp(-CLIP / TAU))
             continue
         left = max(0, right - lb)
-        hi = hi_arr[left:right]; lo = lo_arr[left:right]
+        hi = hi_arr[left:right]
+        lo = lo_arr[left:right]
         n = len(hi)
         bull = hi[:-2] < lo[2:]            # gap band (hi[k-2], lo[k])
         bear = lo[:-2] > hi[2:]            # gap band (hi[k], lo[k-2])
         suf_minlow = np.minimum.accumulate(lo[::-1])[::-1]   # suf_minlow[j] = min(lo[j:])
         suf_maxhi = np.maximum.accumulate(hi[::-1])[::-1]
-        best_signed = None; best_abs = CLIP * atr_safe + 1.0
+        best_signed = None
+        best_abs = CLIP * atr_safe + 1.0
         for j in np.flatnonzero(bull):        # local formation idx = j+2
             f = j + 2
             gap_lo, gap_hi = hi[j], lo[f]     # gap_lo < gap_hi by construction
@@ -744,7 +760,8 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
             else:
                 signed = 0.0                  # inside the gap
             if abs(signed) < best_abs:
-                best_abs = abs(signed); best_signed = signed
+                best_abs = abs(signed)
+                best_signed = signed
         for j in np.flatnonzero(bear):
             f = j + 2
             gap_lo, gap_hi = hi[f], lo[j]
@@ -757,7 +774,8 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
             else:
                 signed = 0.0
             if abs(signed) < best_abs:
-                best_abs = abs(signed); best_signed = signed
+                best_abs = abs(signed)
+                best_signed = signed
         if best_signed is None:
             out[f"{tf}_dist_to_unfilled_fvg_atr"] = CLIP
             out[f"{tf}_fvg_active"] = float(_math.exp(-CLIP / TAU))
@@ -985,9 +1003,9 @@ def build_attach_context(
     can build the context once (full series -> exact trailing-1yr arrays) and
     fan the row loop out over workers.
     """
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
-        ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT,
     )
     if not isinstance(multi_tf, dict):
         raise RuntimeError("[CTX_CONT_PARITY] explicit multi_tf source is required")
@@ -1030,8 +1048,8 @@ def finalize_attach_columns(
     dip_from_aug: list,
 ) -> pd.DataFrame:
     """Assemble the attach output columns onto ``df`` (post-row-loop steps)."""
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
     )
     out_cols = {k: cols[k] for k in (list(_GROUP_A) + dip_from_aug)}
 
@@ -1093,7 +1111,7 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
     # in main() and passed in. We asof-join by time (canonical M5 bars).
     if smc_cache is not None and len(smc_cache) > 0:
         # Build asof-join: each candidate ts → nearest preceding M5 bar in canonical
-        cand_ts = pd.to_datetime(df["decision_ts_utc"], utc=True).sort_values()
+        pd.to_datetime(df["decision_ts_utc"], utc=True).sort_values()
         cand_idx = pd.to_datetime(df["decision_ts_utc"], utc=True).reset_index(drop=True)
         smc_sorted = smc_cache.sort_values("time").reset_index(drop=True)
         merged = pd.merge_asof(
@@ -1160,7 +1178,7 @@ def main() -> int:
     print(f"[AUG_V2] new cols per row: {len(PER_TF_FEATURE_NAMES) + len(GROUP_A_FEATURE_NAMES)} "
           f"(125 per-TF + 28 group-A)")
 
-    print(f"[AUG_V2] loading M5 prebuilt + building V2 multi-TF cache...")
+    print("[AUG_V2] loading M5 prebuilt + building V2 multi-TF cache...")
     t0 = time.time()
     m5_df = pd.read_parquet(args.m5_prebuilt, columns=["time", "open", "high", "low", "close", "volume"])
     m5_df["time"] = pd.to_datetime(m5_df["time"], utc=True)
@@ -1168,14 +1186,14 @@ def main() -> int:
     multi_tf = build_multi_tf_per_bar_features_v2(m5_df)
     print(f"[AUG_V2]   M5={len(m5_df):,} bars  multi-TF in {time.time()-t0:.1f}s")
 
-    print(f"[AUG_V2] building augment context (one-shot pre-compute)...")
+    print("[AUG_V2] building augment context (one-shot pre-compute)...")
     t1 = time.time()
     ctx = build_context(m5_df, multi_tf, JOURNAL_DIR)
     print(f"[AUG_V2]   context built in {time.time()-t1:.1f}s "
           f"(trade_history rows: {len(ctx.trade_history)})")
 
     # 2026-05-24 BUG-3 FIX: load SMC features from canonical_v3 prebuilt
-    print(f"[AUG_V2] loading SMC features from canonical_v3 prebuilt...")
+    print("[AUG_V2] loading SMC features from canonical_v3 prebuilt...")
     t_smc = time.time()
     smc_cols = ["time"] + [
         "smc_swing_state","smc_bos_up","smc_bos_down","smc_choch",
@@ -1208,7 +1226,8 @@ def main() -> int:
         print(f"[AUG_V2] SMOKE TEST: first {args.n_weeks_test} weeks")
     print(f"[AUG_V2] processing {len(week_files)} weekly parquets...")
 
-    total_n = 0; total_t = 0.0
+    total_n = 0
+    total_t = 0.0
     week_rows: dict[str, int] = {}
     errors: list[str] = []
     for i, wp in enumerate(week_files):
@@ -1216,7 +1235,8 @@ def main() -> int:
         try:
             s = augment_week(wp, out_pq, ctx, smc_cache=smc_cache)
             week_rows[wp.name] = int(s["n"])
-            total_n += s["n"]; total_t += s.get("elapsed_sec", 0)
+            total_n += s["n"]
+            total_t += s.get("elapsed_sec", 0)
             if (i+1) % 25 == 0 or i+1 == len(week_files):
                 rate = total_n / max(total_t, 1e-6)
                 print(f"  [{i+1}/{len(week_files)}] {wp.stem}  n={s['n']:>4}  "
@@ -1232,7 +1252,8 @@ def main() -> int:
     # 2026-06-11: run-manifest (rule 4 — the step1feats build had NO manifest and had to be
     # verified forensically after a reboot wiped the only log). Records source, env-gates,
     # commit, per-week rowcounts and errors; status != DONE means PARTIAL — do not consume.
-    import json as _json, subprocess as _sp
+    import json as _json
+    import subprocess as _sp
     try:
         _commit = _sp.run(["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[2],
                           capture_output=True, text=True).stdout.strip() or "unknown"

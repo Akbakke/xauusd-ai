@@ -30,10 +30,11 @@ import numpy as np
 script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir.parent.parent))
 
-from gx1.execution.oanda_client import OandaClient, OandaClientConfig
-from gx1.execution.oanda_credentials import load_oanda_credentials
-from gx1.utils.env_loader import load_dotenv_if_present
-from gx1.utils.granularity import granularity_to_minutes, granularity_to_pandas_freq
+from gx1.execution.oanda_client import OandaClient, OandaClientConfig  # noqa: E402
+from gx1.execution.oanda_credentials import load_oanda_credentials  # noqa: E402
+from gx1.utils.env_loader import load_dotenv_if_present  # noqa: E402
+from gx1.utils.granularity import granularity_to_minutes, granularity_to_pandas_freq  # noqa: E402
+from gx1_guards.gates import require_retrain_vedtak  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -861,6 +862,11 @@ def backfill_main(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="OANDA XAUUSD M5 backfill/repair")
+    parser.add_argument(
+        "--vedtak",
+        required=True,
+        help="Explicit auditable decision ID authorizing this external-data operation",
+    )
     parser.add_argument("--instrument", default=INSTRUMENT)
     parser.add_argument("--granularity", default=GRANULARITY)
     parser.add_argument("--repair-mode", action="store_true", help="Enable raw repair mode")
@@ -879,6 +885,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+
+    # This must run before environment loading, credentials, network access,
+    # cache creation, or repaired/canonical dataset writes.
+    require_retrain_vedtak(args.vedtak)
     load_dotenv_if_present()
 
     if args.test_auth:

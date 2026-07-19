@@ -20,8 +20,15 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     validate_full_input_liveness_artifact,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -331,6 +338,77 @@ def _validate_split_manifest(manifest: Mapping[str, Any], *, path: Path, parquet
     _require(signal_bridge.get("fields") == signal_contract.get("fields"), f"split manifest ordered fields mismatch: {path}")
 
 
+def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None:
+    signal_contract = feature.get("model_native_signal_contract")
+    _require(
+        isinstance(signal_contract, Mapping),
+        "feature audit model-native signal contract missing",
+    )
+    try:
+        require_model_native_signal_contract(
+            signal_contract,
+            context="TRAIN_LAUNCH_FEATURE_AUDIT",
+        )
+    except Exception as exc:
+        raise LaunchContractError(
+            f"feature audit model-native signal contract invalid: {exc}"
+        ) from exc
+
+    base_fields = tuple(str(value) for value in signal_contract.get("base_fields", ()))
+    selected_fields = tuple(
+        str(value) for value in signal_contract.get("selected_fields", ())
+    )
+    mandatory_prefix = selected_fields[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]
+    ranked_remainder = selected_fields[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    ranking_sha256 = str(feature.get("feature_ranking_sha256") or "")
+
+    _require(
+        int(feature.get("model_native_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM,
+        "feature audit total signal width mismatch",
+    )
+    _require(
+        int(feature.get("base_signal_dim") or 0) == MODEL_NATIVE_BASE_SIGNAL_DIM,
+        "feature audit base signal width mismatch",
+    )
+    _require(
+        tuple(str(value) for value in feature.get("base_signal_fields", ()))
+        == MODEL_NATIVE_BASE_FIELDS
+        and base_fields == MODEL_NATIVE_BASE_FIELDS,
+        "feature audit ordered base fields mismatch",
+    )
+    _require(
+        int(feature.get("selected_feature_count") or 0)
+        == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+        and int(feature.get("manifest_selected_feature_count") or 0)
+        == MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+        "feature audit selected width mismatch",
+    )
+    _require(
+        int(feature.get("mandatory_selected_feature_count") or 0)
+        == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        and int(feature.get("manifest_mandatory_selected_feature_count") or 0)
+        == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        and mandatory_prefix == MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        "feature audit mandatory 305-field prefix/order mismatch",
+    )
+    _require(
+        int(feature.get("ranked_remainder_feature_count") or 0)
+        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        and int(feature.get("manifest_ranked_remainder_feature_count") or 0)
+        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        and len(ranked_remainder) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        and feature.get("ranked_remainder_fields_sha256")
+        == canonical_json_sha256(list(ranked_remainder)),
+        "feature audit ranked 174-field remainder mismatch",
+    )
+    _require(
+        feature.get("feature_ranking_fit_scope") == "train_only"
+        and len(ranking_sha256) == 64
+        and all(character in "0123456789abcdef" for character in ranking_sha256),
+        "feature audit TRAIN-only ranking binding mismatch",
+    )
+
+
 def _validate_audits(
     artifacts: Mapping[str, Path],
     payloads: Mapping[str, Mapping[str, Any]],
@@ -341,10 +419,9 @@ def _validate_audits(
     feature = payloads["feature_audit_json"]
     _zero_failure(feature, label="feature audit", schema="entry_feature_foundation_audit_v1", decision="PASS")
     _require(Path(str(feature.get("dataset_dir") or "")).resolve() == dataset_dir, "feature audit dataset mismatch")
-    _require(int(feature.get("base_seq_dim_v3") or 0) == 34, "feature audit base signal width mismatch")
-    _require(int(feature.get("selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "feature audit selected width mismatch")
-    _require(int(feature.get("ctx_cont_dim_v3") or 0) == 142, "feature audit continuous context width mismatch")
-    _require(int(feature.get("ctx_cat_dim_v3") or 0) == 5, "feature audit categorical context width mismatch")
+    _validate_feature_audit_signal_partition(feature)
+    _require(int(feature.get("ctx_cont_dim_v3") or 0) == MODEL_NATIVE_CTX_CONT_DIM, "feature audit continuous context width mismatch")
+    _require(int(feature.get("ctx_cat_dim_v3") or 0) == MODEL_NATIVE_CTX_CAT_DIM, "feature audit categorical context width mismatch")
 
     target = payloads["target_audit_json"]
     _zero_failure(target, label="target audit", schema="entry_target_foundation_audit_v1", decision="PASS")

@@ -1,6 +1,6 @@
 #!/home/andre2/venvs/gx1/bin/python
 """
-Add ctx_cont / ctx_cat columns to prebuilt parquet (CTX 4/5, 6/6, 11/6, or 16/6).
+Add the causal ctx_cont source prefix and exact model-native ctx_cat fields.
 
 Deterministic, TRUTH-style, no lookahead, no quarantine dependency.
 
@@ -22,16 +22,12 @@ CTX_CONT:
        bars_since_swing_low,
        retracement_from_last_impulse
 
-CTX_CAT:
-  5: session_id,
-     trend_regime_id,
-     vol_regime_id,
-     atr_bucket,
-     spread_bucket
-  6: + H4_trend_sign_cat
+CTX_CAT (exact active five-field order): session_id, vol_regime_id,
+atr_bucket, spread_bucket, H4_trend_sign_cat.  The retired categorical
+trend_regime_id bucket is not an alternate output mode.
 
 Contract source of truth:
-  gx1.contracts.signal_bridge_v1
+  gx1.contracts.entry_model_native_signal_v1
 
 This script HARD-FAILS if required contract columns are missing or non-finite.
 
@@ -58,14 +54,9 @@ from gx1.features.model_native_market_context_v1 import (
     derive_observed_spread_bps,
 )
 
-from gx1.contracts.signal_bridge_v1 import (
-    ORDERED_CTX_CONT_NAMES_EXTENDED,
-    ORDERED_CTX_CAT_NAMES_EXTENDED,
-    CTX_CONT_COL_D1_DIST,
-    CTX_CONT_COL_H1_COMP,
-    CTX_CONT_COL_D1_ATR_PCTL252,
-    CTX_CONT_COL_M15_COMP,
-    CTX_CAT_COL_H4_TREND_SIGN,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
 )
 from gx1.time.session_detector import (
     get_session_vectorized,
@@ -92,14 +83,19 @@ SWING_FEATURE_NAMES = [
     "retracement_from_last_impulse",
 ]
 SWING_ATR_PERIOD = 14
+CTX_CONT_COL_D1_DIST = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[2]
+CTX_CONT_COL_H1_COMP = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[3]
+CTX_CONT_COL_D1_ATR_PCTL252 = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[4]
+CTX_CONT_COL_M15_COMP = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[5]
+CTX_CAT_COL_H4_TREND_SIGN = MODEL_NATIVE_CTX_CAT_FIELDS[-1]
 
 
 def get_prebuilt_ctx_contract_columns(
     ctx_cont_dim: int = 6,
-    ctx_cat_dim: int = 6,
+    ctx_cat_dim: int = 5,
 ) -> Tuple[List[str], List[str]]:
     """Return (required_cont, required_cat) with exact contract names for prebuilt. No side effects."""
-    base_cont = list(ORDERED_CTX_CONT_NAMES_EXTENDED)
+    base_cont = list(MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS)
     if ctx_cont_dim <= len(base_cont):
         required_cont = list(base_cont[:ctx_cont_dim])
     elif ctx_cont_dim == len(base_cont) + len(MICRO_FEATURE_NAMES):
@@ -111,13 +107,12 @@ def get_prebuilt_ctx_contract_columns(
             f"ctx_cont_dim={ctx_cont_dim} unsupported; base_cont={len(base_cont)} "
             f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
         )
-    # ctx_cat ONE-TRUTH with signal_bridge_v3 (the V10/V3 builders' + live serve contract).
-    # The active five-cat surface is immutable and comes from signal_bridge_v3.
-    if ctx_cat_dim == 5:
-        from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3 as _CAT_V3
-        required_cat = list(_CAT_V3)
-    else:
-        required_cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim])
+    if ctx_cat_dim != len(MODEL_NATIVE_CTX_CAT_FIELDS):
+        raise ValueError(
+            f"ctx_cat_dim={ctx_cat_dim} unsupported; exact model-native dim="
+            f"{len(MODEL_NATIVE_CTX_CAT_FIELDS)}"
+        )
+    required_cat = list(MODEL_NATIVE_CTX_CAT_FIELDS)
     return required_cont, required_cat
 
 
@@ -329,8 +324,10 @@ def run_add_ctx_cont_columns(
 
     if ctx_cont_dim not in (2, 4, 6, 11, 16):
         raise ValueError("ctx_cont_dim must be 2, 4, 6, 11, or 16")
-    if ctx_cat_dim not in (5, 6):
-        raise ValueError("ctx_cat_dim must be 5 or 6")
+    if ctx_cat_dim != len(MODEL_NATIVE_CTX_CAT_FIELDS):
+        raise ValueError(
+            f"ctx_cat_dim must be exactly {len(MODEL_NATIVE_CTX_CAT_FIELDS)}"
+        )
 
     prebuilt_path = Path(prebuilt_path).resolve()
     output_parquet = Path(output_parquet).resolve()
@@ -347,7 +344,7 @@ def run_add_ctx_cont_columns(
         if not p.exists():
             raise RuntimeError(f"[CTX_INPUT_FAIL] raw M5 not found: {p}")
 
-    base_cont = list(ORDERED_CTX_CONT_NAMES_EXTENDED)
+    base_cont = list(MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS)
     if ctx_cont_dim <= len(base_cont):
         required_cont = list(base_cont[:ctx_cont_dim])
     elif ctx_cont_dim == len(base_cont) + len(MICRO_FEATURE_NAMES):
@@ -359,13 +356,7 @@ def run_add_ctx_cont_columns(
             f"ctx_cont_dim={ctx_cont_dim} unsupported; base_cont={len(base_cont)} "
             f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
         )
-    # ctx_cat ONE-TRUTH with signal_bridge_v3 (the V10/V3 builders' + live serve contract).
-    # The active five-cat surface is immutable and comes from signal_bridge_v3.
-    if ctx_cat_dim == 5:
-        from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3 as _CAT_V3
-        required_cat = list(_CAT_V3)
-    else:
-        required_cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim])
+    required_cat = list(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     # ------------------------------------------------------------
     # Load prebuilt + raw
@@ -936,7 +927,7 @@ def main() -> int:
         help="Raw M5 parquet(s). Default: GX1_DATA/data/data/_staging/XAUUSD_M5_2020_2025_bidask__TEMP_CTX2PLUS.parquet",
     )
     ap.add_argument("--ctx-cont-dim", type=int, default=4, choices=[2, 4, 6, 11, 16])
-    ap.add_argument("--ctx-cat-dim", type=int, default=5, choices=[5, 6])
+    ap.add_argument("--ctx-cat-dim", type=int, default=5, choices=[5])
     ap.add_argument(
         "--diagnostics",
         type=Path,

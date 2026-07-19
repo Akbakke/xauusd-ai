@@ -15,7 +15,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
@@ -33,9 +32,9 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     REFERENCE as MOVEMENT_REFERENCE,
     SCHEMA_VERSION as MOVEMENT_SCHEMA_VERSION,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -129,8 +128,8 @@ def _source_bundle(tmp_path: Path) -> Path:
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
         "ordered_signal_names": list(signal_contract["fields"]),
-        "ordered_ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-        "ordered_ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+        "ordered_ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ordered_ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         "model_native_signal_contract": signal_contract,
         "model_native_training_objective": objective,
         "model_native_direction_evidence_fusion": (

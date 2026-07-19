@@ -22,9 +22,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     model_native_signal_contract_metadata,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.scripts.materialize_entry_full_input_liveness_v1 import (
     run,
@@ -70,12 +70,12 @@ def _write_split(
     seq = np.repeat(snap[:, None, :], MODEL_NATIVE_SEQ_LEN, axis=1)
     if break_seq_snap_parity:
         seq[0, -1, 0] += np.float32(1.0)
-    cont_axis = np.arange(len(ORDERED_CTX_CONT_NAMES_V3), dtype=np.float32)[None, :]
+    cont_axis = np.arange(len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32)[None, :]
     ctx_cont = 2.0 + row_axis * 0.125 + cont_axis * 0.001
     ctx_cat = np.column_stack(
         [
             (np.arange(rows, dtype=np.int64) + index) % 3
-            for index in range(len(ORDERED_CTX_CAT_NAMES_V3))
+            for index in range(len(MODEL_NATIVE_CTX_CAT_FIELDS))
         ]
     )
     table = pa.table(
@@ -90,10 +90,10 @@ def _write_split(
 
     ctx_contract = {
         "tag": "CTX6CAT5",
-        "ctx_cont_dim": len(ORDERED_CTX_CONT_NAMES_V3),
-        "ctx_cat_dim": len(ORDERED_CTX_CAT_NAMES_V3),
-        "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-        "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+        "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
+        "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
     }
     manifest = {
         "schema_version": MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
@@ -141,8 +141,8 @@ def _write_dataset(dataset_dir: Path, *, break_test_parity: bool = False) -> Non
         "output_path": str((dataset_dir / f"{STEM}.parquet").resolve()),
         "model_native_signal_contract": signal_contract,
         "ctx_contract": {
-            "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-            "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+            "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+            "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         },
         "model_native_state_contract": {"explicit_vedtak_id": VEDTAK},
     }

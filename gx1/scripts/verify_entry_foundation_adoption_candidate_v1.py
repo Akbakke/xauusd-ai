@@ -31,8 +31,13 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     sha256_file,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
@@ -277,6 +282,55 @@ def _base_evidence_checks(
 
 
 def _feature_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str, Any]]:
+    signal_contract = (
+        report.get("model_native_signal_contract")
+        if isinstance(report.get("model_native_signal_contract"), dict)
+        else {}
+    )
+    contract_error = ""
+    try:
+        require_model_native_signal_contract(
+            signal_contract,
+            context="ADOPTION_FEATURE_AUDIT",
+        )
+    except RuntimeError as exc:
+        contract_error = str(exc)
+    base_fields = tuple(str(value) for value in signal_contract.get("base_fields", []))
+    selected_fields = tuple(
+        str(value) for value in signal_contract.get("selected_fields", [])
+    )
+    mandatory_prefix = selected_fields[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]
+    ranked_remainder = selected_fields[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    ranking_sha256 = str(report.get("feature_ranking_sha256") or "")
+    partition_exact = (
+        not contract_error
+        and int(report.get("model_native_signal_dim") or 0)
+        == MODEL_NATIVE_SIGNAL_DIM
+        and int(report.get("base_signal_dim") or 0)
+        == MODEL_NATIVE_BASE_SIGNAL_DIM
+        and tuple(str(value) for value in report.get("base_signal_fields", []))
+        == MODEL_NATIVE_BASE_FIELDS
+        and base_fields == MODEL_NATIVE_BASE_FIELDS
+        and int(report.get("selected_feature_count") or 0)
+        == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+        and int(report.get("manifest_selected_feature_count") or 0)
+        == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+        and int(report.get("mandatory_selected_feature_count") or 0)
+        == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        and int(report.get("manifest_mandatory_selected_feature_count") or 0)
+        == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        and mandatory_prefix == MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+        and int(report.get("ranked_remainder_feature_count") or 0)
+        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        and int(report.get("manifest_ranked_remainder_feature_count") or 0)
+        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        and len(ranked_remainder) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        and report.get("ranked_remainder_fields_sha256")
+        == _sha256_json(list(ranked_remainder))
+        and report.get("feature_ranking_fit_scope") == "train_only"
+        and len(ranking_sha256) == 64
+        and all(character in "0123456789abcdef" for character in ranking_sha256)
+    )
     return [
         *_base_evidence_checks(
             report,
@@ -285,10 +339,42 @@ def _feature_checks(report: dict[str, Any], dataset_dir: Path) -> list[dict[str,
             dataset_dir=dataset_dir,
         ),
         _check(
-            "feature audit covers all 479 model-native selected features",
-            int(report.get("selected_feature_count") or 0)
-            == MODEL_NATIVE_SELECTED_FEATURE_COUNT,
-            {"selected_feature_count": report.get("selected_feature_count")},
+            "feature audit proves exact model-native 34 plus 305 plus 174 partition",
+            partition_exact,
+            {
+                "contract_error": contract_error,
+                "model_native_signal_dim": report.get("model_native_signal_dim"),
+                "base_signal_dim": report.get("base_signal_dim"),
+                "base_field_count": len(base_fields),
+                "selected_feature_count": report.get("selected_feature_count"),
+                "manifest_selected_feature_count": report.get(
+                    "manifest_selected_feature_count"
+                ),
+                "mandatory_selected_feature_count": report.get(
+                    "mandatory_selected_feature_count"
+                ),
+                "manifest_mandatory_selected_feature_count": report.get(
+                    "manifest_mandatory_selected_feature_count"
+                ),
+                "mandatory_prefix_exact": (
+                    mandatory_prefix == MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+                ),
+                "ranked_remainder_feature_count": report.get(
+                    "ranked_remainder_feature_count"
+                ),
+                "manifest_ranked_remainder_feature_count": report.get(
+                    "manifest_ranked_remainder_feature_count"
+                ),
+                "ranked_remainder_observed_count": len(ranked_remainder),
+                "ranked_remainder_hash_exact": (
+                    report.get("ranked_remainder_fields_sha256")
+                    == _sha256_json(list(ranked_remainder))
+                ),
+                "feature_ranking_fit_scope": report.get(
+                    "feature_ranking_fit_scope"
+                ),
+                "feature_ranking_sha256": ranking_sha256,
+            },
         ),
         _check(
             "feature objective and source liveness are fully live",

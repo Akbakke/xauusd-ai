@@ -41,6 +41,8 @@ RETIRED_ZERO_REACHABILITY_HELPERS = (
     "gx1/tests/test_checkpoint_guardrail.py",
     "gx1/execution/exit_logs.py",
     "gx1/tests/test_exits_jsonl_created.py",
+    "gx1/execution/oanda_backfill.py",
+    "tests/test_backfill_paging_reaches_target.py",
     "tests/test_go_practice_live_env_validation.sh",
     "Makefile",
     "scripts/run_manifest.py",
@@ -70,6 +72,7 @@ RETIRED_ZERO_REACHABILITY_MODULES = (
     "gx1.utils.ts_utils",
     "gx1.portfolio.circuit_breaker_v1",
     "gx1.execution.exit_logs",
+    "gx1.execution.oanda_backfill",
     # 2026-07-17 audit wave: zero-reachability deletions (user-approved).
     "gx1.execution.telemetry",
     "gx1.execution.v12_live_features",

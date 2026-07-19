@@ -20,9 +20,11 @@ from gx1.contracts.entry_model_native_state_v2 import (
 from gx1.execution.v12_model_native_state_live import (
     ModelNativeStateBuilder,
     ModelNativeStateContract,
+    _require_model_native_entry_context_frame,
     compute_bucket_ctx_cat_full_frame,
     compute_htf_ctx_full_frame,
 )
+from gx1.execution.v12_ctx_augment_live import _add_session_features
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from gx1.scripts.materialize_model_native_train_rank_reference_v2 import run as materialize_rank
 
@@ -73,6 +75,113 @@ def _early_validation_builder(tmp_path: Path) -> ModelNativeStateBuilder:
         state_contract=state_contract,
         signal_contract=signal_contract,
     )
+
+
+def _valid_entry_context_frame() -> pd.DataFrame:
+    times = pd.date_range("2026-07-01T08:00:00Z", periods=96, freq="5min")
+    frame = pd.DataFrame(index=times)
+    _add_session_features(frame)
+    frame.insert(0, "time", times)
+    frame["vol_regime_id"] = 2
+    frame["atr_bucket"] = 2
+    frame["spread_bucket"] = 1
+    frame["H4_trend_sign_cat"] = 1
+    return frame.reset_index(drop=True)
+
+
+def test_model_native_entry_context_accepts_exact_categorical_session_frame() -> None:
+    _require_model_native_entry_context_frame(
+        _valid_entry_context_frame(),
+        context="test",
+    )
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "session_id",
+        "vol_regime_id",
+        "atr_bucket",
+        "spread_bucket",
+        "H4_trend_sign_cat",
+        "session_tradable",
+    ],
+)
+def test_model_native_entry_boundary_rejects_missing_context_before_feature_build(
+    tmp_path: Path,
+    missing_field: str,
+) -> None:
+    frame = _valid_entry_context_frame().drop(columns=[missing_field])
+    builder = _early_validation_builder(tmp_path)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION.*missing categorical/session fields",
+    ):
+        builder.build_states(frame, [frame["time"].iloc[-1]])
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("session_id", np.nan, "missing/non-finite"),
+        ("session_id", 4, "outside semantic domain"),
+        ("vol_regime_id", np.inf, "missing/non-finite"),
+        ("atr_bucket", 5, "outside semantic domain"),
+        ("spread_bucket", 1.5, "non-integral category"),
+        ("H4_trend_sign_cat", -1, "outside semantic domain"),
+        ("is_ASIA", np.nan, "missing/non-finite"),
+        ("minutes_since_session_open", np.nan, "missing/non-finite"),
+        ("minutes_to_next_session_boundary", -1, "disagrees with UTC-derived"),
+        ("session_change_flag", 1, "disagrees with UTC-derived"),
+        ("session_tradable", 2, "outside semantic domain"),
+    ],
+)
+def test_model_native_entry_boundary_rejects_invalid_context_without_coercion(
+    tmp_path: Path,
+    field: str,
+    value: float,
+    message: str,
+) -> None:
+    frame = _valid_entry_context_frame()
+    frame[field] = frame[field].astype(np.float64)
+    frame.loc[frame.index[-1], field] = value
+    builder = _early_validation_builder(tmp_path)
+
+    with pytest.raises(
+        RuntimeError,
+        match=rf"MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION.*{field}.*{message}",
+    ):
+        builder.build_states(frame, [frame["time"].iloc[-1]])
+
+
+def test_model_native_entry_boundary_never_turns_unknown_session_into_asia(
+    tmp_path: Path,
+) -> None:
+    frame = _valid_entry_context_frame()
+    # The final bar is OVERLAP.  Zero is in-domain, but accepting it would be
+    # exactly the retired unknown-session -> ASIA soft fallback.
+    frame.loc[frame.index[-1], "session_id"] = 0
+    frame.loc[frame.index[-1], "is_ASIA"] = 1
+    frame.loc[frame.index[-1], "session_tradable"] = 0
+    builder = _early_validation_builder(tmp_path)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"session_id disagrees.*ASIA fallback forbidden",
+    ):
+        builder.build_states(frame, [frame["time"].iloc[-1]])
+
+
+def test_model_native_entry_boundary_rejects_incoherent_train_rank_categories(
+    tmp_path: Path,
+) -> None:
+    frame = _valid_entry_context_frame()
+    frame.loc[frame.index[-1], "atr_bucket"] = 3
+    builder = _early_validation_builder(tmp_path)
+
+    with pytest.raises(RuntimeError, match="atr_bucket must equal vol_regime_id"):
+        builder.build_states(frame, [frame["time"].iloc[-1]])
 
 
 @pytest.mark.parametrize(

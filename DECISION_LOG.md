@@ -4,6 +4,58 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-19 — abstention metadata is not empirical admission evidence
+
+The report-only `model-native-abstention-probe` metadata run is terminal
+`BLOCK_ABSTENTION_EMPIRICAL_GATE`. It proved only that the declared labels are
+not FLAT-starved — TRAIN `1400/4095` (`34.19%`), validation `530/1536`
+(`34.51%`) and TEST `516/1536` (`33.59%`) — and that the active FLAT, utility
+and margin objectives have positive weights. It read zero parquet rows and
+did not fit or evaluate a learned probe.
+
+No immutable bytes for the historical Entry-IQL selection benchmark and no
+exact learned-probe prediction/evaluation evidence are present. Consequently
+the run cannot establish take/skip separation, comparable coverage, OOT
+utility or any direction edge, and it cannot authorize rebuild, training,
+candidate, replay or launch. The next empirical gate is to bind the benchmark
+bytes and produce exact immutable learned-probe evidence; launch remains
+`BLOCK` if either is absent or red.
+
+## 2026-07-19 — Entry route is bridge-free and context fails closed
+
+Active Entry has zero imports from `signal_bridge_v1` or `signal_bridge_v3`.
+`entry_model_native_signal_v1` is the single exact owner of the 34 base,
+142 continuous-context and 5 categorical-context fields. Missing, invalid or
+session-inconsistent context — including a fabricated ASIA flag — yields
+`MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION`; it is not converted to `FLAT` or a
+legacy bridge decision.
+
+The retained V3 XGB bridge is Exit-only because it still owns real 7/41 field
+validation used by two active Exit consumers. Its import and field order fail
+closed. Entry cleanup does not authorize weakening or deleting that Exit
+contract. Every retained OANDA backfill writer now validates an explicit
+`--vedtak` before any side effect. The retired Entry-IQL artifact registry
+entry has `path=null` and status `RETIRED_ARTIFACT_ABSENT`; it has no fallback
+or compatibility authority.
+
+## 2026-07-19 — mismatched ranking invalidates the rebuild attempts
+
+The seq513 attempts under vedtak `XAU_SEQ513_REBUILD_20260718_V1` were
+terminated and invalidated. Their reused feature-ranking JSON covered TRAIN
+`2020-11-13..2026-03-31`, while the active dataset request covered TRAIN
+`2021-03-16..2026-03-31`. The then-current preflight checked the outer build
+window but omitted the nested ranking-window comparison and therefore emitted
+a false GREEN. No resulting dataset, signal manifest, bundle or edge evidence
+is accepted; partial files are non-authoritative. No rebuild process is
+running. Event-local schema-v2 `CHAIN_STATUS.json` is terminal `RED` with
+reason `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and exact vedtak/git/ranking/
+manifest/preflight hashes.
+
+Preflight, wrapper and builder must receive explicit feature-ranking and signal
+manifest paths and validate ranking lineage, vedtak, source hash and exact
+TRAIN start/end. Directory glob, mtime and lexical-latest selection are
+forbidden. Launch remains `BLOCK`; no practical-precision claim exists.
+
 ## 2026-07-19 — rebuild window contract and one-owner version constants
 
 Under vedtak `XAU_SEQ513_REBUILD_20260718_V1`: split windows are source-exact
@@ -84,7 +136,7 @@ An Entry rebuild decision must survive beyond the shell wrapper. One validated
 `--vedtak` is now required by both writing Python producers and is bound into
 the rank NPZ, its sidecar, the dataset build proof, the model-native state
 contract and every split manifest. Missing, placeholder or unequal IDs fail
-closed. This change does not authorize or run a rebuild.
+closed. This source change did not by itself authorize or start a rebuild.
 
 ## 2026-07-17 — learned sizing is required execution evidence
 
@@ -157,6 +209,6 @@ separate contract.
 
 Legacy Entry branches and zero-reachability adapters, critics, duplicate
 journal schemas, detached feature modules and manual sizing implementations
-are physically removed. Launch remains `BLOCK`: no rebuild or training was run,
-and no practical-precision claim is allowed before new immutable OOS,
-live-like, cost and train==serve evidence passes.
+are physically removed. Launch remains `BLOCK` across later invalid rebuild
+attempts, and no practical-precision claim is allowed before new immutable
+OOS, live-like, cost and train==serve evidence passes.

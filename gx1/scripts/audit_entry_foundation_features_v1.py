@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,9 @@ from typing import Any
 import numpy as np
 import pyarrow.parquet as pq
 
-from gx1.audit.entry_transformer_feature_audit import _stack_list_column
+from gx1.utils.nested_array_columns_v1 import (
+    stack_nested_array_column as _stack_list_column,
+)
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,
@@ -19,14 +22,21 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_metadata,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_manifest,
     require_model_native_signal_contract,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
-    ORDERED_SEQ_FIELDS_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
@@ -139,6 +149,17 @@ def _json_default(obj: Any) -> Any:
     return str(obj)
 
 
+def _sha256_json(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _split_files(dataset_dir: Path, splits: list[str]) -> dict[str, Path]:
     if not dataset_dir.is_dir():
         raise RuntimeError(f"model-native dataset directory missing: {dataset_dir}")
@@ -208,12 +229,87 @@ def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any
         raise RuntimeError(f"model-native selection manifest root is invalid: {path}")
     contract = require_model_native_manifest(manifest, context="FOUNDATION_FEATURE_AUDIT")
     features = list(contract["selected_fields"])
+    mandatory_prefix = features[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]
+    ranked_remainder = features[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
+    declared_ranked_remainder = manifest.get("ranked_remainder_features")
+    feature_ranking = manifest.get("feature_ranking")
+    partition_failures: list[str] = []
+    exact_scalars = {
+        "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+        "mandatory_selected_feature_count": (
+            MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        ),
+        "ranked_remainder_feature_count": (
+            MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        ),
+    }
+    for key, expected in exact_scalars.items():
+        if manifest.get(key) != expected:
+            partition_failures.append(
+                f"{key}={manifest.get(key)!r} expected={expected}"
+            )
+    if mandatory_prefix != list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS):
+        partition_failures.append("mandatory_selected_fields prefix/order mismatch")
+    if len(ranked_remainder) != MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT:
+        partition_failures.append(
+            "ranked remainder width mismatch: "
+            f"observed={len(ranked_remainder)} "
+            f"expected={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT}"
+        )
+    if declared_ranked_remainder != ranked_remainder:
+        partition_failures.append("ranked_remainder_features order mismatch")
+    ranked_remainder_sha256 = _sha256_json(ranked_remainder)
+    if manifest.get("ranked_remainder_fields_sha256") != ranked_remainder_sha256:
+        partition_failures.append("ranked_remainder_fields_sha256 mismatch")
+    selected_fields_sha256 = _sha256_json(features)
+    if manifest.get("selected_fields_sha256") != selected_fields_sha256:
+        partition_failures.append("selected_fields_sha256 mismatch")
+    if not isinstance(feature_ranking, dict):
+        partition_failures.append("feature_ranking metadata missing")
+        feature_ranking = {}
+    if feature_ranking.get("fit_scope") != "train_only":
+        partition_failures.append(
+            f"feature_ranking.fit_scope={feature_ranking.get('fit_scope')!r} "
+            "expected='train_only'"
+        )
+    ranking_sha256 = str(feature_ranking.get("sha256") or "")
+    if len(ranking_sha256) != 64 or any(
+        character not in "0123456789abcdef" for character in ranking_sha256
+    ):
+        partition_failures.append("feature_ranking.sha256 is not lowercase sha256")
+    if (
+        int(feature_ranking.get("eligible_ranked_remainder_count") or 0)
+        < MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+    ):
+        partition_failures.append(
+            "feature_ranking eligible remainder count is insufficient"
+        )
+    if manifest.get(
+        "ranking_artifact_is_upstream_prerequisite_not_runtime_authority"
+    ) is not True:
+        partition_failures.append(
+            "ranking artifact authority boundary is not explicit"
+        )
+    if partition_failures:
+        raise RuntimeError(
+            "[FOUNDATION_FEATURE_AUDIT_MODEL_NATIVE_PARTITION_INVALID] "
+            + " | ".join(partition_failures)
+        )
     return features, {
         "manifest_path": str(path),
         "selected_features_source": "exact_model_native_selection_manifest",
         "manifest_schema_version": manifest.get("schema_version"),
         "manifest_selected_feature_count": len(features),
         "manifest_foundation_all_required_selected": manifest.get("foundation_structure_all_required_selected"),
+        "manifest_mandatory_selected_feature_count": (
+            manifest.get("mandatory_selected_feature_count")
+        ),
+        "manifest_ranked_remainder_feature_count": (
+            manifest.get("ranked_remainder_feature_count")
+        ),
+        "ranked_remainder_fields_sha256": ranked_remainder_sha256,
+        "feature_ranking_fit_scope": feature_ranking.get("fit_scope"),
+        "feature_ranking_sha256": ranking_sha256,
         "model_native_signal_contract": contract,
     }
 
@@ -241,8 +337,8 @@ def _split_schema(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
             "ctx_cont_dim_observed": int(len(ctx0)),
             "ctx_cat_dim_observed": int(len(cat0)),
             "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
-            "ctx_cont_contract_dim_v3": int(len(ORDERED_CTX_CONT_NAMES_V3)),
-            "ctx_cat_contract_dim_v3": int(len(ORDERED_CTX_CAT_NAMES_V3)),
+            "ctx_cont_contract_dim_v3": MODEL_NATIVE_CTX_CONT_DIM,
+            "ctx_cat_contract_dim_v3": MODEL_NATIVE_CTX_CAT_DIM,
         }
     return out
 
@@ -277,9 +373,9 @@ def _load_emitted_contract(parquet_path: Path) -> dict[str, Any]:
         raise RuntimeError(f"split signal surface order mismatch: {manifest_path}")
     ctx_cont_names = list(ctx_contract.get("ctx_cont_names") or [])
     ctx_cat_names = list(ctx_contract.get("ctx_cat_names") or [])
-    if ctx_cont_names != list(ORDERED_CTX_CONT_NAMES_V3):
+    if ctx_cont_names != list(MODEL_NATIVE_CTX_CONT_FIELDS):
         raise RuntimeError(f"split ctx_cont order mismatch: {manifest_path}")
-    if ctx_cat_names != list(ORDERED_CTX_CAT_NAMES_V3):
+    if ctx_cat_names != list(MODEL_NATIVE_CTX_CAT_FIELDS):
         raise RuntimeError(f"split ctx_cat order mismatch: {manifest_path}")
     extension = signal_bridge.get("seq_structure_extension_v1")
     if not isinstance(extension, dict):
@@ -1198,10 +1294,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "dataset_dir": str(dataset_dir),
         "data_splits": splits,
         "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
-        "base_signal_dim": int(len(ORDERED_SEQ_FIELDS_V3)),
-        "ctx_cont_dim_v3": int(len(ORDERED_CTX_CONT_NAMES_V3)),
-        "ctx_cat_dim_v3": int(len(ORDERED_CTX_CAT_NAMES_V3)),
+        "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
+        "base_signal_fields": list(MODEL_NATIVE_BASE_FIELDS),
+        "ctx_cont_dim_v3": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat_dim_v3": MODEL_NATIVE_CTX_CAT_DIM,
         "selected_feature_count": int(len(selected_features)),
+        "mandatory_selected_feature_count": (
+            MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+        ),
+        "ranked_remainder_feature_count": (
+            MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+        ),
         "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
         "foundation_required_feature_count": int(len(foundation_required)),
         "foundation_objective_coverage": objective_coverage,

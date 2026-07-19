@@ -18,9 +18,9 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
     foundation_audit_policy_metadata,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 
 
@@ -242,7 +242,7 @@ def _safe_spearman(df: pd.DataFrame, a: str, b: str) -> float | None:
 
 def _ctx_cat_frame(ctx_cat: pd.Series) -> pd.DataFrame:
     raw = np.stack(ctx_cat.to_list()).astype(np.float64, copy=False)
-    expected_shape = (len(ctx_cat), len(ORDERED_CTX_CAT_NAMES_V3))
+    expected_shape = (len(ctx_cat), len(MODEL_NATIVE_CTX_CAT_FIELDS))
     if raw.shape != expected_shape:
         raise RuntimeError(
             f"model-native ctx_cat shape mismatch: {raw.shape} != {expected_shape}"
@@ -254,7 +254,7 @@ def _ctx_cat_frame(ctx_cat: pd.Series) -> pd.DataFrame:
     arr = raw.astype(np.int64, copy=False)
     out = {
         name: arr[:, i]
-        for i, name in enumerate(ORDERED_CTX_CAT_NAMES_V3)
+        for i, name in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS)
     }
     df = pd.DataFrame(out)
     unknown_sessions = sorted(set(df["session_id"].unique()) - set(SESSION_NAMES))
@@ -268,14 +268,14 @@ def _ctx_cat_frame(ctx_cat: pd.Series) -> pd.DataFrame:
 
 def _ctx_cont_frame(ctx_cont: pd.Series) -> pd.DataFrame:
     raw = np.stack(ctx_cont.to_list()).astype(np.float64, copy=False)
-    expected_shape = (len(ctx_cont), len(ORDERED_CTX_CONT_NAMES_V3))
+    expected_shape = (len(ctx_cont), len(MODEL_NATIVE_CTX_CONT_FIELDS))
     if raw.shape != expected_shape:
         raise RuntimeError(
             f"model-native ctx_cont shape mismatch: {raw.shape} != {expected_shape}"
         )
     if not np.isfinite(raw).all():
         raise RuntimeError("model-native ctx_cont contains non-finite values")
-    atr_index = list(ORDERED_CTX_CONT_NAMES_V3).index("atr_bps")
+    atr_index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index("atr_bps")
     return pd.DataFrame({"atr_bps": raw[:, atr_index]})
 
 

@@ -16,13 +16,16 @@ import hashlib
 import logging
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from gx1.contracts.signal_bridge_v1 import XGB_PROB_FIELDS_ORDERED
+from gx1.contracts.signal_bridge_v1 import (
+    ORDERED_FIELDS as RETAINED_EXIT_XGB_BRIDGE_FIELDS_ORDERED,
+    XGB_PROB_FIELDS_ORDERED,
+)
 
 log = logging.getLogger(__name__)
 
@@ -106,22 +109,42 @@ def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
     return bridge
 
 
-# Fail-closed guard (finding C, 2026-05-26): proba_to_signal_bridge_v1 emits a
-# FIXED 7-field order. The active bridge contract is signal_bridge_v3 (the old
-# env selector GX1_SIGNAL_BRIDGE_VERSION and its reader are deleted) — this
-# builder works ONLY because the active (v3) bridge field order is identical.
-# If a future bridge reorders fields, this assert fails loudly at import
-# instead of silently feeding V10/V3 a permuted bridge.
-_BRIDGE_ORDER_V1 = ["p_long", "p_short", "p_flat", "p_hat",
-                    "uncertainty_score", "margin_top1_top2", "entropy"]
-try:
-    from gx1.contracts.signal_bridge_v3 import ORDERED_BRIDGE_FIELDS_V3 as _ACTIVE_BRIDGE
-    assert list(_ACTIVE_BRIDGE) == _BRIDGE_ORDER_V1, (
-        f"SIGNAL_BRIDGE_ORDER_DRIFT: proba_to_signal_bridge_v1 emits {_BRIDGE_ORDER_V1} "
-        f"but active bridge is {list(_ACTIVE_BRIDGE)} — V10/V3 would receive a permuted bridge."
-    )
-except ImportError:
-    pass  # contracts module optional at this layer
+# Retained Exit invariant: this converter emits one fixed seven-field XGB
+# bridge. Bind it to the bridge's own contract, not signal_bridge_v3: v3 owns
+# the model-native Entry seq/context surface and importing it here would couple
+# the retained Exit primitive back to Entry. A missing contract already fails
+# at the unconditional import above; an order drift fails explicitly here.
+_EMITTED_RETAINED_EXIT_XGB_BRIDGE_FIELDS = (
+    "p_long",
+    "p_short",
+    "p_flat",
+    "p_hat",
+    "uncertainty_score",
+    "margin_top1_top2",
+    "entropy",
+)
+
+
+def _assert_retained_exit_xgb_bridge_order() -> None:
+    contract_order = tuple(RETAINED_EXIT_XGB_BRIDGE_FIELDS_ORDERED)
+    if contract_order != _EMITTED_RETAINED_EXIT_XGB_BRIDGE_FIELDS:
+        raise RuntimeError(
+            "[RETAINED_EXIT_XGB_BRIDGE_ORDER_MISMATCH] "
+            "proba_to_signal_bridge_v1 emits "
+            f"{list(_EMITTED_RETAINED_EXIT_XGB_BRIDGE_FIELDS)!r}, "
+            f"contract requires {list(contract_order)!r}"
+        )
+    class_order = tuple(XGB_PROB_FIELDS_ORDERED)
+    expected_class_order = _EMITTED_RETAINED_EXIT_XGB_BRIDGE_FIELDS[:3]
+    if class_order != expected_class_order:
+        raise RuntimeError(
+            "[RETAINED_EXIT_XGB_CLASS_ORDER_MISMATCH] "
+            f"converter emits {list(expected_class_order)!r}, "
+            f"contract requires {list(class_order)!r}"
+        )
+
+
+_assert_retained_exit_xgb_bridge_order()
 
 
 @dataclass
@@ -255,7 +278,7 @@ class XGBMultiheadModel:
         if require_feature_names and not feature_list:
             if allow_unsafe_dev:
                 log.warning(
-                    f"[XGB_MULTIHEAD] ⚠️  Loading model without feature_list (UNSAFE DEV MODE)"
+                    "[XGB_MULTIHEAD] ⚠️  Loading model without feature_list (UNSAFE DEV MODE)"
                 )
             else:
                 raise ValueError(
@@ -437,7 +460,7 @@ class XGBMultiheadModel:
                 head_classes_order = None
 
             print(f"[XGB_CLASS_ORDER_PROOF] contract_class_order={contract_class_order}", flush=True)
-            print(f"[XGB_CLASS_ORDER_PROOF] bridge_interpretation={{'p_long': 0, 'p_short': 1, 'p_flat': 2}}", flush=True)
+            print("[XGB_CLASS_ORDER_PROOF] bridge_interpretation={'p_long': 0, 'p_short': 1, 'p_flat': 2}", flush=True)
             print(f"[XGB_CLASS_ORDER_PROOF] model_meta_class_order={meta_class_order}", flush=True)
             print(f"[XGB_CLASS_ORDER_PROOF] head_classes_order={head_classes_order}", flush=True)
 

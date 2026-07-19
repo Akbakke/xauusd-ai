@@ -20,8 +20,12 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     model_native_readiness_contract_metadata,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
@@ -125,6 +129,11 @@ def _event(
 
 def _audits(root: Path, dataset: Path) -> dict[str, Path]:
     audit_dir = root / "audits"
+    selected = canonical_model_native_selected_fields(
+        remainder_prefix="session_regime.adoption_fixture"
+    )
+    signal_contract = model_native_signal_contract_metadata(selected)
+    ranked_remainder = selected[MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT:]
     feature = _event(
         audit_dir,
         AUDIT_EVENT_PREFIXES["feature_audit"],
@@ -139,7 +148,27 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "failures": [],
             "dataset_dir": str(dataset),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            "model_native_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+            "base_signal_dim": MODEL_NATIVE_BASE_SIGNAL_DIM,
+            "base_signal_fields": list(MODEL_NATIVE_BASE_FIELDS),
             "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+            "manifest_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+            "mandatory_selected_feature_count": (
+                MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+            ),
+            "manifest_mandatory_selected_feature_count": (
+                MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
+            ),
+            "ranked_remainder_feature_count": (
+                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            ),
+            "manifest_ranked_remainder_feature_count": (
+                MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+            ),
+            "ranked_remainder_fields_sha256": _sha_json(ranked_remainder),
+            "feature_ranking_fit_scope": "train_only",
+            "feature_ranking_sha256": "a" * 64,
+            "model_native_signal_contract": signal_contract,
             "foundation_objective_coverage_all_present": True,
             "foundation_objective_liveness_all_live": True,
             "foundation_source_field_liveness_all_live": True,
@@ -337,6 +366,66 @@ def test_adoption_fails_closed_on_audit_dataset_mismatch(tmp_path: Path) -> None
         row["gate"] == "feature_audit"
         and row["check"]
         == "evidence dataset matches the explicit seq513 candidate"
+        for row in report["failures"]
+    )
+
+
+def test_adoption_rejects_swapped_mandatory_signal_prefix(tmp_path: Path) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    feature = json.loads(audits["feature_audit"].read_text(encoding="utf-8"))
+    contract = feature["model_native_signal_contract"]
+    contract["selected_fields"][0], contract["selected_fields"][1] = (
+        contract["selected_fields"][1],
+        contract["selected_fields"][0],
+    )
+    contract["fields"][MODEL_NATIVE_BASE_SIGNAL_DIM], contract["fields"][
+        MODEL_NATIVE_BASE_SIGNAL_DIM + 1
+    ] = (
+        contract["fields"][MODEL_NATIVE_BASE_SIGNAL_DIM + 1],
+        contract["fields"][MODEL_NATIVE_BASE_SIGNAL_DIM],
+    )
+    audits["feature_audit"].write_text(
+        json.dumps(feature, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    smoke = _smoke_event(tmp_path, dataset, rows)
+
+    report = run(_args(tmp_path, dataset, audits, smoke))
+
+    assert report["adoption_evidence_ready"] is False
+    partition_failure = next(
+        row
+        for row in report["failures"]
+        if row["gate"] == "feature_audit"
+        and row["check"]
+        == "feature audit proves exact model-native 34 plus 305 plus 174 partition"
+    )
+    assert "mandatory_registry_prefix_order_violation" in partition_failure[
+        "details"
+    ]["contract_error"]
+
+
+def test_adoption_rejects_stale_partition_count(tmp_path: Path) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    feature = json.loads(audits["feature_audit"].read_text(encoding="utf-8"))
+    feature["mandatory_selected_feature_count"] = (
+        MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT - 1
+    )
+    audits["feature_audit"].write_text(
+        json.dumps(feature, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    smoke = _smoke_event(tmp_path, dataset, rows)
+
+    report = run(_args(tmp_path, dataset, audits, smoke))
+
+    assert report["adoption_evidence_ready"] is False
+    assert any(
+        row["gate"] == "feature_audit"
+        and row["check"]
+        == "feature audit proves exact model-native 34 plus 305 plus 174 partition"
         for row in report["failures"]
     )
 

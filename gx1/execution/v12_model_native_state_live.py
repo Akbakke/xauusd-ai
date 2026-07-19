@@ -39,18 +39,16 @@ from typing import Any, Sequence
 import numpy as np
 import pandas as pd
 
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_DIP_STRUCT,
-    ORDERED_CTX_CONT_ENTRY_SMART_DERIVED,
-    ORDERED_CTX_CONT_GROUP_A_PARITY,
-    ORDERED_CTX_CONT_NAMES_V3,
-)
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
@@ -71,16 +69,16 @@ SIGNAL_DIM_MODEL_NATIVE = MODEL_NATIVE_SIGNAL_DIM
 CTX_CONT_DIM_MODEL_NATIVE = MODEL_NATIVE_CTX_CONT_DIM
 CTX_CAT_DIM_MODEL_NATIVE = MODEL_NATIVE_CTX_CAT_DIM
 
-if len(ORDERED_CTX_CONT_NAMES_V3) != CTX_CONT_DIM_MODEL_NATIVE:
+if len(MODEL_NATIVE_CTX_CONT_FIELDS) != CTX_CONT_DIM_MODEL_NATIVE:
     raise RuntimeError(
         "MODEL_NATIVE_CTX_CONT_CONTRACT_MISMATCH: "
-        f"ordered={len(ORDERED_CTX_CONT_NAMES_V3)} expected={CTX_CONT_DIM_MODEL_NATIVE}; "
+        f"ordered={len(MODEL_NATIVE_CTX_CONT_FIELDS)} expected={CTX_CONT_DIM_MODEL_NATIVE}; "
         "the full regime surface is unconditional"
     )
-if len(ORDERED_CTX_CAT_NAMES_V3) != CTX_CAT_DIM_MODEL_NATIVE:
+if len(MODEL_NATIVE_CTX_CAT_FIELDS) != CTX_CAT_DIM_MODEL_NATIVE:
     raise RuntimeError(
         "MODEL_NATIVE_CTX_CAT_CONTRACT_MISMATCH: "
-        f"ordered={len(ORDERED_CTX_CAT_NAMES_V3)} expected={CTX_CAT_DIM_MODEL_NATIVE}; "
+        f"ordered={len(MODEL_NATIVE_CTX_CAT_FIELDS)} expected={CTX_CAT_DIM_MODEL_NATIVE}; "
         "the full regime surface is unconditional"
     )
 
@@ -89,6 +87,180 @@ if len(ORDERED_CTX_CAT_NAMES_V3) != CTX_CAT_DIM_MODEL_NATIVE:
 #   _build_price_derived_layer  -> time + close + atr
 #   _build_candlestick_*        -> time/open/high/low/close
 _SOURCE_PARQUET_COLS = ["time", "close", "atr", "open", "high", "low"]
+
+# Semantic domains of the exact five categorical Entry inputs.  These are
+# narrower than the transformer's embedding capacity by design: spare
+# embedding rows are not permission to serve malformed context.  Keep this
+# mapping in the same order as the model-native context contract.
+_MODEL_NATIVE_CTX_CAT_DOMAINS: dict[str, tuple[int, int]] = {
+    "session_id": (0, 3),
+    "vol_regime_id": (0, 4),
+    "atr_bucket": (0, 4),
+    "spread_bucket": (0, 4),
+    "H4_trend_sign_cat": (0, 2),
+}
+if tuple(_MODEL_NATIVE_CTX_CAT_DOMAINS) != tuple(MODEL_NATIVE_CTX_CAT_FIELDS):
+    raise RuntimeError(
+        "MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_MISMATCH: "
+        f"domains={list(_MODEL_NATIVE_CTX_CAT_DOMAINS)} "
+        f"contract={list(MODEL_NATIVE_CTX_CAT_FIELDS)}"
+    )
+
+_ENTRY_SESSION_CONT_DOMAINS: dict[str, tuple[int, int] | None] = {
+    "is_ASIA": (0, 1),
+    "minutes_since_session_open": None,
+    "minutes_to_next_session_boundary": None,
+    "session_change_flag": (0, 1),
+    "session_tradable": (0, 1),
+}
+
+
+def _require_model_native_entry_context_frame(
+    frame: pd.DataFrame,
+    *,
+    context: str,
+) -> None:
+    """Fail Entry closed unless categorical/session context is exact.
+
+    The shared session detector intentionally retains historical behavior for
+    non-Entry consumers.  Entry does not inherit its unknown-label-to-ASIA
+    convenience: timestamps, labels, semantic category domains and derived
+    session values are checked here before extension construction or inference.
+    """
+    required = [
+        "time",
+        *MODEL_NATIVE_CTX_CAT_FIELDS,
+        *_ENTRY_SESSION_CONT_DOMAINS,
+    ]
+    missing = [name for name in required if name not in frame.columns]
+    if missing:
+        raise RuntimeError(
+            "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+            f"{context}: missing categorical/session fields: {missing}"
+        )
+
+    times = pd.DatetimeIndex(
+        pd.to_datetime(frame["time"], utc=True, errors="coerce")
+    )
+    if times.hasnans or times.has_duplicates or not times.is_monotonic_increasing:
+        raise RuntimeError(
+            "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+            f"{context}: timestamps must be finite, unique and chronological"
+        )
+
+    categorical: dict[str, np.ndarray] = {}
+    for name, (lower, upper) in _MODEL_NATIVE_CTX_CAT_DOMAINS.items():
+        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
+        if not np.isfinite(values).all():
+            raise RuntimeError(
+                "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                f"{context}: {name} contains missing/non-finite values"
+            )
+        rounded = np.rint(values)
+        if not np.array_equal(values, rounded):
+            raise RuntimeError(
+                "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                f"{context}: {name} contains non-integral category values"
+            )
+        exact = rounded.astype(np.int64)
+        if ((exact < lower) | (exact > upper)).any():
+            observed = sorted(set(exact[(exact < lower) | (exact > upper)].tolist()))
+            raise RuntimeError(
+                "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                f"{context}: {name} outside semantic domain [{lower}, {upper}]: "
+                f"{observed[:10]}"
+            )
+        categorical[name] = exact
+
+    if not np.array_equal(
+        categorical["vol_regime_id"], categorical["atr_bucket"]
+    ):
+        raise RuntimeError(
+            "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+            f"{context}: atr_bucket must equal vol_regime_id"
+        )
+
+    # Derive the expected label without get_session_id_vectorized's retained
+    # fillna(0), so an unknown label can never become ASIA at this boundary.
+    from gx1.time.session_detector import (
+        SESSION_ID_MAP,
+        get_session_minutes_since_open_vectorized,
+        get_session_minutes_to_next_boundary_vectorized,
+        get_session_vectorized,
+    )
+
+    labels = get_session_vectorized(times)
+    if labels.isna().any() or not labels.isin(tuple(SESSION_ID_MAP)).all():
+        raise RuntimeError(
+            "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+            f"{context}: session label unavailable; ASIA fallback forbidden"
+        )
+    expected_session = labels.map(SESSION_ID_MAP).to_numpy(dtype=np.int64)
+    if not np.array_equal(categorical["session_id"], expected_session):
+        mismatch = int(np.flatnonzero(categorical["session_id"] != expected_session)[0])
+        raise RuntimeError(
+            "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+            f"{context}: session_id disagrees with UTC timestamp at row {mismatch}; "
+            "ASIA fallback forbidden"
+        )
+
+    session_values: dict[str, np.ndarray] = {}
+    for name, domain in _ENTRY_SESSION_CONT_DOMAINS.items():
+        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
+        if not np.isfinite(values).all():
+            raise RuntimeError(
+                "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                f"{context}: {name} contains missing/non-finite values"
+            )
+        if domain is not None:
+            lower, upper = domain
+            rounded = np.rint(values)
+            if not np.array_equal(values, rounded):
+                raise RuntimeError(
+                    "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                    f"{context}: {name} contains non-integral flag values"
+                )
+            if ((rounded < lower) | (rounded > upper)).any():
+                raise RuntimeError(
+                    "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                    f"{context}: {name} outside semantic domain [{lower}, {upper}]"
+                )
+        session_values[name] = values
+
+    expected_session_values = {
+        "is_ASIA": (expected_session == SESSION_ID_MAP["ASIA"]).astype(np.float64),
+        "minutes_since_session_open": get_session_minutes_since_open_vectorized(
+            times
+        ).to_numpy(dtype=np.float64),
+        "minutes_to_next_session_boundary": (
+            get_session_minutes_to_next_boundary_vectorized(times).to_numpy(
+                dtype=np.float64
+            )
+        ),
+        "session_change_flag": labels.ne(labels.shift(1)).to_numpy(
+            dtype=np.float64
+        ),
+        "session_tradable": (expected_session != SESSION_ID_MAP["ASIA"]).astype(
+            np.float64
+        ),
+    }
+    for name, expected in expected_session_values.items():
+        observed = session_values[name]
+        # prepare_frame computes this flag before trimming its causal warmup
+        # prefix.  The first retained row can therefore legitimately describe
+        # the removed predecessor; every subsequent row remains verifiable.
+        if name == "session_change_flag" and len(expected):
+            expected = expected.copy()
+            expected[0] = observed[0]
+        if not np.array_equal(observed, expected):
+            raise RuntimeError(
+                "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
+                f"{context}: {name} disagrees with UTC-derived session context"
+            )
 
 
 @dataclass(frozen=True)
@@ -320,7 +492,9 @@ class ModelNativeStateBuilder:
         #    in-memory values and recompute on THIS common-history frame.
         #    attach_... is
         #    idempotent-if-present, so the drop is what forces the recompute.
-        ga_cols = list(ORDERED_CTX_CONT_GROUP_A_PARITY) + list(ORDERED_CTX_CONT_DIP_STRUCT)
+        ga_cols = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(
+            MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
+        )
         frame = frame.drop(columns=[c for c in ga_cols if c in frame.columns])
         from gx1.scripts.augment_forward_outcome_v2 import (
             attach_group_a_dip_struct_ctx_columns,
@@ -362,19 +536,27 @@ class ModelNativeStateBuilder:
         #    (build_entry_v10_ctx_training_dataset_v3.py:2280-2282).
         from gx1.features.entry_smart_context import add_entry_smart_context_features
         frame = frame.drop(
-            columns=[c for c in ORDERED_CTX_CONT_ENTRY_SMART_DERIVED if c in frame.columns]
+            columns=[
+                c
+                for c in MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS
+                if c in frame.columns
+            ]
         )
         add_entry_smart_context_features(frame)
 
         # Contract completeness — fail loud (never zero-fill for decisioning).
         missing_sig = [c for c in MODEL_NATIVE_BASE_FIELDS if c not in frame.columns]
-        missing_ctx = [c for c in ORDERED_CTX_CONT_NAMES_V3 if c not in frame.columns]
-        missing_cat = [c for c in ORDERED_CTX_CAT_NAMES_V3 if c not in frame.columns]
+        missing_ctx = [c for c in MODEL_NATIVE_CTX_CONT_FIELDS if c not in frame.columns]
+        missing_cat = [c for c in MODEL_NATIVE_CTX_CAT_FIELDS if c not in frame.columns]
         if missing_sig or missing_ctx or missing_cat:
             raise RuntimeError(
                 f"[MODEL_NATIVE_STATE] contract columns missing from live frame — "
                 f"sig={missing_sig[:10]} ctx={missing_ctx[:10]} cat={missing_cat}"
             )
+        _require_model_native_entry_context_frame(
+            frame,
+            context="prepare_frame",
+        )
         return frame
 
     # ── state assembly ──────────────────────────────────────────────────────
@@ -395,6 +577,10 @@ class ModelNativeStateBuilder:
         Mirrors build_dataset_canonical's emission exactly:
         seq = sig_mat[i-95:i+1]; snap = sig_mat[i] (builder line 3024-3026).
         """
+        _require_model_native_entry_context_frame(
+            frame,
+            context="build_states",
+        )
         times = pd.DatetimeIndex(pd.to_datetime(list(target_times), utc=True))
         pos_by_time = pd.Index(frame["time"])
         idxs: list[int] = []
@@ -425,8 +611,8 @@ class ModelNativeStateBuilder:
             ext_mat, ext_names, _meta = _build_inline_seq_structure_extension(
                 frame,
                 requested_features=self._ext_names,
-                ctx_cont_names=list(ORDERED_CTX_CONT_NAMES_V3),
-                ctx_cat_names=list(ORDERED_CTX_CAT_NAMES_V3),
+                ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
+                ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
                 source_parquet=tmp_path,
                 base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
             )
@@ -441,8 +627,11 @@ class ModelNativeStateBuilder:
             raise RuntimeError(
                 f"[MODEL_NATIVE_STATE] signal width {sig_mat.shape[1]} != {SIGNAL_DIM_MODEL_NATIVE}"
             )
-        ctx_cont_mat = frame[list(ORDERED_CTX_CONT_NAMES_V3)].astype(np.float32).to_numpy()
-        ctx_cat_mat = frame[list(ORDERED_CTX_CAT_NAMES_V3)].astype(np.int64).to_numpy()
+        ctx_cont_mat = frame[list(MODEL_NATIVE_CTX_CONT_FIELDS)].astype(np.float32).to_numpy()
+        # The exact-integral/domain validation above precedes this conversion;
+        # pandas/numpy truncation can therefore never turn a malformed category
+        # into a valid embedding index.
+        ctx_cat_mat = frame[list(MODEL_NATIVE_CTX_CAT_FIELDS)].astype(np.int64).to_numpy()
 
         n = len(idxs)
         seq = np.empty((n, SEQ_LEN_MODEL_NATIVE, SIGNAL_DIM_MODEL_NATIVE), dtype=np.float32)

@@ -21,9 +21,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
-from gx1.contracts.signal_bridge_v3 import (
-    ORDERED_CTX_CAT_NAMES_V3,
-    ORDERED_CTX_CONT_NAMES_V3,
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
 )
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
@@ -69,6 +69,56 @@ def _selected_with_foundation(*, prefix: str) -> list[str]:
     return selected
 
 
+def _foundation_selection_manifest(selected: list[str]) -> dict:
+    mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    ranked_remainder = selected[mandatory_count:]
+    return {
+        "schema_version": "entry_model_native_seq513_signal_manifest_v1",
+        "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+        "base_signal_feature_count": len(MODEL_NATIVE_BASE_FIELDS),
+        "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+        "selected_features": selected,
+        "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+        "selected_fields_sha256": foundation_audit._sha256_json(selected),
+        "mandatory_selected_feature_count": mandatory_count,
+        "ranked_remainder_feature_count": len(ranked_remainder),
+        "ranked_remainder_features": ranked_remainder,
+        "ranked_remainder_fields_sha256": foundation_audit._sha256_json(
+            ranked_remainder
+        ),
+        "ranking_artifact_is_upstream_prerequisite_not_runtime_authority": True,
+        "feature_ranking": {
+            "fit_scope": "train_only",
+            "sha256": "a" * 64,
+            "eligible_ranked_remainder_count": len(ranked_remainder),
+        },
+        "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
+        "model_native_signal_contract": model_native_signal_contract_metadata(
+            selected
+        ),
+    }
+
+
+def test_foundation_audit_requires_exact_train_ranked_partition(tmp_path) -> None:
+    selected = _selected_with_foundation(prefix="audit_partition")
+    manifest_path = tmp_path / "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST.json"
+    manifest = _foundation_selection_manifest(selected)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    features, metadata = foundation_audit._load_manifest_features(manifest_path)
+
+    assert features[:305] == list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    assert len(features[305:]) == 174
+    assert metadata["manifest_mandatory_selected_feature_count"] == 305
+    assert metadata["manifest_ranked_remainder_feature_count"] == 174
+    assert metadata["feature_ranking_fit_scope"] == "train_only"
+
+    manifest["ranked_remainder_feature_count"] = 173
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_PARTITION_INVALID"):
+        foundation_audit._load_manifest_features(manifest_path)
+
+
 def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) -> None:
     selected = _selected_with_foundation(prefix="audit_selected")
     signal_contract = model_native_signal_contract_metadata(selected)
@@ -91,8 +141,8 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
                         },
                     },
                     "ctx_contract": {
-                        "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-                        "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+                        "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+                        "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
                     },
                 }
             }
@@ -140,8 +190,8 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
                 "tag": "CTX6CAT5",
                 "ctx_cont_dim": 142,
                 "ctx_cat_dim": 5,
-                "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_V3),
-                "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
+                "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+                "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
                 "ctx_cont_micro_features": ["micro_momentum_3"],
                 "ctx_cont_swing_features": ["dist_last_swing_high_atr"],
             },
@@ -588,8 +638,8 @@ def test_dataset_builder_time_normalization_rejects_duplicates() -> None:
 def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_path) -> None:
     periods = 12
     times = pd.date_range("2026-01-01", periods=periods, freq="5min", tz="UTC")
-    ctx_cont_names = set(ORDERED_CTX_CONT_NAMES_V3)
-    ctx_cat_names = set(ORDERED_CTX_CAT_NAMES_V3)
+    ctx_cont_names = set(MODEL_NATIVE_CTX_CONT_FIELDS)
+    ctx_cat_names = set(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     data = {"time": times}
     data.update({field: np.full(periods, 0.1, dtype=np.float32) for field in MODEL_NATIVE_BASE_FIELDS})

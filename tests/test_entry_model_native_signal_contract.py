@@ -12,10 +12,13 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
+    model_native_context_contract_metadata,
     model_native_mandatory_full_stack_metadata,
     model_native_signal_contract_metadata,
     ordered_model_native_signal_fields,
@@ -23,7 +26,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
-from gx1.contracts import signal_bridge_v3
 from gx1.execution import v12_model_native_state_live as state_module
 from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
@@ -129,27 +131,21 @@ def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch.delenv("GX1_TRUTH_MODE", raising=False)
     monkeypatch.delenv("GX1_RUN_MODE", raising=False)
 
-    assert signal_bridge_v3.CTX_CONT_DIM_V3 == 142
-    assert signal_bridge_v3.CTX_CAT_DIM_V3 == 5
-    assert signal_bridge_v3.ORDERED_CTX_CONT_REGIME_V4
-    assert "trend_regime_id" not in signal_bridge_v3.ORDERED_CTX_CAT_NAMES_V3
-    with pytest.raises(RuntimeError, match="invalid dtype"):
-        signal_bridge_v3.validate_seq_signal(
-            np.zeros((1, 1, signal_bridge_v3.SEQ_SIGNAL_DIM), dtype=np.int64),
-            context="TEST",
-        )
-    with pytest.raises(RuntimeError, match="expected_ctx_cont_dim"):
-        signal_bridge_v3.validate_bundle_ctx_contract_in_strict(
-            124,
-            6,
-            [],
-            [],
-            context="TEST",
-        )
+    context = model_native_context_contract_metadata()
+    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 142
+    assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
+    assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
+    assert MODEL_NATIVE_CTX_CONT_FIELDS[-len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) :] == (
+        MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
+    )
+    assert "trend_regime_id" not in MODEL_NATIVE_CTX_CAT_FIELDS
+    assert tuple(context["ctx_cont_names"]) == MODEL_NATIVE_CTX_CONT_FIELDS
+    assert tuple(context["ctx_cat_names"]) == MODEL_NATIVE_CTX_CAT_FIELDS
 
-    source = inspect.getsource(signal_bridge_v3)
-    assert 'os.environ.get("GX1_REGIME_V4"' not in source
-    assert "def _is_truth_or_smoke" not in source
+    contract = model_native_signal_contract_metadata(_selected_fields())
+    contract["ctx_cont_names"] = list(MODEL_NATIVE_CTX_CONT_FIELDS[:-1])
+    with pytest.raises(RuntimeError, match="ctx_cont_names order mismatch"):
+        require_model_native_signal_contract(contract, context="TEST")
 
 
 @pytest.mark.parametrize("forbidden_field", FORBIDDEN_LEGACY_BRIDGE_FIELDS)
@@ -301,3 +297,4 @@ def test_state_builder_exposes_only_model_native_513_symbols(tmp_path) -> None:
     assert not hasattr(state_module, "Smart520StateBuilder")
     assert not hasattr(state_module, "Smart520StateContract")
     assert not hasattr(state_module, "SIGNAL_DIM_SMART520")
+    model_native_context_contract_metadata,

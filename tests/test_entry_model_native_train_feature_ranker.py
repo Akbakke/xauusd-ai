@@ -15,7 +15,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     require_model_native_manifest,
 )
-from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CONT_NAMES_V3
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIELDS
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as manifest_producer
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
 
@@ -30,7 +30,7 @@ def _stamp(value: datetime) -> str:
 
 
 def test_candidate_universe_is_clean_and_large_enough() -> None:
-    universe = ranker._candidate_universe(list(ORDERED_CTX_CONT_NAMES_V3))
+    universe = ranker._candidate_universe(list(MODEL_NATIVE_CTX_CONT_FIELDS))
 
     assert len(universe) >= MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
     assert universe == sorted(universe)

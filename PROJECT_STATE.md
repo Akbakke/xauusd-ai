@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-17.
+Updated 2026-07-19.
 
 ## Entry direction
 
@@ -23,9 +23,25 @@ evidence layer.
 All earlier Entry datasets, bundles, reports and promotion records are rejected
 by the current exact contract and cannot override the launch block.
 
-Source contracts and focused tests are being hardened. No fresh dataset build,
-training run or OOS candidate result has been produced in this cleanup, so no
-empirical precision or launch-readiness claim exists.
+Vedtak `XAU_SEQ513_REBUILD_20260718_V1` was issued. The seq513 rebuild attempts
+on 2026-07-19 were terminated and invalidated because their feature ranking
+used TRAIN `2020-11-13..2026-03-31` while the active build requested TRAIN
+`2021-03-16..2026-03-31`; the old preflight omitted that nested comparison.
+No rebuild process is running now. No dataset, bundle or OOS candidate result
+from those attempts is accepted, so no empirical precision or launch-readiness
+claim exists. Partial outputs have no authority. The event-local
+`CHAIN_STATUS.json` is now terminalized in schema v2 as `RED` with reason
+`FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes.
+
+Preflight, wrapper and builder now require explicit ranking/manifest artifacts
+and validate their lineage, vedtak, source hash and exact TRAIN window. This is
+source-contract proof only, not proof of trading edge.
+
+No seq513 rebuild chain or training process is running. Active Entry has zero
+imports from `signal_bridge_v1` and `signal_bridge_v3`;
+`entry_model_native_signal_v1` is the exact owner of the 34 base, 142
+continuous-context and 5 categorical-context fields. The retained V3 XGB
+bridge is Exit-only and remains required by two real Exit consumers.
 
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable Entry launch
 decision. Both it and the artifact guard must admit the same immutable bundle
@@ -55,6 +71,14 @@ a fresh post-adoption broker runtime-parity event. Missing proof means no
 order, never a silent multiplier `1.0`; fixed 1x is only a named historical
 benchmark.
 
+The report-only model-native abstention metadata run is
+`BLOCK_ABSTENTION_EMPIRICAL_GATE`. It found balanced FLAT labels — TRAIN
+`1400/4095` (`34.19%`), validation `530/1536` (`34.51%`) and TEST `516/1536`
+(`33.59%`) — and positive active FLAT, utility and margin weights. It read zero
+parquet and produced no learned predictions. Immutable historical selection-
+benchmark bytes and exact learned-probe evidence are absent, so this proves
+neither abstention quality nor direction edge and authorizes nothing.
+
 ## Runtime boundary
 
 One exact runtime evidence contract is shared by the model-native decision,
@@ -65,20 +89,32 @@ limit after the bar becomes available, and a fixed 390-second canonical-cutoff
 age limit. Failure emits no direction and cannot be softened by an environment
 override, cached row or synthetic `FLAT`.
 
+Missing, invalid or session-inconsistent Entry context, including a fabricated
+ASIA flag, yields `MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION`. No bridge, default
+or cached context may repair that failure. Retained OANDA backfill writers
+require an explicit `--vedtak` before any filesystem side effect.
+
 ## Exit
 
 The retained Exit V3/Exit-IQL chain is a separate contract. Its XGB use and M1
 exit semantics are not removed by the Entry cleanup. Shared helpers have
 neutral or Exit-owned modules; active Exit math is unchanged.
 
+The Exit-only V3 XGB bridge owns exact 7/41 field validation for two active Exit
+consumers; both its import and ordered field contract fail closed. The retired
+Entry-IQL registry record has `path=null` and status
+`RETIRED_ARTIFACT_ABSENT`, so it cannot act as an Entry fallback.
+
 ## Next admissible milestone
 
 The repository-wide audit is complete (2026-07-17): stale references,
 zero-reachability files and duplicate owners are removed, contracts are
 hardened (mandatory 305-prefix order, launch-JSON partition constants, one
-latency owner) and the full suite is green (1341/0). The next admissible work
-is the fresh seq513 rebuild per the runbook in
-`HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`: explicit `--vedtak`, green
-preflight, rebuild, then smoke with the abstention criterion (DECISION_LOG
-2026-07-17) — a smoke with zero FLAT predictions is hard-red by definition.
-No rebuild/training or empirical precision result exists yet.
+latency owner) and the full suite was green (1341/0). The next empirical gate
+is immutable historical selection-benchmark bytes plus exact learned
+model-native abstention-probe evidence at comparable OOT coverage. The current
+metadata-only probe is insufficient. Only a green probe may justify returning
+to the hardened seq513 rebuild runbook with a newly matched ranking/manifest;
+only an accepted rebuild may advance to smoke. Zero FLAT predictions remains
+hard-red. No accepted rebuild, training result or empirical precision result
+exists yet.

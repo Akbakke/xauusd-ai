@@ -11,6 +11,7 @@ VEDTAK=
 SOURCE_PARQUET=
 CANONICAL_V2_PARQUET=
 SIGNAL_MANIFEST=
+FEATURE_RANKING_JSON=
 RANK_REFERENCE_NPZ=
 MTF_CACHE_DIR=
 TAPE_ROOT=
@@ -27,7 +28,7 @@ HISTORY_START=
 usage() {
   printf '%s\n' \
     "Usage: $0 --vedtak ID --source-parquet PATH --canonical-v2-parquet PATH" \
-    "  --signal-manifest PATH --rank-reference-npz PATH" \
+    "  --signal-manifest PATH --feature-ranking-json PATH --rank-reference-npz PATH" \
     "  --mtf-cache-dir PATH --tape-root PATH" \
     "  --output /new/dir/STEM__HOLD_03B.parquet --audit-out-dir /new/report/dir" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
@@ -40,6 +41,7 @@ while (($#)); do
     --source-parquet) SOURCE_PARQUET=${2:-}; shift 2 ;;
     --canonical-v2-parquet) CANONICAL_V2_PARQUET=${2:-}; shift 2 ;;
     --signal-manifest) SIGNAL_MANIFEST=${2:-}; shift 2 ;;
+    --feature-ranking-json) FEATURE_RANKING_JSON=${2:-}; shift 2 ;;
     --rank-reference-npz) RANK_REFERENCE_NPZ=${2:-}; shift 2 ;;
     --mtf-cache-dir) MTF_CACHE_DIR=${2:-}; shift 2 ;;
     --tape-root) TAPE_ROOT=${2:-}; shift 2 ;;
@@ -58,7 +60,7 @@ while (($#)); do
 done
 
 required_values=(
-  VEDTAK SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST
+  VEDTAK SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON
   RANK_REFERENCE_NPZ MTF_CACHE_DIR TAPE_ROOT OUTPUT AUDIT_OUT_DIR
   HISTORY_START TRAIN_START TRAIN_END VAL_START VAL_END TEST_START TEST_END
 )
@@ -79,7 +81,7 @@ if [[ ! $VEDTAK =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   exit 2
 fi
 
-for name in SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST; do
+for name in SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON; do
   if [[ ! -f ${!name} ]]; then
     printf '[ABORT] required file missing (%s): %s\n' "$name" "${!name}" >&2
     exit 2
@@ -128,19 +130,35 @@ fi
 
 cd "$ENG"
 
-"$PY" - "$SIGNAL_MANIFEST" <<'PY'
+"$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$VEDTAK" "$SOURCE_PARQUET" "$TRAIN_START" "$TRAIN_END" <<'PY'
+import hashlib
 import json
 import sys
 from pathlib import Path
 
-from gx1.contracts.entry_model_native_signal_v1 import require_model_native_manifest
+from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
+    validate_signal_manifest_training_lineage,
+)
 
 path = Path(sys.argv[1]).expanduser().resolve()
-manifest = json.loads(path.read_text(encoding="utf-8"))
-contract = require_model_native_manifest(manifest, context="SEQ513_REBUILD")
+ranking_path = Path(sys.argv[2]).expanduser().resolve()
+source_path = Path(sys.argv[4]).expanduser().resolve()
+digest = hashlib.sha256()
+with source_path.open("rb") as handle:
+    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+        digest.update(chunk)
+lineage = validate_signal_manifest_training_lineage(
+    manifest_path=path,
+    feature_ranking_path=ranking_path,
+    expected_vedtak_id=sys.argv[3],
+    expected_source_sha256=digest.hexdigest(),
+    expected_train_start_utc=sys.argv[5],
+    expected_train_end_utc=sys.argv[6],
+)
+contract = lineage["model_native_signal_contract"]
 if len(contract["fields"]) != 513 or contract["bridge_dim"] != 0:
     raise RuntimeError("SEQ513_REBUILD_CONTRACT_INVALID")
-print(f"[GATE] exact model-native signal contract: {path}")
+print(f"[GATE] exact model-native signal/ranking lineage: {path}")
 PY
 
 export GX1_V10_MULTI_TF_V2_CACHE_DIR=$MTF_CACHE_DIR
@@ -159,6 +177,7 @@ mkdir -p "$OUTPUT_DIR"
   --source-parquet-override "$SOURCE_PARQUET" \
   --canonical_v2_parquet "$CANONICAL_V2_PARQUET" \
   --seq-structure-manifest "$SIGNAL_MANIFEST" \
+  --feature-ranking-json "$FEATURE_RANKING_JSON" \
   --model-native-rank-reference-npz "$RANK_REFERENCE_NPZ" \
   --tape_root "$TAPE_ROOT" \
   --output "$OUTPUT" \

@@ -1541,8 +1541,8 @@ def main() -> int:
     # ── contract-resolved adapter (fail-closed rule 8) ───────────────────────
     from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference
     from gx1.execution.v12_model_native_state_live import SEQ_LEN_MODEL_NATIVE
-    from gx1.contracts.signal_bridge_v3 import (
-        ORDERED_CTX_CONT_NAMES_V3, ORDERED_CTX_CAT_NAMES_V3,
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_FIELDS, MODEL_NATIVE_CTX_CAT_FIELDS,
     )
     adapter = SmartEntryLiveInference.load(device="cpu")
     report["bundle_dir"] = str(adapter.bundle_dir)
@@ -1666,7 +1666,7 @@ def main() -> int:
     # per-COLUMN max diff across bars (diagnostic: which families skew)
     col_max_snap = np.zeros(len(signal_names))
     col_max_seq = np.zeros(len(signal_names))
-    col_max_ctx = np.zeros(len(ORDERED_CTX_CONT_NAMES_V3))
+    col_max_ctx = np.zeros(len(MODEL_NATIVE_CTX_CONT_FIELDS))
     state_rows_compared = 0
     for k, ts in enumerate(targets):
         if ts not in off.index:
@@ -1733,11 +1733,11 @@ def main() -> int:
                     worst[b] = {"time": str(ts), "col": signal_names[c], "diff": float(d_snap.max())}
                 elif b == "ctx_cont":
                     c = int(d_ctx.argmax())
-                    worst[b] = {"time": str(ts), "col": ORDERED_CTX_CONT_NAMES_V3[c],
+                    worst[b] = {"time": str(ts), "col": MODEL_NATIVE_CTX_CONT_FIELDS[c],
                                 "diff": float(d_ctx.max())}
                 else:
                     worst[b] = {"time": str(ts),
-                                "col": ORDERED_CTX_CAT_NAMES_V3[int(np.abs(l_cat - o_cat).argmax())],
+                                "col": MODEL_NATIVE_CTX_CAT_FIELDS[int(np.abs(l_cat - o_cat).argmax())],
                                 "diff": float(d_cat)}
     def _top(names, arr, k=25):
         order = np.argsort(arr)[::-1][:k]
@@ -1751,7 +1751,7 @@ def main() -> int:
         "top_offenders": {
             "snap": _top(signal_names, col_max_snap),
             "seq": _top(signal_names, col_max_seq),
-            "ctx_cont": _top(list(ORDERED_CTX_CONT_NAMES_V3), col_max_ctx),
+            "ctx_cont": _top(list(MODEL_NATIVE_CTX_CONT_FIELDS), col_max_ctx),
         },
     }
     if state_rows_compared != SERVE_PARITY_SAMPLE_COUNT:
@@ -1798,7 +1798,7 @@ def main() -> int:
     public_pair_mismatch: list[str] = []
     action_mismatch: list[str] = []
     target_positions = {pd.Timestamp(ts): index for index, ts in enumerate(targets)}
-    atr_ctx_index = list(ORDERED_CTX_CONT_NAMES_V3).index("atr_bps")
+    atr_ctx_index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index("atr_bps")
     for h in heads:
         ts = pd.Timestamp(h["time"])
         if ts not in pinned.index:

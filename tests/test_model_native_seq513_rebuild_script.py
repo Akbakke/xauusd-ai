@@ -13,6 +13,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--source-parquet",
         "--canonical-v2-parquet",
         "--signal-manifest",
+        "--feature-ranking-json",
         "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
@@ -22,7 +23,11 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "materialize_model_native_train_rank_reference_v2",
         "--fit-start",
         "--fit-end",
-        "require_model_native_manifest",
+        "validate_signal_manifest_training_lineage",
+        "expected_vedtak_id",
+        "expected_source_sha256",
+        "expected_train_start_utc",
+        "expected_train_end_utc",
         "--model-native-rank-reference-npz",
         "materialize_entry_full_input_liveness_v1",
         "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_",
@@ -50,6 +55,8 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     assert "--require-rail-features" not in source
     assert "--require-inline-seq-structure" not in source
     assert "--require-xau-provenance" not in source
+    assert 'ls ' not in source
+    assert 'tail -1' not in source
 
 
 def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> None:
@@ -66,6 +73,8 @@ def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> Non
     assert "rank reference already exists" in source
     assert "audit output directory already exists" in source
     assert source.count('--vedtak "$VEDTAK"') == 3
+    assert source.count('--feature-ranking-json "$FEATURE_RANKING_JSON"') == 1
+    assert "SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON" in source
     assert "--vedtak has invalid format" in source
 
 

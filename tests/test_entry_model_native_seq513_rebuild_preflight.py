@@ -15,12 +15,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-    MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
-    model_native_mandatory_full_stack_metadata,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
@@ -29,10 +27,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
-from gx1.features.entry_specialist_feature_groups_v1 import (
-    MODEL_NATIVE_TRAINING_SPECIALISTS,
-    group_features_by_specialist,
-)
+from gx1.features.entry_specialist_feature_groups_v1 import group_features_by_specialist
 from gx1.features.htf_features import (
     MULTI_TF_FEATURE_COUNT_V2,
     MULTI_TF_PER_BAR_FEATURES_V2,
@@ -41,11 +36,15 @@ from gx1.features.htf_features import (
 from gx1.scripts import (
     materialize_entry_model_native_seq513_rebuild_preflight_v1 as preflight,
 )
+from gx1.scripts import (
+    materialize_entry_model_native_seq513_signal_manifest_v1 as signal_manifest_producer,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
 STAMP = "20260716T120000123456Z"
 CREATED = "2026-07-16T12:00:00.123456+00:00"
+VEDTAK = "XAU_SEQ513_REBUILD_TEST_V1"
 SPLITS = {
     "history_start": "2020-11-08T00:00:00+00:00",
     "train_start": "2020-11-09T00:00:00+00:00",
@@ -77,6 +76,10 @@ def _selected_features() -> list[str]:
     return canonical_model_native_selected_fields()
 
 
+def _stamp(value: datetime) -> str:
+    return value.strftime("%Y%m%dT%H%M%S%fZ")
+
+
 def _build_fixture(
     tmp_path: Path,
     *,
@@ -84,6 +87,9 @@ def _build_fixture(
     break_signal_contract: bool = False,
     break_specialist_coverage: bool = False,
     break_source_manifest_hash: bool = False,
+    break_ranking_vedtak: bool = False,
+    break_ranking_source_hash: bool = False,
+    break_ranking_train_window: bool = False,
     break_mtf: bool = False,
     missing_tape_year: int | None = None,
     missing_tape_column: str | None = None,
@@ -121,48 +127,82 @@ def _build_fixture(
         {"created_utc": CREATED, "proof": True},
     )
     selected = _selected_features()
-    if break_specialist_coverage:
-        selected[-1] = "unmapped_fixture_field"
-    declared_contract = model_native_signal_contract_metadata(selected)
-    if break_signal_contract:
-        declared_contract["seq_input_dim"] = 512
-    grouped = group_features_by_specialist(selected)
-    manifest_name = (
-        "MODEL_NATIVE_SIGNAL_MANIFEST_latest.json"
-        if mutable_manifest
-        else f"MODEL_NATIVE_SIGNAL_MANIFEST_{STAMP}.json"
+    now = datetime.now(timezone.utc)
+    ranking_created = now - timedelta(seconds=2)
+    manifest_created = now - timedelta(seconds=1)
+    ranking_path = tmp_path / "inputs" / (
+        "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_"
+        f"{_stamp(ranking_created)}.json"
     )
-    manifest_path = tmp_path / "inputs" / manifest_name
-    manifest = {
-        "schema_version": "entry_specialist_challenger_extension_manifest_v1",
-        "created_utc": CREATED,
-        "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
-        "selected_features": selected,
-        "selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
-        "base_signal_feature_count": MODEL_NATIVE_BASE_SIGNAL_DIM,
-        "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
-        "model_native_signal_contract": declared_contract,
-        "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
-        "smart_layer_feature_counts": {
-            family: len(features)
-            for family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
-        },
-        "source_feature_counts": {
-            "smart_candidate_layers": 305,
-            "mandatory_full_stack": 305,
-            "ranked_remainder": 174,
-        },
-        "features_by_specialist": grouped,
-        "required_training_specialists": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
-        "source_manifests": {
-            "model_native_signal_layer": {
-                "path": str(source_layer.resolve()),
-                "sha256": "0" * 64 if break_source_manifest_hash else _sha256(source_layer),
-            }
-        },
-        "manifest_json_path": str(manifest_path.resolve()),
+    ranking = {
+        "schema_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
+        "created_utc": ranking_created.isoformat(),
+        "explicit_vedtak_id": VEDTAK,
+        "producer": signal_manifest_producer.TRAIN_FEATURE_RANKING_PRODUCER,
+        "producer_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
+        "fit_scope": "train_only",
+        "train_start_utc": SPLITS["train_start"],
+        "train_end_utc": SPLITS["train_end"],
+        "source_time_max_utc": SPLITS["train_end"],
+        "target_time_max_utc": SPLITS["train_end"],
+        "source_sha256": _sha256(source),
+        "target_sha256": "2" * 64,
+        "ranking_order": dict(signal_manifest_producer.TRAIN_FEATURE_RANKING_ORDER),
+        "causality_contract": dict(
+            signal_manifest_producer.TRAIN_FEATURE_CAUSALITY_CONTRACT
+        ),
+        "ranked_features": [
+            {"rank": index, "name": name, "score": float(1000 - index)}
+            for index, name in enumerate(selected, start=1)
+        ],
     }
+    _write_json(ranking_path, ranking)
+
+    immutable_manifest_path = tmp_path / "inputs" / (
+        f"{signal_manifest_producer.SIGNAL_MANIFEST_EVENT_PREFIX}_"
+        f"{_stamp(manifest_created)}.json"
+    )
+    manifest = signal_manifest_producer.run(
+        argparse.Namespace(
+            feature_ranking_json=str(ranking_path),
+            out=str(immutable_manifest_path),
+            vedtak=VEDTAK,
+        )
+    )
+    manifest["source_manifests"] = {
+        "model_native_signal_layer": {
+            "path": str(source_layer.resolve()),
+            "sha256": "0" * 64 if break_source_manifest_hash else _sha256(source_layer),
+        }
+    }
+    if break_signal_contract:
+        manifest["model_native_signal_contract"]["seq_input_dim"] = 512
+    if break_specialist_coverage:
+        broken_selected = list(manifest["selected_features"])
+        broken_selected[-1] = "unmapped_fixture_field"
+        manifest["selected_features"] = broken_selected
+        manifest["model_native_signal_contract"] = model_native_signal_contract_metadata(
+            broken_selected
+        )
+        manifest["features_by_specialist"] = group_features_by_specialist(
+            broken_selected
+        )
+
+    manifest_path = immutable_manifest_path
+    if mutable_manifest:
+        manifest_path = tmp_path / "inputs/MODEL_NATIVE_SIGNAL_MANIFEST_latest.json"
+        manifest["json_path"] = str(manifest_path.resolve())
+        immutable_manifest_path.unlink()
     _write_json(manifest_path, manifest)
+
+    if break_ranking_vedtak:
+        ranking["explicit_vedtak_id"] = "XAU_DIFFERENT_REBUILD_TEST_V1"
+    if break_ranking_source_hash:
+        ranking["source_sha256"] = "f" * 64
+    if break_ranking_train_window:
+        ranking["train_start_utc"] = "2020-11-10T00:00:00+00:00"
+    if break_ranking_vedtak or break_ranking_source_hash or break_ranking_train_window:
+        _write_json(ranking_path, ranking)
 
     test_end_ns = int(
         datetime.fromisoformat(SPLITS["test_end"]).timestamp() * 1_000_000_000
@@ -225,8 +265,10 @@ def _build_fixture(
 
     return argparse.Namespace(
         source_parquet=str(source),
+        vedtak=VEDTAK,
         canonical_v2_parquet=str(canonical),
         signal_manifest=str(manifest_path),
+        feature_ranking_json=str(ranking_path),
         rank_reference_npz=str(tmp_path / "run/rank/model_native_rank.npz"),
         mtf_cache_dir=str(mtf_cache),
         tape_root=str(tape_root),
@@ -237,7 +279,7 @@ def _build_fixture(
     )
 
 
-def test_preflight_binds_exact_wrapper_inputs_and_fails_closed_without_vedtak(
+def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
     tmp_path: Path,
 ) -> None:
     args = _build_fixture(tmp_path)
@@ -287,12 +329,13 @@ def test_preflight_binds_exact_wrapper_inputs_and_fails_closed_without_vedtak(
     assert argv[:3] == [
         "scripts/rebuild_entry_model_native_seq513_dataset.sh",
         "--vedtak",
-        "<EXPLICIT_VEDTAK_ID>",
+        VEDTAK,
     ]
     for flag in (
         "--source-parquet",
         "--canonical-v2-parquet",
         "--signal-manifest",
+        "--feature-ranking-json",
         "--rank-reference-npz",
         "--mtf-cache-dir",
         "--tape-root",
@@ -308,7 +351,9 @@ def test_preflight_binds_exact_wrapper_inputs_and_fails_closed_without_vedtak(
     ):
         assert argv.count(flag) == 1
     assert command["requires_explicit_vedtak"] is True
-    assert command["executable_without_replacing_vedtak_placeholder"] is False
+    assert command["explicit_vedtak_id"] == VEDTAK
+    assert command["vedtak_bound_without_placeholder"] is True
+    assert "<EXPLICIT_VEDTAK_ID>" not in argv
     assert command["rank_reference_contract"] == {
         "producer": "gx1.scripts.materialize_model_native_train_rank_reference_v2",
         "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
@@ -344,6 +389,11 @@ def test_preflight_binds_exact_wrapper_inputs_and_fails_closed_without_vedtak(
     assert command["fixed_builder_contract"]["feature_history_mode"] == MODEL_NATIVE_HISTORY_MODE
     assert command["fixed_builder_contract"]["split_reset_allowed"] is False
     assert report["inputs"]["source_time_contract"]["exact"] is True
+    assert report["explicit_vedtak_id"] == VEDTAK
+    assert report["inputs"]["feature_ranking_json"]["sha256"] == _sha256(
+        Path(args.feature_ranking_json)
+    )
+    assert report["signal_training_lineage"]["explicit_vedtak_id"] == VEDTAK
     assert report["dataset_rebuild_allowed_without_vedtak"] is False
     assert report["training_allowed"] is False
     assert not any(report["side_effects_started"].values())
@@ -400,6 +450,41 @@ def test_preflight_blocks_incomplete_contracts(
 
     assert report["decision"] == preflight.BLOCKED_DECISION
     assert failure_name in {row["name"] for row in report["failures"]}
+    assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False
+
+
+@pytest.mark.parametrize(
+    ("fixture_kwargs", "lineage_error"),
+    [
+        (
+            {"break_ranking_vedtak": True},
+            "FEATURE_RANKING_EXPLICIT_VEDTAK_ID_INVALID",
+        ),
+        (
+            {"break_ranking_source_hash": True},
+            "FEATURE_RANKING_SOURCE_SHA256_MISMATCH",
+        ),
+        (
+            {"break_ranking_train_window": True},
+            "FEATURE_RANKING_TRAIN_WINDOW_MISMATCH",
+        ),
+    ],
+)
+def test_preflight_rejects_ranking_lineage_mismatch(
+    tmp_path: Path,
+    fixture_kwargs: dict,
+    lineage_error: str,
+) -> None:
+    report = preflight.run(_build_fixture(tmp_path, **fixture_kwargs))
+
+    assert report["decision"] == preflight.BLOCKED_DECISION
+    failure = next(
+        row
+        for row in report["failures"]
+        if row["name"]
+        == "signal manifest binds the explicit ranking, vedtak, source hash, and exact TRAIN window"
+    )
+    assert lineage_error in json.dumps(failure["details"], sort_keys=True)
     assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False
 
 
@@ -490,12 +575,19 @@ def test_preflight_blocks_overlapping_split_windows(tmp_path: Path) -> None:
 
 def _explicit_cli_args(tmp_path: Path) -> list[str]:
     args = [
+        "--vedtak",
+        VEDTAK,
         "--source-parquet",
         str(tmp_path / "source.parquet"),
         "--canonical-v2-parquet",
         str(tmp_path / "canonical.parquet"),
         "--signal-manifest",
         str(tmp_path / f"MODEL_NATIVE_SIGNAL_MANIFEST_{STAMP}.json"),
+        "--feature-ranking-json",
+        str(
+            tmp_path
+            / f"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_{STAMP}.json"
+        ),
         "--rank-reference-npz",
         str(tmp_path / "rank.npz"),
         "--mtf-cache-dir",
@@ -533,12 +625,25 @@ def test_parser_requires_exact_rebuild_inputs_and_rejects_retired_arguments(
             parser.parse_args(_explicit_cli_args(tmp_path) + retired)
 
     parsed = parser.parse_args(_explicit_cli_args(tmp_path))
+    assert parsed.vedtak == VEDTAK
     assert parsed.source_parquet == str(tmp_path / "source.parquet")
+    assert parsed.feature_ranking_json == str(
+        tmp_path / f"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_{STAMP}.json"
+    )
     assert parsed.rank_reference_npz == str(tmp_path / "rank.npz")
+
+
+def test_run_requires_explicit_vedtak(tmp_path: Path) -> None:
+    args = _build_fixture(tmp_path)
+    del args.vedtak
+
+    with pytest.raises(Exception, match="no --vedtak provided"):
+        preflight.run(args)
 
 
 def test_run_rejects_old_namespace_without_explicit_source(tmp_path: Path) -> None:
     old = argparse.Namespace(
+        vedtak=VEDTAK,
         smart_report=str(tmp_path / "old.json"),
         inventory_report=str(tmp_path / "old_inventory.json"),
         source_dataset_dir=str(tmp_path / "old_dataset"),
