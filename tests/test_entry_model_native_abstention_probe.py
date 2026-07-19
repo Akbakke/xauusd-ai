@@ -400,6 +400,12 @@ def test_exact_aligned_evidence_can_pass_comparison_but_grants_no_authority(tmp_
     assert report["inputs"]["model_native_prediction_lineage"][
         "direction_rows_exact"
     ] is True
+    assert report["inputs"]["model_native_prediction_lineage"][
+        "prediction_direction_argmax_recomputed"
+    ] is True
+    assert report["inputs"]["model_native_prediction_lineage"][
+        "learned_rows_bound_one_to_one"
+    ] is True
 
 
 def test_historical_evidence_must_be_the_exact_registered_artifact(
@@ -464,6 +470,74 @@ def test_learned_evidence_without_prediction_lineage_cannot_compare(
 
     assert report["empirical_comparison_performed"] is False
     assert "EXACT_MODEL_NATIVE_PREDICTION_LINEAGE_MISSING" in report["blockers"]
+
+
+def test_prediction_lineage_without_learned_evidence_is_rejected(
+    tmp_path: Path,
+) -> None:
+    args = _base_args(tmp_path)
+    _bind_learned_prediction_lineage(args, tmp_path, (0, 0, 2, 2))
+
+    with pytest.raises(
+        RuntimeError,
+        match="learned prediction lineage requires learned probe evidence",
+    ):
+        probe.run(args)
+
+
+def test_prediction_lineage_recomputes_calibrated_direction_argmax(
+    tmp_path: Path,
+) -> None:
+    args = _base_args(tmp_path)
+    utilities = (8.0, 4.0, -3.0, -5.0)
+    historical_path, historical_sha = _selection_evidence(
+        tmp_path,
+        name="historical-argmax-lineage",
+        role=HISTORICAL_ROLE,
+        takes=(True, True, False, False),
+        utilities=utilities,
+    )
+    learned_path, learned_sha = _selection_evidence(
+        tmp_path,
+        name="learned-argmax-lineage",
+        role=MODEL_NATIVE_ROLE,
+        takes=(True, True, False, False),
+        utilities=utilities,
+    )
+    _register_benchmark(args, historical_path, historical_sha)
+    _bind_learned_prediction_lineage(args, tmp_path, (0, 0, 2, 2))
+
+    predictions_path = Path(args.learned_predictions_parquet)
+    frame = pd.read_parquet(predictions_path)
+    contradictory_probabilities = np.asarray((0.1, 0.8, 0.1), dtype=np.float64)
+    frame.at[0, "direction_logits"] = np.log(
+        contradictory_probabilities
+    ).tolist()
+    frame.loc[0, ["p_long", "p_short", "p_flat"]] = contradictory_probabilities
+    predictions_path.unlink()
+    atomic_write_parquet_immutable(frame, predictions_path)
+
+    contradictory_sha256 = hashlib.sha256(predictions_path.read_bytes()).hexdigest()
+    report_path = Path(args.learned_prediction_report_json)
+    prediction_report = json.loads(report_path.read_text(encoding="utf-8"))
+    prediction_report["prediction_evidence"]["sha256"] = contradictory_sha256
+    args.learned_prediction_report_sha256 = _write_json(
+        report_path,
+        prediction_report,
+    )
+    args.learned_predictions_sha256 = contradictory_sha256
+    args.benchmark_evidence_json = str(historical_path)
+    args.benchmark_evidence_sha256 = historical_sha
+    args.learned_probe_evidence_json = str(learned_path)
+    args.learned_probe_evidence_sha256 = learned_sha
+
+    report = probe.run(args)
+
+    assert report["empirical_comparison_performed"] is False
+    assert any(
+        "pred_direction mismatch final logits argmax" in blocker
+        for blocker in report["blockers"]
+    )
 
 
 def test_model_native_rows_cannot_add_a_threshold_selector(tmp_path: Path) -> None:

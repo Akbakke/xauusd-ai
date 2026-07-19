@@ -333,6 +333,8 @@ def _validate_learned_prediction_lineage(
         "model": MODEL_NATIVE_REQUIRED_MODEL_NAME,
         "split": "test",
         "rows": int(len(scoped)),
+        "prediction_direction_argmax_recomputed": True,
+        "learned_rows_bound_one_to_one": True,
         "direction_rows_exact": True,
     }
 
@@ -459,6 +461,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         label="learned probe evidence",
     )
     learned_prediction_args = _learned_prediction_args(args)
+    if learned_prediction_args is not None and learned_args is None:
+        raise RuntimeError(
+            "learned prediction lineage requires learned probe evidence"
+        )
     if not registry_available:
         blockers.append("HISTORICAL_ENTRY_IQL_BENCHMARK_BYTES_NOT_REGISTERED")
     if benchmark_args is None:
