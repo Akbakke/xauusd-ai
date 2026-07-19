@@ -2134,10 +2134,18 @@ def build_dataset_canonical(
         ORDERED_CTX_CONT_ENTRY_SMART_DERIVED as _ENTRY_SMART_DERIVED,
     )
     _computed_not_loaded = set(_VOLUME_FEAT_NAMES) | set(_GROUP_A_PARITY) | set(_DIP_STRUCT_PARITY) | set(_ENTRY_SMART_DERIVED)
+    # REGIME_V4 per-TF source scalars are produced by the one-truth
+    # attach_v2_mtf_per_bar_scalars in the ctx-adder from the FULL-warmup raw
+    # tape and carried by the source parquet; the recompute block below only
+    # rebuilds the DERIVED regime state (D1_dist is recomputed there too).
+    from gx1.features.regime_v4_features import (
+        REGIME_V4_SOURCE_COLS as _RV4_SOURCE_COLS_EARLY,
+    )
     cv2_needed = list((set(
         list(active_base_signal_fields)
         + list(ORDERED_CTX_CONT_NAMES_V3)
         + ["volume"]
+        + [n for n in _RV4_SOURCE_COLS_EARLY if n != "D1_dist_from_ema200_atr"]
     )) - _computed_not_loaded)
     cv2_already_have = set(merged3.columns)
     cv2_to_load = [c for c in cv2_needed if c not in cv2_already_have]
@@ -2211,8 +2219,20 @@ def build_dataset_canonical(
         or not _common_index.is_monotonic_increasing
     ):
         raise RuntimeError("MODEL_NATIVE_COMMON_HISTORY_TIME_INVALID")
-    _common_m5 = merged3[["open", "high", "low", "close"]].copy()
-    _common_m5.index = _common_index
+    # The HTF recompute must see the FULL tape history exactly like serving
+    # does (live computes HTF state from complete canonical history): sourcing
+    # it from the truncated common frame would leave the 252-day D1 percentile
+    # NaN across the first ~year of TRAIN and fail the extension head.
+    _htf_m5_src = _load_canonical_tape(
+        tape_root=tape_root,
+        t_min=pd.Timestamp("2020-01-01T00:00:00Z"),
+        t_max=pd.Timestamp(_common_index.max()),
+        required_cols=["open", "high", "low", "close"],
+    )
+    _common_m5 = (
+        _htf_m5_src.set_index("time")[["open", "high", "low", "close"]]
+        .sort_index()
+    )
     _htf_common = pd.DataFrame(index=_common_index)
     _add_htf_common(_htf_common, _common_m5)
     _htf_common_cols = (

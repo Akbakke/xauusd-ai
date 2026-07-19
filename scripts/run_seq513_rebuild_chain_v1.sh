@@ -20,8 +20,11 @@ RANK_NPZ="$EVENT/model_native_train_rank_reference_v3.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
 AUDIT="$EVENT/audit"
 PRE_OUT="$EVENT/preflight"
+# history < train strictly (preflight contract): history provides the GROUP_A
+# attach warmup (~13.4k rows); trained rows effectively start ~2021-03-15
+# anyway (warmup prefix is trimmed), so this declares reality.
 HISTORY_START=2020-11-13T00:00:00Z
-TRAIN_START=2020-11-13T00:00:00Z
+TRAIN_START=2021-03-15T00:00:00Z
 TRAIN_END=2026-03-31T23:59:59Z
 VAL_START=2026-04-01T00:00:00Z
 VAL_END=2026-04-30T23:59:59Z
@@ -103,6 +106,7 @@ if [[ -z $PRE_DONE ]]; then
     --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
     --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
     --output "$OUTPUT" --audit-out-dir "$AUDIT" \
+    --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
     --val-start "$VAL_START" --val-end "$VAL_END" \
     --test-start "$TEST_START" --test-end "$TEST_END" \
@@ -111,7 +115,17 @@ fi
 echo "[chain] preflight OK"
 
 # ── Step 4: dataset rebuild (multi-hour; wrapper is capped internally) ─────
-if [[ ! -e "$EVENT/dataset/DATASET_BUILD_PROOF.json" ]]; then
+# Terminal artifacts = all three split manifests (the builder writes
+# DATASET_BUILD_PROOF.json EARLY, so its existence alone proves nothing).
+STEM_DIR="$EVENT/dataset"
+if [[ ! -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_train.manifest.json" \
+   || ! -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_val.manifest.json" \
+   || ! -e "$STEM_DIR/v10_seq513_dataset__HOLD_03B_test.manifest.json" ]]; then
+  # A crashed attempt leaves an early proof/audit/rank that the fail-closed
+  # wrapper refuses to overwrite; clear ONLY when the terminal artifacts are
+  # absent (proven-partial debris).
+  rm -f "$STEM_DIR/DATASET_BUILD_PROOF.json" "$RANK_NPZ" "${RANK_NPZ}.json"
+  [[ -d "$AUDIT" ]] && rmdir "$AUDIT" 2>/dev/null || true
   write_status dataset-rebuild RUNNING
   tg "⚙️ GX1 seq513: preflight grønn — dataset-rebuild startet (fler-timers jobb)."
   (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \

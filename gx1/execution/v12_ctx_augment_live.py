@@ -287,7 +287,9 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         raise RuntimeError("[LIVE_HTF_SOURCE] target requires a timezone-aware UTC DatetimeIndex")
     if any(pd.Timestamp(ts).utcoffset() != pd.Timedelta(0) for ts in cv3.index[:1]):
         raise RuntimeError("[LIVE_HTF_SOURCE] target index must be UTC")
-    if cv3.empty or cv3.index.hasnans or not cv3.index.is_unique or not cv3.index.is_monotonic_increasing:
+    # Non-empty means ROWS: a zero-column output container with a populated
+    # index is a legitimate target (DataFrame.empty is True on any zero axis).
+    if len(cv3.index) == 0 or cv3.index.hasnans or not cv3.index.is_unique or not cv3.index.is_monotonic_increasing:
         raise RuntimeError("[LIVE_HTF_SOURCE] target must be non-empty, unique and chronological")
     m5 = df_m5.copy()
     if "time" in m5.columns and not isinstance(m5.index, pd.DatetimeIndex):
