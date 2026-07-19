@@ -2269,7 +2269,7 @@ def build_dataset_canonical(
     # parquets may carry older/full-range derived values; trusting those would
     # make TRAIN and SERVE history semantics depend on an external build.
     from gx1.scripts.augment_forward_outcome_v2 import (
-        attach_group_a_dip_struct_ctx_columns as _attach_group_a,
+        attach_group_a_dip_struct_ctx_columns_parallel as _attach_group_a,
         trim_causal_context_warmup_prefix as _trim_context_warmup,
     )
     from gx1.features.htf_features import load_multi_tf_v2_cache as _ga_load_cache

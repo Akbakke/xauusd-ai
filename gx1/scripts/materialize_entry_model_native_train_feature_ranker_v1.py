@@ -137,96 +137,6 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
 
 
 ATTACH_WORKERS = 12
-ATTACH_SPOT_CHECK_ROWS = 40
-
-
-def _attach_chunk_worker(args: tuple) -> tuple:
-    """Row-loop worker over [lo, hi) against the SHARED full-series context.
-
-    _ATTACH_SHARED (ctx, ts_index, extract) is inherited copy-on-write from the
-    fork; every worker indexes the SAME precomputed full-series arrays (incl.
-    the trailing-1yr percentile arrays), so chunk values are exact by
-    construction — no overlap needed.
-    """
-    chunk_index, lo, hi = args
-    ctx, ts_index, extract = _ATTACH_SHARED
-    from gx1.scripts.augment_forward_outcome_v2 import compute_attach_rows
-
-    cols = compute_attach_rows(ctx, ts_index, lo, hi, extract=extract)
-    return chunk_index, lo, hi, {k: v[lo:hi] for k, v in cols.items()}
-
-
-_ATTACH_SHARED: tuple = ()
-
-
-def _attach_group_a_parallel(
-    frame: pd.DataFrame,
-    mtf: dict,
-    *,
-    workers: int = ATTACH_WORKERS,
-) -> pd.DataFrame:
-    """Parallel attach: ONE full-series context, row loop fanned over workers.
-
-    The context (build_attach_context) is built once in the parent from the
-    complete frame, so long-memory arrays are identical for every worker.
-    After the merge, ATTACH_SPOT_CHECK_ROWS deterministic rows are recomputed
-    serially in the parent and asserted bit-exact against the merged result.
-    """
-    import multiprocessing as mp
-
-    from gx1.scripts.augment_forward_outcome_v2 import (
-        build_attach_context,
-        compute_attach_rows,
-        finalize_attach_columns,
-    )
-
-    global _ATTACH_SHARED
-    ctx, ts_index, extract, dip_from_aug = build_attach_context(
-        frame, multi_tf=mtf, journal_label="train_feature_ranker"
-    )
-    n = len(frame)
-    bounds = np.linspace(0, n, workers + 1, dtype=int)
-    tasks = [
-        (k, int(bounds[k]), int(bounds[k + 1])) for k in range(workers)
-    ]
-    _ATTACH_SHARED = (ctx, ts_index, extract)
-    try:
-        mp_ctx = mp.get_context("fork")
-        with mp_ctx.Pool(processes=workers) as pool:
-            results = pool.map(_attach_chunk_worker, tasks)
-    finally:
-        _ATTACH_SHARED = ()
-    results.sort(key=lambda item: item[0])
-
-    cols = {k: np.full(n, np.nan, dtype=np.float32) for k in extract}
-    for _, lo, hi, chunk_cols in results:
-        for k, values in chunk_cols.items():
-            cols[k][lo:hi] = values
-
-    # Deterministic serial spot-check: evenly spaced finite rows, bit-exact.
-    finite = np.flatnonzero(np.isfinite(cols[extract[0]]))
-    if len(finite) == 0:
-        raise RuntimeError("FEATURE_RANKER_PARALLEL_ATTACH_ALL_NAN")
-    picks = finite[
-        np.linspace(0, len(finite) - 1, min(ATTACH_SPOT_CHECK_ROWS, len(finite)))
-        .astype(int)
-    ]
-    for i in picks:
-        serial = compute_attach_rows(
-            ctx, ts_index, int(i), int(i) + 1, extract=extract
-        )
-        for k in extract:
-            a = np.float32(serial[k][int(i)])
-            b = cols[k][int(i)]
-            if not (a == b or (np.isnan(a) and np.isnan(b))):
-                raise RuntimeError(
-                    "FEATURE_RANKER_PARALLEL_ATTACH_SPOT_CHECK_MISMATCH: "
-                    f"row={int(i)} col={k} serial={a} parallel={b}"
-                )
-
-    return finalize_attach_columns(
-        frame, cols, smc_col="smc_swing_state", dip_from_aug=dip_from_aug
-    )
 
 
 def _load_train_frame(
@@ -268,12 +178,18 @@ def _load_train_frame(
         columns=[name for name in group_a_required if name in frame.columns]
     )
     # The one-truth augmenter computes augment_candidate per row (~85 ms/row =
-    # ~9 h serial over the full range). It is strictly causal, so we chunk it
-    # across workers with >= warmup overlap and verify chunk boundaries
-    # bit-exactly (see _attach_group_a_parallel).
-    frame = _attach_group_a_parallel(
+    # ~9 h serial over the full range). The owner module provides the exact
+    # parallel variant (one full-series context, fanned row loop, serial
+    # spot-check) — shared with the dataset builder.
+    from gx1.scripts.augment_forward_outcome_v2 import (
+        attach_group_a_dip_struct_ctx_columns_parallel,
+    )
+
+    frame = attach_group_a_dip_struct_ctx_columns_parallel(
         frame,
-        load_multi_tf_v2_cache(mtf_cache_dir),
+        multi_tf=load_multi_tf_v2_cache(mtf_cache_dir),
+        journal_label="train_feature_ranker",
+        workers=ATTACH_WORKERS,
     )
     frame = trim_causal_context_warmup_prefix(frame, group_a_required).reset_index(
         drop=True

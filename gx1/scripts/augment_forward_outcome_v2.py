@@ -863,6 +863,84 @@ def compute_attach_rows(
     return cols
 
 
+_PARALLEL_ATTACH_SHARED: tuple = ()
+
+
+def _parallel_attach_chunk_worker(args: tuple) -> tuple:
+    """Row-loop worker over [lo, hi) against the fork-shared full context."""
+    chunk_index, lo, hi = args
+    ctx, ts_index, extract = _PARALLEL_ATTACH_SHARED
+    cols = compute_attach_rows(ctx, ts_index, lo, hi, extract=extract)
+    return chunk_index, lo, hi, {k: v[lo:hi] for k, v in cols.items()}
+
+
+def attach_group_a_dip_struct_ctx_columns_parallel(
+    df: pd.DataFrame,
+    *,
+    multi_tf: dict,
+    journal_label: str = "parity",
+    smc_col: str = "smc_swing_state",
+    workers: int = 12,
+    spot_check_rows: int = 40,
+) -> pd.DataFrame:
+    """Exact parallel variant of attach_group_a_dip_struct_ctx_columns.
+
+    ONE full-series context is built in the parent (long-memory arrays such as
+    the trailing-1yr percentile arrays are therefore identical for every
+    worker) and only the ~85 ms/row augment_candidate loop is fanned out over
+    fork()ed workers — exact by construction, no chunk overlap. After the
+    merge, spot_check_rows evenly spaced finite rows are recomputed serially
+    and asserted bit-exact against the merged result.
+    """
+    import multiprocessing as mp
+
+    global _PARALLEL_ATTACH_SHARED
+    ctx, ts_index, extract, dip_from_aug = build_attach_context(
+        df, multi_tf=multi_tf, journal_label=journal_label, smc_col=smc_col
+    )
+    n = len(df)
+    workers = max(1, min(int(workers), n))
+    bounds = np.linspace(0, n, workers + 1, dtype=int)
+    tasks = [(k, int(bounds[k]), int(bounds[k + 1])) for k in range(workers)]
+    _PARALLEL_ATTACH_SHARED = (ctx, ts_index, extract)
+    try:
+        mp_ctx = mp.get_context("fork")
+        with mp_ctx.Pool(processes=workers) as pool:
+            results = pool.map(_parallel_attach_chunk_worker, tasks)
+    finally:
+        _PARALLEL_ATTACH_SHARED = ()
+    results.sort(key=lambda item: item[0])
+    cols = {k: np.full(n, np.nan, dtype=np.float32) for k in extract}
+    for _, lo, hi, chunk_cols in results:
+        for k, values in chunk_cols.items():
+            cols[k][lo:hi] = values
+
+    finite = np.flatnonzero(np.isfinite(cols[extract[0]]))
+    if len(finite) == 0:
+        raise RuntimeError(
+            "[CTX_CONT_PARITY] parallel attach produced no finite rows"
+        )
+    picks = finite[
+        np.linspace(0, len(finite) - 1, min(int(spot_check_rows), len(finite)))
+        .astype(int)
+    ]
+    for i in picks:
+        serial = compute_attach_rows(
+            ctx, ts_index, int(i), int(i) + 1, extract=extract
+        )
+        for k in extract:
+            a = np.float32(serial[k][int(i)])
+            b = cols[k][int(i)]
+            if not (a == b or (np.isnan(a) and np.isnan(b))):
+                raise RuntimeError(
+                    "[CTX_CONT_PARITY] parallel attach spot-check mismatch: "
+                    f"row={int(i)} col={k} serial={a} parallel={b}"
+                )
+    return finalize_attach_columns(
+        df, cols, smc_col=smc_col, dip_from_aug=dip_from_aug
+    )
+
+
 def attach_group_a_dip_struct_ctx_columns(
     df: pd.DataFrame,
     *,
