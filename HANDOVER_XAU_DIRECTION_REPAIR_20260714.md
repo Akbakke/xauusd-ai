@@ -173,41 +173,76 @@ Verified source material for a fresh seq513 rebuild (immutable, July-16 build):
   `model_native_train_rank_reference_v3`) and the 520-wide dataset
   (7 constant neutral-XGB bridge fields).
 
-BLOCKER discovered 2026-07-18 (verified twice, repo + HEAD): the TRAIN-only
-feature-ranker producer `entry_model_native_train_feature_ranker` does NOT
-exist. Its interface is fully specified by the consumer
-(`materialize_entry_model_native_seq513_signal_manifest_v1`, schema
-`entry_model_native_train_feature_ranking_v1`) and its test fixture, but the
-producer was never built. Without it there is no ranking JSON, hence no signal
-manifest, hence the rebuild wrapper aborts (correctly fail-closed). Build the
-ranker FIRST: reuse the builder's one-truth feature assembly (do not duplicate
-it), deterministic TRAIN-only score with `score_descending` +
-`feature_name_ascending` tie-break as declared, source/target sha256 bindings,
-and validate output by round-trip through the manifest producer.
-User vedtak `XAU_SEQ513_REBUILD_20260718_V1` is ISSUED and covers this chain.
-RANKER STATUS 2026-07-18: BUILT
-(`gx1/scripts/materialize_entry_model_native_train_feature_ranker_v1.py`, five
-green tests incl. round-trip through the real manifest producer). Chain
-execution then hit four consecutive fail-closed stops; the first three are
-FIXED (missing producer -> built; candidate pool 146<174 -> GROUP_A/DIP_STRUCT
-ctx recomputed via the builder's own `attach_group_a_dip_struct_ctx_columns`;
-stale MTF cache -> must be rebuilt with `prebuild_multi_tf_cache_v2` current
-version). Stop four is a DATA defect and blocks everything:
+## 2026-07-18/19 campaign handover (vedtak XAU_SEQ513_REBUILD_20260718_V1)
 
-**CANONICAL TAPE DEFECT (verified 2026-07-18):** the M5 canonical tape carries
-2375 rows with invalid OHLC geometry (close outside [low, high]), ALL in
-2024-11-30 -> 2024-12-31, ~77% on closed-market Saturdays/Sundays (synthetic
-bars with no canonical-M1 backing; M1 coverage that month is also thin,
-~29,885 rows). Present in BOTH the July-16 event copy AND the live
-daemon-maintained prebuilt (latent since Dec-2024). The 2026-07-17
-`causal_no_fallback` contract correctly refuses it. Because
-`FULL_PLUS_CTX_v3src.parquet` and `canonical_features_v2.parquet` were built
-FROM the defective tape, a proper repair cascades: repair Dec-2024 M5 segment
-from canonical M1 (drop unbacked closed-market bars, register gaps) -> rebuild
-canonical_features_v2 -> rebuild FULL_PLUS_CTX -> then ranker -> manifest ->
-preflight -> dataset build. The July-16 logs show the feature-rebuild steps
-take minutes each. The LIVE prebuilt repair is a separate decision (it serves
-the active Exit chain).
+STATE AT WRITING: preflight GREEN, dataset rebuild RUNNING (parallel attach,
+14 workers) in event root
+`GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260718_seq513_model_native/`.
+The chain driver auto-continues to liveness + pretrain audit and STOPS at the
+smoke gate with a Telegram ping. Read
+`SYSTEM_MAP.md` -> "Pipeline- og ingredienskart" before grepping anything.
+
+### Built this campaign
+
+1. `gx1/scripts/materialize_entry_model_native_train_feature_ranker_v1.py` —
+   the previously missing ranking producer (deterministic TRAIN-only
+   |Spearman| vs 24-bar forward mid return; sha+window-bound CHECKPOINT;
+   parallel GROUP_A attach). Five green tests incl. round-trip through the
+   real manifest producer. RESULT on real data: 226 candidates, all finite
+   scores (top: bars_since_swing_low 0.0755, bars_since_swing_high 0.0733,
+   fib/geometry proximities 0.03-0.05); manifest 305+174 produced.
+2. `gx1/scripts/repair_m5_tape_dec2024_from_m1_v1.py` — event-local repair of
+   the Dec-2024 canonical M5 geometry defect (2375 impossible rows -> 0) from
+   the clean canonical M1; convention proof (high/low EXACT vs M1 aggregation,
+   open/close boundary-tick tolerance documented); 5757 bars rebuilt, 3459
+   synthetic closed-market bars dropped; immutable REPAIR_MANIFEST.
+3. Full source cascade rebuilt on the repaired tape: canonical_features_v2 ->
+   cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE (current
+   builder version) -> FULL_PLUS_CTX (207 cols, column-identical to July-16).
+4. `scripts/run_seq513_rebuild_chain_v1.sh` — resume-safe fail-closed chain
+   driver (ranking -> manifest -> preflight -> build), Telegram ⚙️/🔴/✅,
+   exact-cmdline process watch, proven-partial debris cleared BEFORE
+   preflight, terminal state = all three split manifests.
+5. `attach_group_a_dip_struct_ctx_columns` factored into
+   build_attach_context / compute_attach_rows / finalize_attach_columns plus
+   `attach_group_a_dip_struct_ctx_columns_parallel` in the owner module —
+   ONE full-series context fanned over 12 fork workers (exact by
+   construction; serial spot-check). Serial cost measured 85.4 ms/row (~9 h);
+   parallel ~1 h. Builder and ranker share it.
+
+### Fixed: the 2026-07-17 hardening's requirement/supplier gaps
+
+The hardening tightened consumers without wiring producers; nobody ran the
+chain after it. Six gaps, all found by fail-closed walls, all fixed+committed:
+ctx-adder raw-M5 loader now carries `volume` (REGIME_V4 requires OHLCV);
+`v12_ctx_augment_live` empty-check means ROWS (zero-column output container is
+legitimate); builder loads REGIME_V4 per-TF source scalars from the source
+parquet (full-warmup adder values); builder HTF recompute reads FULL tape
+history like serving (was: truncated frame -> D1 pctl252 NaN across first
+TRAIN year); preflight `EXPECTED_MTF_BUILDER_VERSION` now IS the loader's
+constant (pinned literals were mutually unsatisfiable); ranker tz bug at the
+final write step (cost one 4.5 h run; checkpoint now makes late failures
+cost seconds).
+
+### Exact window contract (validated by preflight)
+
+Source (FULL_PLUS) first row 2021-01-04T23:55 (ctx-adder trims own warmup).
+HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16 (GROUP_A warmup 13,439 rows
+-> 277 clean rows >= 95 required by seq_len 96) <= TRAIN_END=2026-03-31 <
+VAL 2026-04-01..04-30 < TEST 2026-05-01..2026-06-14T23:55 (source's exact
+last bar).
+
+### Open decisions / next work
+
+1. IN FLIGHT: build -> liveness -> pretrain audit -> ✅/🔴 Telegram -> STOP at
+   smoke gate. Smoke needs its own vedtak; zero FLAT predictions is hard-red
+   by definition (DECISION_LOG 2026-07-17 abstention criterion).
+2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
+   the event copy is repaired) — separate decision; live Exit serves on it.
+3. Exit env-softeners (3 audit MEDIUMs), ctx v1/v3 dual-owner in the builder
+   (analyze before NEXT rebuild), CI replacement, gx1/scripts sorting,
+   hashing-helper consolidation — post-smoke backlog.
+4. Two commits may await push (permission prompts): check `git status -sb`.
 
 Ordered steps (each gate fail-closed; stop at first red):
 

@@ -4,6 +4,18 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-19 — rebuild window contract and one-owner version constants
+
+Under vedtak `XAU_SEQ513_REBUILD_20260718_V1`: split windows are source-exact
+(history 2021-01-05 = source first row; train 2021-03-16 leaves 277 clean rows
+for the 96-bar sequence window after the 13,439-row GROUP_A warmup; test end
+2026-06-14T23:55 = source last bar). Contract version strings consumed at two
+boundaries must have ONE code owner (the loader's constant) — the preflight's
+pinned MTF-cache literal made the two contracts mutually unsatisfiable after
+the 07-17 re-versioning. The Dec-2024 tape defect is repaired ONLY in the
+event copy; canonical root and live prebuilt repairs are a separate open
+decision.
+
 ## 2026-07-17 — Entry success criterion is abstention quality, not direction precision
 
 User vedtak (explicit choice over "restore promoted chain" and "continue
