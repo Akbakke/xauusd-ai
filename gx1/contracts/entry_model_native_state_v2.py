@@ -21,8 +21,8 @@ import pandas as pd
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 
 
-MODEL_NATIVE_STATE_SCHEMA_VERSION = "model_native_state_contract_v3"
-MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION = "model_native_train_rank_reference_v3"
+MODEL_NATIVE_STATE_SCHEMA_VERSION = "model_native_state_contract_v4"
+MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION = "model_native_train_rank_reference_v4"
 MODEL_NATIVE_RANK_TRANSFORM = "train_fit_right_ecdf_quintile_v1"
 MODEL_NATIVE_HISTORY_MODE = "common_causal_history_no_split_reset_v1"
 
@@ -32,7 +32,7 @@ TRAIN_RANK_NPZ_KEYS = frozenset(
         "fit_start_ns",
         "fit_end_ns",
         "fit_row_count",
-        "explicit_vedtak_id",
+        "entry_run_id",
         "atr_bps_sorted",
         "spread_bps_sorted",
     }
@@ -189,9 +189,9 @@ def load_train_rank_reference_v2(
         raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_ROW_LEVEL_STATE_FORBIDDEN")
     if sidecar.get("rank_transform") != MODEL_NATIVE_RANK_TRANSFORM:
         raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_TRANSFORM_INVALID")
-    explicit_vedtak_id = str(sidecar.get("explicit_vedtak_id") or "").strip()
-    if not explicit_vedtak_id:
-        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_EXPLICIT_VEDTAK_MISSING")
+    entry_run_id = str(sidecar.get("entry_run_id") or "").strip()
+    if not entry_run_id:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_EXPLICIT_RUN_ID_MISSING")
     declared_path = Path(str(sidecar.get("out_npz") or "")).expanduser().resolve()
     if declared_path != rank_path:
         raise RuntimeError(
@@ -224,7 +224,7 @@ def load_train_rank_reference_v2(
             npz_start = int(np.asarray(payload["fit_start_ns"]).reshape(-1)[0])
             npz_end = int(np.asarray(payload["fit_end_ns"]).reshape(-1)[0])
             npz_rows = int(np.asarray(payload["fit_row_count"]).reshape(-1)[0])
-            npz_vedtak = np.asarray(payload["explicit_vedtak_id"])
+            npz_run_id = np.asarray(payload["entry_run_id"])
             atr_sorted = np.asarray(payload["atr_bps_sorted"], dtype=np.float64).copy()
             spread_sorted = np.asarray(payload["spread_bps_sorted"], dtype=np.float64).copy()
     except RuntimeError:
@@ -233,8 +233,8 @@ def load_train_rank_reference_v2(
         raise RuntimeError(f"MODEL_NATIVE_TRAIN_RANK_NPZ_INVALID: {rank_path}") from exc
     if npz_start != fit_start.value or npz_end != fit_end.value or npz_rows != fit_row_count:
         raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_NPZ_SIDECAR_METADATA_MISMATCH")
-    if npz_vedtak.shape != (1,) or str(npz_vedtak[0]).strip() != explicit_vedtak_id:
-        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_NPZ_VEDTAK_MISMATCH")
+    if npz_run_id.shape != (1,) or str(npz_run_id[0]).strip() != entry_run_id:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_NPZ_RUN_ID_MISMATCH")
     if atr_sorted.shape != (fit_row_count,) or spread_sorted.shape != (fit_row_count,):
         raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_DISTRIBUTION_LENGTH_INVALID")
     # Reuse the bucket validator for finite/sorted proof without mutating data.
@@ -301,7 +301,7 @@ def validate_state_contract_metadata_v2(
         "split_reset_allowed",
         "post_fit_rows_in_rank_reference",
         "runtime_rule_free",
-        "explicit_vedtak_id",
+        "entry_run_id",
     }
     missing = sorted(required - set(data))
     if missing:
@@ -320,9 +320,9 @@ def validate_state_contract_metadata_v2(
         raise RuntimeError("MODEL_NATIVE_STATE_POST_FIT_ROWS_FORBIDDEN")
     if data["runtime_rule_free"] is not True:
         raise RuntimeError("MODEL_NATIVE_STATE_RUNTIME_RULE_FREE_REQUIRED")
-    explicit_vedtak_id = str(data["explicit_vedtak_id"] or "").strip()
-    if not explicit_vedtak_id:
-        raise RuntimeError("MODEL_NATIVE_STATE_EXPLICIT_VEDTAK_MISSING")
+    entry_run_id = str(data["entry_run_id"] or "").strip()
+    if not entry_run_id:
+        raise RuntimeError("MODEL_NATIVE_STATE_EXPLICIT_RUN_ID_MISSING")
 
     history_start = parse_utc(data["feature_history_start_utc"], field="feature_history_start_utc")
     fit_start = parse_utc(data["rank_fit_start_utc"], field="rank_fit_start_utc")
@@ -341,6 +341,6 @@ def validate_state_contract_metadata_v2(
         reference = load_train_rank_reference_v2(rank_path, expected_sha256=sha)
         if reference.fit_start_utc != fit_start or reference.fit_end_utc != fit_end:
             raise RuntimeError("MODEL_NATIVE_STATE_RANK_FIT_WINDOW_MISMATCH")
-        if str(reference.sidecar.get("explicit_vedtak_id") or "").strip() != explicit_vedtak_id:
-            raise RuntimeError("MODEL_NATIVE_STATE_RANK_VEDTAK_MISMATCH")
+        if str(reference.sidecar.get("entry_run_id") or "").strip() != entry_run_id:
+            raise RuntimeError("MODEL_NATIVE_STATE_RANK_RUN_ID_MISMATCH")
     return data

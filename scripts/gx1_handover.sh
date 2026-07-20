@@ -181,12 +181,17 @@ while read -r pid ppid state _cpu _mem _elapsed args; do
   process_states["$identity"]="${process_states["$identity"]:-},$state"
   if [[ "$identity" == "scripts/run_seq513_rebuild_chain_v1.sh" ]]; then
     read -ra command_parts <<< "$args"
-    for ((j = 0; j + 2 < ${#command_parts[@]}; j++)); do
-      if [[ "${command_parts[$j]##*/}" == "run_seq513_rebuild_chain_v1.sh" ]]; then
-        chain_specs+=("${command_parts[$((j + 1))]}|${command_parts[$((j + 2))]}")
-        break
-      fi
+    chain_run_id=""
+    chain_event_dir=""
+    for ((j = 0; j + 1 < ${#command_parts[@]}; j++)); do
+      case "${command_parts[$j]}" in
+        --run-id) chain_run_id="${command_parts[$((j + 1))]}" ;;
+        --event-root) chain_event_dir="${command_parts[$((j + 1))]}" ;;
+      esac
     done
+    if [[ -n "$chain_run_id" && -n "$chain_event_dir" ]]; then
+      chain_specs+=("$chain_run_id|$chain_event_dir")
+    fi
   fi
 done < <(ps -ww -eo pid=,ppid=,stat=,%cpu=,%mem=,etime=,args=)
 
@@ -206,12 +211,12 @@ if (( ${#chain_specs[@]} == 0 )); then
   echo "active_seq513_chain: NONE"
 else
   for spec in "${chain_specs[@]}"; do
-    vedtak="${spec%%|*}"
+    run_id="${spec%%|*}"
     event_dir="${spec#*|}"
     [[ "$event_dir" == /* ]] || event_dir="$REPO/$event_dir"
     event_dir="$(realpath -m -- "$event_dir")"
     status_path="$event_dir/CHAIN_STATUS.json"
-    echo "active_seq513_chain_vedtak: $vedtak"
+    echo "active_seq513_chain_run_id: $run_id"
     echo "active_seq513_chain_event_dir: $event_dir"
     echo "active_seq513_chain_status_path: $status_path"
     if [[ -f "$status_path" ]]; then

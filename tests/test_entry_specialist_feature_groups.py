@@ -292,7 +292,6 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert report["specialist_model_contract"] == MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
     assert report["specialist_model_contract_valid"] is True
     assert report["training_allowed"] is False
-    assert report["training_allowed_with_explicit_vedtak"] is False
     assert report["contract_training_surface"] == {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "registered_for_training_surfaces": True,

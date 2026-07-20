@@ -7,7 +7,7 @@ ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
 CAP=("$ENG/scripts/gx1_capped_run.sh" --mem 30G --swap 2G --)
 
-VEDTAK=
+RUN_ID=
 SOURCE_PARQUET=
 CANONICAL_V2_PARQUET=
 SIGNAL_MANIFEST=
@@ -27,7 +27,7 @@ HISTORY_START=
 
 usage() {
   printf '%s\n' \
-    "Usage: $0 --vedtak ID --source-parquet PATH --canonical-v2-parquet PATH" \
+    "Usage: $0 --run-id ID --source-parquet PATH --canonical-v2-parquet PATH" \
     "  --signal-manifest PATH --feature-ranking-json PATH --rank-reference-npz PATH" \
     "  --mtf-cache-dir PATH --tape-root PATH" \
     "  --output /new/dir/STEM__HOLD_03B.parquet --audit-out-dir /new/report/dir" \
@@ -37,7 +37,7 @@ usage() {
 
 while (($#)); do
   case "$1" in
-    --vedtak) VEDTAK=${2:-}; shift 2 ;;
+    --run-id) RUN_ID=${2:-}; shift 2 ;;
     --source-parquet) SOURCE_PARQUET=${2:-}; shift 2 ;;
     --canonical-v2-parquet) CANONICAL_V2_PARQUET=${2:-}; shift 2 ;;
     --signal-manifest) SIGNAL_MANIFEST=${2:-}; shift 2 ;;
@@ -60,7 +60,7 @@ while (($#)); do
 done
 
 required_values=(
-  VEDTAK SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON
+  RUN_ID SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON
   RANK_REFERENCE_NPZ MTF_CACHE_DIR TAPE_ROOT OUTPUT AUDIT_OUT_DIR
   HISTORY_START TRAIN_START TRAIN_END VAL_START VAL_END TEST_START TEST_END
 )
@@ -76,8 +76,8 @@ if [[ $OUTPUT != *.parquet || $OUTPUT != *"__HOLD_03B.parquet" ]]; then
   printf '[ABORT] --output must end in __HOLD_03B.parquet: %s\n' "$OUTPUT" >&2
   exit 2
 fi
-if [[ ! $VEDTAK =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
-  printf '[ABORT] --vedtak has invalid format\n' >&2
+if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
+  printf '[ABORT] --run-id has invalid format\n' >&2
   exit 2
 fi
 
@@ -130,7 +130,7 @@ fi
 
 cd "$ENG"
 
-"$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$VEDTAK" "$SOURCE_PARQUET" "$TRAIN_START" "$TRAIN_END" <<'PY'
+"$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" "$RUN_ID" "$SOURCE_PARQUET" "$TRAIN_START" "$TRAIN_END" <<'PY'
 import hashlib
 import json
 import sys
@@ -150,7 +150,7 @@ with source_path.open("rb") as handle:
 lineage = validate_signal_manifest_training_lineage(
     manifest_path=path,
     feature_ranking_path=ranking_path,
-    expected_vedtak_id=sys.argv[3],
+    expected_run_id=sys.argv[3],
     expected_source_sha256=digest.hexdigest(),
     expected_train_start_utc=sys.argv[5],
     expected_train_end_utc=sys.argv[6],
@@ -164,7 +164,7 @@ PY
 export GX1_V10_MULTI_TF_V2_CACHE_DIR=$MTF_CACHE_DIR
 
 "${CAP[@]}" "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
-  --vedtak "$VEDTAK" \
+  --run-id "$RUN_ID" \
   --source-parquet "$SOURCE_PARQUET" \
   --out "$RANK_REFERENCE_NPZ" \
   --history-start "$HISTORY_START" \
@@ -173,7 +173,7 @@ export GX1_V10_MULTI_TF_V2_CACHE_DIR=$MTF_CACHE_DIR
 
 mkdir -p "$OUTPUT_DIR"
 "${CAP[@]}" "$PY" -m gx1.scripts.build_entry_v10_ctx_training_dataset_v3 \
-  --vedtak "$VEDTAK" \
+  --run-id "$RUN_ID" \
   --source-parquet "$SOURCE_PARQUET" \
   --canonical_v2_parquet "$CANONICAL_V2_PARQUET" \
   --seq-structure-manifest "$SIGNAL_MANIFEST" \
@@ -188,7 +188,7 @@ mkdir -p "$OUTPUT_DIR"
   --test_start "$TEST_START" --test_end "$TEST_END"
 
 "${CAP[@]}" "$PY" -m gx1.scripts.materialize_entry_full_input_liveness_v1 \
-  --vedtak "$VEDTAK" \
+  --run-id "$RUN_ID" \
   --dataset-dir "$OUTPUT_DIR" \
   --stem "$OUTPUT_STEM" \
   --out-json "$FULL_INPUT_LIVENESS_JSON" \
@@ -221,4 +221,4 @@ PY
   --data-splits train,val,test \
   --quiet
 
-printf '[PASS] dataset materialized and pretrain-audited; full-input-liveness=%s; no training was run. vedtak=%s output=%s\n' "$FULL_INPUT_LIVENESS_JSON" "$VEDTAK" "$OUTPUT_DIR"
+printf '[PASS] dataset materialized and pretrain-audited; full-input-liveness=%s; no training was run. run_id=%s output=%s\n' "$FULL_INPUT_LIVENESS_JSON" "$RUN_ID" "$OUTPUT_DIR"

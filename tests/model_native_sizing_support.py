@@ -707,7 +707,7 @@ def write_passing_runtime_sizing_parity(root: Path) -> dict[str, Any]:
             evidence["joint_exit_proof_artifact"]["json_path"]
         ),
         authority_root=evidence["authority_root"],
-        accepted_via_vedtak="UNIT_RUNTIME_SIZING_ADOPTION",
+        entry_run_id="UNIT_RUNTIME_SIZING_ADOPTION",
     )
     adoption_binding = _binding(adoption_path)
     adoption_created = pd.Timestamp(adoption["created_utc"])

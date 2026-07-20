@@ -3,8 +3,8 @@
 
 This preflight binds the exact inputs consumed by
 ``scripts/rebuild_entry_model_native_seq513_dataset.sh``.  It does not infer
-paths, select mutable mirrors, inspect an older built dataset, or authorize a
-rebuild without a separate explicit vedtak.
+paths, select mutable mirrors, inspect an older built dataset, or mix artifacts
+from a different immutable run lineage.
 """
 from __future__ import annotations
 
@@ -58,13 +58,13 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
 )
-from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
 REPO = Path(__file__).resolve().parents[2]
 REBUILD_WRAPPER = REPO / "scripts/rebuild_entry_model_native_seq513_dataset.sh"
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT"
-READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW"
+READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 BLOCKED_DECISION = "BLOCKED_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT"
 
 EXPECTED_MTF_TFS = ("M5", "M15", "H1", "H4", "D1")
@@ -673,7 +673,7 @@ def _freshness_contract(
 
 def _command_contract(
     *,
-    explicit_vedtak_id: str,
+    entry_run_id: str,
     source_parquet: Path,
     canonical_v2_parquet: Path,
     signal_manifest: Path,
@@ -689,8 +689,8 @@ def _command_contract(
 ) -> dict[str, Any]:
     argv_template = [
         "scripts/rebuild_entry_model_native_seq513_dataset.sh",
-        "--vedtak",
-        explicit_vedtak_id,
+        "--run-id",
+        entry_run_id,
         "--source-parquet",
         str(source_parquet),
         "--canonical-v2-parquet",
@@ -727,9 +727,9 @@ def _command_contract(
     return {
         "wrapper": _artifact_meta(REBUILD_WRAPPER),
         "argv_template": argv_template,
-        "requires_explicit_vedtak": True,
-        "explicit_vedtak_id": explicit_vedtak_id,
-        "vedtak_bound_without_placeholder": True,
+        "run_lineage_required": True,
+        "entry_run_id": entry_run_id,
+        "run_id_validated": True,
         "starts_dataset_rebuild": True,
         "starts_training": False,
         "starts_replay": False,
@@ -774,9 +774,9 @@ def _command_contract(
             "sidecar_source_sha256_must_match": True,
             "sidecar_npz_sha256_required": True,
             "builder_must_verify_npz_and_sidecar": True,
-            "requires_explicit_vedtak": True,
-            "vedtak_bound_in_npz_and_sidecar": True,
-            "dataset_builder_requires_same_explicit_vedtak": True,
+            "run_lineage_required": True,
+            "run_id_bound_in_npz_and_sidecar": True,
+            "dataset_builder_requires_same_run_id": True,
         },
         "fixed_builder_contract": {
             "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
@@ -790,8 +790,8 @@ def _command_contract(
             "aux_head_target_contract": model_native_aux_target_contract_metadata(),
             "inline_selected_features": True,
             "rank_reference_required": True,
-            "explicit_vedtak_required": True,
-            "rank_reference_vedtak_match_required": True,
+            "run_lineage_required": True,
+            "rank_reference_run_id_match_required": True,
             "closed_bar_multi_tf_required": True,
             "state_schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
             "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
@@ -802,7 +802,7 @@ def _command_contract(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    explicit_vedtak_id = require_retrain_vedtak(getattr(args, "vedtak", None))
+    entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
     source_parquet = _required_path_arg(args, "source_parquet", "--source-parquet")
     canonical_v2_parquet = _required_path_arg(
         args, "canonical_v2_parquet", "--canonical-v2-parquet"
@@ -974,7 +974,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             signal_lineage = validate_signal_manifest_training_lineage(
                 manifest_path=signal_manifest_path,
                 feature_ranking_path=feature_ranking_path,
-                expected_vedtak_id=explicit_vedtak_id,
+                expected_run_id=entry_run_id,
                 expected_source_sha256=source_sha,
                 expected_train_start_utc=split_schedule["train"]["start"],
                 expected_train_end_utc=split_schedule["train"]["end"],
@@ -987,7 +987,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     _check(
         checks,
-        "signal manifest binds the explicit ranking, vedtak, source hash, and exact TRAIN window",
+        "signal manifest binds the explicit ranking, run_id, source hash, and exact TRAIN window",
         not signal_lineage_failures,
         {"lineage": signal_lineage, "failures": signal_lineage_failures},
     )
@@ -1062,7 +1062,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     command_contract: dict[str, Any] = {}
     if split_schedule:
         command_contract = _command_contract(
-            explicit_vedtak_id=explicit_vedtak_id,
+            entry_run_id=entry_run_id,
             source_parquet=source_parquet,
             canonical_v2_parquet=canonical_v2_parquet,
             signal_manifest=signal_manifest_path,
@@ -1080,14 +1080,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures = [row for row in checks if not row["ok"]]
     created_utc = datetime.now(timezone.utc)
     report = {
-        "schema_version": "entry_model_native_seq513_rebuild_preflight_v1",
+        "schema_version": "entry_model_native_seq513_rebuild_preflight_v2",
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
         "training_allowed": False,
-        "dataset_rebuild_allowed_without_vedtak": False,
-        "dataset_rebuild_allowed_after_explicit_vedtak_review": not failures,
+        "dataset_rebuild_allowed": not failures,
         "side_effects_started": {
             "dataset_rebuild": False,
             "training": False,
@@ -1138,7 +1137,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "checks": checks,
         "failures": failures,
         "next_required_gate": (
-            "review and execute only the exact vedtak-bound capped rebuild command, then prove "
+            "review and execute only the exact run_id-bound capped rebuild command, then prove "
             "feature/target/specialist/liveness "
             "contracts before any training review"
         ),
@@ -1155,7 +1154,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Report-only exact model-native seq513 rebuild preflight."
     )
     parser.add_argument("--source-parquet", required=True)
-    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--run-id", required=True)
     parser.add_argument("--canonical-v2-parquet", required=True)
     parser.add_argument("--signal-manifest", required=True)
     parser.add_argument("--feature-ranking-json", required=True)

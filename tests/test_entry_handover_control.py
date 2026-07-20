@@ -221,7 +221,7 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
     )[0]
 
     for flag in (
-        "--vedtak",
+        "--run-id",
         "--source-parquet",
         "--canonical-v2-parquet",
         "--signal-manifest",
@@ -255,7 +255,7 @@ def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> 
 
 def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() -> None:
     required = {
-        "--vedtak": "XAU_SEQ513_REBUILD_TEST_V1",
+        "--run-id": "XAU_SEQ513_REBUILD_TEST_V1",
         "--source-parquet": "/tmp/source.parquet",
         "--canonical-v2-parquet": "/tmp/canonical.parquet",
         "--signal-manifest": "/tmp/signal.json",
@@ -275,7 +275,7 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         "--out-dir": "/tmp/reports",
     }
 
-    for missing in ("--vedtak", "--feature-ranking-json", "--history-start"):
+    for missing in ("--run-id", "--feature-ranking-json", "--history-start"):
         argv = ["bash", str(CONTROL), "model-native-rebuild-preflight"]
         for flag, value in required.items():
             if flag != missing:

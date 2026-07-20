@@ -390,3 +390,19 @@ journal schemas, detached feature modules and manual sizing implementations
 are physically removed. Launch remains `BLOCK` across later invalid rebuild
 attempts, and no practical-precision claim is allowed before new immutable
 OOS, live-like, cost and train==serve evidence passes.
+
+## 2026-07-20 — Entry run identity is lineage, not manual approval
+
+User selected `XAU_SEQ513_REBUILD_20260720_V2` as the next immutable Entry run
+lineage and removed the separate manual rebuild/training approval requirement.
+The active Entry CLI is `--run-id`; `entry_run_id` is hash-bound through rank,
+manifest, state, split, train, calibration, sizing and adaptation artifacts.
+It grants no authority. Exact evidence contracts alone decide whether a stage
+may execute or must fail closed. Live/paper launch, promotion and destructive
+GX1_DATA cleanup retain their separate safety boundaries.
+
+The deleted historical Entry-IQL row/model benchmark is not a satisfiable
+pre-rebuild gate. A fresh seq513 rebuild and candidate are required to produce
+learned OOT rows; selection/abstention admission then uses a fresh immutable
+proxy comparison plus absolute OOT support/confidence, cost and live-like
+gates. Historical metadata can never substitute for those bytes.

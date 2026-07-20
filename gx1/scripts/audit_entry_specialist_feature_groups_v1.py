@@ -828,7 +828,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "report_only": True,
         "training_allowed": False,
-        "training_allowed_with_explicit_vedtak": False,
         "training_allowed_reason": "specialist feature-group audit is report-only; training requires separate readiness gates",
         "dataset_dir": str(dataset_dir),
         "split_artifacts_schema_version": (

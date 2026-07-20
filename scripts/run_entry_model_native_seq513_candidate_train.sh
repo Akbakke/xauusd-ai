@@ -16,7 +16,7 @@ usage() {
 Usage: run_entry_model_native_seq513_candidate_train.sh [exact arguments] (--dry-run|--execute)
 
 Required identity and immutable evidence:
-  --vedtak ID
+  --run-id ID
   --dataset-dir PATH
   --train-manifest-json PATH  --val-manifest-json PATH  --test-manifest-json PATH
   --train-parquet PATH        --val-parquet PATH        --test-parquet PATH
@@ -54,7 +54,7 @@ take_value() {
   SEEN[$flag]=1
 }
 
-VEDTAK= DATASET_DIR= TRAIN_MANIFEST_JSON= VAL_MANIFEST_JSON= TEST_MANIFEST_JSON=
+RUN_ID= DATASET_DIR= TRAIN_MANIFEST_JSON= VAL_MANIFEST_JSON= TEST_MANIFEST_JSON=
 TRAIN_PARQUET= VAL_PARQUET= TEST_PARQUET= M5_PREBUILT_PATH=
 FULL_INPUT_LIVENESS_AUDIT_JSON= FEATURE_AUDIT_JSON= TARGET_AUDIT_JSON=
 SPECIALIST_AUDIT_JSON= PRETRAIN_AUDIT_JSON= RECIPE_AUDIT_JSON=
@@ -72,7 +72,7 @@ while [[ $# -gt 0 ]]; do
       RUN_MODE="${1#--}"
       shift
       ;;
-    --vedtak|--dataset-dir|--train-manifest-json|--val-manifest-json|--test-manifest-json|\
+    --run-id|--dataset-dir|--train-manifest-json|--val-manifest-json|--test-manifest-json|\
     --train-parquet|--val-parquet|--test-parquet|--m5-prebuilt-path|\
     --full-input-liveness-audit-json|--feature-audit-json|--target-audit-json|\
     --specialist-audit-json|--pretrain-audit-json|--recipe-audit-json|\
@@ -83,7 +83,7 @@ while [[ $# -gt 0 ]]; do
     --subsample-rows|--memory-cap|--swap-cap)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       case "$1" in
-        --vedtak) variable=VEDTAK ;;
+        --run-id) variable=RUN_ID ;;
         --dataset-dir) variable=DATASET_DIR ;;
         --train-manifest-json) variable=TRAIN_MANIFEST_JSON ;;
         --val-manifest-json) variable=VAL_MANIFEST_JSON ;;
@@ -128,7 +128,7 @@ done
 [[ -x "$PY" ]] || die "canonical Python is not executable: $PY"
 [[ -x "$CAPPED_RUNNER" ]] || die "capped runner is not executable: $CAPPED_RUNNER"
 [[ -n "$RUN_MODE" ]] || die "choose exactly one of --dry-run or --execute"
-for variable in VEDTAK DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MANIFEST_JSON \
+for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MANIFEST_JSON \
   TRAIN_PARQUET VAL_PARQUET TEST_PARQUET M5_PREBUILT_PATH FULL_INPUT_LIVENESS_AUDIT_JSON \
   FEATURE_AUDIT_JSON TARGET_AUDIT_JSON SPECIALIST_AUDIT_JSON PRETRAIN_AUDIT_JSON \
   RECIPE_AUDIT_JSON TRAINABILITY_READINESS_JSON CANDIDATE_READINESS_JSON \
@@ -137,10 +137,10 @@ for variable in VEDTAK DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MA
   MULTI_TF_SCALE SPECIALIST_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP; do
   [[ -n "${!variable}" ]] || die "missing required argument for $variable"
 done
-[[ "$VEDTAK" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]] || die "--vedtak has invalid format"
+[[ "$RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]] || die "--run-id has invalid format"
 
 VALIDATOR_ARGS=(
-  --profile "$PROFILE" --repo "$REPO" --wrapper-path "$SCRIPT_PATH" --vedtak "$VEDTAK"
+  --profile "$PROFILE" --repo "$REPO" --wrapper-path "$SCRIPT_PATH" --run-id "$RUN_ID"
   --dataset-dir "$DATASET_DIR" --out-bundle-dir "$OUT_BUNDLE_DIR"
   --train-manifest-json "$TRAIN_MANIFEST_JSON" --val-manifest-json "$VAL_MANIFEST_JSON"
   --test-manifest-json "$TEST_MANIFEST_JSON" --train-parquet "$TRAIN_PARQUET"
@@ -177,7 +177,7 @@ ENV_COMMAND+=("${RECIPE_ENV[@]}")
 TRAIN_CMD=(
   "${ENV_COMMAND[@]}"
   "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
-  --train --profile "$PROFILE" --vedtak "$VEDTAK" --seed "$SEED" --device "$DEVICE"
+  --train --profile "$PROFILE" --run-id "$RUN_ID" --seed "$SEED" --device "$DEVICE"
   --train-manifest-json "$TRAIN_MANIFEST_JSON"
   --val-manifest-json "$VAL_MANIFEST_JSON"
   --test-manifest-json "$TEST_MANIFEST_JSON"

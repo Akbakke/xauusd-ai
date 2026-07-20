@@ -65,11 +65,11 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 SPLITS = ("train", "val", "test")
 REPORT_SCHEMA_VERSION = "entry_model_native_adoption_candidate_v1"
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_ADOPTION_CANDIDATE"
-SMOKE_REPORT_SCHEMA = "entry_model_native_seq513_smoke_manifest_v1"
+SMOKE_REPORT_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
 SMOKE_REPORT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
 SMOKE_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
-SMOKE_DATASET_SCHEMA = "entry_model_native_seq513_smoke_dataset_v1"
-SMOKE_SPLIT_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v1"
+SMOKE_DATASET_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
+SMOKE_SPLIT_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v2"
 AUDIT_EVENT_PREFIXES = {
     "feature_audit": "ENTRY_FEATURE_FOUNDATION_AUDIT",
     "target_audit": "ENTRY_TARGET_FOUNDATION_AUDIT",
@@ -831,7 +831,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "candidate_ready_for_activation": False,
         "training_allowed": False,
         "replay_allowed": False,
-        "activation_allowed_without_vedtak": False,
         "shadow_live_allowed": False,
         "direction_selection_authority": False,
         "dataset_dir": str(dataset_dir),
@@ -841,7 +840,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "gates": gates,
         "failures": failures,
         "next_required_gate": (
-            "explicit model-native adoption review; this report grants no activation authority"
+            "immutable lifecycle admission with all activation evidence bound; this report grants no activation authority"
             if ready
             else "repair exact seq513/head/specialist evidence and publish new immutable events"
         ),

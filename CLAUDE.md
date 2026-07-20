@@ -26,8 +26,10 @@ documentation and code together.
    timeframe construction, hashes and final-logit semantics must match.
 7. Newest valid terminal evidence wins. A newer red event blocks every older
    green event. Missing or malformed evidence is red.
-8. Every train/rebuild needs an explicit `--vedtak`, immutable inputs and a
-   clean, resource-safe execution plan. Never auto-promote an artifact.
+8. Every Entry train/rebuild needs one immutable `--run-id`, immutable inputs
+   and a clean, resource-safe execution plan. The ID is lineage, not manual
+   approval; evidence contracts alone admit execution. Never auto-promote an
+   artifact.
 9. Do not delete anything under `/home/andre2/GX1_DATA` or active run paths
    without an explicit verified cleanup decision. Preserve active collectors,
    canonical builders, dashboards and their files.

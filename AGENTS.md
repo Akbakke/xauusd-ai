@@ -172,9 +172,11 @@ evidence; otherwise fail closed.
 ## Run authority and resource safety
 
 Source edits, read-only audits and tests are authorized by the active goal.
-A dataset rebuild, training run, broad sweep, replay that writes large
-artifacts, paper/demo launch, live launch or promotion needs its explicit
-contract and `--vedtak`. Documentation never supplies that authority.
+Entry rebuild, training and evaluation use one validated `--run-id` only to
+bind immutable lineage; no separate manual approval token exists. Their exact
+evidence contracts decide whether execution may proceed. Paper/demo launch,
+live launch, promotion and destructive GX1_DATA cleanup retain their separate
+explicit safety boundaries. Documentation never overrides those contracts.
 
 Before a heavy authorized run:
 

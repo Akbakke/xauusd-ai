@@ -558,7 +558,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "shadow_or_live": False,
         },
         "next_required_evidence": (
-            "separate explicit vedtak and downstream preflight"
+            "one immutable run lineage and downstream evidence preflight"
             if empirical_gate_passed
             else "recover exact immutable aligned historical benchmark and learned-probe row evidence; otherwise stop"
         ),

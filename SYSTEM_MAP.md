@@ -211,10 +211,10 @@ model-native only. It must emit exact split manifests and all direction/path/
 utility/sizing targets without invoking Entry XGB inference.
 
 The rebuild wrapper, TRAIN-only rank-reference producer and dataset builder
-all require the same explicit `--vedtak`. The rank NPZ embeds it, the rank
-sidecar repeats it, and the state contract/build proof/split manifests bind it.
-Missing or unequal IDs invalidate the chain; a wrapper-only console value is
-not authorization provenance.
+all require the same `--run-id`. The rank NPZ embeds it, the rank sidecar
+repeats it, and the state contract/build proof/split manifests bind it.
+Missing or unequal IDs invalidate the chain. The ID is immutable provenance,
+not an approval or direction authority.
 
 All retained OANDA backfill writers also validate an explicit `--vedtak`
 before creating or modifying files. A missing or invalid decision fails before
@@ -222,7 +222,7 @@ side effects; backfill output never supplies Entry direction authority.
 
 The feature-ranking JSON and its derived seq513 signal manifest are explicit
 immutable inputs, never files selected by glob, mtime or lexical "latest".
-Preflight, wrapper and builder revalidate the nested ranking lineage, vedtak,
+Preflight, wrapper and builder revalidate the nested ranking lineage, run ID,
 source hash and exact requested TRAIN start/end. A ranking produced for a
 different split cannot authorize a build even when its schema and 305+174
 shape are otherwise valid.
@@ -250,8 +250,8 @@ The only model-native train wrappers are:
 - `scripts/run_entry_model_native_seq513_smoke_train.sh`;
 - `scripts/run_entry_model_native_seq513_candidate_train.sh`.
 
-They do not grant authority by themselves. A valid explicit `--vedtak` and all
-bound prerequisite evidence are still required.
+They do not grant authority by themselves. One valid `--run-id` and all bound
+prerequisite evidence are required; evidence gates, not the ID, admit execution.
 
 ## Bundle, calibration and evidence ownership
 
@@ -417,12 +417,12 @@ Current facts:
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
 - no seq513 rebuild chain or training process is running;
-- vedtak `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
+- run lineage `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
-- invalidated V1 is historical RED evidence and cannot be reused; any future
-  rebuild requires a new explicit vedtak after the baseline decision;
+- invalidated V1 is historical RED evidence and cannot be reused; the selected
+  fresh lineage is `XAU_SEQ513_REBUILD_20260720_V2`;
 - no rebuild process is running; partial event artifacts have no authority,
   and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
   `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes;
@@ -447,7 +447,7 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-19 for vedtak `XAU_SEQ513_REBUILD_20260718_V1`. Forsøkene ga
+Oppdatert 2026-07-20 for run lineage `XAU_SEQ513_REBUILD_20260720_V2`. V1-forsøkene ga
 ingen godkjent datasettartefakt; kartet beskriver den herdede, påkrevde
 artefakt-DAG-en og kolonne-eierskapet. Les dette FØR du rg-jakter i builderen.
 
@@ -472,17 +472,17 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
 FULL_PLUS + cache ─ materialize_entry_model_native_train_feature_ranker_v1
-        --vedtak --source-parquet --mtf-cache-dir --history-start --train-start
+        --run-id --source-parquet --mtf-cache-dir --history-start --train-start
         --train-end --out-dir  (checkpoint: EVENT/_ranker_checkpoint.npz)
         → ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<stamp>.json
-  └─ materialize_entry_model_native_seq513_signal_manifest_v1 --feature-ranking-json --out --vedtak
+  └─ materialize_entry_model_native_seq513_signal_manifest_v1 --feature-ranking-json --out --run-id
       └─ entry_next_edge_control.sh model-native-rebuild-preflight
             <eksplisitte ranking-/manifeststier og øvrige flagg>
-          └─ rebuild_entry_model_native_seq513_dataset.sh --vedtak
+          └─ rebuild_entry_model_native_seq513_dataset.sh --run-id
                 <samme eksplisitte ranking-/manifestidentitet og øvrige flagg>
                 (capped 30G)
                 → dataset/*__HOLD_03B_{train,val,test}.parquet + DATASET_BUILD_PROOF.json
-Kjede-driver: scripts/run_seq513_rebuild_chain_v1.sh --vedtak --event-root
+Kjede-driver: scripts/run_seq513_rebuild_chain_v1.sh --run-id --event-root
 --feature-ranking-json --signal-manifest --preflight-out-dir. Ranking må finnes;
 manifeststien og preflight-mappen må være nye. Ingen resume, glob/mtime eller
 leksikalsk latest. Telegram-ping er kun operasjonell status; validerte

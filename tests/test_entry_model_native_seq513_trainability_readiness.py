@@ -83,7 +83,7 @@ def _audited_wrapper_text() -> str:
             "--pretrain-audit-json",
             "--full-input-liveness-audit-json",
             "--trainability-readiness-json",
-            "--vedtak",
+            "--run-id",
             "--execute",
         )
     )
@@ -180,7 +180,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
     )
     if wired:
         control_text = (
-            "Usage: model-native-smoke-train --vedtak <id>\n"
+            "Usage: model-native-smoke-train --run-id <id>\n"
             "case\nmodel-native-smoke-train) exec wrapper ;;\n"
         )
         smoke_wrapper_text = _audited_wrapper_text()

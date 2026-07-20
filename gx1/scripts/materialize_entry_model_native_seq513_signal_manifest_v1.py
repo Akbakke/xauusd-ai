@@ -39,18 +39,18 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
     group_features_by_specialist,
 )
-from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v1"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v2"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v1"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v2"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v1"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v2"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v1"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v2"
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "score_descending",
     "tie_break": "feature_name_ascending",
@@ -71,7 +71,7 @@ _RANKING_TOP_LEVEL_KEYS = frozenset(
     {
         "schema_version",
         "created_utc",
-        "explicit_vedtak_id",
+        "entry_run_id",
         "producer",
         "producer_version",
         "fit_scope",
@@ -246,7 +246,7 @@ def _utc_now() -> datetime:
 def load_and_validate_train_feature_ranking(
     path: Path,
     *,
-    explicit_vedtak_id: str,
+    entry_run_id: str,
 ) -> tuple[dict[str, Any], list[str], str]:
     if path.is_symlink() or not path.is_file() or "_latest" in path.name:
         raise RuntimeError(f"FEATURE_RANKING_NOT_IMMUTABLE: {path}")
@@ -269,7 +269,7 @@ def load_and_validate_train_feature_ranking(
         "producer": TRAIN_FEATURE_RANKING_PRODUCER,
         "producer_version": TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
         "fit_scope": "train_only",
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
     }
     for field, expected in exact.items():
         if ranking.get(field) != expected:
@@ -353,14 +353,14 @@ def validate_signal_manifest_training_lineage(
     *,
     manifest_path: Path,
     feature_ranking_path: Path,
-    expected_vedtak_id: str,
+    expected_run_id: str,
     expected_source_sha256: str,
     expected_train_start_utc: object,
     expected_train_end_utc: object,
 ) -> dict[str, Any]:
     """Revalidate the immutable signal/ranking lineage at a consumer boundary."""
 
-    vedtak_id = require_retrain_vedtak(expected_vedtak_id)
+    run_id = require_entry_run_id(expected_run_id)
     raw_manifest_path = _absolute_without_resolving(Path(manifest_path))
     raw_ranking_path = _absolute_without_resolving(Path(feature_ranking_path))
     _require_no_symlink_components(raw_manifest_path, field="SIGNAL_MANIFEST")
@@ -381,7 +381,7 @@ def validate_signal_manifest_training_lineage(
         "schema_version": SIGNAL_MANIFEST_SCHEMA_VERSION,
         "producer": SIGNAL_MANIFEST_PRODUCER,
         "producer_version": SIGNAL_MANIFEST_PRODUCER_VERSION,
-        "explicit_vedtak_id": vedtak_id,
+        "entry_run_id": run_id,
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_DATASET_REBUILD_MANIFEST",
         "manifest_only": True,
         "training_allowed": False,
@@ -403,7 +403,7 @@ def validate_signal_manifest_training_lineage(
 
     ranking, ranked_names, ranking_sha256 = load_and_validate_train_feature_ranking(
         ranking_path,
-        explicit_vedtak_id=vedtak_id,
+        entry_run_id=run_id,
     )
     expected_source_sha256 = _require_sha256(
         expected_source_sha256,
@@ -477,7 +477,7 @@ def validate_signal_manifest_training_lineage(
         "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
         "feature_ranking_path": str(ranking_path),
         "feature_ranking_sha256": ranking_sha256,
-        "explicit_vedtak_id": vedtak_id,
+        "entry_run_id": run_id,
         "source_sha256": expected_source_sha256,
         "train_start_utc": expected_train_start.isoformat(),
         "train_end_utc": expected_train_end.isoformat(),
@@ -511,7 +511,7 @@ def _write_fresh_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    explicit_vedtak_id = require_retrain_vedtak(getattr(args, "vedtak", None))
+    entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
     raw_ranking_path = _absolute_without_resolving(Path(args.feature_ranking_json))
     raw_out = _absolute_without_resolving(Path(args.out))
     _require_no_symlink_components(raw_ranking_path, field="FEATURE_RANKING")
@@ -524,7 +524,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     ranking, ranked_names, ranking_file_sha256 = load_and_validate_train_feature_ranking(
         ranking_path,
-        explicit_vedtak_id=explicit_vedtak_id,
+        entry_run_id=entry_run_id,
     )
     ranking_created = _parse_utc(ranking["created_utc"], field="created_utc")
     now = _utc_now()
@@ -581,7 +581,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "json_path": str(out),
         "producer": SIGNAL_MANIFEST_PRODUCER,
         "producer_version": SIGNAL_MANIFEST_PRODUCER_VERSION,
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
         "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_DATASET_REBUILD_MANIFEST",
         "manifest_only": True,
@@ -645,7 +645,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--feature-ranking-json", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--run-id", required=True)
     return parser
 
 

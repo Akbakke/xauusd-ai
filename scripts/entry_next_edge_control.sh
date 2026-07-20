@@ -29,10 +29,10 @@ Model-native seq513 evidence:
   model-native-replay-evidence
   model-native-replay-readiness
 
-Explicit, vedtak-gated execution:
-  model-native-rebuild --vedtak <id> <all other explicit rebuild arguments>
-  model-native-smoke-train --vedtak <id> <all other explicit arguments> (--dry-run|--execute)
-  model-native-candidate-train --vedtak <id> <all other explicit arguments> (--dry-run|--execute)
+Immutable run-lineage execution (evidence gates remain authoritative):
+  model-native-rebuild --run-id <id> <all other explicit rebuild arguments>
+  model-native-smoke-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
+  model-native-candidate-train --run-id <id> <all other explicit arguments> (--dry-run|--execute)
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
 soft failure flags, feature-mask ablations, alternate contract modes, and
@@ -146,7 +146,7 @@ case "$cmd" in
   model-native-rebuild-preflight)
     reject_non_authoritative_args "$@"
     for flag in \
-      --vedtak \
+      --run-id \
       --source-parquet \
       --canonical-v2-parquet \
       --signal-manifest \
@@ -207,7 +207,7 @@ case "$cmd" in
       --test-manifest-json \
       --test-manifest-sha256 \
       --out-dir \
-      --vedtak \
+      --run-id \
       --memory-cap \
       --swap-cap \
       --sample-rows \

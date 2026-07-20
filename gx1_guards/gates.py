@@ -1,9 +1,9 @@
 """
 GX1 gate guard — explicit green-gate enforcement.
 
-Covers two guardrails that cost real money / GPU time if they slip:
-  - NEVER auto-rebuild/retrain: every writing build/train entrypoint requires
-    an explicit, auditable vedtak.
+Covers retained non-Entry write/launch guardrails:
+  - legacy Exit/data-mutation entrypoints still using an explicit decision ID;
+    model-native Entry uses evidence-gated ``entry_run_id`` lineage instead.
   - No R6 / freeze / promo / live / package build without a green gate.
 
 A "gate" is just a small JSON file under gates/ that you create deliberately.
@@ -63,8 +63,10 @@ def require_gate(stage: str) -> dict:
 
 def require_retrain_vedtak(vedtak_id: str | None) -> str:
     """
-    Call at the top of every writing rebuild/retrain entrypoint.
-    Pass the --vedtak argument through here; missing/empty aborts the run.
+    Validate the retained legacy Exit/data-write decision identifier.
+
+    Model-native Entry must use ``require_entry_run_id`` instead; this helper
+    is not an Entry authorization contract.
     """
     value = str(vedtak_id or "").strip()
     if not value:

@@ -44,7 +44,7 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 STAMP = "20260716T120000123456Z"
 CREATED = "2026-07-16T12:00:00.123456+00:00"
-VEDTAK = "XAU_SEQ513_REBUILD_TEST_V1"
+RUN_ID = "XAU_SEQ513_REBUILD_TEST_V1"
 SPLITS = {
     "history_start": "2020-11-08T00:00:00+00:00",
     "train_start": "2020-11-09T00:00:00+00:00",
@@ -87,7 +87,7 @@ def _build_fixture(
     break_signal_contract: bool = False,
     break_specialist_coverage: bool = False,
     break_source_manifest_hash: bool = False,
-    break_ranking_vedtak: bool = False,
+    break_ranking_run_id: bool = False,
     break_ranking_source_hash: bool = False,
     break_ranking_train_window: bool = False,
     break_mtf: bool = False,
@@ -137,7 +137,7 @@ def _build_fixture(
     ranking = {
         "schema_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": ranking_created.isoformat(),
-        "explicit_vedtak_id": VEDTAK,
+        "entry_run_id": RUN_ID,
         "producer": signal_manifest_producer.TRAIN_FEATURE_RANKING_PRODUCER,
         "producer_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
         "fit_scope": "train_only",
@@ -166,7 +166,7 @@ def _build_fixture(
         argparse.Namespace(
             feature_ranking_json=str(ranking_path),
             out=str(immutable_manifest_path),
-            vedtak=VEDTAK,
+            run_id=RUN_ID,
         )
     )
     manifest["source_manifests"] = {
@@ -195,13 +195,13 @@ def _build_fixture(
         immutable_manifest_path.unlink()
     _write_json(manifest_path, manifest)
 
-    if break_ranking_vedtak:
-        ranking["explicit_vedtak_id"] = "XAU_DIFFERENT_REBUILD_TEST_V1"
+    if break_ranking_run_id:
+        ranking["entry_run_id"] = "XAU_DIFFERENT_REBUILD_TEST_V1"
     if break_ranking_source_hash:
         ranking["source_sha256"] = "f" * 64
     if break_ranking_train_window:
         ranking["train_start_utc"] = "2020-11-10T00:00:00+00:00"
-    if break_ranking_vedtak or break_ranking_source_hash or break_ranking_train_window:
+    if break_ranking_run_id or break_ranking_source_hash or break_ranking_train_window:
         _write_json(ranking_path, ranking)
 
     test_end_ns = int(
@@ -265,7 +265,7 @@ def _build_fixture(
 
     return argparse.Namespace(
         source_parquet=str(source),
-        vedtak=VEDTAK,
+        run_id=RUN_ID,
         canonical_v2_parquet=str(canonical),
         signal_manifest=str(manifest_path),
         feature_ranking_json=str(ranking_path),
@@ -279,7 +279,7 @@ def _build_fixture(
     )
 
 
-def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
+def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     tmp_path: Path,
 ) -> None:
     args = _build_fixture(tmp_path)
@@ -287,7 +287,7 @@ def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
     report = preflight.run(args)
 
     assert report["decision"] == preflight.READY_DECISION
-    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v1"
+    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v2"
     assert not report["failures"]
     assert report["counts"] == {
         "base_signal_features": MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -328,8 +328,8 @@ def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
     argv = command["argv_template"]
     assert argv[:3] == [
         "scripts/rebuild_entry_model_native_seq513_dataset.sh",
-        "--vedtak",
-        VEDTAK,
+        "--run-id",
+        RUN_ID,
     ]
     for flag in (
         "--source-parquet",
@@ -350,10 +350,10 @@ def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
         "--test-end",
     ):
         assert argv.count(flag) == 1
-    assert command["requires_explicit_vedtak"] is True
-    assert command["explicit_vedtak_id"] == VEDTAK
-    assert command["vedtak_bound_without_placeholder"] is True
-    assert "<EXPLICIT_VEDTAK_ID>" not in argv
+    assert command["run_lineage_required"] is True
+    assert command["entry_run_id"] == RUN_ID
+    assert command["run_id_validated"] is True
+    assert "<EXPLICIT_RUN_ID_ID>" not in argv
     assert command["rank_reference_contract"] == {
         "producer": "gx1.scripts.materialize_model_native_train_rank_reference_v2",
         "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
@@ -372,14 +372,14 @@ def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
         "sidecar_source_sha256_must_match": True,
         "sidecar_npz_sha256_required": True,
         "builder_must_verify_npz_and_sidecar": True,
-        "requires_explicit_vedtak": True,
-        "vedtak_bound_in_npz_and_sidecar": True,
-        "dataset_builder_requires_same_explicit_vedtak": True,
+        "run_lineage_required": True,
+        "run_id_bound_in_npz_and_sidecar": True,
+        "dataset_builder_requires_same_run_id": True,
     }
     assert command["fixed_builder_contract"]["state_schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
     assert command["fixed_builder_contract"]["direction_target_mode"] == "path_utility_v2"
-    assert command["fixed_builder_contract"]["explicit_vedtak_required"] is True
-    assert command["fixed_builder_contract"]["rank_reference_vedtak_match_required"] is True
+    assert command["fixed_builder_contract"]["run_lineage_required"] is True
+    assert command["fixed_builder_contract"]["rank_reference_run_id_match_required"] is True
     aux_contract = command["fixed_builder_contract"]["aux_head_target_contract"]
     assert aux_contract["schema_version"] == "entry_model_native_aux_targets_v4"
     assert len(aux_contract["columns"]) == 46
@@ -389,12 +389,11 @@ def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
     assert command["fixed_builder_contract"]["feature_history_mode"] == MODEL_NATIVE_HISTORY_MODE
     assert command["fixed_builder_contract"]["split_reset_allowed"] is False
     assert report["inputs"]["source_time_contract"]["exact"] is True
-    assert report["explicit_vedtak_id"] == VEDTAK
+    assert report["entry_run_id"] == RUN_ID
     assert report["inputs"]["feature_ranking_json"]["sha256"] == _sha256(
         Path(args.feature_ranking_json)
     )
-    assert report["signal_training_lineage"]["explicit_vedtak_id"] == VEDTAK
-    assert report["dataset_rebuild_allowed_without_vedtak"] is False
+    assert report["signal_training_lineage"]["entry_run_id"] == RUN_ID
     assert report["training_allowed"] is False
     assert not any(report["side_effects_started"].values())
     assert Path(report["json_path"]).name.startswith(
@@ -450,15 +449,15 @@ def test_preflight_blocks_incomplete_contracts(
 
     assert report["decision"] == preflight.BLOCKED_DECISION
     assert failure_name in {row["name"] for row in report["failures"]}
-    assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False
+    assert report["dataset_rebuild_allowed"] is False
 
 
 @pytest.mark.parametrize(
     ("fixture_kwargs", "lineage_error"),
     [
         (
-            {"break_ranking_vedtak": True},
-            "FEATURE_RANKING_EXPLICIT_VEDTAK_ID_INVALID",
+            {"break_ranking_run_id": True},
+            "FEATURE_RANKING_ENTRY_RUN_ID_INVALID",
         ),
         (
             {"break_ranking_source_hash": True},
@@ -482,10 +481,10 @@ def test_preflight_rejects_ranking_lineage_mismatch(
         row
         for row in report["failures"]
         if row["name"]
-        == "signal manifest binds the explicit ranking, vedtak, source hash, and exact TRAIN window"
+        == "signal manifest binds the explicit ranking, run_id, source hash, and exact TRAIN window"
     )
     assert lineage_error in json.dumps(failure["details"], sort_keys=True)
-    assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False
+    assert report["dataset_rebuild_allowed"] is False
 
 
 def test_preflight_rejects_479_field_manifest_that_swaps_one_mandatory_member(
@@ -575,8 +574,8 @@ def test_preflight_blocks_overlapping_split_windows(tmp_path: Path) -> None:
 
 def _explicit_cli_args(tmp_path: Path) -> list[str]:
     args = [
-        "--vedtak",
-        VEDTAK,
+        "--run-id",
+        RUN_ID,
         "--source-parquet",
         str(tmp_path / "source.parquet"),
         "--canonical-v2-parquet",
@@ -625,7 +624,7 @@ def test_parser_requires_exact_rebuild_inputs_and_rejects_retired_arguments(
             parser.parse_args(_explicit_cli_args(tmp_path) + retired)
 
     parsed = parser.parse_args(_explicit_cli_args(tmp_path))
-    assert parsed.vedtak == VEDTAK
+    assert parsed.run_id == RUN_ID
     assert parsed.source_parquet == str(tmp_path / "source.parquet")
     assert parsed.feature_ranking_json == str(
         tmp_path / f"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_{STAMP}.json"
@@ -633,17 +632,17 @@ def test_parser_requires_exact_rebuild_inputs_and_rejects_retired_arguments(
     assert parsed.rank_reference_npz == str(tmp_path / "rank.npz")
 
 
-def test_run_requires_explicit_vedtak(tmp_path: Path) -> None:
+def test_run_lineage_required(tmp_path: Path) -> None:
     args = _build_fixture(tmp_path)
-    del args.vedtak
+    del args.run_id
 
-    with pytest.raises(Exception, match="no --vedtak provided"):
+    with pytest.raises(Exception, match="provide --run-id"):
         preflight.run(args)
 
 
 def test_run_rejects_old_namespace_without_explicit_source(tmp_path: Path) -> None:
     old = argparse.Namespace(
-        vedtak=VEDTAK,
+        run_id=RUN_ID,
         smart_report=str(tmp_path / "old.json"),
         inventory_report=str(tmp_path / "old_inventory.json"),
         source_dataset_dir=str(tmp_path / "old_dataset"),

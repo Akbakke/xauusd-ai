@@ -562,7 +562,7 @@ def _wrapper_recipe_audit_review(text: str, required_env_keys: tuple[str, ...]) 
         "--full-input-liveness-audit-json",
         "--trainability-readiness-json",
         "gx1.contracts.entry_model_native_train_launch_v1",
-        "--vedtak",
+        "--run-id",
         "--execute",
     )
     missing_wiring = [fragment for fragment in required_wiring if fragment not in text]
@@ -923,7 +923,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "registry_training_allowed": registry_training_allowed,
                 "candidate_training_allowed_by_this_report": False,
-                "requires_candidate_readiness_and_explicit_vedtak": True,
+                "requires_candidate_readiness_and_run_lineage": True,
             },
         ),
         _check("smart required specialist count is eight", len(required_specialists) == EXPECTED_SPECIALIST_COUNT, list(required_specialists)),
@@ -967,7 +967,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check(
             "model-native smoke train is wired in control surface",
             "model-native-smoke-train)" in control_text
-            and "model-native-smoke-train --vedtak <id>" in control_text,
+            and "model-native-smoke-train --run-id <id>" in control_text,
             _artifact_meta(control_script),
         ),
         _check("smart smoke future contract is implemented in control surface", future_train.get("implemented_in_control_surface") is True, future_train),
@@ -1104,7 +1104,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "next_required_gate": (
             "review explicit smart smoke-train implementation package"
             if ready
-            else "wire model-native seq513 trainer/wrapper/control/candidate/replay surfaces before any training vedtak"
+            else "wire model-native seq513 trainer/wrapper/control/candidate/replay surfaces before any training run_id"
         ),
     }
     report["evidence_binding_sha256"] = _sha256_json(report["inputs"])

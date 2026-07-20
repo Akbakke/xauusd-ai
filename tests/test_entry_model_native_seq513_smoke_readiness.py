@@ -86,10 +86,10 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         tmp_path
         / "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT_20260716T120001123456Z.json",
         {
-            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
             "report_only": True,
             "training_allowed": False,
-            "dataset_rebuild_allowed_without_vedtak": False,
+            "dataset_rebuild_allowed": True,
             "side_effects_started": {
                 "dataset_rebuild": False,
                 "training": False,
@@ -214,7 +214,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         },
     )
     smoke_manifest = {
-            "schema_version": "entry_model_native_seq513_smoke_dataset_v1",
+            "schema_version": "entry_model_native_seq513_smoke_dataset_v2",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "out_dir": str(smart_smoke_dataset_dir),
@@ -223,7 +223,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                     "rows": 16,
                     **split_artifacts[split],
                     "split_manifest_schema_version": (
-                        "entry_model_native_seq513_smoke_split_manifest_v1"
+                        "entry_model_native_seq513_smoke_split_manifest_v2"
                     ),
                 }
                 for split in ("train", "val", "test")
@@ -235,7 +235,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         smoke_manifest_path,
         {
-            "schema_version": "entry_model_native_seq513_smoke_manifest_v1",
+            "schema_version": "entry_model_native_seq513_smoke_manifest_v2",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
             "report_only": True,
             "manifest_embedded": True,
@@ -312,8 +312,7 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert report["decision"] == "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
     assert report["report_only"] is True
     assert report["training_allowed"] is False
-    assert report["smart_smoke_training_allowed_without_vedtak"] is False
-    assert report["smart_smoke_training_allowed_after_explicit_vedtak_and_gates"] is False
+    assert report["smart_smoke_training_allowed"] is False
     assert report["smart_trainability_readiness_required_before_training"] is True
     assert report["execution_allowed_now"] is False
     assert report["control_surface_mutated"] is False
@@ -398,7 +397,7 @@ def test_model_native_seq513_smoke_readiness_fails_closed_on_dirty_git_and_wrong
     blockers = "\n".join(report["blockers"])
     assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
     assert report["training_allowed"] is False
-    assert report["smart_smoke_training_allowed_after_explicit_vedtak_and_gates"] is False
+    assert report["smart_smoke_training_allowed"] is False
     assert "clean git required before smart smoke train" in blockers
     assert "smart specialist audit uses model-native seq513 contract mode" in blockers
     assert "smart specialist audit has exact smart signal width" in blockers

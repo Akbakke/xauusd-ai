@@ -70,7 +70,7 @@ def test_capital_adoption_without_joint_exit_proof_publishes_terminal_fail(
             proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
             joint_exit_proof_path=tmp_path / "missing_joint_exit_proof.json",
             authority_root=evidence["authority_root"],
-            accepted_via_vedtak="UNIT_MUST_NOT_ADOPT",
+            entry_run_id="UNIT_MUST_NOT_ADOPT",
         )
 
     adoption_path = max(

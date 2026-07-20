@@ -13,8 +13,9 @@ The July-19 seq513 rebuild attempts under
 `XAU_SEQ513_REBUILD_20260718_V1` were terminated and invalidated after a
 feature-ranking TRAIN-window mismatch; no rebuild process or accepted dataset
 exists now, no seq513 training process is running, and partial artifacts have
-no authority. V1 cannot be reused; any future rebuild requires a new explicit
-vedtak after the abstention-baseline decision. A report-only abstention metadata check is
+no authority. V1 cannot be reused. The next immutable run lineage is
+`XAU_SEQ513_REBUILD_20260720_V2`; this ID grants no permission and all stages
+remain controlled only by their evidence contracts. A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
 objective weights are not learned evidence. It read zero parquet; immutable
 historical selection-benchmark bytes and exact learned-probe OOT evidence are
@@ -93,7 +94,8 @@ scripts/entry_next_edge_control.sh --help
 Read `AGENTS.md`, `SYSTEM_MAP.md` and
 `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md` before changing the pipeline.
 Training or rebuild commands require their exact immutable prerequisites and
-an explicit `--vedtak`; no heavy run is authorized by documentation alone.
+one `--run-id` shared by every artifact. The ID is provenance, not approval;
+documentation never overrides the evidence gates.
 
 Code lives in this repository. Large datasets, bundles and run evidence live
 under `/home/andre2/GX1_DATA` and must not be deleted without an explicit,

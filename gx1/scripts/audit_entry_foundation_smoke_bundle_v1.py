@@ -427,7 +427,7 @@ def _dataset_manifest_contract(
             except RuntimeError as exc:
                 row_failures.append(str(exc))
         if payload:
-            if payload.get("schema_version") != "entry_model_native_seq513_smoke_split_manifest_v1":
+            if payload.get("schema_version") != "entry_model_native_seq513_smoke_split_manifest_v2":
                 row_failures.append("split manifest schema is not exact model-native smoke v1")
             if payload.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE:
                 row_failures.append("split manifest contract mode mismatch")

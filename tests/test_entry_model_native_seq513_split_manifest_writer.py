@@ -99,7 +99,7 @@ def _extra() -> dict:
             "split_reset_allowed": False,
             "post_fit_rows_in_rank_reference": False,
             "runtime_rule_free": True,
-            "explicit_vedtak_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
+            "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
         },
     }
 
@@ -215,7 +215,7 @@ def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict]:
         fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
         fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
         fit_row_count=np.asarray([3], dtype=np.int64),
-        explicit_vedtak_id=np.asarray(["MODEL_NATIVE_DATASET_BUILD_PYTEST"]),
+        entry_run_id=np.asarray(["MODEL_NATIVE_DATASET_BUILD_PYTEST"]),
         atr_bps_sorted=np.asarray([9.0, 10.0, 11.0], dtype=np.float64),
         spread_bps_sorted=np.asarray([0.8, 1.0, 1.2], dtype=np.float64),
     )
@@ -224,7 +224,7 @@ def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict]:
         "fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "row_level_state_present": False,
-        "explicit_vedtak_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
+        "entry_run_id": "MODEL_NATIVE_DATASET_BUILD_PYTEST",
         "source_parquet": str(source),
         "source_parquet_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "out_npz": str(rank_reference.resolve()),
@@ -252,7 +252,7 @@ def test_builder_requires_audited_rank_reference_and_source_hashes(
         args=argparse.Namespace(
             model_native_rank_reference_npz=str(rank_reference),
             source_parquet=payload["source_parquet"],
-            vedtak="MODEL_NATIVE_DATASET_BUILD_PYTEST",
+            run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
         ),
         feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
         train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
@@ -267,7 +267,7 @@ def test_builder_requires_audited_rank_reference_and_source_hashes(
     assert contract["rank_reference_fit_row_count"] == 3
     assert contract["normalization_fit_scope"] == "train_only"
     assert contract["split_reset_allowed"] is False
-    assert contract["explicit_vedtak_id"] == "MODEL_NATIVE_DATASET_BUILD_PYTEST"
+    assert contract["entry_run_id"] == "MODEL_NATIVE_DATASET_BUILD_PYTEST"
 
 
 def test_builder_rejects_missing_or_tampered_rank_reference_contract(
@@ -277,7 +277,7 @@ def test_builder_rejects_missing_or_tampered_rank_reference_contract(
         _model_native_state_contract(
             args=argparse.Namespace(
                 model_native_rank_reference_npz="",
-                vedtak="MODEL_NATIVE_DATASET_BUILD_PYTEST",
+                run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
             ),
             feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
             train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
@@ -295,7 +295,7 @@ def test_builder_rejects_missing_or_tampered_rank_reference_contract(
             args=argparse.Namespace(
                 model_native_rank_reference_npz=str(rank_reference),
                 source_parquet=payload["source_parquet"],
-                vedtak="MODEL_NATIVE_DATASET_BUILD_PYTEST",
+                run_id="MODEL_NATIVE_DATASET_BUILD_PYTEST",
             ),
             feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
             train_start=pd.Timestamp("2020-11-09T00:00:00Z"),

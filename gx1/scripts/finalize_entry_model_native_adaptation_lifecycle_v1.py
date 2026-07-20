@@ -122,7 +122,7 @@ def finalize_adaptation_lifecycle_transition(
     candidate_bundle_dir: Path | None = None,
     shadow_evidence_path: Path | None = None,
     admission_evidence: Mapping[str, Any] | None = None,
-    accepted_via_vedtak: str | None = None,
+    entry_run_id: str | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     """Publish and self-validate one newest lifecycle state transition."""
 
@@ -186,7 +186,7 @@ def finalize_adaptation_lifecycle_transition(
             ),
             "activation_authority": activates,
             "expires_utc": expires.isoformat() if expires is not None else None,
-            "accepted_via_vedtak": accepted_via_vedtak,
+            "entry_run_id": entry_run_id,
             "adaptation_training_mode": "offline_challenger_only",
             "online_weight_updates_allowed": False,
             "post_model_direction_rules_allowed": False,
@@ -226,7 +226,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--replay-readiness", type=Path, required=True)
     parser.add_argument("--predecessor", type=Path)
     parser.add_argument("--launch-state-json", type=Path)
-    parser.add_argument("--vedtak")
+    parser.add_argument("--run-id")
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser
 
@@ -272,7 +272,7 @@ def main() -> int:
         replay_readiness_path=args.replay_readiness,
         predecessor_path=args.predecessor,
         admission_evidence=_launch_admission(args.launch_state_json),
-        accepted_via_vedtak=args.vedtak,
+        entry_run_id=args.run_id,
         output_dir=args.output_dir,
     )
     print(

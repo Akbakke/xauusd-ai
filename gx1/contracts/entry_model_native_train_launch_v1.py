@@ -52,9 +52,10 @@ from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
 )
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v1"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v2"
 RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v1"
 PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v1"
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
@@ -334,7 +335,7 @@ def _validate_source_bindings(
 
 def _validate_split_manifest(manifest: Mapping[str, Any], *, path: Path, parquet: Path, profile: str) -> None:
     expected_schema = (
-        "entry_model_native_seq513_smoke_split_manifest_v1"
+        "entry_model_native_seq513_smoke_split_manifest_v2"
         if profile == "smoke"
         else MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
     )
@@ -519,7 +520,7 @@ def _validate_audits(
         _zero_failure(
             smoke_manifest,
             label="smoke manifest",
-            schema="entry_model_native_seq513_smoke_manifest_v1",
+            schema="entry_model_native_seq513_smoke_manifest_v2",
             decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
         )
         _require(smoke_manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke manifest mode mismatch")
@@ -533,7 +534,7 @@ def _validate_audits(
         _zero_failure(
             smoke_readiness,
             label="smoke readiness",
-            schema="entry_model_native_seq513_smoke_readiness_v1",
+            schema="entry_model_native_seq513_smoke_readiness_v2",
             decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
         )
         candidate = smoke_readiness.get("smart_candidate")
@@ -547,7 +548,7 @@ def _validate_audits(
             candidate_readiness,
             label="candidate readiness",
             schema="entry_candidate_readiness_model_native_v1",
-            decision="READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+            decision="READY_FOR_CANDIDATE_TRAINING",
         )
         _require(candidate_readiness.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "candidate readiness mode mismatch")
         _require(
@@ -557,7 +558,7 @@ def _validate_audits(
         )
         _require(int(candidate_readiness.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "candidate readiness signal width mismatch")
         _require(tuple(candidate_readiness.get("required_specialist_groups") or ()) == REQUIRED_SPECIALISTS, "candidate readiness specialist set mismatch")
-        _require(candidate_readiness.get("candidate_training_allowed_with_explicit_vedtak") is True, "candidate readiness does not authorize explicit training")
+        _require(candidate_readiness.get("candidate_training_allowed") is True, "candidate readiness does not authorize explicit training")
         _require(
             candidate_readiness.get("promotion_shadow_live_allowed") is False
             and candidate_readiness.get("activation_authority") is False,
@@ -676,6 +677,7 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def validate_launch(args: argparse.Namespace) -> list[str]:
+    run_id = require_entry_run_id(args.run_id)
     profile = str(args.profile)
     _require(profile in _PROFILE_BINDING_KEYS, f"unsupported launch profile: {profile}")
     repo = Path(args.repo).expanduser().resolve(strict=True)
@@ -750,7 +752,7 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
     _require(int(recipe.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "recipe audit signal width mismatch")
     _require(int(recipe.get("expected_selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "recipe audit selected width mismatch")
     _require(recipe.get("execution_allowed") is True, "recipe audit does not authorize execution")
-    _require(recipe.get("vedtak_id") == args.vedtak, "recipe audit vedtak mismatch")
+    _require(recipe.get("run_id") == run_id, "recipe audit run_id mismatch")
     _require(Path(str(recipe.get("dataset_dir") or "")).resolve() == dataset_dir, "recipe audit dataset mismatch")
     _require(Path(str(recipe.get("out_bundle_dir") or "")).resolve() == out_bundle_dir, "recipe audit output mismatch")
     _require(recipe.get("source_commit") == subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip(), "recipe audit source commit mismatch")
@@ -785,7 +787,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=tuple(_PROFILE_BINDING_KEYS), required=True)
     parser.add_argument("--repo", required=True)
     parser.add_argument("--wrapper-path", required=True)
-    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--run-id", required=True)
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--out-bundle-dir", required=True)
     parser.add_argument("--recipe-audit-json", required=True)

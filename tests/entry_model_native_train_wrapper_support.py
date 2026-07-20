@@ -53,7 +53,7 @@ from tests.model_native_offline_rl_support import (
 
 
 REPO = Path(__file__).resolve().parents[1]
-VEDTAK = "MODEL_NATIVE_SEQ513_PYTEST_V1"
+RUN_ID = "MODEL_NATIVE_SEQ513_PYTEST_V1"
 STAMP = "20260716T010203123456Z"
 
 
@@ -76,7 +76,7 @@ def _split_manifest(path: Path, parquet: Path, *, profile: str) -> Path:
         path,
         {
             "schema_version": (
-                "entry_model_native_seq513_smoke_split_manifest_v1"
+                "entry_model_native_seq513_smoke_split_manifest_v2"
                 if profile == "smoke"
                 else MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
             ),
@@ -229,7 +229,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
 
     if profile == "smoke":
         embedded = {
-            "schema_version": "entry_model_native_seq513_smoke_dataset_v1",
+            "schema_version": "entry_model_native_seq513_smoke_dataset_v2",
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": 513,
             "out_dir": str(dataset_dir),
@@ -246,7 +246,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_manifest_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_MANIFEST_{STAMP}.json",
             {
-                "schema_version": "entry_model_native_seq513_smoke_manifest_v1",
+                "schema_version": "entry_model_native_seq513_smoke_manifest_v2",
                 "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
                 "failures": [],
                 "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
@@ -258,7 +258,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_readiness_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_READINESS_{STAMP}.json",
             {
-                "schema_version": "entry_model_native_seq513_smoke_readiness_v1",
+                "schema_version": "entry_model_native_seq513_smoke_readiness_v2",
                 "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
                 "failures": [],
                 "smart_candidate": {
@@ -455,13 +455,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             evidence_dir / f"ENTRY_CANDIDATE_READINESS_{STAMP}.json",
             {
                 "schema_version": "entry_candidate_readiness_model_native_v1",
-                "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+                "decision": "READY_FOR_CANDIDATE_TRAINING",
                 "failures": [],
                 "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                 "sequence_length": 96,
                 "expected_signal_dim": 513,
                 "required_specialist_groups": list(REQUIRED_SPECIALISTS),
-                "candidate_training_allowed_with_explicit_vedtak": True,
+                "candidate_training_allowed": True,
                 "promotion_shadow_live_allowed": False,
                 "activation_authority": False,
                 "input_bindings": readiness_bindings,
@@ -527,7 +527,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "execution_allowed": True,
-            "vedtak_id": VEDTAK,
+            "run_id": RUN_ID,
             "dataset_dir": str(dataset_dir),
             "out_bundle_dir": str(out_bundle),
             "source_commit": subprocess.check_output(
@@ -546,7 +546,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     )
 
     args = [
-        "--vedtak", VEDTAK,
+        "--run-id", RUN_ID,
         "--dataset-dir", str(dataset_dir),
         "--train-manifest-json", str(artifacts["train_manifest_json"]),
         "--val-manifest-json", str(artifacts["val_manifest_json"]),

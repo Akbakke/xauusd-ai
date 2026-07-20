@@ -45,7 +45,7 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 
 
 SCHEMA_VERSION = "entry_candidate_readiness_model_native_v1"
-READY_DECISION = "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+READY_DECISION = "READY_FOR_CANDIDATE_TRAINING"
 BLOCKED_DECISION = "NOT_READY_FOR_CANDIDATE_TRAINING"
 EVENT_PREFIX = "ENTRY_CANDIDATE_READINESS"
 TRAINABILITY_SCHEMA = "entry_model_native_seq513_trainability_readiness_v1"
@@ -422,7 +422,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "expected_smoke_dataset_dir": str(expected_dataset),
         "required_specialist_groups": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
-        "candidate_training_allowed_with_explicit_vedtak": ready,
+        "candidate_training_allowed": ready,
         "promotion_shadow_live_allowed": False,
         "activation_authority": False,
         "checks": checks,

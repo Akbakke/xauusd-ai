@@ -73,8 +73,8 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "preflight",
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
         {
-            "schema_version": "entry_model_native_seq513_rebuild_preflight_v1",
-            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW",
+            "schema_version": "entry_model_native_seq513_rebuild_preflight_v2",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
             "report_only": True,
             "side_effects_started": {"dataset_rebuild": False, "training": False},
             "failures": [],
@@ -99,7 +99,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "smoke_manifest",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST",
         {
-            "schema_version": "entry_model_native_seq513_smoke_manifest_v1",
+            "schema_version": "entry_model_native_seq513_smoke_manifest_v2",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
             "report_only": True,
             "side_effects_started": {"training": False, "replay": False},
@@ -126,7 +126,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "smoke_readiness",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS",
         {
-            "schema_version": "entry_model_native_seq513_smoke_readiness_v1",
+            "schema_version": "entry_model_native_seq513_smoke_readiness_v2",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
             "report_only": True,
             "side_effects_started": {"training": False, "live": False},
@@ -168,7 +168,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         "ENTRY_CANDIDATE_READINESS",
         {
             "schema_version": "entry_candidate_readiness_model_native_v1",
-            "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+            "decision": "READY_FOR_CANDIDATE_TRAINING",
             "failures": [],
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "expected_signal_dim": 513,

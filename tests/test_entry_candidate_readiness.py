@@ -420,9 +420,9 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
         )
     )
 
-    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING"
     assert report["failures"] == []
-    assert report["candidate_training_allowed_with_explicit_vedtak"] is True
+    assert report["candidate_training_allowed"] is True
     assert report["promotion_shadow_live_allowed"] is False
     assert Path(report["json_path"]).is_file()
 

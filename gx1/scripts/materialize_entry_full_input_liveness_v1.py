@@ -44,14 +44,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
-from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
 OUTPUT_PREFIX = "ENTRY_FULL_INPUT_LIVENESS_CONTRACT"
 OUTPUT_FILENAME_RE = re.compile(
     rf"{OUTPUT_PREFIX}_\d{{8}}T\d{{6}}(?:\d{{6}})?Z\.json"
 )
-PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v1"
+PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v2"
 DEFAULT_BATCH_SIZE = 128
 REQUIRED_COLUMNS = ("seq", "snap", "ctx_cont", "ctx_cat")
 
@@ -197,7 +197,7 @@ def _validate_split_manifest(
     *,
     manifest_path: Path,
     parquet_path: Path,
-    explicit_vedtak_id: str,
+    entry_run_id: str,
 ) -> tuple[dict[str, Any], dict[str, list[str]]]:
     if not parquet_path.is_file() or parquet_path.is_symlink():
         raise RuntimeError(f"SPLIT_PARQUET_MISSING_REGULAR_FILE: {parquet_path}")
@@ -221,15 +221,15 @@ def _validate_split_manifest(
         raise RuntimeError(f"SPLIT_DIRECTION_MODE_INVALID: {manifest_path}")
     if extra.get("neutral_xgb_bridge") is not False:
         raise RuntimeError(f"SPLIT_LEGACY_BRIDGE_NEGATIVE_PROOF_MISSING: {manifest_path}")
-    if str(extra.get("explicit_vedtak_id") or "").strip() != explicit_vedtak_id:
-        raise RuntimeError(f"SPLIT_VEDTAK_MISMATCH: {manifest_path}")
+    if str(extra.get("entry_run_id") or "").strip() != entry_run_id:
+        raise RuntimeError(f"SPLIT_RUN_ID_MISMATCH: {manifest_path}")
     state = (
         extra.get("model_native_state_contract")
         if isinstance(extra.get("model_native_state_contract"), dict)
         else {}
     )
-    if str(state.get("explicit_vedtak_id") or "").strip() != explicit_vedtak_id:
-        raise RuntimeError(f"SPLIT_STATE_VEDTAK_MISMATCH: {manifest_path}")
+    if str(state.get("entry_run_id") or "").strip() != entry_run_id:
+        raise RuntimeError(f"SPLIT_STATE_RUN_ID_MISMATCH: {manifest_path}")
 
     signal = (
         extra.get("model_native_signal_contract")
@@ -358,12 +358,12 @@ def _validate_build_proof(
     proof_path: Path,
     dataset_dir: Path,
     stem: str,
-    explicit_vedtak_id: str,
+    entry_run_id: str,
     field_order: Mapping[str, list[str]],
 ) -> dict[str, Any]:
     proof = _load_json(proof_path, label="DATASET_BUILD_PROOF")
-    if str(proof.get("explicit_vedtak_id") or "").strip() != explicit_vedtak_id:
-        raise RuntimeError("DATASET_BUILD_PROOF_VEDTAK_MISMATCH")
+    if str(proof.get("entry_run_id") or "").strip() != entry_run_id:
+        raise RuntimeError("DATASET_BUILD_PROOF_RUN_ID_MISMATCH")
     if proof.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE:
         raise RuntimeError("DATASET_BUILD_PROOF_MODE_MISMATCH")
     if _resolved_path(proof.get("output_path")) != dataset_dir / f"{stem}.parquet":
@@ -385,13 +385,13 @@ def _validate_build_proof(
         if isinstance(proof.get("model_native_state_contract"), dict)
         else {}
     )
-    if str(state.get("explicit_vedtak_id") or "").strip() != explicit_vedtak_id:
-        raise RuntimeError("DATASET_BUILD_PROOF_STATE_VEDTAK_MISMATCH")
+    if str(state.get("entry_run_id") or "").strip() != entry_run_id:
+        raise RuntimeError("DATASET_BUILD_PROOF_STATE_RUN_ID_MISMATCH")
     return proof
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    explicit_vedtak_id = require_retrain_vedtak(getattr(args, "vedtak", None))
+    entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
     dataset_dir = Path(str(args.dataset_dir)).expanduser().resolve()
     stem = str(args.stem or "").strip()
     out_path = Path(str(args.out_json)).expanduser().resolve()
@@ -421,7 +421,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         manifest, field_order = _validate_split_manifest(
             manifest_path=manifest_path,
             parquet_path=parquet_path,
-            explicit_vedtak_id=explicit_vedtak_id,
+            entry_run_id=entry_run_id,
         )
         if canonical_field_order is None:
             canonical_field_order = field_order
@@ -442,7 +442,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         proof_path=proof_path,
         dataset_dir=dataset_dir,
         stem=stem,
-        explicit_vedtak_id=explicit_vedtak_id,
+        entry_run_id=entry_run_id,
         field_order=canonical_field_order,
     )
 
@@ -471,7 +471,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     artifact["materializer_provenance"] = {
         "schema_version": PRODUCER_SCHEMA_VERSION,
         "producer": "gx1.scripts.materialize_entry_full_input_liveness_v1",
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
         "dataset_build_proof": {
             "path": str(proof_path),
             "sha256": sha256_file(proof_path),
@@ -520,7 +520,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Full-scan and bind exact seq513 + ctx142+5 input liveness."
     )
-    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--run-id", required=True)
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--stem", required=True)
     parser.add_argument("--out-json", required=True)

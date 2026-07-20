@@ -23,7 +23,7 @@ evidence layer.
 All earlier Entry datasets, bundles, reports and promotion records are rejected
 by the current exact contract and cannot override the launch block.
 
-Vedtak `XAU_SEQ513_REBUILD_20260718_V1` was issued. The seq513 rebuild attempts
+Run lineage `XAU_SEQ513_REBUILD_20260718_V1` was used. The seq513 rebuild attempts
 on 2026-07-19 were terminated and invalidated because their feature ranking
 used TRAIN `2020-11-13..2026-03-31` while the active build requested TRAIN
 `2021-03-16..2026-03-31`; the old preflight omitted that nested comparison.
@@ -34,7 +34,7 @@ claim exists. Partial outputs have no authority. The event-local
 `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes.
 
 Preflight, wrapper and builder now require explicit ranking/manifest artifacts
-and validate their lineage, vedtak, source hash and exact TRAIN window. This is
+and validate their lineage, Entry run ID, source hash and exact TRAIN window. This is
 source-contract proof only, not proof of trading edge.
 
 The target/evidence boundary is now stricter. Target foundation audit v2
@@ -59,7 +59,7 @@ closed. No fresh v4 event exists, so launch remains `BLOCK`.
 
 Smoke/candidate launch and the trainer now require explicit TRAIN/VAL/TEST
 manifest and parquet paths. Exact hashes are emitted only by the validated
-recipe, then rechecked with manifest self-path, vedtak and six-way-distinctness
+recipe, then rechecked with manifest self-path, run lineage and six-way-distinctness
 contracts. VAL and TEST are never inferred from TRAIN names or directory
 inventory.
 
@@ -168,8 +168,8 @@ override, cached row or synthetic `FLAT`.
 
 Missing, invalid or session-inconsistent Entry context, including a fabricated
 ASIA flag, yields `MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION`. No bridge, default
-or cached context may repair that failure. Retained OANDA backfill writers
-require an explicit `--vedtak` before any filesystem side effect.
+or cached context may repair that failure. Retained OANDA backfill writers are
+a separate data-mutation scope with their own explicit write authorization.
 
 ## Exit
 
@@ -200,7 +200,8 @@ untouched OOT,
 cost/live-like, abstention-support and joint Exit/sizing gates. No historical
 metadata is allowed to soften those gates. Only the complete source contract
 may justify returning to the hardened seq513 rebuild runbook with a newly
-matched ranking/manifest and a **new** explicit vedtak; invalidated
+matched ranking/manifest. The selected immutable lineage is
+`XAU_SEQ513_REBUILD_20260720_V2`; it grants no authority, and invalidated
 `XAU_SEQ513_REBUILD_20260718_V1` cannot be reused;
 only an accepted rebuild may advance to smoke. Zero FLAT predictions remains
 hard-red. No accepted rebuild, training result or empirical precision result

@@ -22,4 +22,6 @@ Also scan for deleted filenames, retired contract modes, fallback wording,
 mutable artifact selection and obsolete CLI arguments in active code.
 
 Do not run a dataset rebuild, trainer, large replay or live launcher as a test.
-Those require their own immutable prerequisites and explicit `--vedtak`.
+Entry rebuild/training require their immutable prerequisites and one shared
+`--run-id`; it is lineage rather than manual approval. Live launch and
+destructive data work keep their separate authorization contracts.

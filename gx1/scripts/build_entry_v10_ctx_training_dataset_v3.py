@@ -112,7 +112,7 @@ from gx1.time.session_detector import (
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
 )
-from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -1609,7 +1609,7 @@ def _model_native_state_contract(
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
 ) -> Dict[str, Any]:
-    explicit_vedtak_id = require_retrain_vedtak(getattr(args, "vedtak", None))
+    entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
     raw_npz = str(getattr(args, "model_native_rank_reference_npz", "") or "").strip()
     if not raw_npz:
         raise RuntimeError(
@@ -1655,11 +1655,11 @@ def _model_native_state_contract(
             f"rank_source={source_path} builder_source={declared_builder_source}"
         )
     reference = load_train_rank_reference_v2(npz_path, expected_sha256=npz_sha)
-    rank_vedtak_id = str(reference.sidecar.get("explicit_vedtak_id") or "").strip()
-    if rank_vedtak_id != explicit_vedtak_id:
+    rank_run_id = str(reference.sidecar.get("entry_run_id") or "").strip()
+    if rank_run_id != entry_run_id:
         raise RuntimeError(
-            "MODEL_NATIVE_RANK_REFERENCE_VEDTAK_MISMATCH: "
-            f"rank={rank_vedtak_id!r} build={explicit_vedtak_id!r}"
+            "MODEL_NATIVE_RANK_REFERENCE_RUN_ID_MISMATCH: "
+            f"rank={rank_run_id!r} build={entry_run_id!r}"
         )
     sidecar_history_start = _parse_ts(str(sidecar.get("history_start_utc") or ""))
     if sidecar_history_start != feature_history_start:
@@ -1705,7 +1705,7 @@ def _model_native_state_contract(
         "split_reset_allowed": False,
         "post_fit_rows_in_rank_reference": False,
         "runtime_rule_free": True,
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
     }
 
 
@@ -3582,7 +3582,7 @@ def main() -> None:
         "--output", type=str, required=True, help="Output dataset path (.parquet)."
     )
     parser.add_argument(
-        "--vedtak",
+        "--run-id",
         required=True,
         help="Explicit user decision ID bound into every immutable build artifact.",
     )
@@ -3709,7 +3709,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    explicit_vedtak_id = require_retrain_vedtak(args.vedtak)
+    entry_run_id = require_entry_run_id(args.run_id)
     build_command = sys.argv.copy()
 
     main_signal_build_contract = _signal_build_contract_from_manifest(
@@ -3780,7 +3780,7 @@ def main() -> None:
     signal_lineage = validate_signal_manifest_training_lineage(
         manifest_path=Path(args.seq_structure_manifest),
         feature_ranking_path=Path(args.feature_ranking_json),
-        expected_vedtak_id=explicit_vedtak_id,
+        expected_run_id=entry_run_id,
         expected_source_sha256=state_contract["rank_reference_source_parquet_sha256"],
         expected_train_start_utc=train_start.isoformat(),
         expected_train_end_utc=train_end.isoformat(),
@@ -3793,7 +3793,7 @@ def main() -> None:
 
     # Dataset build proof (will be written after output_path resolved)
     proof_payload = {
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
         "ctx_tag": f"CTX6CAT{len(MODEL_NATIVE_CTX_CAT_FIELDS)}",
         "ctx_cont_dim": int(len(MODEL_NATIVE_CTX_CONT_FIELDS)),
         "ctx_cat_dim": int(len(MODEL_NATIVE_CTX_CAT_FIELDS)),
@@ -3924,7 +3924,7 @@ def main() -> None:
                     "mode": "mandatory_inline_common_causal_history_v1",
                 },
                 "model_native_state_contract": state_contract,
-                "explicit_vedtak_id": explicit_vedtak_id,
+                "entry_run_id": entry_run_id,
             },
         )
         return
@@ -3999,7 +3999,7 @@ def main() -> None:
             extra={
                 **metas[split_name],
                 "model_native_state_contract": state_contract,
-                "explicit_vedtak_id": explicit_vedtak_id,
+                "entry_run_id": entry_run_id,
             },
         )
 

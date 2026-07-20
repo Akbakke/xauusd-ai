@@ -68,9 +68,9 @@ EXPECTED_MODEL_CONTRACT = specialist_model_contract_for_mode(CONTRACT_MODE)
 
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
 SMOKE_MANIFEST_READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
-SMOKE_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_manifest_v1"
-SMOKE_DATASET_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_dataset_v1"
-SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v1"
+SMOKE_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
+SMOKE_DATASET_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
+SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v2"
 _TIMESTAMPED_JSON_RE = re.compile(
     r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
 )
@@ -746,8 +746,8 @@ def _future_contracts(
     wrapper_argv = [
         "scripts/entry_next_edge_control.sh",
         "model-native-smoke-train",
-        "--vedtak",
-        "<MODEL_NATIVE_SEQ513_SMOKE_VEDTAK_ID>",
+        "--run-id",
+        "<MODEL_NATIVE_SEQ513_SMOKE_RUN_ID_ID>",
         "--dataset-dir",
         str(smart_smoke_dataset_dir),
         "--train-manifest-json",
@@ -824,7 +824,7 @@ def _future_contracts(
         "control_route": "model-native-smoke-train",
         "wrapper_path": "scripts/run_entry_model_native_seq513_smoke_train.sh",
         "execution_allowed_now": False,
-        "requires_explicit_vedtak": True,
+        "run_lineage_required": True,
         "requires_clean_git": True,
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
@@ -866,7 +866,7 @@ def _future_contracts(
         "mode": "future_manifest_only_contract",
         "implemented_in_control_surface": False,
         "execution_allowed_now": False,
-        "requires_explicit_vedtak": True,
+        "run_lineage_required": True,
         "requires_clean_git": True,
         "starts_trainer": False,
         "starts_replay": False,
@@ -1045,16 +1045,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check("model-native rebuild preflight exists", rebuild_preflight_json.exists(), _artifact_meta(rebuild_preflight_json)),
                 _check(
-                    "model-native rebuild preflight is ready for vedtak review",
+                    "model-native rebuild preflight is evidence-ready",
                     rebuild.get("decision")
-                    == "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW",
+                    == "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
                     {"decision": rebuild.get("decision")},
                 ),
                 _check("model-native rebuild preflight is report-only", rebuild.get("report_only") is True, rebuild.get("report_only")),
                 _check(
-                    "model-native rebuild preflight keeps dataset rebuild closed without vedtak",
-                    rebuild.get("dataset_rebuild_allowed_without_vedtak") is False,
-                    rebuild.get("dataset_rebuild_allowed_without_vedtak"),
+                    "model-native rebuild decision is an exact boolean",
+                    isinstance(rebuild.get("dataset_rebuild_allowed"), bool),
+                    rebuild.get("dataset_rebuild_allowed"),
                 ),
                 _check("model-native rebuild preflight keeps training closed", rebuild.get("training_allowed") is False, rebuild.get("training_allowed")),
                 _check(
@@ -1422,7 +1422,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
     )
     report = {
-        "schema_version": "entry_model_native_seq513_smoke_readiness_v1",
+        "schema_version": "entry_model_native_seq513_smoke_readiness_v2",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": decision,
         "report_only": True,
@@ -1435,13 +1435,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "training_allowed": False,
         "training_allowed_reason": (
-            "report-only readiness design; a future smart smoke wrapper still requires explicit vedtak, "
-            "clean git and all gates, and this gate never starts training"
+            "report-only readiness design; a future smart smoke wrapper requires one immutable run "
+            "lineage, clean git and all evidence gates, and this gate never starts training"
         ),
-        "smart_smoke_manifest_allowed_without_vedtak": False,
-        "smart_smoke_manifest_allowed_after_explicit_vedtak_and_gates": bool(ready),
-        "smart_smoke_training_allowed_without_vedtak": False,
-        "smart_smoke_training_allowed_after_explicit_vedtak_and_gates": False,
+        "smart_smoke_manifest_allowed": bool(ready),
+        "smart_smoke_training_allowed": False,
         "smart_trainability_readiness_required_before_training": True,
         "execution_allowed_now": False,
         "control_surface_mutated": False,
@@ -1470,7 +1468,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "failures": failures,
         "blockers": [f"{row['gate']}: {row['name']}" for row in failures],
         "next_required_gate": (
-            "run the capped smart dataset rebuild only after explicit rebuild vedtak, then smart feature/target/"
+            "run the capped smart dataset rebuild under one immutable run lineage, then smart feature/target/"
             "specialist audits, smart smoke dataset manifest, clean git and a separate smart smoke wrapper review; "
             "do not start candidate training, replay, IQL, shadow or live"
         ),

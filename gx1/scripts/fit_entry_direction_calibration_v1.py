@@ -44,7 +44,7 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_immutable_calibration_v1"
+SCHEMA_VERSION = "entry_model_native_immutable_calibration_v2"
 DIRECTION_CALIBRATION_VERSION = "entry_model_native_direction_calibration_v1"
 PATH_CALIBRATION_VERSION = "entry_model_native_path_calibration_v1"
 CLASS_COLUMNS = ("p_long", "p_short", "p_flat")
@@ -100,7 +100,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", required=True)
     parser.add_argument("--heads", required=True, choices=("direction", "path"))
     parser.add_argument("--fit-split", required=True, choices=HELD_OUT_SPLITS)
-    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--run-id", required=True)
     parser.add_argument("--min-fit-rows", required=True, type=_positive_int)
     parser.add_argument(
         "--direction-odds-cap",
@@ -642,7 +642,7 @@ def _publish_bundle(
             "model": provenance["model"],
             "fit_split": provenance["fit_split"],
             "min_fit_rows": provenance["min_fit_rows"],
-            "vedtak": provenance["vedtak"],
+            "run_id": provenance["run_id"],
             "calibration": dict(calibration),
             "metrics": dict(metrics),
             "source_bundle": {
@@ -716,8 +716,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("--direction-odds-cap is forbidden for path calibration")
     if not str(args.model).strip():
         raise RuntimeError("--model cannot be blank")
-    if not str(args.vedtak).strip():
-        raise RuntimeError("--vedtak cannot be blank")
+    from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+
+    args.run_id = require_entry_run_id(args.run_id)
 
     dataset_supplied = Path(args.dataset_dir).expanduser()
     if not dataset_supplied.is_absolute() or dataset_supplied.is_symlink():
@@ -815,7 +816,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model": str(args.model),
         "fit_split": str(args.fit_split),
         "min_fit_rows": int(args.min_fit_rows),
-        "vedtak": str(args.vedtak),
+        "run_id": str(args.run_id),
         "fitted_at_utc": fitted_at,
         "dataset_dir": str(dataset_dir),
         "predictions_path": str(predictions_path),
@@ -831,7 +832,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "fitted_rows": int(metrics["fitted_rows"]),
             "model": str(args.model),
             "min_fit_rows": int(args.min_fit_rows),
-            "vedtak": str(args.vedtak),
+            "run_id": str(args.run_id),
             "source_bundle_dir": str(source_bundle_dir),
             "source_bundle_metadata_sha256": source_hashes["bundle_metadata.json"],
             "predictions_path": str(predictions_path),

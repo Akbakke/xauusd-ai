@@ -6,13 +6,13 @@
 # The driver never discovers artifacts, waits for an external producer, resumes
 # from inferred debris, or treats existing split manifests as completion.  It
 # stops before the smoke gate.  Every producer receives the same explicit
-# vedtak, ranking identity, split window, and event-local immutable paths.
+# run_id, ranking identity, split window, and event-local immutable paths.
 set -Eeuo pipefail
 
 ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
 
-VEDTAK=
+RUN_ID=
 EVENT=
 RANKING=
 MANIFEST=
@@ -20,7 +20,7 @@ PRE_OUT=
 
 usage() {
   printf '%s\n' \
-    "Usage: $0 --vedtak ID --event-root /absolute/event/root" \
+    "Usage: $0 --run-id ID --event-root /absolute/event/root" \
     "  --feature-ranking-json /absolute/event/root/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<UTC>.json" \
     "  --signal-manifest /absolute/event/root/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_<UTC>.json" \
     "  --preflight-out-dir /absolute/event/root/fresh-preflight-dir" \
@@ -35,10 +35,10 @@ die_args() {
 
 while (($#)); do
   case "$1" in
-    --vedtak)
-      (($# >= 2)) || die_args "--vedtak requires a value"
-      [[ -z $VEDTAK ]] || die_args "duplicate --vedtak"
-      VEDTAK=$2
+    --run-id)
+      (($# >= 2)) || die_args "--run-id requires a value"
+      [[ -z $RUN_ID ]] || die_args "duplicate --run-id"
+      RUN_ID=$2
       shift 2
       ;;
     --event-root)
@@ -75,12 +75,12 @@ while (($#)); do
   esac
 done
 
-for name in VEDTAK EVENT RANKING MANIFEST PRE_OUT; do
+for name in RUN_ID EVENT RANKING MANIFEST PRE_OUT; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
-if [[ ! $VEDTAK =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
-  die_args "--vedtak has invalid format"
+if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
+  die_args "--run-id has invalid format"
 fi
 [[ $EVENT == /* ]] || die_args "--event-root must be absolute"
 [[ -d $EVENT && ! -L $EVENT ]] || die_args "--event-root must be an existing regular directory"
@@ -89,7 +89,7 @@ SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
 CV2="$EVENT/canonical_features_v2.parquet"
 MTF="$EVENT/MULTI_TF_V2_CACHE"
 TAPE="$EVENT/m5_tape_repaired_dec2024"
-RANK_NPZ="$EVENT/model_native_train_rank_reference_v3.npz"
+RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
 AUDIT="$EVENT/audit"
 # history < train strictly. Source (FULL_PLUS) first row is 2021-01-04T23:55.
@@ -135,7 +135,7 @@ write_status() {
   local reason=${3:-}
   local exit_code=${4:-}
   "$PY" - \
-    "$step" "$state" "$reason" "$exit_code" "$STATUS" "$VEDTAK" "$EVENT" \
+    "$step" "$state" "$reason" "$exit_code" "$STATUS" "$RUN_ID" "$EVENT" \
     "$LOG" "$GIT_HEAD" "$RANKING" "$RANKING_SHA256" "$MANIFEST" \
     "$MANIFEST_SHA256" "$PRE_OUT" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" <<'PYEOF'
 import json
@@ -150,7 +150,7 @@ from pathlib import Path
     reason,
     exit_code,
     raw_path,
-    vedtak,
+    run_id,
     event_root,
     log_path,
     git_head,
@@ -165,7 +165,7 @@ from pathlib import Path
 path = Path(raw_path)
 payload = {
     "schema_version": "seq513_rebuild_chain_status_v2",
-    "explicit_vedtak_id": vedtak,
+    "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
     "state": state,
@@ -227,7 +227,7 @@ fail() {
   local exit_code=${2:-2}
   trap - ERR
   terminal_status RED "$reason" "$exit_code"
-  tg "GX1 seq513-kjede STOPPET RED: steg=$CURRENT_STEP vedtak=$VEDTAK logg=$LOG"
+  tg "GX1 seq513-kjede STOPPET RED: steg=$CURRENT_STEP run_id=$RUN_ID logg=$LOG"
   printf '[chain] RED at %s: %s — see %s\n' "$CURRENT_STEP" "$reason" "$LOG" >&2
   exit "$exit_code"
 }
@@ -237,7 +237,7 @@ on_err() {
   local line=$2
   trap - ERR
   terminal_status RED "unexpected ERR at line $line" "$exit_code"
-  tg "GX1 seq513-kjede STOPPET RED: steg=$CURRENT_STEP vedtak=$VEDTAK logg=$LOG"
+  tg "GX1 seq513-kjede STOPPET RED: steg=$CURRENT_STEP run_id=$RUN_ID logg=$LOG"
   exit "$exit_code"
 }
 
@@ -246,7 +246,7 @@ on_signal() {
   local exit_code=$2
   trap - ERR TERM INT HUP
   terminal_status ABORTED "received $signal_name" "$exit_code"
-  tg "GX1 seq513-kjede AVBRUTT: signal=$signal_name steg=$CURRENT_STEP vedtak=$VEDTAK logg=$LOG"
+  tg "GX1 seq513-kjede AVBRUTT: signal=$signal_name steg=$CURRENT_STEP run_id=$RUN_ID logg=$LOG"
   exit "$exit_code"
 }
 
@@ -267,7 +267,7 @@ trap on_exit EXIT
 if ! (set -o noclobber; : >"$LOG") 2>/dev/null; then
   fail "immutable chain log path already exists"
 fi
-printf '[chain] vedtak=%s event=%s log=%s\n' "$VEDTAK" "$EVENT" "$LOG"
+printf '[chain] run_id=%s event=%s log=%s\n' "$RUN_ID" "$EVENT" "$LOG"
 
 # Source authority is one exact clean revision. Ignored files do not take part
 # in the gate, while tracked changes and every non-ignored untracked file do.
@@ -445,7 +445,7 @@ require_source_identity
 if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
   --feature-ranking-json "$RANKING" \
   --out "$MANIFEST" \
-  --vedtak "$VEDTAK") >>"$LOG" 2>&1; then
+  --run-id "$RUN_ID") >>"$LOG" 2>&1; then
   fail "signal manifest materialization failed"
 fi
 MANIFEST_SHA256=$(hash_file "$MANIFEST")
@@ -459,7 +459,7 @@ CURRENT_STEP=rebuild-preflight
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
-  --vedtak "$VEDTAK" \
+  --run-id "$RUN_ID" \
   --feature-ranking-json "$RANKING" \
   --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
   --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
@@ -473,7 +473,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-
   fail "rebuild preflight failed"
 fi
 
-if ! PREFLIGHT_ID=$("$PY" - "$PRE_OUT" "$VEDTAK" <<'PYEOF'
+if ! PREFLIGHT_ID=$("$PY" - "$PRE_OUT" "$RUN_ID" <<'PYEOF'
 import hashlib
 import json
 import re
@@ -481,7 +481,7 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
-vedtak = sys.argv[2]
+run_id = sys.argv[2]
 pattern = re.compile(
     r"ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT_\d{8}T\d{6}(?:\d{6})?Z\.json"
 )
@@ -495,9 +495,9 @@ raw = path.read_bytes()
 payload = json.loads(raw)
 if payload.get("json_path") != str(path.resolve()):
     raise RuntimeError("preflight json_path is not an exact self-reference")
-if payload.get("explicit_vedtak_id") != vedtak:
-    raise RuntimeError("preflight vedtak does not match chain vedtak")
-if payload.get("decision") != "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW":
+if payload.get("entry_run_id") != run_id:
+    raise RuntimeError("preflight run_id does not match chain run_id")
+if payload.get("decision") != "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD":
     raise RuntimeError("preflight is not READY")
 print(f"{path.resolve()}\t{hashlib.sha256(raw).hexdigest()}")
 PYEOF
@@ -516,13 +516,13 @@ printf '[chain] preflight=%s sha256=%s\n' "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" 
 # one rebuild. File presence can never substitute for terminal validation.
 CURRENT_STEP=dataset-rebuild
 write_status "$CURRENT_STEP" RUNNING
-tg "GX1 seq513: preflight GREEN; dataset rebuild startet. vedtak=$VEDTAK"
+tg "GX1 seq513: preflight GREEN; dataset rebuild startet. run_id=$RUN_ID"
 require_source_identity
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
 if ! (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \
-  --vedtak "$VEDTAK" \
+  --run-id "$RUN_ID" \
   --feature-ranking-json "$RANKING" \
   --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
   --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \

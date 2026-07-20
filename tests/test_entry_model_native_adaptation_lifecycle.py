@@ -110,7 +110,7 @@ def test_initial_lifecycle_is_fresh_and_cross_bound_to_launch_evidence(
         predecessor_path=lifecycle["event_path"],
         output_dir=tmp_path / "adaptation_lifecycle",
         admission_evidence=admission,
-        accepted_via_vedtak="UNIT_MONITOR_REFRESH",
+        entry_run_id="UNIT_MONITOR_REFRESH",
     )
     refreshed, _ = load_bound_adaptation_lifecycle(
         event_binding(refresh_path),
@@ -166,7 +166,7 @@ def test_complete_drift_challenger_shadow_promotion_and_rollback_chain(
         drift_evidence_path=red_drift["event_path"],
         replay_readiness_path=challenger_replay["event_path"],
         predecessor_path=drift_path,
-        accepted_via_vedtak="UNIT_OFFLINE_CHALLENGER_V1",
+        entry_run_id="UNIT_OFFLINE_CHALLENGER_V1",
         output_dir=lifecycle_dir,
     )
     assert challenger_event["activation_authority"] is False
@@ -192,7 +192,7 @@ def test_complete_drift_challenger_shadow_promotion_and_rollback_chain(
         replay_readiness_path=challenger_replay["event_path"],
         shadow_evidence_path=paired_shadow["event_path"],
         predecessor_path=challenger_path,
-        accepted_via_vedtak="UNIT_OFFLINE_CHALLENGER_V1",
+        entry_run_id="UNIT_OFFLINE_CHALLENGER_V1",
         output_dir=lifecycle_dir,
     )
     assert shadow_event["phase"] == PHASE_SHADOW_READY
@@ -205,7 +205,7 @@ def test_complete_drift_challenger_shadow_promotion_and_rollback_chain(
         shadow_evidence_path=paired_shadow["event_path"],
         predecessor_path=shadow_path,
         admission_evidence=challenger_admission,
-        accepted_via_vedtak="UNIT_PROMOTE_CHALLENGER_V1",
+        entry_run_id="UNIT_PROMOTE_CHALLENGER_V1",
         output_dir=lifecycle_dir,
     )
     assert promotion["phase"] == PHASE_MONITORING
@@ -225,7 +225,7 @@ def test_complete_drift_challenger_shadow_promotion_and_rollback_chain(
         replay_readiness_path=incumbent_replay["event_path"],
         predecessor_path=promotion_path,
         admission_evidence=incumbent_admission,
-        accepted_via_vedtak="UNIT_ROLLBACK_V1",
+        entry_run_id="UNIT_ROLLBACK_V1",
         output_dir=lifecycle_dir,
     )
     loaded, _ = load_bound_adaptation_lifecycle(
@@ -265,7 +265,7 @@ def test_premature_promotion_publishes_newer_terminal_failure(tmp_path: Path) ->
             replay_readiness_path=challenger_replay["event_path"],
             predecessor_path=initial["event_path"],
             admission_evidence=_admission(tmp_path, "challenger"),
-            accepted_via_vedtak="UNIT_PREMATURE_PROMOTION",
+            entry_run_id="UNIT_PREMATURE_PROMOTION",
             output_dir=tmp_path / "adaptation_lifecycle",
         )
 
@@ -302,6 +302,6 @@ def test_replay_readiness_requires_exact_artifact_inventory(tmp_path: Path) -> N
             drift_evidence_path=drift["event_path"],
             replay_readiness_path=incomplete_replay["event_path"],
             admission_evidence=_admission(tmp_path, "inventory"),
-            accepted_via_vedtak="UNIT_INCOMPLETE_REPLAY_INVENTORY",
+            entry_run_id="UNIT_INCOMPLETE_REPLAY_INVENTORY",
             output_dir=tmp_path / "inventory_lifecycle",
         )

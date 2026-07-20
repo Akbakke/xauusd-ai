@@ -1496,7 +1496,7 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
 }
 _SMOKE_SPLIT_MANIFEST_SCHEMA_VERSION = (
-    "entry_model_native_seq513_smoke_split_manifest_v1"
+    "entry_model_native_seq513_smoke_split_manifest_v2"
 )
 
 
@@ -1530,7 +1530,7 @@ def _resolve_explicit_train_split_artifacts(
     train_parquet: Path,
     val_parquet: Path,
     test_parquet: Path,
-    vedtak: str,
+    run_id: str,
     profile: str,
 ) -> Tuple[Dict[str, Path], Dict[str, Path]]:
     """Verify the six launch-bound dataset artifacts without discovery/inference."""
@@ -1610,8 +1610,8 @@ def _resolve_explicit_train_split_artifacts(
             if isinstance(extra.get("model_native_state_contract"), dict)
             else None
         )
-        if state_contract is None or state_contract.get("explicit_vedtak_id") != vedtak:
-            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_VEDTAK_LINEAGE_MISMATCH] {split}")
+        if state_contract is None or state_contract.get("entry_run_id") != run_id:
+            raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_RUN_ID_LINEAGE_MISMATCH] {split}")
         if reference_state_contract is None:
             reference_state_contract = state_contract
         elif state_contract != reference_state_contract:
@@ -4977,7 +4977,7 @@ def train_epoch(
         y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
         y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
         y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
-        # SYM (vedtak v10_symmetric_negatives_20260603): short-side selector + bidir quality
+        # SYM (run_id v10_symmetric_negatives_20260603): short-side selector + bidir quality
         # labels (already built in the dataset, never read by cement). Used only when symmetric.
         y_selector_short_mask = batch["y_selector_short_mask"].to(device, non_blocking=non_blocking)
         y_clean_edge_bidir = batch["y_clean_edge_bidir"].to(device, non_blocking=non_blocking)
@@ -5162,7 +5162,7 @@ def train_epoch(
         if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
             hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
             loss = loss + hard_neg_prob_loss
-        # SYMMETRIC SHORT prob-penalties (vedtak v10_symmetric_negatives_20260603) — push down
+        # SYMMETRIC SHORT prob-penalties (run_id v10_symmetric_negatives_20260603) — push down
         # probs[:,1] (SHORT) on short-negative samples, mirroring the long penalties on probs[:,0].
         # This is the direct counterweight to the LONG-suppression. OFF by default (cement).
         if ENTRY_SYMMETRIC_NEGATIVES:
@@ -6794,7 +6794,7 @@ def run_train(
     tf_input_scale_init_h1: float = 0.7,
     tf_input_scale_init_h4: float = 0.5,
     tf_input_scale_init_d1: float = 0.3,
-    vedtak_id: str = "",
+    run_id: str = "",
 ) -> None:
     _guard_no_rl()
 
@@ -8502,7 +8502,7 @@ def run_train(
                 "created_at_utc": _utc_now(),
                 "decision": "FAIL_DIRECTION_CLASS_BALANCE_GUARD",
                 "failure_code": "TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD",
-                "vedtak_id": str(vedtak_id or ""),
+                "run_id": str(run_id or ""),
                 "git_commit": _git_commit(),
                 "intended_out_bundle_dir": str(intended_out_bundle_dir),
                 "train_data": str(train_parquet),
@@ -8701,7 +8701,7 @@ def run_train(
                 "created_at_utc": _utc_now(),
                 "decision": "FAIL_DIRECTION_SLICE_GUARD",
                 "failure_code": "TRAIN_FAIL_DIRECTION_SLICE_GUARD",
-                "vedtak_id": str(vedtak_id or ""),
+                "run_id": str(run_id or ""),
                 "git_commit": _git_commit(),
                 "intended_out_bundle_dir": str(intended_out_bundle_dir),
                 "train_data": str(train_parquet),
@@ -9751,7 +9751,7 @@ def main() -> None:
     parser = argparse.ArgumentParser("ENTRY_V10_CTX exact model-native trainer")
     parser.add_argument("--train", action="store_true", required=True)
     parser.add_argument("--profile", choices=("smoke", "candidate"), required=True)
-    parser.add_argument("--vedtak", type=str, required=True)
+    parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--device", type=str, default="auto", choices=["cpu", "cuda", "auto"])
     parser.add_argument("--batch_size", type=int, default=256)
@@ -9798,11 +9798,11 @@ def main() -> None:
     parser.add_argument("--weight-decay", type=float, default=1e-5)
     args = parser.parse_args()
 
-    from gx1_guards.gates import GateError, require_retrain_vedtak
+    from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
 
     try:
-        require_retrain_vedtak(args.vedtak)
-    except GateError as exc:
+        require_entry_run_id(args.run_id)
+    except EntryRunLineageError as exc:
         parser.error(str(exc))
 
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
@@ -9827,7 +9827,7 @@ def main() -> None:
         train_parquet=args.train_parquet,
         val_parquet=args.val_parquet,
         test_parquet=args.test_parquet,
-        vedtak=args.vedtak,
+        run_id=args.run_id,
         profile=args.profile,
     )
     train_parquet = parquets["train"]
@@ -9866,7 +9866,7 @@ def main() -> None:
         tf_input_scale_init_h1=float(args.tf_input_scale_init_h1),
         tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
         tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
-        vedtak_id=str(args.vedtak),
+        run_id=str(args.run_id),
     )
 
 

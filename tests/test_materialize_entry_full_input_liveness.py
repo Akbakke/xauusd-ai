@@ -32,7 +32,7 @@ from gx1.scripts.materialize_entry_full_input_liveness_v1 import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-VEDTAK = "UNIT_LIVENESS_20260717"
+RUN_ID = "UNIT_LIVENESS_20260717"
 STEM = "unit_seq513__HOLD_03B"
 OUTPUT_FILENAME = (
     "ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260717T120000000000Z.json"
@@ -104,8 +104,8 @@ def _write_split(
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
             "neutral_xgb_bridge": False,
-            "explicit_vedtak_id": VEDTAK,
-            "model_native_state_contract": {"explicit_vedtak_id": VEDTAK},
+            "entry_run_id": RUN_ID,
+            "model_native_state_contract": {"entry_run_id": RUN_ID},
             "model_native_signal_contract": signal_contract,
             "signal_bridge": {
                 "id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
@@ -136,7 +136,7 @@ def _write_dataset(dataset_dir: Path, *, break_test_parity: bool = False) -> Non
             break_seq_snap_parity=break_test_parity and split == "test",
         )
     build_proof = {
-        "explicit_vedtak_id": VEDTAK,
+        "entry_run_id": RUN_ID,
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "output_path": str((dataset_dir / f"{STEM}.parquet").resolve()),
         "model_native_signal_contract": signal_contract,
@@ -144,7 +144,7 @@ def _write_dataset(dataset_dir: Path, *, break_test_parity: bool = False) -> Non
             "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
             "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
         },
-        "model_native_state_contract": {"explicit_vedtak_id": VEDTAK},
+        "model_native_state_contract": {"entry_run_id": RUN_ID},
     }
     (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
         json.dumps(build_proof, indent=2, sort_keys=True) + "\n",
@@ -154,7 +154,7 @@ def _write_dataset(dataset_dir: Path, *, break_test_parity: bool = False) -> Non
 
 def _args(dataset_dir: Path, out_dir: Path) -> argparse.Namespace:
     return argparse.Namespace(
-        vedtak=VEDTAK,
+        run_id=RUN_ID,
         dataset_dir=str(dataset_dir),
         stem=STEM,
         out_json=str(out_dir / OUTPUT_FILENAME),
@@ -179,7 +179,7 @@ def test_materializer_fullscans_and_binds_exact_seq513_ctx142_5(tmp_path: Path) 
     assert validation["field_counts"] == {"signal": 513, "ctx_cont": 142, "ctx_cat": 5}
     assert validation["field_status_row_count"] == 3 * (513 + 142 + 5)
     provenance = artifact["materializer_provenance"]
-    assert provenance["explicit_vedtak_id"] == VEDTAK
+    assert provenance["entry_run_id"] == RUN_ID
     assert len(provenance["dataset_build_proof"]["sha256"]) == 64
     assert all(
         row["seq_last_exactly_equals_snap"] and row["scan_complete"]
@@ -203,16 +203,16 @@ def test_materializer_fails_closed_on_seq_history_not_matching_snap(tmp_path: Pa
     )
 
 
-def test_materializer_rejects_vedtak_mismatch_before_writing(tmp_path: Path) -> None:
+def test_materializer_rejects_run_id_mismatch_before_writing(tmp_path: Path) -> None:
     dataset_dir = tmp_path / "dataset"
     _write_dataset(dataset_dir)
     manifest_path = dataset_dir / f"{STEM}_val.manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["extra"]["explicit_vedtak_id"] = "DIFFERENT_VEDTAK_20260717"
+    manifest["extra"]["entry_run_id"] = "DIFFERENT_RUN_ID_20260717"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     out_dir = tmp_path / "audit"
 
-    with pytest.raises(RuntimeError, match="SPLIT_VEDTAK_MISMATCH"):
+    with pytest.raises(RuntimeError, match="SPLIT_RUN_ID_MISMATCH"):
         run(_args(dataset_dir, out_dir))
 
     assert not (out_dir / OUTPUT_FILENAME).exists()

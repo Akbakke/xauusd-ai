@@ -93,7 +93,7 @@ def _write_model_native_authority(tmp_path: Path) -> tuple[Path, Path]:
     candidate_payload = {
         "schema_version": "entry_candidate_readiness_model_native_v1",
         "created_utc": "2026-07-16T12:00:01.123456+00:00",
-        "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+        "decision": "READY_FOR_CANDIDATE_TRAINING",
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "edge_test_scope": "strict",

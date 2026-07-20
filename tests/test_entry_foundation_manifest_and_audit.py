@@ -73,7 +73,7 @@ def _foundation_selection_manifest(selected: list[str]) -> dict:
     mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
     ranked_remainder = selected[mandatory_count:]
     return {
-        "schema_version": "entry_model_native_seq513_signal_manifest_v1",
+        "schema_version": "entry_model_native_seq513_signal_manifest_v2",
         "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
         "base_signal_feature_count": len(MODEL_NATIVE_BASE_FIELDS),
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
@@ -217,7 +217,7 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
                 "split_reset_allowed": False,
                 "post_fit_rows_in_rank_reference": False,
                 "runtime_rule_free": True,
-                "explicit_vedtak_id": "MODEL_NATIVE_FOUNDATION_MANIFEST_PYTEST",
+                "entry_run_id": "MODEL_NATIVE_FOUNDATION_MANIFEST_PYTEST",
             },
         },
     )

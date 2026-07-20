@@ -56,21 +56,21 @@ EVIDENCE_SPECS = (
         "rebuild_preflight",
         "rebuild_preflight_json",
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
-        "entry_model_native_seq513_rebuild_preflight_v1",
-        "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD_VEDTAK_REVIEW",
+        "entry_model_native_seq513_rebuild_preflight_v2",
+        "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
     ),
     EvidenceSpec(
         "smoke_manifest",
         "smoke_manifest_json",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST",
-        "entry_model_native_seq513_smoke_manifest_v1",
+        "entry_model_native_seq513_smoke_manifest_v2",
         "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
     ),
     EvidenceSpec(
         "smoke_readiness",
         "smoke_readiness_json",
         "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS",
-        "entry_model_native_seq513_smoke_readiness_v1",
+        "entry_model_native_seq513_smoke_readiness_v2",
         "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
     ),
     EvidenceSpec(
@@ -85,7 +85,7 @@ EVIDENCE_SPECS = (
         "candidate_readiness_json",
         "ENTRY_CANDIDATE_READINESS",
         "entry_candidate_readiness_model_native_v1",
-        "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+        "READY_FOR_CANDIDATE_TRAINING",
     ),
 )
 

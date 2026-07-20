@@ -35,9 +35,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 
 SPLITS = ("train", "val", "test")
-SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v1"
-SPLIT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_split_manifest_v1"
-REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v1"
+SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v2"
+SPLIT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_split_manifest_v2"
+REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v2"
 MANIFEST_VARIANT = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SEQ_SNAP_WIDTH = MODEL_NATIVE_SIGNAL_DIM
 DEFAULT_STEM = "v10_model_native_seq513_smoke__HOLD_03B"
@@ -450,13 +450,13 @@ def _canonical_direction_decision_ok(contract: dict[str, Any]) -> bool:
     )
 
 
-def _explicit_vedtak_id_ok(vedtak_id: str) -> bool:
-    value = str(vedtak_id or "").strip()
+def _entry_run_id_ok(run_id: str) -> bool:
+    value = str(run_id or "").strip()
     placeholders = {
         "",
         "<id>",
-        "<vedtak-id>",
-        "<MODEL_NATIVE_SEQ513_SMOKE_VEDTAK_ID>",
+        "<run_id-id>",
+        "<MODEL_NATIVE_SEQ513_SMOKE_RUN_ID_ID>",
         "TODO",
         "TBD",
     }
@@ -636,15 +636,15 @@ def _future_command_contracts(
     dataset_dir: Path,
     splits: dict[str, dict[str, Any]],
     specialist_audit_json: Path,
-    vedtak_id: str,
+    run_id: str,
     memory_cap: str,
     swap_cap: str,
 ) -> dict[str, Any]:
     wrapper_argv = [
         "scripts/entry_next_edge_control.sh",
         "model-native-smoke-train",
-        "--vedtak",
-        vedtak_id,
+        "--run-id",
+        run_id,
         "--dataset-dir",
         str(dataset_dir),
         "--train-manifest-json",
@@ -716,8 +716,8 @@ def _future_command_contracts(
     return {
         "smart_smoke_manifest": {
             "mode": "report_only_manifest_materialization",
-            "requires_explicit_vedtak": True,
-            "explicit_vedtak_id": vedtak_id,
+            "run_lineage_required": True,
+            "entry_run_id": run_id,
             "mutates_only_report_dir": True,
             "starts_training": False,
             "starts_replay": False,
@@ -732,8 +732,8 @@ def _future_command_contracts(
             "execution_allowed_now": False,
             "argv_template": wrapper_argv,
             "wrapper_argv_template": wrapper_argv,
-            "requires_explicit_vedtak": True,
-            "explicit_vedtak_id": vedtak_id,
+            "run_lineage_required": True,
+            "entry_run_id": run_id,
             "requires_clean_git": True,
             "requires_ram_cap": True,
             "ram_cap_runner": RAM_CAP_RUNNER,
@@ -771,7 +771,7 @@ def _future_command_contracts(
 def _build_smoke_manifest(
     *,
     dataset_dir: Path,
-    vedtak_id: str,
+    run_id: str,
     splits: dict[str, dict[str, Any]],
     future_command_contracts: dict[str, Any],
 ) -> dict[str, Any]:
@@ -781,7 +781,7 @@ def _build_smoke_manifest(
         "report_only": True,
         "manifest_variant": MANIFEST_VARIANT,
         "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
-        "explicit_vedtak_id": vedtak_id,
+        "entry_run_id": run_id,
         "out_dir": str(dataset_dir),
         "dataset_dir": str(dataset_dir),
         "stem": DEFAULT_STEM,
@@ -816,7 +816,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         label="specialist audit",
     )
     out_dir = Path(args.out_dir).expanduser().resolve()
-    vedtak_id = str(args.vedtak_id or "").strip()
+    run_id = str(args.run_id or "").strip()
     memory_cap = str(args.memory_cap or DEFAULT_MEMORY_CAP)
     swap_cap = str(args.swap_cap or DEFAULT_SWAP_CAP)
     sample_rows = int(args.sample_rows)
@@ -876,15 +876,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         dataset_dir=dataset_dir,
         splits=splits,
         specialist_audit_json=specialist_audit_json,
-        vedtak_id=vedtak_id,
+        run_id=run_id,
         memory_cap=memory_cap,
         swap_cap=swap_cap,
     )
     checks: list[dict[str, Any]] = [
         _check(
-            "explicit model-native seq513 smoke vedtak id is provided",
-            _explicit_vedtak_id_ok(vedtak_id),
-            {"vedtak_id": vedtak_id},
+            "explicit model-native seq513 smoke run_id id is provided",
+            _entry_run_id_ok(run_id),
+            {"run_id": run_id},
         ),
         _check(
             "smart smoke dataset directory is explicit or pinned by post-rebuild readiness",
@@ -1078,7 +1078,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     smoke_manifest = (
         _build_smoke_manifest(
             dataset_dir=dataset_dir,
-            vedtak_id=vedtak_id,
+            run_id=run_id,
             splits=splits,
             future_command_contracts=future_command_contracts,
         )
@@ -1096,7 +1096,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "report_only": True,
         "manifest_variant": MANIFEST_VARIANT,
         "expected_seq_snap_width": EXPECTED_SEQ_SNAP_WIDTH,
-        "explicit_vedtak_id": vedtak_id if _explicit_vedtak_id_ok(vedtak_id) else None,
+        "entry_run_id": run_id if _entry_run_id_ok(run_id) else None,
         "smart_smoke_dataset_dir": str(dataset_dir),
         "smart_smoke_dataset_dir_source": dataset_dir_source,
         "out_dir": str(out_dir),
@@ -1118,7 +1118,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "mutations_outside_report_dir": False,
         "side_effects_started": dict(SIDE_EFFECTS_STARTED),
         "next_required_gate": (
-            "review the materialized smoke manifest and integrate a separate vedtak-gated control path"
+            "bind the materialized smoke manifest into the evidence-gated training control path"
             if ready
             else "repair missing or invalid model-native seq513 smoke split artifacts before any train/replay/IQL/shadow/live path"
         ),
@@ -1148,7 +1148,7 @@ def build_parser() -> argparse.ArgumentParser:
         ap.add_argument(f"--{split}-manifest-json", required=True)
         ap.add_argument(f"--{split}-manifest-sha256", required=True)
     ap.add_argument("--out-dir", required=True)
-    ap.add_argument("--vedtak-id", "--vedtak", dest="vedtak_id", required=True)
+    ap.add_argument("--run-id", "--run-id", dest="run_id", required=True)
     ap.add_argument("--memory-cap", default=DEFAULT_MEMORY_CAP)
     ap.add_argument("--swap-cap", default=DEFAULT_SWAP_CAP)
     ap.add_argument("--sample-rows", type=int, default=32)

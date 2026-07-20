@@ -13,7 +13,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
     source = SCRIPT.read_text(encoding="utf-8")
 
     for required in (
-        "--vedtak",
+        "--run-id",
         "--event-root",
         "--feature-ranking-json",
         "--signal-manifest",
@@ -24,13 +24,13 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         'fresh event outputs required',
         'preflight namespace must contain exactly one artifact',
         'preflight json_path is not an exact self-reference',
-        'preflight vedtak does not match chain vedtak',
+        'preflight run_id does not match chain run_id',
         'hashlib.sha256(raw).hexdigest()',
     ):
         assert required in source
 
     assert source.count('--feature-ranking-json "$RANKING"') == 3
-    assert source.count('--vedtak "$VEDTAK"') == 3
+    assert source.count('--run-id "$RUN_ID"') == 3
     for forbidden in (
         "pgrep",
         "sleep 60",
@@ -60,7 +60,7 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert "trap 'on_signal HUP 129' HUP" in source
     assert 'terminal_status ABORTED "received $signal_name" "$exit_code"' in source
     assert 'terminal_status RED "unexpected ERR at line $line" "$exit_code"' in source
-    assert '"explicit_vedtak_id": vedtak' in source
+    assert '"entry_run_id": run_id' in source
     assert '"step": step' in source
     assert '"state": state' in source
     assert "os.replace(temporary, path)" in source
@@ -90,7 +90,7 @@ def test_chain_cli_rejects_old_positional_interface() -> None:
     assert "unknown argument" in old.stderr
 
 
-def test_chain_validation_failure_persists_red_vedtak_and_revision(
+def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     tmp_path: Path,
 ) -> None:
     event = (tmp_path / "event").resolve()
@@ -100,7 +100,7 @@ def test_chain_validation_failure_persists_red_vedtak_and_revision(
     outside = (tmp_path / "outside").resolve()
     manifest = outside / "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20260719T200001000000Z.json"
     preflight = event / "preflight-20260719T200002000000Z"
-    vedtak = "XAU_SEQ513_REBUILD_UNIT_V1"
+    run_id = "XAU_SEQ513_REBUILD_UNIT_V1"
     env = dict(os.environ)
     # Prevent the existing notifier from loading repository credentials during
     # this deliberate fail-closed probe. An empty chat ID makes send() a no-op.
@@ -110,8 +110,8 @@ def test_chain_validation_failure_persists_red_vedtak_and_revision(
     result = subprocess.run(
         [
             str(SCRIPT),
-            "--vedtak",
-            vedtak,
+            "--run-id",
+            run_id,
             "--event-root",
             str(event),
             "--feature-ranking-json",
@@ -135,7 +135,7 @@ def test_chain_validation_failure_persists_red_vedtak_and_revision(
     # A dirty development checkout fails at the earlier source gate; a clean CI
     # checkout reaches the intentionally out-of-event manifest rejection.
     assert status["step"] in {"source-revision", "contract-validation"}
-    assert status["explicit_vedtak_id"] == vedtak
+    assert status["entry_run_id"] == run_id
     assert status["event_root"] == str(event)
     assert re.fullmatch(r"[0-9a-f]{40}", status["git_head"])
     assert Path(status["log_path"]).is_file()

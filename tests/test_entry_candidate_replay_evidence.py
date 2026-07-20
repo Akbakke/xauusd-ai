@@ -287,7 +287,7 @@ def test_trade_log_authority_requires_hash_and_same_prediction_report(
         CANDIDATE_EVENT_PREFIX,
         {
             "created_utc": "2026-07-16T12:00:02.123456+00:00",
-            "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+            "decision": "READY_FOR_CANDIDATE_TRAINING",
             "failures": [],
         },
     )

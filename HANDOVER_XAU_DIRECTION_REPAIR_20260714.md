@@ -149,16 +149,16 @@ to `FLAT`, a cached decision or backlog execution.
   manifest producer always retains all 305 registered causal-layer outputs and
   permits deterministic TRAIN-only ranking to fill only the remaining 174
   specialist positions.
-- Closed the rebuild-authorization provenance gap: the wrapper now passes one
-  validated `--vedtak` into both writing producers. The rank NPZ and sidecar,
+- Closed the rebuild-lineage provenance gap: the wrapper now passes one
+  validated `--run-id` into both writing producers. The rank NPZ and sidecar,
   dataset build proof, model-native state contract and every split manifest
   bind that exact ID; a missing, placeholder or mismatched ID fails before the
-  dataset builder writes. This intentionally advances the accepted state/rank
-  artifact schemas to `model_native_state_contract_v3` and
-  `model_native_train_rank_reference_v3`; older artifacts cannot pass.
+  dataset builder writes. The current accepted state/rank artifact schemas are
+  `model_native_state_contract_v4` and
+  `model_native_train_rank_reference_v4`; older artifacts cannot pass.
 - Closed the July-19 feature-ranking lineage gap: preflight, wrapper and builder
   require explicitly named ranking/manifest artifacts and revalidate their
-  vedtak, source hash and exact TRAIN start/end. A manifest ranked on a
+  run ID, source hash and exact TRAIN start/end. A manifest ranked on a
   different split cannot be reused.
 - Bound the exact eight-specialist partition and all active heads.
 - Removed legacy Entry modes, anchor/neutral-bridge arguments and optional-head
@@ -372,27 +372,27 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse invalidated vedtak `XAU_SEQ513_REBUILD_20260718_V1`. Obtain
-   a new explicit rebuild vedtak ID after the abstention-baseline decision; it
-   must be bound into rank NPZ, sidecar, build proof, state contract and all
-   split manifests. Wrapper-only console values do not count.
+1. Do **not** reuse invalidated run lineage `XAU_SEQ513_REBUILD_20260718_V1`.
+   Use `XAU_SEQ513_REBUILD_20260720_V2` as the one immutable `--run-id` bound
+   into rank NPZ, sidecar, build proof, state contract and all split manifests.
+   The ID is provenance, not a manual approval gate.
 2. Materialize a fresh feature-ranking JSON for the exact active TRAIN window.
    Never discover it through a directory glob or lexical/mtime "latest"
    selection.
-3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with explicit `--vedtak`,
+3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with `--run-id`,
    `--event-root`, `--feature-ranking-json`, `--signal-manifest` and
    `--preflight-out-dir`. The ranking must already exist; the manifest path and
    preflight directory must be fresh. The driver creates and revalidates the
-   manifest, preflight, v3 rank reference, dataset and split/audit outputs and
+   manifest, preflight, v4 rank reference, dataset and split/audit outputs and
    never resumes inferred debris.
 4. Accept the rebuild only from the driver's terminal validated split
    manifests. Console output, Telegram status, partial files and an earlier
    preflight cannot substitute for them.
-5. Exact vedtak-bound window: history start `2021-01-05T00:00:00Z`; TRAIN
+5. Exact run-lineage-bound window: history start `2021-01-05T00:00:00Z`; TRAIN
    `2021-03-16T00:00:00Z..2026-03-31T23:59:59Z`; validation
    `2026-04-01..2026-04-30`; TEST `2026-05-01..2026-06-14T23:55:00Z`.
 6. `model-native-smoke-manifest` -> `model-native-smoke-readiness` ->
-   `model-native-smoke-train --vedtak … --dry-run` then `--execute`.
+   `model-native-smoke-train --run-id … --dry-run` then `--execute`.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.
@@ -400,14 +400,16 @@ Ordered steps (each gate fail-closed; stop at first red):
    candidate-train -> calibration -> immutable prediction evidence ->
    unit-normalized replay -> the nine-item evidence list above.
 
-Nothing in this runbook grants run authority by itself; the explicit vedtak
-and green preflight do.
+Nothing in this runbook grants run authority by itself; exact evidence gates
+remain authoritative and `--run-id` only prevents mixed artifact lineages.
 
 ## Required evidence before Entry can open
 
-Before the rebuild/training sequence can resume, immutable historical
-selection-benchmark bytes and exact learned abstention-probe OOT evidence must
-pass the `BLOCK_ABSTENTION_EMPIRICAL_GATE`; metadata and label counts do not.
+The deleted historical Entry-IQL selection benchmark is not a satisfiable
+pre-rebuild prerequisite. Rebuild and candidate training must first produce
+fresh learned OOT predictions; admission then requires a fresh immutable proxy
+comparison plus absolute OOT support/confidence, cost and live-like gates.
+Metadata and label counts never satisfy that empirical gate.
 
 1. Fresh exact train/val/test split manifests and seq513 datasets.
 2. Full 513+142+5 field liveness and ordered-hash proof on all splits.

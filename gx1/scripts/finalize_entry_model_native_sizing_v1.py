@@ -1165,7 +1165,7 @@ def adopt_learned_sizing(
     proof_path: Path,
     joint_exit_proof_path: Path,
     authority_root: Path,
-    accepted_via_vedtak: str,
+    entry_run_id: str,
 ) -> tuple[Path, dict[str, Any]]:
     """Adopt learned sizing after exact OOS and joint active-Exit proofs.
 
@@ -1173,8 +1173,9 @@ def adopt_learned_sizing(
     requires a separate, newer post-adoption broker runtime-parity event.
     """
 
-    if not isinstance(accepted_via_vedtak, str) or not accepted_via_vedtak.strip():
-        raise SizingFinalizationError("sizing adoption requires an explicit vedtak")
+    from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+
+    entry_run_id = require_entry_run_id(entry_run_id)
     if not joint_exit_proof_path.expanduser().resolve().is_file():
         raise SizingFinalizationError(
             "joint active-Exit sizing proof is required before adoption"
@@ -1266,7 +1267,7 @@ def adopt_learned_sizing(
         ),
         "direction_authority": "none",
         "fixed_1x_fallback_allowed": False,
-        "accepted_via_vedtak": accepted_via_vedtak.strip(),
+        "entry_run_id": entry_run_id,
     }
     event_path, event = write_immutable_json_event(
         output_dir,
@@ -1419,7 +1420,7 @@ def _parser() -> argparse.ArgumentParser:
     adopt.add_argument("--proof", type=Path, required=True)
     adopt.add_argument("--joint-exit-proof", type=Path, required=True)
     adopt.add_argument("--authority-root", type=Path, required=True)
-    adopt.add_argument("--vedtak", required=True)
+    adopt.add_argument("--run-id", required=True)
     runtime = sub.add_parser("finalize-runtime-parity")
     runtime.add_argument("--adoption", type=Path, required=True)
     runtime.add_argument("--observations", type=Path, required=True)
@@ -1487,7 +1488,7 @@ def main() -> int:
             proof_path=args.proof,
             joint_exit_proof_path=args.joint_exit_proof,
             authority_root=args.authority_root,
-            accepted_via_vedtak=args.vedtak,
+            entry_run_id=args.run_id,
         )
         result = _binding(path)
     else:

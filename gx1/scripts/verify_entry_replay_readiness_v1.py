@@ -1415,7 +1415,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             _check(
                 "candidate-readiness is green for exact seq513",
                 str(candidate_readiness.get("decision"))
-                == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+                == "READY_FOR_CANDIDATE_TRAINING"
                 and candidate_readiness.get("contract_mode")
                 == MODEL_NATIVE_CONTRACT_MODE
                 and int(candidate_readiness.get("expected_signal_dim") or 0)

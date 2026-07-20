@@ -110,7 +110,7 @@ def _write_gate_artifacts(
         fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
         fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
         fit_row_count=np.asarray([1], dtype=np.int64),
-        explicit_vedtak_id=np.asarray(["MODEL_NATIVE_LIVE_GATE_PYTEST"]),
+        entry_run_id=np.asarray(["MODEL_NATIVE_LIVE_GATE_PYTEST"]),
         atr_bps_sorted=np.asarray([10.0], dtype=np.float64),
         spread_bps_sorted=np.asarray([1.0], dtype=np.float64),
     )
@@ -122,7 +122,7 @@ def _write_gate_artifacts(
                 "fit_scope": "train_only",
                 "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
                 "row_level_state_present": False,
-                "explicit_vedtak_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
+                "entry_run_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
                 "out_npz": str(rank_ref.resolve()),
                 "out_npz_sha256": rank_ref_sha,
                 "fit_start_utc": str(fit_start),
@@ -146,7 +146,7 @@ def _write_gate_artifacts(
         "split_reset_allowed": False,
         "post_fit_rows_in_rank_reference": False,
         "runtime_rule_free": True,
-        "explicit_vedtak_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
+        "entry_run_id": "MODEL_NATIVE_LIVE_GATE_PYTEST",
     }
     metadata_path = bundle_dir / "bundle_metadata.json"
     metadata_path.write_text(

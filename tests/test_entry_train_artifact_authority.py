@@ -20,7 +20,7 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-VEDTAK = "MODEL_NATIVE_TRAIN_ARTIFACT_PYTEST_V1"
+RUN_ID = "MODEL_NATIVE_TRAIN_ARTIFACT_PYTEST_V1"
 
 
 def _sha(path: Path) -> str:
@@ -43,7 +43,7 @@ def _artifacts(
     signal_contract = model_native_signal_contract_metadata(selected)
     state_contract = {
         "schema_version": "entry_model_native_state_contract_v2",
-        "explicit_vedtak_id": VEDTAK,
+        "entry_run_id": RUN_ID,
         "rank_fit_start_utc": "2021-03-16T00:00:00Z",
         "rank_fit_end_utc": "2026-03-31T23:59:59Z",
     }
@@ -100,7 +100,7 @@ def _resolve(
         train_parquet=parquets["train"],
         val_parquet=parquets["val"],
         test_parquet=parquets["test"],
-        vedtak=VEDTAK,
+        run_id=RUN_ID,
         profile="candidate",
     )
 
@@ -147,7 +147,7 @@ def test_relative_symlink_and_latest_paths_fail_closed(
             train_parquet=parquets["train"],
             val_parquet=parquets["val"],
             test_parquet=parquets["test"],
-            vedtak=VEDTAK,
+            run_id=RUN_ID,
             profile="candidate",
         )
 
@@ -172,8 +172,8 @@ def test_split_paths_must_be_six_way_distinct(
         _resolve(manifests, {**parquets, "val": parquets["train"]})
 
 
-@pytest.mark.parametrize("mutation", ("self_path", "vedtak"))
-def test_manifest_self_path_and_vedtak_lineage_are_exact(
+@pytest.mark.parametrize("mutation", ("self_path", "run_id"))
+def test_manifest_self_path_and_run_lineage_are_exact(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mutation: str,
@@ -185,10 +185,10 @@ def test_manifest_self_path_and_vedtak_lineage_are_exact(
         payload["output_data_path"] = str(parquets["val"])
         expected = "SELF_PATH_MISMATCH"
     else:
-        payload["extra"]["model_native_state_contract"]["explicit_vedtak_id"] = (
-            "DIFFERENT_VEDTAK"
+        payload["extra"]["model_native_state_contract"]["entry_run_id"] = (
+            "DIFFERENT_RUN_ID"
         )
-        expected = "VEDTAK_LINEAGE_MISMATCH"
+        expected = "RUN_ID_LINEAGE_MISMATCH"
     manifest.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
     monkeypatch.setenv(trainer._TRAIN_ARTIFACT_HASH_ENV["test_manifest"], _sha(manifest))
 

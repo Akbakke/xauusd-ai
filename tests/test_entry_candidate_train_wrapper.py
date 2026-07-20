@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 from tests.entry_model_native_train_wrapper_support import (
-    VEDTAK,
+    RUN_ID,
     build_wrapper_contract,
 )
 
@@ -37,7 +37,7 @@ def test_candidate_wrapper_has_valid_shell_syntax() -> None:
 
 
 def test_candidate_wrapper_requires_complete_explicit_contract() -> None:
-    result = _run("--vedtak", VEDTAK, "--dry-run")
+    result = _run("--run-id", RUN_ID, "--dry-run")
 
     assert result.returncode == 2
     assert "missing required argument" in result.stderr
@@ -106,7 +106,7 @@ def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_
     assert "--pretrain-audit-json" in text
     assert "--candidate-readiness-json" in text
     assert "--smoke-bundle-audit-json" in text
-    assert "--execute" in text and "--vedtak" in text
+    assert "--execute" in text and "--run-id" in text
     assert 'RUN_CMD=("$CAPPED_RUNNER" --mem "$MEMORY_CAP" --swap "$SWAP_CAP" --' in text
     for flag in (
         "--enable-pos-enc",

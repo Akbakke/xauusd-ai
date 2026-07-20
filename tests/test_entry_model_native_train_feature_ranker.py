@@ -20,7 +20,7 @@ from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
 
 
-VEDTAK = "FEATURE_RANKER_UNIT_VEDTAK"
+RUN_ID = "FEATURE_RANKER_UNIT_RUN_ID"
 RANKING_CREATED = datetime(2026, 7, 18, 9, 0, 0, 1, tzinfo=timezone.utc)
 MANIFEST_CREATED = datetime(2026, 7, 18, 9, 0, 1, 1, tzinfo=timezone.utc)
 
@@ -108,7 +108,7 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
 
     ranking_path = ranker.emit_ranking(
         out_dir=tmp_path,
-        vedtak=VEDTAK,
+        run_id=RUN_ID,
         train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
         train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
         source_time_max=pd.Timestamp("2026-03-31T23:55:00Z"),
@@ -135,7 +135,7 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
         argparse.Namespace(
             feature_ranking_json=str(ranking_path),
             out=str(out),
-            vedtak=VEDTAK,
+            run_id=RUN_ID,
         )
     )
 
@@ -155,7 +155,7 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
     }
     path = ranker.emit_ranking(
         out_dir=tmp_path,
-        vedtak=VEDTAK,
+        run_id=RUN_ID,
         train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
         train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
         source_time_max=pd.Timestamp("2026-03-31T23:55:00Z"),

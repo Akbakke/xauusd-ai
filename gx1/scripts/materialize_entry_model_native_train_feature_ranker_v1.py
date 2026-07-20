@@ -59,7 +59,7 @@ from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import
     TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
     _is_forbidden_leak_name,
 )
-from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
 RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
@@ -304,7 +304,7 @@ def _spearman_scores(
 def emit_ranking(
     *,
     out_dir: Path,
-    vedtak: str,
+    run_id: str,
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
     source_time_max: pd.Timestamp,
@@ -321,7 +321,7 @@ def emit_ranking(
     payload: Dict[str, Any] = {
         "schema_version": TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": created.isoformat(),
-        "explicit_vedtak_id": vedtak,
+        "entry_run_id": run_id,
         "producer": TRAIN_FEATURE_RANKING_PRODUCER,
         "producer_version": TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
         "fit_scope": "train_only",
@@ -351,7 +351,7 @@ def emit_ranking(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--vedtak", required=True)
+    parser.add_argument("--run-id", required=True)
     parser.add_argument("--source-parquet", type=Path, required=True)
     parser.add_argument("--mtf-cache-dir", type=Path, required=True)
     parser.add_argument("--history-start", required=True)
@@ -360,7 +360,7 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, required=True)
     args = parser.parse_args()
 
-    vedtak = require_retrain_vedtak(args.vedtak)
+    run_id = require_entry_run_id(args.run_id)
     history_start = _parse_utc_arg(args.history_start, field="history_start")
     train_start = _parse_utc_arg(args.train_start, field="train_start")
     train_end = _parse_utc_arg(args.train_end, field="train_end")
@@ -451,7 +451,7 @@ def main() -> None:
 
     out_path = emit_ranking(
         out_dir=args.out_dir.expanduser().resolve(),
-        vedtak=vedtak,
+        run_id=run_id,
         train_start=train_start,
         train_end=train_end,
         source_time_max=source_time_max,

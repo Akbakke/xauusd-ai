@@ -9,7 +9,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 
     for required in (
-        "--vedtak",
+        "--run-id",
         "--source-parquet",
         "--canonical-v2-parquet",
         "--signal-manifest",
@@ -24,7 +24,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--fit-start",
         "--fit-end",
         "validate_signal_manifest_training_lineage",
-        "expected_vedtak_id",
+        "expected_run_id",
         "expected_source_sha256",
         "expected_train_start_utc",
         "expected_train_end_utc",
@@ -72,10 +72,10 @@ def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> Non
     assert "dataset build proof already exists" in source
     assert "rank reference already exists" in source
     assert "audit output directory already exists" in source
-    assert source.count('--vedtak "$VEDTAK"') == 3
+    assert source.count('--run-id "$RUN_ID"') == 3
     assert source.count('--feature-ranking-json "$FEATURE_RANKING_JSON"') == 1
     assert "SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON" in source
-    assert "--vedtak has invalid format" in source
+    assert "--run-id has invalid format" in source
 
 
 def test_seq513_rebuild_full_input_liveness_precedes_target_preflight() -> None:

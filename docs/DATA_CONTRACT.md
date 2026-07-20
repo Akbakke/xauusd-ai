@@ -37,16 +37,17 @@ normalization, recipe selection, calibration or stopping.
 
 ## TRAIN-only state and common history
 
-`model_native_state_contract_v3` is the only accepted rank/history contract.
-It requires the exact `model_native_train_rank_reference_v3` payload, whose
-NPZ and sidecar both bind the explicit rebuild `--vedtak`.
+`model_native_state_contract_v4` is the only accepted rank/history contract.
+It requires the exact `model_native_train_rank_reference_v4` payload, whose
+NPZ and sidecar both bind the immutable Entry `--run-id`. The ID is lineage,
+not an approval gate.
 ATR and observed bid/ask spread are derived causally from raw prices. Their
 quintile ranks use one immutable TRAIN-only ECDF whose fit begins at
 `TRAIN_START` and ends exactly at `TRAIN_END`; validation, test and serving
 reuse it without fitting or updating it.
 
 The rank NPZ contains exactly seven keys: `schema_version`,
-`explicit_vedtak_id`, `fit_start_ns`, `fit_end_ns`, `fit_row_count`,
+`entry_run_id`, `fit_start_ns`, `fit_end_ns`, `fit_row_count`,
 `atr_bps_sorted` and `spread_bps_sorted`. Per-row timestamps, categories and
 pinned ATR state are forbidden. Its sidecar binds source and artifact hashes,
 declares `fit_scope=train_only`, and proves that no validation or test rows are
@@ -55,7 +56,7 @@ stored.
 The deterministic feature-ranking JSON that selects the final 174 specialist
 fields and the derived seq513 signal manifest are explicit immutable inputs.
 Preflight, rebuild wrapper and dataset builder all revalidate their nested
-lineage, explicit vedtak, source hash and exact TRAIN start/end against the
+lineage, Entry run ID, source hash and exact TRAIN start/end against the
 requested build. A directory glob, mtime or lexical "latest" result is not an
 artifact identity. Any mismatch invalidates the entire attempt; partial files
 and non-terminal chain-status records cannot be promoted or resumed as proof.
@@ -113,4 +114,5 @@ Consumers revalidate bound bytes. A copied manifest or report-level `PASS`
 without matching content hashes is not evidence.
 
 No dataset build is authorized merely by this document. Rebuild requires the
-exact model-native preflight contract and explicit `--vedtak`.
+exact model-native preflight contract and one validated `--run-id` shared by
+the complete immutable artifact lineage.

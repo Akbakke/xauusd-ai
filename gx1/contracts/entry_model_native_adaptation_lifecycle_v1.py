@@ -32,16 +32,17 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     require_immutable_json_binding,
     sha256_file,
 )
+from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
 
 
 MODEL_NATIVE_ADAPTATION_LIFECYCLE_SCHEMA_VERSION = (
-    "entry_model_native_adaptation_lifecycle_v1"
+    "entry_model_native_adaptation_lifecycle_v2"
 )
 MODEL_NATIVE_ADAPTATION_LIFECYCLE_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_ADAPTATION_LIFECYCLE"
 )
 MODEL_NATIVE_ADAPTATION_LIFECYCLE_CONTRACT = (
-    "offline_drift_challenger_replay_shadow_promotion_rollback_v1"
+    "offline_drift_challenger_replay_shadow_promotion_rollback_v2"
 )
 MODEL_NATIVE_ADAPTATION_LIFECYCLE_MAX_ACTIVATION_AGE_SECONDS = 86_400
 
@@ -94,7 +95,7 @@ _EVENT_KEYS = frozenset(
         "admission_evidence",
         "activation_authority",
         "expires_utc",
-        "accepted_via_vedtak",
+        "entry_run_id",
         "adaptation_training_mode",
         "online_weight_updates_allowed",
         "post_model_direction_rules_allowed",
@@ -629,9 +630,12 @@ def load_bound_adaptation_lifecycle(
         )
         if admission != event["admission_evidence"]:
             _fail(context, "admission evidence canonicalization mismatch")
-        vedtak = str(event["accepted_via_vedtak"] or "").strip()
-        if not vedtak or vedtak != event["accepted_via_vedtak"]:
-            _fail(context, "activating transition lacks exact vedtak")
+        try:
+            run_id = require_entry_run_id(event["entry_run_id"])
+        except EntryRunLineageError as exc:
+            _fail(context, str(exc))
+        if run_id != event["entry_run_id"]:
+            _fail(context, "activating transition run lineage is not canonical")
         created = _utc(event["created_utc"], context=f"{context}.created_utc")
         expires = _utc(event["expires_utc"], context=f"{context}.expires_utc")
         if (expires - created).total_seconds() != MODEL_NATIVE_ADAPTATION_LIFECYCLE_MAX_ACTIVATION_AGE_SECONDS:
@@ -648,12 +652,15 @@ def load_bound_adaptation_lifecycle(
             or event["expires_utc"] is not None
         ):
             _fail(context, "non-activating transition cannot carry admission/expiry")
-        if transition == TRANSITION_DRIFT_DETECTED and event["accepted_via_vedtak"] is not None:
-            _fail(context, "DRIFT_DETECTED cannot invent a vedtak")
+        if transition == TRANSITION_DRIFT_DETECTED and event["entry_run_id"] is not None:
+            _fail(context, "DRIFT_DETECTED cannot invent a run_id")
         if transition in {TRANSITION_CHALLENGER_EVALUATED, TRANSITION_SHADOW_EVALUATED}:
-            vedtak = str(event["accepted_via_vedtak"] or "").strip()
-            if not vedtak or vedtak != event["accepted_via_vedtak"]:
-                _fail(context, "challenger/shadow transition lacks explicit vedtak")
+            try:
+                run_id = require_entry_run_id(event["entry_run_id"])
+            except EntryRunLineageError as exc:
+                _fail(context, str(exc))
+            if run_id != event["entry_run_id"]:
+                _fail(context, "challenger/shadow run lineage is not canonical")
 
     if transition == TRANSITION_ROLLBACK and not _rollback_target_appeared_earlier(
         current_path=path,

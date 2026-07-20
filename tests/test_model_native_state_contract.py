@@ -229,7 +229,7 @@ def _rank_artifact(tmp_path: Path) -> tuple[Path, dict]:
             fit_start="2026-05-21T00:00:00Z",
             fit_end="2026-05-21T01:00:00Z",
             min_rows=1,
-            vedtak="MODEL_NATIVE_STATE_CONTRACT_PYTEST",
+            run_id="MODEL_NATIVE_STATE_CONTRACT_PYTEST",
         )
     )
     return out, report
@@ -250,7 +250,7 @@ def _state_metadata(rank_ref: Path, report: dict, *, sha256: str | None = None) 
         "split_reset_allowed": False,
         "post_fit_rows_in_rank_reference": False,
         "runtime_rule_free": True,
-        "explicit_vedtak_id": "MODEL_NATIVE_STATE_CONTRACT_PYTEST",
+        "entry_run_id": "MODEL_NATIVE_STATE_CONTRACT_PYTEST",
     }
 
 

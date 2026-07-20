@@ -17,7 +17,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as producer
 
 
-VEDTAK = "SEQ513_FULL_STACK_RETENTION_TEST"
+RUN_ID = "SEQ513_FULL_STACK_RETENTION_TEST"
 RANKING_CREATED = datetime(2026, 7, 17, 10, 0, 0, 1, tzinfo=timezone.utc)
 OUTPUT_CREATED = datetime(2026, 7, 17, 10, 0, 1, 1, tzinfo=timezone.utc)
 
@@ -37,7 +37,7 @@ def _ranking_payload() -> dict:
     return {
         "schema_version": producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": RANKING_CREATED.isoformat(),
-        "explicit_vedtak_id": VEDTAK,
+        "entry_run_id": RUN_ID,
         "producer": producer.TRAIN_FEATURE_RANKING_PRODUCER,
         "producer_version": producer.TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
         "fit_scope": "train_only",
@@ -78,11 +78,11 @@ def _out(tmp_path: Path, *, created: datetime = OUTPUT_CREATED) -> Path:
     )
 
 
-def _args(ranking: Path, out: Path, *, vedtak: str = VEDTAK) -> argparse.Namespace:
+def _args(ranking: Path, out: Path, *, run_id: str = RUN_ID) -> argparse.Namespace:
     return argparse.Namespace(
         feature_ranking_json=str(ranking),
         out=str(out),
-        vedtak=vedtak,
+        run_id=run_id,
     )
 
 
@@ -172,7 +172,7 @@ def test_invalid_ranking_fails_before_output_write(
     assert not out.exists()
 
 
-def test_invalid_vedtak_fails_before_output_write(
+def test_invalid_run_id_fails_before_output_write(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -180,8 +180,8 @@ def test_invalid_vedtak_fails_before_output_write(
     ranking = _write_ranking(tmp_path)
     out = _out(tmp_path)
 
-    with pytest.raises(Exception, match="no --vedtak provided"):
-        producer.run(_args(ranking, out, vedtak=""))
+    with pytest.raises(Exception, match="provide --run-id"):
+        producer.run(_args(ranking, out, run_id=""))
 
     assert not out.exists()
 

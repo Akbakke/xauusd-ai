@@ -26,7 +26,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     parse_utc,
     sha256_file,
 )
-from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
 REQUIRED_COLUMNS = ("time", "high", "low", "close", "bid_close", "ask_close")
@@ -43,7 +43,7 @@ def _json_default(value: Any) -> Any:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    explicit_vedtak_id = require_retrain_vedtak(getattr(args, "vedtak", None))
+    entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
     source = Path(args.source_parquet).expanduser().resolve()
     out = Path(args.out).expanduser().resolve()
     history_start = parse_utc(args.history_start, field="history_start")
@@ -99,7 +99,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
         fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
         fit_row_count=np.asarray([len(fit)], dtype=np.int64),
-        explicit_vedtak_id=np.asarray([explicit_vedtak_id]),
+        entry_run_id=np.asarray([entry_run_id]),
         atr_bps_sorted=atr_sorted,
         spread_bps_sorted=spread_sorted,
     )
@@ -107,7 +107,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     report = {
         "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "explicit_vedtak_id": explicit_vedtak_id,
+        "entry_run_id": entry_run_id,
         "fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "row_level_state_present": False,
@@ -144,7 +144,7 @@ def main() -> int:
     parser.add_argument("--fit-end", required=True)
     parser.add_argument("--min-rows", type=int, default=1000)
     parser.add_argument(
-        "--vedtak",
+        "--run-id",
         required=True,
         help="Explicit user decision ID bound into the immutable rank-reference sidecar.",
     )

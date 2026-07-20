@@ -149,7 +149,7 @@ def _args(
     dataset_dir: Path,
     *,
     post_rebuild: Path | None = None,
-    vedtak_id: str = "MODEL_NATIVE_SEQ513_SMOKE_PYTEST",
+    run_id: str = "MODEL_NATIVE_SEQ513_SMOKE_PYTEST",
 ) -> argparse.Namespace:
     specialist = _write_json(
         tmp_path / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260716T120001123456Z.json",
@@ -180,7 +180,7 @@ def _args(
         post_rebuild_readiness_json=str(post_rebuild or _post_rebuild(tmp_path, dataset_dir)),
         smart_specialist_audit_json=str(specialist),
         out_dir=str(tmp_path / "reports"),
-        vedtak_id=vedtak_id,
+        run_id=run_id,
         memory_cap="22G",
         swap_cap="2G",
         sample_rows=2,
@@ -202,7 +202,7 @@ def _run_blocked(args: argparse.Namespace) -> dict:
 def test_parser_requires_explicit_evidence_dataset_and_output_paths() -> None:
     parser = gate.build_parser()
     with pytest.raises(SystemExit):
-        parser.parse_args(["--vedtak", "MODEL_NATIVE_SEQ513_SMOKE_PYTEST"])
+        parser.parse_args(["--run-id", "MODEL_NATIVE_SEQ513_SMOKE_PYTEST"])
     help_text = parser.format_help()
     assert "_latest.json" not in help_text
     assert "--post-rebuild-readiness-json" in help_text
@@ -255,7 +255,7 @@ def test_materializes_one_hash_bound_immutable_manifest_event(tmp_path: Path) ->
 
     manifest = report["smoke_manifest"]
     assert manifest["schema_version"] == gate.SCHEMA_VERSION
-    assert manifest["explicit_vedtak_id"] == "MODEL_NATIVE_SEQ513_SMOKE_PYTEST"
+    assert manifest["entry_run_id"] == "MODEL_NATIVE_SEQ513_SMOKE_PYTEST"
     assert set(manifest["splits"]) == set(gate.SPLITS)
     for row in manifest["splits"].values():
         assert row["rows"] == 3

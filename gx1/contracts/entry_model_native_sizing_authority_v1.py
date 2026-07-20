@@ -43,13 +43,14 @@ from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
     load_bound_joint_exit_sizing_proof,
 )
+from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
 
 
 MODEL_NATIVE_SIZING_AUTHORITY_SCHEMA_VERSION = (
     "entry_model_native_sizing_authority_v4"
 )
 MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION = (
-    "entry_model_native_sizing_adoption_v3"
+    "entry_model_native_sizing_adoption_v4"
 )
 MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION = (
     "entry_model_native_sizing_bundle_calibration_v1"
@@ -110,7 +111,7 @@ _ADOPTION_KEYS = frozenset(
         "runtime_constraint_authority",
         "direction_authority",
         "fixed_1x_fallback_allowed",
-        "accepted_via_vedtak",
+        "entry_run_id",
     }
 )
 _BUNDLE_CALIBRATION_KEYS = frozenset(
@@ -670,11 +671,10 @@ def require_model_native_sizing_adoption_artifact(
     for key, expected in _ADOPTION_STATIC.items():
         if observed[key] != expected:
             _fail(context, f"{key}={observed[key]!r} expected={expected!r}")
-    if (
-        not isinstance(observed["accepted_via_vedtak"], str)
-        or not observed["accepted_via_vedtak"].strip()
-    ):
-        _fail(context, "accepted_via_vedtak must be an explicit non-empty decision id")
+    try:
+        require_entry_run_id(observed["entry_run_id"])
+    except EntryRunLineageError as exc:
+        _fail(context, str(exc))
     bundle = Path(str(observed["bundle_dir"] or "")).expanduser()
     if not bundle.is_absolute():
         _fail(context, "bundle_dir must be absolute")

@@ -340,7 +340,7 @@ def write_initial_adaptation_lifecycle(
         replay_readiness_path=replay["event_path"],
         output_dir=root / "adaptation_lifecycle",
         admission_evidence=admission_evidence,
-        accepted_via_vedtak="UNIT_INITIAL_ADAPTATION_ADMISSION",
+        entry_run_id="UNIT_INITIAL_ADAPTATION_ADMISSION",
     )
     return {
         "event": event,

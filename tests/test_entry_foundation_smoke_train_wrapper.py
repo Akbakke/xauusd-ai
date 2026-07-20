@@ -12,7 +12,7 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     _validate_feature_audit_signal_partition,
 )
 from tests.entry_model_native_train_wrapper_support import (
-    VEDTAK,
+    RUN_ID,
     build_wrapper_contract,
 )
 
@@ -50,7 +50,7 @@ def test_smoke_wrapper_has_valid_shell_syntax() -> None:
 
 
 def test_smoke_wrapper_requires_complete_explicit_contract() -> None:
-    result = _run("--vedtak", VEDTAK, "--dry-run")
+    result = _run("--run-id", RUN_ID, "--dry-run")
 
     assert result.returncode == 2
     assert "missing required argument" in result.stderr
@@ -59,7 +59,7 @@ def test_smoke_wrapper_requires_complete_explicit_contract() -> None:
 
 def test_smoke_wrapper_rejects_unknown_or_duplicate_arguments() -> None:
     unknown = _run("--smart-seq520", "--dry-run")
-    duplicate = _run("--vedtak", VEDTAK, "--vedtak", VEDTAK, "--dry-run")
+    duplicate = _run("--run-id", RUN_ID, "--run-id", RUN_ID, "--dry-run")
 
     assert unknown.returncode == 2
     assert "unknown argument" in unknown.stderr
@@ -161,7 +161,7 @@ def test_smoke_wrapper_source_is_exact_model_native_and_has_no_stale_launch_path
     assert "--recipe-audit-json" in text
     assert "--pretrain-audit-json" in text
     assert "--full-input-liveness-audit-json" in text
-    assert "--execute" in text and "--vedtak" in text
+    assert "--execute" in text and "--run-id" in text
     assert 'RUN_CMD=("$CAPPED_RUNNER" --mem "$MEMORY_CAP" --swap "$SWAP_CAP" --' in text
     for flag in (
         "--enable-pos-enc",
