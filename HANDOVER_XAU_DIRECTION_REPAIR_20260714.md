@@ -220,6 +220,13 @@ to `FLAT`, a cached decision or backlog execution.
   the model-native signal contract the one exact base/context owner. The
   retained V3 XGB bridge remains Exit-only: it owns real ordered 7/41-field
   validation for two Exit consumers and fails closed on import/order mismatch.
+- Closed the remaining prebuilt/builder context split-brain: the Entry contract
+  now owns the source/micro/swing/session groups, one strict causal micro helper
+  and one confirmation-lag swing helper serve offline and live paths, and the
+  builder always discards source copies before recomputation. The old
+  `shift(-1/-2)` swing lookahead, optional ctx dimensions and cross-parquet
+  side-load are deleted. canonical-v2 and the exact source prebuilt now have
+  explicit disjoint field-owner sets; missing owner fields fail closed.
 - Put every retained OANDA backfill writer behind explicit `--vedtak`
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
@@ -357,9 +364,10 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    source tests are not a substitute.
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
    the event copy is repaired) — separate decision; live Exit serves on it.
-3. Exit env-softeners (3 audit MEDIUMs), ctx v1/v3 dual-owner in the builder
-   (analyze before NEXT rebuild), CI replacement, gx1/scripts sorting,
-   hashing-helper consolidation — post-smoke backlog.
+3. Exit env-softeners (3 audit MEDIUMs), CI replacement, gx1/scripts sorting
+   and hashing-helper consolidation remain post-smoke backlog. The former ctx
+   v1/v3 builder dual-owner is resolved in source and adversarial tests; a fresh
+   artifact cascade is still mandatory before it can claim empirical parity.
 4. Two commits may await push (permission prompts): check `git status -sb`.
 
 Ordered steps (each gate fail-closed; stop at first red):

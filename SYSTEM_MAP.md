@@ -78,6 +78,14 @@ and 5 categorical-context identities. Active Entry has zero imports from
 `signal_bridge_v1` or `signal_bridge_v3`; those modules cannot supply,
 reorder or repair Entry state.
 
+The 21-field V1 context prefix is likewise partitioned only here: source6,
+micro5, swing5 and session5. `micro_structure_v1` and `swing_structure_v1`
+own the causal formulas used by prebuild, dataset build and serving. During the
+dataset join canonical-v2 exclusively owns base30 + context-v2-19, while the
+exact source prebuilt exclusively owns context-v3-5 + regime-source15 + raw
+volume. A duplicated or missing owner field is a hard failure; there is no
+source/canonical preference fallback.
+
 The complete 479-field order is manifest-owned and hash-bound. The first 305
 positions must exactly equal the immutable causal-layer registry; the final
 174 come from one validated deterministic TRAIN-only ranking. It cannot be
@@ -459,7 +467,7 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
                 cv3_modelrange.provenance.json; 124 kol)
               └─ gx1.scripts.add_ctx_cont_columns_to_prebuilt
                     --prebuilt_parquet --output_parquet --raw_m5_parquet <7 år-parter>
-                    --ctx-cont-dim 16 --ctx-cat-dim 5 --tape-root
+                    --tape-root  (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
                     → FULL_PLUS_CTX_v3src.parquet (207 kol) + manifester
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)

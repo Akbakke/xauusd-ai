@@ -12,6 +12,7 @@ are ranking-owned.  The emitted manifest still owns the audited exact order,
 while this module owns the immutable base order, mandatory registry identity,
 dimensions, forbidden legacy fields, and validation of the combined surface.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -25,7 +26,9 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
 )
 from gx1.features.entry_smart_context import ENTRY_SMART_CTX_FEATURE_NAMES
+from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1
 from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
+from gx1.features.swing_structure_v1 import SWING_FEATURE_NAMES_V1
 
 
 MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v3"
@@ -88,30 +91,31 @@ MODEL_NATIVE_BASE_FIELDS = (
     "signed_vol_z_20",
 )
 
-MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS = (
+MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = (
     "atr_bps",
     "spread_bps",
     "D1_dist_from_ema200_atr",
     "H1_range_compression_ratio",
     "D1_atr_percentile_252",
     "M15_range_compression_ratio",
-    "micro_momentum_3",
-    "micro_momentum_5",
-    "micro_acceleration",
-    "wick_ratio",
-    "distance_ema_fast",
-    "dist_last_swing_high_atr",
-    "dist_last_swing_low_atr",
-    "bars_since_swing_high",
-    "bars_since_swing_low",
-    "retracement_from_last_impulse",
+)
+MODEL_NATIVE_CTX_CONT_MICRO_FIELDS = tuple(MICRO_FEATURE_NAMES_V1)
+MODEL_NATIVE_CTX_CONT_SWING_FIELDS = tuple(SWING_FEATURE_NAMES_V1)
+MODEL_NATIVE_CTX_CONT_SESSION_FIELDS = (
     "is_ASIA",
     "minutes_since_session_open",
     "minutes_to_next_session_boundary",
     "session_change_flag",
     "session_tradable",
 )
-MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS = MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS[:6]
+MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS = (
+    MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
+    + MODEL_NATIVE_CTX_CONT_MICRO_FIELDS
+    + MODEL_NATIVE_CTX_CONT_SWING_FIELDS
+)
+MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS = (
+    MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS + MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
+)
 
 MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS = (
     "_v1h1_ema_diff",
@@ -209,9 +213,7 @@ MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS = (
     "struct_smc_swing_x_dip_v3",
 )
 
-MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS = tuple(
-    ENTRY_SMART_CTX_FEATURE_NAMES
-)
+MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS = tuple(ENTRY_SMART_CTX_FEATURE_NAMES)
 MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = tuple(REGIME_V4_FEATURE_NAMES)
 MODEL_NATIVE_CTX_CONT_FIELDS = (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS
@@ -304,6 +306,9 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
         "ctx_cont_source_prefix_names": list(
             MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
         ),
+        "ctx_cont_micro_features": list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+        "ctx_cont_swing_features": list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
+        "ctx_cont_session_features": list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS),
     }
 
 
@@ -357,7 +362,9 @@ MODEL_NATIVE_STATIC_CONTRACT_SHA256 = _sha256_json(
 )
 
 
-def ordered_model_native_signal_fields(selected_fields: Sequence[str]) -> tuple[str, ...]:
+def ordered_model_native_signal_fields(
+    selected_fields: Sequence[str],
+) -> tuple[str, ...]:
     """Return the exact 513-field surface or fail on any soft compatibility."""
 
     selected = tuple(str(name).strip() for name in selected_fields)
@@ -381,7 +388,9 @@ def ordered_model_native_signal_fields(selected_fields: Sequence[str]) -> tuple[
         failures.append(f"selected_fields_duplicate_base_fields={base_overlap[:20]}")
     selected_set = set(selected)
     missing_mandatory = [
-        name for name in MODEL_NATIVE_MANDATORY_SELECTED_FIELDS if name not in selected_set
+        name
+        for name in MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+        if name not in selected_set
     ]
     if missing_mandatory:
         failures.append(
@@ -410,11 +419,15 @@ def ordered_model_native_signal_fields(selected_fields: Sequence[str]) -> tuple[
     if len(fields) != MODEL_NATIVE_SIGNAL_DIM:
         failures.append(f"signal_dim={len(fields)} expected={MODEL_NATIVE_SIGNAL_DIM}")
     if failures:
-        raise RuntimeError("MODEL_NATIVE_SIGNAL_FIELDS_INVALID: " + " | ".join(failures))
+        raise RuntimeError(
+            "MODEL_NATIVE_SIGNAL_FIELDS_INVALID: " + " | ".join(failures)
+        )
     return fields
 
 
-def model_native_signal_contract_metadata(selected_fields: Sequence[str]) -> dict[str, Any]:
+def model_native_signal_contract_metadata(
+    selected_fields: Sequence[str],
+) -> dict[str, Any]:
     selected = tuple(str(name).strip() for name in selected_fields)
     fields = ordered_model_native_signal_fields(selected)
     return {
@@ -477,7 +490,9 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
             failures.append(f"{key}={contract.get(key)!r} expected={expected!r}")
 
     base_fields = tuple(str(value) for value in (contract.get("base_fields") or ()))
-    selected_fields = tuple(str(value) for value in (contract.get("selected_fields") or ()))
+    selected_fields = tuple(
+        str(value) for value in (contract.get("selected_fields") or ())
+    )
     fields = tuple(str(value) for value in (contract.get("fields") or ()))
     forbidden_declared = tuple(
         str(value) for value in (contract.get("forbidden_legacy_bridge_fields") or ())
@@ -511,7 +526,9 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
         failures.append("fields order mismatch")
     forbidden_present = sorted(set(fields) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS))
     if forbidden_present:
-        failures.append(f"fields contain forbidden legacy bridge inputs: {forbidden_present}")
+        failures.append(
+            f"fields contain forbidden legacy bridge inputs: {forbidden_present}"
+        )
     expected_hash = _sha256_json(fields)
     if str(contract.get("ordered_fields_sha256") or "") != expected_hash:
         failures.append(
@@ -519,19 +536,29 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
             f"declared={contract.get('ordered_fields_sha256')!r} actual={expected_hash}"
         )
     if contract.get("bridge_source") is not None:
-        failures.append(f"bridge_source must be null, got {contract.get('bridge_source')!r}")
+        failures.append(
+            f"bridge_source must be null, got {contract.get('bridge_source')!r}"
+        )
     if contract.get("anchor_source") is not None:
-        failures.append(f"anchor_source must be null, got {contract.get('anchor_source')!r}")
+        failures.append(
+            f"anchor_source must be null, got {contract.get('anchor_source')!r}"
+        )
     return failures
 
 
-def require_model_native_signal_contract(contract: Mapping[str, Any], *, context: str) -> None:
+def require_model_native_signal_contract(
+    contract: Mapping[str, Any], *, context: str
+) -> None:
     failures = model_native_signal_contract_failures(contract)
     if failures:
-        raise RuntimeError(f"[{context}_MODEL_NATIVE_SIGNAL_CONTRACT_INVALID] " + " | ".join(failures))
+        raise RuntimeError(
+            f"[{context}_MODEL_NATIVE_SIGNAL_CONTRACT_INVALID] " + " | ".join(failures)
+        )
 
 
-def require_model_native_manifest(manifest: Mapping[str, Any], *, context: str) -> dict[str, Any]:
+def require_model_native_manifest(
+    manifest: Mapping[str, Any], *, context: str
+) -> dict[str, Any]:
     """Validate the feature-selection manifest and return its exact contract."""
 
     mode = str(manifest.get("manifest_variant") or "").strip()
@@ -546,7 +573,10 @@ def require_model_native_manifest(manifest: Mapping[str, Any], *, context: str) 
             f"[{context}_CONTRACT_MODE_INVALID] manifest_variant={mode!r} "
             f"expected={MODEL_NATIVE_CONTRACT_MODE!r}"
         )
-    if int(manifest.get("base_signal_feature_count") or -1) != MODEL_NATIVE_BASE_SIGNAL_DIM:
+    if (
+        int(manifest.get("base_signal_feature_count") or -1)
+        != MODEL_NATIVE_BASE_SIGNAL_DIM
+    ):
         raise RuntimeError(
             f"[{context}_BASE_SIGNAL_DIM_INVALID] got={manifest.get('base_signal_feature_count')!r} "
             f"expected={MODEL_NATIVE_BASE_SIGNAL_DIM}"

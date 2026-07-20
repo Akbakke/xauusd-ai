@@ -27,6 +27,7 @@ state, or pinned ATR values.  Group-A, structure, volume, session, price-action
 and all specialist layers remain genuine model evidence and are recomputed over
 the common causal frame.  Immutable serve parity remains mandatory.
 """
+
 from __future__ import annotations
 
 import logging
@@ -49,6 +50,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+    MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
@@ -60,7 +63,11 @@ from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
 )
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
-from gx1.features.swing_structure_v1 import compute_swing_structure_features
+from gx1.features.swing_structure_v1 import (
+    SWING_ATR_PERIOD_V1,
+    SWING_LOOKBACK_V1,
+    compute_swing_structure_features,
+)
 
 LOG = logging.getLogger("v12_model_native_state_live")
 
@@ -139,9 +146,7 @@ def _require_model_native_entry_context_frame(
             f"{context}: missing categorical/session fields: {missing}"
         )
 
-    times = pd.DatetimeIndex(
-        pd.to_datetime(frame["time"], utc=True, errors="coerce")
-    )
+    times = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True, errors="coerce"))
     if times.hasnans or times.has_duplicates or not times.is_monotonic_increasing:
         raise RuntimeError(
             "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
@@ -150,9 +155,7 @@ def _require_model_native_entry_context_frame(
 
     categorical: dict[str, np.ndarray] = {}
     for name, (lower, upper) in _MODEL_NATIVE_CTX_CAT_DOMAINS.items():
-        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(
-            dtype=np.float64
-        )
+        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=np.float64)
         if not np.isfinite(values).all():
             raise RuntimeError(
                 "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
@@ -174,9 +177,7 @@ def _require_model_native_entry_context_frame(
             )
         categorical[name] = exact
 
-    if not np.array_equal(
-        categorical["vol_regime_id"], categorical["atr_bucket"]
-    ):
+    if not np.array_equal(categorical["vol_regime_id"], categorical["atr_bucket"]):
         raise RuntimeError(
             "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
             f"{context}: atr_bucket must equal vol_regime_id"
@@ -208,9 +209,7 @@ def _require_model_native_entry_context_frame(
 
     session_values: dict[str, np.ndarray] = {}
     for name, domain in _ENTRY_SESSION_CONT_DOMAINS.items():
-        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(
-            dtype=np.float64
-        )
+        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=np.float64)
         if not np.isfinite(values).all():
             raise RuntimeError(
                 "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
@@ -241,9 +240,7 @@ def _require_model_native_entry_context_frame(
                 dtype=np.float64
             )
         ),
-        "session_change_flag": labels.ne(labels.shift(1)).to_numpy(
-            dtype=np.float64
-        ),
+        "session_change_flag": labels.ne(labels.shift(1)).to_numpy(dtype=np.float64),
         "session_tradable": (expected_session != SESSION_ID_MAP["ASIA"]).astype(
             np.float64
         ),
@@ -304,13 +301,21 @@ class ModelNativeStateContract:
             "rank_fit_start_utc": str(self.rank_fit_start_utc),
             "rank_fit_end_utc": str(self.rank_fit_end_utc),
             "rank_reference_npz": str(self.rank_reference_npz),
-            "rank_reference_npz_sha256": str(self.raw.get("rank_reference_npz_sha256") or ""),
-            "rank_reference_schema_version": str(self.raw.get("rank_reference_schema_version") or ""),
-            "normalization_fit_scope": str(self.raw.get("normalization_fit_scope") or ""),
+            "rank_reference_npz_sha256": str(
+                self.raw.get("rank_reference_npz_sha256") or ""
+            ),
+            "rank_reference_schema_version": str(
+                self.raw.get("rank_reference_schema_version") or ""
+            ),
+            "normalization_fit_scope": str(
+                self.raw.get("normalization_fit_scope") or ""
+            ),
             "rank_transform": str(self.raw.get("rank_transform") or ""),
             "feature_history_mode": str(self.raw.get("feature_history_mode") or ""),
             "split_reset_allowed": self.raw.get("split_reset_allowed"),
-            "post_fit_rows_in_rank_reference": self.raw.get("post_fit_rows_in_rank_reference"),
+            "post_fit_rows_in_rank_reference": self.raw.get(
+                "post_fit_rows_in_rank_reference"
+            ),
             "runtime_rule_free": self.raw.get("runtime_rule_free"),
             "schema_version": str(self.raw.get("schema_version") or ""),
         }
@@ -335,10 +340,11 @@ class ModelNativeStateBuilder:
         model-native base contract; [34:] are the 479 extension names
         computed inline (manifest order == bundle order, verified at init).
     """
+
     ordered_signal_names: list[str]
     state_contract: ModelNativeStateContract
     signal_contract: dict[str, Any]
-    multi_tf: dict | None = None   # in-memory MTF-v2 bundle for group-A recompute
+    multi_tf: dict | None = None  # in-memory MTF-v2 bundle for group-A recompute
     _ext_names: list[str] = field(default_factory=list, init=False)
 
     def __post_init__(self) -> None:
@@ -367,7 +373,9 @@ class ModelNativeStateBuilder:
             raise RuntimeError(
                 f"[MODEL_NATIVE_STATE] forbidden legacy bridge fields: {forbidden}"
             )
-        self._ext_names = list(self.ordered_signal_names[len(MODEL_NATIVE_BASE_FIELDS):])
+        self._ext_names = list(
+            self.ordered_signal_names[len(MODEL_NATIVE_BASE_FIELDS) :]
+        )
 
     # ── common-history frame preparation ────────────────────────────────────
 
@@ -391,18 +399,22 @@ class ModelNativeStateBuilder:
         if joined.empty:
             raise RuntimeError("[MODEL_NATIVE_STATE] empty joined frame")
         frame = joined.copy()
-        frame.index.name = None   # joined index is named 'time' — avoid label ambiguity
+        frame.index.name = None  # joined index is named 'time' — avoid label ambiguity
         if "time" not in frame.columns:
             frame.insert(0, "time", frame.index)
         parsed_time = pd.DatetimeIndex(
             pd.to_datetime(frame["time"], utc=True, errors="coerce")
         )
         if parsed_time.hasnans:
-            raise RuntimeError("[MODEL_NATIVE_STATE] frame contains missing/invalid timestamps")
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] frame contains missing/invalid timestamps"
+            )
         if parsed_time.has_duplicates:
             raise RuntimeError("[MODEL_NATIVE_STATE] frame timestamps are not unique")
         if not parsed_time.is_monotonic_increasing:
-            raise RuntimeError("[MODEL_NATIVE_STATE] frame timestamps are not strictly chronological")
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] frame timestamps are not strictly chronological"
+            )
         frame["time"] = parsed_time
         frame = frame.reset_index(drop=True)
 
@@ -441,7 +453,12 @@ class ModelNativeStateBuilder:
                 )
             aligned = bucket_ctx_cat.reindex(target_index)
             for col in aligned.columns:
-                if col in ("vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"):
+                if col in (
+                    "vol_regime_id",
+                    "atr_bucket",
+                    "spread_bucket",
+                    "H4_trend_sign_cat",
+                ):
                     if col in ("vol_regime_id", "atr_bucket", "spread_bucket"):
                         if aligned[col].isna().any():
                             raise RuntimeError(
@@ -468,23 +485,26 @@ class ModelNativeStateBuilder:
         #     causal confirmation-lag owner used by the dataset builder; a
         #     pivot is never stamped before its confirming bars exist.
         from gx1.execution.v12_ctx_augment_live import (
-            _add_micro_features, _add_session_features,
+            _add_micro_features,
+            _add_session_features,
         )
-        from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
-            MICRO_FEATURE_NAMES, SESSION_CTX_CONT_NAMES,
-        )
+
         _frame_ts = frame.set_index(pd.DatetimeIndex(frame["time"]))
         _add_micro_features(_frame_ts)
         _add_session_features(_frame_ts)
-        for col in (list(MICRO_FEATURE_NAMES) + list(SESSION_CTX_CONT_NAMES) + ["session_id"]):
+        for col in (
+            list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
+            + list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)
+            + ["session_id"]
+        ):
             frame[col] = _frame_ts[col].to_numpy()
         del _frame_ts
         for col, arr in compute_swing_structure_features(
             frame["high"].to_numpy(dtype=np.float64),
             frame["low"].to_numpy(dtype=np.float64),
             frame["close"].to_numpy(dtype=np.float64),
-            lookback=2,
-            atr_period=14,
+            lookback=SWING_LOOKBACK_V1,
+            atr_period=SWING_ATR_PERIOD_V1,
         ).items():
             frame[col] = arr
 
@@ -500,6 +520,7 @@ class ModelNativeStateBuilder:
             attach_group_a_dip_struct_ctx_columns,
             trim_causal_context_warmup_prefix,
         )
+
         mtf = multi_tf if multi_tf is not None else self.multi_tf
         if mtf is None:
             raise RuntimeError(
@@ -507,26 +528,34 @@ class ModelNativeStateBuilder:
                 "pass the in-memory MTF-v2 dict (build_multi_tf_from_cv3)"
             )
         frame = attach_group_a_dip_struct_ctx_columns(
-            frame, multi_tf=mtf, journal_label="model_native_live",
+            frame,
+            multi_tf=mtf,
+            journal_label="model_native_live",
         )
         from gx1.features.regime_v4_features import (
             REGIME_V4_DERIVED_COLS,
             REGIME_V4_SOURCE_COLS,
         )
+
         causal_required = list(
             dict.fromkeys(
                 ga_cols + list(REGIME_V4_SOURCE_COLS) + list(REGIME_V4_DERIVED_COLS)
             )
         )
-        frame = trim_causal_context_warmup_prefix(
-            frame, causal_required
-        ).reset_index(drop=True)
+        frame = trim_causal_context_warmup_prefix(frame, causal_required).reset_index(
+            drop=True
+        )
 
         # 3) volume features (4) — common-history causal recompute.
         from gx1.features.volume_features import add_volume_features
+
         if "volume" not in frame.columns:
-            raise RuntimeError("[MODEL_NATIVE_STATE] 'volume' column missing from live frame")
-        frame = frame.drop(columns=[c for c in VOLUME_FEATURE_NAMES if c in frame.columns])
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] 'volume' column missing from live frame"
+            )
+        frame = frame.drop(
+            columns=[c for c in VOLUME_FEATURE_NAMES if c in frame.columns]
+        )
         add_volume_features(frame)
 
         # 4) bare 'atr' for the extension price layer: computed in step 1b.
@@ -535,6 +564,7 @@ class ModelNativeStateBuilder:
         #    dist_to_* / dip_* from step 2), mirroring the offline order
         #    (build_entry_v10_ctx_training_dataset_v3.py:2280-2282).
         from gx1.features.entry_smart_context import add_entry_smart_context_features
+
         frame = frame.drop(
             columns=[
                 c
@@ -546,7 +576,9 @@ class ModelNativeStateBuilder:
 
         # Contract completeness — fail loud (never zero-fill for decisioning).
         missing_sig = [c for c in MODEL_NATIVE_BASE_FIELDS if c not in frame.columns]
-        missing_ctx = [c for c in MODEL_NATIVE_CTX_CONT_FIELDS if c not in frame.columns]
+        missing_ctx = [
+            c for c in MODEL_NATIVE_CTX_CONT_FIELDS if c not in frame.columns
+        ]
         missing_cat = [c for c in MODEL_NATIVE_CTX_CAT_FIELDS if c not in frame.columns]
         if missing_sig or missing_ctx or missing_cat:
             raise RuntimeError(
@@ -587,7 +619,9 @@ class ModelNativeStateBuilder:
         for ts in times:
             loc = pos_by_time.get_indexer([ts])
             if loc[0] < 0:
-                raise RuntimeError(f"[MODEL_NATIVE_STATE] target bar {ts} not in live frame")
+                raise RuntimeError(
+                    f"[MODEL_NATIVE_STATE] target bar {ts} not in live frame"
+                )
             if loc[0] < SEQ_LEN_MODEL_NATIVE - 1:
                 raise RuntimeError(
                     f"[MODEL_NATIVE_STATE] target bar {ts} has only {loc[0]} prior frame bars "
@@ -602,7 +636,10 @@ class ModelNativeStateBuilder:
         from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
             _build_inline_seq_structure_extension,
         )
-        with tempfile.NamedTemporaryFile(suffix="_model_native_src.parquet", delete=False) as tmp:
+
+        with tempfile.NamedTemporaryFile(
+            suffix="_model_native_src.parquet", delete=False
+        ) as tmp:
             tmp_path = Path(tmp.name)
         try:
             frame[[c for c in _SOURCE_PARQUET_COLS if c in frame.columns]].to_parquet(
@@ -619,34 +656,53 @@ class ModelNativeStateBuilder:
         finally:
             tmp_path.unlink(missing_ok=True)
         if list(ext_names) != self._ext_names:
-            raise RuntimeError("[MODEL_NATIVE_STATE] extension name order mismatch vs bundle")
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] extension name order mismatch vs bundle"
+            )
 
         base_mat = frame[list(MODEL_NATIVE_BASE_FIELDS)].astype(np.float32).to_numpy()
-        sig_mat = np.concatenate([base_mat, ext_mat], axis=1).astype(np.float32, copy=False)
+        sig_mat = np.concatenate([base_mat, ext_mat], axis=1).astype(
+            np.float32, copy=False
+        )
         if sig_mat.shape[1] != SIGNAL_DIM_MODEL_NATIVE:
             raise RuntimeError(
                 f"[MODEL_NATIVE_STATE] signal width {sig_mat.shape[1]} != {SIGNAL_DIM_MODEL_NATIVE}"
             )
-        ctx_cont_mat = frame[list(MODEL_NATIVE_CTX_CONT_FIELDS)].astype(np.float32).to_numpy()
+        ctx_cont_mat = (
+            frame[list(MODEL_NATIVE_CTX_CONT_FIELDS)].astype(np.float32).to_numpy()
+        )
         # The exact-integral/domain validation above precedes this conversion;
         # pandas/numpy truncation can therefore never turn a malformed category
         # into a valid embedding index.
-        ctx_cat_mat = frame[list(MODEL_NATIVE_CTX_CAT_FIELDS)].astype(np.int64).to_numpy()
+        ctx_cat_mat = (
+            frame[list(MODEL_NATIVE_CTX_CAT_FIELDS)].astype(np.int64).to_numpy()
+        )
 
         n = len(idxs)
-        seq = np.empty((n, SEQ_LEN_MODEL_NATIVE, SIGNAL_DIM_MODEL_NATIVE), dtype=np.float32)
+        seq = np.empty(
+            (n, SEQ_LEN_MODEL_NATIVE, SIGNAL_DIM_MODEL_NATIVE), dtype=np.float32
+        )
         snap = np.empty((n, SIGNAL_DIM_MODEL_NATIVE), dtype=np.float32)
         ctx_cont = np.empty((n, CTX_CONT_DIM_MODEL_NATIVE), dtype=np.float32)
         ctx_cat = np.empty((n, CTX_CAT_DIM_MODEL_NATIVE), dtype=np.int64)
         for k, i in enumerate(idxs):
-            seq[k] = sig_mat[i - (SEQ_LEN_MODEL_NATIVE - 1): i + 1]
+            seq[k] = sig_mat[i - (SEQ_LEN_MODEL_NATIVE - 1) : i + 1]
             snap[k] = sig_mat[i]
             ctx_cont[k] = ctx_cont_mat[i]
             ctx_cat[k] = ctx_cat_mat[i]
-        if not np.isfinite(seq).all() or not np.isfinite(snap).all() or not np.isfinite(ctx_cont).all():
-            raise RuntimeError("[MODEL_NATIVE_STATE] non-finite state values — refusing to serve")
+        if (
+            not np.isfinite(seq).all()
+            or not np.isfinite(snap).all()
+            or not np.isfinite(ctx_cont).all()
+        ):
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] non-finite state values — refusing to serve"
+            )
         return {
-            "seq": seq, "snap": snap, "ctx_cont": ctx_cont, "ctx_cat": ctx_cat,
+            "seq": seq,
+            "snap": snap,
+            "ctx_cont": ctx_cont,
+            "ctx_cat": ctx_cat,
             "times": [pd.Timestamp(t) for t in times],
         }
 
@@ -662,12 +718,16 @@ def compute_bucket_ctx_cat_full_frame(
     No row-level timestamp/category table exists.
     """
     if not isinstance(cv3.index, pd.DatetimeIndex):
-        raise RuntimeError("[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for bucket recompute")
+        raise RuntimeError(
+            "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for bucket recompute"
+        )
     contract = _require_state_contract(state_contract)
     required = ["high", "low", "close", "bid_close", "ask_close"]
     missing = [name for name in required if name not in cv3.columns]
     if missing:
-        raise RuntimeError(f"[MODEL_NATIVE_STATE] rank source columns missing: {missing}")
+        raise RuntimeError(
+            f"[MODEL_NATIVE_STATE] rank source columns missing: {missing}"
+        )
     sub = cv3.loc[
         cv3.index >= contract.feature_history_start_utc,
         required,
@@ -698,21 +758,28 @@ def compute_htf_ctx_full_frame(
     preserve-guard cannot short-circuit onto stale values.
     """
     from gx1.execution.v12_ctx_augment_live import _add_htf_features
+
     if not isinstance(cv3.index, pd.DatetimeIndex):
-        raise RuntimeError("[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for HTF recompute")
+        raise RuntimeError(
+            "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for HTF recompute"
+        )
     contract = _require_state_contract(state_contract)
     sub_idx = cv3.index[cv3.index >= contract.feature_history_start_utc]
     m5 = cv3.loc[sub_idx, ["open", "high", "low", "close"]].copy()
     work = pd.DataFrame(index=sub_idx)
     _add_htf_features(work, m5)
     cols = [
-        "D1_dist_from_ema200_atr", "D1_atr_percentile_252",
-        "H1_range_compression_ratio", "M15_range_compression_ratio",
+        "D1_dist_from_ema200_atr",
+        "D1_atr_percentile_252",
+        "H1_range_compression_ratio",
+        "M15_range_compression_ratio",
         "H4_trend_sign_cat",
     ]
     missing = [c for c in cols if c not in work.columns]
     if missing:
-        raise RuntimeError(f"[MODEL_NATIVE_STATE] HTF recompute missing cols: {missing}")
+        raise RuntimeError(
+            f"[MODEL_NATIVE_STATE] HTF recompute missing cols: {missing}"
+        )
 
     # REGIME_V4 DERIVED ctx (8) — one-truth add_regime_v4_features on the full
     # model-range frame, fed the RECOMPUTED D1_dist series (the daemon's cv3
@@ -724,17 +791,25 @@ def compute_htf_ctx_full_frame(
         REGIME_V4_SOURCE_COLS,
         add_regime_v4_features,
     )
+
     src_cols = [c for c in REGIME_V4_SOURCE_COLS if c != "D1_dist_from_ema200_atr"]
     missing_src = [c for c in src_cols if c not in cv3.columns]
     if missing_src:
-        raise RuntimeError(f"[MODEL_NATIVE_STATE] REGIME_V4 source cols missing from cv3: {missing_src}")
+        raise RuntimeError(
+            f"[MODEL_NATIVE_STATE] REGIME_V4 source cols missing from cv3: {missing_src}"
+        )
     rv_work = cv3.loc[sub_idx, src_cols].copy()
     rv_work["D1_dist_from_ema200_atr"] = work["D1_dist_from_ema200_atr"].to_numpy()
     add_regime_v4_features(rv_work)
     derived = [
-        "regime_tf_agreement_v3", "regime_stack_sum_v3", "regime_divergence_flag_v3",
-        "d1_dist_roc_288_v3", "d1_dist_to_boundary_v3", "d1_regime_changed_flag_v3",
-        "bars_since_d1_regime_change_v3", "d1_trend_age_mature_flag_v3",
+        "regime_tf_agreement_v3",
+        "regime_stack_sum_v3",
+        "regime_divergence_flag_v3",
+        "d1_dist_roc_288_v3",
+        "d1_dist_to_boundary_v3",
+        "d1_regime_changed_flag_v3",
+        "bars_since_d1_regime_change_v3",
+        "d1_trend_age_mature_flag_v3",
     ]
     out = work[cols].copy()
     for c in derived:
@@ -751,15 +826,20 @@ def build_multi_tf_from_cv3(cv3: pd.DataFrame) -> dict:
     float32 cache convention, hence this thin one-truth wrapper (build fn is shared).
     """
     from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+
     cols = ["open", "high", "low", "close", "volume"]
     missing = [c for c in cols if c not in cv3.columns]
     if missing:
-        raise RuntimeError(f"[MODEL_NATIVE_STATE] cv3 missing OHLCV for MTF build: {missing}")
+        raise RuntimeError(
+            f"[MODEL_NATIVE_STATE] cv3 missing OHLCV for MTF build: {missing}"
+        )
     m5 = cv3[cols].copy()
     for c in cols:
         m5[c] = m5[c].astype(np.float32)
     if not isinstance(m5.index, pd.DatetimeIndex):
-        raise RuntimeError("[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for MTF build")
+        raise RuntimeError(
+            "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for MTF build"
+        )
     return build_multi_tf_per_bar_features_v2(m5)
 
 
@@ -836,6 +916,7 @@ def append_multi_tf_incremental(
     )
     tail_bundle = build_multi_tf_from_cv3(cv3.iloc[lo:])
     from gx1.features.htf_features import MULTI_TF_RESAMPLE_RULES
+
     out: dict = {}
     for tf, old in multi_tf.items():
         if tf not in MODEL_NATIVE_MTF_SPLICE_TFS:
@@ -851,9 +932,11 @@ def append_multi_tf_incremental(
         k_tail = int(np.searchsorted(tail_ts, splice_ns, side="left"))
         new_ts = np.concatenate([old_ts[:k_old], tail_ts[k_tail:]])
         new_np = np.concatenate([old_np[:k_old], tail_np[k_tail:]], axis=0)
-        df = pd.DataFrame(new_np,
-                          index=old.index[:k_old].append(tail.index[k_tail:]),
-                          columns=list(old.columns))
+        df = pd.DataFrame(
+            new_np,
+            index=old.index[:k_old].append(tail.index[k_tail:]),
+            columns=list(old.columns),
+        )
         df.attrs["ts_int64"] = new_ts
         df.attrs["feats_np"] = new_np
         out[tf] = df

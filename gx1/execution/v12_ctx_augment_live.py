@@ -67,6 +67,7 @@ distribution. Tree models (XGB) are tolerant of this; the resulting
 bucket assignments are within ±1 of the training-distribution buckets
 in normal vol regimes.
 """
+
 from __future__ import annotations
 
 import logging
@@ -74,7 +75,12 @@ import logging
 import numpy as np
 import pandas as pd
 
-from gx1.features.swing_structure_v1 import compute_swing_structure_features
+from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.swing_structure_v1 import (
+    SWING_ATR_PERIOD_V1,
+    SWING_LOOKBACK_V1,
+    compute_swing_structure_features,
+)
 from gx1.time.session_detector import (
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
@@ -85,7 +91,6 @@ from gx1.time.session_detector import (
 LOG = logging.getLogger("v12_ctx_augment_live")
 
 ATR_EPS = 1e-9
-SWING_ATR_PERIOD = 14
 
 
 # ── HTF resampling helpers ────────────────────────────────────────────────
@@ -97,12 +102,14 @@ def _resample_ohlc(df_m5: pd.DataFrame, rule: str) -> pd.DataFrame:
     Input df_m5 must be DatetimeIndex'd with columns open/high/low/close.
     Returns DataFrame with same columns, indexed at the start of each HTF bar.
     """
-    out = pd.DataFrame({
-        "open":  df_m5["open"].resample(rule).first(),
-        "high":  df_m5["high"].resample(rule).max(),
-        "low":   df_m5["low"].resample(rule).min(),
-        "close": df_m5["close"].resample(rule).last(),
-    }).dropna()
+    out = pd.DataFrame(
+        {
+            "open": df_m5["open"].resample(rule).first(),
+            "high": df_m5["high"].resample(rule).max(),
+            "low": df_m5["low"].resample(rule).min(),
+            "close": df_m5["close"].resample(rule).last(),
+        }
+    ).dropna()
     return out
 
 
@@ -112,20 +119,23 @@ def _ema(s: pd.Series, span: int) -> pd.Series:
 
 def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series:
     prev_close = close.shift(1)
-    tr = pd.concat([
-        (high - low).abs(),
-        (high - prev_close).abs(),
-        (low - prev_close).abs(),
-    ], axis=1).max(axis=1)
+    tr = pd.concat(
+        [
+            (high - low).abs(),
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
     # A1 2026-06-04: STRICT min_periods=n (matches gx1.features.htf_features._atr).
     # The loose max(2, n//2) emitted an unconverged ATR on short serve/rescore windows;
     # used ONLY by _add_htf_features (HTF-block-local helper), so this is contained.
     return tr.rolling(window=n, min_periods=n).mean()
 
 
-def _align_last_closed(target_idx: pd.DatetimeIndex,
-                        htf_series: pd.Series,
-                        shift: pd.Timedelta) -> pd.Series:
+def _align_last_closed(
+    target_idx: pd.DatetimeIndex, htf_series: pd.Series, shift: pd.Timedelta
+) -> pd.Series:
     """For each M5 timestamp, return the value of the last fully-closed HTF
     bar (no lookahead). The HTF bar at time T closes at T + shift.
     """
@@ -162,9 +172,7 @@ def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
 # (any window), the entry serve (augment_canonical_v3), the exit (base34), and the build all produce
 # the IDENTICAL bucket = training. Edges live next to the cv3 prebuilt; regenerated at each cement/
 # cutover (gx1.scripts.write_regime_bucket_edges). Verified: digitize == full-history rank at 100%.
-REGIME_BUCKET_EDGES_PATH = (
-    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/regime_bucket_edges_v1.json"
-)
+REGIME_BUCKET_EDGES_PATH = "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/regime_bucket_edges_v1.json"
 _REGIME_EDGES_CACHE: dict | None = None
 _REGIME_EDGES_MTIME: float | None = None
 
@@ -174,6 +182,7 @@ def _load_regime_bucket_edges() -> dict | None:
     global _REGIME_EDGES_CACHE, _REGIME_EDGES_MTIME
     import os as _os
     import json as _json
+
     try:
         mt = _os.stat(REGIME_BUCKET_EDGES_PATH).st_mtime
     except OSError:
@@ -202,10 +211,16 @@ def _add_session_features(cv3: pd.DataFrame) -> None:
     idx = cv3.index
     cv3["session_id"] = get_session_id_vectorized(idx).astype(np.int64)
     cv3["is_ASIA"] = (cv3["session_id"] == 0).astype(np.int64)
-    cv3["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(idx).astype(np.float32)
-    cv3["minutes_to_next_session_boundary"] = get_session_minutes_to_next_boundary_vectorized(idx).astype(np.float32)
+    cv3["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
+        idx
+    ).astype(np.float32)
+    cv3["minutes_to_next_session_boundary"] = (
+        get_session_minutes_to_next_boundary_vectorized(idx).astype(np.float32)
+    )
     sess_tag = get_session_vectorized(idx)
-    cv3["session_change_flag"] = (sess_tag != sess_tag.shift(1)).fillna(False).astype(np.int64)
+    cv3["session_change_flag"] = (
+        (sess_tag != sess_tag.shift(1)).fillna(False).astype(np.int64)
+    )
     cv3["session_tradable"] = (cv3["session_id"] != 0).astype(np.int64)
     # _v1_is_EU / _v1_is_US: shifted by 1 bar (no-lookahead). Same convention
     # as basic_v1.py:984/988.
@@ -231,7 +246,9 @@ def _add_session_interactions(cv3: pd.DataFrame) -> None:
     if "_v1_range_z" in cv3.columns:
         cv3["_v1_int_range_us"] = cv3["_v1_range_z"].to_numpy(dtype=np.float64) * is_us
     if "_v1h1_slope3" in cv3.columns:
-        cv3["_v1_int_slope_h1_us"] = cv3["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us
+        cv3["_v1_int_slope_h1_us"] = (
+            cv3["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us
+        )
     # XGB base80-contract aliases: canonical_v3 renamed 4 features but the XGB
     # base80 contract still expects the legacy names. They are EXACT duplicates
     # (see materialize_canonical_v3_augment.py duplicate-pair list) — alias them
@@ -284,13 +301,22 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         "H4_trend_sign_cat",
     )
     if not isinstance(cv3.index, pd.DatetimeIndex) or cv3.index.tz is None:
-        raise RuntimeError("[LIVE_HTF_SOURCE] target requires a timezone-aware UTC DatetimeIndex")
+        raise RuntimeError(
+            "[LIVE_HTF_SOURCE] target requires a timezone-aware UTC DatetimeIndex"
+        )
     if any(pd.Timestamp(ts).utcoffset() != pd.Timedelta(0) for ts in cv3.index[:1]):
         raise RuntimeError("[LIVE_HTF_SOURCE] target index must be UTC")
     # Non-empty means ROWS: a zero-column output container with a populated
     # index is a legitimate target (DataFrame.empty is True on any zero axis).
-    if len(cv3.index) == 0 or cv3.index.hasnans or not cv3.index.is_unique or not cv3.index.is_monotonic_increasing:
-        raise RuntimeError("[LIVE_HTF_SOURCE] target must be non-empty, unique and chronological")
+    if (
+        len(cv3.index) == 0
+        or cv3.index.hasnans
+        or not cv3.index.is_unique
+        or not cv3.index.is_monotonic_increasing
+    ):
+        raise RuntimeError(
+            "[LIVE_HTF_SOURCE] target must be non-empty, unique and chronological"
+        )
     m5 = df_m5.copy()
     if "time" in m5.columns and not isinstance(m5.index, pd.DatetimeIndex):
         m5["time"] = pd.to_datetime(m5["time"], utc=True, errors="coerce")
@@ -304,9 +330,12 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         validate_causal_feature_matrix,
     )
     from gx1.features.htf_features import _validate_m5_input as _validate_htf_source
+
     _validate_htf_source(m5)
     if not cv3.index.isin(m5.index).all():
-        raise RuntimeError("[LIVE_HTF_SOURCE] raw M5 source does not cover every target timestamp")
+        raise RuntimeError(
+            "[LIVE_HTF_SOURCE] raw M5 source does not cover every target timestamp"
+        )
 
     df_d1 = _resample_ohlc(m5, "1D")
     d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
@@ -373,18 +402,13 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
 def _add_micro_features(cv3: pd.DataFrame) -> None:
     """Mutates cv3: micro_momentum_3/5, micro_acceleration, wick_ratio,
     distance_ema_fast. Computed on M5 close/high/low (already in cv3)."""
-    eps = 1e-9
-    close = cv3["close"].astype(float)
-    high = cv3["high"].astype(float)
-    low = cv3["low"].astype(float)
-    cv3["micro_momentum_3"] = (close - close.shift(3)).fillna(0.0).astype(np.float32)
-    cv3["micro_momentum_5"] = (close - close.shift(5)).fillna(0.0).astype(np.float32)
-    cv3["micro_acceleration"] = (
-        (close - close.shift(1)) - (close.shift(1) - close.shift(2))
-    ).fillna(0.0).astype(np.float32)
-    cv3["wick_ratio"] = ((high - close) / (high - low + eps)).astype(np.float32)
-    ema_fast = close.ewm(span=5, adjust=False).mean()
-    cv3["distance_ema_fast"] = (close - ema_fast).astype(np.float32)
+    features = compute_micro_structure_features(
+        cv3["high"].to_numpy(dtype=np.float64),
+        cv3["low"].to_numpy(dtype=np.float64),
+        cv3["close"].to_numpy(dtype=np.float64),
+    )
+    for name, values in features.items():
+        cv3[name] = values
 
 
 def _add_swing_features(cv3: pd.DataFrame) -> None:
@@ -396,8 +420,8 @@ def _add_swing_features(cv3: pd.DataFrame) -> None:
         cv3["high"].to_numpy(dtype=np.float64),
         cv3["low"].to_numpy(dtype=np.float64),
         cv3["close"].to_numpy(dtype=np.float64),
-        lookback=2,
-        atr_period=SWING_ATR_PERIOD,
+        lookback=SWING_LOOKBACK_V1,
+        atr_period=SWING_ATR_PERIOD_V1,
     )
     for _name, _arr in feats.items():
         cv3[_name] = _arr
@@ -410,7 +434,10 @@ def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
     if "D1_dist_from_ema200_atr" not in cv3.columns:
         raise RuntimeError("[REGIME] exact D1_dist_from_ema200_atr source missing")
     from gx1.features.htf_features import validate_causal_feature_matrix
-    d = pd.to_numeric(cv3["D1_dist_from_ema200_atr"], errors="coerce").to_numpy(np.float64)
+
+    d = pd.to_numeric(cv3["D1_dist_from_ema200_atr"], errors="coerce").to_numpy(
+        np.float64
+    )
     d_warmup = validate_causal_feature_matrix(
         d[:, None],
         expected_width=1,
@@ -434,9 +461,12 @@ def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
         if _edges and _edges.get("atr_bps_edges"):
             vol = _digitize_bucket_0_4(_av, _edges["atr_bps_edges"], fallback=2)
         else:
-            LOG.warning("[REGIME] frozen atr_bps bucket edges absent (%s) — falling back to "
-                        "FRAME-RELATIVE rank (train≠serve risk). Regenerate via "
-                        "gx1.scripts.write_regime_bucket_edges.", REGIME_BUCKET_EDGES_PATH)
+            LOG.warning(
+                "[REGIME] frozen atr_bps bucket edges absent (%s) — falling back to "
+                "FRAME-RELATIVE rank (train≠serve risk). Regenerate via "
+                "gx1.scripts.write_regime_bucket_edges.",
+                REGIME_BUCKET_EDGES_PATH,
+            )
             vol = _rank_bucket_0_4(_av, fallback=2)
     else:
         vol = np.full(len(cv3), 2, dtype=np.int64)
@@ -487,6 +517,7 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
     # train↔serve. Computed on the full `out` frame (full history) so trailing
     # windows match training (no window-edge skew). Fail-closed-neutral if no vol.
     from gx1.features.volume_features import add_volume_features
+
     add_volume_features(out)
     # REGIME_V4 (2026-06-03): multi-TF regime CONDITIONING + 'regime is shifting' CHANGE-
     # DETECTION features. ONE-TRUTH: identical gx1.features.regime_v4_features helper as the
@@ -498,8 +529,10 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
         REGIME_V4_SOURCE_COLS,
         add_regime_v4_features,
     )
+
     add_regime_v4_features(out)
     from gx1.scripts.augment_forward_outcome_v2 import trim_causal_context_warmup_prefix
+
     htf_required = [
         "D1_dist_from_ema200_atr",
         "D1_atr_percentile_252",

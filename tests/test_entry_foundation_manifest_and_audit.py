@@ -93,9 +93,7 @@ def _foundation_selection_manifest(selected: list[str]) -> dict:
             "eligible_ranked_remainder_count": len(ranked_remainder),
         },
         "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
-        "model_native_signal_contract": model_native_signal_contract_metadata(
-            selected
-        ),
+        "model_native_signal_contract": model_native_signal_contract_metadata(selected),
     }
 
 
@@ -136,7 +134,9 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
                         "seq_structure_extension_v1": {
                             "features": selected,
                             "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
-                            "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
+                            "foundation_structure_feature_count": len(
+                                FOUNDATION_STRUCTURE_FEATURE_NAMES
+                            ),
                             "foundation_structure_all_required_selected": True,
                         },
                     },
@@ -159,7 +159,10 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
 
 
 def test_xau_regime_agreement_feature_can_be_split_constant() -> None:
-    assert _is_neutral_constant_allowed("session_regime.h4_d1_regime_sign_agreement") is True
+    assert (
+        _is_neutral_constant_allowed("session_regime.h4_d1_regime_sign_agreement")
+        is True
+    )
     assert _is_neutral_constant_allowed("session_regime.some_other_context") is False
 
 
@@ -167,11 +170,12 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields()
     )
+    source_parquet = tmp_path / "source.parquet"
+    source_parquet.write_bytes(b"exact-source")
     manifest_path = write_manifest(
         output_path=tmp_path / "sample_train.parquet",
         build_command=["builder"],
-        base28_manifest=tmp_path / "base_manifest.json",
-        source_parquet_override=None,
+        source_parquet=source_parquet,
         tape_root=tmp_path / "tape",
         extra={
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
@@ -222,13 +226,24 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
     assert manifest["feature_contract"]["ctx_tag"] == "CTX6CAT5"
     assert manifest["feature_contract"]["ctx_cont_dim"] == 142
     assert manifest["feature_contract"]["ctx_cat_dim"] == 5
-    assert manifest["feature_contract"]["signal_bridge_id"] == MODEL_NATIVE_SIGNAL_SCHEMA_VERSION
-    assert manifest["feature_contract"]["signal_bridge_contract_sha256"] == signal_contract["static_contract_sha256"]
-    assert manifest["feature_contract"]["signal_bridge_fields"] == signal_contract["fields"]
+    assert (
+        manifest["feature_contract"]["signal_bridge_id"]
+        == MODEL_NATIVE_SIGNAL_SCHEMA_VERSION
+    )
+    assert (
+        manifest["feature_contract"]["signal_bridge_contract_sha256"]
+        == signal_contract["static_contract_sha256"]
+    )
+    assert (
+        manifest["feature_contract"]["signal_bridge_fields"]
+        == signal_contract["fields"]
+    )
     assert not any("xgb" in key.lower() for key in manifest["inputs"])
 
 
-def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant() -> None:
+def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant() -> (
+    None
+):
     names = [
         "chart.foundation_hh_state",
         "chart.foundation_bos_up_age_bars",
@@ -253,8 +268,14 @@ def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant(
     )
     by_name = {row["feature"]: row for row in rows}
     assert by_name["chart.foundation_hh_state"]["family"] == "foundation_hh_hl_lh_ll"
-    assert by_name["chart.foundation_bos_up_age_bars"]["family"] == "foundation_bos_choch_age"
-    assert by_name["chart.foundation_sweep_low_reclaim_up_proxy"]["family"] == "foundation_sweep_reclaim"
+    assert (
+        by_name["chart.foundation_bos_up_age_bars"]["family"]
+        == "foundation_bos_choch_age"
+    )
+    assert (
+        by_name["chart.foundation_sweep_low_reclaim_up_proxy"]["family"]
+        == "foundation_sweep_reclaim"
+    )
     allowed = by_name["session_regime.h4_d1_regime_sign_agreement"]
     assert allowed["near_constant"] is True
     assert allowed["constant_allowed"] is True
@@ -316,8 +337,14 @@ def test_required_foundation_family_liveness_is_checked_per_split() -> None:
         min_mean_active_rate=0.01,
     )
 
-    assert any("required foundation liveness family missing: foundation_sweep_reclaim" in item for item in failures)
-    assert any("foundation_bos_choch_age" in item and "active rate too low" in item for item in failures)
+    assert any(
+        "required foundation liveness family missing: foundation_sweep_reclaim" in item
+        for item in failures
+    )
+    assert any(
+        "foundation_bos_choch_age" in item and "active rate too low" in item
+        for item in failures
+    )
 
 
 def test_foundation_objective_liveness_is_checked_per_split() -> None:
@@ -363,7 +390,10 @@ def test_foundation_objective_liveness_is_checked_per_split() -> None:
         required_objectives=("bos_choch_age",),
         min_mean_active_rate=0.01,
     )
-    assert any("required foundation objective has missing live features: bos_choch_age" in item for item in missing_failures)
+    assert any(
+        "required foundation objective has missing live features: bos_choch_age" in item
+        for item in missing_failures
+    )
 
 
 def test_foundation_source_field_liveness_is_checked_per_split() -> None:
@@ -422,7 +452,9 @@ def test_foundation_source_field_liveness_is_checked_per_split() -> None:
 
     assert any("active count too low" in item for item in failures)
     assert any("near-constant" in item for item in failures)
-    assert any("required foundation source-field liveness missing" in item for item in failures)
+    assert any(
+        "required foundation source-field liveness missing" in item for item in failures
+    )
 
 
 def _assert_liveness_rows_match(
@@ -439,7 +471,9 @@ def _assert_liveness_rows_match(
         for field, expected_value in expected_row.items():
             actual_value = actual_row[field]
             if isinstance(expected_value, float):
-                assert actual_value == pytest.approx(expected_value, rel=1e-12, abs=1e-12)
+                assert actual_value == pytest.approx(
+                    expected_value, rel=1e-12, abs=1e-12
+                )
             else:
                 assert actual_value == expected_value
 
@@ -464,16 +498,12 @@ def test_stream_split_liveness_matches_matrix_helpers(tmp_path) -> None:
         )
     )
     row_count = 5
-    snap = (
-        np.arange(row_count * len(signal_fields), dtype=np.float32)
-        .reshape(row_count, len(signal_fields))
-        / np.float32(10.0)
-    )
-    ctx_cont = (
-        np.arange(row_count * len(ctx_cont_names), dtype=np.float32)
-        .reshape(row_count, len(ctx_cont_names))
-        / np.float32(7.0)
-    )
+    snap = np.arange(row_count * len(signal_fields), dtype=np.float32).reshape(
+        row_count, len(signal_fields)
+    ) / np.float32(10.0)
+    ctx_cont = np.arange(row_count * len(ctx_cont_names), dtype=np.float32).reshape(
+        row_count, len(ctx_cont_names)
+    ) / np.float32(7.0)
     snap[:, signal_fields.index("p_long")] = np.float32(1.0 / 3.0)
     snap[1, signal_fields.index("chart.foundation_bos_up_age_bars")] = np.nan
     if ctx_cont_names:
@@ -519,10 +549,14 @@ def test_stream_split_liveness_matches_matrix_helpers(tmp_path) -> None:
     )
 
     _assert_liveness_rows_match(streamed_stats, expected_stats, key="feature")
-    _assert_liveness_rows_match(streamed_source_rows, expected_source_rows, key="source_field")
+    _assert_liveness_rows_match(
+        streamed_source_rows, expected_source_rows, key="source_field"
+    )
 
 
-def test_stream_split_source_scan_avoids_stacked_source_matrix(tmp_path, monkeypatch) -> None:
+def test_stream_split_source_scan_avoids_stacked_source_matrix(
+    tmp_path, monkeypatch
+) -> None:
     audit_features = ["chart.foundation_hh_state"]
     snap_source_names = [
         field.split(".", 1)[1]
@@ -538,16 +572,12 @@ def test_stream_split_source_scan_avoids_stacked_source_matrix(tmp_path, monkeyp
         )
     )
     row_count = 3
-    snap = (
-        np.arange(row_count * len(signal_fields), dtype=np.float32)
-        .reshape(row_count, len(signal_fields))
-        + np.float32(1.0)
-    )
-    ctx_cont = (
-        np.arange(row_count * len(ctx_cont_names), dtype=np.float32)
-        .reshape(row_count, len(ctx_cont_names))
-        + np.float32(1.0)
-    )
+    snap = np.arange(row_count * len(signal_fields), dtype=np.float32).reshape(
+        row_count, len(signal_fields)
+    ) + np.float32(1.0)
+    ctx_cont = np.arange(row_count * len(ctx_cont_names), dtype=np.float32).reshape(
+        row_count, len(ctx_cont_names)
+    ) + np.float32(1.0)
     parquet_path = tmp_path / "sample.parquet"
     pd.DataFrame(
         {
@@ -560,10 +590,14 @@ def test_stream_split_source_scan_avoids_stacked_source_matrix(tmp_path, monkeyp
 
     def _forbid_source_matrix_add(self, values):
         if self.names == list(FOUNDATION_STRUCTURE_SOURCE_FIELDS):
-            raise AssertionError("source scan should not materialize a stacked source matrix")
+            raise AssertionError(
+                "source scan should not materialize a stacked source matrix"
+            )
         return original_add(self, values)
 
-    monkeypatch.setattr(foundation_audit._StreamingStatsAccumulator, "add", _forbid_source_matrix_add)
+    monkeypatch.setattr(
+        foundation_audit._StreamingStatsAccumulator, "add", _forbid_source_matrix_add
+    )
 
     streamed_stats, streamed_source_rows = foundation_audit._stream_split_liveness_rows(
         parquet_path,
@@ -602,21 +636,35 @@ def test_foundation_objective_coverage_requires_exact_goal_features() -> None:
         if name != "chart.foundation_overlap_x_sweep_reclaim_balance"
     ]
     bad_rows, bad_failures = _objective_coverage(missing_session)
-    bad_session = next(row for row in bad_rows if row["objective"] == "session_x_structure")
+    bad_session = next(
+        row for row in bad_rows if row["objective"] == "session_x_structure"
+    )
 
-    assert bad_session["missing"] == ["chart.foundation_overlap_x_sweep_reclaim_balance"]
-    assert any("foundation objective coverage missing session_x_structure" in item for item in bad_failures)
+    assert bad_session["missing"] == [
+        "chart.foundation_overlap_x_sweep_reclaim_balance"
+    ]
+    assert any(
+        "foundation objective coverage missing session_x_structure" in item
+        for item in bad_failures
+    )
 
 
 def test_inline_seq_structure_extension_requires_explicit_source_parquet() -> None:
-    merged = pd.DataFrame({"time": pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC")})
+    merged = pd.DataFrame(
+        {"time": pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC")}
+    )
     for field in MODEL_NATIVE_BASE_FIELDS:
         merged[field] = 0.0
 
-    with pytest.raises(RuntimeError, match="SEQ_STRUCTURE_INLINE_SOURCE_PARQUET_REQUIRED"):
+    with pytest.raises(
+        RuntimeError, match="SEQ_STRUCTURE_INLINE_SOURCE_PARQUET_REQUIRED"
+    ):
         _build_inline_seq_structure_extension(
             merged,
-            requested_features=["chart.foundation_hh_state", "chart.foundation_feature_that_does_not_exist"],
+            requested_features=[
+                "chart.foundation_hh_state",
+                "chart.foundation_feature_that_does_not_exist",
+            ],
             ctx_cont_names=[],
             source_parquet=None,
         )
@@ -635,15 +683,24 @@ def test_dataset_builder_time_normalization_rejects_duplicates() -> None:
         _normalize_time_utc(duplicate, "time")
 
 
-def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_path) -> None:
+def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
+    tmp_path,
+) -> None:
     periods = 12
     times = pd.date_range("2026-01-01", periods=periods, freq="5min", tz="UTC")
     ctx_cont_names = set(MODEL_NATIVE_CTX_CONT_FIELDS)
     ctx_cat_names = set(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     data = {"time": times}
-    data.update({field: np.full(periods, 0.1, dtype=np.float32) for field in MODEL_NATIVE_BASE_FIELDS})
-    data.update({field: np.full(periods, 0.2, dtype=np.float32) for field in ctx_cont_names})
+    data.update(
+        {
+            field: np.full(periods, 0.1, dtype=np.float32)
+            for field in MODEL_NATIVE_BASE_FIELDS
+        }
+    )
+    data.update(
+        {field: np.full(periods, 0.2, dtype=np.float32) for field in ctx_cont_names}
+    )
     data.update({field: np.ones(periods, dtype=np.int64) for field in ctx_cat_names})
     merged = pd.DataFrame(data)
     source = tmp_path / "source.parquet"
@@ -701,12 +758,16 @@ def test_exact_model_native_manifest_resolves_mandatory_inline_mode(tmp_path) ->
                 "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
                 "manifest_only": True,
                 "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
-                "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
+                "foundation_structure_feature_count": len(
+                    FOUNDATION_STRUCTURE_FEATURE_NAMES
+                ),
                 "foundation_structure_missing_feature_count": 0,
                 "foundation_structure_all_required_selected": True,
                 "selected_features": selected,
                 "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
-                "model_native_signal_contract": model_native_signal_contract_metadata(selected),
+                "model_native_signal_contract": model_native_signal_contract_metadata(
+                    selected
+                ),
             }
         ),
         encoding="utf-8",
@@ -716,7 +777,12 @@ def test_exact_model_native_manifest_resolves_mandatory_inline_mode(tmp_path) ->
 
     assert features == selected
     assert meta["mode"] == "mandatory_inline_common_causal_history_v1"
-    assert meta["foundation_structure_feature_version"] == FOUNDATION_STRUCTURE_FEATURE_VERSION
-    assert meta["foundation_structure_feature_count"] == len(FOUNDATION_STRUCTURE_FEATURE_NAMES)
+    assert (
+        meta["foundation_structure_feature_version"]
+        == FOUNDATION_STRUCTURE_FEATURE_VERSION
+    )
+    assert meta["foundation_structure_feature_count"] == len(
+        FOUNDATION_STRUCTURE_FEATURE_NAMES
+    )
     assert meta["foundation_structure_missing_feature_count"] == 0
     assert meta["foundation_structure_all_required_selected"] is True

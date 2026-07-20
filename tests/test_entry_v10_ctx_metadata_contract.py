@@ -1,4 +1,7 @@
-from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CAT_FIELDS, MODEL_NATIVE_CTX_CONT_FIELDS
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+)
 import copy
 
 import pytest
@@ -47,17 +50,15 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
 )
 
 
-def test_v10_metadata_ctx_cont_names_are_the_exact_full_v3_contract() -> None:
-    assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM
-
-
 def test_v10_metadata_active_heads_include_enabled_model_native_heads() -> None:
     got = _build_active_head_names()
 
     assert got == list(MODEL_NATIVE_ACTIVE_HEADS)
 
 
-def test_v10_bundle_capabilities_accept_declared_model_native_heads_from_state_dict() -> None:
+def test_v10_bundle_capabilities_accept_declared_model_native_heads_from_state_dict() -> (
+    None
+):
     state_dict = {}
     for prefix in [
         "head_direction",
@@ -166,7 +167,9 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         "anchor_source": None,
         "anchor_gate": {"enabled": False},
         "direction_decision_contract": copy.deepcopy(direction_contract),
-        "train_recipe": {"active_heads": sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS)},
+        "train_recipe": {
+            "active_heads": sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS)
+        },
         "multi_tf": {
             "enabled": True,
             "v2_mode": True,
@@ -224,7 +227,9 @@ def test_model_native_bundle_metadata_contract_is_exact_and_complete() -> None:
     [
         (lambda meta, lock: meta["multi_tf"].pop("h4_seq_len"), "MTF_METADATA_MISSING"),
         (
-            lambda meta, lock: meta["train_recipe"]["active_heads"].remove("trendline_rail"),
+            lambda meta, lock: meta["train_recipe"]["active_heads"].remove(
+                "trendline_rail"
+            ),
             "ACTIVE_COMPONENTS_MISMATCH",
         ),
         (
@@ -275,7 +280,8 @@ def _live_model_native_state() -> dict[str, torch.Tensor]:
             "evidence_fusion_in.bias": torch.zeros(128),
             "evidence_fusion_out.weight": torch.arange(
                 3 * 128, dtype=torch.float32
-            ).reshape(3, 128) + 1.0,
+            ).reshape(3, 128)
+            + 1.0,
             "evidence_fusion_out.bias": torch.zeros(3),
         }
     )

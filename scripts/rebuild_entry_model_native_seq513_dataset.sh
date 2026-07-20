@@ -174,7 +174,7 @@ export GX1_V10_MULTI_TF_V2_CACHE_DIR=$MTF_CACHE_DIR
 mkdir -p "$OUTPUT_DIR"
 "${CAP[@]}" "$PY" -m gx1.scripts.build_entry_v10_ctx_training_dataset_v3 \
   --vedtak "$VEDTAK" \
-  --source-parquet-override "$SOURCE_PARQUET" \
+  --source-parquet "$SOURCE_PARQUET" \
   --canonical_v2_parquet "$CANONICAL_V2_PARQUET" \
   --seq-structure-manifest "$SIGNAL_MANIFEST" \
   --feature-ranking-json "$FEATURE_RANKING_JSON" \

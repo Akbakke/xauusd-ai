@@ -8,7 +8,7 @@ trend, liquidity, volatility, momentum, session, price action, path quality and
 utility evidence remain learned inputs/targets; no external direction model or
 runtime direction filter participates in this builder.
 
-Canonical BASE28/source data, the canonical-v2 feature frame, the exact
+The exact canonical source parquet, canonical-v2 feature frame, exact
 model-native selection manifest and the bid/ask market tape are mandatory.
 Missing or mismatched contracts fail closed.  No compatibility fallback exists.
 
@@ -58,7 +58,13 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS,
+    MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
+    MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS,
+    MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -95,16 +101,23 @@ from gx1.contracts.entry_model_native_state_v2 import (
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
 )
-from gx1.features.swing_structure_v1 import compute_swing_structure_features
+from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.swing_structure_v1 import (
+    SWING_ATR_PERIOD_V1,
+    SWING_LOOKBACK_V1,
+    compute_swing_structure_features,
+)
 from gx1.time.session_detector import (
+    get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
 )
-from gx1.utils.canonical_prebuilt_resolver import resolve_base28_canonical_from_manifest
 from gx1_guards.gates import require_retrain_vedtak
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 PATH_QUALITY_HORIZON_BARS = 10
 BAD_PATH_HORIZON_BARS = PATH_QUALITY_HORIZON_BARS
@@ -177,7 +190,9 @@ def direction_label_contract() -> Dict[str, Any]:
         "direction_utility_mae_weight": float(V12_DIRECTION_UTILITY_MAE_WEIGHT),
         "direction_utility_path_weight": float(V12_DIRECTION_UTILITY_PATH_WEIGHT),
         "direction_utility_min_bps": float(V12_DIRECTION_UTILITY_MIN_BPS),
-        "direction_utility_min_side_margin_bps": float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS),
+        "direction_utility_min_side_margin_bps": float(
+            V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS
+        ),
     }
 
 
@@ -239,8 +254,14 @@ def _validate_model_native_aux_head_targets(
         raise ValueError(f"MODEL_NATIVE_AUX_TARGET_ROW_COUNT_INVALID: {n_rows}")
     observed_columns = tuple(targets)
     if observed_columns != MODEL_NATIVE_AUX_TARGET_COLUMNS:
-        missing = [name for name in MODEL_NATIVE_AUX_TARGET_COLUMNS if name not in targets]
-        extra = [name for name in observed_columns if name not in MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN]
+        missing = [
+            name for name in MODEL_NATIVE_AUX_TARGET_COLUMNS if name not in targets
+        ]
+        extra = [
+            name
+            for name in observed_columns
+            if name not in MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN
+        ]
         raise RuntimeError(
             "MODEL_NATIVE_AUX_TARGET_COLUMNS_INVALID: "
             f"missing={missing} extra={extra} order_matches={observed_columns == MODEL_NATIVE_AUX_TARGET_COLUMNS}"
@@ -300,10 +321,16 @@ def _build_model_native_aux_head_targets(
     n_rows = len(frame)
     for name in required:
         try:
-            values = pd.to_numeric(frame[name], errors="raise").to_numpy(dtype=np.float64)
+            values = pd.to_numeric(frame[name], errors="raise").to_numpy(
+                dtype=np.float64
+            )
         except Exception as exc:
             raise RuntimeError(f"MODEL_NATIVE_AUX_PRICE_INVALID: {name}") from exc
-        if values.shape != (n_rows,) or not np.isfinite(values).all() or np.any(values <= 0.0):
+        if (
+            values.shape != (n_rows,)
+            or not np.isfinite(values).all()
+            or np.any(values <= 0.0)
+        ):
             raise RuntimeError(f"MODEL_NATIVE_AUX_PRICE_INVALID: {name}")
         prices[name] = values
     for high_name, low_name in (
@@ -338,9 +365,7 @@ def _build_model_native_aux_head_targets(
         if lower is not None and upper is not None:
             values = np.clip(values, lower, upper)
         elif lower is not None or upper is not None:
-            raise RuntimeError(
-                f"MODEL_NATIVE_AUX_TARGET_CLIP_CONTRACT_INVALID: {name}"
-            )
+            raise RuntimeError(f"MODEL_NATIVE_AUX_TARGET_CLIP_CONTRACT_INVALID: {name}")
         full[:valid_rows] = values.astype(np.float32)
         computed[name] = full
 
@@ -405,20 +430,34 @@ def _build_model_native_aux_head_targets(
                     favorable_mid = (future_high - entry_mid) / entry_mid * bps
                     adverse_mid = (future_low - entry_mid) / entry_mid * bps
                     favorable_spread = (
-                        prices["bid_high"][offset : offset + valid_rows] - entry_spread
-                    ) / entry_spread * bps
+                        (
+                            prices["bid_high"][offset : offset + valid_rows]
+                            - entry_spread
+                        )
+                        / entry_spread
+                        * bps
+                    )
                     adverse_spread = (
-                        prices["bid_low"][offset : offset + valid_rows] - entry_spread
-                    ) / entry_spread * bps
+                        (prices["bid_low"][offset : offset + valid_rows] - entry_spread)
+                        / entry_spread
+                        * bps
+                    )
                 else:
                     favorable_mid = (entry_mid - future_low) / entry_mid * bps
                     adverse_mid = (entry_mid - future_high) / entry_mid * bps
                     favorable_spread = (
-                        entry_spread - prices["ask_low"][offset : offset + valid_rows]
-                    ) / entry_spread * bps
+                        (entry_spread - prices["ask_low"][offset : offset + valid_rows])
+                        / entry_spread
+                        * bps
+                    )
                     adverse_spread = (
-                        entry_spread - prices["ask_high"][offset : offset + valid_rows]
-                    ) / entry_spread * bps
+                        (
+                            entry_spread
+                            - prices["ask_high"][offset : offset + valid_rows]
+                        )
+                        / entry_spread
+                        * bps
+                    )
 
                 new_worst = adverse_mid < run_adverse_mid
                 run_adverse_mid = np.minimum(run_adverse_mid, adverse_mid)
@@ -467,14 +506,16 @@ def _build_model_native_aux_head_targets(
 
             if side == "long":
                 final_pnl_bps = (
-                    prices["bid_close"][horizon : horizon + valid_rows]
-                    - entry_spread
-                ) / entry_spread * bps
+                    (prices["bid_close"][horizon : horizon + valid_rows] - entry_spread)
+                    / entry_spread
+                    * bps
+                )
             else:
                 final_pnl_bps = (
-                    entry_spread
-                    - prices["ask_close"][horizon : horizon + valid_rows]
-                ) / entry_spread * bps
+                    (entry_spread - prices["ask_close"][horizon : horizon + valid_rows])
+                    / entry_spread
+                    * bps
+                )
             full_path_mae_bps = -run_adverse_spread
             action_value_bps = (
                 final_pnl_bps
@@ -537,7 +578,9 @@ def _position_size_target_from_path(
         # signed/negative MAE here would silently reverse its sizing meaning.
         "mae_first_n_bps": int(np.count_nonzero(~np.isfinite(mae) | (mae < 0.0))),
         "atr_bps": int(np.count_nonzero(~np.isfinite(atr) | (atr <= 0.0))),
-        "trade_mask": int(np.count_nonzero(~np.isfinite(mask) | ~np.isin(mask, (0.0, 1.0)))),
+        "trade_mask": int(
+            np.count_nonzero(~np.isfinite(mask) | ~np.isin(mask, (0.0, 1.0)))
+        ),
     }
     invalid = {name: count for name, count in invalid.items() if count}
     if invalid:
@@ -555,29 +598,6 @@ def _position_size_target_from_path(
         raise RuntimeError("POSITION_SIZE_TARGET_NON_FINITE_OUTPUT")
     return out.astype(np.float32)
 
-
-MICRO_FEATURE_NAMES = [
-    "micro_momentum_3",
-    "micro_momentum_5",
-    "micro_acceleration",
-    "wick_ratio",
-    "distance_ema_fast",
-]
-SWING_FEATURE_NAMES = [
-    "dist_last_swing_high_atr",
-    "dist_last_swing_low_atr",
-    "bars_since_swing_high",
-    "bars_since_swing_low",
-    "retracement_from_last_impulse",
-]
-SESSION_CTX_CONT_NAMES = [
-    "is_ASIA",
-    "minutes_since_session_open",
-    "minutes_to_next_session_boundary",
-    "session_change_flag",
-    "session_tradable",
-]
-SWING_ATR_PERIOD = 14
 
 # -----------------------------------------------------------------------------
 # Misc helpers
@@ -614,6 +634,18 @@ def _hard_gate_model_native_context() -> Dict[str, Any]:
         MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS
     ):
         raise RuntimeError("MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_ORDER_MISMATCH")
+    if tuple(ctx.get("ctx_cont_micro_features") or ()) != (
+        MODEL_NATIVE_CTX_CONT_MICRO_FIELDS
+    ):
+        raise RuntimeError("MODEL_NATIVE_CTX_CONT_MICRO_ORDER_MISMATCH")
+    if tuple(ctx.get("ctx_cont_swing_features") or ()) != (
+        MODEL_NATIVE_CTX_CONT_SWING_FIELDS
+    ):
+        raise RuntimeError("MODEL_NATIVE_CTX_CONT_SWING_ORDER_MISMATCH")
+    if tuple(ctx.get("ctx_cont_session_features") or ()) != (
+        MODEL_NATIVE_CTX_CONT_SESSION_FIELDS
+    ):
+        raise RuntimeError("MODEL_NATIVE_CTX_CONT_SESSION_ORDER_MISMATCH")
     if int(ctx.get("ctx_cont_dim", -1)) != MODEL_NATIVE_CTX_CONT_DIM:
         raise RuntimeError("MODEL_NATIVE_CTX_CONT_DIM_MISMATCH")
     if int(ctx.get("ctx_cat_dim", -1)) != MODEL_NATIVE_CTX_CAT_DIM:
@@ -621,11 +653,40 @@ def _hard_gate_model_native_context() -> Dict[str, Any]:
     return ctx
 
 
-def _ensure_base28_manifest_exists(base28_manifest: Path) -> None:
-    if not base28_manifest.exists():
-        raise RuntimeError(f"INPUT_MISSING: base28_manifest not found: {base28_manifest}")
-    if base28_manifest.suffix.lower() != ".json":
-        raise RuntimeError(f"INPUT_INVALID: base28_manifest must be a .json manifest file: {base28_manifest}")
+def _model_native_artifact_owner_fields(
+    active_base_signal_fields: Sequence[str],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return exact (canonical-v2, source-prebuilt) field ownership."""
+
+    from gx1.features.regime_v4_features import REGIME_V4_SOURCE_COLS
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+
+    volume_derived = set(VOLUME_FEATURE_NAMES)
+    cv2_owned = tuple(
+        dict.fromkeys(
+            [name for name in active_base_signal_fields if name not in volume_derived]
+            + list(MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS)
+        )
+    )
+    source_owned = tuple(
+        dict.fromkeys(
+            list(MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS)
+            + [
+                name
+                for name in REGIME_V4_SOURCE_COLS
+                if name != "D1_dist_from_ema200_atr"
+            ]
+            + ["volume"]
+        )
+    )
+    overlap = sorted(set(cv2_owned) & set(source_owned))
+    if overlap:
+        raise RuntimeError(f"MODEL_NATIVE_ARTIFACT_OWNER_OVERLAP: {overlap}")
+    if len(cv2_owned) != len(set(cv2_owned)) or len(source_owned) != len(
+        set(source_owned)
+    ):
+        raise RuntimeError("MODEL_NATIVE_ARTIFACT_OWNER_DUPLICATE")
+    return cv2_owned, source_owned
 
 
 def _sha256_file(path: Path) -> str:
@@ -664,7 +725,9 @@ def _resolve_seq_structure_extension(
     if not manifest_path.is_file():
         raise RuntimeError(f"SEQ_STRUCTURE_MANIFEST_MISSING: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    contract = require_model_native_manifest(manifest, context="DATASET_BUILDER_EXTENSION")
+    contract = require_model_native_manifest(
+        manifest, context="DATASET_BUILDER_EXTENSION"
+    )
     features = list(contract["selected_fields"])
     meta = {
         "manifest_path": str(manifest_path) if manifest_path is not None else None,
@@ -673,10 +736,18 @@ def _resolve_seq_structure_extension(
         "expected_seq_snap_width": manifest.get("expected_seq_snap_width"),
         "manifest_selected_feature_count": len(features),
         "mode": "mandatory_inline_common_causal_history_v1",
-        "foundation_structure_feature_version": manifest.get("foundation_structure_feature_version"),
-        "foundation_structure_feature_count": manifest.get("foundation_structure_feature_count"),
-        "foundation_structure_missing_feature_count": manifest.get("foundation_structure_missing_feature_count"),
-        "foundation_structure_all_required_selected": manifest.get("foundation_structure_all_required_selected"),
+        "foundation_structure_feature_version": manifest.get(
+            "foundation_structure_feature_version"
+        ),
+        "foundation_structure_feature_count": manifest.get(
+            "foundation_structure_feature_count"
+        ),
+        "foundation_structure_missing_feature_count": manifest.get(
+            "foundation_structure_missing_feature_count"
+        ),
+        "foundation_structure_all_required_selected": manifest.get(
+            "foundation_structure_all_required_selected"
+        ),
         "manifest": manifest,
     }
     return features, meta
@@ -707,10 +778,18 @@ def _build_inline_seq_structure_extension(
     from gx1.features.entry_chart_geometry_v1 import build_entry_chart_geometry_layer
     from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
     from gx1.features.entry_mtf_confluence_v1 import build_entry_mtf_confluence_layer
-    from gx1.features.entry_session_regime_interactions_v1 import build_entry_session_regime_interaction_layer
-    from gx1.features.entry_smc_liquidity_quality_v1 import build_entry_smc_liquidity_quality_layer
-    from gx1.features.entry_structure_swing_derivations_v1 import build_entry_structure_swing_derivation_layer
-    from gx1.features.entry_support_resistance_memory_v1 import build_entry_support_resistance_memory_layer
+    from gx1.features.entry_session_regime_interactions_v1 import (
+        build_entry_session_regime_interaction_layer,
+    )
+    from gx1.features.entry_smc_liquidity_quality_v1 import (
+        build_entry_smc_liquidity_quality_layer,
+    )
+    from gx1.features.entry_structure_swing_derivations_v1 import (
+        build_entry_structure_swing_derivation_layer,
+    )
+    from gx1.features.entry_support_resistance_memory_v1 import (
+        build_entry_support_resistance_memory_layer,
+    )
     from gx1.features.entry_trend_ema_v1 import build_entry_trend_ema_layer
     from gx1.features.entry_vol_compression_v1 import build_entry_vol_compression_layer
 
@@ -770,11 +849,15 @@ def _build_inline_seq_structure_extension(
     requested_set = set(requested_features)
     smart_generated_layers: List[Dict[str, Any]] = []
 
-    def _append_generated_layer(label: str, layer_x: np.ndarray, layer_names: List[str]) -> None:
+    def _append_generated_layer(
+        label: str, layer_x: np.ndarray, layer_names: List[str]
+    ) -> None:
         nonlocal all_x, all_names
         layer_x = np.asarray(layer_x, dtype=np.float32)
         if layer_x.ndim != 2:
-            raise RuntimeError(f"SEQ_STRUCTURE_INLINE_SMART_LAYER_NOT_2D: {label} shape={layer_x.shape}")
+            raise RuntimeError(
+                f"SEQ_STRUCTURE_INLINE_SMART_LAYER_NOT_2D: {label} shape={layer_x.shape}"
+            )
         if layer_x.shape[0] != all_x.shape[0]:
             raise RuntimeError(
                 f"SEQ_STRUCTURE_INLINE_SMART_LAYER_ROW_MISMATCH: {label} "
@@ -793,7 +876,9 @@ def _build_inline_seq_structure_extension(
         selected_x = layer_x[:, selected_idx].astype(np.float32, copy=False)
         if not np.isfinite(selected_x).all():
             raise RuntimeError(f"SEQ_STRUCTURE_INLINE_SMART_LAYER_NONFINITE: {label}")
-        all_x = np.concatenate([all_x, selected_x], axis=1).astype(np.float32, copy=False)
+        all_x = np.concatenate([all_x, selected_x], axis=1).astype(
+            np.float32, copy=False
+        )
         all_names.extend(selected_names)
         smart_generated_layers.append(
             {
@@ -808,7 +893,9 @@ def _build_inline_seq_structure_extension(
         # This avoids a second parquet read with a different normalization path.
         return candle_x.astype(np.float32, copy=False), list(candle_names)
 
-    def _build_chart_geometry_smart_layer_strict(all_x: np.ndarray, all_names: List[str]) -> Tuple[np.ndarray, List[str]]:
+    def _build_chart_geometry_smart_layer_strict(
+        all_x: np.ndarray, all_names: List[str]
+    ) -> Tuple[np.ndarray, List[str]]:
         return build_entry_chart_geometry_layer(all_x, all_names)
 
     smart_builders = {
@@ -824,7 +911,10 @@ def _build_inline_seq_structure_extension(
         "mtf_confluence_layer": build_entry_mtf_confluence_layer,
     }
     for label, feature_names in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES:
-        if not any(name in requested_set and name not in set(all_names) for name in feature_names):
+        if not any(
+            name in requested_set and name not in set(all_names)
+            for name in feature_names
+        ):
             continue
         builder = smart_builders[label]
         if label == "price_action_candle_smart3_layer":
@@ -836,7 +926,9 @@ def _build_inline_seq_structure_extension(
     index = {name: i for i, name in enumerate(all_names)}
     missing = [name for name in requested_features if name not in index]
     if missing:
-        raise RuntimeError(f"SEQ_STRUCTURE_INLINE_FEATURES_MISSING: {missing[:30]} total={len(missing)}")
+        raise RuntimeError(
+            f"SEQ_STRUCTURE_INLINE_FEATURES_MISSING: {missing[:30]} total={len(missing)}"
+        )
 
     selected = [name for name in requested_features]
     selected_cols: List[np.ndarray] = []
@@ -853,7 +945,9 @@ def _build_inline_seq_structure_extension(
         "base_matrix_dim": int(base_x.shape[1]),
         "chart_generated_dim": int(chart_x.shape[1]),
         "deep_generated_dim": int(deep_x.shape[1]),
-        "smart_generated_dim": int(sum(row["feature_count"] for row in smart_generated_layers)),
+        "smart_generated_dim": int(
+            sum(row["feature_count"] for row in smart_generated_layers)
+        ),
         "smart_generated_layers": smart_generated_layers,
         "available_feature_count": int(len(all_names)),
         "source_parquet_for_price_features": (
@@ -901,7 +995,9 @@ def _normalize_time_utc(df: pd.DataFrame, time_col: str) -> pd.DataFrame:
     out = df.copy()
     out["time"] = pd.to_datetime(out[time_col], utc=True, errors="coerce")
     if out["time"].isna().any():
-        raise RuntimeError("TIME_PARSE_FAIL: time column could not be parsed to tz-aware UTC")
+        raise RuntimeError(
+            "TIME_PARSE_FAIL: time column could not be parsed to tz-aware UTC"
+        )
     duplicate_count = int(out["time"].duplicated().sum())
     if duplicate_count:
         raise RuntimeError(f"TIME_DUPLICATE_ROWS: count={duplicate_count}")
@@ -983,7 +1079,9 @@ def _load_canonical_tape(
     numeric_columns: Dict[str, np.ndarray] = {}
     for column in required_cols:
         try:
-            values = pd.to_numeric(tape[column], errors="raise").to_numpy(dtype=np.float64)
+            values = pd.to_numeric(tape[column], errors="raise").to_numpy(
+                dtype=np.float64
+            )
         except Exception as exc:
             raise RuntimeError(f"TAPE_REQUIRED_COLUMN_INVALID: {column}") from exc
         if not np.isfinite(values).all():
@@ -1019,7 +1117,9 @@ def _load_canonical_tape(
         tape["time"] = pd.to_datetime(tape["time"], utc=True, errors="coerce")
         invalid_times = int(tape["time"].isna().sum())
         if invalid_times:
-            raise RuntimeError(f"TAPE_TIME_PARSE_FAIL_AFTER_NORMALIZATION: count={invalid_times}")
+            raise RuntimeError(
+                f"TAPE_TIME_PARSE_FAIL_AFTER_NORMALIZATION: count={invalid_times}"
+            )
 
     if len(tape) == 0:
         raise RuntimeError("TAPE_EMPTY_AFTER_NORMALIZATION")
@@ -1104,8 +1204,12 @@ def _compute_labels_fixed_hold(
     y_early[short_mask] = (mfe_short_bps[short_mask] >= thr_early).astype(np.float32)
 
     y_quality = np.zeros_like(pnl_long_bps, dtype=np.float32)
-    y_quality[long_mask] = np.clip(pnl_long_bps[long_mask], 0.0, 5000.0).astype(np.float32)
-    y_quality[short_mask] = np.clip(pnl_short_bps[short_mask], 0.0, 5000.0).astype(np.float32)
+    y_quality[long_mask] = np.clip(pnl_long_bps[long_mask], 0.0, 5000.0).astype(
+        np.float32
+    )
+    y_quality[short_mask] = np.clip(pnl_short_bps[short_mask], 0.0, 5000.0).astype(
+        np.float32
+    )
 
     out = pd.DataFrame(
         {
@@ -1159,10 +1263,18 @@ def _compute_path_quality_first_n(
         max_ask = float(np.max(w_ask))
         min_ask = float(np.min(w_ask))
 
-        mfe_long[i] = (max_bid - entry_ask[i]) / np.clip(entry_ask[i], 1e-12, None) * 1e4
-        mae_long[i] = (entry_ask[i] - min_bid) / np.clip(entry_ask[i], 1e-12, None) * 1e4
-        mfe_short[i] = (entry_bid[i] - min_ask) / np.clip(entry_bid[i], 1e-12, None) * 1e4
-        mae_short[i] = (max_ask - entry_bid[i]) / np.clip(entry_bid[i], 1e-12, None) * 1e4
+        mfe_long[i] = (
+            (max_bid - entry_ask[i]) / np.clip(entry_ask[i], 1e-12, None) * 1e4
+        )
+        mae_long[i] = (
+            (entry_ask[i] - min_bid) / np.clip(entry_ask[i], 1e-12, None) * 1e4
+        )
+        mfe_short[i] = (
+            (entry_bid[i] - min_ask) / np.clip(entry_bid[i], 1e-12, None) * 1e4
+        )
+        mae_short[i] = (
+            (max_ask - entry_bid[i]) / np.clip(entry_bid[i], 1e-12, None) * 1e4
+        )
 
     out = pd.DataFrame(
         {
@@ -1213,8 +1325,12 @@ def _compute_bad_path_first_n(
     entry_bid = bid[:-horizon_bars]
     horizon_bid = bid[horizon_bars:]
     horizon_ask = ask[horizon_bars:]
-    pnl_long_at_horizon_bps = (horizon_bid - entry_ask) / np.clip(entry_ask, 1e-12, None) * 1e4
-    pnl_short_at_horizon_bps = (entry_bid - horizon_ask) / np.clip(entry_bid, 1e-12, None) * 1e4
+    pnl_long_at_horizon_bps = (
+        (horizon_bid - entry_ask) / np.clip(entry_ask, 1e-12, None) * 1e4
+    )
+    pnl_short_at_horizon_bps = (
+        (entry_bid - horizon_ask) / np.clip(entry_bid, 1e-12, None) * 1e4
+    )
 
     out_long = (pnl_long_at_horizon_bps < 0).astype(np.float32)
     out_short = (pnl_short_at_horizon_bps < 0).astype(np.float32)
@@ -1225,8 +1341,12 @@ def _compute_bad_path_first_n(
             "bad_path_long_first_n": out_long,
             "bad_path_short_first_n": out_short,
             "bad_path_horizon_bars": np.int32(horizon_bars),
-            "bad_path_mae_threshold_bps": np.float32(adverse_threshold_bps),  # kept for compat
-            "bad_path_mfe_threshold_bps": np.float32(favorable_threshold_bps),  # kept for compat
+            "bad_path_mae_threshold_bps": np.float32(
+                adverse_threshold_bps
+            ),  # kept for compat
+            "bad_path_mfe_threshold_bps": np.float32(
+                favorable_threshold_bps
+            ),  # kept for compat
             "v11_pnl_long_at_horizon_bps": pnl_long_at_horizon_bps.astype(np.float32),
             "v11_pnl_short_at_horizon_bps": pnl_short_at_horizon_bps.astype(np.float32),
         }
@@ -1237,15 +1357,7 @@ def _compute_bad_path_first_n(
 # Manifest writing
 # -----------------------------------------------------------------------------
 def _model_native_ctx_contract_metadata() -> Dict[str, Any]:
-    ctx = model_native_context_contract_metadata()
-    ctx.update(
-        {
-            "ctx_cont_micro_features": list(MICRO_FEATURE_NAMES),
-            "ctx_cont_swing_features": list(SWING_FEATURE_NAMES),
-            "ctx_cont_session_features": list(SESSION_CTX_CONT_NAMES),
-        }
-    )
-    return ctx
+    return model_native_context_contract_metadata()
 
 
 def _require_model_native_manifest_contract(
@@ -1317,7 +1429,13 @@ def _require_model_native_manifest_contract(
     if not isinstance(ctx_contract, dict):
         raise RuntimeError("MODEL_NATIVE_MANIFEST_CTX_CONTRACT_MISSING")
     exact_ctx = _model_native_ctx_contract_metadata()
-    for key in ("tag", "ctx_cont_dim", "ctx_cat_dim", "ctx_cont_names", "ctx_cat_names"):
+    for key in (
+        "tag",
+        "ctx_cont_dim",
+        "ctx_cat_dim",
+        "ctx_cont_names",
+        "ctx_cat_names",
+    ):
         expected = exact_ctx[key]
         if ctx_contract.get(key) != expected:
             raise RuntimeError(
@@ -1331,7 +1449,9 @@ def _require_model_native_manifest_contract(
     try:
         validate_state_contract_metadata_v2(state_contract, require_artifact=False)
     except RuntimeError as exc:
-        raise RuntimeError(f"MODEL_NATIVE_MANIFEST_STATE_CONTRACT_INVALID: {exc}") from exc
+        raise RuntimeError(
+            f"MODEL_NATIVE_MANIFEST_STATE_CONTRACT_INVALID: {exc}"
+        ) from exc
     for key in (
         "rank_reference_npz",
         "rank_reference_sidecar_json",
@@ -1370,12 +1490,11 @@ def _require_model_native_seq513_split_manifest_contract(
                 "MODEL_NATIVE_SPLIT_WINDOW_INVALID: "
                 f"split={split_name} window={window!r}"
             )
-        if not str(window.get("start") or "").strip() or not str(
-            window.get("end") or ""
-        ).strip():
-            raise RuntimeError(
-                f"MODEL_NATIVE_SPLIT_WINDOW_EMPTY: split={split_name}"
-            )
+        if (
+            not str(window.get("start") or "").strip()
+            or not str(window.get("end") or "").strip()
+        ):
+            raise RuntimeError(f"MODEL_NATIVE_SPLIT_WINDOW_EMPTY: split={split_name}")
     parsed = {
         f"{split_name}_{edge}": _parse_ts(str(splits[split_name][edge]))
         for split_name in ("train", "val", "test")
@@ -1384,13 +1503,18 @@ def _require_model_native_seq513_split_manifest_contract(
     if any(value is None for value in parsed.values()):
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_TIMESTAMP_INVALID")
     if not (
-        parsed["train_start"] <= parsed["train_end"]
-        < parsed["val_start"] <= parsed["val_end"]
-        < parsed["test_start"] <= parsed["test_end"]
+        parsed["train_start"]
+        <= parsed["train_end"]
+        < parsed["val_start"]
+        <= parsed["val_end"]
+        < parsed["test_start"]
+        <= parsed["test_end"]
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_ORDER_INVALID")
     signal_contract = _require_model_native_manifest_contract(extra)
-    state_contract = extra.get("model_native_state_contract") if isinstance(extra, dict) else {}
+    state_contract = (
+        extra.get("model_native_state_contract") if isinstance(extra, dict) else {}
+    )
     state_fit_start = _parse_ts(str(state_contract.get("rank_fit_start_utc") or ""))
     state_fit_end = _parse_ts(str(state_contract.get("rank_fit_end_utc") or ""))
     if state_fit_start != parsed["train_start"] or state_fit_end != parsed["train_end"]:
@@ -1406,19 +1530,16 @@ def write_manifest(
     *,
     output_path: Path,
     build_command: List[str],
-    base28_manifest: Optional[Path],
-    source_parquet_override: Optional[Path],
+    source_parquet: Path,
     tape_root: Optional[Path],
     splits: Optional[Dict[str, Any]] = None,
     ts_min_max_by_split: Optional[Dict[str, Dict[str, Optional[str]]]] = None,
     notes: str = "",
     extra: Optional[Dict[str, Any]] = None,
 ) -> Path:
-    if (base28_manifest is None) == (source_parquet_override is None):
-        raise RuntimeError(
-            "MODEL_NATIVE_SOURCE_CONTRACT_INVALID: declare exactly one of "
-            "base28_manifest or source_parquet_override"
-        )
+    source_parquet = Path(source_parquet).expanduser().resolve()
+    if not source_parquet.is_file():
+        raise RuntimeError(f"MODEL_NATIVE_SOURCE_PARQUET_MISSING: {source_parquet}")
     signal_contract: Dict[str, Any]
     if splits is not None:
         signal_contract = _require_model_native_seq513_split_manifest_contract(
@@ -1441,14 +1562,7 @@ def write_manifest(
         "output_data_path": str(output_path),
         "build_command": build_command,
         "inputs": {
-            "base28_manifest": (
-                str(base28_manifest) if base28_manifest is not None else None
-            ),
-            "source_parquet_override": (
-                str(source_parquet_override)
-                if source_parquet_override is not None
-                else None
-            ),
+            "source_parquet": str(source_parquet),
             "tape_root": str(tape_root) if tape_root is not None else None,
         },
         "feature_contract": {
@@ -1480,7 +1594,9 @@ def write_manifest(
 
     manifest_path = output_path.parent / f"{output_path.stem}.manifest.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     log.info(f"MANIFEST WRITTEN: {manifest_path}")
     return manifest_path
@@ -1504,7 +1620,9 @@ def _model_native_state_contract(
         raise RuntimeError(f"MODEL_NATIVE_RANK_REFERENCE_MISSING: {npz_path}")
     sidecar_path = npz_path.with_suffix(npz_path.suffix + ".json")
     if not sidecar_path.is_file():
-        raise RuntimeError(f"MODEL_NATIVE_RANK_REFERENCE_SIDECAR_MISSING: {sidecar_path}")
+        raise RuntimeError(
+            f"MODEL_NATIVE_RANK_REFERENCE_SIDECAR_MISSING: {sidecar_path}"
+        )
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     if not isinstance(sidecar, dict):
         raise RuntimeError("MODEL_NATIVE_RANK_REFERENCE_SIDECAR_INVALID")
@@ -1528,9 +1646,9 @@ def _model_native_state_contract(
             "MODEL_NATIVE_RANK_REFERENCE_SOURCE_SHA_MISMATCH: "
             f"sidecar={sidecar.get('source_parquet_sha256')!r} actual={source_sha} path={source_path}"
         )
-    declared_builder_source = Path(
-        str(getattr(args, "source_parquet_override", "") or "")
-    ).expanduser().resolve()
+    declared_builder_source = (
+        Path(str(getattr(args, "source_parquet", "") or "")).expanduser().resolve()
+    )
     if declared_builder_source != source_path:
         raise RuntimeError(
             "MODEL_NATIVE_RANK_REFERENCE_BUILDER_SOURCE_MISMATCH: "
@@ -1561,9 +1679,10 @@ def _model_native_state_contract(
         )
     if not feature_history_start <= train_start <= train_end:
         raise RuntimeError("MODEL_NATIVE_STATE_CONTRACT_TIME_ORDER_INVALID")
-    if not str(sidecar.get("fit_time_min") or "").strip() or not str(
-        sidecar.get("fit_time_max") or ""
-    ).strip():
+    if (
+        not str(sidecar.get("fit_time_min") or "").strip()
+        or not str(sidecar.get("fit_time_max") or "").strip()
+    ):
         raise RuntimeError("MODEL_NATIVE_RANK_REFERENCE_TIME_RANGE_MISSING")
     return {
         "schema_version": MODEL_NATIVE_STATE_SCHEMA_VERSION,
@@ -1603,7 +1722,9 @@ _SESSION_ID_TO_NAME = {
 
 def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
     if "y_direction" not in df.columns:
-        log.warning("[ENTRY_LABEL_DISTRIBUTION_PROOF] split=%s status=no_y_direction", split)
+        log.warning(
+            "[ENTRY_LABEL_DISTRIBUTION_PROOF] split=%s status=no_y_direction", split
+        )
         return
     y = df["y_direction"].astype(int)
     n = int(len(y))
@@ -1637,7 +1758,9 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
         sess_ids = df["ctx_cat"].apply(
             lambda v: int(v[0]) if isinstance(v, (list, tuple)) and len(v) > 0 else None
         )
-        df_s = pd.DataFrame({"y": y, "session_id": sess_ids}).dropna(subset=["session_id"])
+        df_s = pd.DataFrame({"y": y, "session_id": sess_ids}).dropna(
+            subset=["session_id"]
+        )
         if df_s.empty:
             return
         for sid, grp in df_s.groupby("session_id"):
@@ -1668,7 +1791,7 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # -----------------------------------------------------------------------------
 def build_dataset_canonical(
     *,
-    base28_manifest_path: Optional[Path],
+    source_parquet: Path,
     tape_root: Path,
     start: pd.Timestamp,
     end: pd.Timestamp,
@@ -1684,11 +1807,12 @@ def build_dataset_canonical(
     emit_end: pd.Timestamp,
     split_name: Optional[str] = None,
     output_path: Optional[Path] = None,  # V2 streaming-write target
-    streaming_batch_size: int = 5000,     # V2 batch rows per ParquetWriter flush
-    source_parquet_override: Optional[Path] = None,
+    streaming_batch_size: int = 5000,  # V2 batch rows per ParquetWriter flush
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     ctx = _hard_gate_model_native_context()
-    signal_build_contract = _signal_build_contract_from_manifest(seq_structure_manifest_path)
+    signal_build_contract = _signal_build_contract_from_manifest(
+        seq_structure_manifest_path
+    )
     active_base_signal_fields = list(signal_build_contract["base_fields"])
 
     if seq_len != MODEL_NATIVE_SEQ_LEN:
@@ -1699,32 +1823,22 @@ def build_dataset_canonical(
         raise RuntimeError("HORIZON_INVALID: must be >=1")
     if start is None or end is None or start > end:
         raise RuntimeError(f"MODEL_RANGE_INVALID: start={start} end={end}")
-    if emit_start is None or emit_end is None or not (start <= emit_start <= emit_end <= end):
+    if (
+        emit_start is None
+        or emit_end is None
+        or not (start <= emit_start <= emit_end <= end)
+    ):
         raise RuntimeError(
             "MODEL_NATIVE_EMIT_WINDOW_INVALID: "
             f"history_start={start} emit_start={emit_start} emit_end={emit_end} computation_end={end}"
         )
-    if (base28_manifest_path is None) == (source_parquet_override is None):
-        raise RuntimeError(
-            "MODEL_NATIVE_SOURCE_CONTRACT_INVALID: declare exactly one source path"
-        )
-
-    # 1) Resolve source: either BASE28 manifest or single-parquet override (BASE76 mode).
-    if source_parquet_override is not None:
-        parquet_path = Path(source_parquet_override).expanduser().resolve()
-        if not parquet_path.exists():
-            raise RuntimeError(f"SOURCE_PARQUET_OVERRIDE_MISSING: {parquet_path}")
-        parquet_sha = _sha256_file(parquet_path)
-        log.info("[SOURCE_PARQUET_OVERRIDE] %s sha256=%s", parquet_path, parquet_sha)
-    else:
-        if base28_manifest_path is None:
-            raise RuntimeError("BASE28_MANIFEST_REQUIRED")
-        _ensure_base28_manifest_exists(base28_manifest_path)
-        manifest_info = resolve_base28_canonical_from_manifest(str(base28_manifest_path))
-        parquet_path = Path(manifest_info["parquet_path"]).expanduser().resolve()
-        parquet_sha = manifest_info["parquet_sha256"]
-        if not parquet_path.exists():
-            raise RuntimeError(f"BASE28_PARQUET_MISSING: {parquet_path}")
+    # 1) Resolve the one exact source parquet. Manifest indirection and BASE28
+    # compatibility inputs are retired; lineage is bound by byte hash below.
+    parquet_path = Path(source_parquet).expanduser().resolve()
+    if not parquet_path.is_file():
+        raise RuntimeError(f"SOURCE_PARQUET_MISSING: {parquet_path}")
+    parquet_sha = _sha256_file(parquet_path)
+    log.info("[SOURCE_PARQUET] %s sha256=%s", parquet_path, parquet_sha)
 
     # 2) Load parquet
     df = pd.read_parquet(parquet_path)
@@ -1732,23 +1846,9 @@ def build_dataset_canonical(
     time_col = _detect_time_col(df)
     df = _normalize_time_utc(df, time_col)
 
-    # Canonical BASE28 may be expanded to raw M1 rows with an explicit model-bar marker.
-    # Entry training remains defined on the M5 model-bar lane, so filter here instead of
-    # letting the later tape join fail on a mixed-granularity input. Skip when override
-    # source is already M5-cadence.
-    if "is_model_bar" in df.columns and source_parquet_override is None:
-        raw_model_bar = pd.Series(df["is_model_bar"])
-        if raw_model_bar.isna().any():
-            raise RuntimeError("IS_MODEL_BAR_MISSING_VALUES")
-        model_bar_mask = raw_model_bar.astype(bool)
-        rows_before_model_bar = int(len(df))
-        rows_model_bar = int(model_bar_mask.sum())
-        df = df.loc[model_bar_mask].copy()
-        log.info(
-            "[BASE28_MODEL_BAR_FILTER] rows_before=%d rows_after=%d dropped=%d",
-            rows_before_model_bar,
-            rows_model_bar,
-            rows_before_model_bar - rows_model_bar,
+    if "is_model_bar" in df.columns:
+        raise RuntimeError(
+            "SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN: exact M5 source required"
         )
 
     # filter by start/end
@@ -1786,17 +1886,30 @@ def build_dataset_canonical(
     if ts.isna().any():
         raise RuntimeError("TIME_PARSE_FAIL_FOR_SESSION_CONTEXT")
     if "session_id" not in df.columns:
-        raise RuntimeError("SESSION_ID_MISSING: canonical source must carry exact session state")
-    raw_session_id = pd.to_numeric(df["session_id"], errors="coerce").to_numpy(dtype=np.float64)
+        raise RuntimeError(
+            "SESSION_ID_MISSING: canonical source must carry exact session state"
+        )
+    raw_session_id = pd.to_numeric(df["session_id"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
     if not np.isfinite(raw_session_id).all():
-        raise RuntimeError("SESSION_ID_NONFINITE: no missing-session default is allowed")
+        raise RuntimeError(
+            "SESSION_ID_NONFINITE: no missing-session default is allowed"
+        )
     if not np.equal(raw_session_id, np.floor(raw_session_id)).all():
         raise RuntimeError("SESSION_ID_NONINTEGER: expected exact integer ids 0..3")
     session_id = raw_session_id.astype(np.int32)
     invalid_session_ids = sorted(set(session_id.tolist()) - {0, 1, 2, 3})
     if invalid_session_ids:
         raise RuntimeError(f"SESSION_ID_OUT_OF_CONTRACT: {invalid_session_ids}")
-    df["session_id"] = session_id
+    canonical_session_id = get_session_id_vectorized(ts).to_numpy(dtype=np.int32)
+    if not np.array_equal(session_id, canonical_session_id):
+        mismatch = int(np.count_nonzero(session_id != canonical_session_id))
+        raise RuntimeError(
+            "SESSION_ID_CANONICAL_MISMATCH: "
+            f"rows={mismatch}; source session state cannot pass through"
+        )
+    df["session_id"] = canonical_session_id
     n_unique_post = int(np.unique(session_id).size)
     if n_unique_post < 2:
         raise RuntimeError(
@@ -1806,32 +1919,34 @@ def build_dataset_canonical(
     # Log distribution proof
     _sess_counts = pd.Series(df["session_id"]).value_counts(dropna=False).sort_index()
     log.info("[SESSION_ID_DISTRIBUTION_PROOF] %s", _sess_counts.to_dict())
-    if "is_ASIA" not in df.columns:
-        df["is_ASIA"] = (df["session_id"].astype(int) == 0).astype(np.int8)
-    if "minutes_since_session_open" not in df.columns:
-        df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(ts).astype(np.float32)
-    if "minutes_to_next_session_boundary" not in df.columns:
-        df["minutes_to_next_session_boundary"] = get_session_minutes_to_next_boundary_vectorized(ts).astype(np.float32)
-    if "session_change_flag" not in df.columns:
-        sid = df["session_id"].astype(np.int32)
-        session_change = np.zeros(len(sid), dtype=np.int8)
-        if len(sid) > 1:
-            session_change[1:] = (sid.to_numpy()[1:] != sid.to_numpy()[:-1]).astype(np.int8)
-        df["session_change_flag"] = session_change
-    if "session_tradable" not in df.columns:
-        df["session_tradable"] = (df["session_id"].astype(int) != 0).astype(np.int8)
+    df["is_ASIA"] = (canonical_session_id == 0).astype(np.int8)
+    df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
+        ts
+    ).astype(np.float32)
+    df["minutes_to_next_session_boundary"] = (
+        get_session_minutes_to_next_boundary_vectorized(ts).astype(np.float32)
+    )
+    session_change = np.zeros(len(canonical_session_id), dtype=np.int8)
+    if len(canonical_session_id) > 1:
+        session_change[1:] = (
+            canonical_session_id[1:] != canonical_session_id[:-1]
+        ).astype(np.int8)
+    df["session_change_flag"] = session_change
+    df["session_tradable"] = (canonical_session_id != 0).astype(np.int8)
 
-    # ATR is genuine volatility/path-sizing evidence and remains part of the
-    # model-native feature/target stack.
-    if "atr_bps" not in df.columns and "_v1_atr14" in df.columns and "close" in df.columns:
-        atr_bps = (
-            df["_v1_atr14"].astype(float)
-            / df["close"].astype(float).clip(lower=1e-6)
-            * 1e4
-        ).clip(0, 500)
-        if not np.isfinite(atr_bps.to_numpy(dtype=np.float64)).all():
-            raise RuntimeError("ATR_BPS_NONFINITE: no volatility-context default is allowed")
-        df["atr_bps"] = atr_bps
+    # The train-rank state contract above is the sole owner of exact ATR/spread
+    # evidence. Never synthesize a second clipped volatility surface here.
+    rank_context_names = ("atr", "atr_bps", "spread_bps")
+    rank_context_missing = [
+        name for name in rank_context_names if name not in df.columns
+    ]
+    if rank_context_missing:
+        raise RuntimeError(f"MODEL_NATIVE_RANK_CONTEXT_MISSING: {rank_context_missing}")
+    rank_context = df[list(rank_context_names)].to_numpy(dtype=np.float64)
+    if not np.isfinite(rank_context).all():
+        raise RuntimeError("MODEL_NATIVE_RANK_CONTEXT_NONFINITE")
+    if np.any(rank_context[:, :2] <= 0.0) or np.any(rank_context[:, 2] < 0.0):
+        raise RuntimeError("MODEL_NATIVE_RANK_CONTEXT_OUT_OF_RANGE")
 
     log.info(
         "[MODEL_NATIVE_SIGNAL] exact base fields=%d selected fields=%d total=%d rows=%d",
@@ -1878,56 +1993,48 @@ def build_dataset_canonical(
         required_cols=_risk_tape_cols,
     )
 
-    # Inner join tape to BASE28 by time.
-    # Determinism requirement is "every BASE28 model-bar timestamp must resolve to exactly one
-    # tape row". Tape is allowed to contain extra timestamps outside the BASE28 model-bar lane.
+    # Inner join tape to the source by time. Every exact M5 source timestamp
+    # must resolve to one tape row; the tape may cover a wider time range.
     merged = df_sig.merge(tape, on="time", how="inner", validate="one_to_one")
-    rows_base28 = int(len(df_sig))
+    rows_source = int(len(df_sig))
     rows_tape = int(len(tape))
     rows_joined = int(len(merged))
-    full_base28_match = int(rows_base28 == rows_joined)
+    full_source_match = int(rows_source == rows_joined)
     log.info(
-        "[ENTRY_TAPE_JOIN_PROOF] rows_base28=%d rows_tape=%d rows_joined=%d full_base28_match=%d",
-        rows_base28,
+        "[ENTRY_TAPE_JOIN_PROOF] rows_source=%d rows_tape=%d rows_joined=%d full_source_match=%d",
+        rows_source,
         rows_tape,
         rows_joined,
-        full_base28_match,
+        full_source_match,
     )
-    if not full_base28_match:
+    if not full_source_match:
         raise RuntimeError(
-            f"TAPE_JOIN_STRICT_FAIL: rows_base28={rows_base28} rows_tape={rows_tape} rows_joined={rows_joined}"
+            f"TAPE_JOIN_STRICT_FAIL: rows_source={rows_source} rows_tape={rows_tape} rows_joined={rows_joined}"
         )
 
-    # Micro-structure features (canonical tape OHLC)
-    eps = 1e-9
+    # Micro-structure features (canonical tape OHLC), recomputed by their only
+    # formula owner. Source copies are discarded below and can never win.
     if not all(c in merged.columns for c in ("close", "high", "low")):
-        raise RuntimeError("MICRO_FEATURES_MISSING: require close/high/low in canonical tape")
+        raise RuntimeError(
+            "MICRO_FEATURES_MISSING: require close/high/low in canonical tape"
+        )
     tape_feat = merged[["time", "close", "high", "low"]].copy().sort_values("time")
-    close = tape_feat["close"].astype(float)
-    high = tape_feat["high"].astype(float)
-    low = tape_feat["low"].astype(float)
-
-    tape_feat["micro_momentum_3"] = close - close.shift(3)
-    tape_feat["micro_momentum_5"] = close - close.shift(5)
-    tape_feat["micro_acceleration"] = (close - close.shift(1)) - (close.shift(1) - close.shift(2))
-    tape_feat["wick_ratio"] = (high - close) / (high - low + eps)
-    ema_fast = close.ewm(span=5, adjust=False).mean()
-    tape_feat["distance_ema_fast"] = close - ema_fast
-
-    for name in MICRO_FEATURE_NAMES:
-        if name not in tape_feat.columns:
-            raise RuntimeError(f"MICRO_FEATURE_MISSING: {name}")
+    close = tape_feat["close"].to_numpy(dtype=np.float64)
+    high = tape_feat["high"].to_numpy(dtype=np.float64)
+    low = tape_feat["low"].to_numpy(dtype=np.float64)
+    for _name, _arr in compute_micro_structure_features(high, low, close).items():
+        tape_feat[_name] = _arr
 
     # Swing-structure features (ATR-normalized) — ONE TRUTH: gx1.features.swing_structure_v1
     # (lookahead-safe confirmation lag). Shared with the live serve augmenter
     # (v12_ctx_augment_live._add_swing_features) so train == serve bit-for-bit; do NOT
     # re-implement the math here (2026-06-24 unification — was a 2nd, edge-divergent copy).
     _swing = compute_swing_structure_features(
-        high.to_numpy(dtype=np.float64),
-        low.to_numpy(dtype=np.float64),
-        close.to_numpy(dtype=np.float64),
-        lookback=2,
-        atr_period=SWING_ATR_PERIOD,
+        high,
+        low,
+        close,
+        lookback=SWING_LOOKBACK_V1,
+        atr_period=SWING_ATR_PERIOD_V1,
     )
     for _name, _arr in _swing.items():
         tape_feat[_name] = _arr
@@ -1937,78 +2044,99 @@ def build_dataset_canonical(
         int((np.diff(_swing["bars_since_swing_low"]) < 0).sum()),
     )
 
-    for name in SWING_FEATURE_NAMES:
-        if name not in tape_feat.columns:
-            raise RuntimeError(f"SWING_FEATURE_MISSING: {name}")
-
-    # Attach micro features to BASE28 rows (strict 1:1 time alignment)
+    # Attach only canonical computed values to source rows (strict 1:1 time
+    # alignment). Dropping source copies closes the former `_tape` pass-through.
+    tape_context_names = list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS) + list(
+        MODEL_NATIVE_CTX_CONT_SWING_FIELDS
+    )
+    source_context_copies = [name for name in tape_context_names if name in df.columns]
+    if source_context_copies:
+        log.info(
+            "[ENTRY_TAPE_CONTEXT_RECOMPUTE] discarding_source_copies=%s",
+            source_context_copies,
+        )
+        df = df.drop(columns=source_context_copies)
     df = df.merge(
-        tape_feat[["time"] + list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES)],
+        tape_feat[["time"] + tape_context_names],
         on="time",
         how="inner",
         validate="one_to_one",
-        suffixes=("", "_tape"),
     )
-    if len(df) != rows_base28:
+    if len(df) != rows_source:
         raise RuntimeError(
-            f"MICRO_FEATURE_JOIN_FAIL: rows_base28={rows_base28} rows_after={len(df)}"
+            f"MICRO_FEATURE_JOIN_FAIL: rows_source={rows_source} rows_after={len(df)}"
         )
-    for name in list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES):
-        tape_name = f"{name}_tape"
-        if name not in df.columns and tape_name in df.columns:
-            df[name] = df[tape_name]
-            df.drop(columns=[tape_name], inplace=True)
-
     ctx_cont_names = (
         ctx_cont_names
-        + list(MICRO_FEATURE_NAMES)
-        + list(SWING_FEATURE_NAMES)
-        + list(SESSION_CTX_CONT_NAMES)
+        + list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS)
+        + list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS)
+        + list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)
     )
     log.info(
         "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
-        list(MICRO_FEATURE_NAMES),
-        len(MICRO_FEATURE_NAMES),
+        list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
     )
     log.info(
         "[ENTRY_SWING_FEATURES_PROOF] names=%s count=%d",
-        list(SWING_FEATURE_NAMES),
-        len(SWING_FEATURE_NAMES),
+        list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
     )
     log.info(
         "[ENTRY_SESSION_CTX_PROOF] names=%s count=%d",
-        list(SESSION_CTX_CONT_NAMES),
-        len(SESSION_CTX_CONT_NAMES),
+        list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS),
     )
 
     for name in ctx_cont_names:
         if name not in df.columns:
-            raise RuntimeError(f"CTX_CONT_MISSING_IN_BASE28: {name!r}")
+            raise RuntimeError(f"CTX_CONT_MISSING_IN_SOURCE: {name!r}")
     for name in ctx_cat_names:
         if name not in df.columns:
-            raise RuntimeError(f"CTX_CAT_MISSING_IN_BASE28: {name!r}")
+            raise RuntimeError(f"CTX_CAT_MISSING_IN_SOURCE: {name!r}")
 
     # Normalize ctx dtypes
     df_ctx_cont = df[ctx_cont_names].astype(np.float32)
     df_ctx_cat = df[ctx_cat_names].astype(np.int64)
     if not np.isfinite(df_ctx_cont.to_numpy()).all():
-        raise RuntimeError("CTX_CONT_NONFINITE_IN_BASE28")
+        raise RuntimeError("CTX_CONT_NONFINITE_IN_SOURCE")
     if not np.isfinite(df_ctx_cat.to_numpy(dtype=np.float64)).all():
-        raise RuntimeError("CTX_CAT_NONFINITE_IN_BASE28")
+        raise RuntimeError("CTX_CAT_NONFINITE_IN_SOURCE")
 
     # Compute labels on merged tape
     labels = _compute_labels_fixed_hold(
-        tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
+        tape=merged[
+            ["time"]
+            + [
+                c
+                for c in merged.columns
+                if c in ("bid_close", "ask_close", "bid", "ask")
+            ]
+        ].copy(),
         horizon_bars=horizon_bars,
         early_move_threshold_bps=early_move_threshold_bps,
         flat_threshold_bps=flat_threshold_bps,
     )
     path_quality = _compute_path_quality_first_n(
-        tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
+        tape=merged[
+            ["time"]
+            + [
+                c
+                for c in merged.columns
+                if c in ("bid_close", "ask_close", "bid", "ask")
+            ]
+        ].copy(),
         horizon_bars=PATH_QUALITY_HORIZON_BARS,
     )
     bad_path = _compute_bad_path_first_n(
-        tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
+        tape=merged[
+            ["time"]
+            + [
+                c
+                for c in merged.columns
+                if c in ("bid_close", "ask_close", "bid", "ask")
+            ]
+        ].copy(),
         horizon_bars=BAD_PATH_HORIZON_BARS,
         adverse_threshold_bps=BAD_PATH_MAE_THRESHOLD_BPS,
         favorable_threshold_bps=BAD_PATH_MFE_THRESHOLD_BPS,
@@ -2016,7 +2144,15 @@ def build_dataset_canonical(
 
     # Align signals to labels (labels are shorter by horizon_bars)
     merged2 = merged.merge(
-        labels[["time", "y_direction", "y_early_move", "y_quality_score", "label_horizon_bars"]],
+        labels[
+            [
+                "time",
+                "y_direction",
+                "y_early_move",
+                "y_quality_score",
+                "label_horizon_bars",
+            ]
+        ],
         on="time",
         how="inner",
         validate="one_to_one",
@@ -2057,7 +2193,14 @@ def build_dataset_canonical(
     # 2026-05-26: dedicated H=24 (2h) pnl-at-horizon for the DIRECTION/tradable label
     # (decoupled from bad_path's 10-bar horizon). Reuses the same spread-aware pnl fn.
     _dir_pnl = _compute_bad_path_first_n(
-        tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
+        tape=merged[
+            ["time"]
+            + [
+                c
+                for c in merged.columns
+                if c in ("bid_close", "ask_close", "bid", "ask")
+            ]
+        ].copy(),
         horizon_bars=V11_DIRECTION_HORIZON_BARS,
         adverse_threshold_bps=BAD_PATH_MAE_THRESHOLD_BPS,
         favorable_threshold_bps=BAD_PATH_MFE_THRESHOLD_BPS,
@@ -2085,7 +2228,9 @@ def build_dataset_canonical(
     )
     merged2["mae_first_n_bps"] = mae_first_n.astype(np.float32)
     merged2["mfe_first_n_bps"] = mfe_first_n.astype(np.float32)
-    merged2["path_quality_bps"] = (merged2["mfe_first_n_bps"] - merged2["mae_first_n_bps"]).astype(np.float32)
+    merged2["path_quality_bps"] = (
+        merged2["mfe_first_n_bps"] - merged2["mae_first_n_bps"]
+    ).astype(np.float32)
     bad_path_dir = np.where(
         y_dir == 0,
         merged2["bad_path_long_first_n"].to_numpy(),
@@ -2116,69 +2261,63 @@ def build_dataset_canonical(
         raise RuntimeError(f"CANONICAL_V2_PARQUET_NOT_FOUND: {canonical_v2_path}")
     canonical_v2_sha256 = _sha256_file(canonical_v2_path)
 
-    log.info("[V2_CANONICAL_JOIN] loading canonical_v2 from %s sha256=%s", canonical_v2_path, canonical_v2_sha256)
-    # Volume features (vol_z_20 …) and GROUP-A market-parity features are DERIVED
-    # below (volume from raw `volume`; parity via augment_candidate one-truth w/
-    # IQL) — they do NOT exist in any source parquet, so exclude them from the
-    # load requirement and instead pull raw `volume`.
-    from gx1.features.volume_features import VOLUME_FEATURE_NAMES as _VOLUME_FEAT_NAMES
-    from gx1.contracts.entry_model_native_signal_v1 import (
-        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A_PARITY,
-        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT_PARITY,
-        MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS as _ENTRY_SMART_DERIVED,
-    )
-    _computed_not_loaded = set(_VOLUME_FEAT_NAMES) | set(_GROUP_A_PARITY) | set(_DIP_STRUCT_PARITY) | set(_ENTRY_SMART_DERIVED)
-    # REGIME_V4 per-TF source scalars are produced by the one-truth
-    # attach_v2_mtf_per_bar_scalars in the ctx-adder from the FULL-warmup raw
-    # tape and carried by the source parquet; the recompute block below only
-    # rebuilds the DERIVED regime state (D1_dist is recomputed there too).
-    from gx1.features.regime_v4_features import (
-        REGIME_V4_SOURCE_COLS as _RV4_SOURCE_COLS_EARLY,
-    )
-    cv2_needed = list((set(
-        list(active_base_signal_fields)
-        + list(MODEL_NATIVE_CTX_CONT_FIELDS)
-        + ["volume"]
-        + [n for n in _RV4_SOURCE_COLS_EARLY if n != "D1_dist_from_ema200_atr"]
-    )) - _computed_not_loaded)
-    cv2_already_have = set(merged3.columns)
-    cv2_to_load = [c for c in cv2_needed if c not in cv2_already_have]
-    # When source-parquet-override is used (canonical_v3_FULL_PLUS_CTX has 249 cols),
-    # pull what's available from there first, then fall back to canonical_v2 for the rest.
-    src_supplied: List[str] = []
-    if source_parquet_override is not None:
-        src_cols = set(df.columns)
-        src_supplied = [c for c in cv2_to_load if c in src_cols]
-        if src_supplied:
-            log.info("[SOURCE_PARQUET_SUPPLIED] %d cols from source parquet (skipping cv2 for those)", len(src_supplied))
-            src_extra = df[["time"] + src_supplied].copy()
-            rows_before_source = len(merged3)
-            merged3 = merged3.merge(src_extra, on="time", how="inner", validate="one_to_one")
-            if len(merged3) != rows_before_source:
-                raise RuntimeError(
-                    "SOURCE_PARQUET_JOIN_ROW_MISMATCH: "
-                    f"before={rows_before_source} after={len(merged3)}"
-                )
-            cv2_to_load = [c for c in cv2_to_load if c not in src_supplied]
     log.info(
-        "[V2_CANONICAL_JOIN] need=%d in_merged3=%d to_load_from_cv2=%d (src_supplied=%d)",
-        len(cv2_needed), len(cv2_needed) - len(cv2_to_load) - len(src_supplied), len(cv2_to_load), len(src_supplied),
+        "[V2_CANONICAL_JOIN] loading canonical_v2 from %s sha256=%s",
+        canonical_v2_path,
+        canonical_v2_sha256,
     )
-    # Filter cv2_to_load to only what canonical_v2 actually has, hard-fail if any
-    # truly missing across all sources (instead of obscure pyarrow error).
-    import pyarrow.parquet as _pq_chk
-    cv2_available = set(_pq_chk.read_schema(str(canonical_v2_path)).names) if cv2_to_load else set()
-    cv2_truly_missing = [c for c in cv2_to_load if c not in cv2_available]
-    if cv2_truly_missing:
+    # The input artifacts have disjoint field ownership. canonical-v2 owns
+    # genuine base signals and its V2 context extension. The exact source
+    # prebuilt owns V3/cyclic context, full-history regime sources and raw
+    # volume. Never select a field from whichever artifact happens to have it.
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES as _VOLUME_FEAT_NAMES
+
+    cv2_owned, source_owned = _model_native_artifact_owner_fields(
+        active_base_signal_fields
+    )
+    computed_overlap = sorted(
+        (set(cv2_owned) | set(source_owned)) & set(merged3.columns)
+    )
+    if computed_overlap:
         raise RuntimeError(
-            f"V2_CANONICAL_FIELDS_MISSING_EVERYWHERE: {cv2_truly_missing} "
-            f"(not in source_parquet, not in canonical_v2 schema)"
+            f"MODEL_NATIVE_INPUT_OWNER_OVERLAP: computed={computed_overlap}"
         )
-    cv2_df = pd.read_parquet(canonical_v2_path, columns=["time"] + cv2_to_load)
+
+    source_available = set(df.columns)
+    source_missing = [name for name in source_owned if name not in source_available]
+    if source_missing:
+        raise RuntimeError(
+            f"MODEL_NATIVE_SOURCE_OWNED_FIELDS_MISSING: {source_missing}"
+        )
+    source_extra = df[["time"] + list(source_owned)].copy()
+    rows_before_source = len(merged3)
+    merged3 = merged3.merge(
+        source_extra,
+        on="time",
+        how="inner",
+        validate="one_to_one",
+    )
+    if len(merged3) != rows_before_source:
+        raise RuntimeError(
+            "SOURCE_PARQUET_JOIN_ROW_MISMATCH: "
+            f"before={rows_before_source} after={len(merged3)}"
+        )
+
+    import pyarrow.parquet as _pq_chk
+
+    cv2_available = set(_pq_chk.read_schema(str(canonical_v2_path)).names)
+    cv2_missing = [name for name in cv2_owned if name not in cv2_available]
+    if cv2_missing:
+        raise RuntimeError(
+            f"MODEL_NATIVE_CANONICAL_V2_OWNED_FIELDS_MISSING: {cv2_missing}"
+        )
+    cv2_df = pd.read_parquet(canonical_v2_path, columns=["time"] + list(cv2_owned))
     cv2_df = _normalize_time_utc(cv2_df, "time")
     log.info(
-        "[V2_CANONICAL_JOIN] cv2 loaded: %d rows × %d cols (time + %d new)",
-        len(cv2_df), len(cv2_df.columns), len(cv2_to_load),
+        "[MODEL_NATIVE_INPUT_OWNERS] source=%d canonical_v2=%d cv2_rows=%d",
+        len(source_owned),
+        len(cv2_owned),
+        len(cv2_df),
     )
     rows_pre = len(merged3)
     merged3 = merged3.merge(cv2_df, on="time", how="inner", validate="one_to_one")
@@ -2189,10 +2328,14 @@ def build_dataset_canonical(
         )
     log.info(
         "[V2_CANONICAL_JOIN] merged: rows_pre=%d rows_post=%d lost=%d",
-        rows_pre, rows_post, rows_pre - rows_post,
+        rows_pre,
+        rows_post,
+        rows_pre - rows_post,
     )
     if rows_post == 0:
-        raise RuntimeError("V2_CANONICAL_JOIN_EMPTY: no time overlap between merged3 and canonical_v2")
+        raise RuntimeError(
+            "V2_CANONICAL_JOIN_EMPTY: no time overlap between merged3 and canonical_v2"
+        )
 
     # Recompute long-lookback HTF and REGIME_V4 derived state on this exact
     # common-history frame. Canonical/source copies are never passed through as
@@ -2223,10 +2366,9 @@ def build_dataset_canonical(
         t_max=pd.Timestamp(_common_index.max()),
         required_cols=["open", "high", "low", "close"],
     )
-    _common_m5 = (
-        _htf_m5_src.set_index("time")[["open", "high", "low", "close"]]
-        .sort_index()
-    )
+    _common_m5 = _htf_m5_src.set_index("time")[
+        ["open", "high", "low", "close"]
+    ].sort_index()
     _htf_common = pd.DataFrame(index=_common_index)
     _add_htf_common(_htf_common, _common_m5)
     _htf_common_cols = (
@@ -2277,8 +2419,10 @@ def build_dataset_canonical(
     # multi-TF cache inside augment_candidate (matches IQL). Portfolio feats are
     # excluded (journal_dir nonexistent → 0; they're IQL-only state).
     from gx1.contracts.entry_model_native_signal_v1 import (
-        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS, MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
     )
+
     # Recompute unconditionally over the explicit common-history frame.  Source
     # parquets may carry older/full-range derived values; trusting those would
     # make TRAIN and SERVE history semantics depend on an external build.
@@ -2296,8 +2440,12 @@ def build_dataset_canonical(
     _cache_dir = Path(_cache_dir_raw).expanduser().resolve()
     if not _cache_dir.is_dir():
         raise RuntimeError(f"MULTI_TF_V2_CACHE_MISSING: {_cache_dir}")
-    _group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS)
-    merged3 = merged3.drop(columns=[name for name in _group_a_required if name in merged3.columns])
+    _group_a_required = list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS
+    )
+    merged3 = merged3.drop(
+        columns=[name for name in _group_a_required if name in merged3.columns]
+    )
     merged3 = _attach_group_a(
         merged3,
         multi_tf=_ga_load_cache(_cache_dir),
@@ -2307,9 +2455,7 @@ def build_dataset_canonical(
         merged3.attrs.get("causal_context_warmup_rows", 0)
     )
     _causal_required = list(
-        dict.fromkeys(
-            _group_a_required + list(_REGIME_SOURCES) + list(_REGIME_DERIVED)
-        )
+        dict.fromkeys(_group_a_required + list(_REGIME_SOURCES) + list(_REGIME_DERIVED))
     )
     _rows_before_context_trim = len(merged3)
     merged3 = _trim_context_warmup(merged3, _causal_required).reset_index(drop=True)
@@ -2328,12 +2474,17 @@ def build_dataset_canonical(
     # the genuine model-native per-bar base surface.
     if any(f not in merged3.columns for f in _VOLUME_FEAT_NAMES):
         from gx1.features.volume_features import add_volume_features as _add_vol
+
         if "volume" not in merged3.columns:
-            raise RuntimeError("V10_VOLUME_FEATURES: raw `volume` column missing from merged3 — cannot derive")
+            raise RuntimeError(
+                "V10_VOLUME_FEATURES: raw `volume` column missing from merged3 — cannot derive"
+            )
         merged3 = merged3.sort_values("time").reset_index(drop=True)
         _add_vol(merged3)
-        log.info("[V10_VOLUME_FEATURES] computed %d volume/order-flow seq features (one-truth w/ serving)",
-                 len(_VOLUME_FEAT_NAMES))
+        log.info(
+            "[V10_VOLUME_FEATURES] computed %d volume/order-flow seq features (one-truth w/ serving)",
+            len(_VOLUME_FEAT_NAMES),
+        )
 
     # Exact 37-target future surface.  Magnitudes use executable bid/ask paths;
     # timing alone uses mid OHLC.  Every incomplete tail value remains NaN and is
@@ -2356,17 +2507,27 @@ def build_dataset_canonical(
     # ENTRY smart-context features promoted from audit-only candidates. These are
     # computed after SMC + Group-A + dip/struct source columns exist, before the
     # ctx_cont contract gate below.
-    from gx1.features.entry_smart_context import add_entry_smart_context_features as _add_entry_smart
+    from gx1.features.entry_smart_context import (
+        add_entry_smart_context_features as _add_entry_smart,
+    )
+
     _add_entry_smart(merged3)
-    log.info("[V10_ENTRY_SMART_CTX] computed %d promoted ctx_cont features", len(_ENTRY_SMART_DERIVED))
+    log.info(
+        "[V10_ENTRY_SMART_CTX] computed %d promoted ctx_cont features",
+        len(MODEL_NATIVE_CTX_CONT_ENTRY_SMART_DERIVED_FIELDS),
+    )
 
     # Verify all contracted signal and ctx_cont names are present after join.
     missing_sig = [f for f in active_base_signal_fields if f not in merged3.columns]
     if missing_sig:
-        raise RuntimeError(f"V2_SIGNAL_FIELDS_MISSING after canonical_v2 join: {missing_sig}")
+        raise RuntimeError(
+            f"V2_SIGNAL_FIELDS_MISSING after canonical_v2 join: {missing_sig}"
+        )
     missing_ctx = [f for f in MODEL_NATIVE_CTX_CONT_FIELDS if f not in merged3.columns]
     if missing_ctx:
-        raise RuntimeError(f"V2_CTX_CONT_FIELDS_MISSING after canonical_v2 join: {missing_ctx}")
+        raise RuntimeError(
+            f"V2_CTX_CONT_FIELDS_MISSING after canonical_v2 join: {missing_ctx}"
+        )
 
     # 9) Build the exact model-native seq + snap + context arrays.
     ctx_cont_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
@@ -2397,14 +2558,16 @@ def build_dataset_canonical(
         inline_source_path = Path(temporary.name)
     try:
         merged3[inline_source_columns].to_parquet(inline_source_path, index=False)
-        ext_sig_mat, seq_structure_feature_names, _seq_join_meta = _build_inline_seq_structure_extension(
-            merged3,
-            requested_features=seq_structure_requested,
-            ctx_cont_names=ctx_cont_names,
-            ctx_cat_names=ctx_cat_names,
-            source_parquet=inline_source_path,
-            source_contract_label="common_causal_history_frame_v1",
-            base_signal_fields=active_base_signal_fields,
+        ext_sig_mat, seq_structure_feature_names, _seq_join_meta = (
+            _build_inline_seq_structure_extension(
+                merged3,
+                requested_features=seq_structure_requested,
+                ctx_cont_names=ctx_cont_names,
+                ctx_cat_names=ctx_cat_names,
+                source_parquet=inline_source_path,
+                source_contract_label="common_causal_history_frame_v1",
+                base_signal_fields=active_base_signal_fields,
+            )
         )
     finally:
         inline_source_path.unlink(missing_ok=True)
@@ -2417,10 +2580,14 @@ def build_dataset_canonical(
 
     base_sig_mat = merged3[active_base_signal_fields].astype(np.float32).to_numpy()
     if seq_structure_feature_names:
-        sig_mat = np.concatenate([base_sig_mat, ext_sig_mat], axis=1).astype(np.float32, copy=False)
+        sig_mat = np.concatenate([base_sig_mat, ext_sig_mat], axis=1).astype(
+            np.float32, copy=False
+        )
     else:
         sig_mat = base_sig_mat
-    signal_fields_emitted = list(active_base_signal_fields) + list(seq_structure_feature_names)
+    signal_fields_emitted = list(active_base_signal_fields) + list(
+        seq_structure_feature_names
+    )
     snap_fields_emitted = list(signal_fields_emitted)
     expected_model_native_fields = list(
         signal_build_contract["model_native_signal_contract"]["fields"]
@@ -2457,9 +2624,13 @@ def build_dataset_canonical(
     y_mfe_first_n = merged3["mfe_first_n_bps"].astype(np.float32).to_numpy()
     y_path_quality = merged3["path_quality_bps"].astype(np.float32).to_numpy()
     y_bad_path = merged3["y_bad_path"].astype(np.float32).to_numpy()
-    fixed_hold_bootstrap_horizon = merged3["label_horizon_bars"].astype(np.int32).to_numpy()
+    fixed_hold_bootstrap_horizon = (
+        merged3["label_horizon_bars"].astype(np.int32).to_numpy()
+    )
     if len(fixed_hold_bootstrap_horizon):
-        _bootstrap_unique = sorted({int(v) for v in fixed_hold_bootstrap_horizon.tolist()})
+        _bootstrap_unique = sorted(
+            {int(v) for v in fixed_hold_bootstrap_horizon.tolist()}
+        )
         log.info(
             "[ENTRY_FIXED_HOLD_BOOTSTRAP_HORIZON] split=%s values=%s final_direction_horizon=%d",
             split_name or "full",
@@ -2486,8 +2657,11 @@ def build_dataset_canonical(
         raise RuntimeError("V3_TF_AGREEMENT_DEAD: target is constant")
     log.info(
         "[V3_TF_AGREEMENT] computed n=%d  mean=%.3f  std=%.3f  frac_full=%.3f  frac_zero=%.3f",
-        len(y_tf_agreement), float(y_tf_agreement.mean()), float(y_tf_agreement.std()),
-        float((y_tf_agreement == 1.0).mean()), float((y_tf_agreement == 0.0).mean()),
+        len(y_tf_agreement),
+        float(y_tf_agreement.mean()),
+        float(y_tf_agreement.std()),
+        float((y_tf_agreement == 1.0).mean()),
+        float((y_tf_agreement == 0.0).mean()),
     )
 
     # Hold horizon is deliberately absent from the model-native target surface.
@@ -2518,9 +2692,13 @@ def build_dataset_canonical(
     _mae_long = merged3["mae_long_first_n_bps"].astype(np.float32).to_numpy()
     _mfe_short = merged3["mfe_short_first_n_bps"].astype(np.float32).to_numpy()
     _mae_short = merged3["mae_short_first_n_bps"].astype(np.float32).to_numpy()
-    _bad_path_long = (merged3["bad_path_long_first_n"].astype(np.float32).to_numpy() > 0.5)
+    _bad_path_long = (
+        merged3["bad_path_long_first_n"].astype(np.float32).to_numpy() > 0.5
+    )
     # V2: also extract bad_path_short for symmetric BIDIR auxiliary labels.
-    _bad_path_short = (merged3["bad_path_short_first_n"].astype(np.float32).to_numpy() > 0.5)
+    _bad_path_short = (
+        merged3["bad_path_short_first_n"].astype(np.float32).to_numpy() > 0.5
+    )
     _path_long = (_mfe_long - _mae_long).astype(np.float32)
     _path_short = (_mfe_short - _mae_short).astype(np.float32)
     _path_lead_long = (_path_long - _path_short).astype(np.float32)
@@ -2541,7 +2719,9 @@ def build_dataset_canonical(
     _dir_long_col = "v11_pnl_long_at_dir_horizon_bps"
     _dir_short_col = "v11_pnl_short_at_dir_horizon_bps"
     if _dir_long_col not in merged3.columns or _dir_short_col not in merged3.columns:
-        raise RuntimeError(f"V11_DIRECTION_PNL_MISSING: need {_dir_long_col}/{_dir_short_col} (H={V11_DIRECTION_HORIZON_BARS})")
+        raise RuntimeError(
+            f"V11_DIRECTION_PNL_MISSING: need {_dir_long_col}/{_dir_short_col} (H={V11_DIRECTION_HORIZON_BARS})"
+        )
     _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
     _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
 
@@ -2559,21 +2739,25 @@ def build_dataset_canonical(
         - (float(V12_DIRECTION_UTILITY_MAE_WEIGHT) * _mae_short)
         + (float(V12_DIRECTION_UTILITY_PATH_WEIGHT) * _path_short)
     ).astype(np.float32)
-    if not np.isfinite(_side_score_long).all() or not np.isfinite(_side_score_short).all():
+    if (
+        not np.isfinite(_side_score_long).all()
+        or not np.isfinite(_side_score_short).all()
+    ):
         raise RuntimeError(
             "V12_DIRECTION_UTILITY_NONFINITE: future outcome components must be finite; "
             "no sentinel/fallback replacement is allowed"
         )
     _side_margin = (_side_score_long - _side_score_short).astype(np.float32)
-    _tradable_long = (
-        (_side_score_long >= float(V12_DIRECTION_UTILITY_MIN_BPS))
-        & (_side_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+    _tradable_long = (_side_score_long >= float(V12_DIRECTION_UTILITY_MIN_BPS)) & (
+        _side_margin >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS)
     )
-    _tradable_short = (
-        (_side_score_short >= float(V12_DIRECTION_UTILITY_MIN_BPS))
-        & ((-_side_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
+    _tradable_short = (_side_score_short >= float(V12_DIRECTION_UTILITY_MIN_BPS)) & (
+        (-_side_margin) >= float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS)
     )
-    if not np.isfinite(_side_score_long).all() or not np.isfinite(_side_score_short).all():
+    if (
+        not np.isfinite(_side_score_long).all()
+        or not np.isfinite(_side_score_short).all()
+    ):
         raise RuntimeError(
             "V12_DIRECTION_SCORE_NONFINITE: future side outcomes must be finite; "
             "no direction-label fallback is allowed"
@@ -2649,10 +2833,9 @@ def build_dataset_canonical(
         & (_path_long >= float(SURVIVAL_LONG_PATH_MIN_BPS))
     )
     y_survival_long = _survival_intrinsic.astype(np.float32)
-    y_selector_long_mask = (
-        _long_path_candidate
-        | (_direction_side == 0)
-    ).astype(np.float32)
+    y_selector_long_mask = (_long_path_candidate | (_direction_side == 0)).astype(
+        np.float32
+    )
 
     # ------------------------------------------------------------------------
     # V2: SHORT-side auxiliary labels (mirror of LONG-side for BIDIR symmetry)
@@ -2711,17 +2894,18 @@ def build_dataset_canonical(
         & (_path_short >= float(SURVIVAL_LONG_PATH_MIN_BPS))
     )
     y_survival_short = _survival_short_intrinsic.astype(np.float32)
-    y_selector_short_mask = (
-        _short_path_candidate
-        | (_direction_side == 1)
-    ).astype(np.float32)
+    y_selector_short_mask = (_short_path_candidate | (_direction_side == 1)).astype(
+        np.float32
+    )
 
     # ------------------------------------------------------------------------
     # V2: BIDIR-COMBINED labels for V10's single auxiliary heads
     # ------------------------------------------------------------------------
     # V10 has ONE head_clean_edge, ONE head_survival, ONE head_bad_path (not split per side).
     # Bidir supervision = OR across long-side and short-side label.
-    y_clean_edge_bidir = np.maximum(y_clean_edge_long, y_clean_edge_short).astype(np.float32)
+    y_clean_edge_bidir = np.maximum(y_clean_edge_long, y_clean_edge_short).astype(
+        np.float32
+    )
     y_survival_bidir = np.maximum(y_survival_long, y_survival_short).astype(np.float32)
     # y_bad_path is already direction-aware via merged3["y_bad_path"] (computed earlier from
     # bad_path_long when y_dir==0, bad_path_short when y_dir==1, else 0). No change needed.
@@ -2755,7 +2939,9 @@ def build_dataset_canonical(
 
     # Quality score stays non-negative but now reflects directional path quality.
     y_qual = np.zeros_like(y_qual)
-    y_qual[_quality_side != -1] = np.maximum(0.0, y_path_quality[_quality_side != -1]).astype(np.float32)
+    y_qual[_quality_side != -1] = np.maximum(
+        0.0, y_path_quality[_quality_side != -1]
+    ).astype(np.float32)
 
     def _sig_col(names: Sequence[str]) -> np.ndarray:
         for name in names:
@@ -2776,7 +2962,9 @@ def build_dataset_canonical(
     _trend_conflict = _sig_col(["trend.mtf_confluence_trend_tf_conflict"])
     _long_trend_bias = _sig_col(["trend.mtf_confluence_long_trend_bias"])
     _short_trend_bias = _sig_col(["trend.mtf_confluence_short_trend_bias"])
-    _structure_dir = _sig_col(["chart.structure_swing_mtf_confluence_structure_direction_score"])
+    _structure_dir = _sig_col(
+        ["chart.structure_swing_mtf_confluence_structure_direction_score"]
+    )
     _support_prox = np.maximum.reduce(
         [
             _sig_col(["chart.geometry_support_line_proximity_stack"]),
@@ -2804,7 +2992,9 @@ def build_dataset_canonical(
         _sig_col(["chart.sr_memory_liquidity_high_level_rejection_short"]),
     )
     _geom_long_prox = _sig_col(["chart.geometry_mtf_confluence_fib_sr_long_proximity"])
-    _geom_short_prox = _sig_col(["chart.geometry_mtf_confluence_fib_sr_short_proximity"])
+    _geom_short_prox = _sig_col(
+        ["chart.geometry_mtf_confluence_fib_sr_short_proximity"]
+    )
 
     _intraday_up = (
         (_trend_score >= 0.0)
@@ -2820,23 +3010,33 @@ def build_dataset_canonical(
         _intraday_up
         & (_support_prox >= 0.35)
         & (_support_prox >= _resistance_prox)
-        & ((_channel_edge >= 0.15) | (_channel_pos <= 0.42) | (_support_respect >= 0.35) | (_geom_long_prox >= 0.35))
+        & (
+            (_channel_edge >= 0.15)
+            | (_channel_pos <= 0.42)
+            | (_support_respect >= 0.35)
+            | (_geom_long_prox >= 0.35)
+        )
     )
     _falling_resistance = (
         _intraday_down
         & (_resistance_prox >= 0.35)
         & (_resistance_prox >= _support_prox)
-        & ((_channel_edge >= 0.15) | (_channel_pos >= 0.58) | (_resistance_respect >= 0.35) | (_geom_short_prox >= 0.35))
+        & (
+            (_channel_edge >= 0.15)
+            | (_channel_pos >= 0.58)
+            | (_resistance_respect >= 0.35)
+            | (_geom_short_prox >= 0.35)
+        )
     )
 
     _side_margin_bps = np.maximum(1.0, float(V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS))
-    _long_high_mae_low_mfe = (
-        (_mae_long >= float(HARD_NEG_LONG_MIN_MAE_BPS))
-        & ((_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS)) | (_path_long <= float(HARD_NEG_LONG_MAX_PATH_BPS)))
+    _long_high_mae_low_mfe = (_mae_long >= float(HARD_NEG_LONG_MIN_MAE_BPS)) & (
+        (_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS))
+        | (_path_long <= float(HARD_NEG_LONG_MAX_PATH_BPS))
     )
-    _short_high_mae_low_mfe = (
-        (_mae_short >= float(HARD_NEG_LONG_MIN_MAE_BPS))
-        & ((_mfe_short <= float(TEASER_LONG_MAX_MFE_BPS)) | (_path_short <= float(HARD_NEG_LONG_MAX_PATH_BPS)))
+    _short_high_mae_low_mfe = (_mae_short >= float(HARD_NEG_LONG_MIN_MAE_BPS)) & (
+        (_mfe_short <= float(TEASER_LONG_MAX_MFE_BPS))
+        | (_path_short <= float(HARD_NEG_LONG_MAX_PATH_BPS))
     )
     _support_retest_continuation = (
         _rising_support
@@ -2850,23 +3050,17 @@ def build_dataset_canonical(
         & ((_side_score_short - _side_score_long) >= _side_margin_bps)
         & (~_bad_path_short)
     )
-    _countertrend_short_trap = (
-        _rising_support
-        & (
-            _bad_path_short
-            | _short_high_mae_low_mfe
-            | ((_side_score_long - _side_score_short) >= _side_margin_bps)
-            | (_direction_side == 0)
-        )
+    _countertrend_short_trap = _rising_support & (
+        _bad_path_short
+        | _short_high_mae_low_mfe
+        | ((_side_score_long - _side_score_short) >= _side_margin_bps)
+        | (_direction_side == 0)
     )
-    _countertrend_long_trap = (
-        _falling_resistance
-        & (
-            _bad_path_long
-            | _long_high_mae_low_mfe
-            | ((_side_score_short - _side_score_long) >= _side_margin_bps)
-            | (_direction_side == 1)
-        )
+    _countertrend_long_trap = _falling_resistance & (
+        _bad_path_long
+        | _long_high_mae_low_mfe
+        | ((_side_score_short - _side_score_long) >= _side_margin_bps)
+        | (_direction_side == 1)
     )
     _mtf_conflict_m5_vs_higher = (
         (_trend_conflict >= 0.45)
@@ -2886,7 +3080,9 @@ def build_dataset_canonical(
     y_short_bad_path = _bad_path_short.astype(np.float32)
     y_long_expected_mae_bps = _mae_long.astype(np.float32)
     y_short_expected_mae_bps = _mae_short.astype(np.float32)
-    y_clean_edge_bidir = np.maximum(y_clean_edge_long, y_clean_edge_short).astype(np.float32)
+    y_clean_edge_bidir = np.maximum(y_clean_edge_long, y_clean_edge_short).astype(
+        np.float32
+    )
     y_survival_bidir = np.maximum(y_survival_long, y_survival_short).astype(np.float32)
     y_bad_path = _selected_side_bad_path_target(
         _quality_side,
@@ -2916,7 +3112,9 @@ def build_dataset_canonical(
     y_rising_channel_support_touch = _rising_support.astype(np.float32)
     y_falling_channel_resistance_touch = _falling_resistance.astype(np.float32)
     y_support_retest_continuation = _support_retest_continuation.astype(np.float32)
-    y_resistance_retest_continuation = _resistance_retest_continuation.astype(np.float32)
+    y_resistance_retest_continuation = _resistance_retest_continuation.astype(
+        np.float32
+    )
     y_countertrend_short_trap = _countertrend_short_trap.astype(np.float32)
     y_countertrend_long_trap = _countertrend_long_trap.astype(np.float32)
     y_mtf_conflict_m5_vs_higher_side = _mtf_conflict_m5_vs_higher.astype(np.float32)
@@ -2997,15 +3195,17 @@ def build_dataset_canonical(
         len(y_tradable),
         _tradable_rate,
     )
-    _quality_side_rate = float(np.mean(_quality_side != -1)) if len(_quality_side) else 0.0
+    _quality_side_rate = (
+        float(np.mean(_quality_side != -1)) if len(_quality_side) else 0.0
+    )
     log.info(
         "[ENTRY_QUALITY_SIDE_RATE_PROOF] split=%s n_rows=%d quality_side_rate=%.6f",
         _split_tag,
         len(_quality_side),
         _quality_side_rate,
     )
-    _side_long = (y_dir == 0)
-    _side_short = (y_dir == 1)
+    _side_long = y_dir == 0
+    _side_short = y_dir == 1
     _long_rate = float(np.mean(y_tradable[_side_long])) if _side_long.any() else 0.0
     _short_rate = float(np.mean(y_tradable[_side_short])) if _side_short.any() else 0.0
     log.info(
@@ -3018,7 +3218,7 @@ def build_dataset_canonical(
         _sess = merged3["session_id"].astype(np.int64).to_numpy()
         _sess_names = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
         for sid in sorted(set(_sess.tolist())):
-            _mask = (_sess == sid)
+            _mask = _sess == sid
             _rate = float(np.mean(y_tradable[_mask])) if _mask.any() else 0.0
             log.info(
                 "[ENTRY_TRADABLE_RATE_BY_SESSION] split=%s session_id=%d session_name=%s rate=%.6f",
@@ -3047,8 +3247,12 @@ def build_dataset_canonical(
             return [_to_list(v) for v in x]
         return x
 
-    emitted_time_index = pd.DatetimeIndex(pd.to_datetime(times, utc=True, errors="raise"))
-    pre_emit_history_rows = int(emitted_time_index.searchsorted(emit_start, side="left"))
+    emitted_time_index = pd.DatetimeIndex(
+        pd.to_datetime(times, utc=True, errors="raise")
+    )
+    pre_emit_history_rows = int(
+        emitted_time_index.searchsorted(emit_start, side="left")
+    )
     if pre_emit_history_rows < (seq_len - 1):
         raise RuntimeError(
             "MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT: "
@@ -3089,12 +3293,16 @@ def build_dataset_canonical(
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         log.info(
             "[V2_STREAMING_WRITE] enabled: output=%s batch_size=%d total_emitted_rows~=%d",
-            str(output_path), int(streaming_batch_size), emitted_candidate_count,
+            str(output_path),
+            int(streaming_batch_size),
+            emitted_candidate_count,
         )
 
     pq_writer = None
     pq_schema = None
-    summary_rows: List[Dict[str, Any]] = []  # only identity + labels (no seq/snap/ctx) — small
+    summary_rows: List[
+        Dict[str, Any]
+    ] = []  # only identity + labels (no seq/snap/ctx) — small
     total_written = 0
 
     def _emit_batch(rows_batch: List[Dict[str, Any]]) -> None:
@@ -3110,15 +3318,23 @@ def build_dataset_canonical(
             if pq_schema is None:
                 table = _pa.Table.from_pandas(df_b, preserve_index=False)
                 pq_schema = table.schema
-                pq_writer = _pq.ParquetWriter(str(output_path), pq_schema, compression="snappy")
+                pq_writer = _pq.ParquetWriter(
+                    str(output_path), pq_schema, compression="snappy"
+                )
                 pq_writer.write_table(table)
             else:
-                table = _pa.Table.from_pandas(df_b, schema=pq_schema, preserve_index=False, safe=False)
+                table = _pa.Table.from_pandas(
+                    df_b, schema=pq_schema, preserve_index=False, safe=False
+                )
                 pq_writer.write_table(table)
         # Always keep tiny summary row (identity + labels) for downstream logging
         summary_rows.extend(
             df_b[
-                [c for c in df_b.columns if c not in ("seq", "snap", "ctx_cont", "ctx_cat")]
+                [
+                    c
+                    for c in df_b.columns
+                    if c not in ("seq", "snap", "ctx_cont", "ctx_cat")
+                ]
             ].to_dict(orient="records")
         )
         total_written += len(df_b)
@@ -3169,14 +3385,20 @@ def build_dataset_canonical(
                 "y_long_expected_mae_bps": y_long_expected_mae_bps[i],
                 "y_short_expected_mae_bps": y_short_expected_mae_bps[i],
                 "y_rising_channel_support_touch": y_rising_channel_support_touch[i],
-                "y_falling_channel_resistance_touch": y_falling_channel_resistance_touch[i],
+                "y_falling_channel_resistance_touch": y_falling_channel_resistance_touch[
+                    i
+                ],
                 "y_support_retest_continuation": y_support_retest_continuation[i],
                 "y_resistance_retest_continuation": y_resistance_retest_continuation[i],
                 "y_countertrend_short_trap": y_countertrend_short_trap[i],
                 "y_countertrend_long_trap": y_countertrend_long_trap[i],
                 "y_mtf_conflict_m5_vs_higher_side": y_mtf_conflict_m5_vs_higher_side[i],
-                "y_long_high_mae_low_mfe_early_failure": y_long_high_mae_low_mfe_early_failure[i],
-                "y_short_high_mae_low_mfe_early_failure": y_short_high_mae_low_mfe_early_failure[i],
+                "y_long_high_mae_low_mfe_early_failure": y_long_high_mae_low_mfe_early_failure[
+                    i
+                ],
+                "y_short_high_mae_low_mfe_early_failure": y_short_high_mae_low_mfe_early_failure[
+                    i
+                ],
                 "y_dead_negative_long": y_dead_negative_long[i],
                 "y_teaser_negative_long": y_teaser_negative_long[i],
                 "y_hard_negative_long": y_hard_negative_long[i],
@@ -3267,16 +3489,7 @@ def build_dataset_canonical(
         "early_move_threshold_bps": float(early_move_threshold_bps),
         "flat_threshold_bps": float(flat_threshold_bps),
         "source_frame": {
-            "mode": (
-                "source_parquet_override"
-                if source_parquet_override is not None
-                else "base28_manifest_resolution"
-            ),
-            "manifest_path": (
-                str(base28_manifest_path)
-                if base28_manifest_path is not None
-                else None
-            ),
+            "mode": "exact_source_parquet",
             "parquet_path": str(parquet_path),
             "parquet_sha256": parquet_sha,
         },
@@ -3292,7 +3505,7 @@ def build_dataset_canonical(
         # Immutable train launch currently requires this explicit negative proof.
         "neutral_xgb_bridge": False,
         "tape_root": str(Path(tape_root).resolve()),
-        "join_ratio_tape": float(rows_joined / max(1, rows_base28)),
+        "join_ratio_tape": float(rows_joined / max(1, rows_source)),
         # Audit 2026-07-07 fix (finding #7): hold-horizon label provenance +
         # head-active marker (trainer must treat head_active=false as inactive).
         "hold_horizon_label": hold_horizon_label_meta,
@@ -3306,9 +3519,9 @@ def build_dataset_canonical(
             "snap_input_dim": int(sig_mat.shape[1]),
             "base_seq_input_dim": int(len(active_base_signal_fields)),
             "seq_structure_extension_dim": int(len(seq_structure_feature_names)),
-            "contract_sha256": signal_build_contract[
-                "model_native_signal_contract"
-            ]["static_contract_sha256"],
+            "contract_sha256": signal_build_contract["model_native_signal_contract"][
+                "static_contract_sha256"
+            ],
             "bridge_dim": 0,
             "seq_structure_extension_v1": {
                 "enabled": bool(seq_structure_feature_names),
@@ -3366,18 +3579,8 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--truth-config",
-        type=str,
-        required=False,
-        help="Path to canonical truth config JSON. If provided, base28_manifest is resolved from it.",
+        "--output", type=str, required=True, help="Output dataset path (.parquet)."
     )
-    parser.add_argument(
-        "--base28_manifest",
-        type=str,
-        required=False,
-        help="Path to BASE28_CANONICAL CURRENT_MANIFEST.json (manifest-only resolution). Optional when --truth-config is set.",
-    )
-    parser.add_argument("--output", type=str, required=True, help="Output dataset path (.parquet).")
     parser.add_argument(
         "--vedtak",
         required=True,
@@ -3385,9 +3588,18 @@ def main() -> None:
     )
 
     # Deterministic filters
-    parser.add_argument("--start", type=str, required=True, help="Exact model range start (ISO UTC).")
-    parser.add_argument("--end", type=str, required=True, help="Exact model range end (ISO UTC).")
-    parser.add_argument("--max_rows", type=int, default=None, help="Deterministic: take first N rows after filtering.")
+    parser.add_argument(
+        "--start", type=str, required=True, help="Exact model range start (ISO UTC)."
+    )
+    parser.add_argument(
+        "--end", type=str, required=True, help="Exact model range end (ISO UTC)."
+    )
+    parser.add_argument(
+        "--max_rows",
+        type=int,
+        default=None,
+        help="Deterministic: take first N rows after filtering.",
+    )
 
     # Advanced dataset structure (V2 default: seq_len=96 for 8h M5 window)
     parser.add_argument(
@@ -3404,10 +3616,10 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--source-parquet-override",
+        "--source-parquet",
         type=str,
-        default=None,
-        help="Override BASE28 resolution with an explicit canonical M5 parquet.",
+        required=True,
+        help="Exact canonical M5 source parquet; byte-bound with no alternate resolver.",
     )
     parser.add_argument(
         "--seq-structure-manifest",
@@ -3423,26 +3635,64 @@ def main() -> None:
     )
 
     # Labels (fixed-hold)
-    parser.add_argument("--hold-bars", dest="hold_bars", type=int, default=3, help="Fixed-hold label horizon in M5 bars (default: 3). Must be between 1 and 50.")
-    parser.add_argument("--early_move_threshold_bps", type=float, default=4.0, help="Early-move threshold in bps (default: 4.0).")
-    parser.add_argument("--flat_threshold_bps", type=float, default=3.0, help="Flat threshold in bps for 3-class labels (default: 3.0).")
+    parser.add_argument(
+        "--hold-bars",
+        dest="hold_bars",
+        type=int,
+        default=3,
+        help="Fixed-hold label horizon in M5 bars (default: 3). Must be between 1 and 50.",
+    )
+    parser.add_argument(
+        "--early_move_threshold_bps",
+        type=float,
+        default=4.0,
+        help="Early-move threshold in bps (default: 4.0).",
+    )
+    parser.add_argument(
+        "--flat_threshold_bps",
+        type=float,
+        default=3.0,
+        help="Flat threshold in bps for 3-class labels (default: 3.0).",
+    )
 
     # Tape lane
     parser.add_argument(
         "--tape_root",
         type=str,
-        default="",
-        help="Explicit canonical tape lane root (or declare canonical_market_tape_root_model in truth-config).",
+        required=True,
+        help="Exact canonical tape lane root.",
     )
 
     # Output splitting scaffolding (kept for parity)
-    parser.add_argument("--time_split", action="store_true", help="Write train/val/test outputs (time-based).")
-    parser.add_argument("--train_start", type=str, default=None, help="Explicit train split start (ISO).")
-    parser.add_argument("--train_end", type=str, default=None, help="Explicit train split end (ISO).")
-    parser.add_argument("--val_start", type=str, default=None, help="Explicit validation split start (ISO).")
-    parser.add_argument("--val_end", type=str, default=None, help="Explicit validation split end (ISO).")
-    parser.add_argument("--test_start", type=str, default=None, help="Explicit test split start (ISO).")
-    parser.add_argument("--test_end", type=str, default=None, help="Explicit test split end (ISO).")
+    parser.add_argument(
+        "--time_split",
+        action="store_true",
+        help="Write train/val/test outputs (time-based).",
+    )
+    parser.add_argument(
+        "--train_start",
+        type=str,
+        default=None,
+        help="Explicit train split start (ISO).",
+    )
+    parser.add_argument(
+        "--train_end", type=str, default=None, help="Explicit train split end (ISO)."
+    )
+    parser.add_argument(
+        "--val_start",
+        type=str,
+        default=None,
+        help="Explicit validation split start (ISO).",
+    )
+    parser.add_argument(
+        "--val_end", type=str, default=None, help="Explicit validation split end (ISO)."
+    )
+    parser.add_argument(
+        "--test_start", type=str, default=None, help="Explicit test split start (ISO)."
+    )
+    parser.add_argument(
+        "--test_end", type=str, default=None, help="Explicit test split end (ISO)."
+    )
     parser.add_argument(
         "--model-native-rank-reference-npz",
         type=str,
@@ -3452,7 +3702,11 @@ def main() -> None:
         ),
     )
 
-    parser.add_argument("--dry_run", action="store_true", help="Dry run: validate inputs/ctx, then exit.")
+    parser.add_argument(
+        "--dry_run",
+        action="store_true",
+        help="Dry run: validate inputs/ctx, then exit.",
+    )
 
     args = parser.parse_args()
     explicit_vedtak_id = require_retrain_vedtak(args.vedtak)
@@ -3464,7 +3718,9 @@ def main() -> None:
 
     # Hard gate: ONE UNIVERSE
     ctx = _hard_gate_model_native_context()
-    log.info(f"[CTX_CONTRACT] OK: tag={ctx['tag']} cont={ctx['ctx_cont_dim']} cat={ctx['ctx_cat_dim']}")
+    log.info(
+        f"[CTX_CONTRACT] OK: tag={ctx['tag']} cont={ctx['ctx_cont_dim']} cat={ctx['ctx_cat_dim']}"
+    )
 
     if int(args.seq_len) != MODEL_NATIVE_SEQ_LEN:
         raise RuntimeError(
@@ -3502,7 +3758,14 @@ def main() -> None:
     if any(point is None for point in split_points):
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_MISSING")
     if not (
-        start <= train_start <= train_end < val_start <= val_end < test_start <= test_end == end
+        start
+        <= train_start
+        <= train_end
+        < val_start
+        <= val_end
+        < test_start
+        <= test_end
+        == end
     ):
         raise RuntimeError(
             "MODEL_NATIVE_SPLIT_WINDOWS_INVALID: expected one common history start and ordered, "
@@ -3518,9 +3781,7 @@ def main() -> None:
         manifest_path=Path(args.seq_structure_manifest),
         feature_ranking_path=Path(args.feature_ranking_json),
         expected_vedtak_id=explicit_vedtak_id,
-        expected_source_sha256=state_contract[
-            "rank_reference_source_parquet_sha256"
-        ],
+        expected_source_sha256=state_contract["rank_reference_source_parquet_sha256"],
         expected_train_start_utc=train_start.isoformat(),
         expected_train_end_utc=train_end.isoformat(),
     )
@@ -3559,104 +3820,35 @@ def main() -> None:
         **hierarchical_direction_label_contract(),
         "flat_threshold_bps": float(flat_threshold_bps),
         "seq_structure_extension_v1": {
-            "manifest_path": str(Path(args.seq_structure_manifest).expanduser().resolve()),
+            "manifest_path": str(
+                Path(args.seq_structure_manifest).expanduser().resolve()
+            ),
             "mode": "mandatory_inline_common_causal_history_v1",
         },
     }
 
-    # Resolve SSoT inputs (truth-config or manual)
-    truth_config_path: Optional[Path] = None
-    truth_tape_root_model: Optional[Path] = None
-    if args.truth_config:
-        truth_config_path = Path(args.truth_config).expanduser().resolve()
-        if args.base28_manifest or args.source_parquet_override:
-            raise SystemExit(
-                "[SPLIT_BRAIN_ARGS] truth-config cannot be combined with a manual source"
-            )
-        if not truth_config_path.exists():
-            raise RuntimeError(f"TRUTH_CONFIG_MISSING: {truth_config_path}")
-        truth_obj = json.loads(truth_config_path.read_text())
-        canonical_prebuilt_manifest = str(
-            truth_obj.get("canonical_prebuilt_manifest") or ""
-        ).strip()
-        if not canonical_prebuilt_manifest:
-            raise RuntimeError(
-                f"TRUTH_CONFIG_MISSING_CANONICAL_PREBUILT_MANIFEST: {truth_config_path}"
-            )
-        base28_manifest_path = Path(canonical_prebuilt_manifest).expanduser().resolve()
-        source_parquet_override_path: Optional[Path] = None
-        canonical_tape_root_model = str(truth_obj.get("canonical_market_tape_root_model") or "").strip()
-        if canonical_tape_root_model:
-            truth_tape_root_model = Path(canonical_tape_root_model).expanduser().resolve()
-        log.info(
-            "[TRUTH_CONFIG] Using truth-config %s -> base28_manifest=%s tape_root_model=%s",
-            truth_config_path,
-            base28_manifest_path,
-            truth_tape_root_model,
-        )
-        proof_payload.update(
-            {
-                "truth_config_path": str(truth_config_path),
-                "truth_source": "truth_config",
-                "truth_tape_root_model": str(truth_tape_root_model) if truth_tape_root_model is not None else None,
-            }
-        )
-    else:
-        if not args.source_parquet_override and not args.base28_manifest:
-            raise SystemExit("Either --base28_manifest or --source-parquet-override required when --truth-config is not provided")
-        if args.source_parquet_override and args.base28_manifest:
-            raise SystemExit(
-                "[SPLIT_BRAIN_ARGS] choose --base28_manifest or --source-parquet-override"
-            )
-        if args.source_parquet_override:
-            base28_manifest_path = None
-            source_parquet_override_path = Path(
-                args.source_parquet_override
-            ).expanduser().resolve()
-        else:
-            base28_manifest_path = Path(args.base28_manifest).expanduser().resolve()
-            source_parquet_override_path = None
-        proof_payload.update({"truth_config_path": None, "truth_source": "manual_args"})
-    if source_parquet_override_path is not None:
-        if not source_parquet_override_path.is_file():
-            raise RuntimeError(
-                f"SOURCE_PARQUET_OVERRIDE_MISSING: {source_parquet_override_path}"
-            )
-    else:
-        if base28_manifest_path is None:
-            raise RuntimeError("BASE28_MANIFEST_REQUIRED")
-        _ensure_base28_manifest_exists(base28_manifest_path)
+    # One explicit source path. No truth-config, BASE28 resolution or manual
+    # preference lane may alter the build input.
+    source_parquet_path = Path(args.source_parquet).expanduser().resolve()
+    if not source_parquet_path.is_file():
+        raise RuntimeError(f"SOURCE_PARQUET_MISSING: {source_parquet_path}")
+    proof_payload.update({"truth_source": "exact_source_parquet"})
 
     output_path = Path(args.output).resolve()
     hold_suffix = f"HOLD_{hold_bars:02d}B"
     if hold_suffix not in output_path.stem:
-        output_path = output_path.with_name(f"{output_path.stem}__{hold_suffix}{output_path.suffix}")
+        output_path = output_path.with_name(
+            f"{output_path.stem}__{hold_suffix}{output_path.suffix}"
+        )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     proof_payload.update(
         {
-            "base28_manifest_path": (
-                str(base28_manifest_path)
-                if base28_manifest_path is not None
-                else None
-            ),
-            "source_parquet_override": (
-                str(source_parquet_override_path)
-                if source_parquet_override_path is not None
-                else None
-            ),
+            "source_parquet": str(source_parquet_path),
             "output_path": str(output_path),
         }
     )
 
-    # Tape root resolution
-    if args.tape_root.strip():
-        tape_root = Path(args.tape_root).expanduser().resolve()
-    elif truth_tape_root_model is not None:
-        tape_root = truth_tape_root_model
-    else:
-        raise RuntimeError(
-            "CANONICAL_TAPE_ROOT_REQUIRED: pass --tape_root or declare it in truth-config"
-        )
+    tape_root = Path(args.tape_root).expanduser().resolve()
     if not tape_root.is_dir():
         raise RuntimeError(f"CANONICAL_TAPE_ROOT_MISSING: {tape_root}")
     canonical_v2_path = Path(args.canonical_v2_parquet).expanduser().resolve()
@@ -3687,8 +3879,7 @@ def main() -> None:
         write_manifest(
             output_path=output_path,
             build_command=build_command,
-            base28_manifest=base28_manifest_path,
-            source_parquet_override=source_parquet_override_path,
+            source_parquet=source_parquet_path,
             tape_root=tape_root,
             notes="DRY_RUN only.",
             extra={
@@ -3705,14 +3896,18 @@ def main() -> None:
                 "early_move_threshold_bps": float(args.early_move_threshold_bps),
                 "neutral_xgb_bridge": False,
                 "contract_mode": main_signal_build_contract["contract_mode"],
-                "direction_logit_mode": main_signal_build_contract["direction_logit_mode"],
+                "direction_logit_mode": main_signal_build_contract[
+                    "direction_logit_mode"
+                ],
                 "model_native_signal_contract": main_signal_build_contract[
                     "model_native_signal_contract"
                 ],
                 "signal_bridge": {
                     "id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
                     "fields": list(
-                        main_signal_build_contract["model_native_signal_contract"]["fields"]
+                        main_signal_build_contract["model_native_signal_contract"][
+                            "fields"
+                        ]
                     ),
                     "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                     "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
@@ -3721,7 +3916,11 @@ def main() -> None:
                 },
                 "ctx_contract": _model_native_ctx_contract_metadata(),
                 "seq_structure_extension_v1": {
-                    "manifest_path": str(Path(args.seq_structure_manifest).expanduser().resolve()) if args.seq_structure_manifest else None,
+                    "manifest_path": str(
+                        Path(args.seq_structure_manifest).expanduser().resolve()
+                    )
+                    if args.seq_structure_manifest
+                    else None,
                     "mode": "mandatory_inline_common_causal_history_v1",
                 },
                 "model_native_state_contract": state_contract,
@@ -3741,7 +3940,9 @@ def main() -> None:
 
     metas: Dict[str, Any] = {}
     ts_min_max_by_split: Dict[str, Dict[str, Optional[str]]] = {}
-    rank_reference_path = Path(args.model_native_rank_reference_npz).expanduser().resolve()
+    rank_reference_path = (
+        Path(args.model_native_rank_reference_npz).expanduser().resolve()
+    )
 
     # Each split is emitted from the same history anchor.  The computation end
     # advances only to that split's own boundary, so no later split can affect
@@ -3760,7 +3961,7 @@ def main() -> None:
         )
         out = out_dir / f"{stem}_{split_name}.parquet"
         df_built, meta = build_dataset_canonical(
-            base28_manifest_path=base28_manifest_path,
+            source_parquet=source_parquet_path,
             tape_root=tape_root,
             start=start,
             end=s1,
@@ -3775,17 +3976,19 @@ def main() -> None:
             split_name=split_name,
             canonical_v2_parquet=canonical_v2_path,
             output_path=out,
-            source_parquet_override=source_parquet_override_path,
-            seq_structure_manifest_path=Path(args.seq_structure_manifest).expanduser().resolve(),
+            seq_structure_manifest_path=Path(args.seq_structure_manifest)
+            .expanduser()
+            .resolve(),
         )
         _log_label_distribution_proof(df_built, split=split_name)
         metas[split_name] = deepcopy(meta)
-        ts_min_max_by_split[split_name] = _split_min_max_from_ts_series(df_built["time"])
+        ts_min_max_by_split[split_name] = _split_min_max_from_ts_series(
+            df_built["time"]
+        )
         write_manifest(
             output_path=out,
             build_command=build_command,
-            base28_manifest=base28_manifest_path,
-            source_parquet_override=source_parquet_override_path,
+            source_parquet=source_parquet_path,
             tape_root=tape_root,
             splits=splits,
             ts_min_max_by_split=ts_min_max_by_split,

@@ -4,23 +4,10 @@ Add the causal ctx_cont source prefix and exact model-native ctx_cat fields.
 
 Deterministic, TRUTH-style, no lookahead, no quarantine dependency.
 
-CTX_CONT:
-  4: atr_bps,
-     spread_bps,
-     D1_dist_from_ema200_atr,
-     H1_range_compression_ratio
- 6: + D1_atr_percentile_252,
-       M15_range_compression_ratio
- 11: + micro_momentum_3,
-       micro_momentum_5,
-       micro_acceleration,
-       wick_ratio,
-       distance_ema_fast
- 16: + dist_last_swing_high_atr,
-       dist_last_swing_low_atr,
-       bars_since_swing_high,
-       bars_since_swing_low,
-       retracement_from_last_impulse
+CTX_CONT has one exact prebuilt surface: six causal source-prefix fields,
+five canonical micro fields and five canonical swing fields. Five session
+fields are recomputed from UTC time in the same output. Alternate dimensions
+are retired and fail closed.
 
 CTX_CAT (exact active five-field order): session_id, vol_regime_id,
 atr_bucket, spread_bucket, H4_trend_sign_cat.  The retired categorical
@@ -56,10 +43,20 @@ from gx1.features.model_native_market_context_v1 import (
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
     MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS,
+    MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
+    MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS,
+    MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS,
+)
+from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.swing_structure_v1 import (
+    SWING_ATR_PERIOD_V1,
+    SWING_LOOKBACK_V1,
+    compute_swing_structure_features,
 )
 from gx1.time.session_detector import (
-    get_session_vectorized,
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
     get_session_minutes_to_next_boundary_vectorized,
@@ -68,21 +65,6 @@ from gx1.time.session_detector import (
 log = logging.getLogger(__name__)
 
 ATR_EPS = 1e-9
-MICRO_FEATURE_NAMES = [
-    "micro_momentum_3",
-    "micro_momentum_5",
-    "micro_acceleration",
-    "wick_ratio",
-    "distance_ema_fast",
-]
-SWING_FEATURE_NAMES = [
-    "dist_last_swing_high_atr",
-    "dist_last_swing_low_atr",
-    "bars_since_swing_high",
-    "bars_since_swing_low",
-    "retracement_from_last_impulse",
-]
-SWING_ATR_PERIOD = 14
 CTX_CONT_COL_D1_DIST = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[2]
 CTX_CONT_COL_H1_COMP = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[3]
 CTX_CONT_COL_D1_ATR_PCTL252 = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[4]
@@ -90,30 +72,11 @@ CTX_CONT_COL_M15_COMP = MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS[5]
 CTX_CAT_COL_H4_TREND_SIGN = MODEL_NATIVE_CTX_CAT_FIELDS[-1]
 
 
-def get_prebuilt_ctx_contract_columns(
-    ctx_cont_dim: int = 6,
-    ctx_cat_dim: int = 5,
-) -> Tuple[List[str], List[str]]:
+def get_prebuilt_ctx_contract_columns() -> Tuple[List[str], List[str]]:
     """Return (required_cont, required_cat) with exact contract names for prebuilt. No side effects."""
-    base_cont = list(MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS)
-    if ctx_cont_dim <= len(base_cont):
-        required_cont = list(base_cont[:ctx_cont_dim])
-    elif ctx_cont_dim == len(base_cont) + len(MICRO_FEATURE_NAMES):
-        required_cont = list(base_cont) + list(MICRO_FEATURE_NAMES)
-    elif ctx_cont_dim == len(base_cont) + len(MICRO_FEATURE_NAMES) + len(SWING_FEATURE_NAMES):
-        required_cont = list(base_cont) + list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES)
-    else:
-        raise ValueError(
-            f"ctx_cont_dim={ctx_cont_dim} unsupported; base_cont={len(base_cont)} "
-            f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
-        )
-    if ctx_cat_dim != len(MODEL_NATIVE_CTX_CAT_FIELDS):
-        raise ValueError(
-            f"ctx_cat_dim={ctx_cat_dim} unsupported; exact model-native dim="
-            f"{len(MODEL_NATIVE_CTX_CAT_FIELDS)}"
-        )
-    required_cat = list(MODEL_NATIVE_CTX_CAT_FIELDS)
-    return required_cont, required_cat
+    return list(MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS), list(
+        MODEL_NATIVE_CTX_CAT_FIELDS
+    )
 
 
 # ---------------------------------------------------------------------
@@ -133,7 +96,9 @@ def _ensure_dt_index(df: pd.DataFrame, *, name: str) -> pd.DataFrame:
             out = df.copy()
             out = out.set_index(pd.to_datetime(out[c], utc=True))
             return out.sort_index()
-    raise RuntimeError(f"[CTX_INPUT_FAIL] {name} must have DatetimeIndex (or time/ts column)")
+    raise RuntimeError(
+        f"[CTX_INPUT_FAIL] {name} must have DatetimeIndex (or time/ts column)"
+    )
 
 
 def _load_canonical_tape(
@@ -229,7 +194,9 @@ def _resample_ohlc(df: pd.DataFrame, rule: str) -> pd.DataFrame:
     return df.resample(rule).agg(agg).dropna(how="all")
 
 
-def _align_last_closed(ts_m5: pd.DatetimeIndex, series_htf: pd.Series, shift: pd.Timedelta) -> pd.Series:
+def _align_last_closed(
+    ts_m5: pd.DatetimeIndex, series_htf: pd.Series, shift: pd.Timedelta
+) -> pd.Series:
     """
     Align HTF series to M5 timestamps with no lookahead:
       value(t) = HTF value at the last HTF timestamp <= (t + 5min - shift)
@@ -241,10 +208,12 @@ def _align_last_closed(ts_m5: pd.DatetimeIndex, series_htf: pd.Series, shift: pd
         return pd.Series(index=ts_m5, dtype=float)
 
     # M5 timestamps label the bar start; the decision observes its close at t+5min.
-    left_ts = (
-        ts_m5.to_series(index=ts_m5) + pd.Timedelta(minutes=5) - shift
-    ).rename("_left")
-    left_df = pd.DataFrame({"_left": left_ts, "_orig": ts_m5.to_series(index=ts_m5)}, index=ts_m5)
+    left_ts = (ts_m5.to_series(index=ts_m5) + pd.Timedelta(minutes=5) - shift).rename(
+        "_left"
+    )
+    left_df = pd.DataFrame(
+        {"_left": left_ts, "_orig": ts_m5.to_series(index=ts_m5)}, index=ts_m5
+    )
     left_df = left_df.sort_values("_left")
 
     right = series_htf.dropna().sort_index().rename("_val")
@@ -252,7 +221,9 @@ def _align_last_closed(ts_m5: pd.DatetimeIndex, series_htf: pd.Series, shift: pd
     right_df.columns = ["_htf", "_val"]
     right_df = right_df.sort_values("_htf")
 
-    out = pd.merge_asof(left_df, right_df, left_on="_left", right_on="_htf", direction="backward")
+    out = pd.merge_asof(
+        left_df, right_df, left_on="_left", right_on="_htf", direction="backward"
+    )
     aligned = out.set_index(pd.DatetimeIndex(out["_orig"]))["_val"]
     return aligned.reindex(ts_m5)
 
@@ -266,7 +237,9 @@ def _require_cols(df: pd.DataFrame, cols: List[str], *, name: str) -> None:
 def _finite_or_fail(arr: np.ndarray, *, label: str) -> None:
     if not np.isfinite(arr).all():
         n_bad = int((~np.isfinite(arr)).sum())
-        raise RuntimeError(f"[CTX_NONFINITE_FAIL] {label} has non-finite values: count={n_bad}")
+        raise RuntimeError(
+            f"[CTX_NONFINITE_FAIL] {label} has non-finite values: count={n_bad}"
+        )
 
 
 def _derive_spread_bps_from_available(df: pd.DataFrame) -> np.ndarray:
@@ -275,25 +248,18 @@ def _derive_spread_bps_from_available(df: pd.DataFrame) -> np.ndarray:
     return derive_observed_spread_bps(df)
 
 
-def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
-    """
-    Deterministic 0..4 bucket via percentile rank (average).
-    Always returns int64, no NaN.
-    """
+def _rank_bucket_0_4(x: np.ndarray) -> np.ndarray:
+    """Return deterministic finite 0..4 percentile-rank buckets or fail."""
+
     x = np.asarray(x, dtype=float)
-    x = np.where(np.isfinite(x), x, np.nan)
-    try:
-        s = pd.Series(x)
-        # rank(pct=True) produces NaN if all NaN; handle below
-        q = s.rank(pct=True, method="average")
-        qv = q.to_numpy(dtype=float)
-        if not np.isfinite(qv).any():
-            return np.full(len(x), int(fallback), dtype=np.int64)
-        b = np.clip(qv * 5.0, 0.0, 4.99).astype(np.int64)
-        b = np.where(np.isfinite(b), b, int(fallback)).astype(np.int64)
-        return b
-    except Exception:
-        return np.full(len(x), int(fallback), dtype=np.int64)
+    if x.ndim != 1 or len(x) == 0:
+        raise RuntimeError(f"CTX_RANK_BUCKET_SHAPE_INVALID: {x.shape}")
+    if not np.isfinite(x).all():
+        raise RuntimeError("CTX_RANK_BUCKET_SOURCE_NONFINITE")
+    qv = pd.Series(x).rank(pct=True, method="average").to_numpy(dtype=float)
+    if not np.isfinite(qv).all():
+        raise RuntimeError("CTX_RANK_BUCKET_OUTPUT_NONFINITE")
+    return np.clip(qv * 5.0, 0.0, 4.99).astype(np.int64)
 
 
 # ---------------------------------------------------------------------
@@ -305,37 +271,27 @@ def run_add_ctx_cont_columns(
     prebuilt_path: Path,
     raw_m5_paths: List[Path],
     output_parquet: Path,
-    ctx_cont_dim: int = 4,
-    ctx_cat_dim: int = 5,
     tape_root: Optional[Path] = None,
-    cv3_cross_source: Optional[Path] = None,
     diagnostics_path: Optional[Path] = None,
 ) -> None:
     """
     Build ctx_cont / ctx_cat columns into prebuilt parquet.
 
-    ctx_cont_dim ∈ {2,4,6,11,16}
-    ctx_cat_dim  ∈ {5,6}
+    The output has one exact 16-field prebuilt surface plus the five session
+    fields, and one exact five-field categorical surface.
 
     HARD-FAIL:
       - if any required contract column missing
       - if any required ctx_cont column contains NaN/Inf after alignment
     """
 
-    if ctx_cont_dim not in (2, 4, 6, 11, 16):
-        raise ValueError("ctx_cont_dim must be 2, 4, 6, 11, or 16")
-    if ctx_cat_dim != len(MODEL_NATIVE_CTX_CAT_FIELDS):
-        raise ValueError(
-            f"ctx_cat_dim must be exactly {len(MODEL_NATIVE_CTX_CAT_FIELDS)}"
-        )
+    required_cont, required_cat = get_prebuilt_ctx_contract_columns()
+    prebuilt_ctx_cont_dim = len(required_cont)
+    ctx_cat_dim = len(required_cat)
 
     prebuilt_path = Path(prebuilt_path).resolve()
     output_parquet = Path(output_parquet).resolve()
     raw_m5_paths = [Path(p).resolve() for p in (raw_m5_paths or [])]
-    cv3_cross_source = (
-        Path(cv3_cross_source).resolve() if cv3_cross_source is not None else None
-    )
-
     if not prebuilt_path.exists():
         raise RuntimeError(f"[CTX_INPUT_FAIL] prebuilt not found: {prebuilt_path}")
     if not raw_m5_paths:
@@ -343,20 +299,6 @@ def run_add_ctx_cont_columns(
     for p in raw_m5_paths:
         if not p.exists():
             raise RuntimeError(f"[CTX_INPUT_FAIL] raw M5 not found: {p}")
-
-    base_cont = list(MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS)
-    if ctx_cont_dim <= len(base_cont):
-        required_cont = list(base_cont[:ctx_cont_dim])
-    elif ctx_cont_dim == len(base_cont) + len(MICRO_FEATURE_NAMES):
-        required_cont = list(base_cont) + list(MICRO_FEATURE_NAMES)
-    elif ctx_cont_dim == len(base_cont) + len(MICRO_FEATURE_NAMES) + len(SWING_FEATURE_NAMES):
-        required_cont = list(base_cont) + list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES)
-    else:
-        raise ValueError(
-            f"ctx_cont_dim={ctx_cont_dim} unsupported; base_cont={len(base_cont)} "
-            f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
-        )
-    required_cat = list(MODEL_NATIVE_CTX_CAT_FIELDS)
 
     # ------------------------------------------------------------
     # Load prebuilt + raw
@@ -415,13 +357,19 @@ def run_add_ctx_cont_columns(
         _finite_or_fail(atr_bps, label="atr_bps(existing)")
     else:
         if "atr" not in df_pre.columns:
-            raise RuntimeError("[CTX_ATR_BPS_FAIL] prebuilt must contain 'atr' to derive atr_bps")
+            raise RuntimeError(
+                "[CTX_ATR_BPS_FAIL] prebuilt must contain 'atr' to derive atr_bps"
+            )
         mid_m5 = (df_m5["high"] + df_m5["low"]) * 0.5
         mid_aligned = mid_m5.reindex(df_pre.index)
         if mid_aligned.isna().any() or (mid_aligned.to_numpy() <= 0).any():
-            raise RuntimeError("[CTX_ATR_BPS_FAIL] mid_aligned missing or <= 0 for some prebuilt rows")
+            raise RuntimeError(
+                "[CTX_ATR_BPS_FAIL] mid_aligned missing or <= 0 for some prebuilt rows"
+            )
         atr_vals = df_pre["atr"].to_numpy(dtype=float)
-        atr_bps = (atr_vals / np.maximum(mid_aligned.to_numpy(dtype=float), ATR_EPS)) * 1e4
+        atr_bps = (
+            atr_vals / np.maximum(mid_aligned.to_numpy(dtype=float), ATR_EPS)
+        ) * 1e4
         _finite_or_fail(atr_bps, label="atr_bps(derived)")
         df_pre["atr_bps"] = atr_bps
 
@@ -456,196 +404,145 @@ def run_add_ctx_cont_columns(
     h1_aligned = _align_last_closed(df_pre.index, h1_comp, pd.Timedelta(hours=1))
 
     if d1_aligned.isna().any():
-        raise RuntimeError("[CTX_ALIGN_FAIL] D1_dist_from_ema200_atr has NaN after alignment (no ffill/bfill allowed)")
+        raise RuntimeError(
+            "[CTX_ALIGN_FAIL] D1_dist_from_ema200_atr has NaN after alignment (no ffill/bfill allowed)"
+        )
     if h1_aligned.isna().any():
-        raise RuntimeError("[CTX_ALIGN_FAIL] H1_range_compression_ratio has NaN after alignment (no ffill/bfill allowed)")
+        raise RuntimeError(
+            "[CTX_ALIGN_FAIL] H1_range_compression_ratio has NaN after alignment (no ffill/bfill allowed)"
+        )
 
     df_pre[CTX_CONT_COL_D1_DIST] = d1_aligned.to_numpy(dtype=float)
     df_pre[CTX_CONT_COL_H1_COMP] = h1_aligned.to_numpy(dtype=float)
 
     # ------------------------------------------------------------
-    # CONT extras for >=6/6: D1_atr_percentile_252, M15_range_compression_ratio
+    # Exact D1/M15 context: D1 ATR percentile and M15 compression.
     # ------------------------------------------------------------
-    if ctx_cont_dim >= 6:
-        # D1_atr_percentile_252: percentile rank of D1 ATR14 over rolling 252 days
-        d1_atr14_for_pctl = d1_atr14.copy()
-        # rolling percentile rank at each day = rank of last value within window
-        # We compute rank(pct=True) per rolling window via apply (slower but deterministic, one-time offline builder).
-        def _pctl_last(window: np.ndarray) -> float:
-            w = np.asarray(window, dtype=float)
-            if not np.isfinite(w).all():
-                # if window has non-finite, treat as nan (will be caught)
-                return float("nan")
-            last = w[-1]
-            # percentile rank among window values
-            return float((w <= last).mean())
+    d1_atr14_for_pctl = d1_atr14.copy()
 
-        atr_pctl252 = d1_atr14_for_pctl.rolling(252, min_periods=252).apply(_pctl_last, raw=True)
-        atr_pctl252 = atr_pctl252.ffill()
-        atr_pctl252.iloc[:269] = np.nan
-        atr_pctl_aligned = _align_last_closed(df_pre.index, atr_pctl252, pd.Timedelta(days=1))
-        if atr_pctl_aligned.isna().any():
-            raise RuntimeError("[CTX_ALIGN_FAIL] D1_atr_percentile_252 has NaN after alignment")
-        df_pre[CTX_CONT_COL_D1_ATR_PCTL252] = atr_pctl_aligned.to_numpy(dtype=float)
+    def _pctl_last(window: np.ndarray) -> float:
+        w = np.asarray(window, dtype=float)
+        if not np.isfinite(w).all():
+            return float("nan")
+        return float((w <= w[-1]).mean())
 
-        # M15_range_compression_ratio: ATR14/ATR100 on M15
-        df_m15 = _resample_ohlc(df_m5, "15min")
-        if len(df_m15) < 200:
-            raise RuntimeError("[CTX_WARMUP_FAIL] insufficient M15 bars for ATR100 warmup")
-        m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14).ffill()
-        m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100).ffill()
-        m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
-        m15_comp.iloc[:199] = np.nan
-        m15_aligned = _align_last_closed(df_pre.index, m15_comp, pd.Timedelta(minutes=15))
-        if m15_aligned.isna().any():
-            raise RuntimeError("[CTX_ALIGN_FAIL] M15_range_compression_ratio has NaN after alignment")
-        df_pre[CTX_CONT_COL_M15_COMP] = m15_aligned.to_numpy(dtype=float)
+    atr_pctl252 = d1_atr14_for_pctl.rolling(252, min_periods=252).apply(
+        _pctl_last,
+        raw=True,
+    )
+    atr_pctl252 = atr_pctl252.ffill()
+    atr_pctl252.iloc[:269] = np.nan
+    atr_pctl_aligned = _align_last_closed(
+        df_pre.index,
+        atr_pctl252,
+        pd.Timedelta(days=1),
+    )
+    if atr_pctl_aligned.isna().any():
+        raise RuntimeError(
+            "[CTX_ALIGN_FAIL] D1_atr_percentile_252 has NaN after alignment"
+        )
+    df_pre[CTX_CONT_COL_D1_ATR_PCTL252] = atr_pctl_aligned.to_numpy(dtype=float)
+
+    df_m15 = _resample_ohlc(df_m5, "15min")
+    if len(df_m15) < 200:
+        raise RuntimeError("[CTX_WARMUP_FAIL] insufficient M15 bars for ATR100 warmup")
+    m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14).ffill()
+    m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100).ffill()
+    m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
+    m15_comp.iloc[:199] = np.nan
+    m15_aligned = _align_last_closed(
+        df_pre.index,
+        m15_comp,
+        pd.Timedelta(minutes=15),
+    )
+    if m15_aligned.isna().any():
+        raise RuntimeError(
+            "[CTX_ALIGN_FAIL] M15_range_compression_ratio has NaN after alignment"
+        )
+    df_pre[CTX_CONT_COL_M15_COMP] = m15_aligned.to_numpy(dtype=float)
 
     # ------------------------------------------------------------
-    # CONT micro/swing features for >=11/6: canonical tape strict join
+    # Exact canonical micro/swing context from the strict tape join.
     # ------------------------------------------------------------
-    if ctx_cont_dim >= 11:
-        if tape_root is None:
-            raise RuntimeError("[CTX_INPUT_FAIL] tape_root required for ctx_cont_dim>=11 features")
-        t_min = pd.Timestamp(df_pre.index.min()).tz_convert("UTC")
-        t_max = pd.Timestamp(df_pre.index.max()).tz_convert("UTC")
-        tape = _load_canonical_tape(
-            tape_root=Path(tape_root),
-            t_min=t_min,
-            t_max=t_max,
-            required_cols=["open", "high", "low", "close"],
+    if tape_root is None:
+        raise RuntimeError("[CTX_INPUT_FAIL] exact canonical tape_root is required")
+    t_min = pd.Timestamp(df_pre.index.min()).tz_convert("UTC")
+    t_max = pd.Timestamp(df_pre.index.max()).tz_convert("UTC")
+    tape = _load_canonical_tape(
+        tape_root=Path(tape_root),
+        t_min=t_min,
+        t_max=t_max,
+        required_cols=["open", "high", "low", "close"],
+    )
+
+    df_times = pd.DataFrame({"time": df_pre.index})
+    merged = df_times.merge(tape, on="time", how="inner", validate="one_to_one")
+    rows_base28 = int(len(df_times))
+    rows_tape = int(len(tape))
+    rows_joined = int(len(merged))
+    exact_match = int(rows_base28 == rows_tape == rows_joined)
+    log.info(
+        "[ENTRY_TAPE_JOIN_PROOF] rows_base28=%d rows_tape=%d rows_joined=%d exact_match=%d",
+        rows_base28,
+        rows_tape,
+        rows_joined,
+        exact_match,
+    )
+    if not exact_match:
+        raise RuntimeError(
+            "TAPE_JOIN_STRICT_FAIL: "
+            f"rows_base28={rows_base28} rows_tape={rows_tape} "
+            f"rows_joined={rows_joined}"
         )
 
-        df_times = pd.DataFrame({"time": df_pre.index})
-        merged = df_times.merge(tape, on="time", how="inner", validate="one_to_one")
-        rows_base28 = int(len(df_times))
-        rows_tape = int(len(tape))
-        rows_joined = int(len(merged))
-        exact_match = int(rows_base28 == rows_tape == rows_joined)
+    tape_feat = merged[["time", "close", "high", "low"]].copy().sort_values("time")
+    high = tape_feat["high"].to_numpy(dtype=np.float64)
+    low = tape_feat["low"].to_numpy(dtype=np.float64)
+    close = tape_feat["close"].to_numpy(dtype=np.float64)
+    for name, values in compute_micro_structure_features(high, low, close).items():
+        tape_feat[name] = values
+    swing = compute_swing_structure_features(
+        high,
+        low,
+        close,
+        lookback=SWING_LOOKBACK_V1,
+        atr_period=SWING_ATR_PERIOD_V1,
+    )
+    for name, values in swing.items():
+        tape_feat[name] = values
+    log.info(
+        "[ENTRY_SWING_PIVOT_PROOF] swing_resets_high=%d swing_resets_low=%d",
+        int((np.diff(swing["bars_since_swing_high"]) < 0).sum()),
+        int((np.diff(swing["bars_since_swing_low"]) < 0).sum()),
+    )
+
+    tape_feat = tape_feat.set_index("time")
+    join_cols = list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS) + list(
+        MODEL_NATIVE_CTX_CONT_SWING_FIELDS
+    )
+    existing_join = [c for c in join_cols if c in df_pre.columns]
+    if existing_join:
         log.info(
-            "[ENTRY_TAPE_JOIN_PROOF] rows_base28=%d rows_tape=%d rows_joined=%d exact_match=%d",
-            rows_base28,
-            rows_tape,
-            rows_joined,
-            exact_match,
+            "[ENTRY_MICRO_FEATURES_OVERWRITE] dropping_existing=%s",
+            existing_join,
         )
-        if not exact_match:
-            raise RuntimeError(
-                f"TAPE_JOIN_STRICT_FAIL: rows_base28={rows_base28} rows_tape={rows_tape} rows_joined={rows_joined}"
-            )
-
-        eps = 1e-9
-        tape_feat = merged[["time", "close", "high", "low"]].copy().sort_values("time")
-        close = tape_feat["close"].astype(float)
-        high = tape_feat["high"].astype(float)
-        low = tape_feat["low"].astype(float)
-
-        tape_feat["micro_momentum_3"] = (close - close.shift(3)).fillna(0.0)
-        tape_feat["micro_momentum_5"] = (close - close.shift(5)).fillna(0.0)
-        tape_feat["micro_acceleration"] = (
-            (close - close.shift(1)) - (close.shift(1) - close.shift(2))
-        ).fillna(0.0)
-        tape_feat["wick_ratio"] = (high - close) / (high - low + eps)
-        ema_fast = close.ewm(span=5, adjust=False).mean()
-        tape_feat["distance_ema_fast"] = close - ema_fast
-
-        for name in MICRO_FEATURE_NAMES:
-            if name not in tape_feat.columns:
-                raise RuntimeError(f"MICRO_FEATURE_MISSING: {name}")
-
-        if ctx_cont_dim == 16:
-            prev_close = close.shift(1).fillna(close)
-            tr = np.maximum(
-                (high - low).abs(),
-                np.maximum((high - prev_close).abs(), (low - prev_close).abs()),
-            )
-            atr = tr.rolling(window=SWING_ATR_PERIOD, min_periods=1).mean()
-            atr_safe = atr.clip(lower=eps)
-
-            pivot_high = high > pd.concat(
-                [high.shift(1), high.shift(2), high.shift(-1), high.shift(-2)], axis=1
-            ).max(axis=1, skipna=True)
-            pivot_low = low < pd.concat(
-                [low.shift(1), low.shift(2), low.shift(-1), low.shift(-2)], axis=1
-            ).min(axis=1, skipna=True)
-            log.info(
-                "[ENTRY_SWING_PIVOT_PROOF] pivot_highs=%d pivot_lows=%d",
-                int(pivot_high.sum()),
-                int(pivot_low.sum()),
-            )
-
-            n = int(len(tape_feat))
-            last_high_vals = np.empty(n, dtype=np.float64)
-            last_low_vals = np.empty(n, dtype=np.float64)
-            last_high_idx = np.empty(n, dtype=np.int64)
-            last_low_idx = np.empty(n, dtype=np.int64)
-
-            last_high = float(high.iloc[0])
-            last_low = float(low.iloc[0])
-            last_hi_i = 0
-            last_lo_i = 0
-            for i in range(n):
-                if bool(pivot_high.iloc[i]):
-                    last_high = float(high.iloc[i])
-                    last_hi_i = i
-                if bool(pivot_low.iloc[i]):
-                    last_low = float(low.iloc[i])
-                    last_lo_i = i
-                last_high_vals[i] = last_high
-                last_low_vals[i] = last_low
-                last_high_idx[i] = last_hi_i
-                last_low_idx[i] = last_lo_i
-
-            idx = np.arange(n, dtype=np.int64)
-            bars_since_high = (idx - last_high_idx).astype(np.float32)
-            bars_since_low = (idx - last_low_idx).astype(np.float32)
-
-            dist_last_swing_high_atr = (close.to_numpy() - last_high_vals) / atr_safe.to_numpy()
-            dist_last_swing_low_atr = (close.to_numpy() - last_low_vals) / atr_safe.to_numpy()
-
-            denom = np.maximum((last_high_vals - last_low_vals), eps)
-            retracement = np.zeros(n, dtype=np.float64)
-            up_mask = last_high_idx > last_low_idx
-            down_mask = last_low_idx > last_high_idx
-            retracement[up_mask] = (last_high_vals[up_mask] - close.to_numpy()[up_mask]) / denom[up_mask]
-            retracement[down_mask] = (close.to_numpy()[down_mask] - last_low_vals[down_mask]) / denom[down_mask]
-            retracement = np.clip(retracement, 0.0, 1.0)
-
-            tape_feat["dist_last_swing_high_atr"] = dist_last_swing_high_atr.astype(np.float32)
-            tape_feat["dist_last_swing_low_atr"] = dist_last_swing_low_atr.astype(np.float32)
-            tape_feat["bars_since_swing_high"] = bars_since_high.astype(np.float32)
-            tape_feat["bars_since_swing_low"] = bars_since_low.astype(np.float32)
-            tape_feat["retracement_from_last_impulse"] = retracement.astype(np.float32)
-
-            for name in SWING_FEATURE_NAMES:
-                if name not in tape_feat.columns:
-                    raise RuntimeError(f"SWING_FEATURE_MISSING: {name}")
-
-        tape_feat = tape_feat.set_index("time")
-        join_cols = list(MICRO_FEATURE_NAMES)
-        if ctx_cont_dim == 16:
-            join_cols = join_cols + list(SWING_FEATURE_NAMES)
-        existing_join = [c for c in join_cols if c in df_pre.columns]
-        if existing_join:
-            log.info("[ENTRY_MICRO_FEATURES_OVERWRITE] dropping_existing=%s", existing_join)
-            df_pre = df_pre.drop(columns=existing_join)
-        df_pre = df_pre.join(tape_feat[join_cols], how="left")
-        if len(df_pre) != rows_base28:
-            raise RuntimeError(
-                f"MICRO_FEATURE_JOIN_FAIL: rows_base28={rows_base28} rows_after={len(df_pre)}"
-            )
-
-        log.info(
-            "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
-            list(MICRO_FEATURE_NAMES),
-            len(MICRO_FEATURE_NAMES),
+        df_pre = df_pre.drop(columns=existing_join)
+    df_pre = df_pre.join(tape_feat[join_cols], how="left")
+    if len(df_pre) != rows_base28:
+        raise RuntimeError(
+            f"MICRO_FEATURE_JOIN_FAIL: rows_base28={rows_base28} rows_after={len(df_pre)}"
         )
-        if ctx_cont_dim == 16:
-            log.info(
-                "[ENTRY_SWING_FEATURES_PROOF] names=%s count=%d",
-                list(SWING_FEATURE_NAMES),
-                len(SWING_FEATURE_NAMES),
-            )
+
+    log.info(
+        "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
+        list(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_MICRO_FIELDS),
+    )
+    log.info(
+        "[ENTRY_SWING_FEATURES_PROOF] names=%s count=%d",
+        list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
+        len(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
+    )
 
     # ------------------------------------------------------------
     # CAT: 5/6 dims, deterministic, int, no NaN
@@ -654,32 +551,42 @@ def run_add_ctx_cont_columns(
 
     # session_id: 0=ASIA, 1=EU, 2=OVERLAP, 3=US (SSoT)
     df_pre["session_id"] = get_session_id_vectorized(ts).astype(np.int64)
+    df_pre["is_ASIA"] = (df_pre["session_id"] == 0).astype(np.int64)
 
     # Session timing features (observerable context)
-    df_pre["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(ts).astype(np.float32)
-    df_pre["minutes_to_next_session_boundary"] = get_session_minutes_to_next_boundary_vectorized(ts).astype(np.float32)
+    df_pre["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
+        ts
+    ).astype(np.float32)
+    df_pre["minutes_to_next_session_boundary"] = (
+        get_session_minutes_to_next_boundary_vectorized(ts).astype(np.float32)
+    )
     # Session change flag (1 if session changes vs previous bar)
-    sess_tag = get_session_vectorized(ts)
-    df_pre["session_change_flag"] = (sess_tag != sess_tag.shift(1)).fillna(False).astype(np.int64)
+    session_id = df_pre["session_id"].to_numpy(dtype=np.int64)
+    session_change = np.zeros(len(session_id), dtype=np.int64)
+    if len(session_id) > 1:
+        session_change[1:] = (session_id[1:] != session_id[:-1]).astype(np.int64)
+    df_pre["session_change_flag"] = session_change
     # Tradable flag (policy can still restrict to EU/OVERLAP/US)
     df_pre["session_tradable"] = (df_pre["session_id"] != 0).astype(np.int64)
 
     # Legacy trend_regime_id has one immutable source: exact D1 distance.
     # price_vs_ema50_atr remains separate continuous learned evidence.
     if "D1_dist_from_ema200_atr" not in df_pre.columns:
-        raise RuntimeError("[CTX_TREND_REGIME] exact D1_dist_from_ema200_atr source missing")
+        raise RuntimeError(
+            "[CTX_TREND_REGIME] exact D1_dist_from_ema200_atr source missing"
+        )
     d = df_pre["D1_dist_from_ema200_atr"].to_numpy(dtype=float)
     _finite_or_fail(d, label="trend_regime_id.D1_dist_from_ema200_atr")
     trend_regime_id = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
     df_pre["trend_regime_id"] = trend_regime_id
 
     # vol_regime_id / atr_bucket: 0..4 from atr_bps percentile rank
-    vol_regime_id = _rank_bucket_0_4(df_pre["atr_bps"].to_numpy(dtype=float), fallback=2)
+    vol_regime_id = _rank_bucket_0_4(df_pre["atr_bps"].to_numpy(dtype=float))
     df_pre["vol_regime_id"] = vol_regime_id.astype(np.int64)
     df_pre["atr_bucket"] = vol_regime_id.astype(np.int64)
 
     # spread_bucket: 0..4 from spread_bps percentile rank
-    spread_bucket = _rank_bucket_0_4(df_pre["spread_bps"].to_numpy(dtype=float), fallback=0)
+    spread_bucket = _rank_bucket_0_4(df_pre["spread_bps"].to_numpy(dtype=float))
     df_pre["spread_bucket"] = spread_bucket.astype(np.int64)
 
     # H4_trend_sign_cat (optional): sign(mid - ema50) on H4, mapped to {0,1,2} for {-1,0,+1}
@@ -690,34 +597,57 @@ def run_add_ctx_cont_columns(
     if CTX_CAT_COL_H4_TREND_SIGN in required_cat:
         df_h4 = _resample_ohlc(df_m5, "4h")
         if len(df_h4) < 80:
-            raise RuntimeError("[CTX_WARMUP_FAIL] insufficient H4 bars for EMA50 warmup")
+            raise RuntimeError(
+                "[CTX_WARMUP_FAIL] insufficient H4 bars for EMA50 warmup"
+            )
         h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
         h4_ema50 = _ema(h4_mid, 50)
         diff = h4_mid - h4_ema50
         sign_series = (np.sign(diff) + 1.0).astype(np.float64)
         sign_series.iloc[:79] = np.nan
-        h4_aligned = _align_last_closed(df_pre.index, sign_series, pd.Timedelta(hours=4))
+        h4_aligned = _align_last_closed(
+            df_pre.index, sign_series, pd.Timedelta(hours=4)
+        )
         if h4_aligned.isna().any():
-            raise RuntimeError("[CTX_ALIGN_FAIL] H4_trend_sign_cat has NaN after alignment")
+            raise RuntimeError(
+                "[CTX_ALIGN_FAIL] H4_trend_sign_cat has NaN after alignment"
+            )
         df_pre[CTX_CAT_COL_H4_TREND_SIGN] = h4_aligned.to_numpy(dtype=np.int64)
 
     # Ensure the exact active categorical contract is observed and integral.
     for c in required_cat:
         if c not in df_pre.columns or df_pre[c].isna().any():
-            raise RuntimeError(f"[PREBUILT_CTX_CAT] exact finite categorical source missing: {c}")
+            raise RuntimeError(
+                f"[PREBUILT_CTX_CAT] exact finite categorical source missing: {c}"
+            )
         df_pre[c] = df_pre[c].astype(np.int64)
 
     # ------------------------------------------------------------
     # Contract validation (names + finiteness)
     # ------------------------------------------------------------
-    missing = [c for c in (required_cont + required_cat) if c not in df_pre.columns]
+    required_output_cont = list(MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS)
+    if required_output_cont != (
+        required_cont + list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS)
+    ):
+        raise RuntimeError("PREBUILT_CTX_OWNER_ORDER_MISMATCH")
+    missing = [
+        c for c in (required_output_cont + required_cat) if c not in df_pre.columns
+    ]
     if missing:
         raise RuntimeError(f"[PREBUILT_CTX_CONTRACT_FAIL] missing columns: {missing}")
 
-    cont_mat = df_pre[required_cont].to_numpy(dtype=float)
-    _finite_or_fail(cont_mat, label=f"ctx_cont(required_cont={required_cont})")
+    cont_mat = df_pre[required_output_cont].to_numpy(dtype=float)
+    _finite_or_fail(
+        cont_mat,
+        label=f"ctx_cont(required_output_cont={required_output_cont})",
+    )
 
-    log.info("[PREBUILT_CTX_CONT_PROOF] ctx_cont_dim=%d names=%s", ctx_cont_dim, required_cont)
+    log.info(
+        "[PREBUILT_CTX_CONT_PROOF] core_dim=%d v1_output_dim=%d names=%s",
+        prebuilt_ctx_cont_dim,
+        len(required_output_cont),
+        required_output_cont,
+    )
 
     # REGIME_V4 is an immutable active transform, never an environment-selected surface.
     from gx1.features.regime_v4_features import (
@@ -725,12 +655,16 @@ def run_add_ctx_cont_columns(
         REGIME_V4_SOURCE_COLS,
         add_regime_v4_features,
     )
+
     df_pre = df_pre.sort_index()
     from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
+
     _rv4_required = ["open", "high", "low", "close", "volume"]
     _rv4_missing = [name for name in _rv4_required if name not in df_m5.columns]
     if _rv4_missing:
-        raise RuntimeError(f"[REGIME_V4] exact raw M5 OHLCV source missing: {_rv4_missing}")
+        raise RuntimeError(
+            f"[REGIME_V4] exact raw M5 OHLCV source missing: {_rv4_missing}"
+        )
     _rv4_m5 = df_m5[_rv4_required].astype(np.float64).copy()
     _rv4_src_map = [
         ("ema20_slope_atr", "ema20_slope_atr"),
@@ -757,48 +691,36 @@ def run_add_ctx_cont_columns(
     _regime_v4_emitted = True
     log.info("[REGIME_V4] emitted immutable causal regime features")
 
-    # Cross/cyclic sources must belong to this exact prebuilt. The retired
-    # pinned-20260605 side-load could silently inject stale rows.
-    _need_cross = ["hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state", "m5h1_momentum"]
+    # Cross/cyclic sources must already belong to this exact prebuilt. A
+    # side-loaded parquet would create a second owner and can silently inject
+    # stale rows, so missing fields fail closed.
+    _need_cross = [
+        "hour_sin",
+        "hour_cos",
+        "dow_sin",
+        "dow_cos",
+        "smc_premium_state",
+        "m5h1_momentum",
+    ]
     _missing_cross = [name for name in _need_cross if name not in df_pre.columns]
     if _missing_cross:
-        if cv3_cross_source is None or not cv3_cross_source.is_file():
-            raise RuntimeError(
-                "[CTX_CROSS_SOURCE] active prebuilt cross sources missing and no explicit "
-                f"--cv3-cross-source supplied: {_missing_cross}"
-            )
-        import pyarrow.parquet as _pq
-        schema_columns = set(_pq.read_schema(cv3_cross_source).names)
-        read_columns = ["time"] + _missing_cross
-        if "time" not in schema_columns:
-            read_columns = _missing_cross
-        cross = pd.read_parquet(cv3_cross_source, columns=read_columns)
-        if "time" not in cross.columns:
-            index_column = cross.index.name or "index"
-            cross = cross.reset_index().rename(columns={index_column: "time"})
-        cross["time"] = pd.to_datetime(cross["time"], utc=True, errors="coerce")
-        if cross["time"].isna().any() or cross["time"].duplicated().any():
-            raise RuntimeError("[CTX_CROSS_SOURCE] timestamps must be finite and unique")
-        merged = pd.DataFrame({"time": pd.DatetimeIndex(df_pre.index)}).merge(
-            cross[["time"] + _missing_cross],
-            on="time",
-            how="left",
-            validate="one_to_one",
+        raise RuntimeError(
+            "[CTX_CROSS_SOURCE_MISSING] exact prebuilt must own all cross sources: "
+            f"{_missing_cross}"
         )
-        if merged[_missing_cross].isna().any().any():
-            raise RuntimeError("[CTX_CROSS_SOURCE] exact timestamp coverage missing")
-        for name in _missing_cross:
-            df_pre[name] = merged[name].to_numpy()
-    _finite_or_fail(df_pre[_need_cross].to_numpy(dtype=np.float64), label="exact cross sources")
+    _finite_or_fail(
+        df_pre[_need_cross].to_numpy(dtype=np.float64), label="exact cross sources"
+    )
 
     # B2 train==serve (2026-06-05, XGB-audit): bake the SHIFTED _v1_is_EU/_v1_is_US (np.roll by 1, [0]=0).
-    # The V10 build (source-parquet-override) + candidate batch run XGB INFERENCE on THIS parquet, and the
+    # The V10 build (exact source parquet) + candidate batch run XGB INFERENCE on THIS parquet, and the
     # new XGB is trained on SHIFTED is_EU/is_US (base80 builder B2) matching live serve
     # (v12_ctx_augment_live.py:165-172). Those builders otherwise derive them UNSHIFTED
     # (build_entry_v10_ctx_training_dataset_v3.py:1234-1237) -> train≠serve on ~0.7% session-boundary bars.
     # Outside the REGIME_V4 block: this is an XGB-bridge input, always needed. df_pre is time-sorted.
     if "_v1_is_EU" not in df_pre.columns or "_v1_is_US" not in df_pre.columns:
         from gx1.time.session_detector import get_session_vectorized as _get_sess
+
         _sess_b2 = _get_sess(pd.to_datetime(df_pre.index, utc=True))
         for _b2name, _b2tag in (("_v1_is_EU", "EU"), ("_v1_is_US", "US")):
             if _b2name not in df_pre.columns:
@@ -806,17 +728,23 @@ def run_add_ctx_cont_columns(
                 _b2sh = np.roll(_b2raw, 1)
                 _b2sh[0] = 0.0
                 df_pre[_b2name] = _b2sh
-        log.info("[B2] baked shifted _v1_is_EU/_v1_is_US (train==serve XGB-inference parity)")
+        log.info(
+            "[B2] baked shifted _v1_is_EU/_v1_is_US (train==serve XGB-inference parity)"
+        )
     # *_us session-interactions on the SHIFTED is_US basis (same formulas as the trainer :876-881 and live
     # serve _add_session_interactions). The candidate batch's run_xgb_inference REQUIRES these present
     # (raises on missing); the V10 builder derives them too — baking here keeps ONE basis for every consumer.
     _is_us_b2 = df_pre["_v1_is_US"].to_numpy(dtype=np.float64)
-    for _usname, _ussrc in (("_v1_int_ema_us", "_v1_ema_diff"), ("_v1_int_range_us", "_v1_range_z"),
-                            ("_v1_int_slope_h1_us", "_v1h1_slope3")):
+    for _usname, _ussrc in (
+        ("_v1_int_ema_us", "_v1_ema_diff"),
+        ("_v1_int_range_us", "_v1_range_z"),
+        ("_v1_int_slope_h1_us", "_v1h1_slope3"),
+    ):
         if _usname not in df_pre.columns and _ussrc in df_pre.columns:
             df_pre[_usname] = df_pre[_ussrc].to_numpy(dtype=np.float64) * _is_us_b2
 
     from gx1.scripts.augment_forward_outcome_v2 import trim_causal_context_warmup_prefix
+
     df_pre = trim_causal_context_warmup_prefix(df_pre, _regime_trim_required)
     _finite_or_fail(
         df_pre[_regime_trim_required].to_numpy(dtype=np.float64),
@@ -835,9 +763,13 @@ def run_add_ctx_cont_columns(
     # loads a consistent time-as-column frame.
     _out = df_pre
     if "time" in _out.columns:
-        _out = _out.reset_index(drop=True)            # time already a column → drop redundant index
+        _out = _out.reset_index(
+            drop=True
+        )  # time already a column → drop redundant index
     elif _out.index.name == "time" or isinstance(_out.index, pd.DatetimeIndex):
-        _out = _out.reset_index(drop=False).rename(columns={"index": "time"})  # surface time index
+        _out = _out.reset_index(drop=False).rename(
+            columns={"index": "time"}
+        )  # surface time index
     _out.to_parquet(output_parquet, index=False)
 
     if diagnostics_path is not None:
@@ -849,29 +781,28 @@ def run_add_ctx_cont_columns(
                     "prebuilt_path": str(prebuilt_path),
                     "output_path": str(output_parquet),
                     "raw_m5_paths": [str(p) for p in raw_m5_paths],
-                    "ctx_cont_dim": int(ctx_cont_dim),
+                    "prebuilt_ctx_cont_dim": int(prebuilt_ctx_cont_dim),
+                    "entry_v1_ctx_cont_dim": len(required_output_cont),
                     "ctx_cat_dim": int(ctx_cat_dim),
-                    # ctx_cont_dim is the BASE28 ctx_cont subset (2..16). REGIME_V4 emits 16
-                    # SEPARATE named cols (inert until the V10 105->121 contract bump consumes
-                    # them) — record their presence explicitly so downstream/audits don't have
-                    # to infer parquet content from ctx_cont_dim (which does NOT include them).
                     "regime_v4_emitted": bool(_regime_v4_emitted),
-                    "required_cont": required_cont,
+                    "required_prebuilt_cont": required_cont,
+                    "required_entry_v1_cont": required_output_cont,
                     "required_cat": required_cat,
-                    "ctx_columns_added": required_cont + required_cat,
+                    "ctx_columns_added": required_output_cont + required_cat,
                     "ctx_contract_missing": [],
                     "n_rows": int(len(df_pre)),
                     "tape_root": str(tape_root) if tape_root is not None else None,
-                    "cv3_cross_source": (
-                        str(cv3_cross_source) if cv3_cross_source is not None else None
-                    ),
                 },
                 indent=2,
             ),
             encoding="utf-8",
         )
 
-    log.info("[PREBUILT_CTX_CONTRACT] required cont+cat present; missing: [] (cont=%d cat=%d)", ctx_cont_dim, ctx_cat_dim)
+    log.info(
+        "[PREBUILT_CTX_CONTRACT] exact cont+cat present; missing: [] (cont=%d cat=%d)",
+        len(required_output_cont),
+        ctx_cat_dim,
+    )
     log.info("Wrote %s (%d rows)", output_parquet, len(df_pre))
 
     # Sidecar manifest + schema manifest (TRUTH preflight expects schema manifest)
@@ -886,13 +817,19 @@ def run_add_ctx_cont_columns(
     prebuilt_sha256 = h.hexdigest()
     prebuilt_bytes = prebuilt_resolved.stat().st_size
     manifest_obj = {
-        "kind": "prebuilt_manifest_v1",
+        "kind": "entry_model_native_prebuilt_manifest_v2",
         "prebuilt_path": str(prebuilt_resolved),
         "prebuilt_sha256": prebuilt_sha256,
         "prebuilt_bytes": prebuilt_bytes,
-        "ctx_cont_dim": int(ctx_cont_dim),
+        "prebuilt_ctx_cont_dim": int(prebuilt_ctx_cont_dim),
+        "prebuilt_ctx_cont_names": required_cont,
+        "entry_v1_ctx_cont_dim": len(required_output_cont),
+        "entry_v1_ctx_cont_names": required_output_cont,
         "ctx_cat_dim": int(ctx_cat_dim),
-        "regime_v4_emitted": bool(_regime_v4_emitted),  # parquet carries the 16 REGIME_V4 cols (see diagnostics note)
+        "ctx_cat_names": required_cat,
+        "regime_v4_emitted": bool(
+            _regime_v4_emitted
+        ),  # parquet carries the 16 REGIME_V4 cols (see diagnostics note)
         "no_fallback_enforced": True,
     }
     manifest_path.write_text(json.dumps(manifest_obj, indent=2), encoding="utf-8")
@@ -916,7 +853,9 @@ def run_add_ctx_cont_columns(
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    ap = argparse.ArgumentParser(description="Add ctx_cont/ctx_cat columns to prebuilt parquet (4/5, 6/6, 11/6, or 16/6)")
+    ap = argparse.ArgumentParser(
+        description="Add the exact model-native Entry prebuilt context"
+    )
     ap.add_argument("--prebuilt_parquet", type=Path, required=True)
     ap.add_argument("--output_parquet", type=Path, required=True)
     ap.add_argument(
@@ -926,8 +865,6 @@ def main() -> int:
         default=None,
         help="Raw M5 parquet(s). Default: GX1_DATA/data/data/_staging/XAUUSD_M5_2020_2025_bidask__TEMP_CTX2PLUS.parquet",
     )
-    ap.add_argument("--ctx-cont-dim", type=int, default=4, choices=[2, 4, 6, 11, 16])
-    ap.add_argument("--ctx-cat-dim", type=int, default=5, choices=[5])
     ap.add_argument(
         "--diagnostics",
         type=Path,
@@ -937,35 +874,31 @@ def main() -> int:
     ap.add_argument(
         "--tape-root",
         type=Path,
-        default=None,
-        help="Canonical tape root for micro/swing features (required for ctx_cont_dim>=11).",
-    )
-    ap.add_argument(
-        "--cv3-cross-source",
-        type=Path,
-        default=None,
-        help="Explicit current cv3 parquet used only when cross/cyclic columns are absent.",
+        required=True,
+        help="Mandatory canonical tape root for exact micro/swing features.",
     )
     args = ap.parse_args()
 
     raw = args.raw_m5_parquet
     if not raw:
         gx1_data = Path(os.environ.get("GX1_DATA", "/home/andre2/GX1_DATA")).resolve()
-        raw = [gx1_data / "data/data/_staging/XAUUSD_M5_2020_2025_bidask__TEMP_CTX2PLUS.parquet"]
+        raw = [
+            gx1_data
+            / "data/data/_staging/XAUUSD_M5_2020_2025_bidask__TEMP_CTX2PLUS.parquet"
+        ]
 
     diag = args.diagnostics
     if diag is None:
-        diag = args.output_parquet.with_name(args.output_parquet.stem + ".ctx_diagnostics.json")
+        diag = args.output_parquet.with_name(
+            args.output_parquet.stem + ".ctx_diagnostics.json"
+        )
 
     try:
         run_add_ctx_cont_columns(
             prebuilt_path=args.prebuilt_parquet,
             raw_m5_paths=list(raw),
             output_parquet=args.output_parquet,
-            ctx_cont_dim=int(args.ctx_cont_dim),
-            ctx_cat_dim=int(args.ctx_cat_dim),
             tape_root=args.tape_root,
-            cv3_cross_source=args.cv3_cross_source,
             diagnostics_path=diag,
         )
     except Exception as e:

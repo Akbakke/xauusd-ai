@@ -49,6 +49,12 @@ def _splits() -> dict[str, dict[str, str]]:
     }
 
 
+def _source(tmp_path: Path) -> Path:
+    source = tmp_path / "canonical_source.parquet"
+    source.write_bytes(b"canonical-source-proof")
+    return source
+
+
 def _extra() -> dict:
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields(
@@ -105,9 +111,12 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
         output_path = tmp_path / f"model_native_seq513_{split_name}.parquet"
         manifest_path = write_manifest(
             output_path=output_path,
-            build_command=["python", "-m", "gx1.scripts.build_entry_v10_ctx_training_dataset_v3"],
-            base28_manifest=tmp_path / "base28_manifest.json",
-            source_parquet_override=None,
+            build_command=[
+                "python",
+                "-m",
+                "gx1.scripts.build_entry_v10_ctx_training_dataset_v3",
+            ],
+            source_parquet=_source(tmp_path),
             tape_root=tmp_path / "tape",
             splits=_splits(),
             extra=_extra(),
@@ -120,35 +129,31 @@ def test_canonical_writer_stamps_exact_seq513_schema_on_all_split_manifests(
         assert manifest["output_data_path"] == str(output_path)
         assert manifest["splits"] == _splits()
         assert manifest["inputs"] == {
-            "base28_manifest": str(tmp_path / "base28_manifest.json"),
-            "source_parquet_override": None,
+            "source_parquet": str(_source(tmp_path)),
             "tape_root": str(tmp_path / "tape"),
         }
 
 
-def test_canonical_writer_records_one_explicit_source_override(tmp_path: Path) -> None:
-    source = tmp_path / "canonical_source.parquet"
+def test_canonical_writer_records_one_exact_source(tmp_path: Path) -> None:
+    source = _source(tmp_path)
     manifest_path = write_manifest(
         output_path=tmp_path / "model_native_seq513.parquet",
         build_command=["builder"],
-        base28_manifest=None,
-        source_parquet_override=source,
+        source_parquet=source,
         tape_root=tmp_path / "tape",
         extra=_extra(),
     )
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["inputs"]["base28_manifest"] is None
-    assert manifest["inputs"]["source_parquet_override"] == str(source)
+    assert manifest["inputs"]["source_parquet"] == str(source)
 
 
-def test_canonical_writer_rejects_ambiguous_source_inputs(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="MODEL_NATIVE_SOURCE_CONTRACT_INVALID"):
+def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_SOURCE_PARQUET_MISSING"):
         write_manifest(
             output_path=tmp_path / "model_native_seq513.parquet",
             build_command=["builder"],
-            base28_manifest=tmp_path / "base28.json",
-            source_parquet_override=tmp_path / "source.parquet",
+            source_parquet=tmp_path / "missing.parquet",
             tape_root=tmp_path / "tape",
             extra=_extra(),
         )
@@ -189,8 +194,7 @@ def test_canonical_split_writer_rejects_soft_or_legacy_contracts(
         write_manifest(
             output_path=tmp_path / "model_native_seq513_train.parquet",
             build_command=["builder"],
-            base28_manifest=tmp_path / "base28_manifest.json",
-            source_parquet_override=None,
+            source_parquet=_source(tmp_path),
             tape_root=tmp_path / "tape",
             splits=_splits(),
             extra=extra,
@@ -239,13 +243,15 @@ def _rank_reference_fixture(tmp_path: Path) -> tuple[Path, dict]:
     return rank_reference, payload
 
 
-def test_builder_requires_audited_rank_reference_and_source_hashes(tmp_path: Path) -> None:
+def test_builder_requires_audited_rank_reference_and_source_hashes(
+    tmp_path: Path,
+) -> None:
     rank_reference, payload = _rank_reference_fixture(tmp_path)
 
     contract = _model_native_state_contract(
         args=argparse.Namespace(
             model_native_rank_reference_npz=str(rank_reference),
-            source_parquet_override=payload["source_parquet"],
+            source_parquet=payload["source_parquet"],
             vedtak="MODEL_NATIVE_DATASET_BUILD_PYTEST",
         ),
         feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),
@@ -254,14 +260,19 @@ def test_builder_requires_audited_rank_reference_and_source_hashes(tmp_path: Pat
     )
 
     assert contract["rank_reference_npz_sha256"] == payload["out_npz_sha256"]
-    assert contract["rank_reference_source_parquet_sha256"] == payload["source_parquet_sha256"]
+    assert (
+        contract["rank_reference_source_parquet_sha256"]
+        == payload["source_parquet_sha256"]
+    )
     assert contract["rank_reference_fit_row_count"] == 3
     assert contract["normalization_fit_scope"] == "train_only"
     assert contract["split_reset_allowed"] is False
     assert contract["explicit_vedtak_id"] == "MODEL_NATIVE_DATASET_BUILD_PYTEST"
 
 
-def test_builder_rejects_missing_or_tampered_rank_reference_contract(tmp_path: Path) -> None:
+def test_builder_rejects_missing_or_tampered_rank_reference_contract(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(RuntimeError, match="MODEL_NATIVE_RANK_REFERENCE_REQUIRED"):
         _model_native_state_contract(
             args=argparse.Namespace(
@@ -283,7 +294,7 @@ def test_builder_rejects_missing_or_tampered_rank_reference_contract(tmp_path: P
         _model_native_state_contract(
             args=argparse.Namespace(
                 model_native_rank_reference_npz=str(rank_reference),
-                source_parquet_override=payload["source_parquet"],
+                source_parquet=payload["source_parquet"],
                 vedtak="MODEL_NATIVE_DATASET_BUILD_PYTEST",
             ),
             feature_history_start=pd.Timestamp("2020-11-01T00:00:00Z"),

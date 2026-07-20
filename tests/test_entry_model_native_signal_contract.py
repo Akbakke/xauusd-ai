@@ -101,7 +101,9 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
     }
 
 
-def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live() -> None:
+def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live() -> (
+    None
+):
     selected = _selected_fields()
     fields = ordered_model_native_signal_fields(selected)
     contract = model_native_signal_contract_metadata(selected)
@@ -119,9 +121,14 @@ def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live()
 
     counts = Counter(classify_entry_specialist_feature(field) for field in fields)
     assert counts == _EXPECTED_FULL_SPECIALIST_COUNTS
-    assert all(counts[specialist] > 0 for specialist in _EXPECTED_FULL_SPECIALIST_COUNTS)
+    assert all(
+        counts[specialist] > 0 for specialist in _EXPECTED_FULL_SPECIALIST_COUNTS
+    )
     assert "neutral_bridge_anchor" not in counts
-    assert specialist_contract_training_allowed_for_mode(MODEL_NATIVE_CONTRACT_MODE) is True
+    assert (
+        specialist_contract_training_allowed_for_mode(MODEL_NATIVE_CONTRACT_MODE)
+        is True
+    )
 
 
 def test_active_context_contract_always_contains_full_regime_stack(
@@ -135,9 +142,9 @@ def test_active_context_contract_always_contains_full_regime_stack(
     assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM == 142
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM == 5
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
-    assert MODEL_NATIVE_CTX_CONT_FIELDS[-len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) :] == (
-        MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
-    )
+    assert MODEL_NATIVE_CTX_CONT_FIELDS[
+        -len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) :
+    ] == (MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
     assert "trend_regime_id" not in MODEL_NATIVE_CTX_CAT_FIELDS
     assert tuple(context["ctx_cont_names"]) == MODEL_NATIVE_CTX_CONT_FIELDS
     assert tuple(context["ctx_cat_names"]) == MODEL_NATIVE_CTX_CAT_FIELDS
@@ -169,7 +176,9 @@ def test_retired_smart520_manifest_is_never_soft_migrated() -> None:
         require_model_native_manifest(manifest, context="TEST")
 
 
-def test_manifest_rejects_same_size_same_group_replacement_of_one_mandatory_field() -> None:
+def test_manifest_rejects_same_size_same_group_replacement_of_one_mandatory_field() -> (
+    None
+):
     manifest = _native_manifest()
     selected = list(manifest["selected_features"])
     victim = "trend.ema_mtf_score"
@@ -207,9 +216,9 @@ def test_signal_contract_rejects_stale_mandatory_family_metadata() -> None:
 
 def test_manifest_rejects_stale_top_level_mandatory_family_metadata() -> None:
     manifest = _native_manifest()
-    manifest["mandatory_full_stack"]["family_features"][
-        "trend_ema_smart_layer"
-    ].append("trend.ema_unknown_stale_member")
+    manifest["mandatory_full_stack"]["family_features"]["trend_ema_smart_layer"].append(
+        "trend.ema_unknown_stale_member"
+    )
 
     with pytest.raises(RuntimeError, match="MANDATORY_FULL_STACK_METADATA_STALE"):
         require_model_native_manifest(manifest, context="STALE")
@@ -223,10 +232,7 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
     ctx_cont = torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM)
     ctx_cat = torch.randint(0, 4, (2, MODEL_NATIVE_CTX_CAT_DIM))
 
-    mtf = {
-        f"seq_{tf}": torch.randn(2, 4, 3)
-        for tf in ("m5", "m15", "h1", "h4", "d1")
-    }
+    mtf = {f"seq_{tf}": torch.randn(2, 4, 3) for tf in ("m5", "m15", "h1", "h4", "d1")}
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
     assert out["direction_logits"].shape == out["model_native_logits"].shape == (2, 3)
@@ -297,4 +303,3 @@ def test_state_builder_exposes_only_model_native_513_symbols(tmp_path) -> None:
     assert not hasattr(state_module, "Smart520StateBuilder")
     assert not hasattr(state_module, "Smart520StateContract")
     assert not hasattr(state_module, "SIGNAL_DIM_SMART520")
-    model_native_context_contract_metadata,

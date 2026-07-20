@@ -17,6 +17,7 @@ only ever exist once. smc_v1.py was considered but it owns the smc_* family with
 different lookback (3); these are the entry ctx_cont swing features (lookback 2).
 Do NOT re-implement this elsewhere — import it.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -29,10 +30,18 @@ SWING_FEATURE_NAMES_V1 = (
     "bars_since_swing_low",
     "retracement_from_last_impulse",
 )
+SWING_LOOKBACK_V1 = 2
+SWING_ATR_PERIOD_V1 = 14
 
 
 def compute_swing_structure_features(
-    high, low, close, *, lookback: int = 2, atr_period: int = 14, eps: float = 1e-9
+    high,
+    low,
+    close,
+    *,
+    lookback: int = SWING_LOOKBACK_V1,
+    atr_period: int = SWING_ATR_PERIOD_V1,
+    eps: float = 1e-9,
 ) -> dict[str, np.ndarray]:
     """Return {feature_name: float32 ndarray} for the 5 swing-structure features.
 
@@ -66,7 +75,11 @@ def compute_swing_structure_features(
         raise RuntimeError("SWING_STRUCTURE_SOURCE_GEOMETRY_INVALID")
     if isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1:
         raise RuntimeError(f"SWING_STRUCTURE_LOOKBACK_INVALID: {lookback!r}")
-    if isinstance(atr_period, bool) or not isinstance(atr_period, int) or atr_period < 1:
+    if (
+        isinstance(atr_period, bool)
+        or not isinstance(atr_period, int)
+        or atr_period < 1
+    ):
         raise RuntimeError(f"SWING_STRUCTURE_ATR_PERIOD_INVALID: {atr_period!r}")
     if not np.isfinite(float(eps)) or float(eps) <= 0.0:
         raise RuntimeError(f"SWING_STRUCTURE_EPS_INVALID: {eps!r}")
@@ -89,12 +102,14 @@ def compute_swing_structure_features(
     pivot_high = np.zeros(n, dtype=bool)
     pivot_low = np.zeros(n, dtype=bool)
     for i in range(lookback, n - lookback):
-        if h[i] > h[i - lookback:i].max() and h[i] > h[i + 1:i + lookback + 1].max():
+        if (
+            h[i] > h[i - lookback : i].max()
+            and h[i] > h[i + 1 : i + lookback + 1].max()
+        ):
             pivot_high[i] = True
         if (
             low_values[i] < low_values[i - lookback : i].min()
-            and low_values[i]
-            < low_values[i + 1 : i + lookback + 1].min()
+            and low_values[i] < low_values[i + 1 : i + lookback + 1].min()
         ):
             pivot_low[i] = True
 
@@ -126,11 +141,15 @@ def compute_swing_structure_features(
     up_mask = last_high_idx > last_low_idx
     down_mask = last_low_idx > last_high_idx
     retracement[up_mask] = (last_high_vals[up_mask] - c[up_mask]) / denom[up_mask]
-    retracement[down_mask] = (c[down_mask] - last_low_vals[down_mask]) / denom[down_mask]
+    retracement[down_mask] = (c[down_mask] - last_low_vals[down_mask]) / denom[
+        down_mask
+    ]
     retracement = np.clip(retracement, 0.0, 1.0)
 
     result = {
-        "dist_last_swing_high_atr": ((c - last_high_vals) / atr_safe).astype(np.float32),
+        "dist_last_swing_high_atr": ((c - last_high_vals) / atr_safe).astype(
+            np.float32
+        ),
         "dist_last_swing_low_atr": ((c - last_low_vals) / atr_safe).astype(np.float32),
         "bars_since_swing_high": (idx - last_high_idx).astype(np.float32),
         "bars_since_swing_low": (idx - last_low_idx).astype(np.float32),
