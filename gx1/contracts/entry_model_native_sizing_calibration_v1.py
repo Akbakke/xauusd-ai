@@ -220,6 +220,70 @@ MODEL_NATIVE_SIZING_RUNTIME_CONSTRAINT_KEYS = tuple(
 _SOURCE_BINDING_NAMES = (
     "oos_rows",
 )
+MODEL_NATIVE_SIZING_OOS_PREDICTION_COLUMNS = frozenset(
+    {
+        "time",
+        "split",
+        "model",
+        "position_size_logit",
+        "model_direction_index",
+        "session",
+        "vol_regime",
+    }
+)
+MODEL_NATIVE_SIZING_OOS_OUTCOME_COLUMNS = frozenset(
+    {
+        "time",
+        "account_equity",
+        "account_balance",
+        "account_floating_drawdown_bps",
+        "margin_available",
+        "margin_used",
+        "current_xau_abs_units",
+        "mark_price",
+        "entry_bid",
+        "entry_ask",
+        "exit_bid",
+        "exit_ask",
+        "account_observed_utc",
+        "instrument_observed_utc",
+        "exposure_observed_utc",
+        "account_last_transaction_id",
+        "instrument_last_transaction_id",
+        "exposure_last_transaction_id",
+        "fact_provenance_mode",
+    }
+)
+MODEL_NATIVE_SIZING_OOS_REPLAY_COLUMNS = frozenset(
+    {
+        "time",
+        "position_size_logit",
+        "model_direction_index",
+        "calibrated_size_fraction",
+        "applied_size_multiplier",
+        "capacity_units",
+        "reference_pre_round_units",
+        "pre_round_units",
+        "units",
+        "authorized_order",
+        "no_order_reason",
+    }
+)
+MODEL_NATIVE_SIZING_OOS_PROVENANCE_COLUMNS = frozenset(
+    {
+        "bundle_metadata_sha256",
+        "model_state_dict_sha256",
+        "test_predictions_sha256",
+        "source_tape_sha256",
+        "reference_row_id",
+    }
+)
+MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS = frozenset(
+    MODEL_NATIVE_SIZING_OOS_PREDICTION_COLUMNS
+    | MODEL_NATIVE_SIZING_OOS_OUTCOME_COLUMNS
+    | MODEL_NATIVE_SIZING_OOS_REPLAY_COLUMNS
+    | MODEL_NATIVE_SIZING_OOS_PROVENANCE_COLUMNS
+)
 _PROOF_KEYS = frozenset(
     {
         "schema_version",
@@ -2051,6 +2115,8 @@ def recompute_sizing_oos_evidence(
     source_bindings: Mapping[str, Any],
     evaluation_bundle: Mapping[str, Any],
     context: str,
+    fact_provenance_mode: str = "canonical_oos_reference",
+    extra_row_columns: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """Recompute every admission metric from immutable row-level sources."""
 
@@ -2058,36 +2124,18 @@ def recompute_sizing_oos_evidence(
         source_bindings, frozenset(_SOURCE_BINDING_NAMES), context=f"{context}.bindings"
     )
     combined = _read_table(bindings["oos_rows"], context=f"{context}.oos_rows")
-    prediction_columns = {
-        "time", "split", "model", "position_size_logit", "model_direction_index",
-        "session", "vol_regime",
-    }
-    outcome_columns = {
-        "time", "account_equity", "account_balance", "account_floating_drawdown_bps",
-        "margin_available", "margin_used", "current_xau_abs_units",
-        "mark_price", "entry_bid", "entry_ask", "exit_bid", "exit_ask",
-        "account_observed_utc", "instrument_observed_utc", "exposure_observed_utc",
-        "account_last_transaction_id", "instrument_last_transaction_id",
-        "exposure_last_transaction_id",
-        "fact_provenance_mode",
-    }
-    replay_columns = {
-        "time", "position_size_logit", "model_direction_index",
-        "calibrated_size_fraction", "applied_size_multiplier", "capacity_units",
-        "reference_pre_round_units", "pre_round_units", "units",
-        "authorized_order", "no_order_reason",
-    }
-    provenance_columns = {
-        "bundle_metadata_sha256", "model_state_dict_sha256",
-        "test_predictions_sha256", "source_tape_sha256", "reference_row_id",
-    }
-    combined_columns = prediction_columns | outcome_columns | replay_columns | provenance_columns
-    _require_columns(combined, combined_columns, context=f"{context}.oos_rows")
-    predictions = combined.loc[:, sorted(prediction_columns)].copy().rename(
+    _require_columns(
+        combined,
+        MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS | extra_row_columns,
+        context=f"{context}.oos_rows",
+    )
+    predictions = combined.loc[
+        :, sorted(MODEL_NATIVE_SIZING_OOS_PREDICTION_COLUMNS)
+    ].copy().rename(
         columns={"model_direction_index": "pred_direction"}
     )
-    outcomes = combined.loc[:, sorted(outcome_columns)].copy()
-    replay = combined.loc[:, sorted(replay_columns)].copy()
+    outcomes = combined.loc[:, sorted(MODEL_NATIVE_SIZING_OOS_OUTCOME_COLUMNS)].copy()
+    replay = combined.loc[:, sorted(MODEL_NATIVE_SIZING_OOS_REPLAY_COLUMNS)].copy()
     times = _utc_series(predictions, context=f"{context}.predictions")
     outcome_times = _utc_series(outcomes, context=f"{context}.outcomes")
     replay_times = _utc_series(replay, context=f"{context}.replay")
@@ -2117,15 +2165,18 @@ def recompute_sizing_oos_evidence(
     expected_row_ids = [f"canonical-oos-row-{index:09d}" for index in range(rows)]
     if list(combined["reference_row_id"].astype(str)) != expected_row_ids:
         _fail(context, "OOS reference_row_id sequence mismatch")
+    if fact_provenance_mode != "canonical_oos_reference":
+        _fail(context, f"unsupported fact_provenance_mode={fact_provenance_mode!r}")
     if set(outcomes["fact_provenance_mode"].astype(str)) != {
-        "canonical_oos_reference"
+        fact_provenance_mode
     }:
-        _fail(context, "OOS rows must use canonical_oos_reference facts")
-    for key in (
+        _fail(context, f"OOS rows must use {fact_provenance_mode} facts")
+    transaction_fields = (
         "account_last_transaction_id",
         "instrument_last_transaction_id",
         "exposure_last_transaction_id",
-    ):
+    )
+    for key in transaction_fields:
         if outcomes[key].notna().any():
             _fail(context, f"historical OOS rows must not claim {key}")
     logits = _finite_numeric_column(

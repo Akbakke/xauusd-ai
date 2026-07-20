@@ -54,16 +54,21 @@ def test_historical_fixed_is_named_negative_control_with_no_execution_path() -> 
         )
 
 
-def test_capital_adoption_is_structurally_blocked_and_publishes_terminal_fail(
+def test_capital_adoption_without_joint_exit_proof_publishes_terminal_fail(
     tmp_path: Path,
 ) -> None:
     evidence = write_passing_sizing_calibration_and_proof(tmp_path)
+    assert evidence["proof"]["decision"] == "PASS"
+    assert evidence["proof"]["evaluation_scope"] == (
+        "FULL_TEST_LABEL_HORIZON_SIZING_HEAD_DIAGNOSTIC_ONLY"
+    )
 
-    with pytest.raises(SizingFinalizationError, match="structurally BLOCKED"):
+    with pytest.raises(SizingFinalizationError, match="joint active-Exit sizing proof"):
         adopt_learned_sizing(
             bundle_dir=evidence["bundle_dir"],
             calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
             proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
+            joint_exit_proof_path=tmp_path / "missing_joint_exit_proof.json",
             authority_root=evidence["authority_root"],
             accepted_via_vedtak="UNIT_MUST_NOT_ADOPT",
         )
@@ -76,12 +81,12 @@ def test_capital_adoption_is_structurally_blocked_and_publishes_terminal_fail(
     terminal = json.loads(adoption_path.read_text(encoding="utf-8"))
     assert terminal["decision"] == "FAIL"
     assert terminal["attempted_stage"] == "adoption"
-    assert "joint Entry+ACTIVE Exit" in terminal["failures"][0]
+    assert "joint active-Exit sizing proof" in terminal["failures"][0]
 
     authority = learned_sizing_authority_contract_metadata(
         adoption_artifact={"json_path": str(adoption_path), "sha256": _sha(adoption_path)}
     )
-    with pytest.raises(ModelNativeSizingUnavailable, match="structurally BLOCKED"):
+    with pytest.raises(ModelNativeSizingUnavailable, match="exact keys mismatch"):
         prepare_model_native_sizing_authority(authority, context="unit blocked adoption")
 
 

@@ -116,9 +116,11 @@ utility/exposure/drawdown is a sizing-head diagnostic, not capital authority.
 No fresh accepted current-contract sizing result exists.
 Paper/live additionally requires a joint sizing-only replay with the exact
 adopted active Exit stack and a fresh post-adoption broker runtime-parity event.
-Until both pass, emit no order. Never substitute fixed units or multiplier
-`1.0`; historical fixed 1x may be used only as an explicitly named comparison
-benchmark.
+The joint proof must cover full TEST and bind the complete per-M1 active Exit
+HOLD-to-`EXIT_NOW` trace for every non-FLAT row; runtime parity is broker-live
+shadow-only and submits zero orders. Until both pass, emit no order. Never
+substitute fixed units or multiplier `1.0`; historical fixed 1x may be used
+only as an explicitly named comparison benchmark.
 
 ### Exact contracts; no compatibility lane
 

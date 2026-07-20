@@ -188,9 +188,12 @@ The sizing diagnostic additionally binds its calibration bytes, XAU instrument
 constraints, account scenarios, monotone capacity transform, step-rounded
 units and actual-1-unit/equal-total-allocation controls. This label-horizon
 proof does not grant capital authority. Entry paper/live remains blocked until
-a joint sizing-only replay binds the exact adopted active Exit stack and a
-fresh post-adoption broker runtime-parity event. A historical fixed-1x
-comparison cannot satisfy launch authority or rescue a failed proof.
+a full-TEST joint sizing-only replay binds every per-M1 HOLD-to-`EXIT_NOW` trace,
+learned sizing is adopted, and a fresh post-adoption broker shadow
+runtime-parity event passes. Strict finalizers and row-recomputing validators
+now exist, but no real current-contract events do. Artifact guard
+binds them to the accepted bundle and complete serve gates. A historical
+fixed-1x comparison cannot satisfy launch authority or rescue a failed proof.
 
 ## Dataset and launch ownership
 
@@ -292,11 +295,12 @@ decision, supporting heads, target/outcome alignment and a unit-normalized
 price-path outcome. It is an offline direction diagnostic with
 `position_size_applied=false`, not an order or capital simulation. Executable
 learned sizing must be proven separately against its OOS controls, the exact
-adopted active Exit replay and post-adoption runtime parity. Today the
-label-horizon sizing result is diagnostic only: capital authority remains
-`BLOCK` because the adopted-Exit and post-adoption runtime bindings are not yet
-implemented. Once implemented, live/paper must emit `NO_ORDER` whenever that
-sizing authority is missing or red.
+adopted active Exit replay and post-adoption runtime parity. The source
+contracts/finalizers now require a file-bound contiguous per-M1 Exit trace,
+row-recomputed bid/ask results, exact registry identity, adopted bundle hashes
+and fresh broker-shadow parity with zero orders. No current real chain has
+passed, so capital authority remains `BLOCK`; live/paper emits `NO_ORDER`
+whenever that sizing authority is missing or red.
 
 ## Evidence retention and cleanup ownership
 

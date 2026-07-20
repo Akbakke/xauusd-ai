@@ -7,8 +7,9 @@ No JSON in this chain is intended for hand editing.  The public stages are:
 3. bind that calibration into a fresh bundle clone;
 4. materialize canonical TEST/OOS sizing rows and publish a row-recomputed
    diagnostic proof;
-5. publish a terminal capital-adoption FAIL until joint active Exit execution
-   proof and post-adoption broker-runtime sizing parity have real producers.
+5. finalize a full-TEST joint active-Exit sizing proof from exact row traces;
+6. adopt learned sizing only after that exact joint proof is bound;
+7. finalize post-adoption broker-runtime shadow parity from exact observations.
 
 Any red/malformed newer event keeps launch fail-closed.  This module never edits
 the launch-state selector and never starts training.
@@ -25,14 +26,16 @@ import tempfile
 from functools import wraps
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
-    MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS,
+    MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION,
+    MODEL_NATIVE_SIZING_MODE_LEARNED,
     model_native_sizing_bundle_calibration_metadata,
+    require_model_native_sizing_adoption_artifact,
     require_model_native_sizing_bundle_calibration,
 )
 from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
@@ -62,6 +65,21 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     sizing_oos_reference_account_policy_metadata,
     sizing_fit_contract_metadata,
 )
+from gx1.contracts.entry_model_native_sizing_execution_v1 import (
+    MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES,
+    MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
+    MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS,
+    MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX,
+    MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION,
+    MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT,
+    MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX,
+    MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT,
+    MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION,
+    load_bound_joint_exit_sizing_proof,
+    load_bound_runtime_sizing_parity,
+    recompute_joint_exit_replay_coverage,
+    recompute_runtime_sizing_parity_coverage,
+)
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     atomic_write_parquet_immutable,
     resolve_and_validate_prediction_evidence,
@@ -79,13 +97,17 @@ CALIBRATION_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_CALIBRATION"
 OOS_SOURCE_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_SOURCE"
 PROOF_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF"
 ADOPTION_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_ADOPTION"
+JOINT_EXIT_PROOF_PREFIX = MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX
+RUNTIME_PARITY_PREFIX = MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX
 MIN_FIT_ROWS_PER_SPLIT = MODEL_NATIVE_SIZING_MIN_FIT_ROWS_PER_SPLIT
 _AUTHORITY_STAGE_DIRS = {
     "instrument": "instrument",
     "calibration": "calibration",
     "oos": "oos",
     "proof": "proof",
+    "joint_replay": "joint_replay",
     "adoption": "adoption",
+    "runtime_parity": "runtime_parity",
 }
 _INSTRUMENT_KEYS = frozenset(
     {
@@ -111,6 +133,10 @@ _INSTRUMENT_KEYS = frozenset(
 
 class SizingFinalizationError(RuntimeError):
     """A canonical sizing producer stage could not establish exact evidence."""
+
+
+class _TerminalSizingEventPublished(SizingFinalizationError):
+    """A terminal FAIL already exists; the wrapper must not publish a duplicate."""
 
 
 def _now() -> datetime:
@@ -195,6 +221,27 @@ def _source_binding(path: Path) -> dict[str, str]:
     return {"path": str(path), "sha256": _sha(path)}
 
 
+def _canonical_immutable_parquet_binding(
+    path: Path,
+    *,
+    context: str,
+) -> tuple[Path, dict[str, str]]:
+    """Reject mutable aliases before resolving and bind one exact parquet."""
+
+    candidate = path.expanduser()
+    absolute = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    if (
+        candidate.suffix != ".parquet"
+        or "latest" in candidate.name.lower()
+        or any(component.is_symlink() for component in (absolute, *absolute.parents))
+    ):
+        raise SizingFinalizationError(
+            f"{context} must be a canonical immutable parquet"
+        )
+    canonical = candidate.resolve()
+    return canonical, _source_binding(canonical)
+
+
 def _stage_dir(authority_root: Path, stage: str) -> Path:
     """Return the single code-owned event-family directory for one authority root."""
 
@@ -219,6 +266,8 @@ def _terminal_event_attempt(stage: str, prefix: str):
             try:
                 return function(*args, **kwargs)
             except Exception as exc:
+                if isinstance(exc, _TerminalSizingEventPublished):
+                    raise
                 authority_root = kwargs.get("authority_root")
                 if authority_root is not None:
                     try:
@@ -959,7 +1008,7 @@ def finalize_test_sizing_proof(
         output_dir, PROOF_PREFIX, payload
     )
     if failures:
-        raise SizingFinalizationError(
+        raise _TerminalSizingEventPublished(
             f"terminal sizing proof FAIL published at {event_path}: {failures[:5]}"
         )
     load_bound_sizing_oos_proof(
@@ -972,22 +1021,359 @@ def finalize_test_sizing_proof(
     return event_path, event
 
 
+@_terminal_event_attempt("joint_replay", JOINT_EXIT_PROOF_PREFIX)
+def finalize_joint_exit_sizing_proof(
+    *,
+    calibration_path: Path,
+    proof_path: Path,
+    replay_rows_path: Path,
+    exit_trace_rows_path: Path,
+    artifact_registry_path: Path,
+    authority_root: Path,
+) -> tuple[Path, dict[str, Any]]:
+    """Publish only row-recomputed sizing evidence from the exact active Exit chain.
+
+    This stage does not accept a caller-supplied PASS or summary.  Every metric
+    is recomputed from immutable full-TEST replay and per-M1 Exit trace
+    parquets, while the current XAUUSD artifact registry binds the exact
+    XGB/Exit-V3/Exit-IQL selections.
+    """
+
+    calibration, calibration_binding = load_bound_sizing_calibration(
+        _binding(calibration_path),
+        context="SIZING_JOINT_EXIT_CALIBRATION",
+        verify_lineage_files=True,
+    )
+    proof, proof_binding = load_bound_sizing_oos_proof(
+        _binding(proof_path),
+        calibration=calibration,
+        calibration_artifact_sha256=calibration_binding["sha256"],
+        context="SIZING_JOINT_EXIT_OOS_PROOF",
+        verify_source_files=True,
+    )
+    _require_stage_path(
+        Path(calibration_binding["json_path"]), authority_root, "calibration"
+    )
+    _require_stage_path(Path(proof_binding["json_path"]), authority_root, "proof")
+
+    replay_rows_path, replay_binding = _canonical_immutable_parquet_binding(
+        replay_rows_path,
+        context="joint active-Exit replay rows",
+    )
+    exit_trace_rows_path, exit_trace_binding = (
+        _canonical_immutable_parquet_binding(
+            exit_trace_rows_path,
+            context="joint active-Exit trace rows",
+        )
+    )
+    registry_binding = _source_binding(artifact_registry_path)
+    try:
+        registry = json.loads(
+            Path(registry_binding["path"]).read_text(encoding="utf-8")
+        )
+    except Exception as exc:
+        raise SizingFinalizationError("artifact registry is unreadable") from exc
+    active = registry.get("active") if isinstance(registry, dict) else None
+    if registry.get("project") != "XAUUSD" or not isinstance(active, dict):
+        raise SizingFinalizationError(
+            "artifact registry is not the exact XAUUSD active authority"
+        )
+    active_exit_entries = {
+        role: active.get(role) for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
+    }
+    for role, entry in active_exit_entries.items():
+        if (
+            not isinstance(entry, dict)
+            or entry.get("status") != "ACTIVE"
+            or entry.get("in_sample_only") is not False
+        ):
+            raise SizingFinalizationError(
+                f"active Exit role {role} is absent or non-admissible"
+            )
+        role_path = Path(str(entry.get("path") or "")).expanduser()
+        if not role_path.is_absolute() or not role_path.resolve().exists():
+            raise SizingFinalizationError(
+                f"active Exit role {role} path is missing: {role_path}"
+            )
+
+    replay_rows = pd.read_parquet(replay_rows_path)
+    exit_trace_rows = pd.read_parquet(exit_trace_rows_path)
+    coverage = recompute_joint_exit_replay_coverage(
+        replay_rows,
+        exit_trace_rows=exit_trace_rows,
+        registry_sha256=registry_binding["sha256"],
+        context="SIZING_JOINT_EXIT_COVERAGE",
+    )
+    recomputed = recompute_sizing_oos_evidence(
+        calibration=calibration,
+        source_bindings={"oos_rows": replay_binding},
+        evaluation_bundle=proof["evaluation_bundle"],
+        context="SIZING_JOINT_EXIT_RECOMPUTE",
+        fact_provenance_mode=MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
+        extra_row_columns=MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS,
+    )
+    for name, section in recomputed.items():
+        if name != "full_test_coverage" and (
+            not isinstance(section, dict) or section.get("decision") != "PASS"
+        ):
+            raise SizingFinalizationError(
+                f"joint active-Exit sizing section {name} is not PASS"
+            )
+
+    output_dir = _stage_dir(authority_root, "joint_replay")
+    created = _monotonic_stage_created_utc(
+        output_dir,
+        JOINT_EXIT_PROOF_PREFIX,
+        proof["created_utc"],
+    )
+    payload = {
+        "schema_version": MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION,
+        "created_utc": created.isoformat(),
+        "decision": "PASS",
+        "failures": [],
+        "replay_contract": MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT,
+        "risk_policy": sizing_risk_policy_metadata(),
+        "calibration_artifact": calibration_binding,
+        "oos_proof_artifact": proof_binding,
+        "evaluation_bundle": proof["evaluation_bundle"],
+        "test_prediction_provenance": proof["test_prediction_provenance"],
+        "artifact_registry": registry_binding,
+        "active_exit_entries": active_exit_entries,
+        "replay_rows": replay_binding,
+        "exit_trace_rows": exit_trace_binding,
+        "exit_replay_coverage": coverage,
+        **recomputed,
+    }
+    event_path, event = write_immutable_json_event(
+        output_dir,
+        JOINT_EXIT_PROOF_PREFIX,
+        payload,
+    )
+    load_bound_joint_exit_sizing_proof(
+        _binding(event_path),
+        context="SIZING_JOINT_EXIT_SELF_VALIDATION",
+        verify_source_files=True,
+    )
+    return event_path, event
+
+
 @_terminal_event_attempt("adoption", ADOPTION_PREFIX)
 def adopt_learned_sizing(
     *,
     bundle_dir: Path,
     calibration_path: Path,
     proof_path: Path,
+    joint_exit_proof_path: Path,
     authority_root: Path,
     accepted_via_vedtak: str,
-) -> NoReturn:
-    """Publish a terminal FAIL until joint Exit proof and runtime parity exist."""
+) -> tuple[Path, dict[str, Any]]:
+    """Adopt learned sizing after exact OOS and joint active-Exit proofs.
 
-    del bundle_dir, calibration_path, proof_path, accepted_via_vedtak
-    raise SizingFinalizationError(
-        "capital sizing adoption is structurally BLOCKED: "
-        + " | ".join(MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS)
+    This does not authorize paper/live capital.  The launch artifact guard still
+    requires a separate, newer post-adoption broker runtime-parity event.
+    """
+
+    if not isinstance(accepted_via_vedtak, str) or not accepted_via_vedtak.strip():
+        raise SizingFinalizationError("sizing adoption requires an explicit vedtak")
+    if not joint_exit_proof_path.expanduser().resolve().is_file():
+        raise SizingFinalizationError(
+            "joint active-Exit sizing proof is required before adoption"
+        )
+    bundle_dir = bundle_dir.expanduser().resolve()
+    metadata_path = bundle_dir / "bundle_metadata.json"
+    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+    state_path = bundle_dir / "model_state_dict.pt"
+    for path in (metadata_path, lock_path, state_path):
+        if not path.is_file() or path.is_symlink():
+            raise SizingFinalizationError(f"adopted bundle artifact missing: {path}")
+    calibration, calibration_binding = load_bound_sizing_calibration(
+        _binding(calibration_path),
+        context="SIZING_ADOPTION_CALIBRATION",
+        verify_lineage_files=True,
     )
+    proof, proof_binding = load_bound_sizing_oos_proof(
+        _binding(proof_path),
+        calibration=calibration,
+        calibration_artifact_sha256=calibration_binding["sha256"],
+        context="SIZING_ADOPTION_OOS_PROOF",
+        verify_source_files=True,
+    )
+    joint_proof, joint_binding = load_bound_joint_exit_sizing_proof(
+        _binding(joint_exit_proof_path),
+        context="SIZING_ADOPTION_JOINT_EXIT_PROOF",
+        verify_source_files=True,
+    )
+    if (
+        joint_proof["calibration_artifact"] != calibration_binding
+        or joint_proof["oos_proof_artifact"] != proof_binding
+    ):
+        raise SizingFinalizationError(
+            "joint active-Exit proof differs from the adopted sizing chain"
+        )
+    _require_stage_path(
+        Path(calibration_binding["json_path"]), authority_root, "calibration"
+    )
+    _require_stage_path(Path(proof_binding["json_path"]), authority_root, "proof")
+    _require_stage_path(
+        Path(joint_binding["json_path"]), authority_root, "joint_replay"
+    )
+    evaluation_bundle = proof["evaluation_bundle"]
+    expected_bundle = {
+        "bundle_dir": str(bundle_dir),
+        "bundle_metadata_path": str(metadata_path),
+        "bundle_metadata_sha256": _sha(metadata_path),
+        "master_transformer_lock_path": str(lock_path),
+        "master_transformer_lock_sha256": _sha(lock_path),
+        "model_state_dict_path": str(state_path),
+        "model_state_dict_sha256": _sha(state_path),
+    }
+    if evaluation_bundle != expected_bundle:
+        raise SizingFinalizationError(
+            "OOS/joint proof bundle differs from proposed adoption bundle"
+        )
+    expected_declaration = model_native_sizing_bundle_calibration_metadata(
+        calibration_artifact=calibration_binding
+    )
+    for label, path in (("metadata", metadata_path), ("lock", lock_path)):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if require_model_native_sizing_bundle_calibration(
+            payload.get("model_native_sizing_calibration"),
+            context=f"SIZING_ADOPTION_{label.upper()}",
+        ) != expected_declaration:
+            raise SizingFinalizationError(
+                f"bundle {label} sizing calibration differs from adoption"
+            )
+    output_dir = _stage_dir(authority_root, "adoption")
+    created = _monotonic_stage_created_utc(
+        output_dir,
+        ADOPTION_PREFIX,
+        joint_proof["created_utc"],
+    )
+    payload = {
+        "schema_version": MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION,
+        "created_utc": created.isoformat(),
+        "decision": "PASS",
+        "failures": [],
+        "adoption_mode": MODEL_NATIVE_SIZING_MODE_LEARNED,
+        "authority_root": str(authority_root.expanduser().resolve()),
+        **expected_bundle,
+        "calibration_artifact": calibration_binding,
+        "oos_proof_artifact": proof_binding,
+        "joint_exit_sizing_proof_artifact": joint_binding,
+        "risk_policy": sizing_risk_policy_metadata(),
+        "runtime_constraint_authority": (
+            "exact_broker_account_instrument_exposure_facts_with_transaction_ids"
+        ),
+        "direction_authority": "none",
+        "fixed_1x_fallback_allowed": False,
+        "accepted_via_vedtak": accepted_via_vedtak.strip(),
+    }
+    event_path, event = write_immutable_json_event(
+        output_dir,
+        ADOPTION_PREFIX,
+        payload,
+    )
+    require_model_native_sizing_adoption_artifact(
+        event,
+        context="SIZING_ADOPTION_SELF_VALIDATION",
+    )
+    return event_path, event
+
+
+@_terminal_event_attempt("runtime_parity", RUNTIME_PARITY_PREFIX)
+def finalize_runtime_sizing_parity(
+    *,
+    adoption_path: Path,
+    observations_path: Path,
+    authority_root: Path,
+) -> tuple[Path, dict[str, Any]]:
+    """Publish fresh broker-live shadow parity after learned sizing adoption."""
+
+    adoption_path = adoption_path.expanduser().resolve()
+    adoption_binding = _binding(adoption_path)
+    try:
+        adoption = json.loads(adoption_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise SizingFinalizationError("sizing adoption is unreadable") from exc
+    require_model_native_sizing_adoption_artifact(
+        adoption,
+        context="SIZING_RUNTIME_PARITY_ADOPTION",
+    )
+    if Path(adoption["json_path"]).resolve() != adoption_path:
+        raise SizingFinalizationError("sizing adoption self-reference mismatch")
+    _require_stage_path(adoption_path, authority_root, "adoption")
+    calibration, calibration_binding = load_bound_sizing_calibration(
+        adoption["calibration_artifact"],
+        context="SIZING_RUNTIME_PARITY_CALIBRATION",
+        verify_lineage_files=True,
+    )
+    if calibration_binding != adoption["calibration_artifact"]:
+        raise SizingFinalizationError("runtime parity calibration binding mismatch")
+    observations_path, observations_binding = _canonical_immutable_parquet_binding(
+        observations_path,
+        context="runtime sizing observations",
+    )
+    observations = pd.read_parquet(observations_path)
+    if "time" not in observations:
+        raise SizingFinalizationError("runtime sizing observations lack time")
+    observation_times = pd.to_datetime(
+        observations["time"], utc=True, errors="coerce"
+    )
+    if len(observations) == 0 or observation_times.isna().any():
+        raise SizingFinalizationError("runtime sizing observations lack exact UTC rows")
+    output_dir = _stage_dir(authority_root, "runtime_parity")
+    created = _monotonic_stage_created_utc(
+        output_dir,
+        RUNTIME_PARITY_PREFIX,
+        adoption["created_utc"],
+        observation_times.max(),
+    )
+    coverage = recompute_runtime_sizing_parity_coverage(
+        observations,
+        calibration=calibration,
+        adoption=adoption,
+        adoption_sha256=adoption_binding["sha256"],
+        event_created_utc=created,
+        context="SIZING_RUNTIME_PARITY_RECOMPUTE",
+    )
+    bundle_identity = {
+        key: adoption[key]
+        for key in (
+            "bundle_dir",
+            "bundle_metadata_path",
+            "bundle_metadata_sha256",
+            "master_transformer_lock_path",
+            "master_transformer_lock_sha256",
+            "model_state_dict_path",
+            "model_state_dict_sha256",
+        )
+    }
+    payload = {
+        "schema_version": MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION,
+        "created_utc": created.isoformat(),
+        "decision": "PASS",
+        "failures": [],
+        "parity_contract": MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT,
+        "adoption_artifact": adoption_binding,
+        "bundle_identity": bundle_identity,
+        "observations": observations_binding,
+        "coverage": coverage,
+    }
+    event_path, event = write_immutable_json_event(
+        output_dir,
+        RUNTIME_PARITY_PREFIX,
+        payload,
+    )
+    load_bound_runtime_sizing_parity(
+        _binding(event_path),
+        adoption=adoption,
+        calibration=calibration,
+        adoption_artifact=adoption_binding,
+        context="SIZING_RUNTIME_PARITY_SELF_VALIDATION",
+        verify_source_files=True,
+        now_utc=created,
+    )
+    return event_path, event
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -1020,12 +1406,24 @@ def _parser() -> argparse.ArgumentParser:
     proof.add_argument("--calibration", type=Path, required=True)
     proof.add_argument("--oos-source", type=Path, required=True)
     proof.add_argument("--authority-root", type=Path, required=True)
+    joint = sub.add_parser("finalize-joint-exit-proof")
+    joint.add_argument("--calibration", type=Path, required=True)
+    joint.add_argument("--proof", type=Path, required=True)
+    joint.add_argument("--replay-rows", type=Path, required=True)
+    joint.add_argument("--exit-trace-rows", type=Path, required=True)
+    joint.add_argument("--artifact-registry", type=Path, required=True)
+    joint.add_argument("--authority-root", type=Path, required=True)
     adopt = sub.add_parser("adopt")
     adopt.add_argument("--bundle-dir", type=Path, required=True)
     adopt.add_argument("--calibration", type=Path, required=True)
     adopt.add_argument("--proof", type=Path, required=True)
+    adopt.add_argument("--joint-exit-proof", type=Path, required=True)
     adopt.add_argument("--authority-root", type=Path, required=True)
     adopt.add_argument("--vedtak", required=True)
+    runtime = sub.add_parser("finalize-runtime-parity")
+    runtime.add_argument("--adoption", type=Path, required=True)
+    runtime.add_argument("--observations", type=Path, required=True)
+    runtime.add_argument("--authority-root", type=Path, required=True)
     return parser
 
 
@@ -1072,14 +1470,33 @@ def main() -> int:
             authority_root=args.authority_root,
         )
         result = _binding(path)
-    else:
-        adopt_learned_sizing(
+    elif args.command == "finalize-joint-exit-proof":
+        path, _ = finalize_joint_exit_sizing_proof(
+            calibration_path=args.calibration,
+            proof_path=args.proof,
+            replay_rows_path=args.replay_rows,
+            exit_trace_rows_path=args.exit_trace_rows,
+            artifact_registry_path=args.artifact_registry,
+            authority_root=args.authority_root,
+        )
+        result = _binding(path)
+    elif args.command == "adopt":
+        path, _ = adopt_learned_sizing(
             bundle_dir=args.bundle_dir,
             calibration_path=args.calibration,
             proof_path=args.proof,
+            joint_exit_proof_path=args.joint_exit_proof,
             authority_root=args.authority_root,
             accepted_via_vedtak=args.vedtak,
         )
+        result = _binding(path)
+    else:
+        path, _ = finalize_runtime_sizing_parity(
+            adoption_path=args.adoption,
+            observations_path=args.observations,
+            authority_root=args.authority_root,
+        )
+        result = _binding(path)
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
     return 0
 

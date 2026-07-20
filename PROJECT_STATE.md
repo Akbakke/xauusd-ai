@@ -105,11 +105,14 @@ The learned size head is mandatory and has no implicit capital fallback. Its
 logit and prediction must survive decision, state, journal and review parity.
 Hash-bound calibration, the account grid and any label-horizon TEST controls
 are sizing-head diagnostics only; no fresh accepted current-contract result
-exists. Execution admission remains structurally blocked
-until a joint sizing-only replay binds the exact adopted active Exit stack and
-a fresh post-adoption broker runtime-parity event. Missing proof means no
-order, never a silent multiplier `1.0`; fixed 1x is only a named historical
-benchmark.
+exists. The source admission path now exists: adoption requires a full-TEST
+row-recomputed replay with a bound, contiguous per-M1 trace through the exact
+registry-selected active Exit stack, and paper/live additionally requires fresh
+post-adoption broker shadow parity. Artifact resolution validates both plus the
+complete serve gates before returning `ALLOW`. No real joint replay, adoption
+or runtime-parity event exists for a current Entry bundle, so execution remains evidence-blocked. Missing
+proof means no order, never a silent multiplier `1.0`; fixed 1x is only a named
+historical benchmark.
 
 The report-only model-native abstention metadata run is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`. It found balanced FLAT labels — TRAIN
@@ -140,10 +143,11 @@ internal heads on the shared seq513 encoder. Q, V and exact `Q-V` Advantage
 feed the single learned 96-value direction fusion and survive strict bundle,
 serve-parity, runtime, state, journal and review contracts. This is source
 completion, not empirical edge. Distillation is admissible only from a
-hash-bound teacher that independently passes untouched OOT gates; continual
-adaptation means offline drift-triggered challenger training, regime replay,
-shadow evaluation and explicit promotion/rollback, never live online weight
-updates.
+hash-bound teacher that independently passes untouched OOT gates. Continual
+adaptation is required to mean offline drift-triggered challenger training,
+regime replay, shadow evaluation and explicit promotion/rollback, never live
+online weight updates. That adaptation state machine is not yet implemented
+and therefore grants no authority.
 
 ## Runtime boundary
 

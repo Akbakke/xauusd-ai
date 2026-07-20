@@ -8,7 +8,6 @@ import pytest
 from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
 from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     SizingFinalizationError,
-    adopt_learned_sizing,
     bind_bundle_sizing_calibration,
     finalize_test_sizing_proof,
 )
@@ -52,13 +51,22 @@ def test_sizing_split_bindings_come_only_from_prediction_report(
             "parquet_sha256": "b" * 64,
         }
     }
-    source = Path(sizing_finalizer.__file__).read_text(encoding="utf-8")
-    helper_source = source[
-        source.index("def _dataset_split_bindings(") : source.index(
-            "\ndef _prediction_provenance(",
-        )
-    ]
-    assert ".glob(" not in helper_source
+
+
+def test_canonical_parquet_binding_rejects_mutable_aliases(tmp_path: Path) -> None:
+    target = tmp_path / "observations_20260717T120000123456Z.parquet"
+    target.write_bytes(b"immutable-test-placeholder")
+    symlink = tmp_path / "observations_alias.parquet"
+    symlink.symlink_to(target)
+    latest = tmp_path / "observations_latest.parquet"
+    latest.write_bytes(b"mutable-name-placeholder")
+
+    for path in (symlink, latest):
+        with pytest.raises(SizingFinalizationError, match="canonical immutable"):
+            sizing_finalizer._canonical_immutable_parquet_binding(
+                path,
+                context="unit parquet",
+            )
 
 
 def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
@@ -125,38 +133,11 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
     assert not (tmp_path / "must_not_exist_bundle").exists()
 
 
-def test_label_horizon_proof_is_diagnostic_and_capital_adoption_is_blocked(
-    tmp_path: Path,
-) -> None:
-    evidence = write_passing_sizing_calibration_and_proof(tmp_path)
-    proof_path = Path(evidence["oos_proof_artifact"]["json_path"])
-    with pytest.raises(SizingFinalizationError, match="structurally BLOCKED"):
-        adopt_learned_sizing(
-            bundle_dir=evidence["bundle_dir"],
-            calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
-            proof_path=proof_path,
-            authority_root=evidence["authority_root"],
-            accepted_via_vedtak="UNIT_FINAL_SIZING_ADOPTION",
-        )
-
-    assert evidence["proof"]["decision"] == "PASS"
-    assert evidence["proof"]["evaluation_scope"] == (
-        "FULL_TEST_LABEL_HORIZON_SIZING_HEAD_DIAGNOSTIC_ONLY"
-    )
-    newest = max(
-        (evidence["authority_root"] / "adoption").glob(
-            "ENTRY_MODEL_NATIVE_SIZING_ADOPTION_*.json"
-        )
-    )
-    terminal = json.loads(newest.read_text(encoding="utf-8"))
-    assert terminal["decision"] == "FAIL"
-    assert terminal["attempted_stage"] == "adoption"
-
-
 def test_failed_proof_refresh_publishes_newer_terminal_fail(tmp_path: Path) -> None:
     evidence = write_passing_sizing_calibration_and_proof(tmp_path)
     proof_dir = evidence["authority_root"] / "proof"
     passing_path = Path(evidence["oos_proof_artifact"]["json_path"])
+    before = set(proof_dir.glob("ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF_*.json"))
 
     with pytest.raises(SizingFinalizationError):
         finalize_test_sizing_proof(
@@ -166,6 +147,8 @@ def test_failed_proof_refresh_publishes_newer_terminal_fail(tmp_path: Path) -> N
         )
 
     newest = max(proof_dir.glob("ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF_*.json"))
+    after = set(proof_dir.glob("ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF_*.json"))
+    assert len(after - before) == 1
     terminal = json.loads(newest.read_text(encoding="utf-8"))
     assert newest.name > passing_path.name
     assert terminal["decision"] == "FAIL"

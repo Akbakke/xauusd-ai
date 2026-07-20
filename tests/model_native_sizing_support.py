@@ -12,6 +12,14 @@ import pandas as pd
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     learned_sizing_authority_contract_metadata,
 )
+from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
+    calibrated_sizing_transform,
+)
+from gx1.contracts.entry_model_native_sizing_execution_v1 import (
+    MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
+    MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS,
+    joint_exit_trace_sha256,
+)
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.model_native_serve_gate_v1 import (
     MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
@@ -33,6 +41,9 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     bind_bundle_sizing_calibration,
     capture_oanda_instrument_evidence,
+    adopt_learned_sizing,
+    finalize_joint_exit_sizing_proof,
+    finalize_runtime_sizing_parity,
     finalize_test_sizing_proof,
     fit_train_val_sizing_calibration,
     materialize_test_sizing_oos_source,
@@ -550,6 +561,228 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         )["model_native_sizing_calibration"],
         "runtime_constraints": default_runtime_sizing_constraints(),
     }
+
+
+def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
+    """Extend the canonical sizing fixture with strict full-TEST Exit traces."""
+
+    evidence = write_passing_sizing_calibration_and_proof(root)
+    active_paths: dict[str, str] = {}
+    for role in ("xgb", "v3_exit", "exit_iql"):
+        path = root / "active_exit" / role
+        path.mkdir(parents=True, exist_ok=True)
+        (path / "identity.bin").write_bytes(role.encode("utf-8"))
+        active_paths[role] = str(path.resolve())
+    registry_path = root / "PROJECT_STATE_artifacts.json"
+    _write_json(
+        registry_path,
+        {
+            "schema_version": "gx1_artifact_selection_v2",
+            "project": "XAUUSD",
+            "updated_utc": "2026-07-17T12:00:00Z",
+            "active": {
+                role: {
+                    "path": active_paths[role],
+                    "status": "ACTIVE",
+                    "in_sample_only": False,
+                }
+                for role in ("xgb", "v3_exit", "exit_iql")
+            },
+        },
+    )
+    registry_sha = _sha(registry_path)
+    source_rows_path = Path(
+        evidence["oos_source"]["source_bindings"]["oos_rows"]["path"]
+    )
+    rows = pd.read_parquet(source_rows_path)
+    rows["fact_provenance_mode"] = MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE
+    directions = pd.to_numeric(rows["model_direction_index"]).astype(int)
+    times = pd.to_datetime(rows["time"], utc=True)
+    rows["exit_replay_status"] = np.where(
+        directions.isin([0, 1]), "EXIT_NOW", "FLAT_NO_ORDER"
+    )
+    rows["exit_time"] = [
+        (timestamp + pd.Timedelta(minutes=10)).isoformat()
+        if direction in (0, 1)
+        else None
+        for timestamp, direction in zip(times, directions, strict=True)
+    ]
+    rows["exit_reason"] = np.where(
+        directions.isin([0, 1]), "EXIT_IQL_ARGMAX", "MODEL_FLAT"
+    )
+    rows["exit_steps"] = np.where(directions.isin([0, 1]), 10, 0)
+    rows["active_exit_registry_sha256"] = registry_sha
+    flat_mask = directions == 2
+    rows.loc[flat_mask, "exit_bid"] = rows.loc[flat_mask, "entry_bid"]
+    rows.loc[flat_mask, "exit_ask"] = rows.loc[flat_mask, "entry_ask"]
+    trace_records: list[dict[str, Any]] = []
+    for row_index, row in rows.loc[~flat_mask].iterrows():
+        direction = int(row["model_direction_index"])
+        entry_time = pd.Timestamp(row["time"])
+        for step in range(1, int(row["exit_steps"]) + 1):
+            fraction = step / float(row["exit_steps"])
+            bid = float(row["entry_bid"]) + fraction * (
+                float(row["exit_bid"]) - float(row["entry_bid"])
+            )
+            ask = float(row["entry_ask"]) + fraction * (
+                float(row["exit_ask"]) - float(row["entry_ask"])
+            )
+            current_pnl_bps = (
+                (bid - float(row["entry_ask"]))
+                / float(row["entry_ask"])
+                * 10_000.0
+                if direction == 0
+                else (float(row["entry_bid"]) - ask)
+                / float(row["entry_bid"])
+                * 10_000.0
+            )
+            trace_records.append(
+                {
+                    "reference_row_id": str(row["reference_row_id"]),
+                    "entry_time": entry_time,
+                    "step": step,
+                    "bar_time": entry_time + pd.Timedelta(minutes=step),
+                    "action_id": 1 if step == int(row["exit_steps"]) else 0,
+                    "decision_source": (
+                        str(row["exit_reason"])
+                        if step == int(row["exit_steps"])
+                        else "HOLD"
+                    ),
+                    "current_pnl_bps": current_pnl_bps,
+                    "bid": bid,
+                    "ask": ask,
+                    "active_exit_registry_sha256": registry_sha,
+                }
+            )
+    exit_trace_rows = pd.DataFrame(
+        trace_records, columns=sorted(MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS)
+    )
+    exit_trace_rows_path = (
+        root / "joint_exit_trace_rows_20260717T120000123456Z.parquet"
+    )
+    exit_trace_rows.to_parquet(exit_trace_rows_path, index=False)
+    exit_trace_rows = pd.read_parquet(exit_trace_rows_path)
+    rows["exit_trace_sha256"] = hashlib.sha256(b"FLAT_NO_ORDER").hexdigest()
+    for reference_row_id, trace in exit_trace_rows.groupby(
+        "reference_row_id", sort=False
+    ):
+        rows.loc[
+            rows.index[rows["reference_row_id"].astype(str) == str(reference_row_id)],
+            "exit_trace_sha256",
+        ] = joint_exit_trace_sha256(
+            trace.sort_values("step", kind="mergesort").reset_index(drop=True),
+            context="UNIT_JOINT_EXIT_TRACE_FIXTURE",
+        )
+    replay_rows_path = root / "joint_exit_replay_rows_20260717T120000123456Z.parquet"
+    rows.to_parquet(replay_rows_path, index=False)
+    joint_path, joint_proof = finalize_joint_exit_sizing_proof(
+        calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
+        proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
+        replay_rows_path=replay_rows_path,
+        exit_trace_rows_path=exit_trace_rows_path,
+        artifact_registry_path=registry_path,
+        authority_root=evidence["authority_root"],
+    )
+    evidence.update(
+        {
+            "artifact_registry_path": registry_path,
+            "joint_replay_rows_path": replay_rows_path,
+            "joint_exit_trace_rows_path": exit_trace_rows_path,
+            "joint_exit_proof": joint_proof,
+            "joint_exit_proof_artifact": _binding(joint_path),
+        }
+    )
+    return evidence
+
+
+def write_passing_runtime_sizing_parity(root: Path) -> dict[str, Any]:
+    """Extend the joint fixture through adoption and broker-live shadow parity."""
+
+    evidence = write_passing_joint_exit_sizing_proof(root)
+    adoption_path, adoption = adopt_learned_sizing(
+        bundle_dir=evidence["bundle_dir"],
+        calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
+        proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
+        joint_exit_proof_path=Path(
+            evidence["joint_exit_proof_artifact"]["json_path"]
+        ),
+        authority_root=evidence["authority_root"],
+        accepted_via_vedtak="UNIT_RUNTIME_SIZING_ADOPTION",
+    )
+    adoption_binding = _binding(adoption_path)
+    adoption_created = pd.Timestamp(adoption["created_utc"])
+    directions = [index % 3 for index in range(36)]
+    logits = np.linspace(-3.0, 3.0, len(directions))
+    rows: list[dict[str, Any]] = []
+    for index, (direction, logit) in enumerate(zip(directions, logits, strict=True)):
+        timestamp = adoption_created + pd.Timedelta(microseconds=index + 1)
+        transaction_id = f"broker-snapshot-{index // 12 + 1}"
+        constraints = default_runtime_sizing_constraints()
+        constraints.update(
+            {
+                "sizing_decision_utc": timestamp.isoformat(),
+                "account_observed_utc": timestamp.isoformat(),
+                "instrument_observed_utc": timestamp.isoformat(),
+                "exposure_observed_utc": timestamp.isoformat(),
+                "account_last_transaction_id": transaction_id,
+                "instrument_last_transaction_id": transaction_id,
+                "exposure_last_transaction_id": transaction_id,
+            }
+        )
+        transformed = calibrated_sizing_transform(
+            calibration=evidence["calibration"],
+            position_size_logit=float(logit),
+            model_direction_index=direction,
+            runtime_constraints=constraints,
+            context=f"UNIT_RUNTIME_PARITY_ROW_{index}",
+        )
+        rows.append(
+            {
+                "time": timestamp.isoformat(),
+                "position_size_logit": float(logit),
+                "model_direction_index": direction,
+                "direction_after_sizing": direction,
+                **constraints,
+                **{
+                    field: transformed[field]
+                    for field in (
+                        "calibrated_size_fraction",
+                        "applied_size_multiplier",
+                        "capacity_units",
+                        "reference_pre_round_units",
+                        "pre_round_units",
+                        "units",
+                        "authorized_order",
+                        "no_order_reason",
+                    )
+                },
+                "runtime_bundle_metadata_sha256": adoption[
+                    "bundle_metadata_sha256"
+                ],
+                "runtime_model_state_dict_sha256": adoption[
+                    "model_state_dict_sha256"
+                ],
+                "runtime_adoption_sha256": adoption_binding["sha256"],
+                "order_submitted": False,
+            }
+        )
+    observations_path = root / "runtime_sizing_observations_20260717T130000123456Z.parquet"
+    pd.DataFrame(rows).to_parquet(observations_path, index=False)
+    runtime_path, runtime_parity = finalize_runtime_sizing_parity(
+        adoption_path=adoption_path,
+        observations_path=observations_path,
+        authority_root=evidence["authority_root"],
+    )
+    evidence.update(
+        {
+            "adoption": adoption,
+            "adoption_artifact": adoption_binding,
+            "runtime_sizing_observations_path": observations_path,
+            "runtime_sizing_parity": runtime_parity,
+            "runtime_sizing_parity_artifact": _binding(runtime_path),
+        }
+    )
+    return evidence
 
 
 def next_created_utc(created_utc: str, *, microseconds: int = 1) -> str:

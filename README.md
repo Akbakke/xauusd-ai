@@ -47,7 +47,9 @@ still absent and are the next empirical gate.
   accepted sizing result exists for the current contract.
   Paper/live capital remains blocked pending a joint replay with the exact
   adopted active Exit stack and a fresh post-adoption broker runtime-parity
-  event. Fixed 1x is a historical comparison only, never a fallback.
+  event. Strict finalizers/validators now require the complete bound per-M1 Exit
+  trace and broker-shadow observations, but no fresh real event has passed.
+  Fixed 1x is a historical comparison only, never a fallback.
 
 Real trend/session/liquidity/volatility/momentum evidence belongs inside the
 model. Retired filters are only the disconnected rules that could veto, flip,

@@ -593,9 +593,10 @@ def _runtime_sizing_authority_for_broker_fact_tests():
                     "margin_rate": 0.05,
                 }
             }
-        ),
-        proof_json="{}",
-        content_hash_key=(),
+            ),
+            proof_json="{}",
+            joint_proof_json="{}",
+            content_hash_key=(),
         file_stats=(),
     )
 

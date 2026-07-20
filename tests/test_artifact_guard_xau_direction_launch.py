@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -18,7 +20,23 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     MODEL_NATIVE_SIZING_MODE_LEARNED,
+    learned_sizing_authority_contract_metadata,
 )
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.model_native_serve_gate_v1 import (
+    DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
+    DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
+    DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE,
+    DIRECTION_POCKET_MIN_SELECTED_ROWS,
+    DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT,
+    DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
+    MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_SELECTION_MODE,
+)
+from tests.model_native_serve_gate_support import passing_direction_repair_pockets
+from tests.model_native_sizing_support import write_passing_runtime_sizing_parity
 from gx1_guards import artifacts
 
 
@@ -133,7 +151,7 @@ def test_allow_state_cannot_omit_capital_sizing_evidence(
         artifacts._check_v10_entry_launch_contract(tmp_path / "bundle")
 
 
-def test_allow_state_remains_structurally_blocked_until_producers_exist(
+def test_allow_state_rejects_unbound_sizing_authority_before_runtime_parity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
@@ -146,5 +164,99 @@ def test_allow_state_remains_structurally_blocked_until_producers_exist(
     )
     monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
 
-    with pytest.raises(artifacts.ArtifactGuardError, match="structurally BLOCKED"):
+    with pytest.raises(artifacts.ArtifactGuardError, match="sizing authority invalid"):
         artifacts._check_v10_entry_launch_contract(tmp_path / "bundle")
+
+
+def test_allow_state_requires_and_accepts_complete_serve_exit_and_sizing_chain(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evidence = write_passing_runtime_sizing_parity(tmp_path)
+    bundle_dir = evidence["bundle_dir"]
+    parity_binding = evidence["oos_source"][
+        "model_head_serve_parity_artifact"
+    ]
+    parity_path = Path(parity_binding["json_path"])
+    parity = json.loads(parity_path.read_text(encoding="utf-8"))
+    direction_path, _ = write_immutable_json_event(
+        tmp_path / "direction_pockets",
+        "MODEL_NATIVE_DIRECTION_POCKET_AUDIT",
+        {
+            "schema_version": MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION,
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "decision": "PASS",
+            "failures": [],
+            **{
+                field: parity[field]
+                for field in (
+                    "contract_version",
+                    "split",
+                    "model_name",
+                    "bundle_dir",
+                    "dataset_dir",
+                    "dataset_parquet",
+                    "dataset_parquet_sha256",
+                    "prediction_evidence",
+                    "prediction_report_evidence",
+                    "test_coverage",
+                )
+            },
+            "max_bad_side_rate": DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
+            "max_bad_side_wilson_upper_95": (
+                DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95
+            ),
+            "wilson_confidence_level": DIRECTION_POCKET_WILSON_CONFIDENCE_LEVEL,
+            "min_selected_rows": DIRECTION_POCKET_MIN_SELECTED_ROWS,
+            "min_mean_proxy_pnl_bps_exclusive": (
+                DIRECTION_POCKET_MIN_MEAN_PROXY_PNL_BPS_EXCLUSIVE
+            ),
+            "spread_aware_proxy_pnl_contract": (
+                DIRECTION_POCKET_SPREAD_AWARE_PROXY_CONTRACT
+            ),
+            "predictions_parquet": parity["pinned_predictions"],
+            "required_selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
+            "observed_selection_score_modes": [MODEL_DIRECTION_SELECTION_MODE],
+            "pockets": passing_direction_repair_pockets(),
+        },
+    )
+    direction_binding = {
+        "json_path": str(direction_path),
+        "sha256": hashlib.sha256(direction_path.read_bytes()).hexdigest(),
+    }
+    state = _allow_state(
+        accepted_bundle_dir=str(bundle_dir),
+        bundle_metadata_sha256=hashlib.sha256(
+            (bundle_dir / "bundle_metadata.json").read_bytes()
+        ).hexdigest(),
+        sizing_authority_contract=learned_sizing_authority_contract_metadata(
+            adoption_artifact=evidence["adoption_artifact"]
+        ),
+        joint_exit_execution_proof_evidence=evidence[
+            "joint_exit_proof_artifact"
+        ],
+        sizing_runtime_parity_evidence=evidence[
+            "runtime_sizing_parity_artifact"
+        ],
+        serve_gate_evidence={
+            "model_native_serve_parity": parity_binding,
+            "model_native_direction_pocket_audit": direction_binding,
+        },
+    )
+    launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
+    _write_json(launch, state)
+    monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
+
+    validated = artifacts._check_v10_entry_launch_contract(bundle_dir)
+
+    assert validated["decision"] == "ALLOW"
+    assert validated["joint_exit_execution_proof_evidence"] == evidence[
+        "joint_exit_proof_artifact"
+    ]
+
+    state["serve_gate_evidence"]["model_native_direction_pocket_audit"][
+        "sha256"
+    ] = "0" * 64
+    _write_json(launch, state)
+    with pytest.raises(artifacts.ArtifactGuardError, match="hash mismatch"):
+        artifacts._check_v10_entry_launch_contract(bundle_dir)

@@ -191,10 +191,12 @@ to `FLAT`, a cached decision or backlog execution.
   unit-normalized label-horizon outcome for offline direction diagnostics only;
   it explicitly applies no position size and has no execution authority.
   Executable learned sizing requires a separate immutable sizing OOS,
-  exact adopted-Exit replay and post-adoption runtime-parity chain. The current
-  label-horizon sizing proof is diagnostic only; capital authority remains
-  `BLOCK` until those two final bindings exist and live/paper can enforce
-  `NO_ORDER` when any part is missing or red.
+  exact adopted-Exit replay and post-adoption runtime-parity chain. Strict
+  full-TEST joint-Exit and broker-shadow finalizers/validators now require
+  bound raw trace/observation parquets, but the current label-horizon sizing
+  proof is diagnostic only; capital authority remains `BLOCK` until fresh real
+  bindings exist and live/paper can enforce `NO_ORDER` when any part is missing
+  or red.
 - Refactored calibration/evidence to immutable lineage and removed mutable
   report authority.
 - Added `entry_model_native_runtime_evidence_v1` as the shared exact evidence

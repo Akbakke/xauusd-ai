@@ -1,10 +1,10 @@
 """Fail-closed learned execution sizing authority for model-native Entry.
 
 The final model bundle binds only the TRAIN/VAL-fitted calibration.  A separate
-immutable adoption event would be published only after the final bundle exists
-and after both the sizing-head diagnostic and a fresh joint Entry + ACTIVE
-Exit-V3/Exit-IQL/Strategy-F execution replay are proven.  The latter producer is
-not yet implemented, so capital sizing adoption is deliberately unavailable.
+immutable adoption event is admissible only after the sizing-head diagnostic
+and a full-TEST joint Entry + ACTIVE Exit-V3/Exit-IQL/Strategy-F execution
+replay are both proven.  Paper/live launch additionally requires a fresh
+post-adoption broker-runtime sizing parity event.
 
 Only ``learned_calibrated`` is executable.  ``historical_fixed_1x`` exists only
 as an explicitly named negative-control description and has no application
@@ -39,13 +39,17 @@ from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
     require_newest_immutable_event,
 )
+from gx1.contracts.entry_model_native_sizing_execution_v1 import (
+    ModelNativeSizingExecutionContractError,
+    load_bound_joint_exit_sizing_proof,
+)
 
 
 MODEL_NATIVE_SIZING_AUTHORITY_SCHEMA_VERSION = (
-    "entry_model_native_sizing_authority_v3"
+    "entry_model_native_sizing_authority_v4"
 )
 MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION = (
-    "entry_model_native_sizing_adoption_v2"
+    "entry_model_native_sizing_adoption_v3"
 )
 MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION = (
     "entry_model_native_sizing_bundle_calibration_v1"
@@ -56,10 +60,6 @@ MODEL_NATIVE_SIZING_APPLICATION_SCHEMA_VERSION = (
 MODEL_NATIVE_SIZING_MODE_HISTORICAL_FIXED = "historical_fixed_1x"
 MODEL_NATIVE_SIZING_MODE_LEARNED = "learned_calibrated"
 MODEL_NATIVE_SIZING_MODES = (MODEL_NATIVE_SIZING_MODE_LEARNED,)
-MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS = (
-    "canonical joint Entry+ACTIVE Exit-V3/Exit-IQL/Strategy-F sizing-only replay proof is absent",
-    "post-adoption fresh broker runtime sizing parity is absent",
-)
 
 _ADOPTION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_ADOPTION"
 _CALIBRATION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_CALIBRATION"
@@ -105,6 +105,7 @@ _ADOPTION_KEYS = frozenset(
         "model_state_dict_sha256",
         "calibration_artifact",
         "oos_proof_artifact",
+        "joint_exit_sizing_proof_artifact",
         "risk_policy",
         "runtime_constraint_authority",
         "direction_authority",
@@ -188,6 +189,7 @@ class ValidatedLearnedSizingAuthority:
     adoption_json: str
     calibration_json: str
     proof_json: str
+    joint_proof_json: str
     content_hash_key: tuple[tuple[str, str, str], ...]
     file_stats: tuple[tuple[str, int, int, int, int], ...]
 
@@ -206,6 +208,10 @@ class ValidatedLearnedSizingAuthority:
     @property
     def proof(self) -> dict[str, Any]:
         return json.loads(self.proof_json)
+
+    @property
+    def joint_proof(self) -> dict[str, Any]:
+        return json.loads(self.joint_proof_json)
 
 
 _VALIDATED_CACHE: dict[tuple[str, str], ValidatedLearnedSizingAuthority] = {}
@@ -293,6 +299,7 @@ def _snapshot_file_specs(
     adoption: Mapping[str, Any],
     calibration: Mapping[str, Any],
     proof: Mapping[str, Any],
+    joint_proof: Mapping[str, Any],
     context: str,
 ) -> tuple[tuple[str, str, str], ...]:
     rows: list[tuple[str, str, str]] = [
@@ -325,6 +332,26 @@ def _snapshot_file_specs(
             "oos_proof",
             str(adoption["oos_proof_artifact"]["json_path"]),
             str(adoption["oos_proof_artifact"]["sha256"]),
+        ),
+        (
+            "joint_exit_sizing_proof",
+            str(adoption["joint_exit_sizing_proof_artifact"]["json_path"]),
+            str(adoption["joint_exit_sizing_proof_artifact"]["sha256"]),
+        ),
+        (
+            "joint_exit_replay_rows",
+            str(joint_proof["replay_rows"]["path"]),
+            str(joint_proof["replay_rows"]["sha256"]),
+        ),
+        (
+            "joint_exit_trace_rows",
+            str(joint_proof["exit_trace_rows"]["path"]),
+            str(joint_proof["exit_trace_rows"]["sha256"]),
+        ),
+        (
+            "joint_exit_artifact_registry",
+            str(joint_proof["artifact_registry"]["path"]),
+            str(joint_proof["artifact_registry"]["sha256"]),
         ),
     ]
     lineage = calibration["lineage"]
@@ -635,12 +662,6 @@ def require_model_native_sizing_adoption_artifact(
 ) -> dict[str, Any]:
     """Validate adoption structure; file/hash cross-binding is done by the loader."""
 
-    _fail(
-        context,
-        "capital sizing adoption is structurally BLOCKED: "
-        + " | ".join(MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS),
-    )
-
     observed = _exact_keys(value, _ADOPTION_KEYS, context=context)
     if observed["schema_version"] != MODEL_NATIVE_SIZING_ADOPTION_SCHEMA_VERSION:
         _fail(context, "adoption schema_version mismatch")
@@ -696,6 +717,12 @@ def require_model_native_sizing_adoption_artifact(
         observed["oos_proof_artifact"],
         event_prefix=_OOS_PROOF_EVENT_PREFIX,
         context=f"{context}.oos_proof_artifact",
+        verify_file=False,
+    )
+    require_immutable_json_binding(
+        observed["joint_exit_sizing_proof_artifact"],
+        event_prefix="ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF",
+        context=f"{context}.joint_exit_sizing_proof_artifact",
         verify_file=False,
     )
     return observed
@@ -771,6 +798,16 @@ def _validate_learned_sizing_authority_snapshot(
             context=f"{context}.oos_proof",
             verify_source_files=True,
         )
+        joint_proof, joint_proof_binding = load_bound_joint_exit_sizing_proof(
+            adoption["joint_exit_sizing_proof_artifact"],
+            context=f"{context}.joint_exit_sizing_proof",
+            verify_source_files=True,
+        )
+        if (
+            joint_proof["calibration_artifact"] != calibration_binding
+            or joint_proof["oos_proof_artifact"] != proof_binding
+        ):
+            _fail(context, "joint Exit sizing proof differs from adopted sizing chain")
         expected_declaration = model_native_sizing_bundle_calibration_metadata(
             calibration_artifact=calibration_binding
         )
@@ -816,6 +853,7 @@ def _validate_learned_sizing_authority_snapshot(
             "calibration": Path(calibration_binding["json_path"]),
             "oos": Path(proof["oos_source_artifact"]["json_path"]),
             "proof": Path(proof_binding["json_path"]),
+            "joint_replay": Path(joint_proof_binding["json_path"]),
             "instrument": Path(calibration["lineage"]["instrument_evidence_path"]),
         }
         expected_stage_dirs = {
@@ -823,6 +861,7 @@ def _validate_learned_sizing_authority_snapshot(
             "calibration": "calibration",
             "oos": "oos",
             "proof": "proof",
+            "joint_replay": "joint_replay",
             "instrument": "instrument",
         }
         for stage, path in stage_paths.items():
@@ -832,6 +871,10 @@ def _validate_learned_sizing_authority_snapshot(
             calibration["created_utc"], context=f"{context}.calibration.created_utc"
         )
         proof_time = _utc(proof["created_utc"], context=f"{context}.proof.created_utc")
+        joint_proof_time = _utc(
+            joint_proof["created_utc"],
+            context=f"{context}.joint_exit_sizing_proof.created_utc",
+        )
         oos_source = _json_object(
             Path(proof["oos_source_artifact"]["json_path"]),
             context=f"{context}.oos_source",
@@ -842,22 +885,32 @@ def _validate_learned_sizing_authority_snapshot(
         adoption_time = _utc(
             adoption["created_utc"], context=f"{context}.adoption.created_utc"
         )
-        if not calibration_time < oos_source_time < proof_time < adoption_time:
+        if not (
+            calibration_time
+            < oos_source_time
+            < proof_time
+            < joint_proof_time
+            < adoption_time
+        ):
             _fail(
                 context,
-                "required chronology is calibration < OOS source < proof < adoption",
+                "required chronology is calibration < OOS source < proof < "
+                "joint Exit replay < adoption",
             )
         if calibration_binding != adoption["calibration_artifact"]:
             _fail(context, "calibration binding canonicalization mismatch")
         if proof_binding != adoption["oos_proof_artifact"]:
             _fail(context, "OOS proof binding canonicalization mismatch")
-    except ModelNativeSizingContractError as exc:
+        if joint_proof_binding != adoption["joint_exit_sizing_proof_artifact"]:
+            _fail(context, "joint Exit proof binding canonicalization mismatch")
+    except (ModelNativeSizingContractError, ModelNativeSizingExecutionContractError) as exc:
         raise ModelNativeSizingUnavailable(str(exc)) from exc
     specs = _snapshot_file_specs(
         authority=authority,
         adoption=adoption,
         calibration=calibration,
         proof=proof,
+        joint_proof=joint_proof,
         context=f"{context}.snapshot",
     )
     return ValidatedLearnedSizingAuthority(
@@ -865,6 +918,9 @@ def _validate_learned_sizing_authority_snapshot(
         adoption_json=_canonical_json(adoption, context=f"{context}.adoption"),
         calibration_json=_canonical_json(calibration, context=f"{context}.calibration"),
         proof_json=_canonical_json(proof, context=f"{context}.proof"),
+        joint_proof_json=_canonical_json(
+            joint_proof, context=f"{context}.joint_exit_sizing_proof"
+        ),
         content_hash_key=specs,
         file_stats=_capture_file_stats(specs, context=f"{context}.snapshot"),
     )
@@ -1047,7 +1103,6 @@ __all__ = [
     "MODEL_NATIVE_SIZING_APPLICATION_SCHEMA_VERSION",
     "MODEL_NATIVE_SIZING_AUTHORITY_SCHEMA_VERSION",
     "MODEL_NATIVE_SIZING_BUNDLE_CALIBRATION_SCHEMA_VERSION",
-    "MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS",
     "MODEL_NATIVE_SIZING_MODE_HISTORICAL_FIXED",
     "MODEL_NATIVE_SIZING_MODE_LEARNED",
     "MODEL_NATIVE_SIZING_MODES",

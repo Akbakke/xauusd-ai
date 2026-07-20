@@ -35,8 +35,14 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_COUNT,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
-    MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS,
     MODEL_NATIVE_SIZING_MODE_LEARNED,
+    ModelNativeSizingUnavailable,
+    prepare_model_native_sizing_authority,
+    require_model_native_sizing_authority_contract,
+)
+from gx1.contracts.entry_model_native_sizing_execution_v1 import (
+    ModelNativeSizingExecutionContractError,
+    load_bound_runtime_sizing_parity,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_operating_point,
@@ -500,10 +506,74 @@ def _check_v10_entry_launch_contract(path: Path) -> dict:
             raise ArtifactGuardError(
                 f"XAU direction launch contract lacks {evidence_name}"
             )
-    raise ArtifactGuardError(
-        "XAU capital launch is structurally BLOCKED: "
-        + " | ".join(MODEL_NATIVE_SIZING_CAPITAL_ADOPTION_BLOCKERS)
-    )
+    try:
+        authority = require_model_native_sizing_authority_contract(
+            state.get("sizing_authority_contract"),
+            context="XAU_DIRECTION_LAUNCH_SIZING_AUTHORITY",
+            required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
+        )
+        sizing_snapshot = prepare_model_native_sizing_authority(
+            authority,
+            context="XAU_DIRECTION_LAUNCH_SIZING_AUTHORITY",
+        )
+    except ModelNativeSizingUnavailable as exc:
+        raise ArtifactGuardError(
+            f"XAU direction launch sizing authority invalid: {exc}"
+        ) from exc
+    adoption = sizing_snapshot.adoption
+    if Path(adoption["bundle_dir"]).resolve() != path.resolve():
+        raise ArtifactGuardError(
+            "XAU direction launch sizing adoption bundle differs from accepted bundle"
+        )
+    if (
+        state.get("joint_exit_execution_proof_evidence")
+        != adoption["joint_exit_sizing_proof_artifact"]
+    ):
+        raise ArtifactGuardError(
+            "XAU direction launch joint Exit evidence differs from sizing adoption"
+        )
+    accepted_bundle = Path(str(state.get("accepted_bundle_dir") or "")).expanduser()
+    if (
+        not accepted_bundle.is_absolute()
+        or accepted_bundle.resolve() != path.resolve()
+    ):
+        raise ArtifactGuardError(
+            "XAU direction launch accepted_bundle_dir differs from selected artifact"
+        )
+    metadata_path = accepted_bundle.resolve() / "bundle_metadata.json"
+    if not metadata_path.is_file() or _sha256_file(metadata_path) != str(
+        state.get("bundle_metadata_sha256") or ""
+    ).lower():
+        raise ArtifactGuardError(
+            "XAU direction launch bundle_metadata_sha256 mismatch"
+        )
+    _validate_serve_gate_evidence(state, accepted_bundle=accepted_bundle.resolve())
+    if not isinstance(state.get("sizing_runtime_parity_evidence"), dict):
+        raise ArtifactGuardError(
+            "XAU direction launch lacks sizing_runtime_parity_evidence"
+        )
+    try:
+        runtime_parity, runtime_binding = load_bound_runtime_sizing_parity(
+            state["sizing_runtime_parity_evidence"],
+            adoption=adoption,
+            calibration=sizing_snapshot.calibration,
+            adoption_artifact=authority["adoption_artifact"],
+            context="XAU_DIRECTION_LAUNCH_SIZING_RUNTIME_PARITY",
+            verify_source_files=True,
+        )
+    except ModelNativeSizingExecutionContractError as exc:
+        raise ArtifactGuardError(
+            f"XAU direction launch sizing runtime parity invalid: {exc}"
+        ) from exc
+    if runtime_binding != state["sizing_runtime_parity_evidence"]:
+        raise ArtifactGuardError(
+            "XAU direction launch sizing runtime parity binding is noncanonical"
+        )
+    if runtime_parity["bundle_identity"]["bundle_dir"] != str(path.resolve()):
+        raise ArtifactGuardError(
+            "XAU direction launch sizing runtime parity bundle mismatch"
+        )
+    return state
 
 
 def load_decision_entry(role: str) -> dict:

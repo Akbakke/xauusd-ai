@@ -4,6 +4,25 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-20 — learned sizing has a complete source admission path
+
+Capital sizing is no longer permanently source-blocked. Label-horizon OOS
+proof remains diagnostic. Adoption schema v3 additionally requires an
+immutable full-TEST joint Entry plus registry-selected active Exit proof. Every
+non-FLAT row must bind a complete per-M1 HOLD-to-`EXIT_NOW` trace; horizon caps,
+failed or discontinuous traces, incomplete LONG/SHORT support or registry drift
+fail closed. All exposure, drawdown and paired utility controls are recomputed
+from the resulting bid/ask exits.
+
+After adoption, runtime-parity v1 requires at least 32 fresh broker-live shadow
+observations with LONG/SHORT/FLAT support, multiple transaction IDs, exact
+size-transform equality, frozen bundle/model/adoption hashes, unchanged model
+direction and zero submitted orders. Artifact resolution now invokes the
+previously orphaned serve-gate validator and admits `ALLOW` only when serve
+parity, direction pockets, joint Exit sizing, adoption and fresh runtime parity
+all bind the same bundle. No real current evidence was produced; launch stays
+`BLOCK` and fixed 1x remains non-executable.
+
 ## 2026-07-20 — causal influence is explicit at launch, not inferred from smoke
 
 Smoke bundle audit v3 proves prediction, specialist-gate and strict-component
@@ -50,8 +69,10 @@ counterfactual LONG/SHORT/FLAT action-value heads on the same seq513 encoder.
 Those positively trained outputs become evidence inside one learned final
 fusion; only the final calibrated three-class logits and argmax may select
 direction. Distillation requires an independently proven immutable teacher.
-Adaptation is offline challenger/replay/shadow/promotion with rollback; live
-online gradients and post-model rules are forbidden.
+The required adaptation mode is offline challenger/replay/shadow/promotion with
+rollback; live online gradients and post-model rules are forbidden. Its
+drift-trigger/promotion/rollback state machine remains unimplemented and has no
+current authority.
 
 The exact source contract uses action order `LONG, SHORT, FLAT`, horizons
 K12/K48/K96 and FLAT reward zero. LONG/SHORT rewards are executable bid/ask
