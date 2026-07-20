@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -189,6 +189,33 @@ def require_newest_immutable_event(event_path: Path, event_prefix: str) -> Path:
     return newest
 
 
+def next_immutable_event_created_utc(
+    root: Path,
+    event_prefix: str,
+    *floors: datetime,
+) -> datetime:
+    """Return a UTC time strictly newer than clock, floors and event inventory."""
+
+    root = Path(root).expanduser().resolve()
+    created = datetime.now(timezone.utc)
+    for floor in floors:
+        if floor.tzinfo is None:
+            raise ImmutableEventAuthorityError("event time floor is not timezone-aware")
+        observed = floor.astimezone(timezone.utc)
+        if created <= observed:
+            created = observed + timedelta(microseconds=1)
+    if root.exists():
+        for path in root.glob(f"{event_prefix}_*.json"):
+            if path.is_symlink() or not path.is_file():
+                raise ImmutableEventAuthorityError(
+                    f"invalid immutable event inventory member: {path}"
+                )
+            observed, _ = _event_time_from_name(path, event_prefix=event_prefix)
+            if created <= observed:
+                created = observed + timedelta(microseconds=1)
+    return created
+
+
 def write_immutable_json_event(
     root: Path,
     event_prefix: str,
@@ -249,4 +276,3 @@ def write_immutable_json_event(
         os.close(fd)
     _fsync_directory(root)
     return path, event
-

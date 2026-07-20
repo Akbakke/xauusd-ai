@@ -4,6 +4,34 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-20 — adaptation is an immutable offline lifecycle, never live learning
+
+The model-native adaptation source boundary is now implemented. Drift schema
+v1 independently recomputes same-bundle candidate-TEST versus settled
+broker-shadow rows, exact LONG/SHORT/FLAT probabilities and distribution,
+absolute LONG/SHORT edge, and direction-specific session/volatility slices.
+Every source and bundle byte is hash-bound; missing support, stale rows,
+submitted orders, weak lower-95% PnL or changed bytes returns terminal `DRIFT`.
+
+Replay-readiness schema v2 has zero activation authority and hands the exact
+bundle bytes to lifecycle v1. A crashed refresh publishes a newer terminal red
+event. Lifecycle v1 enforces the only transition graph: initial admission or
+stable monitoring; drift block; offline challenger replay; zero-order shadow;
+explicit promotion; and rollback only to a prior incumbent. Live gradients,
+post-model direction rules and replay-to-launch pass-through are forbidden.
+The launch guard now requires a fresh activating lifecycle event cross-bound to
+the same serve, joint Exit, learned-sizing and runtime-parity evidence.
+
+Shadow schema v1 is the promotion comparison owner. It replays incumbent and
+challenger on identical immutable paths, recomputes both outcomes from the same
+bid/ask prices, requires exact model argmax and zero orders, and admits only a
+challenger with absolute LONG/SHORT edge plus positive lower-95% paired
+improvement globally and across supported direction/session/volatility slices.
+
+This is source governance, not empirical edge. No real drift rows, challenger,
+paired shadow, admission, promotion or rollback event was produced, and no heavy run
+was authorized. The current launch decision remains `BLOCK`.
+
 ## 2026-07-20 — learned sizing has a complete source admission path
 
 Capital sizing is no longer permanently source-blocked. Label-horizon OOS
@@ -69,10 +97,10 @@ counterfactual LONG/SHORT/FLAT action-value heads on the same seq513 encoder.
 Those positively trained outputs become evidence inside one learned final
 fusion; only the final calibrated three-class logits and argmax may select
 direction. Distillation requires an independently proven immutable teacher.
-The required adaptation mode is offline challenger/replay/shadow/promotion with
-rollback; live online gradients and post-model rules are forbidden. Its
-drift-trigger/promotion/rollback state machine remains unimplemented and has no
-current authority.
+The required adaptation mode is the immutable offline
+challenger/replay/shadow/promotion/rollback lifecycle described above; live
+online gradients and post-model rules are forbidden. Implemented source
+contracts grant no authority without fresh byte-bound evidence.
 
 The exact source contract uses action order `LONG, SHORT, FLAT`, horizons
 K12/K48/K96 and FLAT reward zero. LONG/SHORT rewards are executable bid/ask

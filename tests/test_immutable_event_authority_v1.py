@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
 from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
+    next_immutable_event_created_utc,
     require_newest_immutable_event,
     select_latest_immutable_event,
     write_immutable_json_event,
@@ -153,6 +154,21 @@ def test_immutable_event_writer_self_binds_without_mutable_mirror(tmp_path: Path
             PREFIX,
             {"created_utc": created_utc, "decision": "PASS"},
         )
+
+
+def test_next_event_time_is_strictly_newer_than_future_inventory(
+    tmp_path: Path,
+) -> None:
+    future = datetime.now(timezone.utc) + timedelta(minutes=5)
+    write_immutable_json_event(
+        tmp_path,
+        PREFIX,
+        {"created_utc": future.isoformat(), "decision": "PASS"},
+    )
+
+    assert next_immutable_event_created_utc(tmp_path, PREFIX) == future + timedelta(
+        microseconds=1
+    )
 
 
 @pytest.mark.parametrize("invalid", [Path("soft-string-pass-through"), float("nan")])

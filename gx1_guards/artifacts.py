@@ -25,7 +25,6 @@ from gx1_guards import REPO_ROOT
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
-    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
@@ -43,6 +42,10 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
     load_bound_runtime_sizing_parity,
+)
+from gx1.contracts.entry_model_native_adaptation_lifecycle_v1 import (
+    ModelNativeAdaptationLifecycleError,
+    require_launch_adaptation_authority,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_operating_point,
@@ -501,6 +504,7 @@ def _check_v10_entry_launch_contract(path: Path) -> dict:
     for evidence_name in (
         "joint_exit_execution_proof_evidence",
         "sizing_runtime_parity_evidence",
+        "adaptation_lifecycle_evidence",
     ):
         if not isinstance(state.get(evidence_name), dict):
             raise ArtifactGuardError(
@@ -572,6 +576,27 @@ def _check_v10_entry_launch_contract(path: Path) -> dict:
     if runtime_parity["bundle_identity"]["bundle_dir"] != str(path.resolve()):
         raise ArtifactGuardError(
             "XAU direction launch sizing runtime parity bundle mismatch"
+        )
+    try:
+        _, adaptation_binding = require_launch_adaptation_authority(
+            state["adaptation_lifecycle_evidence"],
+            accepted_bundle=path.resolve(),
+            serve_gate_evidence=state["serve_gate_evidence"],
+            joint_exit_execution_proof_evidence=state[
+                "joint_exit_execution_proof_evidence"
+            ],
+            sizing_runtime_parity_evidence=state[
+                "sizing_runtime_parity_evidence"
+            ],
+            context="XAU_DIRECTION_LAUNCH_ADAPTATION_LIFECYCLE",
+        )
+    except ModelNativeAdaptationLifecycleError as exc:
+        raise ArtifactGuardError(
+            f"XAU direction launch adaptation lifecycle invalid: {exc}"
+        ) from exc
+    if adaptation_binding != state["adaptation_lifecycle_evidence"]:
+        raise ArtifactGuardError(
+            "XAU direction launch adaptation lifecycle binding is noncanonical"
         )
     return state
 

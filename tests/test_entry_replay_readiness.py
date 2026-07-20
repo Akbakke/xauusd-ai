@@ -1,6 +1,8 @@
 import json
 import hashlib
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -28,7 +30,14 @@ from gx1.scripts.verify_entry_replay_readiness_v1 import (
     _replay_checks,
     _selective_edge_checks,
     _selective_metrics_authority_checks,
+    _publish_terminal_replay_readiness_failure,
     build_parser,
+)
+from gx1.contracts.immutable_event_authority_v1 import (
+    ImmutableEventAuthorityError,
+    require_newest_immutable_event,
+    select_latest_immutable_event,
+    write_immutable_json_event,
 )
 
 
@@ -418,3 +427,31 @@ def test_parser_requires_explicit_immutable_evidence_paths() -> None:
                 "--smart-seq520",
             ]
         )
+
+
+def test_crashed_replay_readiness_refresh_invalidates_older_ready_event(
+    tmp_path: Path,
+) -> None:
+    created = datetime.now(timezone.utc) - timedelta(minutes=1)
+    ready_path, _ = write_immutable_json_event(
+        tmp_path,
+        "ENTRY_REPLAY_READINESS",
+        {
+            "schema_version": "entry_replay_readiness_model_native_v2",
+            "created_utc": created.isoformat(),
+            "decision": "READY_FOR_MODEL_NATIVE_REPLAY_REVIEW",
+        },
+    )
+
+    _publish_terminal_replay_readiness_failure(
+        SimpleNamespace(out_dir=str(tmp_path)),
+        RuntimeError("unit refresh crash"),
+    )
+
+    with pytest.raises(ImmutableEventAuthorityError, match="not the newest"):
+        require_newest_immutable_event(ready_path, "ENTRY_REPLAY_READINESS")
+    newest = select_latest_immutable_event(tmp_path, "ENTRY_REPLAY_READINESS")
+    assert newest is not None
+    terminal = json.loads(newest.read_text(encoding="utf-8"))
+    assert terminal["decision"] == "NOT_READY_FOR_MODEL_NATIVE_REPLAY_REVIEW"
+    assert terminal["model_native_replay_evidence_ready"] is False

@@ -302,6 +302,28 @@ and fresh broker-shadow parity with zero orders. No current real chain has
 passed, so capital authority remains `BLOCK`; live/paper emits `NO_ORDER`
 whenever that sizing authority is missing or red.
 
+`gx1/contracts/entry_model_native_adaptation_drift_v1.py` owns the only market
+adaptation trigger. It row-recomputes immutable same-bundle candidate-TEST and
+settled broker-shadow probabilities/outcomes, global LONG/SHORT edge and
+direction-specific session/volatility slices. It can return only `STABLE` or
+terminal `DRIFT`; it never selects direction, trains or submits an order.
+
+`gx1/scripts/verify_entry_replay_readiness_v1.py` schema v2 binds current
+bundle bytes and hands off with zero activation authority to
+`gx1/contracts/entry_model_native_adaptation_lifecycle_v1.py`. The lifecycle
+owns initial admission, monitor refresh, drift block, offline challenger,
+zero-order shadow, explicit promotion and prior-incumbent rollback.
+`gx1/contracts/entry_model_native_adaptation_shadow_v1.py` is the mandatory
+promotion-comparison owner: identical paired paths, both exact argmax outputs,
+bid/ask-recomputed outcomes, absolute challenger side edge and positive
+lower-95% paired improvement globally and per supported direction/context.
+Newest
+terminal evidence wins; failed drift, replay or transition refresh invalidates
+older green evidence. `gx1_guards/artifacts.py` accepts launch `ALLOW` only from
+a fresh activating lifecycle event cross-bound to the exact accepted bundle,
+serve gates, joint Exit proof and sizing runtime parity. No real lifecycle
+chain exists; current launch remains `BLOCK`.
+
 ## Evidence retention and cleanup ownership
 
 `gx1/contracts/evidence_retention_v1.py` is the byte-identity and authority

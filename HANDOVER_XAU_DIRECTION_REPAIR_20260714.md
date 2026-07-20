@@ -238,7 +238,14 @@ source cleanup settles.
    registry PREFIX ORDER is validated at every manifest consumer; the five
    launch-JSON `required_*` partition constants are enforced against code
    constants; the 90-second Entry latency limit has one numeric owner.
-3. Keep launch state `BLOCK`. The metadata-only abstention probe is not the
+3. DONE 2026-07-20: fail-closed adaptation source boundary — row-recomputed
+   same-bundle drift, replay-readiness v2 byte handoff, immutable
+   initial/refresh/drift/challenger/shadow/promotion/rollback transitions and
+   launch cross-binding are implemented. Shadow is a mandatory paired
+   incumbent/challenger bid/ask comparison with absolute and lower-95%
+   improvement gates. Failed refreshes invalidate older
+   green events. No real lifecycle evidence was produced.
+4. Keep launch state `BLOCK`. The metadata-only abstention probe is not the
    required diagnostic. First bind immutable historical selection-benchmark
    bytes and produce exact learned-probe OOT evidence at comparable coverage.
    Only a green empirical probe may justify returning to the hardened rebuild
@@ -344,6 +351,10 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    TRAIN window and rerun the hardened preflight/build chain. Smoke needs its
    own vedtak; zero FLAT predictions remains hard-red by definition
    (DECISION_LOG 2026-07-17 abstention criterion).
+   After an accepted candidate exists, adaptation still requires fresh real
+   TEST reference, settled zero-order broker-shadow rows and the complete
+   immutable lifecycle, including paired incumbent/challenger shadow paths;
+   source tests are not a substitute.
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
    the event copy is repaired) — separate decision; live Exit serves on it.
 3. Exit env-softeners (3 audit MEDIUMs), ctx v1/v3 dual-owner in the builder

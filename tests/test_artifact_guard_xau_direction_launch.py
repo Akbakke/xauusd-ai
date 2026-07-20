@@ -37,6 +37,10 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from tests.model_native_serve_gate_support import passing_direction_repair_pockets
 from tests.model_native_sizing_support import write_passing_runtime_sizing_parity
+from tests.model_native_adaptation_support import (
+    adaptation_bundle_identity,
+    write_initial_adaptation_lifecycle,
+)
 from gx1_guards import artifacts
 
 
@@ -71,6 +75,7 @@ def _allow_state(**updates: object) -> dict:
         "sizing_adoption_mode": MODEL_NATIVE_SIZING_MODE_LEARNED,
         "accepted_via_vedtak": "UNIT_DIRECTION_VEDTAK",
         "dataset_event_id": "UNIT_DATASET_EVENT",
+        "adaptation_lifecycle_evidence": {},
     }
     state.update(updates)
     return state
@@ -131,9 +136,13 @@ def test_allow_state_rejects_wrong_full_stack_partition_constants(
 
 @pytest.mark.parametrize(
     "missing_evidence",
-    ["joint_exit_execution_proof_evidence", "sizing_runtime_parity_evidence"],
+    [
+        "joint_exit_execution_proof_evidence",
+        "sizing_runtime_parity_evidence",
+        "adaptation_lifecycle_evidence",
+    ],
 )
-def test_allow_state_cannot_omit_capital_sizing_evidence(
+def test_allow_state_cannot_omit_launch_authority_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     missing_evidence: str,
@@ -168,7 +177,7 @@ def test_allow_state_rejects_unbound_sizing_authority_before_runtime_parity(
         artifacts._check_v10_entry_launch_contract(tmp_path / "bundle")
 
 
-def test_allow_state_requires_and_accepts_complete_serve_exit_and_sizing_chain(
+def test_allow_state_requires_complete_serve_exit_sizing_and_adaptation_chain(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -243,6 +252,21 @@ def test_allow_state_requires_and_accepts_complete_serve_exit_and_sizing_chain(
             "model_native_direction_pocket_audit": direction_binding,
         },
     )
+    lifecycle = write_initial_adaptation_lifecycle(
+        tmp_path / "adaptation",
+        bundle=bundle_dir,
+        identity=adaptation_bundle_identity(bundle_dir),
+        admission_evidence={
+            "serve_gate_evidence": state["serve_gate_evidence"],
+            "joint_exit_execution_proof_evidence": state[
+                "joint_exit_execution_proof_evidence"
+            ],
+            "sizing_runtime_parity_evidence": state[
+                "sizing_runtime_parity_evidence"
+            ],
+        },
+    )
+    state["adaptation_lifecycle_evidence"] = lifecycle["artifact"]
     launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
     _write_json(launch, state)
     monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)

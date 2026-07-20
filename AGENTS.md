@@ -136,6 +136,17 @@ Active Exit components are a separate scope. Do not delete Exit XGB or
 Exit-IQL primitives merely because XGB and IQL are forbidden as Entry
 direction authorities.
 
+Continual Entry adaptation has one source path: immutable same-bundle drift,
+replay-readiness v2, offline challenger, zero-order shadow, explicit promotion
+and rollback to a prior incumbent. Replay never activates launch directly.
+Shadow promotion requires identical incumbent/challenger paths,
+bid/ask-recomputed outcomes, absolute candidate LONG/SHORT edge and positive
+lower-95% paired improvement globally and per supported direction/context.
+Live/online weight updates, post-model direction rules and stale lifecycle
+events are forbidden. Launch must cross-bind the fresh activating lifecycle
+event to the exact accepted bundle, serve, active Exit and learned-sizing
+evidence; otherwise fail closed.
+
 ## Evidence and artifact rules
 
 - Use explicit absolute immutable paths and content hashes. Never select by

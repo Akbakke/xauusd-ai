@@ -35,6 +35,15 @@ still absent and are the next empirical gate.
   26-group/96-value fusion (`96 -> 128 -> 3`).
 - One final direction authority: calibrated model logits and exact
   `argmax([LONG, SHORT, FLAT])`.
+- Continual adaptation is offline and immutable: same-bundle row-recomputed
+  drift, challenger replay, zero-order shadow, explicit promotion and rollback
+  to a prior incumbent. Replay has no direct activation authority; live weight
+  updates and post-model direction rules are forbidden. The launch guard
+  requires the fresh lifecycle event to bind the exact bundle, serve, active
+  Exit and learned-sizing evidence. Promotion additionally requires incumbent
+  and challenger on identical immutable price paths with bid/ask-recomputed
+  outcomes, absolute challenger side edge and positive lower-95% paired
+  improvement. No real lifecycle chain exists yet.
 - Learned path, utility, timing, tail-risk, volatility, trade/side hierarchy,
   trendline-rail, validity, position-size and internal Q/V/Advantage evidence
   is mandatory. Q/V never forms a separate policy.

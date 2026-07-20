@@ -146,8 +146,15 @@ completion, not empirical edge. Distillation is admissible only from a
 hash-bound teacher that independently passes untouched OOT gates. Continual
 adaptation is required to mean offline drift-triggered challenger training,
 regime replay, shadow evaluation and explicit promotion/rollback, never live
-online weight updates. That adaptation state machine is not yet implemented
-and therefore grants no authority.
+online weight updates. That fail-closed state machine is now implemented in
+source: same-bundle row-recomputed drift, replay-readiness v2 byte handoff,
+offline challenger, zero-order shadow, explicit promotion and prior-incumbent
+rollback are immutable transitions. Shadow promotion requires the incumbent
+and challenger on identical hash-bound price paths, row-recomputed bid/ask PnL,
+absolute side edge and positive lower-95% paired improvement. Launch requires a fresh
+activating lifecycle event bound to the exact serve, joint Exit, learned-sizing
+and runtime-parity evidence. No real lifecycle event exists, so this source
+completion grants no authority and launch remains `BLOCK`.
 
 ## Runtime boundary
 

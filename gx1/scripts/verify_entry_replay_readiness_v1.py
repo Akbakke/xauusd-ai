@@ -12,7 +12,6 @@ import argparse
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +22,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_adaptation_drift_v1 import (
+    ModelNativeAdaptationDriftError,
+    adaptation_bundle_identity_from_dir,
+)
+from gx1.contracts.entry_model_native_adaptation_lifecycle_v1 import (
+    MODEL_NATIVE_REPLAY_READINESS_REQUIRED_ARTIFACTS,
+    adaptation_lifecycle_handoff_metadata,
 )
 from gx1.execution.model_native_entry_replay_v1 import (
     OFFLINE_DIRECTION_DIAGNOSTIC_SCOPE,
@@ -37,6 +44,10 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     model_native_readiness_contract_metadata,
     readiness_check as _check,
     require_model_native_readiness_contract,
+)
+from gx1.contracts.immutable_event_authority_v1 import (
+    next_immutable_event_created_utc,
+    write_immutable_json_event,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -1238,7 +1249,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     atomic_write_text(path, "\n".join(lines) + "\n")
 
 
-def run(args: argparse.Namespace) -> dict[str, Any]:
+def _run(args: argparse.Namespace) -> dict[str, Any]:
     contract_mode = MODEL_NATIVE_CONTRACT_MODE
     candidate_readiness_path = Path(
         args.candidate_readiness_json
@@ -1389,6 +1400,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         )
 
+    try:
+        bundle_identity = adaptation_bundle_identity_from_dir(
+            Path(expected_candidate_bundle_dir),
+            context="ENTRY_REPLAY_READINESS_BUNDLE",
+        )
+        bundle_identity_error = ""
+    except ModelNativeAdaptationDriftError as exc:
+        bundle_identity = None
+        bundle_identity_error = str(exc)
+
     gate_checks = {
         "candidate_readiness": [
             _check(
@@ -1483,9 +1504,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             _check("gate never promotes", True),
             _check("gate never starts shadow/live", True),
         ],
-        "artifact_provenance": _artifact_fingerprint_checks(
-            artifact_fingerprints
-        ),
+        "artifact_provenance": [
+            *_artifact_fingerprint_checks(artifact_fingerprints),
+            _check(
+                "replay-readiness artifact inventory is exact",
+                set(artifacts)
+                == set(MODEL_NATIVE_REPLAY_READINESS_REQUIRED_ARTIFACTS),
+                {
+                    "observed": sorted(artifacts),
+                    "required": sorted(
+                        MODEL_NATIVE_REPLAY_READINESS_REQUIRED_ARTIFACTS
+                    ),
+                },
+            ),
+            _check(
+                "candidate bundle has exact current byte identity",
+                bundle_identity is not None,
+                {"error": bundle_identity_error},
+            ),
+        ],
     }
     gates: list[dict[str, Any]] = []
     for name, checks in gate_checks.items():
@@ -1510,10 +1547,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not check["ok"]
     ]
     ready = not failures
-    event_created_utc = datetime.now(timezone.utc)
+    event_created_utc = next_immutable_event_created_utc(
+        out_dir,
+        "ENTRY_REPLAY_READINESS",
+    )
     timestamp = event_created_utc.strftime("%Y%m%dT%H%M%S%fZ")
     report = {
-        "schema_version": "entry_replay_readiness_model_native_v1",
+        "schema_version": "entry_replay_readiness_model_native_v2",
         "created_utc": event_created_utc.isoformat(),
         "contract_mode": contract_mode,
         "model_native_readiness_contract": model_native_readiness_contract_metadata(),
@@ -1525,8 +1565,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_native_replay_evidence_ready": bool(ready),
         "secondary_direction_authority_allowed": False,
         "promotion_shadow_live_allowed": False,
+        "adaptation_lifecycle_handoff": adaptation_lifecycle_handoff_metadata(),
         "next_required_gate": (
-            "explicit model-native launch review; no direction-model pass-through"
+            "immutable adaptation lifecycle admission; no direct launch pass-through"
             if ready
             else "repair candidate/selective-edge/replay evidence and rerun"
         ),
@@ -1535,6 +1576,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "selective_edge_report_json": str(selective_report_path),
         "selective_edge_metrics_csv": str(selective_metrics_path),
         "replay_evidence_json": str(replay_report_path),
+        "bundle_identity": bundle_identity,
         "evidence_identity": evidence_identity,
         "artifacts": artifacts,
         "artifact_fingerprints": artifact_fingerprints,
@@ -1571,6 +1613,51 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if failures:
         raise SystemExit(2)
     return report
+
+
+def _publish_terminal_replay_readiness_failure(
+    args: argparse.Namespace,
+    error: Exception,
+) -> None:
+    """Invalidate any older READY event when a refresh crashes before evidence."""
+
+    out_dir = Path(args.out_dir).expanduser().resolve()
+    created = next_immutable_event_created_utc(
+        out_dir,
+        "ENTRY_REPLAY_READINESS",
+    )
+    write_immutable_json_event(
+        out_dir,
+        "ENTRY_REPLAY_READINESS",
+        {
+            "schema_version": "entry_replay_readiness_terminal_failure_v1",
+            "created_utc": created.isoformat(),
+            "decision": "NOT_READY_FOR_MODEL_NATIVE_REPLAY_REVIEW",
+            "model_native_replay_evidence_ready": False,
+            "secondary_direction_authority_allowed": False,
+            "promotion_shadow_live_allowed": False,
+            "failures": [
+                {
+                    "gate": "producer",
+                    "check": "replay-readiness refresh completed",
+                    "details": {
+                        "error_type": type(error).__name__,
+                        "error": str(error),
+                    },
+                }
+            ],
+        },
+    )
+
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        return _run(args)
+    except SystemExit:
+        raise
+    except Exception as exc:
+        _publish_terminal_replay_readiness_failure(args, exc)
+        raise
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
