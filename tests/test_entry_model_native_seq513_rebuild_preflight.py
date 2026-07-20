@@ -80,6 +80,13 @@ def _stamp(value: datetime) -> str:
     return value.strftime("%Y%m%dT%H%M%S%fZ")
 
 
+def test_manifest_filename_timestamp_accepts_second_resolution() -> None:
+    path = Path("ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20260720T182009Z.json")
+    payload = {"created_utc": "2026-07-20T18:20:09+00:00"}
+
+    assert preflight._manifest_timestamp_matches_created(path, payload)
+
+
 def _build_fixture(
     tmp_path: Path,
     *,

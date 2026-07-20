@@ -297,9 +297,12 @@ def _manifest_timestamp_matches_created(path: Path, payload: dict[str, Any]) -> 
     if match is None or not isinstance(raw_created, str):
         return False
     stamp = match.group(1)
-    fmt = "%Y%m%dT%H%M%S%fZ" if len(stamp) == 22 else "%Y%m%dT%H%SZ"
+    # Parse the terminal ``Z`` as a literal. Passing it through strptime's
+    # timezone handling made valid second-resolution names fail on this runtime.
+    body = stamp[:-1]
+    fmt = "%Y%m%dT%H%M%S%f" if len(stamp) == 22 else "%Y%m%dT%H%M%S"
     try:
-        name_time = datetime.strptime(stamp, fmt).replace(tzinfo=timezone.utc)
+        name_time = datetime.strptime(body, fmt).replace(tzinfo=timezone.utc)
         created = datetime.fromisoformat(raw_created.replace("Z", "+00:00")).astimezone(timezone.utc)
     except ValueError:
         return False
