@@ -40,11 +40,22 @@ source-contract proof only, not proof of trading edge.
 The target/evidence boundary is now stricter. Target foundation audit v2
 requires all 46 canonical aux targets, including all `time_to_mfe` and
 LONG/SHORT/FLAT Q targets; old v1 reports are rejected before readiness or
-training. Immutable prediction evidence and smoke audit v2 require VAL/TEST
+training. Immutable prediction evidence and smoke audit v3 require VAL/TEST
 target alignment for the learned TOP/BOTTOM timing and Q/V/Advantage heads,
 including supported high-precision near-turn pockets and reward-best Q
 ranking. No such fresh prediction evidence exists yet, so this closes a source
 pass-through without changing launch `BLOCK`.
+
+Smoke v3 now reports only exact head-prediction, specialist-gate and strict
+bundle-component liveness; the false duplicate claim that this proved absence
+of pass-through was removed. Serve-parity v4 owns actual launch influence: all
+eight specialists must move both raw and calibrated class margins under two
+independent ablations, and every one of the 26 learned-fusion groups must move
+both surfaces under immutable VAL-mean slice replacement on deterministic TEST
+states. Continuous/categorical context and all five timeframes must also move
+both surfaces under exact zero-mask ablation. Old parity events and any input
+or group lacking raw or final movement fail
+closed. No fresh v4 event exists, so launch remains `BLOCK`.
 
 Smoke/candidate launch and the trainer now require explicit TRAIN/VAL/TEST
 manifest and parquet paths. Exact hashes are emitted only by the validated

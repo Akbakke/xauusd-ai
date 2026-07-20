@@ -257,12 +257,22 @@ Foundation target audit schema v2 requires all 46 aux targets in every split,
 including `time_to_mfe` and all Q targets. LONG/SHORT Q targets must be live,
 FLAT must be exact zero reward, and every horizon must contain non-collapsed
 unique LONG/SHORT/FLAT best actions. Prediction evidence schema v2 and smoke
-bundle audit schema v2 then prove on both VAL and TEST that all 12 timing
+bundle audit schema v3 then prove on both VAL and TEST that all 12 timing
 outputs align with their targets, learned near-BOTTOM LONG and near-TOP SHORT
 pockets meet immutable precision/support/Wilson floors, Q aligns with reward
 targets, Q ranking selects the reward-best action, V tracks max-Q, and
 `Advantage=Q-V`. These are audit-only evidence contracts; none is a live rule
 or a second direction authority.
+
+Smoke v3 distinguishes prediction/gate/component liveness from causal
+direction influence and has no activation authority. Serve-parity v4 is the
+later fail-closed influence owner: both exact input-family masking and encoder
+hook ablation must move raw and calibrated class margins for all eight
+specialists, while immutable VAL-mean replacement of each exact fusion slice
+must move both surfaces for all 26 groups on deterministic TEST states. Exact
+zero-mask ablations impose the same requirement on continuous/categorical
+context and M5/M15/H1/H4/D1. Layout, reference, bundle and lock hashes are
+admission-bound; an old event or one passive input/group blocks launch.
 
 `gx1/scripts/fit_entry_direction_calibration_v1.py` may fit only the declared
 calibration artifact. `gx1/contracts/immutable_event_authority_v1.py` and the

@@ -58,6 +58,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     model_native_readiness_contract_metadata,
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    SCHEMA_VERSION,
     require_smoke_bundle_audit_contract,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -96,7 +97,6 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v2"
 REPORT_PREFIX = "ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT"
 _SMOKE_EDGE_POLICY = foundation_audit_policy_metadata()["smoke_edge_pockets"]
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
@@ -2068,28 +2068,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
         "gate_liveness_proven": gate_liveness_proven,
     }
-    all_active_heads_live = all(
+    all_active_head_predictions_live = all(
         ((split_reports.get(split) or {}).get("active_head_evidence") or {}).get(
             "decision"
         )
         == "PASS"
         for split in DATA_SPLITS
     )
-    full_stack_live = bundle_contract.get("decision") == "PASS"
+    strict_bundle_components_live = bundle_contract.get("decision") == "PASS"
     liveness_failures: list[str] = []
-    if not all_active_heads_live:
+    if not all_active_head_predictions_live:
         liveness_failures.append("one or more active heads lack finite prediction evidence")
     if not gate_liveness_proven:
         liveness_failures.append("one or more specialists lack live gate evidence")
-    if not full_stack_live:
+    if not strict_bundle_components_live:
         liveness_failures.append("strict bundle loader did not prove the complete learned stack")
     liveness_contract = {
         "decision": "PASS" if not liveness_failures else "FAIL",
         "failures": liveness_failures,
-        "all_active_heads_live": all_active_heads_live,
-        "all_specialists_live": gate_liveness_proven,
-        "full_stack_live": full_stack_live,
-        "zero_init_pass_through_absent": full_stack_live,
+        "all_active_head_predictions_live": all_active_head_predictions_live,
+        "all_specialist_gates_live": gate_liveness_proven,
+        "strict_bundle_components_live": strict_bundle_components_live,
     }
 
     bundle_artifacts = {

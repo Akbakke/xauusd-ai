@@ -338,7 +338,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_bundle_audit_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_BUNDLE_AUDIT_{STAMP}.json",
             {
-                "schema_version": "entry_foundation_smoke_bundle_audit_v2",
+                "schema_version": "entry_foundation_smoke_bundle_audit_v3",
                 **foundation_audit_policy_binding(),
                 "decision": "PASS",
                 "failures": [],
@@ -414,10 +414,9 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "liveness_contract": {
                     "decision": "PASS",
                     "failures": [],
-                    "all_active_heads_live": True,
-                    "all_specialists_live": True,
-                    "full_stack_live": True,
-                    "zero_init_pass_through_absent": True,
+                    "all_active_head_predictions_live": True,
+                    "all_specialist_gates_live": True,
+                    "strict_bundle_components_live": True,
                 },
                 "edge_contract": {
                     "decision": "PASS",

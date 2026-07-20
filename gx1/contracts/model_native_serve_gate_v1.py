@@ -29,9 +29,9 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
 )
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
-    "xau_model_native_exact_test_full_stack_serve_gate_v3"
+    "xau_model_native_exact_test_full_stack_serve_gate_v4"
 )
-MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v3"
+MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v4"
 MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION = (
     "model_native_direction_pocket_audit_v1"
 )
@@ -145,14 +145,15 @@ SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT = 1
 
 # Direct decision influence is audited on a deterministic subset of the same
 # 256 parity states.  Both evidence-family masking and an isolated specialist
-# encoder-output hook ablation must move class-centred final calibrated logits.
+# encoder-output hook ablation must move both class-centred raw and final
+# calibrated logits.
 SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_COUNT = 16
 SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLE_POSITIONS = tuple(range(0, 256, 17))
 SERVE_PARITY_SPECIALIST_INFLUENCE_SAMPLING_CONTRACT = (
     "deterministic_even_positions_over_exact_256_parity_states_v1"
 )
 SERVE_PARITY_SPECIALIST_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_final_calibrated_direction_logits_v1"
+    "class_centered_raw_and_final_calibrated_direction_logits_v2"
 )
 SERVE_PARITY_SPECIALIST_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_SPECIALIST_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -174,7 +175,7 @@ SERVE_PARITY_FUSION_INFLUENCE_SAMPLING_CONTRACT = (
     "deterministic_even_positions_over_exact_256_parity_states_v1"
 )
 SERVE_PARITY_FUSION_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_final_calibrated_direction_logits_v1"
+    "class_centered_raw_and_final_calibrated_direction_logits_v2"
 )
 SERVE_PARITY_FUSION_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -192,7 +193,7 @@ SERVE_PARITY_UPSTREAM_INFLUENCE_METHODS = (
     "ctx_cat_zero_mask",
 )
 SERVE_PARITY_UPSTREAM_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_raw_direction_logits_v1"
+    "class_centered_raw_and_final_calibrated_direction_logits_v2"
 )
 SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -207,7 +208,7 @@ SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLING_CONTRACT = (
 )
 SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 SERVE_PARITY_MULTI_TF_INFLUENCE_COMPARISON_SURFACE = (
-    "class_centered_raw_direction_logits_v1"
+    "class_centered_raw_and_final_calibrated_direction_logits_v2"
 )
 SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON = 1e-6
 SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS = 8
@@ -783,6 +784,8 @@ def _masked_input_influence_contract_failures(
         "target",
         "ablation_surface",
         "max_abs_class_centered_raw_logit_delta",
+        "raw_changed_rows",
+        "max_abs_class_centered_logit_delta",
         "changed_rows",
         "total_rows",
     }
@@ -801,6 +804,17 @@ def _masked_input_influence_contract_failures(
         delta = metric.get("max_abs_class_centered_raw_logit_delta")
         if not _is_finite_number(delta) or float(delta) <= epsilon:
             failures.append(f"{metric_label} lacks >epsilon raw influence")
+        raw_changed = metric.get("raw_changed_rows")
+        if (
+            isinstance(raw_changed, bool)
+            or not isinstance(raw_changed, int)
+            or raw_changed < min_changed_rows
+            or raw_changed > sample_count
+        ):
+            failures.append(f"{metric_label}.raw_changed_rows violates contract")
+        final_delta = metric.get("max_abs_class_centered_logit_delta")
+        if not _is_finite_number(final_delta) or float(final_delta) <= epsilon:
+            failures.append(f"{metric_label} lacks >epsilon final influence")
         changed = metric.get("changed_rows")
         if (
             isinstance(changed, bool)
@@ -1040,6 +1054,8 @@ def _direction_evidence_fusion_influence_contract_failures(
         "stop",
         "width",
         "reference_values_sha256",
+        "max_abs_class_centered_raw_logit_delta",
+        "raw_changed_rows",
         "max_abs_class_centered_logit_delta",
         "changed_rows",
         "total_rows",
@@ -1064,6 +1080,20 @@ def _direction_evidence_fusion_influence_contract_failures(
             means[name]
         ):
             failures.append(f"{metric_label}.reference_values_sha256 mismatch")
+        raw_delta = metric.get("max_abs_class_centered_raw_logit_delta")
+        if (
+            not _is_finite_number(raw_delta)
+            or float(raw_delta) <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON
+        ):
+            failures.append(f"{metric_label} lacks >epsilon raw influence")
+        raw_changed = metric.get("raw_changed_rows")
+        if (
+            isinstance(raw_changed, bool)
+            or not isinstance(raw_changed, int)
+            or raw_changed < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
+            or raw_changed > SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT
+        ):
+            failures.append(f"{metric_label}.raw_changed_rows violates contract")
         delta = metric.get("max_abs_class_centered_logit_delta")
         if (
             not _is_finite_number(delta)

@@ -182,8 +182,8 @@ to `FLAT`, a cached decision or backlog execution.
   minimal state view for continuations, avoiding repeated all-Markdown reads.
 - Compacted and hardened the canonical smoke bundle audit. It strict-loads the
   bundle and proves state/meta/lock hashes, architecture, objective identity,
-  exact 20-head and 23/75-fusion identity, learned-component movement and
-  immutable validation/test evidence. Support, confusion counts and Wilson
+  exact 22-head and 26-group/96-value fusion identity, learned-component
+  movement and immutable validation/test evidence. Support, confusion counts and Wilson
   lower bounds are recomputed globally, per class and per declared context
   slice.
 - Extracted neutral model-native replay primitives. Candidate replay consumes
@@ -397,8 +397,9 @@ pass the `BLOCK_ABSTENTION_EMPIRICAL_GATE`; metadata and label counts do not.
 6. Immutable candidate prediction evidence and live-like replay including costs.
 7. Learned-size calibration plus untouched TEST utility/exposure/drawdown and
    exact train/replay/serve sizing proof.
-8. Train==serve parity on identical bars, including calibrated logits and
-   journal fields.
+8. Train==serve parity on identical bars, including journal fields, both raw
+   and calibrated influence for context, all five timeframes, all eight
+   specialists and all 26 fusion groups.
 9. Newest terminal evidence PASS, exact bundle/hash admission and explicit
    paper/live launch decision.
 

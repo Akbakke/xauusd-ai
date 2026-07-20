@@ -234,6 +234,8 @@ def passing_upstream_context_decision_influence() -> dict[str, object]:
             ),
             "ablation_surface": "full_tensor_zero_mask",
             "max_abs_class_centered_raw_logit_delta": 0.01,
+            "raw_changed_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
+            "max_abs_class_centered_logit_delta": 0.01,
             "changed_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
             "total_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
         }
@@ -264,6 +266,8 @@ def passing_multi_tf_decision_influence() -> dict[str, object]:
             "target": f"model.input.seq_{timeframe.lower()}",
             "ablation_surface": "full_tensor_zero_mask",
             "max_abs_class_centered_raw_logit_delta": 0.01,
+            "raw_changed_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
+            "max_abs_class_centered_logit_delta": 0.01,
             "changed_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
             "total_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
         }
@@ -325,6 +329,8 @@ def passing_direction_evidence_fusion_influence(
             "stop": layout["stop"],
             "width": layout["width"],
             "reference_values_sha256": _canonical_sha256(means[name]),
+            "max_abs_class_centered_raw_logit_delta": 0.01,
+            "raw_changed_rows": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
             "max_abs_class_centered_logit_delta": 0.01,
             "changed_rows": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,
             "total_rows": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,

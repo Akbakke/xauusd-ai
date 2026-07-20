@@ -648,7 +648,7 @@ def _multi_tf_decision_influence_contract(
     states: dict[str, object],
     parity_targets: pd.DatetimeIndex,
 ) -> dict[str, object]:
-    """Prove every retained timeframe moves candidate raw class margins."""
+    """Prove every retained timeframe moves candidate raw and final margins."""
 
     subset, sampled_targets, failures = _decision_influence_subset(
         states=states,
@@ -658,10 +658,13 @@ def _multi_tf_decision_influence_contract(
         audit_name="multi-TF influence audit",
     )
     try:
-        baseline_raw, _baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
     except Exception as exc:
         failures.append(f"baseline forward failed: {exc}")
         baseline_raw = np.zeros(
+            (SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
+        )
+        baseline_final = np.zeros(
             (SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
         )
 
@@ -669,24 +672,40 @@ def _multi_tf_decision_influence_contract(
     for timeframe in SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES:
         row_failures: list[str] = []
         try:
-            ablated_raw, _ablated_final = _batched_direction_logits(
+            ablated_raw, ablated_final = _batched_direction_logits(
                 adapter,
                 subset,
                 zero_mtf_key=f"seq_{timeframe.lower()}",
             )
-            max_delta, changed_rows = _class_centered_delta_metrics(
+            raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
                 baseline=baseline_raw,
                 ablated=ablated_raw,
                 epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
             )
-            if max_delta <= SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON:
+            max_delta, changed_rows = _class_centered_delta_metrics(
+                baseline=baseline_final,
+                ablated=ablated_final,
+                epsilon=SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON,
+            )
+            if raw_max_delta <= SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON:
                 row_failures.append("class-centered raw logits did not move > epsilon")
+            if raw_changed_rows < SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS:
+                row_failures.append(
+                    f"raw_changed_rows={raw_changed_rows} below "
+                    f"{SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS}"
+                )
+            if max_delta <= SERVE_PARITY_MULTI_TF_INFLUENCE_EPSILON:
+                row_failures.append(
+                    "class-centered final calibrated logits did not move > epsilon"
+                )
             if changed_rows < SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS:
                 row_failures.append(
                     f"changed_rows={changed_rows} below "
                     f"{SERVE_PARITY_MULTI_TF_INFLUENCE_MIN_CHANGED_ROWS}"
                 )
         except Exception as exc:
+            raw_max_delta = 0.0
+            raw_changed_rows = 0
             max_delta = 0.0
             changed_rows = 0
             row_failures.append(f"zero ablation failed: {exc}")
@@ -695,7 +714,9 @@ def _multi_tf_decision_influence_contract(
             "failures": row_failures,
             "target": f"model.input.seq_{timeframe.lower()}",
             "ablation_surface": "full_tensor_zero_mask",
-            "max_abs_class_centered_raw_logit_delta": max_delta,
+            "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+            "raw_changed_rows": raw_changed_rows,
+            "max_abs_class_centered_logit_delta": max_delta,
             "changed_rows": changed_rows,
             "total_rows": SERVE_PARITY_MULTI_TF_INFLUENCE_SAMPLE_COUNT,
         }
@@ -726,7 +747,7 @@ def _upstream_context_decision_influence_contract(
     states: dict[str, object],
     parity_targets: pd.DatetimeIndex,
 ) -> dict[str, object]:
-    """Prove continuous and categorical upstream context moves raw margins."""
+    """Prove continuous and categorical context moves raw and final margins."""
 
     subset, sampled_targets, failures = _decision_influence_subset(
         states=states,
@@ -736,10 +757,13 @@ def _upstream_context_decision_influence_contract(
         audit_name="upstream context influence audit",
     )
     try:
-        baseline_raw, _baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
     except Exception as exc:
         failures.append(f"baseline forward failed: {exc}")
         baseline_raw = np.zeros(
+            (SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
+        )
+        baseline_final = np.zeros(
             (SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
         )
 
@@ -753,22 +777,38 @@ def _upstream_context_decision_influence_contract(
                 np.arange(SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT, dtype=np.int64),
             )
             np.asarray(ablated_states[target])[...] = 0
-            ablated_raw, _ablated_final = _batched_direction_logits(
+            ablated_raw, ablated_final = _batched_direction_logits(
                 adapter, ablated_states
             )
-            max_delta, changed_rows = _class_centered_delta_metrics(
+            raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
                 baseline=baseline_raw,
                 ablated=ablated_raw,
                 epsilon=SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
             )
-            if max_delta <= SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON:
+            max_delta, changed_rows = _class_centered_delta_metrics(
+                baseline=baseline_final,
+                ablated=ablated_final,
+                epsilon=SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON,
+            )
+            if raw_max_delta <= SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON:
                 row_failures.append("class-centered raw logits did not move > epsilon")
+            if raw_changed_rows < SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS:
+                row_failures.append(
+                    f"raw_changed_rows={raw_changed_rows} below "
+                    f"{SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS}"
+                )
+            if max_delta <= SERVE_PARITY_UPSTREAM_INFLUENCE_EPSILON:
+                row_failures.append(
+                    "class-centered final calibrated logits did not move > epsilon"
+                )
             if changed_rows < SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS:
                 row_failures.append(
                     f"changed_rows={changed_rows} below "
                     f"{SERVE_PARITY_UPSTREAM_INFLUENCE_MIN_CHANGED_ROWS}"
                 )
         except Exception as exc:
+            raw_max_delta = 0.0
+            raw_changed_rows = 0
             max_delta = 0.0
             changed_rows = 0
             row_failures.append(f"zero mask failed: {exc}")
@@ -777,7 +817,9 @@ def _upstream_context_decision_influence_contract(
             "failures": row_failures,
             "target": f"model.input.{target}",
             "ablation_surface": "full_tensor_zero_mask",
-            "max_abs_class_centered_raw_logit_delta": max_delta,
+            "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+            "raw_changed_rows": raw_changed_rows,
+            "max_abs_class_centered_logit_delta": max_delta,
             "changed_rows": changed_rows,
             "total_rows": SERVE_PARITY_UPSTREAM_INFLUENCE_SAMPLE_COUNT,
         }
@@ -933,7 +975,7 @@ def _direction_evidence_fusion_influence_contract(
     parity_targets: pd.DatetimeIndex,
     val_reference_frame: pd.DataFrame,
 ) -> dict[str, object]:
-    """Prove all 23 exact learned-fusion slices move final class margins."""
+    """Prove all 26 exact learned-fusion slices move raw and final margins."""
 
     subset, sampled_targets, failures = _decision_influence_subset(
         states=states,
@@ -974,9 +1016,12 @@ def _direction_evidence_fusion_influence_contract(
     lock_sha = sha256_file(lock_path) if lock_path.is_file() else ""
 
     try:
-        _baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
+        baseline_raw, baseline_final = _batched_direction_logits(adapter, subset)
     except Exception as exc:
         failures.append(f"baseline forward failed: {exc}")
+        baseline_raw = np.zeros(
+            (SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
+        )
         baseline_final = np.zeros(
             (SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT, 3), dtype=np.float64
         )
@@ -990,7 +1035,7 @@ def _direction_evidence_fusion_influence_contract(
         width = int(layout["width"])
         row_failures: list[str] = []
         try:
-            _ablated_raw, ablated_final = _batched_direction_logits(
+            ablated_raw, ablated_final = _batched_direction_logits(
                 adapter,
                 subset,
                 fusion_slice_replacement=(
@@ -999,11 +1044,25 @@ def _direction_evidence_fusion_influence_contract(
                     np.asarray(means[name], dtype=np.float64),
                 ),
             )
+            raw_max_delta, raw_changed_rows = _class_centered_delta_metrics(
+                baseline=baseline_raw,
+                ablated=ablated_raw,
+                epsilon=SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
+            )
             max_delta, changed_rows = _class_centered_delta_metrics(
                 baseline=baseline_final,
                 ablated=ablated_final,
                 epsilon=SERVE_PARITY_FUSION_INFLUENCE_EPSILON,
             )
+            if raw_max_delta <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON:
+                row_failures.append(
+                    "class-centered raw logits did not move > epsilon"
+                )
+            if raw_changed_rows < SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS:
+                row_failures.append(
+                    f"raw_changed_rows={raw_changed_rows} below "
+                    f"{SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS}"
+                )
             if max_delta <= SERVE_PARITY_FUSION_INFLUENCE_EPSILON:
                 row_failures.append(
                     "class-centered final calibrated logits did not move > epsilon"
@@ -1014,6 +1073,8 @@ def _direction_evidence_fusion_influence_contract(
                     f"{SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS}"
                 )
         except Exception as exc:
+            raw_max_delta = 0.0
+            raw_changed_rows = 0
             max_delta = 0.0
             changed_rows = 0
             row_failures.append(f"VAL-mean slice replacement failed: {exc}")
@@ -1025,6 +1086,8 @@ def _direction_evidence_fusion_influence_contract(
             "stop": stop,
             "width": width,
             "reference_values_sha256": _canonical_sha256(means[name]),
+            "max_abs_class_centered_raw_logit_delta": raw_max_delta,
+            "raw_changed_rows": raw_changed_rows,
             "max_abs_class_centered_logit_delta": max_delta,
             "changed_rows": changed_rows,
             "total_rows": SERVE_PARITY_FUSION_INFLUENCE_SAMPLE_COUNT,

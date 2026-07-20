@@ -58,6 +58,12 @@ edge. Each family's influence and the fused decision must be proved
 empirically on immutable OOS/live-like evidence; duplicate indicator aliases
 and future-leaking variants are not additional robustness.
 
+Smoke evidence is non-activating liveness only. Serve-parity v4 separately
+requires raw and calibrated class-margin movement from both ablations of every
+specialist and from immutable slice replacement of every one of the 26 fusion
+groups, plus zero-mask influence from both context tensors and all five
+timeframes. Any passive input/group or older parity schema blocks launch.
+
 TRAIN/VAL/TEST identities are explicit and hash-bound end to end: foundation
 audits, smoke/adoption, selective-edge prediction, replay, serve parity and
 learned sizing all consume the declared manifest/parquet bytes. No stage may

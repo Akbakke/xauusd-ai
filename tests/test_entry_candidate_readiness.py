@@ -165,7 +165,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         return readiness._artifact_binding(path)
 
     report = {
-        "schema_version": "entry_foundation_smoke_bundle_audit_v2",
+        "schema_version": "entry_foundation_smoke_bundle_audit_v3",
         **foundation_audit_policy_binding(),
         "decision": "PASS",
         "failures": [],
@@ -237,10 +237,9 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         "liveness_contract": {
             "decision": "PASS",
             "failures": [],
-            "all_active_heads_live": True,
-            "all_specialists_live": True,
-            "full_stack_live": True,
-            "zero_init_pass_through_absent": True,
+            "all_active_head_predictions_live": True,
+            "all_specialist_gates_live": True,
+            "strict_bundle_components_live": True,
         },
         "edge_contract": {
             "decision": "PASS",
@@ -319,7 +318,7 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
             {"gate_liveness_proven": False}
         ),
         lambda report: report["liveness_contract"].update(
-            {"zero_init_pass_through_absent": False}
+            {"strict_bundle_components_live": False}
         ),
         lambda report: report["edge_contract"].update(
             {"direction_edge_proven": False}

@@ -490,6 +490,12 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
 
     assert upstream["decision"] == "PASS", upstream["failures"]
     assert multi_tf["decision"] == "PASS", multi_tf["failures"]
+    for report in (upstream, multi_tf):
+        for metric in report["metrics"].values():
+            assert metric["max_abs_class_centered_raw_logit_delta"] > 0.0
+            assert metric["raw_changed_rows"] > 0
+            assert metric["max_abs_class_centered_logit_delta"] > 0.0
+            assert metric["changed_rows"] > 0
     assert set(multi_tf["metrics"]) == set(
         serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
     )
@@ -497,6 +503,19 @@ def test_candidate_specific_context_tf_and_fusion_ablation_execution(
     assert set(fusion["groups"]) == {
         name for name, _width in serve_parity.DIRECTION_EVIDENCE_FUSION_INPUTS
     }
+    for group in fusion["groups"].values():
+        assert group["max_abs_class_centered_raw_logit_delta"] > (
+            serve_parity.SERVE_PARITY_FUSION_INFLUENCE_EPSILON
+        )
+        assert group["raw_changed_rows"] >= (
+            serve_parity.SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
+        )
+        assert group["max_abs_class_centered_logit_delta"] > (
+            serve_parity.SERVE_PARITY_FUSION_INFLUENCE_EPSILON
+        )
+        assert group["changed_rows"] >= (
+            serve_parity.SERVE_PARITY_FUSION_INFLUENCE_MIN_CHANGED_ROWS
+        )
     assert fusion["bundle_metadata_exact_match"] is True
     assert fusion["master_transformer_lock_exact_match"] is True
 

@@ -40,7 +40,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v2"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v3"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
@@ -1059,17 +1059,15 @@ def require_smoke_bundle_audit_contract(
         exact_keys={
             "decision",
             "failures",
-            "all_active_heads_live",
-            "all_specialists_live",
-            "full_stack_live",
-            "zero_init_pass_through_absent",
+            "all_active_head_predictions_live",
+            "all_specialist_gates_live",
+            "strict_bundle_components_live",
         },
     )
     for key in (
-        "all_active_heads_live",
-        "all_specialists_live",
-        "full_stack_live",
-        "zero_init_pass_through_absent",
+        "all_active_head_predictions_live",
+        "all_specialist_gates_live",
+        "strict_bundle_components_live",
     ):
         _require(liveness.get(key) is True, f"[{context}_{key.upper()}_UNPROVEN]")
 

@@ -97,6 +97,13 @@ pockets, Q ranks the counterfactual reward-best action, V tracks learned max-Q
 and Advantage equals Q minus V. Missing old-schema fields fail closed; do not
 forward-fill them.
 
+Smoke liveness is not a pass-through or direction-influence proof. Only
+serve-parity v4 may supply that launch evidence: both specialist ablation
+methods and all 26 exact fusion-slice replacements must move class-centred raw
+and calibrated logits above the immutable row/epsilon floors. The same applies
+to both context tensors and every retained timeframe. Missing or pre-v4
+evidence fails closed.
+
 The exact active output declaration has 22 heads. Their ordered evidence feeds
 one learned 26-group/96-value direction fusion (`LayerNorm(96)`, `96 -> 128`,
 GELU, `128 -> 3`) before immutable calibration and exact three-class argmax.

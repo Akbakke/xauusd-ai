@@ -4,6 +4,25 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-20 — causal influence is explicit at launch, not inferred from smoke
+
+Smoke bundle audit v3 proves prediction, specialist-gate and strict-component
+liveness only and has zero activation authority. The misleading duplicate
+`zero_init_pass_through_absent` assertion was deleted; loading a component is
+not proof that it affects direction.
+
+Serve-parity schema v4 is the launch boundary for causal model influence. On
+the same 16 deterministic TEST states, both exact specialist-family input
+masking and specialist-encoder hook ablation must move class-centred raw and
+final calibrated logits for all eight specialists. Separately replacing each
+of the exact 26 learned-fusion slices with its hash-bound candidate-VAL mean
+must move both raw and final class margins above epsilon on at least 8/16 rows.
+Zero-masking continuous context, categorical context and each of
+M5/M15/H1/H4/D1 must satisfy the same raw-and-final movement contract.
+The exact group layout, reference, bundle metadata and transformer lock remain
+hash-bound. Any missing group, raw metric, insufficient movement or pre-v4
+event blocks launch; smoke liveness can never substitute for this proof.
+
 ## 2026-07-20 — top/bottom and Q/V evidence must be target-aligned
 
 Non-constant head output is not sufficient learned evidence. Target foundation
@@ -14,7 +33,7 @@ an optional column. LONG/SHORT counterfactual Q targets must be live, FLAT Q
 targets must be exact zero reward, and all three unique reward-best actions
 must have non-collapsed support at every horizon.
 
-Immutable prediction evidence v2 and smoke bundle audit v2 require VAL and
+Immutable prediction evidence v2 and smoke bundle audit v3 require VAL and
 TEST timing-to-target Spearman/MAE, precise supported model-claimed near-turn
 LONG/BOTTOM and SHORT/TOP pockets, Q-to-reward alignment and action-ranking,
 V/max-Q alignment and exact `Advantage=Q-V`. Thresholds are hash-bound in

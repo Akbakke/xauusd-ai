@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -95,6 +96,7 @@ def _write_gate_artifacts(
     audit_selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE,
     operating_selection_mode: str = live.MODEL_DIRECTION_SELECTION_MODE,
     parity_overrides: dict | None = None,
+    parity_liveness_mutator: Callable[[dict[str, object]], None] | None = None,
     direction_overrides: dict | None = None,
 ) -> Path:
     bundle_dir = tmp_path / "bundle"
@@ -212,6 +214,8 @@ def _write_gate_artifacts(
         bundle_metadata_sha256=metadata_sha,
         master_transformer_lock_sha256=lock_sha,
     )
+    if parity_liveness_mutator is not None:
+        parity_liveness_mutator(parity_liveness)
     if normalize_pockets:
         pockets = {name: _passing_pocket_metrics(name, row) for name, row in pockets.items()}
     parity_path, _ = write_immutable_json_event(
@@ -351,7 +355,7 @@ def test_smart_serving_gate_rejects_old_direction_audit_without_repair_pockets(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _write_gate_artifacts(
+    bundle_dir = _write_gate_artifacts(
         tmp_path,
         monkeypatch,
         pockets={
@@ -430,6 +434,124 @@ def test_smart_serving_gate_requires_exact_parity_contract(
         parity_overrides=parity_overrides,
     )
 
+    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
+        live.assert_smart_serving_gate()
+
+
+@pytest.mark.parametrize(
+    ("raw_field", "invalid_value"),
+    [
+        ("max_abs_class_centered_raw_logit_delta", 0.0),
+        ("raw_changed_rows", 7),
+        ("max_abs_class_centered_raw_logit_delta", None),
+    ],
+)
+def test_smart_serving_gate_rejects_fusion_group_without_raw_direction_influence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    raw_field: str,
+    invalid_value: object,
+) -> None:
+    def invalidate_one_group(liveness: dict[str, object]) -> None:
+        fusion = liveness["direction_evidence_fusion_influence"]
+        assert isinstance(fusion, dict)
+        groups = fusion["groups"]
+        assert isinstance(groups, dict)
+        group = groups["model_native_logits"]
+        assert isinstance(group, dict)
+        if invalid_value is None:
+            group.pop(raw_field)
+        else:
+            group[raw_field] = invalid_value
+
+    bundle_dir = _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        parity_liveness_mutator=invalidate_one_group,
+    )
+
+    import gx1_guards.artifacts as artifacts
+
+    launch_state = artifacts.load_decision_entry("v10_entry")[
+        "xau_direction_launch_state"
+    ]
+    with pytest.raises(artifacts.ArtifactGuardError, match="semantic contract invalid"):
+        artifacts._validate_serve_gate_evidence(
+            launch_state,
+            accepted_bundle=bundle_dir,
+        )
+    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
+        live.assert_smart_serving_gate()
+
+
+def test_smart_serving_gate_rejects_pre_raw_influence_parity_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bundle_dir = _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        parity_overrides={
+            "schema_version": "model_native_serve_parity_v3",
+            "contract_version": "xau_model_native_exact_test_full_stack_serve_gate_v3",
+        },
+    )
+
+    import gx1_guards.artifacts as artifacts
+
+    launch_state = artifacts.load_decision_entry("v10_entry")[
+        "xau_direction_launch_state"
+    ]
+    with pytest.raises(artifacts.ArtifactGuardError, match="schema mismatch"):
+        artifacts._validate_serve_gate_evidence(
+            launch_state,
+            accepted_bundle=bundle_dir,
+        )
+    with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
+        live.assert_smart_serving_gate()
+
+
+@pytest.mark.parametrize(
+    ("section_name", "metric_name"),
+    [
+        ("upstream_context_decision_influence", "ctx_cont_zero_mask"),
+        ("multi_tf_decision_influence", "M5"),
+    ],
+)
+def test_smart_serving_gate_rejects_upstream_input_without_final_influence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    section_name: str,
+    metric_name: str,
+) -> None:
+    def invalidate_final_influence(liveness: dict[str, object]) -> None:
+        section = liveness[section_name]
+        assert isinstance(section, dict)
+        metrics = section["metrics"]
+        assert isinstance(metrics, dict)
+        metric = metrics[metric_name]
+        assert isinstance(metric, dict)
+        metric["max_abs_class_centered_logit_delta"] = 0.0
+
+    bundle_dir = _write_gate_artifacts(
+        tmp_path,
+        monkeypatch,
+        pockets={name: {} for name in REQUIRED_REPAIR_POCKETS},
+        parity_liveness_mutator=invalidate_final_influence,
+    )
+
+    import gx1_guards.artifacts as artifacts
+
+    launch_state = artifacts.load_decision_entry("v10_entry")[
+        "xau_direction_launch_state"
+    ]
+    with pytest.raises(artifacts.ArtifactGuardError, match="semantic contract invalid"):
+        artifacts._validate_serve_gate_evidence(
+            launch_state,
+            accepted_bundle=bundle_dir,
+        )
     with pytest.raises(RuntimeError, match="LAUNCH BLOCKED"):
         live.assert_smart_serving_gate()
 
