@@ -4,6 +4,39 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-20 — one model-native offline-RL fusion, not a second IQL policy
+
+The deleted legacy Entry-IQL runtime is not restored as an Entry authority.
+Its useful offline-RL math is selectively ported as internal expectile-V and
+counterfactual LONG/SHORT/FLAT action-value heads on the same seq513 encoder.
+Those positively trained outputs become evidence inside one learned final
+fusion; only the final calibrated three-class logits and argmax may select
+direction. Distillation requires an independently proven immutable teacher.
+Adaptation is offline challenger/replay/shadow/promotion with rollback; live
+online gradients and post-model rules are forbidden.
+
+The exact deleted historical row/model benchmark is not present in Git or the
+salvage inventory and cannot be reconstructed from JSON/MD metadata. It is not
+silently substituted. Future admission uses a fresh immutable proxy comparison
+and absolute untouched OOT/cost/live-like gates, failing closed if they do not
+prove edge.
+
+## 2026-07-20 — destructive evidence cleanup has one fail-closed owner
+
+The 2026-07-07 executor deleted 58,512,455,902 bytes, including protected
+Entry-IQL data, because its dry-run used unresolved literal `...` exclusion
+paths. `PROJECT_STATE_entry_iql_delete_incident.json` binds the surviving
+dry-run, execution and salvage identities. Exclusion-based parent deletion is
+permanently forbidden.
+
+All future destructive `GX1_DATA` cleanup must use the pinned exact-target
+contract and sole CLI owner. It requires a reconstructible per-entry
+byte/topology inventory, protection of every active/retired/history/launch and
+incident-evidence path, immutable plan, separate immutable approval, explicit
+execute, same-device atomic quarantine, staged revalidation and terminal
+evidence. Source cleanup remains continuous, but is performed as reviewed
+source edits rather than through a data-deletion script.
+
 ## 2026-07-19 — abstention evidence is source-recomputed, not self-asserted
 
 The historical selection evidence file must be exactly the path and SHA-256

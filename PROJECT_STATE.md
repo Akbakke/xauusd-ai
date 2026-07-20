@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-19.
+Updated 2026-07-20.
 
 ## Entry direction
 
@@ -105,6 +105,24 @@ learned rows must be rejoined one-for-one to an immutable candidate TEST
 prediction event with matching report/predictions hashes, bundle, dataset,
 UTC keys and recomputed model direction. Those inputs remain absent.
 
+The original Entry-IQL row/model benchmark was deleted incorrectly on
+2026-07-07 after a dry-run protected it with abbreviated literal `...`
+exclusions that the executor failed to resolve. The immutable incident facts
+are recorded in `PROJECT_STATE_entry_iql_delete_incident.json`. Git can restore
+the old IQL source at commit `7dc9241086f7e24ea0dad974dc58534ee158662f`,
+but no Git object contains the lost model/parquet/row bytes. Salvaged JSON/MD
+metadata cannot be promoted into that missing benchmark.
+
+The corrected Super-AI path does not resurrect the old separate Entry-IQL
+policy or its hand-written live overlays. Its expectile-V and counterfactual
+`Q(s, LONG/SHORT/FLAT, horizon)` primitives are to be ported into positively
+trained internal heads on the shared seq513 encoder, then fused through the
+single final learned direction layer. Distillation is admissible only from a
+hash-bound teacher that independently passes untouched OOT gates; continual
+adaptation means offline drift-triggered challenger training, regime replay,
+shadow evaluation and explicit promotion/rollback, never live online weight
+updates.
+
 ## Runtime boundary
 
 One exact runtime evidence contract is shared by the model-native decision,
@@ -137,12 +155,16 @@ The current committed source baseline and subsequent contract changes pass the
 full repository suite with five skips and zero failures. Narrow audits removed
 dead stop-script branches, bound serving/train/downstream artifact identity,
 and added a compact takeover fingerprint; these are source-contract changes,
-not empirical edge. The next
-empirical gate is immutable historical selection-benchmark bytes plus exact learned
-model-native abstention-probe evidence at comparable OOT coverage. The current
-metadata-only probe is insufficient. Only a green probe may justify returning
-to the hardened seq513 rebuild runbook with a newly matched ranking/manifest
-and a **new** explicit vedtak; invalidated
+not empirical edge. The missing historical row/model benchmark cannot be
+reconstructed from its metadata and is no longer treated as a satisfiable
+prerequisite. The next
+source milestone is the internal Q/V/action-value head contract with one final
+fusion and exact train/export/serve parity. The next empirical milestone after
+that is a fresh immutable proxy comparison plus absolute untouched OOT,
+cost/live-like, abstention-support and joint Exit/sizing gates. No historical
+metadata is allowed to soften those gates. Only the complete source contract
+may justify returning to the hardened seq513 rebuild runbook with a newly
+matched ranking/manifest and a **new** explicit vedtak; invalidated
 `XAU_SEQ513_REBUILD_20260718_V1` cannot be reused;
 only an accepted rebuild may advance to smoke. Zero FLAT predictions remains
 hard-red. No accepted rebuild, training result or empirical precision result

@@ -259,6 +259,24 @@ label-horizon sizing result is diagnostic only: capital authority remains
 implemented. Once implemented, live/paper must emit `NO_ORDER` whenever that
 sizing authority is missing or red.
 
+## Evidence retention and cleanup ownership
+
+`gx1/contracts/evidence_retention_v1.py` is the byte-identity and authority
+contract for destructive evidence cleanup. `gx1/scripts/cleanup_gx1_evidence_v1.py`
+is the only admitted `GX1_DATA` deletion route. It accepts exact disjoint leaf
+targets only; pins the canonical artifact registry, XAU launch contract and
+deletion-incident record; writes a per-entry JSONL byte/topology manifest; and
+forbids exclusions, symlinks and mount crossings. Immutable plan and separate
+approval events precede explicit execution. Execution atomically stages each
+target inside a new same-filesystem wrapper, proves the staged inventory again,
+then writes durable staged/terminal evidence. Repository source cleanup remains
+a reviewed source change and cannot use this data-deletion route.
+
+`PROJECT_STATE_entry_iql_delete_incident.json` is the compact incident record
+for the 2026-07-07 exclusion-path failure. Salvaged metadata is diagnostic only:
+it contains no original row/model bytes and has no direction, comparison or
+launch authority.
+
 ## Serving boundary
 
 `gx1/execution/v12_model_native_state_live.py` builds the exact serve state.

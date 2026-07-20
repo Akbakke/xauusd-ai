@@ -1,0 +1,45 @@
+{
+  "schema_version": "gx1_entry_iql_delete_incident_v1",
+  "project": "XAUUSD",
+  "updated_utc": "2026-07-20T00:00:00+02:00",
+  "incident": {
+    "executed_utc": "2026-07-07T12:27:11.695728+00:00",
+    "failure_mode": "ABBREVIATED_EXCLUSION_PATHS_NOT_RESOLVED_OR_FAIL_CLOSED",
+    "deleted_bytes": 58512455902,
+    "entry_iql_artifacts_deleted_in_error": true
+  },
+  "dry_run_evidence": {
+    "json_path": "/home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/DELETE_DRYRUN_INVENTORY.json",
+    "sha256": "e56923451ddca22f6db990003adf132355247eddb2716717d510b927006c631e",
+    "declared_protection": "entry_iql_runs (103.9M)",
+    "unsafe_exclusion_literal": ".../entry_iql_runs"
+  },
+  "execution_evidence": {
+    "json_path": "/home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/DELETE_EXECUTED_20260707.json",
+    "sha256": "28d44786e00cb7bbe3ef4c56d4caf0d349cc0cc85d585f7f8d2000d2f666179c",
+    "deleted_entry_iql_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs"
+  },
+  "salvage_inventory": {
+    "path": "/home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests",
+    "file_count": 2271,
+    "directory_count": 647,
+    "total_bytes": 66670234,
+    "inventory_sha256": "5397b518d7d99de57efa17f61a543067dac3601b4e1a3fb8d397f981c90a0645",
+    "extension_counts": {
+      ".json": 2214,
+      ".md": 57
+    },
+    "contains_original_model_or_row_bytes": false
+  },
+  "source_recovery": {
+    "git_commit": "7dc9241086f7e24ea0dad974dc58534ee158662f",
+    "legacy_iql_source_recoverable": true,
+    "historical_model_or_dataset_artifacts_present_in_git": false
+  },
+  "authority": {
+    "direction": false,
+    "historical_comparison": false,
+    "launch": false,
+    "allowed_use": "INCIDENT_AUDIT_AND_SELECTIVE_SOURCE_MATH_RECOVERY_ONLY"
+  }
+}

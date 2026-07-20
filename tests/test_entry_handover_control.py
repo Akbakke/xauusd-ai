@@ -11,6 +11,10 @@ AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
+    REPO / "PROJECT_STATE.md",
+    REPO / "DECISION_LOG.md",
+    REPO / "PROJECT_STATE_artifacts.json",
+    REPO / "PROJECT_STATE_entry_iql_delete_incident.json",
     REPO / "PROJECT_STATE_xau_direction_launch.json",
 )
 

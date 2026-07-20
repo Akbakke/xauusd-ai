@@ -42,6 +42,14 @@ Token/credit discipline:
   sole-purpose tests/config/docs in the same change instead of postponing it.
   If safe deletion is not yet proven, record the exact unresolved owner; do not
   repeatedly rescan the repository or retain commented/renamed dead copies.
+- Source cleanup uses reviewed source edits. Destructive `GX1_DATA` cleanup has
+  exactly one owner: `gx1/scripts/cleanup_gx1_evidence_v1.py`. Direct `rm`,
+  ad-hoc `unlink`/`rmtree`, parent deletion with exclusions, abbreviated `...`
+  paths and cleanup-script copies are forbidden. The only admitted sequence is
+  byte-inventoried exact leaf targets, pinned registry/launch/incident authority,
+  immutable plan, separate immutable approval, explicit execute, same-device
+  atomic quarantine, revalidation and immutable terminal evidence. Without a
+  user-approved vedtak, run only the plan/dry-run validation path.
 
 ## Hard architecture invariants
 
@@ -100,9 +108,12 @@ benchmark.
 ### Exact contracts; no compatibility lane
 
 The model-native lane has no XGB Entry bridge, neutral constants, direction
-anchor, legacy direction mode, Entry-IQL fallback, warm start, post-model
-filter or alternate launcher. Do not preserve dead arguments or outputs for
-compatibility. Exact consumers either match the current schema or fail.
+anchor, legacy direction mode, separate Entry-IQL policy/fallback, warm start,
+post-model filter or alternate launcher. Learned offline-RL Q/V/advantage
+heads may exist only inside the shared encoder and final learned direction
+fusion, with positive training objectives and exact export/serve evidence;
+they never become a second policy. Do not preserve dead arguments or outputs
+for compatibility. Exact consumers either match the current schema or fail.
 
 Active Exit components are a separate scope. Do not delete Exit XGB or
 Exit-IQL primitives merely because XGB and IQL are forbidden as Entry

@@ -31,6 +31,10 @@ sources=(
   "$REPO/AGENTS.md"
   "$REPO/SYSTEM_MAP.md"
   "$HANDOVER"
+  "$REPO/PROJECT_STATE.md"
+  "$REPO/DECISION_LOG.md"
+  "$REPO/PROJECT_STATE_artifacts.json"
+  "$REPO/PROJECT_STATE_entry_iql_delete_incident.json"
   "$LAUNCH_STATE"
 )
 for source in "${sources[@]}"; do
