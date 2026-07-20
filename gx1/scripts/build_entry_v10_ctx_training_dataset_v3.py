@@ -1789,6 +1789,12 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # -----------------------------------------------------------------------------
 # Core builder
 # -----------------------------------------------------------------------------
+# The Group-A workers fork the full common-history frame. Four workers keep the
+# exact per-row calculation safely within the rebuild cgroup's 30 GiB ceiling;
+# output parity is still asserted after the merge by the helper itself.
+_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 4
+
+
 def build_dataset_canonical(
     *,
     source_parquet: Path,
@@ -2450,6 +2456,7 @@ def build_dataset_canonical(
         merged3,
         multi_tf=_ga_load_cache(_cache_dir),
         journal_label="model_native_offline",
+        workers=_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS,
     )
     _causal_group_a_warmup_rows = int(
         merged3.attrs.get("causal_context_warmup_rows", 0)
@@ -3819,6 +3826,7 @@ def main() -> None:
         **direction_label_contract(),
         **hierarchical_direction_label_contract(),
         "flat_threshold_bps": float(flat_threshold_bps),
+        "group_a_recompute_workers": _MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS,
         "seq_structure_extension_v1": {
             "manifest_path": str(
                 Path(args.seq_structure_manifest).expanduser().resolve()
