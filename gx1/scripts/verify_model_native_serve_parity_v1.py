@@ -1994,7 +1994,7 @@ def main() -> int:
         flush=True,
     )
 
-    # ── LEG 4: upstream, all-TF and exact 23-group fusion influence ──────────
+    # ── LEG 4: upstream, all-TF and exact 26-group fusion influence ──────────
     upstream_influence = _upstream_context_decision_influence_contract(
         adapter=adapter,
         states=states,

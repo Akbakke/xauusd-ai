@@ -101,6 +101,9 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         "timing_pred": 12,
         "tail_risk_pred": 6,
         "vol_forecast_pred": 3,
+        "action_value": 9,
+        "expectile_value": 3,
+        "action_advantage": 9,
         "public_trade_flat_decision_logits": 2,
     }
     for name, width in widths.items():
@@ -162,6 +165,8 @@ def test_public_direction_gradient_reaches_every_fused_evidence_head() -> None:
         model.head_timing.weight,
         model.head_tail_risk.weight,
         model.head_vol_forecast.weight,
+        model.head_action_value.weight,
+        model.head_expectile_value.weight,
         model.evidence_fusion_in.weight,
         model.evidence_fusion_out.weight,
         model.regime_film[-1].weight,
@@ -173,7 +178,7 @@ def test_public_direction_gradient_reaches_every_fused_evidence_head() -> None:
         assert parameter.grad.abs().sum().item() > 0.0
 
 
-def test_each_of_23_evidence_groups_changes_a_direction_class_margin() -> None:
+def test_each_of_26_evidence_groups_changes_a_direction_class_margin() -> None:
     torch.manual_seed(90210)
     model = _make_model().eval()
     with torch.no_grad():
@@ -181,7 +186,7 @@ def test_each_of_23_evidence_groups_changes_a_direction_class_margin() -> None:
         evidence = {name: out[name] for name, _ in INPUTS}
         baseline = model._fuse_direction_evidence(evidence)
         baseline_centered = baseline - baseline.mean(dim=1, keepdim=True)
-        assert len(INPUTS) == 23
+        assert len(INPUTS) == 26
         for name, _ in INPUTS:
             ablated = dict(evidence)
             ablated[name] = torch.zeros_like(evidence[name])

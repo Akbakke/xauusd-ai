@@ -31,12 +31,13 @@ still absent and are the next empirical gate.
 - Eight learned specialists: structure/swing, SMC/liquidity, trend/EMA,
   volatility/compression, momentum/flow, session/regime, chart geometry and
   price-action/candles.
-- Twenty positively supervised evidence heads feeding one exact learned
-  23-group/75-value fusion (`75 -> 128 -> 3`).
+- Twenty-two positively supervised evidence heads feeding one exact learned
+  26-group/96-value fusion (`96 -> 128 -> 3`).
 - One final direction authority: calibrated model logits and exact
   `argmax([LONG, SHORT, FLAT])`.
 - Learned path, utility, timing, tail-risk, volatility, trade/side hierarchy,
-  trendline-rail, validity and position-size evidence is mandatory.
+  trendline-rail, validity, position-size and internal Q/V/Advantage evidence
+  is mandatory. Q/V never forms a separate policy.
 - Position sizing is learned and must be immutably calibrated, parity-checked
   and journaled. Any label-horizon TEST result is diagnostic only, and no fresh
   accepted sizing result exists for the current contract.

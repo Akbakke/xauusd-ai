@@ -18,6 +18,9 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     training_objective_contract_metadata,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    model_native_aux_target_contract_metadata,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
@@ -35,8 +38,6 @@ from gx1.models.entry_v10.entry_v10_bundle import (
     _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS,
     _MODEL_NATIVE_REQUIRED_SPECIALISTS,
     _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS,
-    _MODEL_NATIVE_AUX_TARGET_COLUMNS,
-    _MODEL_NATIVE_AUX_TARGET_HORIZONS,
     _infer_entry_bundle_capabilities,
     _require_exact_model_native_bundle_metadata,
     _require_model_native_learned_component_liveness,
@@ -148,18 +149,7 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
             direction_evidence_fusion_metadata()
         ),
         "model_native_learned_component_movement": movement,
-        "aux_head_target_contract": {
-            "schema_version": "entry_model_native_aux_targets_v2",
-            "columns": list(_MODEL_NATIVE_AUX_TARGET_COLUMNS),
-            "future_horizon_bars_by_column": dict(
-                _MODEL_NATIVE_AUX_TARGET_HORIZONS
-            ),
-            "max_future_horizon_bars": 96,
-            "spread_aware_risk_magnitudes_required": True,
-            "mid_price_timing_reference_only": True,
-            "incomplete_value": "NaN_before_emission_only",
-            "incomplete_rows_may_be_emitted": False,
-        },
+        "aux_head_target_contract": model_native_aux_target_contract_metadata(),
     }
     lock = {
         **copy.deepcopy(shared),
@@ -279,9 +269,9 @@ def _live_model_native_state() -> dict[str, torch.Tensor]:
     }
     state.update(
         {
-            "evidence_fusion_norm.weight": torch.ones(75),
-            "evidence_fusion_norm.bias": torch.zeros(75),
-            "evidence_fusion_in.weight": torch.ones(128, 75),
+            "evidence_fusion_norm.weight": torch.ones(96),
+            "evidence_fusion_norm.bias": torch.zeros(96),
+            "evidence_fusion_in.weight": torch.ones(128, 96),
             "evidence_fusion_in.bias": torch.zeros(128),
             "evidence_fusion_out.weight": torch.arange(
                 3 * 128, dtype=torch.float32

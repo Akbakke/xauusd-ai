@@ -15,6 +15,15 @@ direction. Distillation requires an independently proven immutable teacher.
 Adaptation is offline challenger/replay/shadow/promotion with rollback; live
 online gradients and post-model rules are forbidden.
 
+The exact source contract uses action order `LONG, SHORT, FLAT`, horizons
+K12/K48/K96 and FLAT reward zero. LONG/SHORT rewards are executable bid/ask
+final PnL plus the canonical path utility (`0.35*MFE - 1.15*MAE +
+0.25*(MFE-MAE)`). Q is direct full-counterfactual regression, V is a 0.8
+expectile of detached max-action Q, and ranking follows the reward argmax.
+There is no behavior/AWR loss because no legitimate logged Entry action exists.
+Q/V/Advantage add 21 values to the final learned fusion, making its exact
+surface 26 groups / 96 values; no Q argmax has public authority.
+
 The exact deleted historical row/model benchmark is not present in Git or the
 salvage inventory and cannot be reconstructed from JSON/MD metadata. It is not
 silently substituted. Future admission uses a fresh immutable proxy comparison

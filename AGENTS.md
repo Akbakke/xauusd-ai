@@ -87,10 +87,10 @@ All advertised output heads must be present, trained with positive weight,
 exported and audited. This includes direction, MTF direction, specialist
 fusion/gates, path/MFE/tradability/bad-path/clean-edge/survival evidence,
 trade-side hierarchy, side validity, trendline rail, timing/tail/volatility,
-TF agreement and position size.
+TF agreement, position size, counterfactual action value and expectile value.
 
-The exact active output declaration has 20 heads. Their ordered evidence feeds
-one learned 23-group/75-value direction fusion (`LayerNorm(75)`, `75 -> 128`,
+The exact active output declaration has 22 heads. Their ordered evidence feeds
+one learned 26-group/96-value direction fusion (`LayerNorm(96)`, `96 -> 128`,
 GELU, `128 -> 3`) before immutable calibration and exact three-class argmax.
 
 ### Sizing boundary

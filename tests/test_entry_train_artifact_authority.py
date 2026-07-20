@@ -14,6 +14,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     model_native_signal_contract_metadata,
 )
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    model_native_aux_target_contract_metadata,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
@@ -25,19 +28,7 @@ def _sha(path: Path) -> str:
 
 
 def _aux_target_contract() -> dict[str, object]:
-    return {
-        "schema_version": trainer.MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
-        "columns": list(trainer.MODEL_NATIVE_AUX_TARGET_COLUMNS),
-        "future_horizon_bars_by_column": {
-            name: int(horizon)
-            for name, horizon in trainer.MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.items()
-        },
-        "max_future_horizon_bars": trainer.MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
-        "spread_aware_risk_magnitudes_required": True,
-        "mid_price_timing_reference_only": True,
-        "incomplete_value": "NaN_before_emission_only",
-        "incomplete_rows_may_be_emitted": False,
-    }
+    return model_native_aux_target_contract_metadata()
 
 
 def _artifacts(

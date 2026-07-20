@@ -18,6 +18,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gx1.monitoring.trade_journal import TradeJournal
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
+from tests.model_native_offline_rl_support import offline_rl_evidence
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
+)
 
 
 class TestExecSmokeTradeJournalSchema(unittest.TestCase):
@@ -167,8 +172,8 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
         path_log_var = -0.3
         evidence = {
             "decision_ts": "2026-07-08T17:55:00Z",
-            "runtime_evidence_schema_version": "entry_model_native_runtime_evidence_v1",
-            "model_policy": "xau_seq513_model_native_direction_argmax_v1",
+            "runtime_evidence_schema_version": MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+            "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
             "session_id": 3,
             "session": "US",
             "decision_available_ts": "2026-07-08T18:00:00Z",
@@ -206,6 +211,7 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
             "timing_pred": [0.0] * 12,
             "tail_risk_pred": [0.0] * 6,
             "vol_forecast_pred": [0.0] * 3,
+            **offline_rl_evidence(),
             "p_trade": public_probs[0],
             "p_flat_hier": public_probs[1],
             "atr_bps": 12.5,
@@ -275,7 +281,7 @@ class TestExecSmokeTradeJournalSchema(unittest.TestCase):
                 entry_ask=2360.2,
                 entry_spread_bps=0.85,
                 session="US",
-                model_policy="xau_seq513_model_native_direction_argmax_v1",
+                model_policy=MODEL_NATIVE_RUNTIME_POLICY,
                 execution_checks=["fresh_quote", "learned_sizing_proof_bound"],
                 capacity_units=1,
                 reference_pre_round_units=1.0,

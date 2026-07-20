@@ -42,7 +42,6 @@ import tempfile
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from types import MappingProxyType
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
@@ -68,6 +67,21 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     model_native_context_contract_metadata,
     require_model_native_manifest,
     require_model_native_signal_contract,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
+    UTILITY_MAE_WEIGHT,
+    UTILITY_MFE_WEIGHT,
+    UTILITY_PATH_WEIGHT,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_FORECAST_HORIZONS,
+    MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
+    MODEL_NATIVE_AUX_RISK_HORIZONS,
+    MODEL_NATIVE_AUX_TARGET_COLUMNS,
+    MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN,
+    MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
+    model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
@@ -96,11 +110,6 @@ PATH_QUALITY_HORIZON_BARS = 10
 BAD_PATH_HORIZON_BARS = PATH_QUALITY_HORIZON_BARS
 BAD_PATH_MAE_THRESHOLD_BPS = 6.0
 BAD_PATH_MFE_THRESHOLD_BPS = 4.0
-STRICT_TRADABLE_MFE_MIN_BPS = 22.0   # V2 (was 28.0): looser → ~5% tradable for richer IQL candidate stream
-STRICT_TRADABLE_MAE_MAX_BPS = 3.0    # V2 (was 2.0)
-STRICT_TRADABLE_PATH_MIN_BPS = 11.0  # V2 (was 14.0)
-STRICT_TRADABLE_PATH_LEAD_MIN_BPS = 7.0
-STRICT_TRADABLE_MFE_LEAD_MIN_BPS = 6.0
 # 2026-05-26 — entry direction/tradable label re-tuned (user: "89% flat uaktuelt").
 # The directional label = (pnl_at_horizon >= V11_TRADABLE_PNL_MIN_BPS) over
 # V11_DIRECTION_HORIZON_BARS. Lowered 30→15 bps + horizon 10→24 (2h) → ~60% flat
@@ -112,49 +121,14 @@ V11_DIRECTION_HORIZON_BARS = 24
 # One immutable supervision contract.  These are future-outcome label semantics,
 # never live direction rules, and callers cannot tune or replace them.
 V12_DIRECTION_TARGET_MODE = "path_utility_v2"
-V12_DIRECTION_UTILITY_MFE_WEIGHT = 0.35
-V12_DIRECTION_UTILITY_MAE_WEIGHT = 1.15
-V12_DIRECTION_UTILITY_PATH_WEIGHT = 0.25
+# Compatibility names remain imported by immutable audit code, but the
+# offline-RL contract is the single numerical owner of path-utility weights.
+V12_DIRECTION_UTILITY_MFE_WEIGHT = UTILITY_MFE_WEIGHT
+V12_DIRECTION_UTILITY_MAE_WEIGHT = UTILITY_MAE_WEIGHT
+V12_DIRECTION_UTILITY_PATH_WEIGHT = UTILITY_PATH_WEIGHT
 V12_DIRECTION_UTILITY_MIN_BPS = 15.0
 V12_DIRECTION_UTILITY_MIN_SIDE_MARGIN_BPS = 4.0
 
-MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v2"
-MODEL_NATIVE_AUX_FORECAST_HORIZONS = (1, 5, 12, 24)
-MODEL_NATIVE_AUX_RISK_HORIZONS = (12, 48, 96)
-_MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS = tuple(
-    (f"y_dip_mae_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_dip_mfe_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_forecast_ret_K{horizon}", horizon)
-    for horizon in MODEL_NATIVE_AUX_FORECAST_HORIZONS
-) + tuple(
-    (f"y_dip_bottom_frac_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_time_to_mfe_frac_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_tail_mae_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_vol_fwd_K{horizon}", horizon)
-    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-)
-MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN = MappingProxyType(
-    dict(_MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS)
-)
-MODEL_NATIVE_AUX_TARGET_COLUMNS = tuple(MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN)
-MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS = max(
-    MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.values()
-)
 HARD_NEG_LONG_MIN_MFE_BPS = 10.0
 HARD_NEG_LONG_MIN_MAE_BPS = 6.0
 HARD_NEG_LONG_MAX_PATH_BPS = 8.0
@@ -175,25 +149,6 @@ SURVIVAL_LONG_PATH_MIN_BPS = 8.0
 # dataset. It belonged to a different Exit policy and previously admitted a
 # dead constant target. No hold-map input, target column, neutral fill or active
 # head exists in this builder path.
-
-
-def model_native_aux_target_contract_metadata() -> Dict[str, Any]:
-    """Return the immutable static contract for all 37 future targets."""
-    return {
-        "schema_version": MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
-        "columns": list(MODEL_NATIVE_AUX_TARGET_COLUMNS),
-        "future_horizon_bars_by_column": {
-            name: int(horizon)
-            for name, horizon in MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.items()
-        },
-        "max_future_horizon_bars": int(
-            MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS
-        ),
-        "spread_aware_risk_magnitudes_required": True,
-        "mid_price_timing_reference_only": True,
-        "incomplete_value": "NaN_before_emission_only",
-        "incomplete_rows_may_be_emitted": False,
-    }
 
 
 def final_direction_label_horizon_bars() -> int:
@@ -369,8 +324,8 @@ def _build_model_native_aux_head_targets(
         name: str,
         prefix: np.ndarray,
         *,
-        lower: float,
-        upper: float,
+        lower: float | None,
+        upper: float | None,
     ) -> None:
         horizon = int(MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN[name])
         valid_rows = max(0, n_rows - horizon)
@@ -380,7 +335,13 @@ def _build_model_native_aux_head_targets(
                 f"MODEL_NATIVE_AUX_TARGET_PREFIX_INVALID: {name} got={values.shape} expected={(valid_rows,)}"
             )
         full = np.full(n_rows, np.nan, dtype=np.float32)
-        full[:valid_rows] = np.clip(values, lower, upper).astype(np.float32)
+        if lower is not None and upper is not None:
+            values = np.clip(values, lower, upper)
+        elif lower is not None or upper is not None:
+            raise RuntimeError(
+                f"MODEL_NATIVE_AUX_TARGET_CLIP_CONTRACT_INVALID: {name}"
+            )
+        full[:valid_rows] = values.astype(np.float32)
         computed[name] = full
 
     for horizon in MODEL_NATIVE_AUX_FORECAST_HORIZONS:
@@ -503,6 +464,38 @@ def _build_model_native_aux_head_targets(
                 lower=0.0,
                 upper=1000.0,
             )
+
+            if side == "long":
+                final_pnl_bps = (
+                    prices["bid_close"][horizon : horizon + valid_rows]
+                    - entry_spread
+                ) / entry_spread * bps
+            else:
+                final_pnl_bps = (
+                    entry_spread
+                    - prices["ask_close"][horizon : horizon + valid_rows]
+                ) / entry_spread * bps
+            full_path_mae_bps = -run_adverse_spread
+            action_value_bps = (
+                final_pnl_bps
+                + UTILITY_MFE_WEIGHT * mfe_spread
+                - UTILITY_MAE_WEIGHT * full_path_mae_bps
+                + UTILITY_PATH_WEIGHT * (mfe_spread - full_path_mae_bps)
+            )
+            _store_prefix(
+                f"y_action_value_{side}_K{horizon}",
+                action_value_bps,
+                lower=None,
+                upper=None,
+            )
+
+    for horizon in OFFLINE_RL_HORIZON_BARS:
+        _store_prefix(
+            f"y_action_value_flat_K{horizon}",
+            np.zeros(max(0, n_rows - horizon), dtype=np.float64),
+            lower=None,
+            upper=None,
+        )
 
     ordered = {name: computed[name] for name in MODEL_NATIVE_AUX_TARGET_COLUMNS}
     complete = _validate_model_native_aux_head_targets(ordered, n_rows=n_rows)
@@ -2955,15 +2948,6 @@ def build_dataset_canonical(
         _directional_flat_rate,
     )
     log.info(
-        "[ENTRY_STRICT_TRADABLE_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f path_lead_min=%.2f mfe_lead_min=%.2f",
-        _split_tag,
-        float(STRICT_TRADABLE_MFE_MIN_BPS),
-        float(STRICT_TRADABLE_MAE_MAX_BPS),
-        float(STRICT_TRADABLE_PATH_MIN_BPS),
-        float(STRICT_TRADABLE_PATH_LEAD_MIN_BPS),
-        float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
-    )
-    log.info(
         "[ENTRY_DEAD_LONG_RULES] split=%s mfe_max=%.2f mae_min=%.2f rate=%.6f",
         _split_tag,
         float(DEAD_LONG_MAX_MFE_BPS),
@@ -3336,11 +3320,6 @@ def build_dataset_canonical(
             **direction_label_contract(),
             **hierarchical_direction_label_contract(),
             "fixed_hold_bootstrap_bars": _hold_bars,
-            "tradable_mfe_min_bps": float(STRICT_TRADABLE_MFE_MIN_BPS),
-            "tradable_mae_max_bps": float(STRICT_TRADABLE_MAE_MAX_BPS),
-            "tradable_path_min_bps": float(STRICT_TRADABLE_PATH_MIN_BPS),
-            "tradable_path_lead_min_bps": float(STRICT_TRADABLE_PATH_LEAD_MIN_BPS),
-            "tradable_mfe_lead_min_bps": float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
             "direction_follows_tradable_side": True,
             "hard_negative_candidate_source": _hard_negative_candidate_source,
             "core_direction_target_provenance": {

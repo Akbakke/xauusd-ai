@@ -63,6 +63,15 @@ def _fresh_pinned_frame() -> pd.DataFrame:
             1.0 / (1.0 + np.exp(-item)) for item in trendline_rail_logits
         ]
         path_log_var = -0.3 + 0.01 * offset
+        action_value = vector(9, -0.25)
+        expectile_value = [
+            -0.1 + 0.005 * offset + 0.001 * index
+            for index in range(3)
+        ]
+        action_advantage = [
+            value - expectile_value[index % 3]
+            for index, value in enumerate(action_value)
+        ]
 
         rows.append(
             {
@@ -111,6 +120,9 @@ def _fresh_pinned_frame() -> pd.DataFrame:
                 "timing_pred": vector(12, 0.3),
                 "tail_risk_pred": vector(6, 0.4),
                 "vol_forecast_pred": vector(3, 0.5),
+                "action_value": action_value,
+                "expectile_value": expectile_value,
+                "action_advantage": action_advantage,
                 "mtf_dir_logits": mtf_dir_logits,
                 "mtf_dir_probs": mtf_dir_probs,
                 "p_trade": public_probabilities[0],

@@ -9,8 +9,8 @@ Status: **BLOCK**.
 There is no accepted model-native seq513 bundle. The active source contract is
 513 signals, 142 continuous context fields, 5 categorical context fields,
 sequence length 96, five timeframes, eight specialists and one calibrated
-`LONG/SHORT/FLAT` direction authority. Twenty positively supervised heads feed
-one exact learned 23-group/75-value fusion (`75 -> 128 -> 3`).
+`LONG/SHORT/FLAT` direction authority. Twenty-two positively supervised heads
+feed one exact learned 26-group/96-value fusion (`96 -> 128 -> 3`).
 
 The 513 signals are 34 code-owned base fields plus 479 specialist fields. The
 first 305 specialist fields are every output from ten registered causal
@@ -113,11 +113,13 @@ the old IQL source at commit `7dc9241086f7e24ea0dad974dc58534ee158662f`,
 but no Git object contains the lost model/parquet/row bytes. Salvaged JSON/MD
 metadata cannot be promoted into that missing benchmark.
 
-The corrected Super-AI path does not resurrect the old separate Entry-IQL
-policy or its hand-written live overlays. Its expectile-V and counterfactual
-`Q(s, LONG/SHORT/FLAT, horizon)` primitives are to be ported into positively
-trained internal heads on the shared seq513 encoder, then fused through the
-single final learned direction layer. Distillation is admissible only from a
+The corrected Super-AI source path does not resurrect the old separate
+Entry-IQL policy or its hand-written live overlays. Expectile-V and full-
+counterfactual `Q(s, LONG/SHORT/FLAT, K12/K48/K96)` are now positively trained
+internal heads on the shared seq513 encoder. Q, V and exact `Q-V` Advantage
+feed the single learned 96-value direction fusion and survive strict bundle,
+serve-parity, runtime, state, journal and review contracts. This is source
+completion, not empirical edge. Distillation is admissible only from a
 hash-bound teacher that independently passes untouched OOT gates; continual
 adaptation means offline drift-triggered challenger training, regime replay,
 shadow evaluation and explicit promotion/rollback, never live online weight
@@ -158,9 +160,10 @@ and added a compact takeover fingerprint; these are source-contract changes,
 not empirical edge. The missing historical row/model benchmark cannot be
 reconstructed from its metadata and is no longer treated as a satisfiable
 prerequisite. The next
-source milestone is the internal Q/V/action-value head contract with one final
-fusion and exact train/export/serve parity. The next empirical milestone after
-that is a fresh immutable proxy comparison plus absolute untouched OOT,
+source milestone is complete: internal Q/V/action-value heads, one final
+fusion and exact train/export/serve parity pass the full repository suite. The
+next empirical milestone is a fresh immutable proxy comparison plus absolute
+untouched OOT,
 cost/live-like, abstention-support and joint Exit/sizing gates. No historical
 metadata is allowed to soften those gates. Only the complete source contract
 may justify returning to the hardened seq513 rebuild runbook with a newly

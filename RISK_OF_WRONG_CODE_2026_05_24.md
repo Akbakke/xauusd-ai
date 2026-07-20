@@ -11,7 +11,7 @@ Current controls:
 - full 513+142+5 field liveness on every split;
 - state, metadata, lock, objective, prediction and event hash binding;
 - strict-load bundle audit and train==serve parity requirement;
-- 20 active heads and one exact learned 23-group/75-value evidence fusion;
+- 22 active heads and one exact learned 26-group/96-value evidence fusion;
 - calibrated final logits as the only direction authority;
 - newest red/malformed terminal evidence blocks older green evidence;
 - launch contract currently `BLOCK` with no accepted bundle;

@@ -5,7 +5,7 @@ Canonical ENTRY_V10_CTX trainer.
 ONE UNIVERSE (STRICT):
 - Signal bridge: versioned Entry signal bridge.
 - Context: exact ctx_cont/ctx_cat order from entry_model_native_signal_v1.
-- No RL
+- Internal full-counterfactual offline-RL evidence; no separate policy/runtime
 - No legacy
 - No fallback
 """
@@ -62,6 +62,23 @@ from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HE
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
 )
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_COUNT as OFFLINE_RL_ACTION_COUNT,
+    ACTION_VALUE_DIM,
+    ACTION_VALUE_TARGET_COLUMNS,
+    EXPECTILE_VALUE_DIM,
+    HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
+    REWARD_SCALE_BPS as OFFLINE_RL_REWARD_SCALE_BPS,
+    expectile_loss,
+    q_ranking_margin_loss,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
+    MODEL_NATIVE_AUX_TARGET_COLUMNS,
+    MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN,
+    MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
+    require_model_native_aux_target_contract as _require_model_native_aux_target_contract,
+)
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     COMPONENT_PARAMETERS as _EVIDENCE_FUSION_MOVEMENT_COMPONENTS,
     PARAMETER_SHAPES as _EVIDENCE_FUSION_PARAMETER_SHAPES,
@@ -107,6 +124,7 @@ _TAIL_RISK_TARGET_COLS = tuple(
     for K in TAIL_RISK_HORIZONS
 )
 _VOL_FORECAST_TARGET_COLS = tuple(f"y_vol_fwd_K{K}" for K in VOL_FORECAST_HORIZONS)
+_OFFLINE_RL_TARGET_COLS = ACTION_VALUE_TARGET_COLUMNS
 
 # Exact emitted target surface for the five active forward-path auxiliary heads.
 _DIP_FORECAST_TARGET_COLS = (
@@ -116,88 +134,6 @@ _DIP_FORECAST_TARGET_COLS = (
     + _TAIL_RISK_TARGET_COLS
     + _VOL_FORECAST_TARGET_COLS
 )
-
-MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v2"
-_MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS = tuple(
-    (f"y_dip_mae_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in DIP_HORIZONS
-) + tuple(
-    (f"y_dip_mfe_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in DIP_HORIZONS
-) + tuple(
-    (f"y_forecast_ret_K{horizon}", horizon)
-    for horizon in FORECAST_HORIZONS
-) + tuple(
-    (f"y_dip_bottom_frac_{side}_K{horizon}", horizon)
-    for side in TIMING_DIRECTIONS
-    for horizon in TIMING_HORIZONS
-) + tuple(
-    (f"y_time_to_mfe_frac_{side}_K{horizon}", horizon)
-    for side in TIMING_DIRECTIONS
-    for horizon in TIMING_HORIZONS
-) + tuple(
-    (f"y_tail_mae_{side}_K{horizon}", horizon)
-    for side in TAIL_RISK_DIRECTIONS
-    for horizon in TAIL_RISK_HORIZONS
-) + tuple(
-    (f"y_vol_fwd_K{horizon}", horizon)
-    for horizon in VOL_FORECAST_HORIZONS
-)
-MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN = dict(
-    _MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS
-)
-MODEL_NATIVE_AUX_TARGET_COLUMNS = tuple(
-    MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN
-)
-MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS = 96
-
-
-def _require_model_native_aux_target_contract(raw: Any, *, context: str) -> Dict[str, Any]:
-    """Validate and return the immutable 37-column future-target contract."""
-    if not isinstance(raw, dict):
-        raise RuntimeError(f"[{context}_AUX_TARGET_CONTRACT_MISSING]")
-    expected_horizons = {
-        name: int(horizon)
-        for name, horizon in MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.items()
-    }
-    failures: list[str] = []
-    if raw.get("schema_version") != MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION:
-        failures.append(
-            f"schema_version={raw.get('schema_version')!r}"
-        )
-    if raw.get("columns") != list(MODEL_NATIVE_AUX_TARGET_COLUMNS):
-        failures.append("columns/order do not match the exact 37-column contract")
-    if raw.get("future_horizon_bars_by_column") != expected_horizons:
-        failures.append("future_horizon_bars_by_column mismatch")
-    if raw.get("max_future_horizon_bars") != MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS:
-        failures.append(
-            f"max_future_horizon_bars={raw.get('max_future_horizon_bars')!r}"
-        )
-    if raw.get("spread_aware_risk_magnitudes_required") is not True:
-        failures.append("spread_aware_risk_magnitudes_required is not true")
-    if raw.get("mid_price_timing_reference_only") is not True:
-        failures.append("mid_price_timing_reference_only is not true")
-    if raw.get("incomplete_value") != "NaN_before_emission_only":
-        failures.append(f"incomplete_value={raw.get('incomplete_value')!r}")
-    if raw.get("incomplete_rows_may_be_emitted") is not False:
-        failures.append("incomplete_rows_may_be_emitted is not false")
-    if failures:
-        raise RuntimeError(
-            f"[{context}_AUX_TARGET_CONTRACT_INVALID] " + "; ".join(failures)
-        )
-    return {
-        "schema_version": MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
-        "columns": list(MODEL_NATIVE_AUX_TARGET_COLUMNS),
-        "future_horizon_bars_by_column": expected_horizons,
-        "max_future_horizon_bars": MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
-        "spread_aware_risk_magnitudes_required": True,
-        "mid_price_timing_reference_only": True,
-        "incomplete_value": "NaN_before_emission_only",
-        "incomplete_rows_may_be_emitted": False,
-    }
-
 
 def _require_active_aux_head_prediction(
     out: dict,
@@ -294,6 +230,82 @@ def dip_forecast_loss(
     return total
 
 
+def offline_rl_aux_loss(
+    out: dict,
+    batch: dict,
+    device: torch.device,
+) -> torch.Tensor:
+    """Mandatory Q/V/ranking supervision for internal contextual-bandit evidence."""
+
+    q_flat = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="action_value",
+        target_names=_OFFLINE_RL_TARGET_COLS,
+    )
+    value = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="expectile_value",
+        target_names=_OFFLINE_RL_TARGET_COLS,
+    )
+    advantage = _require_active_aux_head_prediction(
+        out,
+        batch,
+        output_name="action_advantage",
+        target_names=_OFFLINE_RL_TARGET_COLS,
+    )
+    batch_size = int(q_flat.shape[0])
+    if tuple(q_flat.shape) != (batch_size, ACTION_VALUE_DIM):
+        raise RuntimeError("[ENTRY_OFFLINE_RL_Q_SHAPE_INVALID]")
+    if tuple(value.shape) != (batch_size, EXPECTILE_VALUE_DIM):
+        raise RuntimeError("[ENTRY_OFFLINE_RL_V_SHAPE_INVALID]")
+    if tuple(advantage.shape) != (batch_size, ACTION_VALUE_DIM):
+        raise RuntimeError("[ENTRY_OFFLINE_RL_ADVANTAGE_SHAPE_INVALID]")
+
+    q_values = q_flat.float().reshape(
+        batch_size,
+        OFFLINE_RL_ACTION_COUNT,
+        OFFLINE_RL_HORIZON_COUNT,
+    )
+    value = value.float()
+    expected_advantage = (q_values - value.unsqueeze(1)).reshape(
+        batch_size,
+        ACTION_VALUE_DIM,
+    )
+    if not torch.allclose(
+        advantage.float(),
+        expected_advantage,
+        rtol=1e-6,
+        atol=1e-7,
+    ):
+        raise RuntimeError("[ENTRY_OFFLINE_RL_ADVANTAGE_CONTRACT_INVALID]")
+
+    reward_targets = (
+        torch.stack(
+            [batch[name] for name in _OFFLINE_RL_TARGET_COLS],
+            dim=1,
+        )
+        .to(device)
+        .float()
+        .reshape(
+            batch_size,
+            OFFLINE_RL_ACTION_COUNT,
+            OFFLINE_RL_HORIZON_COUNT,
+        )
+        / float(OFFLINE_RL_REWARD_SCALE_BPS)
+    )
+    q_loss = nn.functional.mse_loss(q_values, reward_targets)
+    detached_max_q = q_values.detach().max(dim=1).values
+    value_loss = expectile_loss(detached_max_q - value)
+    rank_loss = q_ranking_margin_loss(q_values, reward_targets)
+    return (
+        float(ENTRY_OFFLINE_RL_Q_WEIGHT) * q_loss
+        + float(ENTRY_OFFLINE_RL_V_WEIGHT) * value_loss
+        + float(ENTRY_OFFLINE_RL_RANK_WEIGHT) * rank_loss
+    )
+
+
 _MODEL_NATIVE_ACTIVE_CORE_TARGET_COLS = (
     "y_direction",
     "y_tradable",
@@ -335,6 +347,7 @@ _MODEL_NATIVE_ACTIVE_TARGET_COLS = (
     + ("y_tf_agreement_score", "y_position_size_target")
     + _MODEL_NATIVE_ACTIVE_RAIL_TARGET_COLS
     + _DIP_FORECAST_TARGET_COLS
+    + _OFFLINE_RL_TARGET_COLS
 )
 _MODEL_NATIVE_BINARY_TARGET_COLS = (
     "y_tradable",
@@ -459,7 +472,7 @@ def _direction_decision_contract_export_failures(
     return failures
 
 # -----------------------------------------------------------------------------
-# RL / legacy guard (fail-fast)
+# Separate legacy-RL import guard (fail-fast). Internal Q/V heads live here.
 # -----------------------------------------------------------------------------
 def _guard_no_rl() -> None:
     """Hard-fail if gx1.rl or legacy was imported."""
@@ -574,6 +587,9 @@ ENTRY_SPECIALIST_GATE_MIN_MEAN = float(_env_str("ENTRY_SPECIALIST_GATE_MIN_MEAN"
 # the direction label, forcing the 5 multi-TF streams to predict direction.
 # Env-overridable; default 0.3 (secondary to the main direction CE).
 ENTRY_MTF_DIR_AUX_WEIGHT = float(_env_str("ENTRY_MTF_DIR_AUX_WEIGHT", "0.30"))
+ENTRY_OFFLINE_RL_Q_WEIGHT = float(_env_str("ENTRY_OFFLINE_RL_Q_WEIGHT", "0.50"))
+ENTRY_OFFLINE_RL_V_WEIGHT = float(_env_str("ENTRY_OFFLINE_RL_V_WEIGHT", "0.20"))
+ENTRY_OFFLINE_RL_RANK_WEIGHT = float(_env_str("ENTRY_OFFLINE_RL_RANK_WEIGHT", "0.05"))
 # Checkpoint-selection monitor (diagnosis fix #3, 2026-06-06): the early-stop / best-checkpoint
 # was selected on TOTAL multi-head val loss, which saves the aux-overfit epoch (the cement froze
 # at epoch-2 = the aux optimum, NOT the best-direction epoch). "dir_acc" instead keeps the epoch
@@ -888,6 +904,9 @@ def _current_model_native_active_loss_weights() -> Dict[str, float]:
         "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
         "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
         "ENTRY_MTF_DIR_AUX_WEIGHT": float(ENTRY_MTF_DIR_AUX_WEIGHT),
+        "ENTRY_OFFLINE_RL_Q_WEIGHT": float(ENTRY_OFFLINE_RL_Q_WEIGHT),
+        "ENTRY_OFFLINE_RL_V_WEIGHT": float(ENTRY_OFFLINE_RL_V_WEIGHT),
+        "ENTRY_OFFLINE_RL_RANK_WEIGHT": float(ENTRY_OFFLINE_RL_RANK_WEIGHT),
         "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": float(ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT),
         "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": float(
             ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT
@@ -1005,6 +1024,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.05",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
     "ENTRY_MTF_DIR_AUX_WEIGHT": "0.30",
+    "ENTRY_OFFLINE_RL_Q_WEIGHT": "0.50",
+    "ENTRY_OFFLINE_RL_V_WEIGHT": "0.20",
+    "ENTRY_OFFLINE_RL_RANK_WEIGHT": "0.05",
     "ENTRY_AUX_PATH_WEIGHT": "0.90",
     "ENTRY_AUX_MFE_WEIGHT": "0.25",
     "ENTRY_AUX_TRADABLE_WEIGHT": "1.15",
@@ -5310,6 +5332,7 @@ def train_epoch(
             batch,
             device,
         )
+        loss = loss + offline_rl_aux_loss(out, batch, device)
 
         preds = torch.argmax(probs, dim=1)
         short_mask = y == 1
@@ -6484,6 +6507,7 @@ def validate(
                 batch,
                 device,
             )
+            loss = loss + offline_rl_aux_loss(out, batch, device)
             bs = y.shape[0]
             total += float(loss) * bs
             total_ce += float(ce_loss) * bs
@@ -6939,7 +6963,7 @@ def run_train(
     if train_ds.aux_head_target_contract != val_ds.aux_head_target_contract:
         raise RuntimeError(
             "[ENTRY_TRAIN_AUX_TARGET_CONTRACT_SPLIT_MISMATCH] "
-            "TRAIN and VAL must share one immutable 37-column future-target contract"
+            "TRAIN and VAL must share one immutable 46-column future-target contract"
         )
     contract_failures: list[str] = []
     contract_failures.extend(
@@ -7400,6 +7424,11 @@ def run_train(
             + "; ".join(output_head_failures)
         )
     dip_forecast_loss(
+        preflight_out,
+        preflight_batch,
+        device,
+    )
+    offline_rl_aux_loss(
         preflight_out,
         preflight_batch,
         device,

@@ -8,6 +8,11 @@ import pandas as pd
 import pytest
 
 from tests.model_native_sizing_support import unverified_learned_sizing_authority
+from tests.model_native_offline_rl_support import offline_rl_evidence
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
+)
 from gx1.execution.v12_trade_state import (
     M1_RETURNS_WINDOW_MAXLEN,
     PERSISTED_TRADE_STATE_SCHEMA_VERSION,
@@ -46,8 +51,8 @@ def _snapshot() -> dict:
     size_logit = 0.25
     return {
         "decision_ts": "2026-07-16T11:55:00+00:00",
-        "runtime_evidence_schema_version": "entry_model_native_runtime_evidence_v1",
-        "model_policy": "xau_seq513_model_native_direction_argmax_v1",
+        "runtime_evidence_schema_version": MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+        "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
         "session_id": 2,
         "session": "OVERLAP",
         "decision_available_ts": "2026-07-16T12:00:00+00:00",
@@ -85,6 +90,7 @@ def _snapshot() -> dict:
         "timing_pred": [0.0] * 12,
         "tail_risk_pred": [0.0] * 6,
         "vol_forecast_pred": [0.0] * 3,
+        **offline_rl_evidence(),
         "p_trade": _softmax(public_logits)[0],
         "p_flat_hier": _softmax(public_logits)[1],
         "atr_bps": 9.0,

@@ -381,8 +381,8 @@ def test_preflight_binds_exact_vedtak_and_wrapper_inputs(
     assert command["fixed_builder_contract"]["explicit_vedtak_required"] is True
     assert command["fixed_builder_contract"]["rank_reference_vedtak_match_required"] is True
     aux_contract = command["fixed_builder_contract"]["aux_head_target_contract"]
-    assert aux_contract["schema_version"] == "entry_model_native_aux_targets_v2"
-    assert len(aux_contract["columns"]) == 37
+    assert aux_contract["schema_version"] == "entry_model_native_aux_targets_v3"
+    assert len(aux_contract["columns"]) == 46
     assert aux_contract["max_future_horizon_bars"] == 96
     assert aux_contract["spread_aware_risk_magnitudes_required"] is True
     assert aux_contract["incomplete_rows_may_be_emitted"] is False

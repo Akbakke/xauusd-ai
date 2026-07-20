@@ -158,6 +158,11 @@ _VECTOR_HEAD_EVIDENCE = {
     "timing": {"timing_pred": 12},
     "tail_risk": {"tail_risk_pred": 6},
     "vol_forecast": {"vol_forecast_pred": 3},
+    "offline_rl_action_value": {
+        "action_value": 9,
+        "action_advantage": 9,
+    },
+    "offline_rl_expectile_value": {"expectile_value": 3},
     "mtf_direction": {"mtf_dir_logits": 3},
     "trade_side_hierarchy": {
         "trade_logit": 1,

@@ -8,9 +8,9 @@ from typing import Any, Mapping
 
 
 SCHEMA_VERSION = "entry_model_native_direction_evidence_fusion_v1"
-FUSION_MODE = "sole_learned_acyclic_75x128x3"
+FUSION_MODE = "sole_learned_acyclic_96x128x3"
 CLASS_ORDER = ("LONG", "SHORT", "FLAT")
-INPUT_DIM = 75
+INPUT_DIM = 96
 HIDDEN_DIM = 128
 OUTPUT_DIM = 3
 INPUTS = (
@@ -37,6 +37,9 @@ INPUTS = (
     ("timing_pred", 12),
     ("tail_risk_pred", 6),
     ("vol_forecast_pred", 3),
+    ("action_value", 9),
+    ("expectile_value", 3),
+    ("action_advantage", 9),
 )
 
 

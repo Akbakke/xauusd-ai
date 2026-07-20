@@ -17,7 +17,10 @@ from gx1.contracts.immutable_event_authority_v1 import (
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
 )
+from tests.model_native_offline_rl_support import offline_rl_evidence
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
 )
@@ -788,6 +791,7 @@ def _decision_head(
         "timing_pred": [float(value) / 20.0 for value in range(12)],
         "tail_risk_pred": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06],
         "vol_forecast_pred": [0.5, 0.75, 1.0],
+        **offline_rl_evidence(),
         "specialist_names": list(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
         "specialist_gate": [1.0 / len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS)]
         * len(live.MODEL_NATIVE_REQUIRED_SPECIALISTS),
@@ -867,10 +871,10 @@ def test_smart_decision_follows_final_model_argmax_exactly(
     assert "selection_score_threshold" not in decision
     assert decision["session"] == "ASIA"
     assert "smart_skip_reason" not in decision
-    assert decision["policy"] == "xau_seq513_model_native_direction_argmax_v1"
+    assert decision["policy"] == MODEL_NATIVE_RUNTIME_POLICY
     assert set(snapshot) == set(MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS)
     assert snapshot["runtime_evidence_schema_version"] == (
-        "entry_model_native_runtime_evidence_v1"
+        MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION
     )
     assert snapshot["model_policy"] == decision["policy"]
     assert snapshot["session_id"] == 0
@@ -1236,6 +1240,10 @@ def _forward_outputs() -> dict:
         "tf_agreement_logit": torch.tensor([[0.5]], dtype=torch.float32),
         "path_quality_log_var": torch.tensor([[0.0]], dtype=torch.float32),
         "position_size_logit": torch.tensor([[0.25]], dtype=torch.float32),
+        **{
+            name: torch.tensor([values], dtype=torch.float32)
+            for name, values in offline_rl_evidence().items()
+        },
     }
 
 
@@ -1321,8 +1329,11 @@ def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path
         "forecast_pred",
         "timing_pred",
         "tail_risk_pred",
-        "vol_forecast_pred",
-        "specialist_gate",
+            "vol_forecast_pred",
+            "action_value",
+            "expectile_value",
+            "action_advantage",
+            "specialist_gate",
         "tf_agreement_logit",
         "path_quality_log_var",
     ],

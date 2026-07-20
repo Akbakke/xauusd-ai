@@ -48,6 +48,9 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     require_learned_component_movement_metadata,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    require_model_native_aux_target_contract,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -103,7 +106,14 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
     "position_size": {"head_position_size.weight", "head_position_size.bias"},
     "mtf_direction": {"head_mtf_direction.weight", "head_mtf_direction.bias"},
     "trendline_rail": {"head_trendline_rail.weight", "head_trendline_rail.bias"},
-    "q_per_action": {"q_head.weight", "q_head.bias"},
+    "offline_rl_action_value": {
+        "head_action_value.weight",
+        "head_action_value.bias",
+    },
+    "offline_rl_expectile_value": {
+        "head_expectile_value.weight",
+        "head_expectile_value.bias",
+    },
     "trade_side_hierarchy": {
         "head_trade.weight",
         "head_trade.bias",
@@ -152,6 +162,8 @@ _MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS = frozenset(
         "timing",
         "tail_risk",
         "vol_forecast",
+        "offline_rl_action_value",
+        "offline_rl_expectile_value",
         "trade_side_hierarchy",
         "model_native_evidence_fusion",
         "side_validity",
@@ -169,42 +181,6 @@ _MODEL_NATIVE_REQUIRED_SPECIALISTS = (
     "chart_geometry_encoder",
     "price_action_candle_encoder",
 )
-
-_MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS = tuple(
-    (f"y_dip_mae_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in (12, 48, 96)
-) + tuple(
-    (f"y_dip_mfe_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in (12, 48, 96)
-) + tuple(
-    (f"y_forecast_ret_K{horizon}", horizon)
-    for horizon in (1, 5, 12, 24)
-) + tuple(
-    (f"y_dip_bottom_frac_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in (12, 48, 96)
-) + tuple(
-    (f"y_time_to_mfe_frac_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in (12, 48, 96)
-) + tuple(
-    (f"y_tail_mae_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
-    for horizon in (12, 48, 96)
-) + tuple(
-    (f"y_vol_fwd_K{horizon}", horizon)
-    for horizon in (12, 48, 96)
-)
-_MODEL_NATIVE_AUX_TARGET_COLUMNS = tuple(
-    name for name, _ in _MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS
-)
-_MODEL_NATIVE_AUX_TARGET_HORIZONS = {
-    name: int(horizon)
-    for name, horizon in _MODEL_NATIVE_AUX_TARGET_HORIZON_ITEMS
-}
-
 
 def _require_mapping_field(parent: Mapping[str, Any], key: str, *, context: str) -> Mapping[str, Any]:
     value = parent.get(key)
@@ -281,21 +257,10 @@ def _require_exact_model_native_bundle_metadata(
         lock["model_native_learned_component_movement"],
         context="ENTRY_BUNDLE_LOCK",
     )
-    aux_contract = meta["aux_head_target_contract"]
-    if not isinstance(aux_contract, Mapping):
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_AUX_TARGET_CONTRACT_MISSING]")
-    if (
-        aux_contract.get("schema_version") != "entry_model_native_aux_targets_v2"
-        or aux_contract.get("columns") != list(_MODEL_NATIVE_AUX_TARGET_COLUMNS)
-        or aux_contract.get("future_horizon_bars_by_column")
-        != _MODEL_NATIVE_AUX_TARGET_HORIZONS
-        or aux_contract.get("max_future_horizon_bars") != 96
-        or aux_contract.get("spread_aware_risk_magnitudes_required") is not True
-        or aux_contract.get("mid_price_timing_reference_only") is not True
-        or aux_contract.get("incomplete_value") != "NaN_before_emission_only"
-        or aux_contract.get("incomplete_rows_may_be_emitted") is not False
-    ):
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_AUX_TARGET_CONTRACT_INVALID]")
+    require_model_native_aux_target_contract(
+        meta["aux_head_target_contract"],
+        context="ENTRY_BUNDLE_MODEL_NATIVE",
+    )
     if meta["contract_mode"] != MODEL_NATIVE_CONTRACT_MODE:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MODE_MISSING]")
     if meta["direction_logit_mode"] != MODEL_NATIVE_DIRECTION_LOGIT_MODE:

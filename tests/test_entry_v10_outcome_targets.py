@@ -58,12 +58,14 @@ def test_aux_targets_have_exact_horizons_and_no_fake_tail_values() -> None:
 def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     contract = model_native_aux_target_contract_metadata()
 
-    assert contract["schema_version"] == "entry_model_native_aux_targets_v2"
+    assert contract["schema_version"] == "entry_model_native_aux_targets_v3"
+    assert len(contract["columns"]) == 46
     assert contract["columns"] == list(MODEL_NATIVE_AUX_TARGET_COLUMNS)
     assert contract["max_future_horizon_bars"] == 96
     assert contract["spread_aware_risk_magnitudes_required"] is True
     assert contract["mid_price_timing_reference_only"] is True
     assert contract["incomplete_rows_may_be_emitted"] is False
+    assert contract["offline_rl"]["action_value_layout"] == "action_major_then_horizon"
 
 
 def test_aux_risk_magnitude_uses_executable_spread_path() -> None:
@@ -83,6 +85,26 @@ def test_aux_risk_magnitude_uses_executable_spread_path() -> None:
     )
     assert targets["y_dip_mfe_long_K12"][0] == pytest.approx(expected_long_mfe)
     assert targets["y_dip_mfe_short_K12"][0] == pytest.approx(expected_short_mfe)
+
+
+def test_action_values_are_full_counterfactual_spread_aware_path_utilities() -> None:
+    frame = _spread_tape()
+    targets, _ = _build_model_native_aux_head_targets(frame)
+
+    entry_ask = frame.loc[0, "ask_close"]
+    long_pnl = (frame.loc[12, "bid_close"] - entry_ask) / entry_ask * 1e4
+    long_mfe = (frame.loc[12, "bid_high"] - entry_ask) / entry_ask * 1e4
+    long_mae = max(
+        0.0,
+        (entry_ask - frame.loc[1:12, "bid_low"].min()) / entry_ask * 1e4,
+    )
+    expected_long = long_pnl + 0.35 * long_mfe - 1.15 * long_mae + 0.25 * (
+        long_mfe - long_mae
+    )
+
+    assert targets["y_action_value_long_K12"][0] == pytest.approx(expected_long)
+    assert targets["y_action_value_short_K12"][0] < 0.0
+    assert targets["y_action_value_flat_K12"][0] == 0.0
 
 
 def test_aux_target_validator_rejects_finite_incomplete_tail() -> None:

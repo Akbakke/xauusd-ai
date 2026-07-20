@@ -27,10 +27,10 @@ full-field liveness + field order/hash + feature/target/specialist audits
 eight specialist encoders + temporal/MTF/cross-TF/FiLM fusion
         |
         v
-20 supervised evidence heads
+22 supervised evidence heads
         |
         v
-exact 23-group / 75-dimension evidence fusion -> 128 hidden -> 3 logits
+exact 26-group / 96-dimension evidence fusion -> 128 hidden -> 3 logits
         |
         v
 immutable calibration on declared calibration data
@@ -135,15 +135,28 @@ and head declaration. `gx1/contracts/entry_model_native_training_objective_v1.py
 requires every advertised objective to have a positive loss weight. A head
 cannot be retained as an unsupervised decoration.
 
+`gx1/contracts/entry_model_native_aux_targets_v3.py` is the sole owner of the
+46-column future-target surface. It includes nine spread-aware, full-
+counterfactual LONG/SHORT/FLAT path-utility targets at K12/K48/K96.
+`gx1/contracts/entry_model_native_offline_rl_v1.py` owns action/horizon order,
+reward scaling, expectile and ranking math. There is no logged-behavior/AWR
+objective, Bellman backup, replay policy or separate Entry-IQL runtime.
+
 Direction training includes the public three-class objective, MTF direction,
 tail and slice behavior, utility margins/triad, trade/side hierarchy and
 validity. Supporting objectives include path quality, MFE, tradability,
 bad-path, clean-edge, survival, timing, tail/volatility, TF agreement,
 trendline rail and position size.
 
-The final direction layer is one exact learned fusion. Its ordered input is 23
-evidence groups / 75 values, followed by `LayerNorm(75)`, a learned
-`75 -> 128` projection, GELU and a learned `128 -> 3` projection. Immutable
+Internal contextual-bandit objectives directly regress `Q(s,a,K)` to all nine
+counterfactual rewards, train `V(s,K)` toward the expectile of detached
+`max_a Q`, and enforce a small reward-defined action-ranking margin.
+`Adv(s,a,K)=Q(s,a,K)-V(s,K)` is derived exactly. Q, V and Advantage are learned
+evidence in the final fusion; none is an independent direction selector.
+
+The final direction layer is one exact learned fusion. Its ordered input is 26
+evidence groups / 96 values, followed by `LayerNorm(96)`, a learned
+`96 -> 128` projection, GELU and a learned `128 -> 3` projection. Immutable
 calibration is applied after those raw `LONG/SHORT/FLAT` logits; exact argmax
 remains the only public direction selection.
 
@@ -161,9 +174,9 @@ serve-time evidence schema. The same validator is called by the model-native
 decision adapter, `TradeState` persistence/recovery, `TradeJournal` writes and
 reloads, and the daily trade review. It requires exact calibrated direction,
 trade/flat and side parity plus all hierarchy, path, utility, calibration,
-MTF, eight-specialist, geometry and learned-size evidence. Missing, unexpected,
-non-finite, inconsistent or retired overlay fields fail closed; consumers do
-not fill or infer them.
+MTF, eight-specialist, geometry, learned-size and exact Q/V/Advantage evidence.
+It also validates `Adv=Q-V`. Missing, unexpected, non-finite, inconsistent or
+retired overlay fields fail closed; consumers do not fill or infer them.
 
 `position_size_logit` and `position_size_pred` are mandatory learned evidence.
 The sizing diagnostic additionally binds its calibration bytes, XAU instrument
@@ -228,7 +241,7 @@ bound prerequisite evidence are still required.
 
 `gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py` is the canonical exact
 bundle audit despite its historical filename. It strict-loads the state and
-proves metadata/lock/state hashes, objective identity, dimensions, 20 active
+proves metadata/lock/state hashes, objective identity, dimensions, 22 active
 heads, eight specialists, exact learned fusion, learned-component movement,
 MTF/cross-TF/positional/FiLM/timeframe-scale wiring and immutable validation/
 test behavior. Direction claims require exact support, confusion counts and

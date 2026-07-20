@@ -17,6 +17,12 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUT_DIM as EXACT_EVIDENCE_FUSION_INPUT_DIM,
     INPUTS as EXACT_EVIDENCE_FUSION_OUTPUTS,
 )
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_COUNT as OFFLINE_RL_ACTION_COUNT,
+    ACTION_VALUE_DIM,
+    EXPECTILE_VALUE_DIM,
+    HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
+)
 
 
 def _assert_shape(name: str, t: torch.Tensor, nd: int) -> None:
@@ -387,6 +393,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.head_timing = nn.Linear(d_model, TIMING_HEAD_DIM)
         self.head_tail_risk = nn.Linear(d_model, TAIL_RISK_HEAD_DIM)
         self.head_vol_forecast = nn.Linear(d_model, VOL_FORECAST_HEAD_DIM)
+        self.head_action_value = nn.Linear(d_model, ACTION_VALUE_DIM)
+        self.head_expectile_value = nn.Linear(d_model, EXPECTILE_VALUE_DIM)
         self.evidence_fusion_norm = nn.LayerNorm(EXACT_EVIDENCE_FUSION_INPUT_DIM)
         self.evidence_fusion_in = nn.Linear(
             EXACT_EVIDENCE_FUSION_INPUT_DIM, EXACT_EVIDENCE_FUSION_HIDDEN_DIM
@@ -750,7 +758,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "timing_pred": self.head_timing(z),
             "tail_risk_pred": self.head_tail_risk(z),
             "vol_forecast_pred": self.head_vol_forecast(z),
+            "action_value": self.head_action_value(z),
+            "expectile_value": self.head_expectile_value(z),
         }
+        action_value_cube = exact_outputs["action_value"].reshape(
+            B,
+            OFFLINE_RL_ACTION_COUNT,
+            OFFLINE_RL_HORIZON_COUNT,
+        )
+        action_advantage = (
+            action_value_cube - exact_outputs["expectile_value"].unsqueeze(1)
+        ).reshape(B, ACTION_VALUE_DIM)
+        _assert_finite("action_advantage", action_advantage)
+        exact_outputs["action_advantage"] = action_advantage
         for output_name, value in exact_outputs.items():
             _assert_finite(output_name, value)
 

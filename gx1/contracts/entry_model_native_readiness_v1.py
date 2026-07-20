@@ -20,6 +20,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
 )
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    offline_rl_contract_metadata,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -35,6 +38,8 @@ MODEL_NATIVE_EXTRA_ACTIVE_HEADS = (
     "trade_side_hierarchy",
     "trendline_rail",
     "side_validity",
+    "offline_rl_action_value",
+    "offline_rl_expectile_value",
     "model_native_evidence_fusion",
 )
 MODEL_NATIVE_ACTIVE_HEADS = (
@@ -78,6 +83,7 @@ def model_native_readiness_contract_metadata() -> dict[str, Any]:
         "model_native_direction_evidence_fusion": (
             direction_evidence_fusion_metadata()
         ),
+        "model_native_offline_rl": offline_rl_contract_metadata(),
         "secondary_direction_authority_allowed": False,
         "mutable_latest_evidence_allowed": False,
     }

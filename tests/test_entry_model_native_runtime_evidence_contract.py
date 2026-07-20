@@ -9,6 +9,8 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
     ModelNativeRuntimeEvidenceError,
     require_model_native_entry_time,
     require_model_native_runtime_evidence,
@@ -54,10 +56,16 @@ def _valid_evidence() -> dict:
     tf_logit = 0.4
     size_logit = -0.2
     path_log_var = math.log(0.25)
+    action_value = [0.4, 0.5, 0.6, -0.2, -0.1, 0.0, 0.0, 0.0, 0.0]
+    expectile_value = [0.1, 0.2, 0.3]
+    action_advantage = [
+        value - expectile_value[index % 3]
+        for index, value in enumerate(action_value)
+    ]
     return {
         "decision_ts": "2026-07-08T17:55:00+00:00",
-        "runtime_evidence_schema_version": "entry_model_native_runtime_evidence_v1",
-        "model_policy": "xau_seq513_model_native_direction_argmax_v1",
+        "runtime_evidence_schema_version": MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+        "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
         "session_id": 2,
         "session": "OVERLAP",
         "raw_direction_logits": [2.09, 0.33, -1.1],
@@ -95,6 +103,9 @@ def _valid_evidence() -> dict:
         "timing_pred": [0.0] * 12,
         "tail_risk_pred": [0.0] * 6,
         "vol_forecast_pred": [0.0] * 3,
+        "action_value": action_value,
+        "expectile_value": expectile_value,
+        "action_advantage": action_advantage,
         "atr_bps": 12.0,
         "tf_agreement_logit": tf_logit,
         "tf_agreement_pred": _sigmoid(tf_logit),
@@ -284,6 +295,17 @@ def test_runtime_evidence_contract_rejects_aux_head_parity_mismatch() -> None:
     with pytest.raises(
         ModelNativeRuntimeEvidenceError,
         match="clean_edge_prob: parity mismatch",
+    ):
+        require_model_native_runtime_evidence(evidence, context="CONTRACT_TEST")
+
+
+def test_runtime_evidence_contract_rejects_q_v_advantage_mismatch() -> None:
+    evidence = _valid_evidence()
+    evidence["action_advantage"][4] += 0.25
+
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="action_advantage: parity mismatch",
     ):
         require_model_native_runtime_evidence(evidence, context="CONTRACT_TEST")
 
@@ -544,7 +566,7 @@ def test_trade_journal_rejects_wrapper_entry_minute_tamper(tmp_path: Path) -> No
                 entry_ask=2360.2,
                 entry_spread_bps=(0.2 / 2360.0) * 10_000.0,
                 session="OVERLAP",
-                model_policy="xau_seq513_model_native_direction_argmax_v1",
+                model_policy=MODEL_NATIVE_RUNTIME_POLICY,
                 execution_checks=["fresh_quote", "model_native_sizing_authority"],
                 atr_bps=12.0,
             )

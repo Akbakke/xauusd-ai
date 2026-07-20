@@ -21,15 +21,20 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_FUSION_INPUTS,
 )
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_VALUE_DIM,
+    EXPECTILE_VALUE_DIM,
+    HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
 
 
 MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_evidence_v1"
+    "entry_model_native_runtime_evidence_v2"
 )
-MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v1"
+MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v2"
 MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC = 300.0
 MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC = 90.0
 MODEL_DIRECTION_NAMES = ("LONG", "SHORT", "FLAT")
@@ -339,7 +344,7 @@ def require_model_native_runtime_evidence(
     if validated.get("session") != MODEL_NATIVE_SESSION_NAMES[session_id]:
         _fail(context, "session", "session_id/name mismatch")
 
-    # Every exact raw tensor that enters the sole learned 75-wide direction
+    # Every exact raw tensor that enters the sole learned 96-wide direction
     # fusion is mandatory runtime evidence with its immutable width.  This is
     # observability only; the final calibrated direction argmax remains the
     # sole executable direction authority.
@@ -353,6 +358,35 @@ def require_model_native_runtime_evidence(
                 fusion_width,
                 context=context,
             )
+
+    action_value = _finite_vector(
+        validated,
+        "action_value",
+        ACTION_VALUE_DIM,
+        context=context,
+    )
+    expectile_value = _finite_vector(
+        validated,
+        "expectile_value",
+        EXPECTILE_VALUE_DIM,
+        context=context,
+    )
+    action_advantage = _finite_vector(
+        validated,
+        "action_advantage",
+        ACTION_VALUE_DIM,
+        context=context,
+    )
+    expected_advantage = tuple(
+        action_value[index] - expectile_value[index % OFFLINE_RL_HORIZON_COUNT]
+        for index in range(ACTION_VALUE_DIM)
+    )
+    _require_close(
+        action_advantage,
+        expected_advantage,
+        "action_advantage",
+        context=context,
+    )
 
     raw_direction_logits = _finite_vector(
         validated, "raw_direction_logits", 3, context=context

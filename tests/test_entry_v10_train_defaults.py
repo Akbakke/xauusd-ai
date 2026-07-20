@@ -70,6 +70,9 @@ def test_entry_v10_bad_path_and_path_quality_evidence_are_trained() -> None:
     assert env_defaults["ENTRY_AUX_BAD_PATH_WEIGHT"] == "1.25"
     assert env_defaults["ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT"] == "2.00"
     assert env_defaults["ENTRY_PATH_QUALITY_RANK_WEIGHT"] == "2.00"
+    assert env_defaults["ENTRY_OFFLINE_RL_Q_WEIGHT"] == "0.50"
+    assert env_defaults["ENTRY_OFFLINE_RL_V_WEIGHT"] == "0.20"
+    assert env_defaults["ENTRY_OFFLINE_RL_RANK_WEIGHT"] == "0.05"
 
 
 def test_entry_v10_pred_balance_loss_runs_when_cost_sensitive_is_disabled() -> None:
@@ -1948,10 +1951,10 @@ def test_entry_v10_train_model_uses_exact_evidence_fusion_contract() -> None:
 
     text = TRAINER_PATH.read_text(encoding="utf-8")
     train_ctor = text.split("model = EntryV10CtxHybridTransformer(", 1)[1].split(").to(device)", 1)[0]
-    assert len(INPUTS) == 23
-    assert sum(width for _, width in INPUTS) == INPUT_DIM == 75
+    assert len(INPUTS) == 26
+    assert sum(width for _, width in INPUTS) == INPUT_DIM == 96
     assert (HIDDEN_DIM, OUTPUT_DIM) == (128, 3)
-    assert FUSION_MODE == "sole_learned_acyclic_75x128x3"
+    assert FUSION_MODE == "sole_learned_acyclic_96x128x3"
     assert direction_evidence_fusion_metadata()["sole_direction_path"] is True
     assert "_capture_evidence_fusion_initial_state(model)" in text
     for retired in (

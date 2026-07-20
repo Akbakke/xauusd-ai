@@ -29,9 +29,9 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
 )
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
-    "xau_model_native_exact_test_full_stack_serve_gate_v2"
+    "xau_model_native_exact_test_full_stack_serve_gate_v3"
 )
-MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v2"
+MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v3"
 MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION = (
     "model_native_direction_pocket_audit_v1"
 )
@@ -129,6 +129,11 @@ SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS = {
     },
     "trendline_rail": {"trendline_rail_logits": 6},
     "side_validity": {"side_validity_logit": 2},
+    "offline_rl_action_value": {
+        "action_value": 9,
+        "action_advantage": 9,
+    },
+    "offline_rl_expectile_value": {"expectile_value": 3},
     "model_native_evidence_fusion": dict(DIRECTION_EVIDENCE_FUSION_INPUTS),
 }
 SERVE_PARITY_HEAD_VARIATION_EPSILON = 1e-8

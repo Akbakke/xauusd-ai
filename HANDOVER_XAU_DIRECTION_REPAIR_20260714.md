@@ -86,8 +86,10 @@ This hardening does not create either missing artifact or authorize a run.
 - all advertised direction, hierarchy, path, utility, timing, tail,
   volatility, validity, specialist, TF-agreement and size heads supervised
   with positive objective weight;
-- exactly 20 active heads feeding one ordered learned 23-group/75-value fusion
-  (`LayerNorm(75) -> Linear(128) -> GELU -> Linear(3)`);
+- exactly 22 active heads feeding one ordered learned 26-group/96-value fusion
+  (`LayerNorm(96) -> Linear(128) -> GELU -> Linear(3)`);
+- full-counterfactual LONG/SHORT/FLAT Q targets and expectile-V at K12/K48/K96,
+  with exact Q/V/Advantage export and no separate IQL policy;
 - final calibrated `argmax([LONG, SHORT, FLAT])` is the sole direction authority;
 - one exact runtime evidence snapshot, validated unchanged at decision,
   `TradeState`, journal and daily-review boundaries;
