@@ -4,6 +4,25 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-20 — top/bottom and Q/V evidence must be target-aligned
+
+Non-constant head output is not sufficient learned evidence. Target foundation
+audit v2 requires the complete canonical schema-v4 46-target surface in every
+split. The timing layout explicitly maps LONG adverse-turn timing to `BOTTOM`
+and SHORT adverse-turn timing to `TOP`; `time_to_mfe` is mandatory rather than
+an optional column. LONG/SHORT counterfactual Q targets must be live, FLAT Q
+targets must be exact zero reward, and all three unique reward-best actions
+must have non-collapsed support at every horizon.
+
+Immutable prediction evidence v2 and smoke bundle audit v2 require VAL and
+TEST timing-to-target Spearman/MAE, precise supported model-claimed near-turn
+LONG/BOTTOM and SHORT/TOP pockets, Q-to-reward alignment and action-ranking,
+V/max-Q alignment and exact `Advantage=Q-V`. Thresholds are hash-bound in
+foundation audit policy v3 and cannot be changed by CLI or environment. Reward
+ties are excluded from Q ranking instead of inheriting LONG from array order.
+These metrics audit the one final model path; they do not threshold or replace
+live direction. This source hardening authorizes no rebuild or training.
+
 ## 2026-07-20 — one model-native offline-RL fusion, not a second IQL policy
 
 The deleted legacy Entry-IQL runtime is not restored as an Entry authority.

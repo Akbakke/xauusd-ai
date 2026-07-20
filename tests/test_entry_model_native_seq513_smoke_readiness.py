@@ -6,6 +6,11 @@ from pathlib import Path
 import pytest
 
 from gx1.contracts.entry_full_input_liveness_v1 import SCHEMA_VERSION as LIVENESS_SCHEMA
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_AUDIT_DATA_SPLITS,
+    foundation_audit_policy_binding,
+    foundation_audit_policy_enforcement,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -14,6 +19,9 @@ from gx1.scripts import materialize_entry_model_native_seq513_smoke_manifest_v1 
 from gx1.scripts import verify_entry_model_native_seq513_trainability_readiness_v1 as trainability_gate
 from gx1.scripts import verify_entry_model_native_seq513_smoke_readiness_v1 as readiness
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
+from tests.model_native_offline_rl_support import (
+    model_native_target_audit_evidence,
+)
 
 
 def _write_json(path: Path, data: dict) -> None:
@@ -146,13 +154,16 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         tmp_path / "ENTRY_TARGET_FOUNDATION_AUDIT_20260716T120004123456Z.json",
         {
+            "schema_version": "entry_target_foundation_audit_v2",
+            **foundation_audit_policy_binding(),
+            "foundation_audit_policy_enforcement": (
+                foundation_audit_policy_enforcement("target")
+            ),
             "decision": "PASS",
             "dataset_dir": str(smart_dataset_dir),
             "failures": [],
-            "target_head_contract": {
-                "active_training_heads": list(readiness.SPECIALIST_FUSION_ACTIVE_HEADS),
-                "blocked_heads": list(readiness.SPECIALIST_FUSION_BLOCKED_HEADS),
-            },
+            "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            **model_native_target_audit_evidence(),
         },
     )
     specialist_indices = {
@@ -481,6 +492,25 @@ def test_model_native_seq513_smoke_readiness_fails_closed_on_blocked_manifest_re
     assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
     assert report["training_allowed"] is False
     assert "model-native smoke manifest event is ready" in blockers
+
+
+def test_model_native_seq513_smoke_readiness_rejects_stale_target_audit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    target_path = Path(args.smart_target_audit_json)
+    target = json.loads(target_path.read_text(encoding="utf-8"))
+    target["schema_version"] = "entry_target_foundation_audit_v1"
+    target.pop("model_native_aux_target_contract")
+    _write_json(target_path, target)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = _run_blocked(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
+    assert "smart target audit proves exact aux-v3 and offline-RL targets" in blockers
 
 
 def test_model_native_seq513_smoke_readiness_fails_closed_on_stale_manifest_provenance(

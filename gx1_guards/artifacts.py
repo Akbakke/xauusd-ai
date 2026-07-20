@@ -70,7 +70,7 @@ SERVE_GATE_PREDICTION_PATH_FIELDS = {
     "model_native_direction_pocket_audit": "predictions_parquet",
 }
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v1"
+    "entry_candidate_model_direction_prediction_evidence_v2"
 )
 REQUIRED_XAU_CTX_CONT_DIM = 142
 REQUIRED_XAU_CTX_CAT_DIM = 5

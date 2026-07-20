@@ -16,8 +16,16 @@ from typing import Any
 
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     foundation_audit_policy_binding,
     require_foundation_audit_report_policy,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
+    require_model_native_aux_target_contract,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    require_offline_rl_contract_metadata,
 )
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
@@ -474,10 +482,38 @@ def _target_checks(
     )
     active = tuple(str(value) for value in contract.get("active_training_heads", []))
     blocked = tuple(str(value) for value in contract.get("blocked_heads", []))
+    extra = tuple(
+        str(value) for value in contract.get("extra_active_target_heads", [])
+    )
+    extra_liveness = contract.get("extra_active_target_head_liveness")
+    aux_contract_valid = True
+    aux_contract_error = None
+    try:
+        require_model_native_aux_target_contract(
+            report.get("model_native_aux_target_contract"),
+            context="ADOPTION_TARGET_AUDIT",
+        )
+    except RuntimeError as exc:
+        aux_contract_valid = False
+        aux_contract_error = str(exc)
+    offline_rl_target = report.get("offline_rl_target_contract")
+    offline_rl_valid = bool(
+        isinstance(offline_rl_target, dict)
+        and offline_rl_target.get("decision") == "PASS"
+        and offline_rl_target.get("failures") == []
+    )
+    if offline_rl_valid:
+        try:
+            require_offline_rl_contract_metadata(
+                offline_rl_target.get("offline_rl_contract"),
+                context="ADOPTION_TARGET_AUDIT",
+            )
+        except RuntimeError:
+            offline_rl_valid = False
     return [
         *_base_evidence_checks(
             report,
-            schema_version="entry_target_foundation_audit_v1",
+            schema_version=FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
             audit_kind="target",
             dataset_dir=dataset_dir,
             split_rows=split_rows,
@@ -491,6 +527,27 @@ def _target_checks(
                 "observed_active_heads": list(active),
                 "expected_blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
                 "observed_blocked_heads": list(blocked),
+            },
+        ),
+        _check(
+            "target audit proves canonical aux-v3 and offline-RL targets",
+            aux_contract_valid
+            and offline_rl_valid
+            and extra == MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            and isinstance(extra_liveness, dict)
+            and all(
+                extra_liveness.get(head) is True
+                for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            ),
+            {
+                "aux_contract_valid": aux_contract_valid,
+                "aux_contract_error": aux_contract_error,
+                "offline_rl_target_valid": offline_rl_valid,
+                "expected_extra_active_target_heads": list(
+                    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+                ),
+                "observed_extra_active_target_heads": list(extra),
+                "extra_active_target_head_liveness": extra_liveness,
             },
         ),
     ]

@@ -22,6 +22,15 @@ import pyarrow.parquet as pq
 from gx1.contracts.immutable_event_authority_v1 import (
     require_newest_immutable_event,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_TIMING_OUTPUT_DIM,
+    MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_VALUE_DIM,
+    ACTION_VALUE_TARGET_COLUMNS,
+    EXPECTILE_VALUE_DIM,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     require_model_direction_decision_contract,
@@ -29,7 +38,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v1"
+    "entry_candidate_model_direction_prediction_evidence_v2"
 )
 AUTHORITATIVE_PREDICTIONS_PREFIX = "selective_edge_predictions_"
 REPORT_PREFIX = "ENTRY_CANDIDATE_SELECTIVE_EDGE_"
@@ -51,6 +60,12 @@ REQUIRED_MODEL_DIRECTION_COLUMNS = (
     "public_trade_flat_hard_decision",
     "direction_logits",
     "public_trade_flat_decision_logits",
+    "timing_pred",
+    *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    "action_value",
+    "expectile_value",
+    "action_advantage",
+    *ACTION_VALUE_TARGET_COLUMNS,
 )
 
 
@@ -118,6 +133,31 @@ def validate_model_direction_parquet_semantics(path: Path) -> None:
 
     direction_logits = matrix("direction_logits", 3)
     public_logits = matrix("public_trade_flat_decision_logits", 2)
+    timing_pred = matrix("timing_pred", MODEL_NATIVE_TIMING_OUTPUT_DIM)
+    action_value = matrix("action_value", ACTION_VALUE_DIM)
+    expectile_value = matrix("expectile_value", EXPECTILE_VALUE_DIM)
+    action_advantage = matrix("action_advantage", ACTION_VALUE_DIM)
+    expected_advantage = (
+        action_value.reshape(len(frame), 3, EXPECTILE_VALUE_DIM)
+        - expectile_value[:, None, :]
+    ).reshape(len(frame), ACTION_VALUE_DIM)
+    if not np.allclose(
+        action_advantage,
+        expected_advantage,
+        rtol=1e-6,
+        atol=1e-7,
+    ):
+        raise RuntimeError("prediction evidence action_advantage does not equal Q-V")
+    if np.any(timing_pred < 0.0) or np.any(timing_pred > 1.0):
+        raise RuntimeError("prediction evidence timing_pred is outside [0,1]")
+    for target_column in MODEL_NATIVE_TIMING_TARGET_COLUMNS:
+        target = numeric(target_column)
+        if np.any(target < 0.0) or np.any(target > 1.0):
+            raise RuntimeError(
+                f"prediction evidence {target_column} is outside [0,1]"
+            )
+    for target_column in ACTION_VALUE_TARGET_COLUMNS:
+        numeric(target_column)
     expected_public_logits = np.column_stack(
         [np.maximum(direction_logits[:, 0], direction_logits[:, 1]), direction_logits[:, 2]]
     )

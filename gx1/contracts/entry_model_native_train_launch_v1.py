@@ -19,6 +19,17 @@ from typing import Any, Mapping, Sequence
 from gx1.contracts.entry_full_input_liveness_v1 import (
     validate_full_input_liveness_artifact,
 )
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
+    require_foundation_audit_report_policy,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
+    require_model_native_aux_target_contract,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    require_offline_rl_contract_metadata,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -435,8 +446,45 @@ def _validate_audits(
     _require(int(feature.get("ctx_cat_dim_v3") or 0) == MODEL_NATIVE_CTX_CAT_DIM, "feature audit categorical context width mismatch")
 
     target = payloads["target_audit_json"]
-    _zero_failure(target, label="target audit", schema="entry_target_foundation_audit_v1", decision="PASS")
+    _zero_failure(
+        target,
+        label="target audit",
+        schema=FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
+        decision="PASS",
+    )
     _require(Path(str(target.get("dataset_dir") or "")).resolve() == dataset_dir, "target audit dataset mismatch")
+    require_foundation_audit_report_policy(
+        target,
+        audit_kind="target",
+        context="TRAIN_LAUNCH_TARGET_AUDIT",
+    )
+    require_model_native_aux_target_contract(
+        target.get("model_native_aux_target_contract"),
+        context="TRAIN_LAUNCH_TARGET_AUDIT",
+    )
+    offline_rl_target = target.get("offline_rl_target_contract")
+    _require(
+        isinstance(offline_rl_target, Mapping)
+        and offline_rl_target.get("decision") == "PASS"
+        and not offline_rl_target.get("failures"),
+        "target audit offline-RL target proof failed",
+    )
+    require_offline_rl_contract_metadata(
+        offline_rl_target.get("offline_rl_contract"),
+        context="TRAIN_LAUNCH_TARGET_AUDIT",
+    )
+    target_heads = target.get("target_head_contract")
+    _require(
+        isinstance(target_heads, Mapping)
+        and tuple(target_heads.get("extra_active_target_heads") or ())
+        == MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+        and all(
+            (target_heads.get("extra_active_target_head_liveness") or {}).get(head)
+            is True
+            for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+        ),
+        "target audit extra active target-head proof failed",
+    )
 
     specialist = payloads["specialist_audit_json"]
     _zero_failure(specialist, label="specialist audit", schema="entry_specialist_feature_group_audit_v1", decision="PASS")

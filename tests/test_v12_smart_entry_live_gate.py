@@ -179,7 +179,7 @@ def _write_gate_artifacts(
     dataset_parquet = f"{dataset_dir}/entry_model_native_test.parquet"
     prediction_path = "/home/andre2/GX1_DATA/reports/xau_direction_repair_predictions.parquet"
     prediction_evidence = {
-        "schema_version": "entry_candidate_model_direction_prediction_evidence_v1",
+        "schema_version": "entry_candidate_model_direction_prediction_evidence_v2",
         "authoritative": True,
         "path": prediction_path,
         "sha256": "a" * 64,

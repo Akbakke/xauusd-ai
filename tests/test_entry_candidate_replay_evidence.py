@@ -28,6 +28,10 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     atomic_write_parquet_immutable,
     build_prediction_evidence_declaration,
 )
+from tests.model_native_turning_point_support import (
+    turning_point_prediction_columns,
+)
+from tests.model_native_offline_rl_support import offline_rl_prediction_columns
 from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import (
     REPLAY_REQUIRED_SPLIT,
     REPLAY_REQUIRED_YEAR,
@@ -126,6 +130,8 @@ def _write_identity_fixture(tmp_path: Path) -> tuple[Path, Path, Path, dict]:
             "public_trade_flat_decision_logits": [
                 row.tolist() for row in pair_logits
             ],
+            **turning_point_prediction_columns(2),
+            **offline_rl_prediction_columns(2),
         }
     )
     stamp = "20260716T120000123456Z"

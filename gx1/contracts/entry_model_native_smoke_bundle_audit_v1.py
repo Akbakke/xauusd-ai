@@ -10,6 +10,7 @@ from typing import Any
 
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_SMOKE_SPLITS,
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     foundation_audit_policy_binding,
     foundation_audit_policy_metadata,
     require_foundation_audit_policy_binding,
@@ -20,6 +21,13 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
     require_model_native_readiness_contract,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    model_native_aux_target_contract_metadata,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
+    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
@@ -32,11 +40,11 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v1"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v2"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v1"
+    "entry_candidate_model_direction_prediction_evidence_v2"
 )
 BUNDLE_ARTIFACT_KEYS = (
     "bundle_metadata",
@@ -44,7 +52,7 @@ BUNDLE_ARTIFACT_KEYS = (
     "model_state_dict",
 )
 INPUT_AUDIT_SCHEMAS = {
-    "target": "entry_target_foundation_audit_v1",
+    "target": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     "specialist": "entry_specialist_feature_group_audit_v1",
     "pretrain": "xau_direction_repair_pretrain_audit_v1",
 }
@@ -524,6 +532,290 @@ def _context_wilson_contract(
     return dict(summary)
 
 
+def _turning_point_contract(value: Any, *, context: str) -> dict[str, Any]:
+    expected_keys = {
+        "decision",
+        "failures",
+        "policy",
+        "layout",
+        "target_alignment",
+        "near_turn_pockets",
+        "live_direction_rule_authority",
+    }
+    proof = _zero_failure(value, context=context, exact_keys=expected_keys)
+    policy = _SMOKE_EDGE_POLICY["turning_point_evidence"]
+    _require(proof.get("policy") == policy, f"[{context}_POLICY_INVALID]")
+    _require(
+        proof.get("live_direction_rule_authority") is False,
+        f"[{context}_LIVE_RULE_AUTHORITY_INVALID]",
+    )
+    expected_layout = model_native_aux_target_contract_metadata()[
+        "turning_point_timing"
+    ]["layout"]
+    _require(proof.get("layout") == expected_layout, f"[{context}_LAYOUT_INVALID]")
+
+    alignment = proof.get("target_alignment")
+    _require(
+        isinstance(alignment, list) and len(alignment) == len(expected_layout),
+        f"[{context}_ALIGNMENT_INVALID]",
+    )
+    min_spearman = float(policy["min_prediction_target_spearman"])
+    max_mae = float(policy["max_prediction_target_mae"])
+    for index, expected in enumerate(expected_layout):
+        row = alignment[index]
+        _require(isinstance(row, Mapping), f"[{context}_ALIGNMENT_ROW_INVALID]")
+        _require(
+            set(row) == set(expected) | {"spearman", "mae", "decision", "failures"},
+            f"[{context}_ALIGNMENT_ROW_KEYS_INVALID]",
+        )
+        for key, expected_value in expected.items():
+            _require(
+                row.get(key) == expected_value,
+                f"[{context}_ALIGNMENT_LAYOUT_INVALID]",
+            )
+        _require(
+            row.get("decision") == PASS_DECISION and row.get("failures") == [],
+            f"[{context}_ALIGNMENT_NOT_PASS]",
+        )
+        _require(
+            _finite_float(row.get("spearman"), context=f"{context}_SPEARMAN")
+            >= min_spearman,
+            f"[{context}_SPEARMAN_BELOW_POLICY]",
+        )
+        _require(
+            0.0
+            <= _finite_float(row.get("mae"), context=f"{context}_MAE")
+            <= max_mae,
+            f"[{context}_MAE_ABOVE_POLICY]",
+        )
+
+    pockets = proof.get("near_turn_pockets")
+    _require(
+        isinstance(pockets, Mapping) and set(pockets) == {"BOTTOM", "TOP"},
+        f"[{context}_POCKET_SET_INVALID]",
+    )
+    pocket_keys = {
+        "decision",
+        "failures",
+        "model_direction",
+        "timing_output_index",
+        "evaluation_horizon_bars",
+        "near_turn_max_fraction",
+        "rows",
+        "direction_successes",
+        "direction_precision",
+        "direction_precision_wilson_lower",
+        "timing_successes",
+        "timing_precision",
+        "timing_precision_wilson_lower",
+    }
+    z_score = float(_SMOKE_EDGE_POLICY["wilson_z_score"])
+    for turn, direction in (("BOTTOM", "LONG"), ("TOP", "SHORT")):
+        row = _zero_failure(
+            pockets[turn],
+            context=f"{context}_{turn}",
+            exact_keys=pocket_keys,
+        )
+        _require(
+            row.get("model_direction") == direction,
+            f"[{context}_{turn}_DIRECTION_INVALID]",
+        )
+        _require(
+            row.get("evaluation_horizon_bars")
+            == int(policy["evaluation_horizon_bars"]),
+            f"[{context}_{turn}_HORIZON_INVALID]",
+        )
+        _exact_policy_float(
+            row.get("near_turn_max_fraction"),
+            float(policy["near_turn_max_fraction"]),
+            context=f"{context}_{turn}_MAX_FRACTION",
+        )
+        rows = _exact_int(
+            row.get("rows"),
+            context=f"{context}_{turn}_ROWS",
+            minimum=int(policy["min_near_turn_trade_rows_per_side"]),
+        )
+        direction_successes = _exact_int(
+            row.get("direction_successes"),
+            context=f"{context}_{turn}_DIRECTION_SUCCESSES",
+        )
+        timing_successes = _exact_int(
+            row.get("timing_successes"),
+            context=f"{context}_{turn}_TIMING_SUCCESSES",
+        )
+        _require(
+            direction_successes <= rows and timing_successes <= rows,
+            f"[{context}_{turn}_SUCCESSES_INVALID]",
+        )
+        direction_precision = direction_successes / rows
+        timing_precision = timing_successes / rows
+        direction_wilson = _wilson_lower(
+            direction_successes, rows, z_score=z_score
+        )
+        timing_wilson = _wilson_lower(timing_successes, rows, z_score=z_score)
+        for name, expected_value in (
+            ("direction_precision", direction_precision),
+            ("timing_precision", timing_precision),
+            ("direction_precision_wilson_lower", direction_wilson),
+            ("timing_precision_wilson_lower", timing_wilson),
+        ):
+            _metric_equal(
+                _finite_float(row.get(name), context=f"{context}_{turn}_{name}"),
+                expected_value,
+                context=f"{context}_{turn}_{name}",
+            )
+        _require(
+            direction_precision >= float(policy["min_near_turn_direction_precision"])
+            and direction_wilson
+            >= float(policy["min_near_turn_precision_wilson_lower"]),
+            f"[{context}_{turn}_DIRECTION_EDGE_UNPROVEN]",
+        )
+        _require(
+            timing_precision >= float(policy["min_near_turn_timing_precision"])
+            and timing_wilson
+            >= float(policy["min_near_turn_timing_precision_wilson_lower"]),
+            f"[{context}_{turn}_TIMING_EDGE_UNPROVEN]",
+        )
+    return dict(proof)
+
+
+def _offline_rl_contract(value: Any, *, context: str) -> dict[str, Any]:
+    expected_keys = {
+        "decision",
+        "failures",
+        "policy",
+        "q_target_alignment",
+        "reward_argmax_ranking",
+        "value_vs_max_q",
+        "advantage_max_abs_error",
+        "separate_direction_authority",
+    }
+    proof = _zero_failure(value, context=context, exact_keys=expected_keys)
+    policy = _SMOKE_EDGE_POLICY["offline_rl_evidence"]
+    _require(proof.get("policy") == policy, f"[{context}_POLICY_INVALID]")
+    _require(
+        proof.get("separate_direction_authority") is False,
+        f"[{context}_DIRECTION_AUTHORITY_INVALID]",
+    )
+    _require(
+        0.0
+        <= _finite_float(
+            proof.get("advantage_max_abs_error"),
+            context=f"{context}_ADVANTAGE_MAX_ABS_ERROR",
+        )
+        <= float(policy["max_advantage_parity_abs"]),
+        f"[{context}_ADVANTAGE_PARITY_INVALID]",
+    )
+
+    alignment = proof.get("q_target_alignment")
+    expected_pairs = [
+        (action, int(horizon))
+        for action in OFFLINE_RL_ACTION_ORDER
+        for horizon in OFFLINE_RL_HORIZON_BARS
+    ]
+    _require(
+        isinstance(alignment, list) and len(alignment) == len(expected_pairs),
+        f"[{context}_Q_ALIGNMENT_INVALID]",
+    )
+    for row, (action, horizon) in zip(alignment, expected_pairs):
+        _require(isinstance(row, Mapping), f"[{context}_Q_ALIGNMENT_ROW_INVALID]")
+        _require(
+            set(row)
+            == {"action", "horizon_bars", "spearman", "mae_scaled", "decision", "failures"},
+            f"[{context}_Q_ALIGNMENT_KEYS_INVALID]",
+        )
+        _require(
+            row.get("action") == action and row.get("horizon_bars") == horizon,
+            f"[{context}_Q_ALIGNMENT_LAYOUT_INVALID]",
+        )
+        _require(
+            row.get("decision") == PASS_DECISION and row.get("failures") == [],
+            f"[{context}_Q_ALIGNMENT_NOT_PASS]",
+        )
+        mae = _finite_float(
+            row.get("mae_scaled"), context=f"{context}_{action}_K{horizon}_MAE"
+        )
+        _require(
+            0.0 <= mae <= float(policy["max_q_target_mae_scaled"]),
+            f"[{context}_Q_MAE_ABOVE_POLICY]",
+        )
+        if action == "FLAT":
+            _require(
+                mae <= float(policy["max_flat_q_abs_mean_scaled"]),
+                f"[{context}_FLAT_Q_ABOVE_POLICY]",
+            )
+        else:
+            _require(
+                _finite_float(
+                    row.get("spearman"),
+                    context=f"{context}_{action}_K{horizon}_SPEARMAN",
+                )
+                >= float(policy["min_q_target_spearman"]),
+                f"[{context}_Q_SPEARMAN_BELOW_POLICY]",
+            )
+
+    ranking = proof.get("reward_argmax_ranking")
+    value = proof.get("value_vs_max_q")
+    expected_horizons = {f"K{horizon}" for horizon in OFFLINE_RL_HORIZON_BARS}
+    _require(
+        isinstance(ranking, Mapping) and set(ranking) == expected_horizons,
+        f"[{context}_RANKING_SET_INVALID]",
+    )
+    _require(
+        isinstance(value, Mapping) and set(value) == expected_horizons,
+        f"[{context}_VALUE_SET_INVALID]",
+    )
+    for horizon in OFFLINE_RL_HORIZON_BARS:
+        key = f"K{horizon}"
+        rank_row = _zero_failure(
+            ranking[key],
+            context=f"{context}_{key}_RANKING",
+            exact_keys={
+                "decision",
+                "failures",
+                "unique_reward_rows",
+                "successes",
+                "accuracy",
+            },
+        )
+        rows = _exact_int(
+            rank_row.get("unique_reward_rows"),
+            context=f"{context}_{key}_UNIQUE_ROWS",
+            minimum=int(policy["min_unique_reward_rows_per_horizon"]),
+        )
+        successes = _exact_int(
+            rank_row.get("successes"),
+            context=f"{context}_{key}_SUCCESSES",
+        )
+        _require(successes <= rows, f"[{context}_{key}_SUCCESSES_INVALID]")
+        accuracy = _finite_float(
+            rank_row.get("accuracy"), context=f"{context}_{key}_ACCURACY"
+        )
+        _metric_equal(
+            accuracy,
+            successes / rows,
+            context=f"{context}_{key}_ACCURACY",
+        )
+        _require(
+            accuracy >= float(policy["min_reward_argmax_accuracy_per_horizon"]),
+            f"[{context}_{key}_RANKING_ACCURACY_BELOW_POLICY]",
+        )
+        value_row = _zero_failure(
+            value[key],
+            context=f"{context}_{key}_VALUE",
+            exact_keys={"decision", "failures", "spearman"},
+        )
+        _require(
+            _finite_float(
+                value_row.get("spearman"),
+                context=f"{context}_{key}_VALUE_SPEARMAN",
+            )
+            >= float(policy["min_value_vs_max_q_spearman"]),
+            f"[{context}_{key}_VALUE_SPEARMAN_BELOW_POLICY]",
+        )
+    return dict(proof)
+
+
 def _split_wilson_contract(value: Any, *, split: str, context: str) -> dict[str, Any]:
     _require(isinstance(value, Mapping), f"[{context}_{split}_SPLIT_MISSING]")
     _require(value.get("decision") == PASS_DECISION, f"[{context}_{split}_DECISION_INVALID]")
@@ -540,12 +832,22 @@ def _split_wilson_contract(value: Any, *, split: str, context: str) -> dict[str,
         context=f"{context}_{split}_CONTEXT",
         expected_rows=rows,
     )
+    turning_point = _turning_point_contract(
+        value.get("turning_point_evidence"),
+        context=f"{context}_{split}_TURNING_POINT",
+    )
+    offline_rl = _offline_rl_contract(
+        value.get("offline_rl_evidence"),
+        context=f"{context}_{split}_OFFLINE_RL",
+    )
     return {
         "decision": PASS_DECISION,
         "failures": [],
         "rows": rows,
         "direction": direction,
         "context_slice_contract": context_slices,
+        "turning_point_evidence": turning_point,
+        "offline_rl_evidence": offline_rl,
     }
 
 
@@ -781,6 +1083,8 @@ def require_smoke_bundle_audit_contract(
             "context_slice_edge_proven",
             "path_quality_edge_proven",
             "bad_path_edge_proven",
+            "turning_point_edge_proven",
+            "offline_rl_edge_proven",
         },
     )
     for key in (
@@ -788,6 +1092,8 @@ def require_smoke_bundle_audit_contract(
         "context_slice_edge_proven",
         "path_quality_edge_proven",
         "bad_path_edge_proven",
+        "turning_point_edge_proven",
+        "offline_rl_edge_proven",
     ):
         _require(edge.get(key) is True, f"[{context}_{key.upper()}_UNPROVEN]")
 

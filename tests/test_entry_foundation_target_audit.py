@@ -2,11 +2,12 @@ import numpy as np
 import pandas as pd
 
 from gx1.scripts.audit_entry_foundation_targets_v1 import (
-    EXPECTED_ACTIVE_OPTIONAL_HEADS,
-    EXPECTED_BLOCKED_OPTIONAL_HEADS,
+    EXPECTED_ACTIVE_AUX_HEADS,
+    EXPECTED_BLOCKED_TARGET_HEADS,
     XAU_DIRECTION_REPAIR_TARGET_COLUMNS,
     _drift,
     _head_contract,
+    _offline_rl_target_contract,
     _position_size_target_contract,
     _target_metrics,
     _xau_direction_repair_side_quality_contract,
@@ -73,17 +74,40 @@ def test_target_head_contract_blocks_constant_hold_horizon_and_keeps_live_heads_
                 frame[f"y_dip_mae_{side}_K{horizon}"] = [1.0, 2.0, 3.0]
                 frame[f"y_dip_mfe_{side}_K{horizon}"] = [2.0, 3.0, 4.0]
                 frame[f"y_dip_bottom_frac_{side}_K{horizon}"] = [0.0, 0.5, 1.0]
+                frame[f"y_time_to_mfe_frac_{side}_K{horizon}"] = [0.1, 0.6, 0.9]
                 frame[f"y_tail_mae_{side}_K{horizon}"] = [1.0, 2.0, 3.0]
+        for horizon in (12, 48, 96):
+            frame[f"y_action_value_long_K{horizon}"] = [10.0, -5.0, -5.0]
+            frame[f"y_action_value_short_K{horizon}"] = [-5.0, 10.0, -5.0]
+            frame[f"y_action_value_flat_K{horizon}"] = [0.0, 0.0, 0.0]
         rows.append(pd.DataFrame(frame))
 
     contract = _head_contract(rows)
 
-    for head in EXPECTED_ACTIVE_OPTIONAL_HEADS:
+    for head in EXPECTED_ACTIVE_AUX_HEADS:
         assert head in contract["active_training_heads"]
         assert contract["head_target_liveness"][head]["live_all_splits"] is True
-    for head in EXPECTED_BLOCKED_OPTIONAL_HEADS:
+    for head in EXPECTED_BLOCKED_TARGET_HEADS:
         assert head in contract["blocked_heads"]
         assert contract["head_target_liveness"][head]["live_all_splits"] is False
+
+    offline_rl = _offline_rl_target_contract(rows)
+    assert offline_rl["decision"] == "PASS"
+    assert offline_rl["failures"] == []
+
+
+def test_offline_rl_target_contract_rejects_missing_q_and_nonzero_flat() -> None:
+    missing = pd.DataFrame({"split": ["train", "train", "train"]})
+    assert _offline_rl_target_contract([missing])["decision"] == "FAIL"
+
+    frame = {"split": ["train", "train", "train"]}
+    for horizon in (12, 48, 96):
+        frame[f"y_action_value_long_K{horizon}"] = [10.0, -5.0, -5.0]
+        frame[f"y_action_value_short_K{horizon}"] = [-5.0, 10.0, -5.0]
+        frame[f"y_action_value_flat_K{horizon}"] = [0.0, 0.0, 1.0]
+    failed = _offline_rl_target_contract([pd.DataFrame(frame)])
+    assert failed["decision"] == "FAIL"
+    assert any("FLAT" in failure for failure in failed["failures"])
 
 
 def test_xau_direction_repair_liveness_rejects_dead_present_columns() -> None:

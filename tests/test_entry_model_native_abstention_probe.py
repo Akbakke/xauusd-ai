@@ -25,6 +25,10 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     atomic_write_parquet_immutable,
     build_prediction_evidence_declaration,
 )
+from tests.model_native_turning_point_support import (
+    turning_point_prediction_columns,
+)
+from tests.model_native_offline_rl_support import offline_rl_prediction_columns
 
 
 def _write_json(path: Path, value: object) -> str:
@@ -181,6 +185,8 @@ def _bind_learned_prediction_lineage(
                 public_logits,
                 axis=1,
             ),
+            **turning_point_prediction_columns(len(directions)),
+            **offline_rl_prediction_columns(len(directions)),
         }
     )
     predictions = (

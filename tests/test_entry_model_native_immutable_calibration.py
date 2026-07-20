@@ -56,6 +56,10 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     sha256_file,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.model_native_turning_point_support import (
+    turning_point_prediction_columns,
+)
+from tests.model_native_offline_rl_support import offline_rl_prediction_columns
 
 
 SOURCE_STAMP = "20260716T100000123456Z"
@@ -241,6 +245,8 @@ def _prediction_frame(rows: int = 120) -> pd.DataFrame:
             "path_quality_bps": 2.0 * path_pred + 3.0,
             "bad_path_prob": np.where(bad_labels == 1, 0.4, 0.2),
             "y_bad_path": bad_labels,
+            **turning_point_prediction_columns(rows),
+            **offline_rl_prediction_columns(rows),
         }
     )
 

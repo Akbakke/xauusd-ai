@@ -12,6 +12,7 @@ import pytest
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     FOUNDATION_AUDIT_POLICY_SHA256,
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     foundation_audit_policy_binding,
     foundation_audit_policy_enforcement,
 )
@@ -33,6 +34,15 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_INPUTS,
     direction_evidence_fusion_metadata,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_TIMING_OUTPUT_DIM,
+    model_native_aux_target_contract_metadata,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
+    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
+    REWARD_SCALE_BPS as OFFLINE_RL_REWARD_SCALE_BPS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
@@ -126,6 +136,58 @@ def _prediction_frame(rows: int = 768) -> pd.DataFrame:
             if width == 1
             else [row.tolist() for row in values]
         )
+    timing_layout = model_native_aux_target_contract_metadata()[
+        "turning_point_timing"
+    ]["layout"]
+    timing = np.zeros((rows, MODEL_NATIVE_TIMING_OUTPUT_DIM), dtype=np.float64)
+    ordinal = np.arange(rows, dtype=np.float64)
+    for item in timing_layout:
+        index = int(item["index"])
+        base = np.mod(ordinal + 7.0 * index, 101.0) / 100.0
+        if (
+            item["target"] == "dip_bottom_frac"
+            and int(item["horizon_bars"]) == 12
+        ):
+            direction_id = 0 if item["direction"] == "long" else 1
+            values = np.where(
+                labels == direction_id,
+                0.05 + 0.15 * base,
+                0.30 + 0.65 * base,
+            )
+        else:
+            values = 0.05 + 0.90 * base
+        frame[item["target_column"]] = values
+        timing[:, index] = values
+    frame["timing_pred"] = [row.tolist() for row in timing]
+    q_targets = np.zeros(
+        (rows, len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)),
+        dtype=np.float64,
+    )
+    base = np.mod(np.arange(rows, dtype=np.float64), 97.0) / 96.0
+    for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
+        long_reward = np.where(
+            labels == 0,
+            60.0 + 5.0 * base + horizon_index,
+            -30.0 + 5.0 * base,
+        )
+        short_reward = np.where(
+            labels == 1,
+            60.0 + 5.0 * base + horizon_index,
+            -30.0 + 5.0 * base,
+        )
+        q_targets[:, 0, horizon_index] = long_reward
+        q_targets[:, 1, horizon_index] = short_reward
+        frame[f"y_action_value_long_K{horizon}"] = long_reward
+        frame[f"y_action_value_short_K{horizon}"] = short_reward
+        frame[f"y_action_value_flat_K{horizon}"] = 0.0
+    q_values = q_targets / float(OFFLINE_RL_REWARD_SCALE_BPS)
+    value = q_values.max(axis=1) - 0.05
+    advantage = q_values - value[:, None, :]
+    frame["action_value"] = [row.tolist() for row in q_values.reshape(rows, -1)]
+    frame["expectile_value"] = [row.tolist() for row in value]
+    frame["action_advantage"] = [
+        row.tolist() for row in advantage.reshape(rows, -1)
+    ]
     return frame
 
 
@@ -237,6 +299,43 @@ def test_active_head_evidence_is_exact_and_hold_is_forbidden() -> None:
     assert passed["blocked_heads"] == list(MODEL_NATIVE_BLOCKED_HEADS)
     assert failed["decision"] == "FAIL"
     assert any("hold_horizon" in failure for failure in failed["failures"])
+
+
+def test_turning_point_evidence_proves_top_bottom_alignment_and_pockets() -> None:
+    frame = _prediction_frame(384)
+    passed = audit._turning_point_evidence_contract(frame, split="val")
+
+    broken = frame.copy()
+    broken["timing_pred"] = [[0.5] * MODEL_NATIVE_TIMING_OUTPUT_DIM] * len(broken)
+    failed = audit._turning_point_evidence_contract(broken, split="val")
+
+    assert passed["decision"] == "PASS"
+    assert set(passed["near_turn_pockets"]) == {"BOTTOM", "TOP"}
+    assert all(
+        row["direction_precision"] == 1.0
+        and row["timing_precision"] == 1.0
+        for row in passed["near_turn_pockets"].values()
+    )
+    assert failed["decision"] == "FAIL"
+    assert failed["failures"]
+
+
+def test_offline_rl_evidence_requires_target_ranking_and_q_v_parity() -> None:
+    frame = _prediction_frame(384)
+    passed = audit._offline_rl_evidence_contract(frame, split="val")
+
+    broken = frame.copy()
+    broken["action_advantage"] = [[0.0] * 9] * len(broken)
+    failed = audit._offline_rl_evidence_contract(broken, split="val")
+
+    assert passed["decision"] == "PASS"
+    assert all(
+        row["accuracy"] == 1.0
+        for row in passed["reward_argmax_ranking"].values()
+    )
+    assert passed["advantage_max_abs_error"] == pytest.approx(0.0)
+    assert failed["decision"] == "FAIL"
+    assert any("Advantage" in failure for failure in failed["failures"])
 
 
 def test_parser_has_no_defaults_or_retired_aliases() -> None:
@@ -420,7 +519,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
     )
 
     audit_schemas = {
-        "target": "entry_target_foundation_audit_v1",
+        "target": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
         "specialist": "entry_specialist_feature_group_audit_v1",
         "pretrain": "xau_direction_repair_pretrain_audit_v1",
     }
@@ -476,7 +575,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         lambda **_: (bundle_contract, metadata, direction, object()),
     )
     evidence = {
-        "schema_version": "entry_candidate_model_direction_prediction_evidence_v1",
+        "schema_version": "entry_candidate_model_direction_prediction_evidence_v2",
         "authoritative": True,
         "path": str(predictions.resolve()),
         "sha256": audit._sha256_file(predictions),

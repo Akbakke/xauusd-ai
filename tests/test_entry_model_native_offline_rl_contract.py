@@ -25,6 +25,8 @@ def test_offline_rl_metadata_is_exact_and_fail_closed() -> None:
     assert EXPECTILE_VALUE_DIM == 3
     assert ADVANTAGE_DIM == 9
     assert len(ACTION_VALUE_TARGET_COLUMNS) == 9
+    assert expected["ambiguous_reward_ties_ranked"] is False
+    assert expected["ranking_target"].startswith("unique_")
     assert ACTION_VALUE_TARGET_COLUMNS == (
         "y_action_value_long_K12",
         "y_action_value_long_K48",
@@ -67,6 +69,18 @@ def test_q_ranking_margin_loss_is_zero_only_after_required_ordering_margin() -> 
 
     with pytest.raises(ValueError, match="Q/reward shapes differ"):
         q_ranking_margin_loss(ordered_q, rewards[:, :, :1])
+
+
+def test_q_ranking_margin_ignores_ambiguous_reward_ties() -> None:
+    tied_rewards = torch.zeros(2, 3, HORIZON_COUNT)
+    arbitrary_q = torch.randn_like(tied_rewards, requires_grad=True)
+
+    loss = q_ranking_margin_loss(arbitrary_q, tied_rewards)
+    loss.backward()
+
+    assert loss.item() == pytest.approx(0.0)
+    assert arbitrary_q.grad is not None
+    assert arbitrary_q.grad.abs().sum().item() == pytest.approx(0.0)
 
 
 def test_trainer_offline_rl_loss_supervises_q_and_v_without_behavior_action() -> None:

@@ -58,7 +58,7 @@ def test_aux_targets_have_exact_horizons_and_no_fake_tail_values() -> None:
 def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     contract = model_native_aux_target_contract_metadata()
 
-    assert contract["schema_version"] == "entry_model_native_aux_targets_v3"
+    assert contract["schema_version"] == "entry_model_native_aux_targets_v4"
     assert len(contract["columns"]) == 46
     assert contract["columns"] == list(MODEL_NATIVE_AUX_TARGET_COLUMNS)
     assert contract["max_future_horizon_bars"] == 96
@@ -66,6 +66,11 @@ def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     assert contract["mid_price_timing_reference_only"] is True
     assert contract["incomplete_rows_may_be_emitted"] is False
     assert contract["offline_rl"]["action_value_layout"] == "action_major_then_horizon"
+    timing = contract["turning_point_timing"]
+    assert timing["output_dim"] == 12
+    assert timing["layout"][0]["market_turn"] == "BOTTOM"
+    assert timing["layout"][6]["market_turn"] == "TOP"
+    assert timing["live_direction_rule_authority"] is False
 
 
 def test_aux_risk_magnitude_uses_executable_spread_path() -> None:

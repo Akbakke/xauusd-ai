@@ -77,6 +77,11 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_TARGET_COLUMNS,
     MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN,
     MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
+    MODEL_NATIVE_DIP_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
+    MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
     require_model_native_aux_target_contract as _require_model_native_aux_target_contract,
 )
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
@@ -107,23 +112,11 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-_DIP_TARGET_COLS = tuple(
-    [f"y_dip_mae_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
-    + [f"y_dip_mfe_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
-)
-_FORECAST_TARGET_COLS = tuple(f"y_forecast_ret_K{K}" for K in FORECAST_HORIZONS)
-_TIMING_TARGET_COLS = tuple(
-    f"y_{tgt}_{d}_K{K}"
-    for d in TIMING_DIRECTIONS
-    for K in TIMING_HORIZONS
-    for tgt in TIMING_TARGETS
-)
-_TAIL_RISK_TARGET_COLS = tuple(
-    f"y_tail_mae_{d}_K{K}"
-    for d in TAIL_RISK_DIRECTIONS
-    for K in TAIL_RISK_HORIZONS
-)
-_VOL_FORECAST_TARGET_COLS = tuple(f"y_vol_fwd_K{K}" for K in VOL_FORECAST_HORIZONS)
+_DIP_TARGET_COLS = MODEL_NATIVE_DIP_TARGET_COLUMNS
+_FORECAST_TARGET_COLS = MODEL_NATIVE_FORECAST_TARGET_COLUMNS
+_TIMING_TARGET_COLS = MODEL_NATIVE_TIMING_TARGET_COLUMNS
+_TAIL_RISK_TARGET_COLS = MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS
+_VOL_FORECAST_TARGET_COLS = MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS
 _OFFLINE_RL_TARGET_COLS = ACTION_VALUE_TARGET_COLUMNS
 
 # Exact emitted target surface for the five active forward-path auxiliary heads.

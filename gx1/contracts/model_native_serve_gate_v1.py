@@ -1145,7 +1145,7 @@ def serve_gate_event_contract_failures(
     else:
         if (
             prediction.get("schema_version")
-            != "entry_candidate_model_direction_prediction_evidence_v1"
+            != "entry_candidate_model_direction_prediction_evidence_v2"
         ):
             failures.append(f"{evidence_name} prediction evidence schema mismatch")
         if prediction.get("authoritative") is not True:

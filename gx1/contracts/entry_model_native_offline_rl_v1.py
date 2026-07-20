@@ -7,7 +7,7 @@ from typing import Any, Mapping
 import torch
 
 
-SCHEMA_VERSION = "entry_model_native_offline_rl_v1"
+SCHEMA_VERSION = "entry_model_native_offline_rl_v2"
 ACTION_ORDER = ("LONG", "SHORT", "FLAT")
 HORIZON_BARS = (12, 48, 96)
 ACTION_COUNT = len(ACTION_ORDER)
@@ -48,7 +48,8 @@ def offline_rl_contract_metadata() -> dict[str, Any]:
         "advantage_formula": "Q(s,a,K)-V(s,K)",
         "q_target": "full_counterfactual_cost_adjusted_path_utility_bps",
         "q_objective": "direct_regression_without_bellman_backup",
-        "ranking_target": "counterfactual_reward_argmax_per_horizon",
+        "ranking_target": "unique_counterfactual_reward_argmax_per_horizon",
+        "ambiguous_reward_ties_ranked": False,
         "logged_behavior_objective": False,
         "separate_policy_or_direction_authority": False,
         "final_learned_fusion_required": True,
@@ -94,9 +95,16 @@ def q_ranking_margin_loss(
         )
     if float(margin) <= 0.0:
         raise ValueError("Q ranking margin must be positive")
+    top_two = reward_targets.topk(k=2, dim=1).values
+    unique_best = top_two[:, 0, :] > top_two[:, 1, :]
     best_action = reward_targets.argmax(dim=1, keepdim=True)
     best_q = torch.gather(q_values, 1, best_action)
     hinge = torch.relu(float(margin) - (best_q - q_values))
     mask = torch.ones_like(hinge)
     mask.scatter_(1, best_action, 0.0)
-    return (hinge * mask).sum(dim=1).div(float(ACTION_COUNT - 1)).mean()
+    per_horizon = (hinge * mask).sum(dim=1).div(float(ACTION_COUNT - 1))
+    valid = unique_best.to(dtype=per_horizon.dtype)
+    valid_count = valid.sum()
+    if not bool(valid_count.item() > 0):
+        return q_values.sum() * 0.0
+    return (per_horizon * valid).sum() / valid_count

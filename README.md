@@ -38,6 +38,10 @@ still absent and are the next empirical gate.
 - Learned path, utility, timing, tail-risk, volatility, trade/side hierarchy,
   trendline-rail, validity, position-size and internal Q/V/Advantage evidence
   is mandatory. Q/V never forms a separate policy.
+- VAL and TEST must prove that learned LONG timing aligns with realized
+  `BOTTOM` outcomes, SHORT timing aligns with realized `TOP` outcomes, and
+  Q/V/Advantage aligns with the full counterfactual reward surface. Merely
+  finite or non-constant head output cannot satisfy the smoke edge gate.
 - Position sizing is learned and must be immutably calibrated, parity-checked
   and journaled. Any label-horizon TEST result is diagnostic only, and no fresh
   accepted sizing result exists for the current contract.

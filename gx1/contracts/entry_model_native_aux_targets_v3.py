@@ -12,35 +12,76 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
 )
 
 
-MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v3"
+MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v4"
 MODEL_NATIVE_AUX_FORECAST_HORIZONS = (1, 5, 12, 24)
 MODEL_NATIVE_AUX_RISK_HORIZONS = (12, 48, 96)
-_TARGET_HORIZON_ITEMS = tuple(
-    (f"y_dip_mae_{side}_K{horizon}", horizon)
+MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS = tuple(
+    f"y_dip_mae_{side}_K{horizon}"
     for side in ("long", "short")
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_dip_mfe_{side}_K{horizon}", horizon)
+)
+MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS = tuple(
+    f"y_dip_mfe_{side}_K{horizon}"
     for side in ("long", "short")
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_forecast_ret_K{horizon}", horizon)
+)
+MODEL_NATIVE_DIP_TARGET_COLUMNS = (
+    *MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
+    *MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
+)
+MODEL_NATIVE_FORECAST_TARGET_COLUMNS = tuple(
+    f"y_forecast_ret_K{horizon}"
     for horizon in MODEL_NATIVE_AUX_FORECAST_HORIZONS
-) + tuple(
-    (f"y_dip_bottom_frac_{side}_K{horizon}", horizon)
+)
+MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS = tuple(
+    f"y_tail_mae_{side}_K{horizon}"
     for side in ("long", "short")
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_time_to_mfe_frac_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
+)
+MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS = tuple(
+    f"y_vol_fwd_K{horizon}" for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
+)
+MODEL_NATIVE_TIMING_DIRECTIONS = ("long", "short")
+MODEL_NATIVE_TIMING_TARGETS = ("dip_bottom_frac", "time_to_mfe_frac")
+MODEL_NATIVE_TURN_KIND_BY_DIRECTION = MappingProxyType(
+    {"long": "BOTTOM", "short": "TOP"}
+)
+MODEL_NATIVE_TIMING_TARGET_COLUMNS = tuple(
+    f"y_{target}_{direction}_K{horizon}"
+    for direction in MODEL_NATIVE_TIMING_DIRECTIONS
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
-) + tuple(
-    (f"y_tail_mae_{side}_K{horizon}", horizon)
-    for side in ("long", "short")
+    for target in MODEL_NATIVE_TIMING_TARGETS
+)
+MODEL_NATIVE_TIMING_OUTPUT_DIM = len(MODEL_NATIVE_TIMING_TARGET_COLUMNS)
+MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS = (
+    "offline_rl_action_value",
+    "offline_rl_expectile_value",
+)
+_TARGET_HORIZON_ITEMS = tuple(
+    (name, horizon)
+    for name in MODEL_NATIVE_DIP_TARGET_COLUMNS
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
+    if name.endswith(f"_K{horizon}")
 ) + tuple(
-    (f"y_vol_fwd_K{horizon}", horizon)
+    (name, horizon)
+    for name in MODEL_NATIVE_FORECAST_TARGET_COLUMNS
+    for horizon in MODEL_NATIVE_AUX_FORECAST_HORIZONS
+    if name.endswith(f"_K{horizon}")
+) + tuple(
+    (name, horizon)
+    for name in MODEL_NATIVE_TIMING_TARGET_COLUMNS
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
+    if name.endswith(f"_K{horizon}")
+) + tuple(
+    (name, horizon)
+    for name in MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS
+    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
+    if name.endswith(f"_K{horizon}")
+) + tuple(
+    (name, horizon)
+    for name in MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS
+    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
+    if name.endswith(f"_K{horizon}")
 ) + tuple(
     (name, horizon)
     for name in ACTION_VALUE_TARGET_COLUMNS
@@ -57,6 +98,22 @@ MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS = max(
 
 
 def model_native_aux_target_contract_metadata() -> dict[str, Any]:
+    timing_layout = []
+    index = 0
+    for direction in MODEL_NATIVE_TIMING_DIRECTIONS:
+        for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS:
+            for target in MODEL_NATIVE_TIMING_TARGETS:
+                timing_layout.append(
+                    {
+                        "index": index,
+                        "direction": direction,
+                        "market_turn": MODEL_NATIVE_TURN_KIND_BY_DIRECTION[direction],
+                        "horizon_bars": horizon,
+                        "target": target,
+                        "target_column": f"y_{target}_{direction}_K{horizon}",
+                    }
+                )
+                index += 1
     return {
         "schema_version": MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
         "columns": list(MODEL_NATIVE_AUX_TARGET_COLUMNS),
@@ -69,7 +126,17 @@ def model_native_aux_target_contract_metadata() -> dict[str, Any]:
         "mid_price_timing_reference_only": True,
         "incomplete_value": "NaN_before_emission_only",
         "incomplete_rows_may_be_emitted": False,
+        "turning_point_timing": {
+            "output_name": "timing_pred",
+            "output_dim": MODEL_NATIVE_TIMING_OUTPUT_DIM,
+            "layout": timing_layout,
+            "long_semantics": "adverse_low_before_favorable_peak_BOTTOM",
+            "short_semantics": "adverse_high_before_favorable_trough_TOP",
+            "live_direction_rule_authority": False,
+            "final_fusion_evidence_required": True,
+        },
         "offline_rl": offline_rl_contract_metadata(),
+        "extra_active_target_heads": list(MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS),
     }
 
 

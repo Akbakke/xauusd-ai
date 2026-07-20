@@ -11,7 +11,8 @@ from typing import Any
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 
 
-FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v2"
+FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v3"
+FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v2"
 FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val", "test")
 FOUNDATION_AUDIT_SMOKE_SPLITS = ("val", "test")
 FOUNDATION_AUDIT_POLICY_SECTIONS = {
@@ -71,6 +72,14 @@ _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
             "max_abs_error": 1e-6,
             "live_size_application_authority": False,
         },
+        "offline_rl_target": {
+            "action_order": ["LONG", "SHORT", "FLAT"],
+            "horizon_bars": [12, 48, 96],
+            "flat_reward_bps": 0.0,
+            "min_best_action_rate_per_horizon": 0.01,
+            "max_best_action_rate_per_horizon": 0.98,
+            "all_counterfactual_actions_required": True,
+        },
     },
     "specialist_liveness": {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
@@ -106,6 +115,29 @@ _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
         "min_specialist_mean_weight": 0.01,
         "min_specialist_gate_entropy": 0.50,
         "min_specialist_gate_std": 1e-6,
+        "turning_point_evidence": {
+            "evaluation_horizon_bars": 12,
+            "near_turn_max_fraction": 0.25,
+            "min_prediction_target_spearman": 0.10,
+            "max_prediction_target_mae": 0.20,
+            "min_near_turn_trade_rows_per_side": 50,
+            "min_near_turn_direction_precision": 0.98,
+            "min_near_turn_precision_wilson_lower": 0.90,
+            "min_near_turn_timing_precision": 0.80,
+            "min_near_turn_timing_precision_wilson_lower": 0.70,
+            "prediction_bounds_inclusive": [0.0, 1.0],
+            "direction_authority": "final_model_direction_argmax_only",
+        },
+        "offline_rl_evidence": {
+            "min_q_target_spearman": 0.10,
+            "max_q_target_mae_scaled": 1.00,
+            "max_flat_q_abs_mean_scaled": 0.25,
+            "min_reward_argmax_accuracy_per_horizon": 0.70,
+            "min_unique_reward_rows_per_horizon": 100,
+            "min_value_vs_max_q_spearman": 0.10,
+            "max_advantage_parity_abs": 1e-6,
+            "separate_direction_authority": False,
+        },
     },
 }
 
@@ -205,6 +237,7 @@ def require_foundation_audit_report_policy(
 __all__ = [
     "FOUNDATION_AUDIT_DATA_SPLITS",
     "FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION",
+    "FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION",
     "FOUNDATION_AUDIT_POLICY_SECTIONS",
     "FOUNDATION_AUDIT_POLICY_SHA256",
     "FOUNDATION_AUDIT_SMOKE_SPLITS",

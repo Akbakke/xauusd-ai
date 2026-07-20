@@ -47,6 +47,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
 from tests.entry_model_native_smoke_audit_support import passing_smoke_audit_splits
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.model_native_offline_rl_support import (
+    model_native_target_audit_evidence,
+)
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -180,7 +183,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     artifacts["target_audit_json"] = _write_json(
         evidence_dir / f"ENTRY_TARGET_AUDIT_{STAMP}.json",
         {
-            "schema_version": "entry_target_foundation_audit_v1",
+            "schema_version": "entry_target_foundation_audit_v2",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -189,6 +192,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "failures": [],
             "dataset_dir": str(dataset_dir),
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
+            **model_native_target_audit_evidence(),
         },
     )
     artifacts["specialist_audit_json"] = _write_json(
@@ -334,7 +338,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_bundle_audit_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_BUNDLE_AUDIT_{STAMP}.json",
             {
-                "schema_version": "entry_foundation_smoke_bundle_audit_v1",
+                "schema_version": "entry_foundation_smoke_bundle_audit_v2",
                 **foundation_audit_policy_binding(),
                 "decision": "PASS",
                 "failures": [],
@@ -362,7 +366,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                         "foundation_audit_policy_enforcement": (
                             foundation_audit_policy_enforcement("target")
                         ),
-                        "schema_version": "entry_target_foundation_audit_v1",
+                        "schema_version": "entry_target_foundation_audit_v2",
                         "decision": "PASS",
                         "failures": [],
                         "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
@@ -422,11 +426,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     "context_slice_edge_proven": True,
                     "path_quality_edge_proven": True,
                     "bad_path_edge_proven": True,
+                    "turning_point_edge_proven": True,
+                    "offline_rl_edge_proven": True,
                 },
                 "splits": passing_smoke_audit_splits(),
                 "prediction_evidence": {
                     "schema_version": (
-                        "entry_candidate_model_direction_prediction_evidence_v1"
+                        "entry_candidate_model_direction_prediction_evidence_v2"
                     ),
                     "authoritative": True,
                     "path": str(evidence_dir / f"predictions_{STAMP}.parquet"),

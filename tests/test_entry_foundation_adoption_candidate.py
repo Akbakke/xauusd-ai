@@ -52,6 +52,9 @@ from gx1.scripts.verify_entry_foundation_adoption_candidate_v1 import (
     run,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.model_native_offline_rl_support import (
+    model_native_target_audit_evidence,
+)
 
 
 def _sha(path: Path) -> str:
@@ -204,7 +207,7 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
         AUDIT_EVENT_PREFIXES["target_audit"],
         "02.000002",
         {
-            "schema_version": "entry_target_foundation_audit_v1",
+            "schema_version": "entry_target_foundation_audit_v2",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -215,9 +218,16 @@ def _audits(root: Path, dataset: Path) -> dict[str, Path]:
             "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
             **split_identity,
             "target_head_contract": {
-                "active_training_heads": list(MODEL_NATIVE_BASE_ACTIVE_HEADS),
-                "blocked_heads": list(MODEL_NATIVE_BLOCKED_HEADS),
+                **model_native_target_audit_evidence()["target_head_contract"],
             },
+            "model_native_aux_target_contract": (
+                model_native_target_audit_evidence()[
+                    "model_native_aux_target_contract"
+                ]
+            ),
+            "offline_rl_target_contract": model_native_target_audit_evidence()[
+                "offline_rl_target_contract"
+            ],
         },
     )
     specialist = _event(

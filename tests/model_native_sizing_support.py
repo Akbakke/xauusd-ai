@@ -40,6 +40,8 @@ from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
 from tests.model_native_serve_gate_support import (
     passing_serve_parity_liveness_sections,
 )
+from tests.model_native_turning_point_support import turning_point_prediction_row
+from tests.model_native_offline_rl_support import offline_rl_prediction_row
 
 
 def _sha(path: Path) -> str:
@@ -166,6 +168,8 @@ def _prediction_row(
         "y_position_size_target": float(target),
         "session": session,
         "vol_regime": regime,
+        **turning_point_prediction_row(0),
+        **offline_rl_prediction_row(0),
     }
 
 

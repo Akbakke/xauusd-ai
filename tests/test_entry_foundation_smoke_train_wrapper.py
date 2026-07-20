@@ -133,6 +133,24 @@ def test_smoke_wrapper_rejects_incomplete_recipe_env(tmp_path: Path) -> None:
     assert "trainer_env key set is not exact" in result.stderr
 
 
+def test_smoke_wrapper_rejects_stale_target_audit_schema(tmp_path: Path) -> None:
+    args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    target_path = paths["target_audit_json"]
+    target = json.loads(target_path.read_text(encoding="utf-8"))
+    target["schema_version"] = "entry_target_foundation_audit_v1"
+    target.pop("model_native_aux_target_contract")
+    target_path.write_text(
+        json.dumps(target, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = _run(*args, "--dry-run")
+
+    assert result.returncode == 2
+    assert "target audit schema mismatch" in result.stderr
+    assert "Capped smoke train command:" not in result.stdout
+
+
 def test_smoke_wrapper_source_is_exact_model_native_and_has_no_stale_launch_paths() -> None:
     text = WRAPPER.read_text(encoding="utf-8")
     lowered = text.lower()

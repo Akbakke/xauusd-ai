@@ -1,6 +1,6 @@
 # XAUUSD model-native direction handover
 
-Updated 2026-07-19. This is the only GX1 handover document. Run
+Updated 2026-07-20. This is the only GX1 handover document. Run
 `bash scripts/gx1_handover.sh` once for the compact repository/launch/process
 snapshot, `--check` on continuations, and `--verbose` only when the full
 document must be printed again.
@@ -90,6 +90,10 @@ This hardening does not create either missing artifact or authorize a run.
   (`LayerNorm(96) -> Linear(128) -> GELU -> Linear(3)`);
 - full-counterfactual LONG/SHORT/FLAT Q targets and expectile-V at K12/K48/K96,
   with exact Q/V/Advantage export and no separate IQL policy;
+- target foundation audit v2 requires all 46 aux targets in every split;
+  prediction/smoke schema v2 requires learned VAL/TEST alignment for the exact
+  12-value LONG/BOTTOM and SHORT/TOP timing layout plus Q reward-ranking,
+  V/max-Q and `Advantage=Q-V`; finite/non-constant output alone cannot pass;
 - final calibrated `argmax([LONG, SHORT, FLAT])` is the sole direction authority;
 - one exact runtime evidence snapshot, validated unchanged at decision,
   `TradeState`, journal and daily-review boundaries;

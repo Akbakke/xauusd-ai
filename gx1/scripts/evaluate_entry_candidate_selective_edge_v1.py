@@ -33,6 +33,13 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_INPUTS,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_TIMING_OUTPUT_DIM,
+    MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_VALUE_TARGET_COLUMNS,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     required_training_specialists_for_mode,
@@ -751,7 +758,7 @@ _EXTRA_RAW_HEADS = {
 _EXTRA_VECTOR_HEADS = {
     "dip_pred": 18,
     "forecast_pred": 4,
-    "timing_pred": 12,
+    "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
     "tail_risk_pred": 6,
     "vol_forecast_pred": 3,
 }
@@ -1088,6 +1095,8 @@ def _predict_bundle(
                     "y_short_path_utility_bps",
                     "path_quality_bps",
                     "y_bad_path",
+                    *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+                    *ACTION_VALUE_TARGET_COLUMNS,
                 }
                 missing_targets = sorted(required_targets - set(frame.columns))
                 if missing_targets:
@@ -1143,6 +1152,8 @@ def _predict_bundle(
                     "mfe_first_n_bps",
                     "y_tradable",
                     "y_position_size_target",
+                    *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+                    *ACTION_VALUE_TARGET_COLUMNS,
                 ):
                     if target_col not in frame.columns:
                         raise RuntimeError(

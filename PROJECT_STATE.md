@@ -37,6 +37,15 @@ Preflight, wrapper and builder now require explicit ranking/manifest artifacts
 and validate their lineage, vedtak, source hash and exact TRAIN window. This is
 source-contract proof only, not proof of trading edge.
 
+The target/evidence boundary is now stricter. Target foundation audit v2
+requires all 46 canonical aux targets, including all `time_to_mfe` and
+LONG/SHORT/FLAT Q targets; old v1 reports are rejected before readiness or
+training. Immutable prediction evidence and smoke audit v2 require VAL/TEST
+target alignment for the learned TOP/BOTTOM timing and Q/V/Advantage heads,
+including supported high-precision near-turn pockets and reward-best Q
+ranking. No such fresh prediction evidence exists yet, so this closes a source
+pass-through without changing launch `BLOCK`.
+
 Smoke/candidate launch and the trainer now require explicit TRAIN/VAL/TEST
 manifest and parquet paths. Exact hashes are emitted only by the validated
 recipe, then rechecked with manifest self-path, vedtak and six-way-distinctness
@@ -153,15 +162,17 @@ Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-The current committed source baseline and subsequent contract changes pass the
-full repository suite with five skips and zero failures. Narrow audits removed
+The current source baseline passes the full repository suite with five skips
+and zero failures. Narrow audits removed
 dead stop-script branches, bound serving/train/downstream artifact identity,
 and added a compact takeover fingerprint; these are source-contract changes,
 not empirical edge. The missing historical row/model benchmark cannot be
 reconstructed from its metadata and is no longer treated as a satisfiable
 prerequisite. The next
 source milestone is complete: internal Q/V/action-value heads, one final
-fusion and exact train/export/serve parity pass the full repository suite. The
+fusion, canonical TOP/BOTTOM timing semantics, mandatory 46-target foundation
+proof and exact train/export/serve target-alignment gates pass the full
+repository suite. The
 next empirical milestone is a fresh immutable proxy comparison plus absolute
 untouched OOT,
 cost/live-like, abstention-support and joint Exit/sizing gates. No historical

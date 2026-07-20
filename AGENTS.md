@@ -89,6 +89,14 @@ fusion/gates, path/MFE/tradability/bad-path/clean-edge/survival evidence,
 trade-side hierarchy, side validity, trendline rail, timing/tail/volatility,
 TF agreement, position size, counterfactual action value and expectile value.
 
+Head liveness alone is not learned evidence. Current target audit requires the
+complete canonical 46-target surface in TRAIN/VAL/TEST. Current immutable
+prediction/smoke evidence must prove on VAL and TEST that LONG adverse-turn
+timing identifies BOTTOM pockets, SHORT adverse-turn timing identifies TOP
+pockets, Q ranks the counterfactual reward-best action, V tracks learned max-Q
+and Advantage equals Q minus V. Missing old-schema fields fail closed; do not
+forward-fill them.
+
 The exact active output declaration has 22 heads. Their ordered evidence feeds
 one learned 26-group/96-value direction fusion (`LayerNorm(96)`, `96 -> 128`,
 GELU, `128 -> 3`) before immutable calibration and exact three-class argmax.

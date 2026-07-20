@@ -109,6 +109,8 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
     for name, width in widths.items():
         assert out[name].shape == (2, width), name
         assert torch.isfinite(out[name]).all(), name
+    assert torch.all(out["timing_pred"] >= 0.0)
+    assert torch.all(out["timing_pred"] <= 1.0)
 
 
 def test_public_trade_flat_decision_is_post_calibration_argmax_ssot() -> None:

@@ -17,6 +17,10 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     resolve_and_validate_prediction_evidence,
     sha256_file,
 )
+from tests.model_native_turning_point_support import (
+    turning_point_prediction_columns,
+)
+from tests.model_native_offline_rl_support import offline_rl_prediction_columns
 
 
 STAMP = "20260716T120000123456Z"
@@ -48,6 +52,8 @@ def _predictions() -> pd.DataFrame:
                 [np.log(0.7), np.log(0.2)],
                 [np.log(0.1), np.log(0.8)],
             ],
+            **turning_point_prediction_columns(2),
+            **offline_rl_prediction_columns(2),
         }
     )
 

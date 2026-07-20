@@ -23,6 +23,12 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     EXPECTILE_VALUE_DIM,
     HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_RISK_HORIZONS as TIMING_HORIZONS,
+    MODEL_NATIVE_TIMING_DIRECTIONS as TIMING_DIRECTIONS,
+    MODEL_NATIVE_TIMING_OUTPUT_DIM as TIMING_HEAD_DIM,
+    MODEL_NATIVE_TIMING_TARGETS as TIMING_TARGETS,
+)
 
 
 def _assert_shape(name: str, t: torch.Tensor, nd: int) -> None:
@@ -72,11 +78,6 @@ FORECAST_HEAD_DIM = len(FORECAST_HORIZONS)        # = 4
 # time_to_mfe_frac = bar-of-favorable-peak / K, both ∈[0,1]. Layout flattens over
 # (direction, horizon, target) in this exact order. Targets are builder columns
 # y_dip_bottom_frac_{dir}_K{K} / y_time_to_mfe_frac_{dir}_K{K}.
-TIMING_DIRECTIONS = ("long", "short")
-TIMING_HORIZONS = (12, 48, 96)
-TIMING_TARGETS = ("dip_bottom_frac", "time_to_mfe_frac")
-TIMING_HEAD_DIM = len(TIMING_DIRECTIONS) * len(TIMING_HORIZONS) * len(TIMING_TARGETS)  # = 12
-
 # ── Tail-risk head (2026-05-26) — p90 (pinball q=0.9) of the WORST adverse
 # excursion over the full K horizon (regardless of mfe ordering) → stop placement
 # / risk sizing. Layout flattens over (direction, horizon). Target column
@@ -513,7 +514,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self,
         pre_fusion_outputs: Mapping[str, torch.Tensor],
     ) -> torch.Tensor:
-        """Assemble the immutable ordered 75-wide evidence contract."""
+        """Assemble the immutable ordered 96-wide evidence contract."""
         evidence_parts: list[torch.Tensor] = []
         batch_size: Optional[int] = None
         for output_name, expected_width in EXACT_EVIDENCE_FUSION_OUTPUTS:
@@ -755,7 +756,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "position_size_logit": self.head_position_size(z),
             "dip_pred": self.head_dip(z),
             "forecast_pred": self.head_forecast(z),
-            "timing_pred": self.head_timing(z),
+            "timing_pred": torch.sigmoid(self.head_timing(z)),
             "tail_risk_pred": self.head_tail_risk(z),
             "vol_forecast_pred": self.head_vol_forecast(z),
             "action_value": self.head_action_value(z),

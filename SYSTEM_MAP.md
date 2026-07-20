@@ -136,11 +136,16 @@ requires every advertised objective to have a positive loss weight. A head
 cannot be retained as an unsupervised decoration.
 
 `gx1/contracts/entry_model_native_aux_targets_v3.py` is the sole owner of the
-46-column future-target surface. It includes nine spread-aware, full-
-counterfactual LONG/SHORT/FLAT path-utility targets at K12/K48/K96.
-`gx1/contracts/entry_model_native_offline_rl_v1.py` owns action/horizon order,
-reward scaling, expectile and ranking math. There is no logged-behavior/AWR
-objective, Bellman backup, replay policy or separate Entry-IQL runtime.
+schema-v4 46-column future-target surface and the exact 12-value turning-point
+layout. For LONG, adverse-turn timing means the low before the favorable peak
+(`BOTTOM`); for SHORT it means the high before the favorable trough (`TOP`).
+The surface also includes nine spread-aware, full-counterfactual
+LONG/SHORT/FLAT path-utility targets at K12/K48/K96.
+`gx1/contracts/entry_model_native_offline_rl_v1.py` owns the schema-v2
+action/horizon order, reward scaling, expectile and ranking math. Ambiguous
+reward ties are excluded from ranking rather than silently assigned by action
+order. There is no logged-behavior/AWR objective, Bellman backup, replay policy
+or separate Entry-IQL runtime.
 
 Direction training includes the public three-class objective, MTF direction,
 tail and slice behavior, utility margins/triad, trade/side hierarchy and
@@ -247,6 +252,17 @@ MTF/cross-TF/positional/FiLM/timeframe-scale wiring and immutable validation/
 test behavior. Direction claims require exact support, confusion counts and
 recomputed Wilson lower bounds globally, per class and in declared context
 slices on both validation and test.
+
+Foundation target audit schema v2 requires all 46 aux targets in every split,
+including `time_to_mfe` and all Q targets. LONG/SHORT Q targets must be live,
+FLAT must be exact zero reward, and every horizon must contain non-collapsed
+unique LONG/SHORT/FLAT best actions. Prediction evidence schema v2 and smoke
+bundle audit schema v2 then prove on both VAL and TEST that all 12 timing
+outputs align with their targets, learned near-BOTTOM LONG and near-TOP SHORT
+pockets meet immutable precision/support/Wilson floors, Q aligns with reward
+targets, Q ranking selects the reward-best action, V tracks max-Q, and
+`Advantage=Q-V`. These are audit-only evidence contracts; none is a live rule
+or a second direction authority.
 
 `gx1/scripts/fit_entry_direction_calibration_v1.py` may fit only the declared
 calibration artifact. `gx1/contracts/immutable_event_authority_v1.py` and the

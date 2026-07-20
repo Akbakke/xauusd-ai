@@ -8,6 +8,9 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_SMOKE_SPLITS,
     foundation_audit_policy_metadata,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    model_native_aux_target_contract_metadata,
+)
 
 
 CLASS_NAMES = ("LONG", "SHORT", "FLAT")
@@ -136,6 +139,105 @@ def _passing_context_slices() -> dict[str, Any]:
     }
 
 
+def _passing_turning_point_evidence() -> dict[str, Any]:
+    policy = copy.deepcopy(POLICY["turning_point_evidence"])
+    layout = model_native_aux_target_contract_metadata()[
+        "turning_point_timing"
+    ]["layout"]
+    rows = 100
+    successes = 100
+    wilson = _wilson_lower(successes, rows)
+    pockets = {}
+    for turn, direction, side in (
+        ("BOTTOM", "LONG", "long"),
+        ("TOP", "SHORT", "short"),
+    ):
+        timing_index = next(
+            int(item["index"])
+            for item in layout
+            if item["direction"] == side
+            and int(item["horizon_bars"])
+            == int(policy["evaluation_horizon_bars"])
+            and item["target"] == "dip_bottom_frac"
+        )
+        pockets[turn] = {
+            "decision": "PASS",
+            "failures": [],
+            "model_direction": direction,
+            "timing_output_index": timing_index,
+            "evaluation_horizon_bars": int(policy["evaluation_horizon_bars"]),
+            "near_turn_max_fraction": float(policy["near_turn_max_fraction"]),
+            "rows": rows,
+            "direction_successes": successes,
+            "direction_precision": 1.0,
+            "direction_precision_wilson_lower": wilson,
+            "timing_successes": successes,
+            "timing_precision": 1.0,
+            "timing_precision_wilson_lower": wilson,
+        }
+    return {
+        "decision": "PASS",
+        "failures": [],
+        "policy": policy,
+        "layout": copy.deepcopy(layout),
+        "target_alignment": [
+            {
+                **copy.deepcopy(item),
+                "spearman": 0.90,
+                "mae": 0.05,
+                "decision": "PASS",
+                "failures": [],
+            }
+            for item in layout
+        ],
+        "near_turn_pockets": pockets,
+        "live_direction_rule_authority": False,
+    }
+
+
+def _passing_offline_rl_evidence() -> dict[str, Any]:
+    policy = copy.deepcopy(POLICY["offline_rl_evidence"])
+    rows = 200
+    successes = 190
+    return {
+        "decision": "PASS",
+        "failures": [],
+        "policy": policy,
+        "q_target_alignment": [
+            {
+                "action": action,
+                "horizon_bars": horizon,
+                "spearman": None if action == "FLAT" else 0.90,
+                "mae_scaled": 0.05,
+                "decision": "PASS",
+                "failures": [],
+            }
+            for action in ("LONG", "SHORT", "FLAT")
+            for horizon in (12, 48, 96)
+        ],
+        "reward_argmax_ranking": {
+            f"K{horizon}": {
+                "decision": "PASS",
+                "failures": [],
+                "unique_reward_rows": rows,
+                "successes": successes,
+                "accuracy": successes / rows,
+            }
+            for horizon in (12, 48, 96)
+        },
+        "value_vs_max_q": {
+            f"K{horizon}": {
+                "decision": "PASS",
+                "failures": [],
+                "spearman": 0.90,
+            }
+            for horizon in (12, 48, 96)
+        },
+        "advantage_max_abs_error": 0.0,
+        "separate_direction_authority": False,
+    }
+
+
 def passing_smoke_audit_splits() -> dict[str, Any]:
     split = {
         "decision": "PASS",
@@ -146,6 +248,8 @@ def passing_smoke_audit_splits() -> dict[str, Any]:
             scope="global",
         ),
         "context_slice_contract": _passing_context_slices(),
+        "turning_point_evidence": _passing_turning_point_evidence(),
+        "offline_rl_evidence": _passing_offline_rl_evidence(),
     }
     return {
         name: copy.deepcopy(split)

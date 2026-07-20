@@ -25,9 +25,26 @@ import torch
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     FOUNDATION_AUDIT_SMOKE_SPLITS,
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     foundation_audit_policy_binding,
     foundation_audit_policy_metadata,
     require_foundation_audit_report_policy,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
+    MODEL_NATIVE_TIMING_OUTPUT_DIM,
+    MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    model_native_aux_target_contract_metadata,
+    require_model_native_aux_target_contract,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
+    ACTION_VALUE_DIM,
+    ACTION_VALUE_TARGET_COLUMNS,
+    EXPECTILE_VALUE_DIM,
+    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
+    REWARD_SCALE_BPS as OFFLINE_RL_REWARD_SCALE_BPS,
+    require_offline_rl_contract_metadata,
 )
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
@@ -79,7 +96,7 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v1"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v2"
 REPORT_PREFIX = "ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT"
 _SMOKE_EDGE_POLICY = foundation_audit_policy_metadata()["smoke_edge_pockets"]
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
@@ -121,13 +138,40 @@ MIN_SPECIALIST_GATE_ENTROPY = float(
     _SMOKE_EDGE_POLICY["min_specialist_gate_entropy"]
 )
 MIN_SPECIALIST_GATE_STD = float(_SMOKE_EDGE_POLICY["min_specialist_gate_std"])
+_TURNING_POINT_POLICY = _SMOKE_EDGE_POLICY["turning_point_evidence"]
+TURNING_POINT_EVALUATION_HORIZON = int(
+    _TURNING_POINT_POLICY["evaluation_horizon_bars"]
+)
+NEAR_TURN_MAX_FRACTION = float(_TURNING_POINT_POLICY["near_turn_max_fraction"])
+MIN_TIMING_TARGET_SPEARMAN = float(
+    _TURNING_POINT_POLICY["min_prediction_target_spearman"]
+)
+MAX_TIMING_TARGET_MAE = float(
+    _TURNING_POINT_POLICY["max_prediction_target_mae"]
+)
+MIN_NEAR_TURN_TRADE_ROWS_PER_SIDE = int(
+    _TURNING_POINT_POLICY["min_near_turn_trade_rows_per_side"]
+)
+MIN_NEAR_TURN_DIRECTION_PRECISION = float(
+    _TURNING_POINT_POLICY["min_near_turn_direction_precision"]
+)
+MIN_NEAR_TURN_PRECISION_WILSON_LOWER = float(
+    _TURNING_POINT_POLICY["min_near_turn_precision_wilson_lower"]
+)
+MIN_NEAR_TURN_TIMING_PRECISION = float(
+    _TURNING_POINT_POLICY["min_near_turn_timing_precision"]
+)
+MIN_NEAR_TURN_TIMING_PRECISION_WILSON_LOWER = float(
+    _TURNING_POINT_POLICY["min_near_turn_timing_precision_wilson_lower"]
+)
+_OFFLINE_RL_EVIDENCE_POLICY = _SMOKE_EDGE_POLICY["offline_rl_evidence"]
 
 _STAMP_RE = re.compile(r"\d{8}T\d{6}(?:\d{6})?Z")
 _HEX64_RE = re.compile(r"[0-9a-f]{64}")
 
 _INPUT_AUDIT_CONTRACTS = {
     "target": (
-        "entry_target_foundation_audit_v1",
+        FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
         "ENTRY_TARGET_FOUNDATION_AUDIT",
     ),
     "specialist": (
@@ -189,6 +233,8 @@ _REQUIRED_TARGET_EVIDENCE = (
     "y_short_path_utility_bps",
     "long_path_utility_pred_bps",
     "short_path_utility_pred_bps",
+    *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    *ACTION_VALUE_TARGET_COLUMNS,
 )
 
 
@@ -524,6 +570,38 @@ def _input_audit_contract(
                 failures.append("target audit base active-head set/order mismatch")
             if tuple(contract.get("blocked_heads") or ()) != tuple(MODEL_NATIVE_BLOCKED_HEADS):
                 failures.append("target audit blocked-head set/order mismatch")
+            if tuple(contract.get("extra_active_target_heads") or ()) != tuple(
+                MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            ):
+                failures.append("target audit extra target-head set/order mismatch")
+            if not all(
+                (contract.get("extra_active_target_head_liveness") or {}).get(head)
+                is True
+                for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+            ):
+                failures.append("target audit extra target-head liveness is unproven")
+        try:
+            require_model_native_aux_target_contract(
+                payload.get("model_native_aux_target_contract"),
+                context="SMOKE_TARGET_AUDIT",
+            )
+        except RuntimeError as exc:
+            failures.append(str(exc))
+        offline_rl_target = payload.get("offline_rl_target_contract")
+        if (
+            not isinstance(offline_rl_target, Mapping)
+            or offline_rl_target.get("decision") != "PASS"
+            or offline_rl_target.get("failures") != []
+        ):
+            failures.append("target audit offline-RL target proof failed")
+        else:
+            try:
+                require_offline_rl_contract_metadata(
+                    offline_rl_target.get("offline_rl_contract"),
+                    context="SMOKE_TARGET_AUDIT",
+                )
+            except RuntimeError as exc:
+                failures.append(str(exc))
     if name == "specialist" and payload:
         exact_checks = (
             (payload.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "contract mode"),
@@ -1306,6 +1384,313 @@ def _utility_evidence_contract(frame: pd.DataFrame, *, split: str) -> dict[str, 
     }
 
 
+def _turning_point_evidence_contract(
+    frame: pd.DataFrame,
+    *,
+    split: str,
+) -> dict[str, Any]:
+    """Require learned, target-aligned TOP/BOTTOM timing and precise pockets."""
+
+    failures: list[str] = []
+    alignment: list[dict[str, Any]] = []
+    pockets: dict[str, Any] = {}
+    layout = model_native_aux_target_contract_metadata()["turning_point_timing"][
+        "layout"
+    ]
+    try:
+        if "timing_pred" in frame:
+            predictions = _matrix(
+                frame,
+                "timing_pred",
+                MODEL_NATIVE_TIMING_OUTPUT_DIM,
+            )
+        else:
+            predictions = _prefixed_matrix(
+                frame,
+                "timing_pred",
+                MODEL_NATIVE_TIMING_OUTPUT_DIM,
+            )
+        targets = np.column_stack(
+            [_numeric(frame, name) for name in MODEL_NATIVE_TIMING_TARGET_COLUMNS]
+        )
+        if np.any(predictions < 0.0) or np.any(predictions > 1.0):
+            failures.append(f"{split}: timing predictions are outside [0,1]")
+        if np.any(targets < 0.0) or np.any(targets > 1.0):
+            failures.append(f"{split}: timing targets are outside [0,1]")
+
+        for item in layout:
+            index = int(item["index"])
+            rho = _spearman(predictions[:, index], targets[:, index])
+            mae = float(np.mean(np.abs(predictions[:, index] - targets[:, index])))
+            row_failures: list[str] = []
+            if rho is None or rho < MIN_TIMING_TARGET_SPEARMAN:
+                row_failures.append(
+                    f"Spearman={rho} below {MIN_TIMING_TARGET_SPEARMAN:.3f}"
+                )
+            if mae > MAX_TIMING_TARGET_MAE:
+                row_failures.append(
+                    f"MAE={mae:.6f} above {MAX_TIMING_TARGET_MAE:.6f}"
+                )
+            alignment.append(
+                {
+                    **dict(item),
+                    "spearman": rho,
+                    "mae": mae,
+                    "decision": "PASS" if not row_failures else "FAIL",
+                    "failures": row_failures,
+                }
+            )
+            failures.extend(
+                f"{split}/{item['target_column']}: {failure}"
+                for failure in row_failures
+            )
+
+        predicted_direction = _numeric(frame, "pred_direction")
+        true_direction = _numeric(frame, "y_direction")
+        if not np.array_equal(predicted_direction, np.rint(predicted_direction)):
+            raise RuntimeError("pred_direction is not integer-valued")
+        if not np.array_equal(true_direction, np.rint(true_direction)):
+            raise RuntimeError("y_direction is not integer-valued")
+        predicted_direction = predicted_direction.astype(np.int64)
+        true_direction = true_direction.astype(np.int64)
+
+        for direction_id, direction, turn in (
+            (0, "long", "BOTTOM"),
+            (1, "short", "TOP"),
+        ):
+            timing_index = next(
+                int(item["index"])
+                for item in layout
+                if item["direction"] == direction
+                and int(item["horizon_bars"])
+                == TURNING_POINT_EVALUATION_HORIZON
+                and item["target"] == "dip_bottom_frac"
+            )
+            claimed = (
+                (predicted_direction == direction_id)
+                & (predictions[:, timing_index] <= NEAR_TURN_MAX_FRACTION)
+            )
+            rows = int(claimed.sum())
+            direction_successes = int(
+                np.sum(true_direction[claimed] == direction_id)
+            )
+            timing_successes = int(
+                np.sum(targets[claimed, timing_index] <= NEAR_TURN_MAX_FRACTION)
+            )
+            direction_precision = direction_successes / rows if rows else 0.0
+            timing_precision = timing_successes / rows if rows else 0.0
+            direction_wilson = _wilson_lower(direction_successes, rows)
+            timing_wilson = _wilson_lower(timing_successes, rows)
+            pocket_failures: list[str] = []
+            if rows < MIN_NEAR_TURN_TRADE_ROWS_PER_SIDE:
+                pocket_failures.append(
+                    f"rows={rows} below {MIN_NEAR_TURN_TRADE_ROWS_PER_SIDE}"
+                )
+            if direction_precision < MIN_NEAR_TURN_DIRECTION_PRECISION:
+                pocket_failures.append(
+                    "direction precision="
+                    f"{direction_precision:.6f} below "
+                    f"{MIN_NEAR_TURN_DIRECTION_PRECISION:.6f}"
+                )
+            if direction_wilson < MIN_NEAR_TURN_PRECISION_WILSON_LOWER:
+                pocket_failures.append(
+                    f"direction Wilson={direction_wilson:.6f} below "
+                    f"{MIN_NEAR_TURN_PRECISION_WILSON_LOWER:.6f}"
+                )
+            if timing_precision < MIN_NEAR_TURN_TIMING_PRECISION:
+                pocket_failures.append(
+                    f"timing precision={timing_precision:.6f} below "
+                    f"{MIN_NEAR_TURN_TIMING_PRECISION:.6f}"
+                )
+            if timing_wilson < MIN_NEAR_TURN_TIMING_PRECISION_WILSON_LOWER:
+                pocket_failures.append(
+                    f"timing Wilson={timing_wilson:.6f} below "
+                    f"{MIN_NEAR_TURN_TIMING_PRECISION_WILSON_LOWER:.6f}"
+                )
+            pockets[turn] = {
+                "decision": "PASS" if not pocket_failures else "FAIL",
+                "failures": pocket_failures,
+                "model_direction": direction.upper(),
+                "timing_output_index": timing_index,
+                "evaluation_horizon_bars": TURNING_POINT_EVALUATION_HORIZON,
+                "near_turn_max_fraction": NEAR_TURN_MAX_FRACTION,
+                "rows": rows,
+                "direction_successes": direction_successes,
+                "direction_precision": direction_precision,
+                "direction_precision_wilson_lower": direction_wilson,
+                "timing_successes": timing_successes,
+                "timing_precision": timing_precision,
+                "timing_precision_wilson_lower": timing_wilson,
+            }
+            failures.extend(
+                f"{split}/{turn}: {failure}" for failure in pocket_failures
+            )
+    except (RuntimeError, StopIteration) as exc:
+        failures.append(f"{split}: turning-point evidence invalid: {exc}")
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "policy": dict(_TURNING_POINT_POLICY),
+        "layout": layout,
+        "target_alignment": alignment,
+        "near_turn_pockets": pockets,
+        "live_direction_rule_authority": False,
+    }
+
+
+def _offline_rl_evidence_contract(
+    frame: pd.DataFrame,
+    *,
+    split: str,
+) -> dict[str, Any]:
+    """Require Q/V/Adv target alignment without creating another policy."""
+
+    failures: list[str] = []
+    q_alignment: list[dict[str, Any]] = []
+    ranking: dict[str, Any] = {}
+    value_alignment: dict[str, Any] = {}
+    advantage_max_abs_error: float | None = None
+    try:
+        def vector(name: str, width: int) -> np.ndarray:
+            return (
+                _matrix(frame, name, width)
+                if name in frame
+                else _prefixed_matrix(frame, name, width)
+            )
+
+        q_flat = vector("action_value", ACTION_VALUE_DIM)
+        value = vector("expectile_value", EXPECTILE_VALUE_DIM)
+        advantage = vector("action_advantage", ACTION_VALUE_DIM)
+        q_values = q_flat.reshape(
+            len(frame), len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)
+        )
+        expected_advantage = (q_values - value[:, None, :]).reshape(
+            len(frame), ACTION_VALUE_DIM
+        )
+        advantage_max_abs_error = float(
+            np.max(np.abs(advantage - expected_advantage))
+        )
+        if advantage_max_abs_error > float(
+            _OFFLINE_RL_EVIDENCE_POLICY["max_advantage_parity_abs"]
+        ):
+            failures.append(
+                f"{split}: Advantage != Q-V max_abs={advantage_max_abs_error:.9g}"
+            )
+
+        rewards = np.column_stack(
+            [_numeric(frame, name) for name in ACTION_VALUE_TARGET_COLUMNS]
+        ).reshape(
+            len(frame), len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)
+        ) / float(OFFLINE_RL_REWARD_SCALE_BPS)
+        min_spearman = float(
+            _OFFLINE_RL_EVIDENCE_POLICY["min_q_target_spearman"]
+        )
+        max_mae = float(_OFFLINE_RL_EVIDENCE_POLICY["max_q_target_mae_scaled"])
+        flat_index = OFFLINE_RL_ACTION_ORDER.index("FLAT")
+        for action_index, action in enumerate(OFFLINE_RL_ACTION_ORDER):
+            for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
+                q_column = q_values[:, action_index, horizon_index]
+                target_column = rewards[:, action_index, horizon_index]
+                mae = float(np.mean(np.abs(q_column - target_column)))
+                rho = _spearman(q_column, target_column)
+                row_failures: list[str] = []
+                if action_index == flat_index:
+                    flat_abs_mean = float(np.mean(np.abs(q_column)))
+                    if flat_abs_mean > float(
+                        _OFFLINE_RL_EVIDENCE_POLICY["max_flat_q_abs_mean_scaled"]
+                    ):
+                        row_failures.append(
+                            f"flat abs mean={flat_abs_mean:.6f} above policy"
+                        )
+                elif rho is None or rho < min_spearman:
+                    row_failures.append(
+                        f"Spearman={rho} below {min_spearman:.3f}"
+                    )
+                if mae > max_mae:
+                    row_failures.append(
+                        f"MAE={mae:.6f} above {max_mae:.6f}"
+                    )
+                q_alignment.append(
+                    {
+                        "action": action,
+                        "horizon_bars": int(horizon),
+                        "spearman": rho,
+                        "mae_scaled": mae,
+                        "decision": "PASS" if not row_failures else "FAIL",
+                        "failures": row_failures,
+                    }
+                )
+                failures.extend(
+                    f"{split}/{action}/K{horizon}: {failure}"
+                    for failure in row_failures
+                )
+
+        ordered_rewards = np.sort(rewards, axis=1)
+        unique_best = ordered_rewards[:, -1, :] > ordered_rewards[:, -2, :]
+        reward_best = np.argmax(rewards, axis=1)
+        q_best = np.argmax(q_values, axis=1)
+        for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
+            valid = unique_best[:, horizon_index]
+            rows = int(valid.sum())
+            successes = int(
+                np.sum(q_best[valid, horizon_index] == reward_best[valid, horizon_index])
+            )
+            accuracy = successes / rows if rows else 0.0
+            row_failures: list[str] = []
+            if rows < int(
+                _OFFLINE_RL_EVIDENCE_POLICY["min_unique_reward_rows_per_horizon"]
+            ):
+                row_failures.append(f"unique rows={rows} below policy")
+            if accuracy < float(
+                _OFFLINE_RL_EVIDENCE_POLICY[
+                    "min_reward_argmax_accuracy_per_horizon"
+                ]
+            ):
+                row_failures.append(f"reward argmax accuracy={accuracy:.6f} below policy")
+            ranking[f"K{horizon}"] = {
+                "decision": "PASS" if not row_failures else "FAIL",
+                "failures": row_failures,
+                "unique_reward_rows": rows,
+                "successes": successes,
+                "accuracy": accuracy,
+            }
+            failures.extend(
+                f"{split}/ranking/K{horizon}: {failure}"
+                for failure in row_failures
+            )
+
+            max_q = q_values[:, :, horizon_index].max(axis=1)
+            rho = _spearman(value[:, horizon_index], max_q)
+            row_failures = []
+            if rho is None or rho < float(
+                _OFFLINE_RL_EVIDENCE_POLICY["min_value_vs_max_q_spearman"]
+            ):
+                row_failures.append(f"V/max-Q Spearman={rho} below policy")
+            value_alignment[f"K{horizon}"] = {
+                "decision": "PASS" if not row_failures else "FAIL",
+                "failures": row_failures,
+                "spearman": rho,
+            }
+            failures.extend(
+                f"{split}/value/K{horizon}: {failure}"
+                for failure in row_failures
+            )
+    except RuntimeError as exc:
+        failures.append(f"{split}: offline-RL prediction evidence invalid: {exc}")
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "policy": dict(_OFFLINE_RL_EVIDENCE_POLICY),
+        "q_target_alignment": q_alignment,
+        "reward_argmax_ranking": ranking,
+        "value_vs_max_q": value_alignment,
+        "advantage_max_abs_error": advantage_max_abs_error,
+        "separate_direction_authority": False,
+    }
+
+
 def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     direction = _direction_metrics(frame, context=split)
     distribution_failures = [
@@ -1331,6 +1716,8 @@ def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
     gate = _specialist_gate_contract(frame, split=split)
     heads = _active_head_evidence_contract(frame, split=split)
     utility = _utility_evidence_contract(frame, split=split)
+    turning_point = _turning_point_evidence_contract(frame, split=split)
+    offline_rl = _offline_rl_evidence_contract(frame, split=split)
     failures = [
         *direction["failures"],
         *distribution["failures"],
@@ -1338,6 +1725,8 @@ def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
         *gate["failures"],
         *heads["failures"],
         *utility["failures"],
+        *turning_point["failures"],
+        *offline_rl["failures"],
     ]
     return {
         "decision": "PASS" if not failures else "FAIL",
@@ -1349,6 +1738,8 @@ def _split_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any]:
         "specialist_gate": gate,
         "active_head_evidence": heads,
         "utility_evidence": utility,
+        "turning_point_evidence": turning_point,
+        "offline_rl_evidence": offline_rl,
         "public_trade_flat_contract": {
             "decision": "PASS",
             "failures": [],
@@ -1639,6 +2030,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         < 0.0
         for split in DATA_SPLITS
     )
+    turning_point_edge_proven = all(
+        ((split_reports.get(split) or {}).get("turning_point_evidence") or {}).get(
+            "decision"
+        )
+        == "PASS"
+        for split in DATA_SPLITS
+    )
+    offline_rl_edge_proven = all(
+        ((split_reports.get(split) or {}).get("offline_rl_evidence") or {}).get(
+            "decision"
+        )
+        == "PASS"
+        for split in DATA_SPLITS
+    )
     edge_contract = {
         "decision": "PASS" if not edge_failures else "FAIL",
         "failures": edge_failures,
@@ -1646,6 +2051,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "context_slice_edge_proven": context_slice_edge_proven,
         "path_quality_edge_proven": path_quality_edge_proven,
         "bad_path_edge_proven": bad_path_edge_proven,
+        "turning_point_edge_proven": turning_point_edge_proven,
+        "offline_rl_edge_proven": offline_rl_edge_proven,
     }
 
     gate_liveness_proven = all(

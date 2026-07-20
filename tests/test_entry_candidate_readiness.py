@@ -138,7 +138,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     target_path = _write_json(
         evidence / "ENTRY_TARGET_AUDIT_20260716T115959123456Z.json",
         {
-            "schema_version": "entry_target_foundation_audit_v1",
+            "schema_version": "entry_target_foundation_audit_v2",
             **foundation_audit_policy_binding(),
             "foundation_audit_policy_enforcement": (
                 foundation_audit_policy_enforcement("target")
@@ -165,7 +165,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         return readiness._artifact_binding(path)
 
     report = {
-        "schema_version": "entry_foundation_smoke_bundle_audit_v1",
+        "schema_version": "entry_foundation_smoke_bundle_audit_v2",
         **foundation_audit_policy_binding(),
         "decision": "PASS",
         "failures": [],
@@ -189,7 +189,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
                 "foundation_audit_policy_enforcement": (
                     foundation_audit_policy_enforcement("target")
                 ),
-                "schema_version": "entry_target_foundation_audit_v1",
+                "schema_version": "entry_target_foundation_audit_v2",
                 "decision": "PASS",
                 "failures": [],
                 "data_splits": list(FOUNDATION_AUDIT_DATA_SPLITS),
@@ -249,10 +249,12 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
             "context_slice_edge_proven": True,
             "path_quality_edge_proven": True,
             "bad_path_edge_proven": True,
+            "turning_point_edge_proven": True,
+            "offline_rl_edge_proven": True,
         },
         "splits": passing_smoke_audit_splits(),
         "prediction_evidence": {
-            "schema_version": "entry_candidate_model_direction_prediction_evidence_v1",
+            "schema_version": "entry_candidate_model_direction_prediction_evidence_v2",
             "authoritative": True,
             "path": str(evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"),
         },

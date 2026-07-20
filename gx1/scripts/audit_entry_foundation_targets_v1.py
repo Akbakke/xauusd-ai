@@ -14,9 +14,26 @@ import pyarrow.parquet as pq
 
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     foundation_audit_policy_binding,
     foundation_audit_policy_enforcement,
     foundation_audit_policy_metadata,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_TARGET_COLUMNS,
+    MODEL_NATIVE_DIP_TARGET_COLUMNS,
+    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
+    MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
+    model_native_aux_target_contract_metadata,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
+    ACTION_VALUE_TARGET_COLUMNS,
+    HORIZON_BARS as OFFLINE_RL_HORIZON_BARS,
+    offline_rl_contract_metadata,
 )
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
@@ -44,6 +61,7 @@ SCALAR_BAD_PATH_MAX_SPEARMAN_EXCLUSIVE = float(
 )
 _SIDE_QUALITY_POLICY = _TARGET_AUDIT_POLICY["side_quality"]
 _POSITION_SIZE_TARGET_POLICY = _TARGET_AUDIT_POLICY["position_size_target"]
+_OFFLINE_RL_TARGET_POLICY = _TARGET_AUDIT_POLICY["offline_rl_target"]
 MAX_BAD_PATH_VS_UTILITY_SPEARMAN = float(
     _SIDE_QUALITY_POLICY["max_bad_path_vs_utility_spearman"]
 )
@@ -73,26 +91,13 @@ SIDE_TARGET_COLUMNS = [
     "y_clean_edge_bidir",
     "y_survival_bidir",
 ]
-OPTIONAL_TARGET_COLUMNS = [
+ADDITIONAL_TARGET_COLUMNS = [
     "y_early_move",
     "y_quality_score",
     "y_tf_agreement_score",
     "y_position_size_target",
     "y_hold_horizon_target",
-    "y_forecast_ret_K1",
-    "y_forecast_ret_K5",
-    "y_forecast_ret_K12",
-    "y_forecast_ret_K24",
-    "y_vol_fwd_K12",
-    "y_vol_fwd_K48",
-    "y_vol_fwd_K96",
 ]
-DEEP_AUX_TARGET_COLUMNS = (
-    [f"y_dip_mae_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
-    + [f"y_dip_mfe_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
-    + [f"y_dip_bottom_frac_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
-    + [f"y_tail_mae_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
-)
 XAU_DIRECTION_REPAIR_TARGET_COLUMNS = [
     "y_trade",
     "y_side",
@@ -115,15 +120,15 @@ XAU_DIRECTION_REPAIR_TARGET_COLUMNS = [
 ALL_TARGET_COLUMNS = list(dict.fromkeys(
     BASE_TARGET_COLUMNS
     + SIDE_TARGET_COLUMNS
-    + OPTIONAL_TARGET_COLUMNS
-    + list(DEEP_AUX_TARGET_COLUMNS)
+    + ADDITIONAL_TARGET_COLUMNS
+    + list(MODEL_NATIVE_AUX_TARGET_COLUMNS)
     + XAU_DIRECTION_REPAIR_TARGET_COLUMNS
 ))
 REQUIRED_TARGET_COLUMNS = tuple(
     dict.fromkeys(
         BASE_TARGET_COLUMNS
         + XAU_DIRECTION_REPAIR_TARGET_COLUMNS
-        + ["y_position_size_target", "ctx_cat", "ctx_cont"]
+        + ["y_position_size_target", *MODEL_NATIVE_AUX_TARGET_COLUMNS, "ctx_cat", "ctx_cont"]
     )
 )
 
@@ -136,7 +141,7 @@ BASE_ACTIVE_TRAINING_HEADS = (
     "clean_edge",
     "survival",
 )
-EXPECTED_ACTIVE_OPTIONAL_HEADS = (
+EXPECTED_ACTIVE_AUX_HEADS = (
     "tf_agreement",
     "path_quality_log_var",
     "position_size",
@@ -147,20 +152,18 @@ EXPECTED_ACTIVE_OPTIONAL_HEADS = (
     "vol_forecast",
     "mtf_direction",
 )
-EXPECTED_BLOCKED_OPTIONAL_HEADS = ("hold_horizon",)
+EXPECTED_BLOCKED_TARGET_HEADS = ("hold_horizon",)
+EXPECTED_EXTRA_ACTIVE_TARGET_HEADS = MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
 HEAD_TARGET_COLUMNS = {
     "tf_agreement": ("y_tf_agreement_score",),
     "path_quality_log_var": ("path_quality_bps",),
     "position_size": ("y_position_size_target",),
     "hold_horizon": ("y_hold_horizon_target",),
-    "dip": tuple(
-        [f"y_dip_mae_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
-        + [f"y_dip_mfe_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)]
-    ),
-    "forecast": tuple(f"y_forecast_ret_K{h}" for h in (1, 5, 12, 24)),
-    "timing": tuple(f"y_dip_bottom_frac_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)),
-    "tail_risk": tuple(f"y_tail_mae_{side}_K{h}" for side in ("long", "short") for h in (12, 48, 96)),
-    "vol_forecast": tuple(f"y_vol_fwd_K{h}" for h in (12, 48, 96)),
+    "dip": MODEL_NATIVE_DIP_TARGET_COLUMNS,
+    "forecast": MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    "timing": MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    "tail_risk": MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
+    "vol_forecast": MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
     "mtf_direction": ("y_direction",),
 }
 
@@ -473,8 +476,8 @@ def _head_liveness(frames: list[pd.DataFrame]) -> dict[str, Any]:
 
 def _head_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
     head_liveness = _head_liveness(frames)
-    expected_active = list(BASE_ACTIVE_TRAINING_HEADS + EXPECTED_ACTIVE_OPTIONAL_HEADS)
-    expected_blocked = list(EXPECTED_BLOCKED_OPTIONAL_HEADS)
+    expected_active = list(BASE_ACTIVE_TRAINING_HEADS + EXPECTED_ACTIVE_AUX_HEADS)
+    expected_blocked = list(EXPECTED_BLOCKED_TARGET_HEADS)
     blocked_reasons: dict[str, str] = {}
     for head in expected_blocked:
         live = bool((head_liveness.get(head) or {}).get("live_all_splits"))
@@ -485,12 +488,143 @@ def _head_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
         )
     return {
         "base_active_heads": list(BASE_ACTIVE_TRAINING_HEADS),
-        "expected_active_optional_heads": list(EXPECTED_ACTIVE_OPTIONAL_HEADS),
-        "expected_blocked_optional_heads": expected_blocked,
+        "expected_active_aux_heads": list(EXPECTED_ACTIVE_AUX_HEADS),
+        "expected_blocked_target_heads": expected_blocked,
         "active_training_heads": expected_active,
         "blocked_heads": expected_blocked,
         "blocked_head_reasons": blocked_reasons,
         "head_target_liveness": head_liveness,
+    }
+
+
+def _offline_rl_target_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
+    """Prove that every counterfactual action target is present and usable.
+
+    FLAT is intentionally the exact zero-reward action, so generic variance
+    checks would incorrectly reject it.  LONG/SHORT and the derived best-action
+    value must be live, while every horizon must contain non-collapsed unique
+    winners for LONG, SHORT and FLAT.  Ambiguous reward ties are reported and
+    are never silently assigned to LONG by array order.
+    """
+
+    failures: list[str] = []
+    split_rows: list[dict[str, Any]] = []
+    expected_policy = {
+        "action_order": list(OFFLINE_RL_ACTION_ORDER),
+        "horizon_bars": list(OFFLINE_RL_HORIZON_BARS),
+        "flat_reward_bps": 0.0,
+        "min_best_action_rate_per_horizon": float(
+            _OFFLINE_RL_TARGET_POLICY["min_best_action_rate_per_horizon"]
+        ),
+        "max_best_action_rate_per_horizon": float(
+            _OFFLINE_RL_TARGET_POLICY["max_best_action_rate_per_horizon"]
+        ),
+        "all_counterfactual_actions_required": True,
+    }
+    if dict(_OFFLINE_RL_TARGET_POLICY) != expected_policy:
+        failures.append("offline-RL target policy does not match canonical action contract")
+
+    min_rate = expected_policy["min_best_action_rate_per_horizon"]
+    max_rate = expected_policy["max_best_action_rate_per_horizon"]
+    for df in frames:
+        split = str(df["split"].iloc[0]) if "split" in df and len(df) else "UNKNOWN"
+        row_failures: list[str] = []
+        missing = [name for name in ACTION_VALUE_TARGET_COLUMNS if name not in df]
+        rates_by_horizon: dict[str, dict[str, float]] = {}
+        ambiguous_by_horizon: dict[str, int] = {}
+        live_counterfactual_columns: dict[str, bool] = {}
+        max_value_live_by_horizon: dict[str, bool] = {}
+        if missing:
+            row_failures.append(f"missing action-value target columns: {missing}")
+        elif len(df) <= 0:
+            row_failures.append("action-value target split is empty")
+        else:
+            columns = []
+            for name in ACTION_VALUE_TARGET_COLUMNS:
+                values = pd.to_numeric(df[name], errors="coerce").to_numpy(
+                    dtype=np.float64
+                )
+                if values.shape != (len(df),) or not np.isfinite(values).all():
+                    row_failures.append(f"action-value target is not finite: {name}")
+                columns.append(values)
+            rewards = np.column_stack(columns).reshape(
+                len(df), len(OFFLINE_RL_ACTION_ORDER), len(OFFLINE_RL_HORIZON_BARS)
+            )
+            flat = rewards[:, OFFLINE_RL_ACTION_ORDER.index("FLAT"), :]
+            if not np.array_equal(flat, np.zeros_like(flat)):
+                row_failures.append("FLAT action-value targets are not exact zero reward")
+
+            for action in ("LONG", "SHORT"):
+                for horizon in OFFLINE_RL_HORIZON_BARS:
+                    name = f"y_action_value_{action.lower()}_K{horizon}"
+                    live = bool(_column_liveness(df, name)["live"])
+                    live_counterfactual_columns[name] = live
+                    if not live:
+                        row_failures.append(f"counterfactual target is not live: {name}")
+
+            ordered = np.sort(rewards, axis=1)
+            unique = ordered[:, -1, :] > ordered[:, -2, :]
+            best = np.argmax(rewards, axis=1)
+            for horizon_index, horizon in enumerate(OFFLINE_RL_HORIZON_BARS):
+                horizon_key = f"K{horizon}"
+                valid = unique[:, horizon_index]
+                ambiguous = int((~valid).sum())
+                ambiguous_by_horizon[horizon_key] = ambiguous
+                if not bool(valid.any()):
+                    row_failures.append(f"{horizon_key} has no unique best action")
+                    rates = {action: 0.0 for action in OFFLINE_RL_ACTION_ORDER}
+                else:
+                    rates = {
+                        action: float(
+                            np.mean(
+                                best[valid, horizon_index]
+                                == action_index
+                            )
+                        )
+                        for action_index, action in enumerate(OFFLINE_RL_ACTION_ORDER)
+                    }
+                rates_by_horizon[horizon_key] = rates
+                for action, rate in rates.items():
+                    if rate < min_rate or rate > max_rate:
+                        row_failures.append(
+                            f"{horizon_key} best-action rate {action}={rate:.6f} "
+                            f"outside [{min_rate:.6f},{max_rate:.6f}]"
+                        )
+                max_values = rewards[:, :, horizon_index].max(axis=1)
+                max_live = bool(
+                    np.unique(max_values).size >= 2
+                    and float(np.std(max_values)) > 1e-9
+                )
+                max_value_live_by_horizon[horizon_key] = max_live
+                if not max_live:
+                    row_failures.append(
+                        f"{horizon_key} detached max-action value target is not live"
+                    )
+
+        split_rows.append(
+            {
+                "split": split,
+                "decision": "PASS" if not row_failures else "FAIL",
+                "failures": row_failures,
+                "missing_columns": missing,
+                "best_action_rate_by_horizon": rates_by_horizon,
+                "ambiguous_best_rows_by_horizon": ambiguous_by_horizon,
+                "live_counterfactual_columns": live_counterfactual_columns,
+                "max_action_value_live_by_horizon": max_value_live_by_horizon,
+            }
+        )
+        failures.extend(f"{split}: {failure}" for failure in row_failures)
+
+    all_splits_pass = bool(split_rows) and all(
+        row["decision"] == "PASS" for row in split_rows
+    )
+    return {
+        "decision": "PASS" if all_splits_pass and not failures else "FAIL",
+        "failures": failures,
+        "policy": expected_policy,
+        "offline_rl_contract": offline_rl_contract_metadata(),
+        "action_value_target_columns": list(ACTION_VALUE_TARGET_COLUMNS),
+        "splits": split_rows,
     }
 
 
@@ -851,6 +985,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 failures.append(f"{row['split']}: y_tradable near-constant: {tradable}")
 
     target_head_contract = _head_contract(frames)
+    offline_rl_target_contract = _offline_rl_target_contract(frames)
+    target_head_contract["extra_active_target_heads"] = list(
+        EXPECTED_EXTRA_ACTIVE_TARGET_HEADS
+    )
+    target_head_contract["extra_active_target_head_liveness"] = {
+        head: offline_rl_target_contract["decision"] == "PASS"
+        for head in EXPECTED_EXTRA_ACTIVE_TARGET_HEADS
+    }
     head_liveness = target_head_contract["head_target_liveness"]
     xau_repair_liveness = _xau_direction_repair_liveness(frames)
     if not xau_repair_liveness["all_expected_columns_present_all_splits"]:
@@ -862,10 +1004,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append("xau direction-repair target columns are not live in all splits")
     if not xau_side_quality_contract["all_side_quality_checks_pass"]:
         failures.extend(xau_side_quality_contract["failures"])
-    for head in EXPECTED_ACTIVE_OPTIONAL_HEADS:
+    failures.extend(offline_rl_target_contract["failures"])
+    for head in EXPECTED_ACTIVE_AUX_HEADS:
         if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
             failures.append(f"expected active optional head target is not live in all splits: {head}")
-    for head in EXPECTED_BLOCKED_OPTIONAL_HEADS:
+    for head in EXPECTED_BLOCKED_TARGET_HEADS:
         if head not in set(target_head_contract["blocked_heads"]):
             failures.append(f"expected blocked optional head missing from blocked_heads: {head}")
 
@@ -881,10 +1024,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "blocked_heads": target_head_contract["blocked_heads"],
         "xau_direction_repair_side_quality_contract": xau_side_quality_contract,
         "position_size_target_contract": position_size_target_contract,
+        "model_native_aux_target_contract": (
+            model_native_aux_target_contract_metadata()
+        ),
+        "offline_rl_target_contract": offline_rl_target_contract,
         "approval_status": "MACHINE_AUDITED_NOT_HUMAN_APPROVED",
     }
     report = {
-        "schema_version": "entry_target_foundation_audit_v1",
+        "schema_version": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         **foundation_audit_policy_binding(),
@@ -906,6 +1053,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "xau_direction_repair_target_liveness": xau_repair_liveness,
         "xau_direction_repair_side_quality_contract": xau_side_quality_contract,
         "position_size_target_contract": position_size_target_contract,
+        "model_native_aux_target_contract": (
+            model_native_aux_target_contract_metadata()
+        ),
+        "offline_rl_target_contract": offline_rl_target_contract,
         "metrics": metrics,
         "drift": drift,
         "failures": failures,

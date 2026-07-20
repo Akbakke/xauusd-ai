@@ -23,6 +23,17 @@ from gx1.contracts.entry_full_input_liveness_v1 import (
     SCHEMA_VERSION as FULL_INPUT_LIVENESS_SCHEMA,
     validate_full_input_liveness_artifact,
 )
+from gx1.contracts.entry_foundation_audit_policy_v1 import (
+    FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
+    require_foundation_audit_report_policy,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
+    require_model_native_aux_target_contract,
+)
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    require_offline_rl_contract_metadata,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -608,6 +619,58 @@ def _target_head_contract(report: dict[str, Any]) -> dict[str, Any]:
     return contract if isinstance(contract, dict) else {}
 
 
+def _target_aux_contract_report(report: dict[str, Any]) -> dict[str, Any]:
+    failures: list[str] = []
+    if report.get("schema_version") != FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION:
+        failures.append("target audit schema is stale")
+    try:
+        require_foundation_audit_report_policy(
+            report,
+            audit_kind="target",
+            context="SMOKE_READINESS_TARGET_AUDIT",
+        )
+    except RuntimeError as exc:
+        failures.append(str(exc))
+    try:
+        require_model_native_aux_target_contract(
+            report.get("model_native_aux_target_contract"),
+            context="SMOKE_READINESS_TARGET_AUDIT",
+        )
+    except RuntimeError as exc:
+        failures.append(str(exc))
+    offline_rl = report.get("offline_rl_target_contract")
+    if (
+        not isinstance(offline_rl, dict)
+        or offline_rl.get("decision") != "PASS"
+        or offline_rl.get("failures") != []
+    ):
+        failures.append("offline-RL target proof is not a zero-failure PASS")
+    else:
+        try:
+            require_offline_rl_contract_metadata(
+                offline_rl.get("offline_rl_contract"),
+                context="SMOKE_READINESS_TARGET_AUDIT",
+            )
+        except RuntimeError as exc:
+            failures.append(str(exc))
+    heads = _target_head_contract(report)
+    if tuple(heads.get("extra_active_target_heads") or ()) != tuple(
+        MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+    ) or not all(
+        (heads.get("extra_active_target_head_liveness") or {}).get(head) is True
+        for head in MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+    ):
+        failures.append("extra active target-head liveness is unproven")
+    return {
+        "ok": not failures,
+        "failures": failures,
+        "required_schema_version": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
+        "required_extra_active_target_heads": list(
+            MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS
+        ),
+    }
+
+
 def _specialist_model_contract_exact(report: dict[str, Any]) -> bool:
     observed = report.get("specialist_model_contract")
     return isinstance(observed, dict) and json.loads(json.dumps(observed)) == json.loads(
@@ -909,6 +972,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     rebuild_counts = rebuild.get("counts") if isinstance(rebuild.get("counts"), dict) else {}
     target_head_contract = _target_head_contract(target)
+    target_aux_contract = _target_aux_contract_report(target)
     target_active_heads = {str(x) for x in target_head_contract.get("active_training_heads") or []}
     target_blocked_heads = {str(x) for x in target_head_contract.get("blocked_heads") or []}
     specialist_active_heads, specialist_blocked_heads = _recommended_heads(specialist)
@@ -1031,6 +1095,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 _check("smart target audit exists", target_audit_json.exists(), _artifact_meta(target_audit_json)),
                 _check("smart target audit PASS", target.get("decision") == "PASS", {"decision": target.get("decision")}),
                 _check("smart target audit has zero failures", not target.get("failures"), target.get("failures")),
+                _check(
+                    "smart target audit proves exact aux-v3 and offline-RL targets",
+                    bool(target_aux_contract["ok"]),
+                    target_aux_contract,
+                ),
                 _check(
                     "smart target audit points at smart dataset",
                     _dataset_path_matches(target, smart_dataset_dir),

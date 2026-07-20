@@ -31,6 +31,10 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     build_prediction_evidence_declaration,
     sha256_file,
 )
+from tests.model_native_turning_point_support import (
+    turning_point_prediction_columns,
+)
+from tests.model_native_offline_rl_support import offline_rl_prediction_columns
 from gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 import (
     CANDIDATE_EVENT_PREFIX,
     TRADE_LOG_EVENT_PREFIX,
@@ -186,6 +190,10 @@ def _write_prediction_event(
     frame["public_flat_probability"] = pair_probabilities[:, 1]
     frame["public_trade_flat_margin"] = pair_logits[:, 0] - pair_logits[:, 1]
     frame["public_trade_flat_hard_decision"] = np.argmax(pair_logits, axis=1)
+    for name, values in turning_point_prediction_columns(len(frame)).items():
+        frame[name] = values
+    for name, values in offline_rl_prediction_columns(len(frame)).items():
+        frame[name] = values
 
     bundle = tmp_path / "bundle"
     event_dir = tmp_path / "prediction_event"

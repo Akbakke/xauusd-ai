@@ -27,10 +27,10 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
     assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-        "0bce213331acc609f4b7289d18f30c05388f4e2378b82ceff69c100a0d26bd58"
+        "001916cde5ad9d76c79344ebf3cc0d5d5789d3b5564a1fe9318f7640feb0cc8d"
     )
     assert binding["foundation_audit_policy"]["schema_version"] == (
-        "entry_foundation_audit_policy_v2"
+        "entry_foundation_audit_policy_v3"
     )
     smoke = binding["foundation_audit_policy"]["smoke_edge_pockets"]
     assert smoke["wilson_confidence_level"] == 0.95
@@ -44,6 +44,18 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     assert smoke["min_context_trade_rows"] == 32
     assert smoke["min_context_trade_direction_precision"] == 0.95
     assert smoke["min_context_trade_precision_wilson_lower"] == 0.85
+    turning = smoke["turning_point_evidence"]
+    assert turning["evaluation_horizon_bars"] == 12
+    assert turning["min_near_turn_direction_precision"] == 0.98
+    assert turning["min_near_turn_precision_wilson_lower"] == 0.90
+    assert turning["min_near_turn_timing_precision"] == 0.80
+    offline_rl = binding["foundation_audit_policy"]["target_quality"][
+        "offline_rl_target"
+    ]
+    assert offline_rl["action_order"] == ["LONG", "SHORT", "FLAT"]
+    learned_qv = smoke["offline_rl_evidence"]
+    assert learned_qv["min_reward_argmax_accuracy_per_horizon"] == 0.70
+    assert learned_qv["separate_direction_authority"] is False
     assert binding["foundation_audit_policy"]["audit_data_splits"] == list(
         FOUNDATION_AUDIT_DATA_SPLITS
     )
