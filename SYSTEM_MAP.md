@@ -414,6 +414,13 @@ activation routes. `scripts/gx1_handover.sh` is the only handover script.
 
 Current facts:
 
+- 2026-07-21 V3 has fresh ranking/manifest/preflight lineage but is
+  non-authoritative failure evidence: the builder stopped after canonical join
+  before Group-A completion and did not write terminal status;
+- Group-A output semantics must remain exact; reducing workers to four did not
+  cure this pre-worker/full-context failure, so recovery needs bounded
+  checkpointing and terminal-status durability rather than a direction fallback;
+
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
 - no seq513 rebuild chain or training process is running;

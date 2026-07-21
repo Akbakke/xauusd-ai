@@ -29,6 +29,7 @@ esac
 
 sources=(
   "$REPO/AGENTS.md"
+  "$REPO/ROADMAP.md"
   "$REPO/SYSTEM_MAP.md"
   "$HANDOVER"
   "$REPO/PROJECT_STATE.md"

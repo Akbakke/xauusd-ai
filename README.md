@@ -21,6 +21,11 @@ objective weights are not learned evidence. It read zero parquet; immutable
 historical selection-benchmark bytes and exact learned-probe OOT evidence are
 still absent and are the next empirical gate.
 
+On 2026-07-21, fresh V3 ranking/manifest/preflight passed but the dataset
+builder stopped non-terminally after canonical join while beginning Group-A
+context. V3 is failure evidence only. See ROADMAP.md and the handover before
+starting any recovery.
+
 ## Active Entry contract
 
 - XAUUSD only; M5 decision cadence with M5/M15/H1/H4/D1 context.

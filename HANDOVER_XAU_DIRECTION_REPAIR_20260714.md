@@ -22,6 +22,17 @@ selection, mutable-latest evidence or soft compatibility path.
 **BLOCK.** There is no accepted fresh seq513 dataset/bundle and no launch
 authority. Candidate, replay, paper/demo/live and promotion remain closed.
 
+### 2026-07-21 active rebuild incident
+
+V3 was the first fresh event after current-source TRAIN-only ranking,
+manifest and preflight validation. Its dataset builder recomputed the
+source-owned micro/swing/session fields and completed the canonical join, but
+then stopped non-terminally while entering Group-A causal context. The same
+failure occurred after reducing the fork count to four. No V3 split, proof,
+rank reference or status marked RUNNING may be used as authority. Repair must
+preserve Group-A semantics, persist progress and guarantee a terminal event
+before another fresh rebuild. ROADMAP.md is the concise current takeover plan.
+
 `PROJECT_STATE_xau_direction_launch.json` is the current Entry launch state.
 Every earlier Entry dataset, bundle and report is rejected by the current
 contract; none can act as launch, direction or compatibility authority.

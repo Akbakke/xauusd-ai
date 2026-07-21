@@ -12,6 +12,10 @@ Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
 Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
 and cannot authorize a run or launch.
 
+ROADMAP.md is the current execution/takeover plan. Read it after this
+constitution; it records active rebuild incidents but never overrides the
+machine-readable launch BLOCK.
+
 Read in this order:
 
 1. `AGENTS.md`
