@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """canonical_v3 augmentation — produces canonical_v3 from canonical_v2 by:
 
-  1. Pruning 12 redundant features (5 exact duplicates + 7 near-duplicates @ |corr|>0.95)
+  1. Pruning 11 redundant features (5 exact duplicates + 6 near-duplicates @ |corr|>0.95)
   2. Adding 4 cyclic time features (hour_sin, hour_cos, dow_sin, dow_cos)
   3. Adding 1 SMC × swing-state interaction (smc_premium_state)
   4. Adding 1 cross-TF momentum feature (m5h1_momentum)
@@ -15,8 +15,8 @@ Per audit findings (project_gx1_audit_findings_2026q2.md):
       _v1_clv↔_v1_int_clv_atr, ret_20↔roc20, _v1_body_tr↔_v1_body_share_1
     - 7 near-duplicates (|corr|>0.95): atr↔_v1_atr14, std50↔rvol_60, etc.
 
-Net feature change: 104 → 96 = -12 + 6 = (drop 12, keep+6 = 98). With cyclic (4) + smc_premium_state (1)
-+ m5h1_momentum (1) = 6 added.
+Net feature change: -5 columns = 11 removed + 6 added. The additions are
+cyclic time (4), smc_premium_state (1), and m5h1_momentum (1).
 
 Notes:
   - This is NOT lookahead-unsafe — all derivations come from existing canonical_v2 features
@@ -85,48 +85,90 @@ def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
 def add_smc_premium_state_interaction(df: pd.DataFrame) -> pd.DataFrame:
     """smc_premium_state = smc_premium_discount × indicator(smc_swing_state == 0)
 
-    Interpretation: only premium pricing matters when market structure is HH+HL up.
-    HH+HL up + premium near swing high = strong long bias signal.
+    This is a conditional coordinate for the learned model: it exposes premium
+    position while structure is clean HH+HL. It does not prescribe direction.
     """
     if "smc_premium_discount" not in df.columns or "smc_swing_state" not in df.columns:
-        print("[canonical_v3] WARN: smc_premium_discount or smc_swing_state missing; skipping interaction")
-        return df
+        raise RuntimeError(
+            "[canonical_v3] smc_premium_discount and smc_swing_state are required"
+        )
     df = df.copy()
-    pd_score = pd.to_numeric(df["smc_premium_discount"], errors="coerce").fillna(0.5).to_numpy(np.float32)
-    state = pd.to_numeric(df["smc_swing_state"], errors="coerce").fillna(0).astype(int).to_numpy()
+    pd_score = pd.to_numeric(
+        df["smc_premium_discount"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    state_raw = pd.to_numeric(
+        df["smc_swing_state"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(pd_score).all()
+        or np.any(pd_score < 0.0)
+        or np.any(pd_score > 1.0)
+    ):
+        raise RuntimeError(
+            "[canonical_v3] smc_premium_discount must be finite and within [0,1]"
+        )
+    if (
+        not np.isfinite(state_raw).all()
+        or np.any(state_raw != np.floor(state_raw))
+        or np.any(state_raw < 0.0)
+        or np.any(state_raw > 4.0)
+    ):
+        raise RuntimeError(
+            "[canonical_v3] smc_swing_state must use the exact finite enum 0..4"
+        )
+    state = state_raw.astype(np.int8)
     df["smc_premium_state"] = (pd_score * (state == 0).astype(np.float32)).astype(np.float32)
     return df
 
 
-def add_cross_tf_momentum(df: pd.DataFrame) -> pd.DataFrame:
-    """m5h1_momentum = (M5_close - H1_close) / H1_atr_proxy.
+def _atr_normalized_12bar_momentum(
+    close: np.ndarray,
+    h1_atr: np.ndarray,
+) -> np.ndarray:
+    """Return past-12-row price change scaled by aligned completed-H1 ATR.
 
-    Captures intra-H1 mean-reversion potential. Uses _v1h1 features as H1 proxy.
-    Source: canonical_v2 has _v1h1_atr; we synthesize H1_close via close + _v1h1_ema_diff inverse.
-    Simpler proxy: use sign(_v1_close_ema_slope_3) × |_v1h1_atr| as a directional momentum scalar.
-
-    Cleanest: compute m5_close - h1_close directly if both are present. canonical_v2 has
-    `close` (M5) but not h1_close as a column. Fall back to _v1h1_ema_diff + close: not
-    quite right. For now, define momentum as (close - close.shift(12)) / _v1h1_atr (12 M5 = 1h).
+    A zero H1 ATR is an availability/warm-up state, not tiny volatility. Such
+    rows are exactly neutral rather than divided by an epsilon that would
+    fabricate million-scale momentum.
     """
+
+    if close.ndim != 1 or h1_atr.ndim != 1 or close.shape != h1_atr.shape:
+        raise RuntimeError("[canonical_v3] close/H1 ATR shape mismatch")
+    if not np.isfinite(close).all() or not np.isfinite(h1_atr).all():
+        raise RuntimeError("[canonical_v3] close/H1 ATR must be finite")
+    if np.any(h1_atr < 0.0):
+        raise RuntimeError("[canonical_v3] H1 ATR must be non-negative")
+    delta_12 = close - np.roll(close, 12)
+    delta_12[:12] = 0.0
+    result = np.zeros_like(delta_12, dtype=np.float64)
+    np.divide(delta_12, h1_atr, out=result, where=h1_atr > 1e-6)
+    return result
+
+
+def add_cross_tf_momentum(df: pd.DataFrame) -> pd.DataFrame:
+    """Add 12 completed-M5-bar momentum normalized by completed-H1 ATR."""
     if "close" in df.columns and "_v1h1_atr" in df.columns:
         df = df.copy()
         close = pd.to_numeric(df["close"], errors="coerce").to_numpy(np.float64)
-        h1_atr = pd.to_numeric(df["_v1h1_atr"], errors="coerce").fillna(1e-6).to_numpy(np.float64)
-        delta_1h = close - np.roll(close, 12)
-        delta_1h[:12] = 0.0
-        m5h1_momentum = delta_1h / np.maximum(np.abs(h1_atr), 1e-6)
+        h1_atr = pd.to_numeric(
+            df["_v1h1_atr"], errors="coerce"
+        ).to_numpy(np.float64)
+        m5h1_momentum = _atr_normalized_12bar_momentum(close, h1_atr)
         df["m5h1_momentum"] = m5h1_momentum.astype(np.float32)
-    elif "bid_close" in df.columns and "_v1h1_atr" in df.columns:
+    elif {"bid_close", "ask_close", "_v1h1_atr"}.issubset(df.columns):
         df = df.copy()
         close = ((pd.to_numeric(df["bid_close"], errors="coerce") +
                   pd.to_numeric(df["ask_close"], errors="coerce")) / 2.0).to_numpy(np.float64)
-        h1_atr = pd.to_numeric(df["_v1h1_atr"], errors="coerce").fillna(1e-6).to_numpy(np.float64)
-        delta_1h = close - np.roll(close, 12)
-        delta_1h[:12] = 0.0
-        df["m5h1_momentum"] = (delta_1h / np.maximum(np.abs(h1_atr), 1e-6)).astype(np.float32)
+        h1_atr = pd.to_numeric(
+            df["_v1h1_atr"], errors="coerce"
+        ).to_numpy(np.float64)
+        df["m5h1_momentum"] = _atr_normalized_12bar_momentum(
+            close, h1_atr
+        ).astype(np.float32)
     else:
-        print("[canonical_v3] WARN: close or _v1h1_atr missing; skipping m5h1_momentum")
+        raise RuntimeError(
+            "[canonical_v3] close (or bid/ask close) and _v1h1_atr are required"
+        )
     return df
 
 
@@ -239,7 +281,7 @@ def main() -> None:
             "added": [c for c in new_features if c in df.columns],
             "net_columns": n_out - n_in,
         },
-        "note": "canonical_v3 = canonical_v2 - 12 redundant + 6 new (cyclic time + SMC interaction + cross-TF momentum)",
+        "note": "canonical_v3 = canonical_v2 - 11 redundant + 6 new (cyclic time + SMC interaction + cross-TF momentum)",
     }
     manifest_path = out_dir / "CURRENT_MANIFEST.json"
     manifest_path.write_text(json.dumps(manifest, indent=2))
