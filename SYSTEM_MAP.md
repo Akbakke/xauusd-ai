@@ -486,6 +486,9 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
                     → FULL_PLUS_CTX_v3src.parquet (207 kol) + manifester
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
+reparert tape + cv2 + cv3 + modelrange + cache + FULL_PLUS
+  └─ gx1.scripts.audit_seq513_source_cascade_v1 --run-id --event-root --out
+        → fersk hashbundet SOURCE_CASCADE_PROOF.json; alle self-paths må være event-lokale
 FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
       └─ materialize_model_native_train_rank_reference_v2
         --run-id --source-parquet --history-start --fit-start --fit-end --out
