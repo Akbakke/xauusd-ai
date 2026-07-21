@@ -17,6 +17,8 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
     TrainRankReferenceV2,
+    bucket_against_train_reference,
+    causal_vol_regime_bucket,
 )
 from gx1.execution.v12_model_native_state_live import (
     ModelNativeStateBuilder,
@@ -84,7 +86,7 @@ def _valid_entry_context_frame() -> pd.DataFrame:
     frame = pd.DataFrame(index=times)
     _add_session_features(frame)
     frame.insert(0, "time", times)
-    frame["vol_regime_id"] = 2
+    frame["vol_regime_id"] = 1
     frame["atr_bucket"] = 2
     frame["spread_bucket"] = 1
     frame["H4_trend_sign_cat"] = 1
@@ -175,15 +177,25 @@ def test_model_native_entry_boundary_never_turns_unknown_session_into_asia(
         builder.build_states(frame, [frame["time"].iloc[-1]])
 
 
-def test_model_native_entry_boundary_rejects_incoherent_train_rank_categories(
-    tmp_path: Path,
-) -> None:
+def test_model_native_entry_boundary_accepts_distinct_vol_regime_and_atr_level() -> None:
     frame = _valid_entry_context_frame()
-    frame.loc[frame.index[-1], "atr_bucket"] = 3
-    builder = _early_validation_builder(tmp_path)
 
-    with pytest.raises(RuntimeError, match="atr_bucket must equal vol_regime_id"):
-        builder.build_states(frame, [frame["time"].iloc[-1]])
+    _require_model_native_entry_context_frame(frame, context="distinct-vol-context")
+
+
+def test_causal_vol_regime_is_append_invariant_and_not_absolute_atr_alias() -> None:
+    values = np.concatenate(
+        [
+            np.linspace(1.0, 4.0, 300),
+            np.linspace(8.0, 4.0, 300),
+        ]
+    )
+    prefix = causal_vol_regime_bucket(values[:450])
+    complete = causal_vol_regime_bucket(values)
+    absolute = bucket_against_train_reference(values, np.sort(values[:300]))
+
+    np.testing.assert_array_equal(prefix, complete[:450])
+    assert not np.array_equal(complete, absolute)
 
 
 @pytest.mark.parametrize(

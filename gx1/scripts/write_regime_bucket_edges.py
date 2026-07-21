@@ -3,7 +3,7 @@
 Writes gx1.execution.v12_ctx_augment_live.REGIME_BUCKET_EDGES_PATH = the full-history quantile
 edges (q20/40/60/80) of atr_bps (and spread_bps when non-degenerate), computed from the cemented /
 cutover canonical_v3 prebuilt via the SAME _add_spread_atr_bps one-truth formula the live augment
-uses. Digitizing against these fixed edges makes vol_regime_id / atr_bucket FRAME-INVARIANT — the
+uses. Digitizing against these fixed edges makes atr_bucket FRAME-INVARIANT — the
 daemon (any rolling window), the entry serve (augment_canonical_v3), the exit (base34), and the
 build all produce the IDENTICAL bucket = training.
 

@@ -12,6 +12,7 @@ import pytest
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
     DEFAULT_END_UTC,
     DEFAULT_START_UTC,
+    ENTRY_DEAD_CONSTANT_COLUMNS,
     EXPECTED_CV3_COLUMN_COUNT,
     EXPECTED_OUTPUT_COLUMN_COUNT,
     EXTRA_COLUMNS_FROM_CANONICAL_V2,
@@ -30,7 +31,13 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path]:
         "close": np.arange(4, dtype=np.float64) + 1.0,
         **{
             f"cv3_{index:03d}": np.arange(4, dtype=np.float64) + index
-            for index in range(EXPECTED_CV3_COLUMN_COUNT - 2)
+            for index in range(
+                EXPECTED_CV3_COLUMN_COUNT - 2 - len(ENTRY_DEAD_CONSTANT_COLUMNS)
+            )
+        },
+        **{
+            name: np.full(4, float(index), dtype=np.float64)
+            for index, name in enumerate(ENTRY_DEAD_CONSTANT_COLUMNS)
         },
     }
     cv3 = pd.DataFrame(columns)
@@ -66,6 +73,7 @@ def test_materializes_exact_row_aligned_finite_modelrange(tmp_path: Path) -> Non
     assert list(output.columns[-len(EXTRA_COLUMNS_FROM_CANONICAL_V2) :]) == list(
         EXTRA_COLUMNS_FROM_CANONICAL_V2
     )
+    assert not set(ENTRY_DEAD_CONSTANT_COLUMNS) & set(output.columns)
     assert report["schema_version"] == SCHEMA_VERSION
     assert report["entry_run_id"] == RUN_ID
     assert report["output_sha256"] == hashlib.sha256(args.out.read_bytes()).hexdigest()

@@ -11,6 +11,10 @@ import pytest
 from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.scripts import audit_seq513_source_cascade_v1 as audit
 from gx1.scripts.materialize_cv3_modelrange_v1 import SCHEMA_VERSION as MODELRANGE_SCHEMA
+from gx1.scripts.materialize_cv3_modelrange_v1 import (
+    ENTRY_DEAD_CONSTANT_COLUMNS,
+    EXTRA_COLUMNS_FROM_CANONICAL_V2,
+)
 
 
 RUN_ID = "XAU_SEQ513_SOURCE_AUDIT_PYTEST_V1"
@@ -89,6 +93,12 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             "output_sha256": _sha(modelrange),
             "rows": 2,
             "columns": 3,
+            "extra_columns_from_canonical_v2": list(
+                EXTRA_COLUMNS_FROM_CANONICAL_V2
+            ),
+            "entry_dead_constant_columns_removed": list(
+                ENTRY_DEAD_CONSTANT_COLUMNS
+            ),
         },
     )
     mtf_root = root / "MULTI_TF_V2_CACHE"
@@ -172,6 +182,7 @@ def test_source_cascade_audit_binds_every_stage_and_emits_pass(
     assert report["decision"] == "PASS"
     assert report["entry_run_id"] == RUN_ID
     assert report["contracts"]["no_stale_self_paths"] is True
+    assert report["contracts"]["full_numeric_feature_liveness"]["decision"] == "PASS"
     assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
 
 
@@ -185,4 +196,28 @@ def test_source_cascade_audit_rejects_stale_cv3_self_path(
     _write_json(manifest_path, manifest)
 
     with pytest.raises(RuntimeError, match="CV3_SOURCE_PATH_MISMATCH"):
+        audit.run(_args(root))
+
+
+@pytest.mark.parametrize("mutation,error", (("constant", "CONSTANT"), ("duplicate", "DUPLICATES")))
+def test_source_cascade_audit_rejects_dead_or_duplicate_numeric_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    error: str,
+) -> None:
+    root = _fixture(tmp_path, monkeypatch)
+    path = root / "FULL_PLUS_CTX_v3src.parquet"
+    frame = pd.read_parquet(path)
+    if mutation == "constant":
+        frame["one"] = 1.0
+    else:
+        frame["two"] = frame["one"]
+    frame.to_parquet(path, index=False)
+    manifest_path = root / "FULL_PLUS_CTX_v3src.manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["prebuilt_sha256"] = _sha(path)
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(RuntimeError, match=error):
         audit.run(_args(root))

@@ -176,12 +176,6 @@ def _require_model_native_entry_context_frame(
             )
         categorical[name] = exact
 
-    if not np.array_equal(categorical["vol_regime_id"], categorical["atr_bucket"]):
-        raise RuntimeError(
-            "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
-            f"{context}: atr_bucket must equal vol_regime_id"
-        )
-
     # Derive the expected label without get_session_id_vectorized's retained
     # fillna(0), so an unknown label can never become ASIA at this boundary.
     from gx1.time.session_detector import (
@@ -713,11 +707,11 @@ def compute_bucket_ctx_cat_full_frame(
     cv3: pd.DataFrame,
     state_contract: ModelNativeStateContract | None = None,
 ) -> pd.DataFrame:
-    """Derive all categorical ranks from one immutable TRAIN-only ECDF.
+    """Derive absolute buckets plus a distinct causal local-volatility regime.
 
-    Raw ATR/spread inputs are causal over the common history frame. Every row,
-    including TRAIN and post-fit live rows, uses the same frozen distributions.
-    No row-level timestamp/category table exists.
+    Raw ATR/spread inputs are causal over the common history frame. Absolute
+    ATR/spread buckets use frozen TRAIN distributions; vol_regime_id uses the
+    shared trailing-288-bar rank. No row-level category table exists.
     """
     if not isinstance(cv3.index, pd.DatetimeIndex):
         raise RuntimeError(

@@ -34,8 +34,8 @@ Features added (32 total):
 
   Regime / bucket categoricals (4):
     - trend_regime_id                      # 0/1/2 from exact D1 distance (legacy cat)
-    - vol_regime_id                        # 0..4 percentile rank of atr_bps
-    - atr_bucket                           # = vol_regime_id
+    - vol_regime_id                        # 0..4 causal trailing-288-bar ATR rank
+    - atr_bucket                           # 0..4 frozen TRAIN-distribution ATR rank
     - spread_bucket                        # 0..4 percentile rank of spread_bps
 
   H4 trend sign (1):
@@ -61,11 +61,8 @@ Features added (32 total):
     - bars_since_swing_low
     - retracement_from_last_impulse        # 0..1 retracement
 
-Caveat: regime/bucket percentile ranks are computed over the live
-lookback window (default 45 days) rather than the full training
-distribution. Tree models (XGB) are tolerant of this; the resulting
-bucket assignments are within ±1 of the training-distribution buckets
-in normal vol regimes.
+The local volatility regime is causal over a fixed 288-bar window. Absolute
+ATR and spread buckets require frozen training edges; missing edges fail closed.
 """
 
 from __future__ import annotations
@@ -75,6 +72,7 @@ import logging
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_model_native_state_v2 import causal_vol_regime_bucket
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
@@ -168,7 +166,7 @@ def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
 
 
 # Frozen full-history bucket EDGES (2026-06-13 audit fix): digitizing atr_bps/spread_bps against
-# fixed quantile edges makes vol_regime_id/atr_bucket/spread_bucket FRAME-INVARIANT, so the daemon
+# fixed quantile edges make atr_bucket/spread_bucket FRAME-INVARIANT, so the daemon
 # (any window), the entry serve (augment_canonical_v3), the exit (base34), and the build all produce
 # the IDENTICAL bucket = training. Edges live next to the cv3 prebuilt; regenerated at each cement/
 # cutover (gx1.scripts.write_regime_bucket_edges). Verified: digitize == full-history rank at 100%.
@@ -450,37 +448,28 @@ def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
         np.where(d[d_warmup:] <= 1.0, 1.0, 2.0),
     )
     cv3["trend_regime_id"] = trend
-    # vol_regime_id / atr_bucket / spread_bucket: bucket atr_bps/spread_bps into 0..4.
+    # vol_regime_id is a distinct causal local-volatility coordinate. Absolute
+    # ATR/spread buckets use frozen training edges and cannot fall back to a
+    # frame-relative distribution at serve time.
     # 2026-06-13 audit FIX: digitize against FROZEN full-history edges (frame-invariant, so daemon /
     # entry-serve / exit / build all agree = training) instead of a frame-relative percentile rank
     # (which made the daemon's 420d window disagree with full-history training on ~31% of appends).
-    # Fall back to the rank path + WARN if the edges file is missing (degraded, but never crash live).
     _edges = _load_regime_bucket_edges()
-    if "atr_bps" in cv3.columns:
-        _av = cv3["atr_bps"].to_numpy(dtype=float)
-        if _edges and _edges.get("atr_bps_edges"):
-            vol = _digitize_bucket_0_4(_av, _edges["atr_bps_edges"], fallback=2)
-        else:
-            LOG.warning(
-                "[REGIME] frozen atr_bps bucket edges absent (%s) — falling back to "
-                "FRAME-RELATIVE rank (train≠serve risk). Regenerate via "
-                "gx1.scripts.write_regime_bucket_edges.",
-                REGIME_BUCKET_EDGES_PATH,
-            )
-            vol = _rank_bucket_0_4(_av, fallback=2)
-    else:
-        vol = np.full(len(cv3), 2, dtype=np.int64)
+    if "atr_bps" not in cv3.columns or "spread_bps" not in cv3.columns:
+        raise RuntimeError("[REGIME] exact atr_bps/spread_bps sources missing")
+    if not _edges or not _edges.get("atr_bps_edges") or not _edges.get(
+        "spread_bps_edges"
+    ):
+        raise RuntimeError(
+            "[REGIME] frozen ATR/spread bucket edges are required; live fallback forbidden"
+        )
+    _av = cv3["atr_bps"].to_numpy(dtype=float)
+    _sv = cv3["spread_bps"].to_numpy(dtype=float)
+    vol = causal_vol_regime_bucket(_av)
+    atr = _digitize_bucket_0_4(_av, _edges["atr_bps_edges"], fallback=2)
+    sp = _digitize_bucket_0_4(_sv, _edges["spread_bps_edges"], fallback=0)
     cv3["vol_regime_id"] = vol.astype(np.int64)
-    cv3["atr_bucket"] = vol.astype(np.int64)
-    # spread_bucket (spread_bps is ~constant on XAU — frame-invariant either way, but digitize for parity)
-    if "spread_bps" in cv3.columns:
-        _sv = cv3["spread_bps"].to_numpy(dtype=float)
-        if _edges and _edges.get("spread_bps_edges"):
-            sp = _digitize_bucket_0_4(_sv, _edges["spread_bps_edges"], fallback=0)
-        else:
-            sp = _rank_bucket_0_4(_sv, fallback=0)
-    else:
-        sp = np.zeros(len(cv3), dtype=np.int64)
+    cv3["atr_bucket"] = atr.astype(np.int64)
     cv3["spread_bucket"] = sp.astype(np.int64)
 
 

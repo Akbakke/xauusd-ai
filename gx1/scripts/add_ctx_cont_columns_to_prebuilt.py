@@ -50,6 +50,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS,
     MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS,
 )
+from gx1.contracts.entry_model_native_state_v2 import causal_vol_regime_bucket
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
@@ -580,10 +581,13 @@ def run_add_ctx_cont_columns(
     trend_regime_id = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
     df_pre["trend_regime_id"] = trend_regime_id
 
-    # vol_regime_id / atr_bucket: 0..4 from atr_bps percentile rank
-    vol_regime_id = _rank_bucket_0_4(df_pre["atr_bps"].to_numpy(dtype=float))
+    # Distinct causal coordinates: vol_regime_id is the trailing 288-bar local
+    # ATR rank, while atr_bucket is the absolute source-history ATR quintile.
+    atr_bps_values = df_pre["atr_bps"].to_numpy(dtype=float)
+    vol_regime_id = causal_vol_regime_bucket(atr_bps_values)
+    atr_bucket = _rank_bucket_0_4(atr_bps_values)
     df_pre["vol_regime_id"] = vol_regime_id.astype(np.int64)
-    df_pre["atr_bucket"] = vol_regime_id.astype(np.int64)
+    df_pre["atr_bucket"] = atr_bucket.astype(np.int64)
 
     # spread_bucket: 0..4 from spread_bps percentile rank
     spread_bucket = _rank_bucket_0_4(df_pre["spread_bps"].to_numpy(dtype=float))

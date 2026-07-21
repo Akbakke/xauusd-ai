@@ -21,10 +21,13 @@ import pandas as pd
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 
 
-MODEL_NATIVE_STATE_SCHEMA_VERSION = "model_native_state_contract_v4"
-MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION = "model_native_train_rank_reference_v4"
-MODEL_NATIVE_RANK_TRANSFORM = "train_fit_right_ecdf_quintile_v1"
+MODEL_NATIVE_STATE_SCHEMA_VERSION = "model_native_state_contract_v5"
+MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION = "model_native_train_rank_reference_v5"
+MODEL_NATIVE_RANK_TRANSFORM = (
+    "train_fit_atr_spread_ecdf_plus_causal_288bar_vol_rank_v2"
+)
 MODEL_NATIVE_HISTORY_MODE = "common_causal_history_no_split_reset_v1"
+MODEL_NATIVE_VOL_REGIME_WINDOW_BARS = 288
 
 TRAIN_RANK_NPZ_KEYS = frozenset(
     {
@@ -140,6 +143,36 @@ def bucket_against_train_reference(values: np.ndarray, sorted_reference: np.ndar
     if reference.size > 1 and np.any(reference[1:] < reference[:-1]):
         raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_REFERENCE_NOT_SORTED")
     percentile = np.searchsorted(reference, values, side="right") / float(reference.size)
+    return np.clip(percentile * 5.0, 0.0, 4.99).astype(np.int64)
+
+
+def causal_vol_regime_bucket(
+    atr_bps: np.ndarray,
+    *,
+    window_bars: int = MODEL_NATIVE_VOL_REGIME_WINDOW_BARS,
+) -> np.ndarray:
+    """Bucket current ATR by its causal rank inside the trailing regime window.
+
+    ``atr_bucket`` separately captures the absolute TRAIN-distribution ATR
+    quintile. This rolling rank supplies a distinct local volatility-regime
+    coordinate, so the two categorical inputs are not aliases.
+    """
+
+    values = np.asarray(atr_bps, dtype=np.float64)
+    if values.ndim != 1 or values.size == 0:
+        raise RuntimeError("MODEL_NATIVE_VOL_REGIME_ARRAY_SHAPE_INVALID")
+    if not np.isfinite(values).all() or np.any(values <= 0.0):
+        raise RuntimeError("MODEL_NATIVE_VOL_REGIME_INPUT_INVALID")
+    if isinstance(window_bars, bool) or not isinstance(window_bars, int) or window_bars < 2:
+        raise RuntimeError("MODEL_NATIVE_VOL_REGIME_WINDOW_INVALID")
+    percentile = (
+        pd.Series(values, dtype=np.float64)
+        .rolling(window_bars, min_periods=1)
+        .rank(method="average", pct=True)
+        .to_numpy(dtype=np.float64)
+    )
+    if not np.isfinite(percentile).all():
+        raise RuntimeError("MODEL_NATIVE_VOL_REGIME_RANK_NONFINITE")
     return np.clip(percentile * 5.0, 0.0, 4.99).astype(np.int64)
 
 
@@ -307,14 +340,17 @@ def apply_train_rank_reference_v2(
     out = frame.copy()
     for name in ("atr", "atr_bps", "spread_bps"):
         out[name] = derived[name].to_numpy(dtype=np.float64)
-    vol = bucket_against_train_reference(
+    atr_bucket = bucket_against_train_reference(
         derived["atr_bps"].to_numpy(dtype=np.float64), reference.atr_bps_sorted
+    )
+    vol_regime = causal_vol_regime_bucket(
+        derived["atr_bps"].to_numpy(dtype=np.float64)
     )
     spread = bucket_against_train_reference(
         derived["spread_bps"].to_numpy(dtype=np.float64), reference.spread_bps_sorted
     )
-    out["vol_regime_id"] = vol
-    out["atr_bucket"] = vol
+    out["vol_regime_id"] = vol_regime
+    out["atr_bucket"] = atr_bucket
     out["spread_bucket"] = spread
     return out
 

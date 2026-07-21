@@ -11,14 +11,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
-from gx1.scripts.materialize_cv3_modelrange_v1 import SCHEMA_VERSION as MODELRANGE_SCHEMA
+from gx1.scripts.materialize_cv3_modelrange_v1 import (
+    ENTRY_DEAD_CONSTANT_COLUMNS,
+    EXTRA_COLUMNS_FROM_CANONICAL_V2,
+    SCHEMA_VERSION as MODELRANGE_SCHEMA,
+)
 
 
-SCHEMA_VERSION = "seq513_source_cascade_proof_v1"
+SCHEMA_VERSION = "seq513_source_cascade_proof_v2"
 EXPECTED_CV2_ROWS = 461_017
 EXPECTED_CV2_COLUMNS = 118
 EXPECTED_CV3_ROWS = 461_017
@@ -27,9 +32,9 @@ EXPECTED_CV3_ROWS = 461_017
 # `cols_total` is therefore the exact 112 feature-column count.
 EXPECTED_CV3_MANIFEST_COLUMNS = 112
 EXPECTED_MODELRANGE_ROWS = 395_211
-EXPECTED_MODELRANGE_COLUMNS = 114
+EXPECTED_MODELRANGE_COLUMNS = 109
 EXPECTED_FULL_ROWS = 385_677
-EXPECTED_FULL_COLUMNS = 193
+EXPECTED_FULL_COLUMNS = 188
 EXPECTED_FULL_TIME_MIN = pd.Timestamp("2021-01-04T23:55:00Z")
 EXPECTED_FULL_TIME_MAX = pd.Timestamp("2026-06-14T23:55:00Z")
 EXPECTED_TFS = ("M5", "M15", "H1", "H4", "D1")
@@ -94,6 +99,54 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
     finally:
         os.close(descriptor)
     os.replace(temporary, path)
+
+
+def _full_numeric_liveness(path: Path) -> dict[str, Any]:
+    """Reject every non-finite, constant, or exact duplicate source field."""
+
+    frame = pd.read_parquet(path)
+    field_sha256: dict[str, str] = {}
+    groups: dict[str, list[str]] = {}
+    nonfinite: list[str] = []
+    constants: list[str] = []
+    for name in frame.columns:
+        if name == "time":
+            continue
+        try:
+            values = pd.to_numeric(frame[name], errors="raise").to_numpy(
+                dtype=np.float64
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"SEQ513_SOURCE_FULL_COLUMN_NONNUMERIC: {name}"
+            ) from exc
+        if not np.isfinite(values).all():
+            nonfinite.append(name)
+            continue
+        if float(np.ptp(values)) == 0.0:
+            constants.append(name)
+        digest = hashlib.sha256(np.ascontiguousarray(values).tobytes()).hexdigest()
+        field_sha256[name] = digest
+        groups.setdefault(digest, []).append(name)
+    duplicates = sorted(
+        (sorted(names) for names in groups.values() if len(names) > 1),
+        key=lambda names: tuple(names),
+    )
+    if nonfinite:
+        raise RuntimeError(f"SEQ513_SOURCE_FULL_NUMERIC_NONFINITE: {nonfinite}")
+    if constants:
+        raise RuntimeError(f"SEQ513_SOURCE_FULL_NUMERIC_CONSTANT: {constants}")
+    if duplicates:
+        raise RuntimeError(f"SEQ513_SOURCE_FULL_NUMERIC_DUPLICATES: {duplicates}")
+    return {
+        "decision": "PASS",
+        "rows": int(len(frame)),
+        "audited_numeric_fields": len(field_sha256),
+        "nonfinite_fields": [],
+        "constant_fields": [],
+        "exact_duplicate_groups": [],
+        "field_float64_sha256": field_sha256,
+    }
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -170,6 +223,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _same(
         modelrange_manifest.get("columns"), EXPECTED_MODELRANGE_COLUMNS, label="MODELRANGE_COLUMNS"
     )
+    _same(
+        modelrange_manifest.get("extra_columns_from_canonical_v2"),
+        list(EXTRA_COLUMNS_FROM_CANONICAL_V2),
+        label="MODELRANGE_REQUIRED_EXTRA_COLUMNS",
+    )
+    _same(
+        modelrange_manifest.get("entry_dead_constant_columns_removed"),
+        list(ENTRY_DEAD_CONSTANT_COLUMNS),
+        label="MODELRANGE_DEAD_CONSTANT_COLUMNS_REMOVED",
+    )
 
     mtf_root = root / "MULTI_TF_V2_CACHE"
     mtf = _json(mtf_root / "manifest.json", label="MTF_MANIFEST")
@@ -221,6 +284,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         or pd.Timestamp(parsed_time.iloc[-1]) != EXPECTED_FULL_TIME_MAX
     ):
         raise RuntimeError("SEQ513_SOURCE_FULL_TIME_CONTRACT_INVALID")
+    full_numeric_liveness = _full_numeric_liveness(full)
 
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -257,6 +321,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "full_columns": EXPECTED_FULL_COLUMNS,
             "full_time_min_utc": EXPECTED_FULL_TIME_MIN.isoformat(),
             "full_time_max_utc": EXPECTED_FULL_TIME_MAX.isoformat(),
+            "full_numeric_feature_liveness": full_numeric_liveness,
         },
     }
     _atomic_json(out, report)

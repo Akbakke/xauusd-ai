@@ -1,12 +1,13 @@
 """Materialize the exact common-history cv3 model-range source.
 
 The active Entry source cascade needs the causal ``atr`` normalization source
-that canonical-v3 omits from its model feature surface. The ten retired
-duplicate/XGB-only columns are deliberately not restored. This producer joins
-the one required column from exact row-aligned canonical-v2 bytes, trims the
-declared causal history window, and binds every input/output byte plus the
-Entry run lineage in one immutable provenance sidecar. Existing outputs,
-symlinks, row-local joins and implicit/latest discovery are forbidden.
+that canonical-v3 omits from its model feature surface. Ten retired duplicate/
+XGB-only columns are not restored, and five constant legacy cost/regime fields
+are removed from the Entry projection. This producer joins the one required
+column from exact row-aligned canonical-v2 bytes, trims the declared causal
+history window, and binds every input/output byte plus the Entry run lineage in
+one immutable provenance sidecar. Existing outputs, symlinks, row-local joins
+and implicit/latest discovery are forbidden.
 """
 
 from __future__ import annotations
@@ -26,15 +27,22 @@ import pandas as pd
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SCHEMA_VERSION = "cv3_modelrange_provenance_v3"
+SCHEMA_VERSION = "cv3_modelrange_provenance_v4"
 PRODUCER = "gx1.scripts.materialize_cv3_modelrange_v1"
-PRODUCER_VERSION = "v2"
+PRODUCER_VERSION = "v3"
 EXPECTED_CV3_COLUMN_COUNT = 113
-EXPECTED_OUTPUT_COLUMN_COUNT = 114
+EXPECTED_OUTPUT_COLUMN_COUNT = 109
 DEFAULT_START_UTC = "2020-11-13T00:00:00Z"
 DEFAULT_END_UTC = "2026-06-14T23:59:59Z"
 EXTRA_COLUMNS_FROM_CANONICAL_V2 = (
     "atr",
+)
+ENTRY_DEAD_CONSTANT_COLUMNS = (
+    "_v1_atr_regime_id",
+    "_v1_spread_p",
+    "_v1_slip_bps",
+    "_v1_spread_z",
+    "_v1_cost_bps_est",
 )
 
 
@@ -144,6 +152,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "CV3_MODELRANGE_CV3_WIDTH_INVALID: "
             f"got={len(cv3.columns)} expected={EXPECTED_CV3_COLUMN_COUNT}"
         )
+    missing_dead = [name for name in ENTRY_DEAD_CONSTANT_COLUMNS if name not in cv3]
+    if missing_dead:
+        raise RuntimeError(f"CV3_MODELRANGE_DEAD_COLUMNS_MISSING: {missing_dead}")
     missing = [name for name in EXTRA_COLUMNS_FROM_CANONICAL_V2 if name not in canonical_v2]
     collisions = [name for name in EXTRA_COLUMNS_FROM_CANONICAL_V2 if name in cv3]
     if missing:
@@ -155,7 +166,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise RuntimeError("CV3_MODELRANGE_SOURCE_TIME_ALIGNMENT_MISMATCH")
 
-    merged = cv3.copy()
+    merged = cv3.drop(columns=list(ENTRY_DEAD_CONSTANT_COLUMNS)).copy()
     for name in EXTRA_COLUMNS_FROM_CANONICAL_V2:
         merged[name] = canonical_v2[name].to_numpy(copy=True)
     selected = merged.loc[(merged["time"] >= start) & (merged["time"] <= end)].copy()
@@ -193,6 +204,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "canonical_v2_sha256": canonical_v2_sha,
         },
         "extra_columns_from_canonical_v2": list(EXTRA_COLUMNS_FROM_CANONICAL_V2),
+        "entry_dead_constant_columns_removed": list(ENTRY_DEAD_CONSTANT_COLUMNS),
         "model_range": {"start_utc": start.isoformat(), "end_utc": end.isoformat()},
         "rows": int(len(selected)),
         "columns": int(len(selected.columns)),
