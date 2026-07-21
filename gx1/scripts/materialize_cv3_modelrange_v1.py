@@ -1,11 +1,12 @@
 """Materialize the exact common-history cv3 model-range source.
 
-The active Entry source cascade needs eleven causal columns that canonical-v3
-intentionally drops as redundant.  This producer restores those columns from
-the exact row-aligned canonical-v2 artifact, trims the declared causal history
-window, and binds every input/output byte plus the Entry run lineage in one
-immutable provenance sidecar.  Existing outputs, symlinks, row-local joins and
-implicit/latest artifact discovery are forbidden.
+The active Entry source cascade needs the causal ``atr`` normalization source
+that canonical-v3 omits from its model feature surface. The ten retired
+duplicate/XGB-only columns are deliberately not restored. This producer joins
+the one required column from exact row-aligned canonical-v2 bytes, trims the
+declared causal history window, and binds every input/output byte plus the
+Entry run lineage in one immutable provenance sidecar. Existing outputs,
+symlinks, row-local joins and implicit/latest discovery are forbidden.
 """
 
 from __future__ import annotations
@@ -25,25 +26,15 @@ import pandas as pd
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SCHEMA_VERSION = "cv3_modelrange_provenance_v2"
+SCHEMA_VERSION = "cv3_modelrange_provenance_v3"
 PRODUCER = "gx1.scripts.materialize_cv3_modelrange_v1"
-PRODUCER_VERSION = "v1"
+PRODUCER_VERSION = "v2"
 EXPECTED_CV3_COLUMN_COUNT = 113
-EXPECTED_OUTPUT_COLUMN_COUNT = 124
+EXPECTED_OUTPUT_COLUMN_COUNT = 114
 DEFAULT_START_UTC = "2020-11-13T00:00:00Z"
 DEFAULT_END_UTC = "2026-06-14T23:59:59Z"
 EXTRA_COLUMNS_FROM_CANONICAL_V2 = (
-    "_v1_body_tr",
-    "_v1_int_clv_atr",
-    "_v1_int_r5_atr",
-    "_v1_int_slope_h4_atr",
-    "_v1_vwap_drift48",
-    "_v1h1_vwap_drift",
     "atr",
-    "m15_atr14_canon_v2",
-    "m15_ema_slope_5_canon_v2",
-    "roc20",
-    "std50",
 )
 
 

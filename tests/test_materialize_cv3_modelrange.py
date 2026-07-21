@@ -96,3 +96,4 @@ def test_rejects_existing_output_or_sidecar(tmp_path: Path) -> None:
 def test_active_window_defaults_are_pinned() -> None:
     assert DEFAULT_START_UTC == "2020-11-13T00:00:00Z"
     assert DEFAULT_END_UTC == "2026-06-14T23:59:59Z"
+    assert EXTRA_COLUMNS_FROM_CANONICAL_V2 == ("atr",)
