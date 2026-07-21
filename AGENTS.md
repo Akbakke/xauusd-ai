@@ -18,12 +18,17 @@ and built fresh train/val/test rows, but its source/test cutoff remained
 slow liveness scan was stopped before it emitted an artifact. V12 is diagnostic
 evidence only. V13 proved the current-snapshot seam but used the trimmed
 model-range file instead of full canonical-v3 as the MTF-cache source; it is a
-rejected partial and never entered the dataset chain. V14 is the current
-lineage. Its source cascade is PASS at 2026-07-21T17:00Z: 392,959 rows x 188
-columns, all 187 numeric fields live, no constants/duplicates/nonfinite values,
-and exact full-v3 ownership for all five MTF caches. Ranking/dataset/liveness
-remain pending, so V14 has no model or launch authority. No V11-V13 partial may
-be used as authority or resumed into V14.
+rejected partial and never entered the dataset chain. V14 proved the current
+source cascade at 2026-07-21T17:00Z (392,959 rows x 188, all 187 numeric fields
+live and exact full-v3 ownership for all five MTF caches), completed TRAIN-only
+ranking and materialized all three seq513 splits. Its schema-v2 liveness policy
+then rejected genuine rare impulses, one-state chronological OOS regime windows
+and an aggregate ATR distribution shift. Direct source comparison proved that
+the values were genuine; this was an audit-semantics defect, not permission to
+alter OOS data. V14 is terminal `RED`, and its wrapper's attempted same-lineage
+retry was invalid because immutable split/audit output already existed. The
+repaired schema-v3 liveness/retry contracts require a wholly fresh V15 lineage.
+V14 has no model or launch authority and may not be resumed.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
@@ -178,8 +183,12 @@ evidence; otherwise fail closed.
   may only fit on its declared calibration split and must be immutable before
   evaluation.
 - Full-field liveness covers all 513+142+5 inputs on train, val and test.
-  Unallowlisted constant, non-finite, dead, duplicated or reordered fields
-  fail. Multi-timeframe values must be alive and genuinely distinct.
+  TRAIN must prove learnable variability or an explicit sparse-event support
+  floor. Untouched chronological VAL/TEST may truthfully contain one regime
+  state, but every value remains fully scanned, finite, ordered and hash-bound;
+  categorical OOS values must be inside the exact TRAIN vocabulary. No
+  constant pass-through or synthetic OOS activity is allowed. Multi-timeframe
+  values must be alive and genuinely distinct on TRAIN.
 - Precision claims require untouched OOS evidence, meaningful support,
   calibration, class/slice confusion, path/utility quality, costs and
   live-like replay. Code-contract tests alone never prove trading edge.

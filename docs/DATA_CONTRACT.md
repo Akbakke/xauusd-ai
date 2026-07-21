@@ -143,9 +143,15 @@ fallback.
 ## Liveness and identity
 
 Full-input liveness evaluates every 513+142+5 field on train, validation and
-test. Unallowlisted constants, non-finite values, duplicate/reordered fields,
-weak categorical support, forbidden fields and declared ATR drift violations
-fail. All five timeframe representations must be present, alive and distinct.
+test. TRAIN rejects constants, insufficient generic activity and sparse-event
+fields below their exact declared support floor. VAL/TEST remain untouched
+chronological observations: a genuine one-state regime is recorded explicitly
+instead of being relabelled or fabricated, but non-finite values, unknown
+categorical values outside the TRAIN vocabulary, duplicate/reordered fields,
+forbidden fields and identity mismatches still fail. ATR distribution shift is
+recorded exactly as diagnostic evidence; only later untouched OOS direction,
+cost and calibration gates decide whether the model handles that shift. All
+five timeframe representations must be present, alive and distinct on TRAIN.
 The materializer scans every `96 x 513` sequence value and requires exact
 `seq[-1] == snap`; direct Arrow-buffer access is only a zero-copy performance
 path and validates every nested-list offset before use. It does not sample.

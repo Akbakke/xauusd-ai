@@ -739,7 +739,23 @@ run_dataset_rebuild() {
 }
 
 if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
-  if [[ -f $TRAIN_GROUP_A_CHECKPOINT_MANIFEST && -f $RANK_NPZ && -f ${RANK_NPZ}.json && -f $EVENT/dataset/DATASET_BUILD_PROOF.json ]]; then
+  # Exact checkpoint reuse is safe only before any split/audit output has been
+  # materialized.  A failure after output emission is either a genuine
+  # fail-closed audit result or an interrupted non-atomic split write; neither
+  # may be overwritten inside the same immutable lineage.
+  DATASET_OUTPUT_STARTED=0
+  if [[ -e $AUDIT || -L $AUDIT ]]; then
+    DATASET_OUTPUT_STARTED=1
+  fi
+  for split in train val test; do
+    if [[ -e "$EVENT/dataset/v10_seq513_dataset__HOLD_03B_${split}.parquet" \
+       || -e "$EVENT/dataset/v10_seq513_dataset__HOLD_03B_${split}.manifest.json" ]]; then
+      DATASET_OUTPUT_STARTED=1
+    fi
+  done
+  if [[ $DATASET_OUTPUT_STARTED -eq 1 ]]; then
+    fail "dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required"
+  elif [[ -f $TRAIN_GROUP_A_CHECKPOINT_MANIFEST && -f $RANK_NPZ && -f ${RANK_NPZ}.json && -f $EVENT/dataset/DATASET_BUILD_PROOF.json ]]; then
     CURRENT_STEP=dataset-rebuild-exact-checkpoint-resume
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity

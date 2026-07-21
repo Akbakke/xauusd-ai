@@ -21,12 +21,18 @@ def full_input_field_order() -> dict[str, list[str]]:
         "candle.pattern_outside_after_inside_bear_breakout_score",
         "ctx_cont.d1_atr14_canon_v2",
         "ctx_cont._v1h4_atr",
+        "chart.m5_ema50_200_cross_up",
+        "chart.m5_ema50_200_cross_down",
     ]
     signal.extend(
         f"signal_feature_{idx:03d}"
         for idx in range(MODEL_NATIVE_SIGNAL_DIM - len(signal))
     )
-    ctx_cont = ["d1_atr14_canon_v2", "_v1h4_atr"]
+    ctx_cont = [
+        "d1_atr14_canon_v2",
+        "_v1h4_atr",
+        "d1_regime_changed_flag_v3",
+    ]
     ctx_cont.extend(f"ctx_cont_feature_{idx:03d}" for idx in range(142 - len(ctx_cont)))
     ctx_cat = [f"ctx_cat_feature_{idx}" for idx in range(5)]
     return {"signal": signal, "ctx_cont": ctx_cont, "ctx_cat": ctx_cat}
@@ -50,6 +56,7 @@ def full_input_stats(
                         "nonfinite_count": 0,
                         "unique_count": 3,
                         "integer_like_count": rows,
+                        "unique_values": [0, 1, 2],
                     }
                     continue
                 surface_rows[field] = {

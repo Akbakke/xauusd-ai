@@ -417,7 +417,7 @@ def test_model_native_seq513_smoke_readiness_fails_closed_on_liveness_hash_tampe
     report = _run_blocked(args)
 
     assert report["decision"] == "BLOCKED_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
-    assert "model_native_rebuild_preflight: full-input liveness artifact hash schema fields and ATR OOD validate" in report["blockers"]
+    assert "model_native_rebuild_preflight: full-input liveness artifact hash schema fields and ATR shift observation validate" in report["blockers"]
     assert any(
         row["code"] == "artifact_sha256_mismatch"
         for row in report["full_input_liveness_validation"]["failures"]

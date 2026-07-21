@@ -1011,14 +1011,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     post_liveness_meta.get("schema_version") == FULL_INPUT_LIVENESS_SCHEMA
                     and _path_equals(post_liveness_meta.get("path"), full_input_liveness_json)
                     and post_liveness_meta.get("decision") == "PASS"
-                    and post_liveness_meta.get("atr_ood_status") == "GREEN",
+                    and post_liveness_meta.get("atr_ood_status")
+                    == full_input_liveness_validation.get("atr_ood_status"),
                     {
                         "post_rebuild_binding": post_liveness_meta,
                         "selected_path": str(full_input_liveness_json),
                     },
                 ),
                 _check(
-                    "full-input liveness artifact hash schema fields and ATR OOD validate",
+                    "full-input liveness artifact hash schema fields and ATR shift observation validate",
                     bool(full_input_liveness_validation["ok"]),
                     full_input_liveness_validation,
                 ),

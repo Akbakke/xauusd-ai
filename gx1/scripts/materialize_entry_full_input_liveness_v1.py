@@ -52,7 +52,7 @@ OUTPUT_PREFIX = "ENTRY_FULL_INPUT_LIVENESS_CONTRACT"
 OUTPUT_FILENAME_RE = re.compile(
     rf"{OUTPUT_PREFIX}_\d{{8}}T\d{{6}}(?:\d{{6}})?Z\.json"
 )
-PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v3"
+PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v4"
 DEFAULT_BATCH_SIZE = 512
 REQUIRED_COLUMNS = ("seq", "snap", "ctx_cont", "ctx_cat")
 
@@ -177,6 +177,9 @@ class _ColumnStats:
                     {
                         "unique_count": len(self.unique_values[index]),
                         "integer_like_count": int(self.integer_like_count[index]),
+                        "unique_values": sorted(
+                            int(round(value)) for value in self.unique_values[index]
+                        ),
                     }
                 )
             result[str(field)] = row
@@ -613,6 +616,19 @@ def main() -> None:
     if not args.quiet:
         print(json.dumps(artifact, indent=2, sort_keys=True, allow_nan=False))
     if artifact.get("decision") != PASS_DECISION:
+        print(
+            json.dumps(
+                {
+                    "event": "FULL_INPUT_LIVENESS_FAIL",
+                    "artifact": str(Path(args.out_json).expanduser().resolve()),
+                    "failure_count": len(artifact.get("failures") or []),
+                    "failures": artifact.get("failures") or [],
+                },
+                sort_keys=True,
+                allow_nan=False,
+            ),
+            file=os.sys.stderr,
+        )
         raise SystemExit(1)
 
 

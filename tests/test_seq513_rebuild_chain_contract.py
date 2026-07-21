@@ -80,6 +80,8 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert 'f"CHAIN_TERMINAL_{stamp}_{state}.json"' in source
     assert "feature-ranking-exact-checkpoint-resume" in source
     assert "dataset-rebuild-exact-checkpoint-resume" in source
+    assert "DATASET_OUTPUT_STARTED" in source
+    assert "dataset rebuild or post-build audit failed after immutable output materialization" in source
     assert "os.replace(temporary, path)" in source
 
 

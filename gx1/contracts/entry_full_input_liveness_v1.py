@@ -3,7 +3,8 @@
 The artifact described here is deliberately self-contained: every signal,
 continuous-context and categorical-context field has one status per split.
 Consumers must validate the artifact bytes, policy, exact field order, source
-manifest bindings and ATR/OOD drift instead of trusting a report-level PASS.
+manifest bindings and ATR shift observation instead of trusting a report-level
+PASS.
 """
 from __future__ import annotations
 
@@ -19,8 +20,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
 
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v2"
-POLICY_VERSION = "entry_full_input_liveness_policy_v2"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v3"
+POLICY_VERSION = "entry_full_input_liveness_policy_v3"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val", "test")
@@ -34,23 +35,28 @@ ATR_MAX_STANDARDIZED_MEAN_SHIFT = 1.0
 ATR_MIN_STD_RATIO = 0.25
 ATR_MAX_STD_RATIO = 4.0
 
-# There is no constant pass-through surface in the model-native contract.
+# There is no constant pass-through surface in the model-native contract.  A
+# field must be learnable on TRAIN.  VAL/TEST are untouched chronological
+# observations and may legitimately contain one regime state for an entire
+# short split; their job here is exact coverage/finiteness, not synthetic
+# variation.  Direction edge is decided later by the OOS performance gates.
 CONSTANT_ALLOWLIST: dict[tuple[str, str], tuple[str, ...]] = {}
 
-# Rare fields bypass the one-percent activity-rate rule only after meeting the
-# exact support floor below.  A single val/test event is therefore a hard FAIL.
+# Semantically sparse impulses bypass the generic one-percent TRAIN activity
+# rule only after meeting an explicit support floor.  OOS event counts are
+# reported exactly but never manufactured or used to invalidate a genuine
+# chronological market window.
 RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
-    ("signal", "smc_choch"): {"train": 32, "val": 8, "test": 8},
+    ("signal", "smc_choch"): {"train": 32},
     ("signal", "candle.pattern_outside_after_inside_bull_breakout_score"): {
         "train": 16,
-        "val": 4,
-        "test": 4,
     },
     ("signal", "candle.pattern_outside_after_inside_bear_breakout_score"): {
         "train": 16,
-        "val": 4,
-        "test": 4,
     },
+    ("signal", "chart.m5_ema50_200_cross_up"): {"train": 128},
+    ("signal", "chart.m5_ema50_200_cross_down"): {"train": 128},
+    ("ctx_cont", "d1_regime_changed_flag_v3"): {"train": 32},
 }
 
 ATR_OOD_FIELDS = (
@@ -108,7 +114,9 @@ def canonical_policy() -> dict[str, Any]:
             {
                 "surface": surface,
                 "field": field,
-                "minimum_active_count": {split: int(minimums[split]) for split in SPLITS},
+                "minimum_active_count": {
+                    split: int(minimums[split]) for split in sorted(minimums)
+                },
             }
             for (surface, field), minimums in sorted(RARE_EVENT_MINIMUMS.items())
         ],
@@ -122,6 +130,12 @@ def canonical_policy() -> dict[str, Any]:
             "max_standardized_mean_shift": ATR_MAX_STANDARDIZED_MEAN_SHIFT,
             "min_std_ratio": ATR_MIN_STD_RATIO,
             "max_std_ratio": ATR_MAX_STD_RATIO,
+            "decision_role": "diagnostic_only_direction_edge_requires_oos_gates",
+        },
+        "split_roles": {
+            "train": "strict_learnability_and_support",
+            "val": "untouched_oos_coverage_and_finiteness",
+            "test": "untouched_oos_coverage_and_finiteness",
         },
     }
 
@@ -168,6 +182,12 @@ def _normalized_stats(raw: Mapping[str, Any] | None, *, surface: str) -> dict[st
     if surface == "ctx_cat":
         row["unique_count"] = _int(raw.get("unique_count"))
         row["integer_like_count"] = _int(raw.get("integer_like_count"))
+        values = raw.get("unique_values")
+        row["unique_values"] = (
+            sorted({_int(value) for value in values})
+            if isinstance(values, list)
+            else []
+        )
     return row
 
 
@@ -188,15 +208,27 @@ def classify_field_status(
     if surface == "ctx_cat":
         if _int(stats.get("integer_like_count")) != rows:
             return "FAIL", "categorical_non_integer"
-        if _int(stats.get("unique_count")) < 2:
+        if split == "train" and _int(stats.get("unique_count")) < 2:
             return "FAIL", "categorical_cardinality_below_two"
-        return "LIVE", "categorical_cardinality"
+        if split == "train":
+            return "LIVE", "categorical_train_cardinality"
+        if _int(stats.get("unique_count")) < 1:
+            return "FAIL", "categorical_oos_empty"
+        if _int(stats.get("unique_count")) == 1:
+            return "OBSERVED_SINGLE_STATE", "categorical_oos_single_state"
+        return "OBSERVED_VARIABLE", "categorical_oos_cardinality"
 
     std = _float(stats.get("std"))
     value_range = _float(stats.get("value_range"))
     active_count = _int(stats.get("active_count"))
     active_rate = _float(stats.get("active_rate"))
     variable = std > NEAR_CONSTANT_STD and value_range > NEAR_CONSTANT_STD
+    if split != "train":
+        if not variable:
+            return "OBSERVED_SINGLE_STATE", "numeric_oos_single_state"
+        if active_rate < MIN_ACTIVE_RATE:
+            return "OBSERVED_RARE_EVENT", "numeric_oos_below_training_activity_floor"
+        return "OBSERVED_VARIABLE", "numeric_oos_variability_and_activity"
     if variable and active_rate >= MIN_ACTIVE_RATE:
         return "LIVE", "numeric_variability_and_activity"
     rare_minimum = RARE_EVENT_MINIMUMS.get((surface, field), {}).get(split)
@@ -231,7 +263,8 @@ def _drift_rows(field_rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
             std_ratio = observed_std / train_std if train_std > NEAR_CONSTANT_STD else math.inf
             green = (
                 train.get("status") in {"LIVE", "ALLOWED_RARE_EVENT"}
-                and observed.get("status") in {"LIVE", "ALLOWED_RARE_EVENT"}
+                and observed.get("status")
+                in {"OBSERVED_VARIABLE", "OBSERVED_RARE_EVENT"}
                 and math.isfinite(standardized_mean_shift)
                 and standardized_mean_shift <= ATR_MAX_STANDARDIZED_MEAN_SHIFT
                 and math.isfinite(std_ratio)
@@ -251,7 +284,7 @@ def _drift_rows(field_rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
                         standardized_mean_shift if math.isfinite(standardized_mean_shift) else None
                     ),
                     "std_ratio": std_ratio if math.isfinite(std_ratio) else None,
-                    "status": "GREEN" if green else "RED",
+                    "status": "STABLE" if green else "SHIFT_OBSERVED",
                 }
             )
     return rows
@@ -346,6 +379,32 @@ def build_full_input_liveness_artifact(
                         }
                     )
 
+    # Categorical OOS values must remain inside the exact TRAIN vocabulary.
+    # A one-state OOS split is a valid regime observation; an unseen category
+    # is a schema/state-contract breach and therefore remains fail-closed.
+    row_index = {
+        (row["split"], row["surface"], row["field"]): row for row in field_rows
+    }
+    for field in normalized_order["ctx_cat"]:
+        train_values = set(
+            row_index.get(("train", "ctx_cat", field), {}).get("unique_values", [])
+        )
+        for split in ("val", "test"):
+            observed_values = set(
+                row_index.get((split, "ctx_cat", field), {}).get("unique_values", [])
+            )
+            unseen = sorted(observed_values - train_values)
+            if unseen:
+                failures.append(
+                    {
+                        "code": "categorical_oos_value_outside_train_support",
+                        "split": split,
+                        "surface": "ctx_cat",
+                        "field": field,
+                        "unseen_values": unseen,
+                    }
+                )
+
     bindings: dict[str, dict[str, Any]] = {}
     for split in SPLITS:
         raw = manifest_bindings.get(split, {})
@@ -423,17 +482,6 @@ def build_full_input_liveness_artifact(
             )
 
     drift_rows = _drift_rows(field_rows)
-    for row in drift_rows:
-        if row["status"] == "RED":
-            failures.append(
-                {
-                    "code": "atr_ood_drift_red",
-                    "surface": row["surface"],
-                    "field": row["field"],
-                    "split": row["split"],
-                }
-            )
-
     return {
         "schema_version": SCHEMA_VERSION,
         "created_utc": str(created_utc),
@@ -451,7 +499,12 @@ def build_full_input_liveness_artifact(
         },
         "field_status": field_rows,
         "atr_ood_drift": {
-            "status": "GREEN" if all(row["status"] == "GREEN" for row in drift_rows) else "RED",
+            "status": (
+                "STABLE"
+                if all(row["status"] == "STABLE" for row in drift_rows)
+                else "SHIFT_OBSERVED"
+            ),
+            "decision_role": "diagnostic_only_direction_edge_requires_oos_gates",
             "rows": drift_rows,
         },
         "failures": failures,
@@ -625,6 +678,14 @@ def validate_full_input_liveness_artifact(
                 value = row.get(name)
                 if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                     invalid_stats.append(name)
+            unique_values = row.get("unique_values")
+            if (
+                not isinstance(unique_values, list)
+                or any(isinstance(value, bool) or not isinstance(value, int) for value in unique_values)
+                or unique_values != sorted(set(unique_values))
+                or len(unique_values) != _int(row.get("unique_count"))
+            ):
+                invalid_stats.append("unique_values")
             if _int(row.get("unique_count")) > finite_count:
                 invalid_stats.append("unique_count_exceeds_finite")
             if _int(row.get("integer_like_count")) > finite_count:
@@ -690,6 +751,25 @@ def validate_full_input_liveness_artifact(
                 field=field,
                 reason=expected_reason,
             )
+
+    for field in normalized_order["ctx_cat"]:
+        train_values = set(
+            row_index.get(("train", "ctx_cat", field), {}).get("unique_values", [])
+        )
+        for split in ("val", "test"):
+            observed_values = set(
+                row_index.get((split, "ctx_cat", field), {}).get("unique_values", [])
+            )
+            unseen = sorted(observed_values - train_values)
+            if unseen:
+                _append_failure(
+                    failures,
+                    "categorical_oos_value_outside_train_support",
+                    split=split,
+                    surface="ctx_cat",
+                    field=field,
+                    unseen_values=unseen,
+                )
 
     bindings_root = payload.get("input_bindings") if isinstance(payload.get("input_bindings"), dict) else {}
     bindings = (
@@ -814,10 +894,20 @@ def validate_full_input_liveness_artifact(
                     equal = False
             if not equal:
                 _append_failure(failures, "atr_ood_metric_mismatch", key=list(key), metric=metric)
-        if expected_row["status"] == "RED":
-            _append_failure(failures, "atr_ood_drift_red", key=list(key))
-    if drift_root.get("status") != "GREEN":
-        _append_failure(failures, "atr_ood_summary_not_green", observed=drift_root.get("status"))
+    expected_drift_status = (
+        "STABLE"
+        if all(row["status"] == "STABLE" for row in recomputed_drift)
+        else "SHIFT_OBSERVED"
+    )
+    if drift_root.get("status") != expected_drift_status:
+        _append_failure(
+            failures,
+            "atr_ood_summary_status_mismatch",
+            expected=expected_drift_status,
+            observed=drift_root.get("status"),
+        )
+    if drift_root.get("decision_role") != "diagnostic_only_direction_edge_requires_oos_gates":
+        _append_failure(failures, "atr_ood_decision_role_mismatch")
 
     return {
         "ok": not failures,

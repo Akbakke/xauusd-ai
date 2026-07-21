@@ -281,7 +281,7 @@ def test_smart_trainability_blocks_liveness_bytes_changed_after_smoke(tmp_path: 
 
     assert report["decision"] == gate.BLOCKED_DECISION
     assert (
-        "full-input liveness artifact hash schema fields and ATR OOD validate for trainability"
+        "full-input liveness artifact hash schema fields and ATR shift observation validate for trainability"
         in report["blockers"]
     )
     assert any(

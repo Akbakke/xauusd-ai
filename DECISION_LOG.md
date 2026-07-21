@@ -499,3 +499,33 @@ not automatically prioritize 2026 over 2021. Candidate work must compare the
 full-history baseline against an immutable TRAIN-only recent-regime adaptation
 phase, with June validation and July untouched TEST. Any later refresh remains
 an offline challenger requiring paired zero-order shadow before promotion.
+
+## 2026-07-21 — V14 liveness was a real policy FAIL; V15 must be fresh
+
+V14 completed exact TRAIN-only ranking and materialized 369,081 TRAIN, 5,904
+VAL and 3,898 TEST rows with 513 ordered signals, 142 continuous context fields
+and 5 categorical context fields. Its exhaustive liveness scan completed; it
+was not killed. The immutable schema-v2 artifact reported 40 failures. Direct
+comparison with `FULL_PLUS_CTX_v3src.parquet` proved that the June D1 zeros and
+July state transition were source-exact. EMA50/200 crosses had 1,114 events per
+direction on TRAIN, while the generic one-percent policy incorrectly called
+them inactive. CHoCH and D1 transition flags were likewise genuine sparse
+impulses. Current ATR was shifted against the aggregate five-year TRAIN mean
+but covered by recent TRAIN regimes (for example, trailing-one-year D1 ATR
+mean 85.23 versus June 98.55 and July 89.58).
+
+The schema-v3 contract therefore makes TRAIN the strict learnability surface:
+every numeric field needs real variation/activity or an exact declared
+sparse-event support floor, and every categorical field needs multiple TRAIN
+states. VAL/TEST remain exhaustive immutable chronological observations; one
+genuine state is recorded as `OBSERVED_SINGLE_STATE`, while NaN/Inf, shape,
+order, seq/snapshot parity and categorical values outside the TRAIN vocabulary
+still fail closed. ATR shift remains recorded but cannot substitute for the
+later untouched OOS edge/calibration/cost gates. This is not a constant
+allowlist and does not create synthetic OOS activity.
+
+The chain also incorrectly retried the whole wrapper after V14 had already
+written immutable split/audit outputs. Retry is now permitted only when exact
+checkpoints exist and no split, manifest or audit output has begun. Otherwise
+the event terminalizes RED and a fresh lineage is mandatory. V14 remains
+non-authoritative; V15 must rebuild under the repaired source revision.

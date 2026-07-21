@@ -22,19 +22,26 @@ or launch evidence is accepted.
 
 V13 was rejected before dataset construction because its MTF cache used
 `cv3_modelrange` rather than full canonical-v3. V14 rebuilt from a fresh event
-and its source cascade is PASS through 2026-07-21T17:00Z: 392,959 rows x 188
-columns, all 187 numeric fields live and full-v3 MTF identity proven. Its
-ranking, seq513 dataset and all empirical gates are still pending. The chain
-has no default end date.
+and passed its source cascade through 2026-07-21T17:00Z. TRAIN-only ranking
+passed, and it materialized 369,081 TRAIN, 5,904 VAL and 3,898 TEST rows with
+exact 513+142+5 surfaces. Schema-v2 liveness then emitted a genuine FAIL
+artifact: its per-split one-percent rule misclassified rare EMA/CHoCH/D1
+impulses and a legitimate one-state June D1 regime, while its aggregate-TRAIN
+ATR comparison flagged current values covered by recent TRAIN. V14 is terminal
+RED. Schema-v3 now separates strict TRAIN learnability from untouched OOS state
+coverage, retains exact full scans and unknown-category rejection, records ATR
+shift diagnostically, and forbids same-lineage retry after any split/audit
+output exists. A fresh V15 is required. The chain has no default end date.
 
-The history-boundary repair is implemented but not yet exercised by a fresh
-full run. Group-A now consumes an explicit full causal M5 prefix, validates
+The history-boundary repair was exercised successfully by V14 at full scale.
+Group-A consumes an explicit full causal M5 prefix, validates
 decision OHLC exactly and binds that prefix into checkpoint schema v2; live
 HTF/regime state computes on the full prefix before slicing. The one chain
 creates the immutable TRAIN-rank reference before
 ranking and owns that reference through dataset audit; the capped runner
 holds one host-wide exclusive heavy-job lock, Group-A persists exact
-4096-row hash-bound chunks and can make one strict same-attempt resume, and
+4096-row hash-bound chunks and can make one strict same-attempt resume only
+before any immutable split/audit output exists, and
 normal/signal exits publish immutable schema-v4 terminal events. The mandatory
 specialist prefix is now 316 fields across eleven families, including exact M5
 EMA50/200 state/cross evidence; only 163 fields are TRAIN-ranked. Ranking,
@@ -44,9 +51,9 @@ resume inputs.
 
 ## Ordered gates
 
-1. Current-data V14 source/history cascade PASS. Run its fresh ranking/dataset
-   chain and prove the exclusive runner, bounded checkpoints and immutable
-   terminal event under the 30 GiB cgroup.
+1. Start a wholly fresh current-data V15 lineage from the repaired contracts;
+   rerun source/ranking/dataset and prove the exclusive runner, bounded
+   checkpoints and immutable terminal event under the 30 GiB cgroup.
 2. Accept only a fresh dataset whose split manifests, full-input liveness,
    target, specialist, leakage and pretrain audits all bind the same bytes.
 3. Run smoke training, calibration and bundle audit with the exact recipe.

@@ -24,8 +24,11 @@ sessions, missing ATR/spread/trend state, invalid category IDs, alternate
 124/6 dimensions, zeros inserted for absent columns and median/default fills
 are contract failures. Live is not allowed a softer behavior than replay.
 
-Every field must pass full-input liveness on train, validation and test.
-Normalization statistics are training-owned, bundle-bound and immutable.
+Every field must pass strict learnability on TRAIN and exact full-scan coverage
+on validation and test. A chronological OOS split may legitimately remain in
+one context/regime category, but that value must be inside the TRAIN vocabulary
+and may not be filled, rewritten or silently ignored. Normalization statistics
+are training-owned, bundle-bound and immutable.
 
 ## Direction boundary
 

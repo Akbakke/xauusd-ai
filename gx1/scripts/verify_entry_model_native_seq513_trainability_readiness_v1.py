@@ -868,7 +868,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             post_liveness_meta.get("schema_version") == FULL_INPUT_LIVENESS_SCHEMA
             and _path_str(post_liveness_meta.get("path")) == str(full_input_liveness_json)
             and post_liveness_meta.get("decision") == "PASS"
-            and post_liveness_meta.get("atr_ood_status") == "GREEN",
+            and post_liveness_meta.get("atr_ood_status")
+            == full_input_liveness_validation.get("atr_ood_status"),
             post_liveness_meta,
         ),
         _check(
@@ -887,7 +888,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             },
         ),
         _check(
-            "full-input liveness artifact hash schema fields and ATR OOD validate for trainability",
+            "full-input liveness artifact hash schema fields and ATR shift observation validate for trainability",
             bool(full_input_liveness_validation["ok"]),
             full_input_liveness_validation,
         ),

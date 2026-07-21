@@ -121,14 +121,19 @@ recreate these as an independent veto, flip, threshold or substitute direction.
 "Full stack" means complete causal coverage with exact liveness and influence,
 not an unlimited pile of correlated indicator aliases. A proposed trend or
 session field belongs only if it is available at the decision timestamp,
-non-degenerate on every declared split, uniquely identified and demonstrably
-connected to the learned path. Redundant, stale or future-leaking variants make
-the system less robust and are rejected rather than counted as extra evidence.
+non-degenerate with sufficient TRAIN support, uniquely identified and
+demonstrably connected to the learned path. An untouched OOS window may
+truthfully occupy one learned regime state. Redundant, stale or future-leaking
+variants make the system less robust and are rejected rather than counted as
+extra evidence.
 
 `gx1/contracts/entry_full_input_liveness_v1.py` validates every field on train,
-validation and test. It rejects unexpected constants, non-finite values,
-insufficient categorical support, forbidden fields, wrong order and ATR/OOD
-drift outside the declared policy. There is no constant-pass-through allowlist.
+validation and test. TRAIN must prove variability/activity or an explicit
+sparse-event support floor. VAL/TEST are exact untouched state observations and
+may contain one genuine regime state, but non-finite data, unseen categorical
+values, forbidden fields, wrong order or identity mismatches fail. ATR shift is
+preserved as diagnostic evidence for later OOS edge gates. There is no
+constant-pass-through allowlist and no fabricated OOS variation.
 
 ## Model and objective ownership
 
@@ -425,18 +430,24 @@ Current facts:
 - checkpoint inspection found all 60 Group-A/dip/structure outputs unavailable
   until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
 - commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
-  decision OHLC checks, and mirrors full-prefix-before-slice in live. A fresh
-  V12 proved it at dataset scale; V14 must repeat it on current data and there
-  is no direction fallback;
+  decision OHLC checks, and mirrors full-prefix-before-slice in live. V14
+  proved it at current-data dataset scale; V15 must repeat it under the repaired
+  liveness contract and there is no direction fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
 - no seq513 rebuild chain or training process is running;
+- V14 source, TRAIN-only ranking and all three dataset splits completed, but
+  schema-v2 liveness misclassified sparse impulses and genuine one-state OOS
+  regimes, then the wrapper attempted an invalid retry after immutable output
+  existed. V14 is terminal RED. Schema-v3 repairs the semantics and retry
+  boundary; a fresh V15 lineage is required;
 - V11 completed source/ranking/manifest/preflight but is terminal RED at
   `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
   95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
   the Jan-5 decision boundary. Commit `4134ca19` repairs this with an explicit,
-  OHLC-verified and checkpoint-hashed full M5 prefix; V14 must rebuild fresh;
+  OHLC-verified and checkpoint-hashed full M5 prefix; V14 proved that repair
+  but cannot be resumed after its terminal liveness failure;
 - run lineage `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
@@ -567,7 +578,7 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- Aktiv V14-vinduskontrakt er history-start 2021-01-05, TRAIN
+- Neste V15-vinduskontrakt er history-start 2021-01-05, TRAIN
   2021-03-16..2026-05-31, VAL 2026-06-01..2026-06-30 og TEST
   2026-07-01 til snapshotets eksplisitte siste lukkede M5-bar. Alle syv
   grenser er obligatoriske kjede-input; ingen sluttdato har fallback/default.
