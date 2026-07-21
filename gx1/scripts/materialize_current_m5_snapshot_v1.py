@@ -104,12 +104,13 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _validate_price_frame(frame: pd.DataFrame, *, label: str) -> pd.DataFrame:
     expected = ["time", *REQUIRED_COLUMNS]
-    if list(frame.columns) != expected:
+    observed = list(frame.columns)
+    if len(observed) != len(expected) or len(set(observed)) != len(observed) or set(observed) != set(expected):
         raise RuntimeError(
-            f"CURRENT_M5_{label}_SCHEMA_INVALID: got={list(frame.columns)} "
+            f"CURRENT_M5_{label}_SCHEMA_INVALID: got={observed} "
             f"expected={expected}"
         )
-    out = frame.copy()
+    out = frame.loc[:, expected].copy()
     out["time"] = pd.to_datetime(out["time"], utc=True, errors="coerce")
     if out["time"].isna().any():
         raise RuntimeError(f"CURRENT_M5_{label}_TIME_INVALID")

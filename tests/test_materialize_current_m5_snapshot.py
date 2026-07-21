@@ -54,7 +54,23 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     part.parent.mkdir(parents=True)
     m1 = _m1()
     m5 = m1_to_m5(m1, tape_end=pd.Timestamp("2026-07-21T00:14:00Z"))
-    m5.iloc[:2].loc[:, ["time", *REQUIRED_COLUMNS]].to_parquet(part, index=False)
+    canonical_order = [
+        "time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "bid_open",
+        "bid_high",
+        "bid_low",
+        "bid_close",
+        "ask_open",
+        "ask_high",
+        "ask_low",
+        "ask_close",
+        "volume",
+    ]
+    m5.iloc[:2].loc[:, canonical_order].to_parquet(part, index=False)
     (base / "REPAIR_MANIFEST.json").write_text(
         json.dumps(
             {
