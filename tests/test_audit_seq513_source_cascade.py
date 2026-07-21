@@ -164,6 +164,7 @@ def _args(root: Path) -> argparse.Namespace:
         run_id=RUN_ID,
         event_root=root,
         out=root / "SOURCE_CASCADE_PROOF.json",
+        required_history_start="2026-01-01T00:00:00Z",
         expected_full_time_min="2026-01-01T00:00:00Z",
         expected_full_time_max="2026-01-01T00:05:00Z",
     )
@@ -179,8 +180,20 @@ def test_source_cascade_audit_binds_every_stage_and_emits_pass(
     assert report["decision"] == "PASS"
     assert report["entry_run_id"] == RUN_ID
     assert report["contracts"]["no_stale_self_paths"] is True
+    assert report["contracts"]["required_history_start_covered"] is True
     assert report["contracts"]["full_numeric_feature_liveness"]["decision"] == "PASS"
     assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
+
+
+def test_source_cascade_audit_rejects_full_surface_after_required_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _fixture(tmp_path, monkeypatch)
+    args = _args(root)
+    args.required_history_start = "2025-12-31T23:55:00Z"
+
+    with pytest.raises(RuntimeError, match="REQUIRED_HISTORY_NOT_COVERED"):
+        audit.run(args)
 
 
 def test_source_cascade_audit_rejects_stale_cv3_self_path(

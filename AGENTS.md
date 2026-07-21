@@ -27,8 +27,16 @@ and an aggregate ATR distribution shift. Direct source comparison proved that
 the values were genuine; this was an audit-semantics defect, not permission to
 alter OOS data. V14 is terminal `RED`, and its wrapper's attempted same-lineage
 retry was invalid because immutable split/audit output already existed. The
-repaired schema-v3 liveness/retry contracts require a wholly fresh V15 lineage.
-V14 has no model or launch authority and may not be resumed.
+repaired schema-v3 liveness/retry contracts require a wholly fresh lineage.
+V15 then stopped before manifest because its caller supplied a ranking filename
+timestamp in the future. V16 passed ranking and the exact 513 manifest, but
+preflight correctly rejected its finite context surface: model-range started
+2021-01-04, context warmup moved the first usable row to 2021-01-14, after the
+required 2021-01-05 common-history boundary. Both are terminal `RED`. Source
+audit schema v4 and the chain's initial contract validation now reject a future
+ranking stamp or a source that does not already cover history/test before any
+ranking work. V17 must rebuild model-range from 2020-11-13, as proven by V14.
+No V14-V16 artifact has model or launch authority or may be resumed.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

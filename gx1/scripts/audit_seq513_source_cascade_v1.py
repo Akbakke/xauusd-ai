@@ -23,7 +23,7 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
 )
 
 
-SCHEMA_VERSION = "seq513_source_cascade_proof_v3"
+SCHEMA_VERSION = "seq513_source_cascade_proof_v4"
 EXPECTED_CV2_COLUMNS = 118
 # canonical-v3 computes this manifest count before surfacing the DatetimeIndex
 # as the plain `time` column.  The parquet is 113 wide; the manifest's
@@ -155,6 +155,9 @@ def _full_numeric_liveness(path: Path) -> dict[str, Any]:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     run_id = require_entry_run_id(getattr(args, "run_id", ""))
+    required_history_start = _utc(
+        getattr(args, "required_history_start", None), label="REQUIRED_HISTORY_START"
+    )
     expected_full_time_min = _utc(
         getattr(args, "expected_full_time_min", None), label="EXPECTED_FULL_TIME_MIN"
     )
@@ -163,6 +166,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     if expected_full_time_max < expected_full_time_min:
         raise RuntimeError("SEQ513_SOURCE_EXPECTED_FULL_TIME_WINDOW_INVALID")
+    if not expected_full_time_min <= required_history_start <= expected_full_time_max:
+        raise RuntimeError(
+            "SEQ513_SOURCE_REQUIRED_HISTORY_NOT_COVERED: "
+            f"full_min={expected_full_time_min.isoformat()} "
+            f"history_start={required_history_start.isoformat()} "
+            f"full_max={expected_full_time_max.isoformat()}"
+        )
     root_arg = Path(args.event_root).expanduser()
     if root_arg.is_symlink() or not root_arg.is_dir():
         raise RuntimeError(f"SEQ513_SOURCE_EVENT_ROOT_MISSING_OR_SYMLINK: {root_arg}")
@@ -377,6 +387,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "full_columns": EXPECTED_FULL_COLUMNS,
             "full_time_min_utc": expected_full_time_min.isoformat(),
             "full_time_max_utc": expected_full_time_max.isoformat(),
+            "required_history_start_utc": required_history_start.isoformat(),
+            "required_history_start_covered": True,
             "full_numeric_feature_liveness": full_numeric_liveness,
         },
     }
@@ -389,6 +401,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--event-root", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--required-history-start", required=True)
     parser.add_argument("--expected-full-time-min", required=True)
     parser.add_argument("--expected-full-time-max", required=True)
     return parser

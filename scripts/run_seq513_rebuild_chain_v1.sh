@@ -460,10 +460,25 @@ for label, path in (
         raise RuntimeError(f"{label} must be below event root: {path}") from exc
 
 ranking_pattern = re.compile(
-    r"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_\d{8}T\d{6}(?:\d{6})?Z\.json"
+    r"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_"
+    r"(?P<stamp>\d{8}T\d{6}(?:\d{6})?Z)\.json"
 )
-if ranking.exists() or ranking.is_symlink() or not ranking_pattern.fullmatch(ranking.name):
+ranking_match = ranking_pattern.fullmatch(ranking.name)
+if ranking.exists() or ranking.is_symlink() or ranking_match is None:
     raise RuntimeError(f"feature ranking output must be a fresh timestamped JSON: {ranking}")
+ranking_stamp_raw = ranking_match.group("stamp")
+ranking_stamp_format = (
+    "%Y%m%dT%H%M%SZ" if len(ranking_stamp_raw) == 16 else "%Y%m%dT%H%M%S%fZ"
+)
+ranking_stamp = pd.Timestamp(
+    pd.to_datetime(ranking_stamp_raw, format=ranking_stamp_format, utc=True, errors="raise")
+)
+validation_now = pd.Timestamp.now(tz="UTC")
+if ranking_stamp > validation_now:
+    raise RuntimeError(
+        "feature ranking timestamp cannot be in the future: "
+        f"ranking={ranking_stamp.isoformat()} now={validation_now.isoformat()}"
+    )
 if preflight.exists() or preflight.is_symlink():
     raise RuntimeError(f"preflight output directory must be fresh: {preflight}")
 if not source.is_file() or source.is_symlink():
@@ -506,6 +521,32 @@ if not all(left < right for left, right in zip(times, times[1:])):
     raise RuntimeError(
         "split timestamps must be strictly ordered: "
         + ", ".join(f"{label}={value.isoformat()}" for label, value in zip(labels, times))
+    )
+
+# Reject a context-trimmed source before spending time on TRAIN ranking.  The
+# final finite surface must already cover the declared common-history boundary;
+# pre-TRAIN row count alone is insufficient when its first timestamp is later
+# than --history-start.
+source_times = pd.to_datetime(
+    pd.read_parquet(source, columns=["time"])["time"], utc=True, errors="coerce"
+)
+if (
+    source_times.empty
+    or source_times.isna().any()
+    or source_times.duplicated().any()
+    or not source_times.is_monotonic_increasing
+):
+    raise RuntimeError("source time column must be nonempty, finite, unique, and ordered")
+source_first = pd.Timestamp(source_times.iloc[0])
+source_last = pd.Timestamp(source_times.iloc[-1])
+history_start, train_start, _, _, _, _, test_end = times
+pre_train_rows = int(((source_times >= history_start) & (source_times < train_start)).sum())
+if source_first > history_start or source_last < test_end or pre_train_rows < 96:
+    raise RuntimeError(
+        "source does not cover the declared common history/test window: "
+        f"first={source_first.isoformat()} history_start={history_start.isoformat()} "
+        f"last={source_last.isoformat()} test_end={test_end.isoformat()} "
+        f"pre_train_rows={pre_train_rows}"
     )
 
 output_dir = output.parent

@@ -16,8 +16,10 @@ because its inherited source/test cutoff was 2026-06-14. V12 is terminal
 bit-exact against canonical data on 47,086 overlapping M1 bars and extends to
 2026-07-21. V13 snapshotting passed but its MTF cache was built from the wrong
 trimmed source and the partial was rejected before dataset construction. V14
-has a fresh source-cascade PASS through 2026-07-21T17:00Z; its ranking,
-seq513 dataset and empirical gates remain pending.
+built the full dataset but is terminal RED under the repaired liveness policy;
+V15 failed a future ranking-timestamp contract and V16 failed common-history
+coverage before dataset construction. A fresh V17 must rebuild model-range
+from 2020-11-13 and pass the hardened early source/timestamp gates.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
@@ -33,8 +35,8 @@ chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
 Group-A in exact hash-bound 4096-row chunks, including the complete causal M5
 context identity, permits one strict checkpoint
 retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
-only; the next admissible action is the fresh V14 rank/dataset chain.
-V1-V13 partials remain rejected.
+only; the next admissible action is the fresh V17 source/rank/dataset chain.
+All earlier partials remain rejected.
 
 ## Active Entry contract
 

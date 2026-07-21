@@ -23,8 +23,15 @@ and no bad OHLC/bid-ask geometry. V13 snapshotting exposed and rejected 13
 unsupported partial M1 buckets, then was invalidated because its MTF cache used
 the trimmed model-range source. V14 rebuilt fresh and now has source-cascade
 PASS through 2026-07-21T17:00Z: 392,959 rows x 188 columns, all 187 numeric
-fields live, exact full-v3 MTF ownership and no fallback. Its ranking/dataset
-chain remains pending.
+fields live, exact full-v3 MTF ownership and no fallback. V14 later completed
+the dataset but is terminal RED under the repaired liveness policy. V15 stopped
+on an impossible future ranking filename timestamp. V16 passed ranking and the
+513 manifest, then preflight rejected its finite source beginning 2021-01-14
+against the required 2021-01-05 history boundary. The latter exposed an
+operator/source-window mismatch: raw model-range must begin 2020-11-13 so
+context warmup is complete before common history. Audit schema v4 and the
+chain's initial validation now reject both mistakes before ranking. V17 is the
+next admissible lineage; V14-V16 remain immutable terminal evidence only.
 
 The repaired contract now supplies the full causal M5 prefix independently of
 the decision slice, proves exact timestamp/OHLC inclusion, hashes that prefix
@@ -33,8 +40,8 @@ January probe changed Group-A warmup from 13,714 rows to zero while preserving
 finite D1 liquidity, ATR-term, dip and five-TF structure evidence. Live
 HTF/REGIME_V4 is likewise computed on the complete prefix before the model
 history slice. Commit `4134ca19` owns this repair; V11 remains terminal RED and
-V12 remains terminal ABORTED and V13 is rejected source diagnostics only. V14
-is the sole current source lineage; its fresh ranking/dataset chain is required.
+V12 remains terminal ABORTED and V13 is rejected source diagnostics only.
+No current source/dataset lineage is accepted; a fresh V17 is required.
 
 The execution-path source repair is present: the immutable TRAIN-rank
 reference is created before and bound into ranking, and ranking is owned by the

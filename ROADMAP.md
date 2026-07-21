@@ -31,7 +31,13 @@ ATR comparison flagged current values covered by recent TRAIN. V14 is terminal
 RED. Schema-v3 now separates strict TRAIN learnability from untouched OOS state
 coverage, retains exact full scans and unknown-category rejection, records ATR
 shift diagnostically, and forbids same-lineage retry after any split/audit
-output exists. A fresh V15 is required. The chain has no default end date.
+output exists. V15 was terminalized before manifest because its requested
+ranking filename timestamp was in the future. V16 passed ranking/manifest but
+preflight rejected its context-trimmed source beginning 2021-01-14, after the
+declared 2021-01-05 history boundary. The source auditor and chain now catch
+both conditions before ranking. A fresh V17 must start raw model-range at
+2020-11-13 so the finite surface covers history start. The chain has no default
+end date.
 
 The history-boundary repair was exercised successfully by V14 at full scale.
 Group-A consumes an explicit full causal M5 prefix, validates
@@ -51,7 +57,7 @@ resume inputs.
 
 ## Ordered gates
 
-1. Start a wholly fresh current-data V15 lineage from the repaired contracts;
+1. Start a wholly fresh current-data V17 lineage from the repaired contracts;
    rerun source/ranking/dataset and prove the exclusive runner, bounded
    checkpoints and immutable terminal event under the 30 GiB cgroup.
 2. Accept only a fresh dataset whose split manifests, full-input liveness,

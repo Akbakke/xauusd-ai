@@ -48,6 +48,12 @@ on their declared split. Test data cannot influence field selection,
 normalization, recipe selection, calibration or stopping.
 All history/train/validation/test boundaries are explicit required chain
 arguments and strictly ordered. There is no default model-range end date.
+The finite `FULL_PLUS_CTX` surface, after every causal context warmup trim, must
+begin at or before `feature_history_start_utc`; having 96 rows somewhere before
+TRAIN is not a substitute. The source audit binds this boundary, and the chain
+rechecks it before producing TRAIN rank state or ranking. A ranking artifact
+filename timestamp must also be real and no later than contract-validation
+time, so an impossible future provenance order fails before expensive work.
 
 Full-history training preserves rare regimes but does not itself prove current
 regime sensitivity. The current Entry trainer has path/side/class weighting

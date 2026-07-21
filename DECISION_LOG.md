@@ -529,3 +529,26 @@ written immutable split/audit outputs. Retry is now permitted only when exact
 checkpoints exist and no split, manifest or audit output has begun. Otherwise
 the event terminalizes RED and a fresh lineage is mandatory. V14 remains
 non-authoritative; V15 must rebuild under the repaired source revision.
+
+## 2026-07-21 — V15/V16 expose early provenance and history-window gaps
+
+V15 rebuilt a current source through 18:10 UTC, but its caller named the fresh
+ranking target with timestamp 18:31 while the manifest boundary occurred at
+18:30:37. The manifest correctly rejected the impossible ordering. V15 is
+terminal RED and was not renamed or resumed.
+
+V16 rebuilt independently through 18:25 UTC. Its source, ranking and exact 513
+manifest passed, but preflight rejected `covers_history_start=false`: raw
+model-range began 2021-01-04 and the context producer's causal warmup made the
+first finite row 2021-01-14, later than the required 2021-01-05 common-history
+boundary. V14 had proven the correct upstream start, 2020-11-13, yielding a
+finite surface from 2021-01-04. This is a source-window error, not permission to
+relax warmup or fill values.
+
+Source-cascade audit schema v4 now requires and binds the common-history start.
+The one-shot chain independently scans the exact source time column during its
+initial contract validation, requiring ordered unique coverage of history and
+TEST plus at least 96 pre-TRAIN rows. It also rejects a future timestamp in the
+requested fresh ranking filename. Both failures therefore occur before rank
+state/ranking in the next lineage. V17 must rebuild from raw model-range start
+2020-11-13; V14-V16 remain non-authoritative terminal evidence.

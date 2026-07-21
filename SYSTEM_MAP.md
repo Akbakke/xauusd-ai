@@ -431,8 +431,8 @@ Current facts:
   until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
 - commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
   decision OHLC checks, and mirrors full-prefix-before-slice in live. V14
-  proved it at current-data dataset scale; V15 must repeat it under the repaired
-  liveness contract and there is no direction fallback;
+  proved it at current-data dataset scale; V17 must repeat it under the repaired
+  liveness and early-history contracts and there is no direction fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
@@ -441,7 +441,8 @@ Current facts:
   schema-v2 liveness misclassified sparse impulses and genuine one-state OOS
   regimes, then the wrapper attempted an invalid retry after immutable output
   existed. V14 is terminal RED. Schema-v3 repairs the semantics and retry
-  boundary; a fresh V15 lineage is required;
+  boundary. V15/V16 subsequently failed immutable timestamp/history coverage
+  gates; a fresh V17 lineage from raw model-range start 2020-11-13 is required;
 - V11 completed source/ranking/manifest/preflight but is terminal RED at
   `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
   95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
@@ -502,7 +503,9 @@ cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
 reparert tape + cv2 + cv3 + modelrange + cache + FULL_PLUS
   └─ gx1.scripts.audit_seq513_source_cascade_v1 --run-id --event-root --out
-        → fersk hashbundet SOURCE_CASCADE_PROOF.json; alle self-paths må være event-lokale
+        --required-history-start --expected-full-time-min --expected-full-time-max
+        → fersk schema-v4 hashbundet SOURCE_CASCADE_PROOF.json; alle self-paths må være
+          event-lokale og den ferdige finite flaten må dekke common-history-start
 FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
       └─ materialize_model_native_train_rank_reference_v2
         --run-id --source-parquet --history-start --fit-start --fit-end --out
@@ -578,7 +581,10 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- Neste V15-vinduskontrakt er history-start 2021-01-05, TRAIN
+- Neste V17-vinduskontrakt har rå model-range-start 2020-11-13 og ferdig
+  common-history-start 2021-01-05. V15 beviste framtidsstempel-fellen og V16
+  beviste at model-range-start 2021-01-04 gir for sen finite start 2021-01-14;
+  begge er terminal RED. Kjeden avviser nå begge feil før ranking. TRAIN er
   2021-03-16..2026-05-31, VAL 2026-06-01..2026-06-30 og TEST
   2026-07-01 til snapshotets eksplisitte siste lukkede M5-bar. Alle syv
   grenser er obligatoriske kjede-input; ingen sluttdato har fallback/default.
