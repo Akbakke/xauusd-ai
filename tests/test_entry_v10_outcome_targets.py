@@ -76,7 +76,7 @@ def test_aux_target_contract_is_exact_and_spread_aware() -> None:
 def test_model_native_group_a_recompute_is_memory_capped_and_explicit() -> None:
     source = BUILDER_PATH.read_text(encoding="utf-8")
 
-    assert "_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 4" in source
+    assert "_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 2" in source
     assert "workers=_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS" in source
     assert '"group_a_recompute_workers": _MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS' in source
 

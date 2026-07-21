@@ -26,6 +26,8 @@ done
 [[ $# -ge 1 ]] || { echo "FATAL: no command given after '--'"; exit 2; }
 echo "[capped_run] MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP"
 echo "[capped_run] cmd: $*"
-exec systemd-run --user --scope --quiet \
+# A transient service keeps this wrapper outside the job cgroup. If the kernel
+# kills the capped job, the caller can publish a durable terminal RED status.
+exec systemd-run --user --wait --collect --quiet \
   -p MemoryMax="$MEM" -p MemoryHigh="$MEM" -p MemorySwapMax="$SWAP" \
   -- "$@"

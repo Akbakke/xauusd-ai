@@ -1789,10 +1789,10 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # -----------------------------------------------------------------------------
 # Core builder
 # -----------------------------------------------------------------------------
-# The Group-A workers fork the full common-history frame. Four workers keep the
+# The Group-A workers fork the full common-history frame. Two workers keep the
 # exact per-row calculation safely within the rebuild cgroup's 30 GiB ceiling;
 # output parity is still asserted after the merge by the helper itself.
-_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 4
+_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 2
 
 
 def build_dataset_canonical(
