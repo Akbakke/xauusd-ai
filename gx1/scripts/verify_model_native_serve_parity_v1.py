@@ -164,7 +164,11 @@ FULL_STACK_REQUIRED_PREDICTION_COLS = tuple(
         for fields in SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS.values()
         for column in fields
     )
-) + ("specialist_gate",)
+) + (
+    "specialist_gate",
+    "tf_gate",
+    "family_tf_cooperation_gate",
+)
 PINNED_REQUIRED_COLS = tuple(
     dict.fromkeys(
         (
@@ -1123,8 +1127,80 @@ def _direction_evidence_fusion_influence_contract(
     }
 
 
+def _cooperation_gate_liveness_contract(
+    frame: pd.DataFrame,
+    *,
+    column: str,
+    token_names: tuple[str, ...],
+) -> dict[str, object]:
+    failures: list[str] = []
+    try:
+        gate = _vector_prediction_column(frame, column, len(token_names))
+        finite = bool(np.isfinite(gate).all())
+        row_sum_error = float(np.max(np.abs(gate.sum(axis=1) - 1.0)))
+        mean_weight = gate.mean(axis=0)
+        std_weight = gate.std(axis=0)
+        clipped = np.clip(gate, 1e-12, 1.0)
+        entropy_mean = float(np.mean(-np.sum(clipped * np.log(clipped), axis=1)))
+        top_rank_count = np.bincount(
+            np.argmax(gate, axis=1), minlength=len(token_names)
+        )
+        if bool(np.any(gate < 0.0)) or row_sum_error > (
+            SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+        ):
+            failures.append(f"{column} is not a normalized probability simplex")
+        if entropy_mean < SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY:
+            failures.append(f"{column} entropy_mean={entropy_mean:.12g} below contract")
+        for index, token in enumerate(token_names):
+            if mean_weight[index] <= SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT:
+                failures.append(f"{column}/{token} mean weight is dead")
+            if std_weight[index] <= SERVE_PARITY_SPECIALIST_GATE_MIN_STD:
+                failures.append(f"{column}/{token} is constant")
+            if top_rank_count[index] < SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT:
+                failures.append(f"{column}/{token} is never top-ranked")
+    except RuntimeError as exc:
+        failures.append(str(exc))
+        finite = False
+        row_sum_error = 1e30
+        entropy_mean = -1e30
+        mean_weight = np.zeros(len(token_names), dtype=np.float64)
+        std_weight = np.zeros(len(token_names), dtype=np.float64)
+        top_rank_count = np.zeros(len(token_names), dtype=np.int64)
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "rows": int(len(frame)),
+        "finite": finite,
+        "tokens": list(token_names),
+        "row_sum_max_abs_error": row_sum_error,
+        "entropy_mean": entropy_mean,
+        "mean_weight": {
+            name: float(mean_weight[index]) for index, name in enumerate(token_names)
+        },
+        "std_weight": {
+            name: float(std_weight[index]) for index, name in enumerate(token_names)
+        },
+        "top_rank_count": {
+            name: int(top_rank_count[index]) for index, name in enumerate(token_names)
+        },
+        "thresholds": {
+            "row_sum_max_abs_error": (
+                SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+            ),
+            "min_mean_weight_exclusive": (
+                SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT
+            ),
+            "min_entropy_inclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY,
+            "min_std_exclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_STD,
+            "min_top_rank_count_inclusive": (
+                SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT
+            ),
+        },
+    }
+
+
 def _test_prediction_liveness_contract(frame: pd.DataFrame) -> dict[str, object]:
-    """Audit all active heads and all eight gates over exact full TEST rows."""
+    """Audit every active head and all 8+5+13 learned gates on full TEST."""
 
     failures: list[str] = []
     active_head_evidence: dict[str, object] = {}
@@ -1243,6 +1319,21 @@ def _test_prediction_liveness_contract(frame: pd.DataFrame) -> dict[str, object]
         },
     }
     failures.extend(gate_failures)
+    tf_gate_report = _cooperation_gate_liveness_contract(
+        frame,
+        column="tf_gate",
+        token_names=SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES,
+    )
+    family_tf_gate_report = _cooperation_gate_liveness_contract(
+        frame,
+        column="family_tf_cooperation_gate",
+        token_names=(
+            *MODEL_NATIVE_REQUIRED_SPECIALISTS,
+            *SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES,
+        ),
+    )
+    failures.extend(str(item) for item in tf_gate_report["failures"])
+    failures.extend(str(item) for item in family_tf_gate_report["failures"])
     return {
         "decision": "PASS" if not failures else "FAIL",
         "failures": failures,
@@ -1252,6 +1343,8 @@ def _test_prediction_liveness_contract(frame: pd.DataFrame) -> dict[str, object]
         "head_variation_epsilon": SERVE_PARITY_HEAD_VARIATION_EPSILON,
         "active_head_evidence": active_head_evidence,
         "specialist_gate": gate_report,
+        "tf_gate": tf_gate_report,
+        "family_tf_cooperation_gate": family_tf_gate_report,
     }
 
 

@@ -555,23 +555,21 @@ def _require_model_native_state_head_contract(
 _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS: Dict[str, tuple[str, ...]] = {
     # These blocks are deliberately zero-initialized.  Merely finding their
     # keys in a state_dict therefore does not prove they ever joined the
-    # learned decision path; at least one value must have moved during train.
+    # learned decision path.  Require the data-dependent weight itself to move;
+    # a nonzero bias alone is only a constant offset and cannot prove that
+    # specialist, regime, or timeframe evidence was consumed.
     "specialist_fusion_output": (
         "specialist_out.weight",
-        "specialist_out.bias",
     ),
     "regime_film": (
         "regime_film.2.weight",
-        "regime_film.2.bias",
     ),
     "cross_tf_output": (
         "cross_tf_out.weight",
-        "cross_tf_out.bias",
     ),
     "cross_tf_gate": ("tf_gate_logits",),
     "family_tf_cooperation_output": (
         "family_tf_cooperation_out.weight",
-        "family_tf_cooperation_out.bias",
     ),
 }
 

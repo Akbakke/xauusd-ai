@@ -122,7 +122,36 @@ def passing_test_prediction_liveness(rows: int) -> dict[str, object]:
                 for field, width in field_contract.items()
             },
         }
+    def cooperation_gate(tokens: tuple[str, ...]) -> dict[str, object]:
+        weight = 1.0 / len(tokens)
+        return {
+            "decision": "PASS",
+            "failures": [],
+            "rows": rows,
+            "finite": True,
+            "tokens": list(tokens),
+            "row_sum_max_abs_error": 0.0,
+            "entropy_mean": 1.5,
+            "mean_weight": {token: weight for token in tokens},
+            "std_weight": {token: 0.01 for token in tokens},
+            "top_rank_count": {token: 1 for token in tokens},
+            "thresholds": {
+                "row_sum_max_abs_error": (
+                    SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+                ),
+                "min_mean_weight_exclusive": (
+                    SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT
+                ),
+                "min_entropy_inclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY,
+                "min_std_exclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_STD,
+                "min_top_rank_count_inclusive": (
+                    SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT
+                ),
+            },
+        }
+
     weight = 1.0 / len(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+    timeframes = ("M5", "M15", "H1", "H4", "D1")
     return {
         "decision": "PASS",
         "failures": [],
@@ -165,6 +194,10 @@ def passing_test_prediction_liveness(rows: int) -> dict[str, object]:
                 ),
             },
         },
+        "tf_gate": cooperation_gate(timeframes),
+        "family_tf_cooperation_gate": cooperation_gate(
+            (*MODEL_NATIVE_REQUIRED_SPECIALISTS, *timeframes)
+        ),
     }
 
 

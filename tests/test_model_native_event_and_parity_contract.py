@@ -45,6 +45,10 @@ def _fresh_pinned_frame() -> pd.DataFrame:
         edge_score = max(probabilities[0], probabilities[1]) - probabilities[2]
         gate = [0.05] * len(specialists)
         gate[offset % len(specialists)] = 0.65
+        tf_gate = [0.05] * 5
+        tf_gate[offset % 5] = 0.80
+        family_tf_gate = [0.02] * (len(specialists) + 5)
+        family_tf_gate[offset % len(family_tf_gate)] = 0.76
 
         def vector(width: int, base: float) -> list[float]:
             return [base + 0.01 * offset + 0.001 * index for index in range(width)]
@@ -143,6 +147,8 @@ def _fresh_pinned_frame() -> pd.DataFrame:
                 "short_validity_prob": side_validity_probs[1],
                 "trade_logit": -0.1 + 0.01 * offset,
                 "specialist_gate": gate,
+                "tf_gate": tf_gate,
+                "family_tf_cooperation_gate": family_tf_gate,
             }
         )
     return pd.DataFrame(rows)
@@ -275,6 +281,8 @@ def test_full_test_prediction_liveness_proves_every_head_and_specialist_gate() -
         serve_parity.MODEL_NATIVE_ACTIVE_HEADS
     )
     assert report["specialist_gate"]["decision"] == "PASS"
+    assert report["tf_gate"]["decision"] == "PASS"
+    assert report["family_tf_cooperation_gate"]["decision"] == "PASS"
     assert all(
         count > 0
         for count in report["specialist_gate"]["top_rank_count"].values()
@@ -295,6 +303,20 @@ def test_full_test_prediction_liveness_fails_closed_on_constant_head_or_gate() -
     assert report["decision"] == "FAIL"
     assert report["active_head_evidence"]["position_size"]["decision"] == "FAIL"
     assert report["specialist_gate"]["decision"] == "FAIL"
+
+
+@pytest.mark.parametrize("column", ("tf_gate", "family_tf_cooperation_gate"))
+def test_full_test_prediction_liveness_fails_closed_on_constant_cooperation_gate(
+    column: str,
+) -> None:
+    frame = _fresh_pinned_frame()
+    width = len(frame[column].iloc[0])
+    frame[column] = [[1.0 / width] * width for _ in range(len(frame))]
+
+    report = serve_parity._test_prediction_liveness_contract(frame)
+
+    assert report["decision"] == "FAIL"
+    assert report[column]["decision"] == "FAIL"
 
 
 def test_vector_head_liveness_requires_every_component_to_vary() -> None:

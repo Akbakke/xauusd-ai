@@ -987,6 +987,18 @@ def _predict_bundle(
                         extra_chunks.setdefault("specialist_gate", []).append(
                             specialist_gate
                         )
+                        extra_chunks.setdefault("tf_gate", []).append(
+                            _tensor_np(out, "tf_gate", width=5)
+                        )
+                        extra_chunks.setdefault(
+                            "family_tf_cooperation_gate", []
+                        ).append(
+                            _tensor_np(
+                                out,
+                                "family_tf_cooperation_gate",
+                                width=len(MODEL_NATIVE_TRAINING_SPECIALISTS) + 5,
+                            )
+                        )
                         trendline_rail_logits = _tensor_np(out, "trendline_rail_logits", width=6)
                         trendline_rail_probs = _sigmoid_np(trendline_rail_logits)
                         extra_chunks.setdefault("trendline_rail_probs", []).append(

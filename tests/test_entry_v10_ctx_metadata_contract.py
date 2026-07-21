@@ -309,6 +309,28 @@ def test_model_native_learned_component_liveness_rejects_pass_through_block(
         _require_model_native_learned_component_liveness(state)
 
 
+@pytest.mark.parametrize(
+    ("component", "bias_key"),
+    (
+        ("specialist_fusion_output", "specialist_out.bias"),
+        ("regime_film", "regime_film.2.bias"),
+        ("cross_tf_output", "cross_tf_out.bias"),
+        ("family_tf_cooperation_output", "family_tf_cooperation_out.bias"),
+    ),
+)
+def test_model_native_learned_component_liveness_rejects_bias_only_movement(
+    component: str,
+    bias_key: str,
+) -> None:
+    state = _live_model_native_state()
+    for key in _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS[component]:
+        state[key] = torch.zeros(1, dtype=torch.float32)
+    state[bias_key] = torch.ones(1, dtype=torch.float32)
+
+    with pytest.raises(RuntimeError, match=f"{component}:zero_init_pass_through"):
+        _require_model_native_learned_component_liveness(state)
+
+
 def test_model_native_learned_component_liveness_rejects_retired_mtf_scale() -> None:
     state = _live_model_native_state()
     state["mtf_dir_scale"] = torch.tensor(0.2)

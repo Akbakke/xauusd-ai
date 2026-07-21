@@ -29,9 +29,9 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
 )
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
-    "xau_model_native_exact_test_full_stack_serve_gate_v4"
+    "xau_model_native_exact_test_full_stack_serve_gate_v5"
 )
-MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v4"
+MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v5"
 MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION = (
     "model_native_direction_pocket_audit_v1"
 )
@@ -56,6 +56,8 @@ SERVE_PARITY_FORWARD_FIELD_WIDTHS = {
     "path_quality": 1,
     "bad_path_logit": 1,
     "specialist_gate": len(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+    "tf_gate": 5,
+    "family_tf_cooperation_gate": len(MODEL_NATIVE_REQUIRED_SPECIALISTS) + 5,
     "raw_direction_logits": 3,
     "direction_logits": 3,
     "public_trade_flat_decision_logits": 2,
@@ -348,6 +350,8 @@ def _test_prediction_liveness_contract_failures(
         "head_variation_epsilon",
         "active_head_evidence",
         "specialist_gate",
+        "tf_gate",
+        "family_tf_cooperation_gate",
     }
     if set(value) != exact_keys:
         failures.append(
@@ -509,6 +513,105 @@ def _test_prediction_liveness_contract_failures(
                         f"{gate_label}.{metric_name}.{specialist} violates contract"
                     )
         mean_weight = gate.get("mean_weight")
+        if isinstance(mean_weight, dict) and all(
+            _is_finite_number(item) for item in mean_weight.values()
+        ):
+            if abs(sum(float(item) for item in mean_weight.values()) - 1.0) > (
+                SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+            ):
+                failures.append(f"{gate_label}.mean_weight does not sum to one")
+    for gate_name, tokens in (
+        ("tf_gate", SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES),
+        (
+            "family_tf_cooperation_gate",
+            (
+                *MODEL_NATIVE_REQUIRED_SPECIALISTS,
+                *SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES,
+            ),
+        ),
+    ):
+        report = value.get(gate_name)
+        gate_label = f"{label}.{gate_name}"
+        failures.extend(_zero_failure_pass(report, label=gate_label))
+        if not isinstance(report, dict):
+            continue
+        expected_gate_keys = {
+            "decision",
+            "failures",
+            "rows",
+            "finite",
+            "tokens",
+            "row_sum_max_abs_error",
+            "entropy_mean",
+            "mean_weight",
+            "std_weight",
+            "top_rank_count",
+            "thresholds",
+        }
+        if set(report) != expected_gate_keys:
+            failures.append(f"{gate_label} keys mismatch")
+        if report.get("rows") != expected_rows:
+            failures.append(f"{gate_label}.rows mismatch")
+        if report.get("finite") is not True:
+            failures.append(f"{gate_label} is not finite")
+        if report.get("tokens") != list(tokens):
+            failures.append(f"{gate_label}.tokens mismatch")
+        expected_thresholds = {
+            "row_sum_max_abs_error": (
+                SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+            ),
+            "min_mean_weight_exclusive": (
+                SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT
+            ),
+            "min_entropy_inclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY,
+            "min_std_exclusive": SERVE_PARITY_SPECIALIST_GATE_MIN_STD,
+            "min_top_rank_count_inclusive": (
+                SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT
+            ),
+        }
+        if report.get("thresholds") != expected_thresholds:
+            failures.append(f"{gate_label}.thresholds mismatch")
+        row_error = report.get("row_sum_max_abs_error")
+        if (
+            not _is_finite_number(row_error)
+            or float(row_error) < 0.0
+            or float(row_error)
+            > SERVE_PARITY_SPECIALIST_GATE_ROW_SUM_MAX_ABS_ERROR
+        ):
+            failures.append(f"{gate_label}.row_sum_max_abs_error exceeds contract")
+        entropy = report.get("entropy_mean")
+        if not _is_finite_number(entropy) or float(entropy) < (
+            SERVE_PARITY_SPECIALIST_GATE_MIN_ENTROPY
+        ):
+            failures.append(f"{gate_label}.entropy_mean below contract")
+        for metric_name, threshold in (
+            ("mean_weight", SERVE_PARITY_SPECIALIST_GATE_MIN_MEAN_WEIGHT),
+            ("std_weight", SERVE_PARITY_SPECIALIST_GATE_MIN_STD),
+            (
+                "top_rank_count",
+                SERVE_PARITY_SPECIALIST_GATE_MIN_TOP_RANK_COUNT,
+            ),
+        ):
+            metrics = report.get(metric_name)
+            if not isinstance(metrics, dict) or set(metrics) != set(tokens):
+                failures.append(f"{gate_label}.{metric_name} set mismatch")
+                continue
+            for token, metric in metrics.items():
+                if metric_name == "top_rank_count":
+                    valid = (
+                        not isinstance(metric, bool)
+                        and isinstance(metric, int)
+                        and metric >= int(threshold)
+                    )
+                else:
+                    valid = _is_finite_number(metric) and float(metric) > float(
+                        threshold
+                    )
+                if not valid:
+                    failures.append(
+                        f"{gate_label}.{metric_name}.{token} violates contract"
+                    )
+        mean_weight = report.get("mean_weight")
         if isinstance(mean_weight, dict) and all(
             _is_finite_number(item) for item in mean_weight.values()
         ):
