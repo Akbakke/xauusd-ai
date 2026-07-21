@@ -113,7 +113,7 @@ def compute_smc_features(
     low = df[low_col].to_numpy(dtype=np.float64)
     close = df[close_col].to_numpy(dtype=np.float64)
     atr = (
-        df[atr_col].fillna(method="ffill").fillna(0.0).to_numpy(dtype=np.float64)
+        df[atr_col].ffill().fillna(0.0).to_numpy(dtype=np.float64)
         if atr_col in df.columns
         else np.ones(nb, dtype=np.float64)
     )
