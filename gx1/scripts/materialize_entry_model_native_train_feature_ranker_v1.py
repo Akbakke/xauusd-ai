@@ -276,10 +276,10 @@ def _load_train_frame(
     frame = frame.drop(
         columns=[name for name in group_a_required if name in frame.columns]
     )
-    # The one-truth augmenter computes augment_candidate per row (~85 ms/row =
-    # ~9 h serial over the full range). The owner module provides the exact
-    # parallel variant (one full-series context, fanned row loop, serial
-    # spot-check) — shared with the dataset builder.
+    # The one-truth augmenter computes augment_candidate per row. The owner
+    # module provides the exact parallel variant (one full-series context,
+    # zero-copy TF lookups, fanned row loop, serial spot-check) shared with the
+    # dataset builder.
     from gx1.scripts.augment_forward_outcome_v2 import (
         attach_group_a_dip_struct_ctx_columns_parallel,
     )

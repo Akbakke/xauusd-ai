@@ -36,12 +36,47 @@ from gx1.scripts.add_ctx_cont_columns_to_prebuilt import (
 from gx1.scripts.augment_forward_outcome_v2 import (
     _build_atr_percentile_array,
     _cache_cutoff_ns,
+    _tf_cache_row,
     attach_group_a_dip_struct_ctx_columns,
     augment_candidate,
     build_context,
     compute_smc_swing_dip_interaction,
     trim_causal_context_warmup_prefix,
 )
+
+
+def test_tf_cache_row_is_strict_float32_zero_copy() -> None:
+    target = pd.Timestamp("2026-01-02T12:00:00Z")
+    width = 25
+    ts_values = np.asarray(
+        [target.value - pd.Timedelta(minutes=10).value, target.value],
+        dtype=np.int64,
+    )
+    feat_values = np.arange(2 * width, dtype=np.float32).reshape(2, width)
+    frame = pd.DataFrame(index=pd.DatetimeIndex(ts_values, tz="UTC"))
+    frame.attrs["ts_int64"] = ts_values
+    frame.attrs["feats_np"] = feat_values
+    frame.attrs["causal_warmup_rows"] = 0
+    ctx = type("Context", (), {"multi_tf": {"M5": frame}})()
+
+    row = _tf_cache_row(ctx, "M5", target.value)
+
+    assert row.dtype == np.dtype(np.float32)
+    assert np.shares_memory(row, feat_values)
+    np.testing.assert_array_equal(row, feat_values[1])
+
+
+def test_tf_cache_row_rejects_dtype_coercion_instead_of_copying() -> None:
+    target = pd.Timestamp("2026-01-02T12:00:00Z")
+    ts_values = np.asarray([target.value], dtype=np.int64)
+    frame = pd.DataFrame(index=pd.DatetimeIndex(ts_values, tz="UTC"))
+    frame.attrs["ts_int64"] = ts_values
+    frame.attrs["feats_np"] = np.ones((1, 25), dtype=np.float64)
+    frame.attrs["causal_warmup_rows"] = 0
+    ctx = type("Context", (), {"multi_tf": {"M5": frame}})()
+
+    with pytest.raises(RuntimeError, match="malformed M5 cache arrays"):
+        _tf_cache_row(ctx, "M5", target.value)
 
 
 def _market_frame(periods: int = 900) -> pd.DataFrame:
