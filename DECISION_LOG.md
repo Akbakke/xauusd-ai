@@ -477,3 +477,25 @@ admits only the two overlap-proven coverage forms. Unsupported partial buckets
 are omitted and enumerated, not filled; any mismatch among admitted overlap
 rows or loss of the declared final M5 bar aborts publication. This is a source
 coverage contract and has no direction authority.
+
+## 2026-07-21 — V13 MTF source rejected; V14 source cascade passes
+
+V13 snapshotting passed, but its MTF cache was accidentally built from the
+trimmed `cv3_modelrange` artifact instead of full canonical-v3. The cache had
+plausible shapes but the source-identity contract would reject it. V13 stopped
+before context, source audit, ranking or dataset construction and is diagnostic
+only; its partial is not moved, renamed or resumed.
+
+V14 rebuilt the entire source event fresh. Its schema-v3 source proof is PASS
+through `2026-07-21T17:00:00Z`: 392,959 rows x 188 columns, all 187 numeric
+fields live, zero constants, exact duplicate groups or nonfinite fields, and
+all five MTF caches bound to full canonical-v3. This is current clean input,
+not a direction-edge claim; rank, dataset, liveness and empirical model gates
+remain pending.
+
+The Entry trainer audit also found no generic recency/time-decay objective.
+Regime FiLM and specialists can condition on current state, but the loss does
+not automatically prioritize 2026 over 2021. Candidate work must compare the
+full-history baseline against an immutable TRAIN-only recent-regime adaptation
+phase, with June validation and July untouched TEST. Any later refresh remains
+an offline challenger requiring paired zero-order shadow before promotion.

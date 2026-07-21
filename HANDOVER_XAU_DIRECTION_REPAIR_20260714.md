@@ -37,9 +37,13 @@ The active OANDA collector has been checked read-only through 2026-07-21:
 all duplicate timestamps agree; all values and OHLC/bid-ask geometry are
 valid. The new `materialize_current_m5_snapshot_v1` producer snapshots exact
 collector bytes into the event, rejects conflicts, emits only provably complete
-M5 buckets and requires exact M5 overlap before atomic publication. V13 must
-use TRAIN ending 2026-05-31, June VAL and July TEST through the explicit last
-closed M5 cutoff. End dates are mandatory CLI inputs, never defaults.
+M5 buckets and requires exact M5 overlap before atomic publication. V13 proved
+that seam but was rejected before dataset construction because its MTF cache
+used trimmed model-range rather than full canonical-v3. V14 rebuilt fresh and
+its source cascade is PASS through 2026-07-21T17:00Z (392,959 x 188; all 187
+numeric fields live; no constants, exact duplicates, nonfinite or fallback).
+V14 uses TRAIN ending 2026-05-31, June VAL and July TEST through the explicit
+last closed M5 cutoff. End dates are mandatory CLI inputs, never defaults.
 
 Historical V11 incident follows for root-cause provenance.
 
@@ -68,9 +72,9 @@ row. The earlier zero-copy commit `1a51ce42` raised complete feature throughput
 to about 2,062 rows/s; a 4,096-row block measured 1.99 seconds and was
 bit-identical to V10 output over 17 x 60 sampled values.
 
-No V11 ranking, manifest, preflight, checkpoint or source artifact may be
-resumed after the new commit. The next authority candidate is a wholly fresh
-V13 cascade and chain. V1-V12 remain failure/diagnostic evidence only.
+No V11-V13 ranking, manifest, preflight, checkpoint or source artifact may be
+resumed. The next authority candidate is the wholly fresh V14 chain. V1-V13
+remain failure/diagnostic evidence only.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
 another heavy run: the TRAIN-rank reference is created before ranking and
@@ -404,7 +408,7 @@ HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16. The old claim of 13,439
 Group-A warmup rows and 277 clean rows was disproved by V11: truncated context
 actually produced 13,714 warmup rows and only one clean row. V12 then proved
 the explicit full-prefix path leaves 2,207 causal REGIME_V4 warmup rows and
-ample pre-TRAIN history. The active V13 split is TRAIN_END=2026-05-31 < VAL
+ample pre-TRAIN history. The active V14 split is TRAIN_END=2026-05-31 < VAL
 2026-06-01..06-30 < TEST 2026-07-01 through the snapshot's explicit last
 closed M5 bar.
 

@@ -49,6 +49,14 @@ normalization, recipe selection, calibration or stopping.
 All history/train/validation/test boundaries are explicit required chain
 arguments and strictly ordered. There is no default model-range end date.
 
+Full-history training preserves rare regimes but does not itself prove current
+regime sensitivity. The current Entry trainer has path/side/class weighting
+but no generic recency weighting. Any recent-regime phase must therefore be an
+explicit immutable offline training recipe, use only TRAIN rows, keep
+validation/test untouched, and beat the full-history baseline on the same OOS
+contracts. Later updates are offline challengers with zero-order paired shadow
+and explicit promotion; online/live weight mutation is forbidden.
+
 ## TRAIN-only state and common history
 
 `model_native_state_contract_v4` is the only accepted rank/history contract.

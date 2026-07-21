@@ -19,10 +19,12 @@ The running OANDA collector now supplies complete M1 candles through
 2026-07-21. A read-only audit found 47,086 timestamps overlapping canonical
 M1 with exact zero difference in every mid/bid/ask/volume field, 1,481
 identical duplicate timestamps, no conflicting duplicates, no nonfinite data
-and no bad OHLC/bid-ask geometry. V13 must atomically snapshot those bytes,
-aggregate only provably complete M5 buckets, require bit-exact M5 overlap and
-use explicit rolling windows: TRAIN through 2026-05-31, VAL June, TEST July
-through the snapshot's last closed M5 bar.
+and no bad OHLC/bid-ask geometry. V13 snapshotting exposed and rejected 13
+unsupported partial M1 buckets, then was invalidated because its MTF cache used
+the trimmed model-range source. V14 rebuilt fresh and now has source-cascade
+PASS through 2026-07-21T17:00Z: 392,959 rows x 188 columns, all 187 numeric
+fields live, exact full-v3 MTF ownership and no fallback. Its ranking/dataset
+chain remains pending.
 
 The repaired contract now supplies the full causal M5 prefix independently of
 the decision slice, proves exact timestamp/OHLC inclusion, hashes that prefix
@@ -31,8 +33,8 @@ January probe changed Group-A warmup from 13,714 rows to zero while preserving
 finite D1 liquidity, ATR-term, dip and five-TF structure evidence. Live
 HTF/REGIME_V4 is likewise computed on the complete prefix before the model
 history slice. Commit `4134ca19` owns this repair; V11 remains terminal RED and
-V12 remains terminal ABORTED. A wholly fresh V13 source/ranking/dataset lineage
-is required.
+V12 remains terminal ABORTED and V13 is rejected source diagnostics only. V14
+is the sole current source lineage; its fresh ranking/dataset chain is required.
 
 The execution-path source repair is present: the immutable TRAIN-rank
 reference is created before and bound into ranking, and ranking is owned by the

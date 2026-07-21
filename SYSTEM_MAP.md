@@ -426,7 +426,7 @@ Current facts:
   until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
 - commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
   decision OHLC checks, and mirrors full-prefix-before-slice in live. A fresh
-  V12 proved it at dataset scale; V13 must repeat it on current data and there
+  V12 proved it at dataset scale; V14 must repeat it on current data and there
   is no direction fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
@@ -436,7 +436,7 @@ Current facts:
   `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
   95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
   the Jan-5 decision boundary. Commit `4134ca19` repairs this with an explicit,
-  OHLC-verified and checkpoint-hashed full M5 prefix; V13 must rebuild fresh;
+  OHLC-verified and checkpoint-hashed full M5 prefix; V14 must rebuild fresh;
 - run lineage `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
@@ -567,7 +567,7 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- Aktiv V13-vinduskontrakt er history-start 2021-01-05, TRAIN
+- Aktiv V14-vinduskontrakt er history-start 2021-01-05, TRAIN
   2021-03-16..2026-05-31, VAL 2026-06-01..2026-06-30 og TEST
   2026-07-01 til snapshotets eksplisitte siste lukkede M5-bar. Alle syv
   grenser er obligatoriske kjede-input; ingen sluttdato har fallback/default.

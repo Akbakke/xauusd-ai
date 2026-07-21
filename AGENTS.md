@@ -11,15 +11,19 @@ contracts prove the required direction edge.
 Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
 Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
 and cannot authorize a run or launch.
-V12 is the latest terminal lineage and is intentionally `ABORTED`, not PASS.
+V12 is terminal `ABORTED`, not PASS.
 It proved the Group-A history repair at full scale (`trimmed warmup rows=2207`)
 and built fresh train/val/test rows, but its source/test cutoff remained
 2026-06-14. When current OANDA data through 2026-07-21 became available, the
 slow liveness scan was stopped before it emitted an artifact. V12 is diagnostic
-evidence only. V13 must snapshot the running collector into an immutable event,
-prove exact overlap with the repaired tape, use explicit rolling split dates
-and rebuild every source/rank/dataset artifact. No V11/V12 partial may be used
-as authority or resumed into V13.
+evidence only. V13 proved the current-snapshot seam but used the trimmed
+model-range file instead of full canonical-v3 as the MTF-cache source; it is a
+rejected partial and never entered the dataset chain. V14 is the current
+lineage. Its source cascade is PASS at 2026-07-21T17:00Z: 392,959 rows x 188
+columns, all 187 numeric fields live, no constants/duplicates/nonfinite values,
+and exact full-v3 ownership for all five MTF caches. Ranking/dataset/liveness
+remain pending, so V14 has no model or launch authority. No V11-V13 partial may
+be used as authority or resumed into V14.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
