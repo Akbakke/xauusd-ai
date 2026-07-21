@@ -277,6 +277,29 @@ def _validate_m5_frame(df: pd.DataFrame, *, context: str) -> pd.DataFrame:
     return numeric
 
 
+def _indexed_m5_ohlc_frame(frame: pd.DataFrame, *, context: str) -> pd.DataFrame:
+    """Return exact chronological M5 high/low/close with a UTC index."""
+    if not isinstance(frame, pd.DataFrame) or frame.empty:
+        raise RuntimeError(f"[{context}] M5 source must be a non-empty DataFrame")
+    if "time" in frame.columns:
+        index = pd.DatetimeIndex(
+            pd.to_datetime(frame["time"], utc=True, errors="coerce")
+        )
+    elif isinstance(frame.index, pd.DatetimeIndex):
+        index = pd.DatetimeIndex(
+            pd.to_datetime(frame.index, utc=True, errors="coerce")
+        )
+    else:
+        raise RuntimeError(f"[{context}] M5 source needs a time column or DatetimeIndex")
+    missing = [name for name in ("high", "low", "close") if name not in frame.columns]
+    if missing:
+        raise RuntimeError(f"[{context}] M5 source missing exact columns: {missing}")
+    out = frame.loc[:, ["high", "low", "close"]].copy()
+    out.index = index
+    _validate_m5_frame(out, context=context)
+    return out
+
+
 def _build_resampled_ohlc_array(df: pd.DataFrame, rule: str) -> tuple:
     """Return (ts_int64, high, low) for resampled bars."""
     resamp = df.resample(rule).agg({"high": "max", "low": "min"}).dropna()
@@ -900,7 +923,7 @@ def compute_attach_rows(
 
 _PARALLEL_ATTACH_SHARED: tuple = ()
 
-_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "group_a_attach_checkpoint_v1"
+_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "group_a_attach_checkpoint_v2"
 _GROUP_A_CHECKPOINT_CHUNK_ROWS = 4096
 
 
@@ -930,6 +953,7 @@ def _group_a_checkpoint_manifest(
     extract: list[str],
     smc_col: str,
     chunk_rows: int,
+    context_m5: pd.DataFrame | None,
 ) -> dict:
     if not isinstance(checkpoint_key, str) or len(checkpoint_key) != 64 or any(
         ch not in "0123456789abcdef" for ch in checkpoint_key
@@ -948,6 +972,21 @@ def _group_a_checkpoint_manifest(
     ):
         frame_digest.update(name.encode("utf-8") + b"\0")
         frame_digest.update(_group_a_array_bytes(values))
+
+    history = _indexed_m5_ohlc_frame(
+        df if context_m5 is None else context_m5,
+        context="CTX_CONT_CHECKPOINT_HISTORY",
+    )
+    history_digest = hashlib.sha256()
+    history_digest.update(b"group_a_context_m5_v1\0")
+    for name, values in (
+        ("time_ns", history.index.asi8.astype(np.int64, copy=False)),
+        ("high", history["high"].to_numpy(np.float64)),
+        ("low", history["low"].to_numpy(np.float64)),
+        ("close", history["close"].to_numpy(np.float64)),
+    ):
+        history_digest.update(name.encode("utf-8") + b"\0")
+        history_digest.update(_group_a_array_bytes(values))
 
     mtf_digest = hashlib.sha256()
     mtf_digest.update(b"group_a_attach_multi_tf_v1\0")
@@ -970,6 +1009,10 @@ def _group_a_checkpoint_manifest(
         "checkpoint_key": checkpoint_key,
         "row_count": int(len(df)),
         "frame_sha256": frame_digest.hexdigest(),
+        "context_m5_sha256": history_digest.hexdigest(),
+        "context_m5_rows": int(len(history)),
+        "context_m5_time_min_utc": history.index[0].isoformat(),
+        "context_m5_time_max_utc": history.index[-1].isoformat(),
         "multi_tf_sha256": mtf_digest.hexdigest(),
         "extract": list(extract),
         "extract_sha256": _sha256_bytes_iter(
@@ -1162,6 +1205,7 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
     checkpoint_dir: Path | None = None,
     checkpoint_key: str | None = None,
     checkpoint_chunk_rows: int = _GROUP_A_CHECKPOINT_CHUNK_ROWS,
+    context_m5: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Exact parallel variant of attach_group_a_dip_struct_ctx_columns.
 
@@ -1170,13 +1214,19 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
     worker) and only the zero-copy augment_candidate loop is fanned out over
     fork()ed workers — exact by construction, no chunk overlap. After the
     merge, spot_check_rows evenly spaced finite rows are recomputed serially
-    and asserted bit-exact against the merged result.
+    and asserted bit-exact against the merged result. ``context_m5`` supplies
+    causal prehistory when ``df`` is only an emission/history slice; its OHLC
+    and identity are validated and checkpoint-bound.
     """
     import multiprocessing as mp
 
     global _PARALLEL_ATTACH_SHARED
     ctx, ts_index, extract, dip_from_aug = build_attach_context(
-        df, multi_tf=multi_tf, journal_label=journal_label, smc_col=smc_col
+        df,
+        multi_tf=multi_tf,
+        journal_label=journal_label,
+        smc_col=smc_col,
+        context_m5=context_m5,
     )
     if (checkpoint_dir is None) != (checkpoint_key is None):
         raise RuntimeError(
@@ -1202,6 +1252,7 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
             extract=extract,
             smc_col=smc_col,
             chunk_rows=chunk_rows,
+            context_m5=context_m5,
         )
         _, manifest_sha256 = _initialize_group_a_checkpoint(
             checkpoint_path, manifest
@@ -1361,6 +1412,7 @@ def attach_group_a_dip_struct_ctx_columns(
     multi_tf: dict,
     journal_label: str = "parity",
     smc_col: str = "smc_swing_state",
+    context_m5: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Add the 24 GROUP-A parity + 36 dip/struct ctx_cont columns to ``df`` in place.
 
@@ -1376,9 +1428,15 @@ def attach_group_a_dip_struct_ctx_columns(
     Existing derived columns are never trusted or passed through: they are
     overwritten from the exact sources on every call. ``multi_tf`` is explicit
     and mandatory, so serving cannot silently fall back to a stale disk cache.
+    If ``context_m5`` is supplied, every decision timestamp and OHLC tuple must
+    match it exactly; the full prefix is used for D1/H4 liquidity history.
     """
     ctx, ts_index, extract, dip_from_aug = build_attach_context(
-        df, multi_tf=multi_tf, journal_label=journal_label, smc_col=smc_col
+        df,
+        multi_tf=multi_tf,
+        journal_label=journal_label,
+        smc_col=smc_col,
+        context_m5=context_m5,
     )
     cols = compute_attach_rows(ctx, ts_index, 0, len(df), extract=extract)
     return finalize_attach_columns(
@@ -1392,12 +1450,14 @@ def build_attach_context(
     multi_tf: dict,
     journal_label: str = "parity",
     smc_col: str = "smc_swing_state",
+    context_m5: pd.DataFrame | None = None,
 ):
     """Validate ``df`` and build the FULL-series augment context.
 
     Factored from attach_group_a_dip_struct_ctx_columns so a parallel caller
     can build the context once (full series -> exact trailing-1yr arrays) and
-    fan the row loop out over workers.
+    fan the row loop out over workers. A separate ``context_m5`` prevents a
+    decision slice from resetting 60-D1-bar liquidity and pivot state.
     """
     from gx1.contracts.entry_model_native_signal_v1 import (
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
@@ -1408,24 +1468,25 @@ def build_attach_context(
     if smc_col not in df.columns:
         raise RuntimeError(f"[CTX_CONT_PARITY] exact SMC source missing: {smc_col}")
 
-    for c in ("high", "low", "close"):
-        if c not in df.columns:
-            raise RuntimeError(
-                f"[CTX_CONT_PARITY] df missing required OHLC column '{c}'"
-            )
-    if "time" in df.columns:
-        raw_time = pd.to_datetime(df["time"], utc=True, errors="coerce")
-        ts_index = pd.DatetimeIndex(raw_time)
-    elif isinstance(df.index, pd.DatetimeIndex):
-        ts_index = pd.DatetimeIndex(pd.to_datetime(df.index, utc=True, errors="coerce"))
-    else:
-        raise RuntimeError("[CTX_CONT_PARITY] df needs a 'time' column or DatetimeIndex")
-    if ts_index.hasnans or not ts_index.is_monotonic_increasing or not ts_index.is_unique:
-        raise RuntimeError("[CTX_CONT_PARITY] timestamps must be finite, unique and chronological")
-
-    m5 = df[["high", "low", "close"]].copy()
-    m5.index = ts_index
-    _validate_m5_frame(m5, context="CTX_CONT_PARITY")
+    decision_m5 = _indexed_m5_ohlc_frame(df, context="CTX_CONT_PARITY")
+    ts_index = decision_m5.index
+    m5 = (
+        decision_m5
+        if context_m5 is None
+        else _indexed_m5_ohlc_frame(context_m5, context="CTX_CONT_FULL_HISTORY")
+    )
+    decision_positions = m5.index.get_indexer(ts_index)
+    if np.any(decision_positions < 0):
+        missing_time = ts_index[int(np.flatnonzero(decision_positions < 0)[0])]
+        raise RuntimeError(
+            f"[CTX_CONT_FULL_HISTORY] decision timestamp absent from context: {missing_time}"
+        )
+    history_values = m5.iloc[decision_positions].to_numpy(dtype=np.float64)
+    decision_values = decision_m5.to_numpy(dtype=np.float64)
+    if not np.array_equal(history_values, decision_values):
+        raise RuntimeError(
+            "[CTX_CONT_FULL_HISTORY] decision OHLC differs from the context source"
+        )
     ctx = build_context(
         m5, multi_tf,
         journal_dir=Path(f"/nonexistent_{journal_label}_journal"),

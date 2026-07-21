@@ -1795,7 +1795,7 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # only one bounded 4096-row result at a time. Eight-way fanout remains inside
 # the rebuild cgroup while preserving exact serial spot-check parity.
 _MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 8
-_MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpoint_v1"
+_MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpoint_v2"
 
 
 def build_dataset_canonical(
@@ -2493,6 +2493,7 @@ def build_dataset_canonical(
         workers=_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS,
         checkpoint_dir=_group_a_checkpoint_dir,
         checkpoint_key=_group_a_checkpoint_key,
+        context_m5=_common_m5,
     )
     _group_a_checkpoint_meta = {
         **_group_a_checkpoint_payload,

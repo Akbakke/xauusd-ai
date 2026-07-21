@@ -42,6 +42,67 @@ def test_model_native_full_frame_helpers_require_explicit_state_contract() -> No
         compute_htf_ctx_full_frame(frame)
 
 
+def test_htf_regime_override_computes_full_prefix_before_history_slice(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_ctx_augment_live as live_ctx
+    from gx1.features import regime_v4_features as regime
+
+    contract = _early_validation_builder(tmp_path).state_contract
+    index = pd.date_range("2025-11-30T23:30:00Z", periods=20, freq="5min")
+    close = 2_000.0 + np.arange(len(index), dtype=np.float64) * 0.1
+    cv3 = pd.DataFrame(
+        {
+            "open": close - 0.02,
+            "high": close + 0.1,
+            "low": close - 0.1,
+            "close": close,
+        },
+        index=index,
+    )
+    for name in regime.REGIME_V4_SOURCE_COLS:
+        if name == "D1_dist_from_ema200_atr":
+            continue
+        if name.endswith("_regime_class_id_v2"):
+            cv3[name] = 0
+        elif name.endswith("_ema_stack_aligned_v2"):
+            cv3[name] = 0
+        else:
+            cv3[name] = 0.25
+
+    observed: dict[str, int] = {}
+
+    def fake_htf(work: pd.DataFrame, m5: pd.DataFrame) -> None:
+        observed["htf_rows"] = len(work)
+        assert len(work) == len(m5) == len(cv3)
+        for name in (
+            "D1_dist_from_ema200_atr",
+            "D1_atr_percentile_252",
+            "H1_range_compression_ratio",
+            "M15_range_compression_ratio",
+            "H4_trend_sign_cat",
+        ):
+            work[name] = np.arange(len(work), dtype=np.float64)
+
+    def fake_regime(work: pd.DataFrame) -> pd.DataFrame:
+        observed["regime_rows"] = len(work)
+        assert len(work) == len(cv3)
+        for name in regime.REGIME_V4_DERIVED_COLS:
+            work[name] = np.arange(len(work), dtype=np.float32)
+        return work
+
+    monkeypatch.setattr(live_ctx, "_add_htf_features", fake_htf)
+    monkeypatch.setattr(regime, "add_regime_v4_features", fake_regime)
+
+    result = compute_htf_ctx_full_frame(cv3, contract)
+    first_position = int(index.searchsorted(contract.feature_history_start_utc))
+
+    assert observed == {"htf_rows": len(cv3), "regime_rows": len(cv3)}
+    assert result.index[0] == index[first_position]
+    assert result.iloc[0]["bars_since_d1_regime_change_v3"] == first_position
+
+
 def test_model_native_state_builder_requires_explicit_contracts() -> None:
     with pytest.raises(TypeError, match="state_contract"):
         ModelNativeStateBuilder(ordered_signal_names=[])

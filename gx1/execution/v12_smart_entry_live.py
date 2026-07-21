@@ -1387,7 +1387,12 @@ class SmartEntryLiveInference:
                 f"[SMART_ENTRY] common-history window build failed: rows={len(joined)} "
                 f"start={joined.index[0] if len(joined) else None} expected_start={expected_first}"
             )
-        return self._builder.prepare_frame(joined, bucket_ctx_cat=overrides, multi_tf=multi_tf)
+        return self._builder.prepare_frame(
+            joined,
+            bucket_ctx_cat=overrides,
+            multi_tf=multi_tf,
+            context_m5=cv3.loc[:end_ts, ["high", "low", "close"]],
+        )
 
     def build_common_history_frame(
         self, loader, end_ts: pd.Timestamp, ctx: SmartCtxSnapshot | None = None,

@@ -182,6 +182,46 @@ def test_full_group_a_transform_is_prefix_invariant(tmp_path: Path) -> None:
         assert after[name] == pytest.approx(before[name], abs=1e-7), name
 
 
+def test_group_a_decision_slice_uses_explicit_full_m5_history(tmp_path: Path) -> None:
+    frame = _market_frame(18_400)
+    multi_tf = build_multi_tf_per_bar_features_v2(frame)
+    decision = frame.iloc[-12:].reset_index(names="time")
+
+    augmented = attach_group_a_dip_struct_ctx_columns(
+        decision,
+        multi_tf=multi_tf,
+        context_m5=frame,
+    )
+    full_ctx = build_context(
+        frame[["high", "low", "close"]],
+        multi_tf,
+        journal_dir=tmp_path / "missing_full_history_journal",
+    )
+    expected = augment_candidate(
+        full_ctx,
+        pd.Timestamp(decision.loc[0, "time"]),
+        include_portfolio=False,
+    )
+
+    assert int(augmented.attrs["causal_context_warmup_rows"]) == 0
+    for name in ("dist_to_d1_hi_atr", "atr_ratio_m5_h4", "dip_proximity_d1_v3"):
+        assert float(augmented.loc[0, name]) == pytest.approx(expected[name], abs=1e-7)
+
+
+def test_group_a_full_history_rejects_decision_ohlc_mismatch() -> None:
+    frame = _market_frame(18_400)
+    multi_tf = build_multi_tf_per_bar_features_v2(frame)
+    decision = frame.iloc[-2:].reset_index(names="time")
+    decision.loc[0, "close"] += 0.01
+
+    with pytest.raises(RuntimeError, match="decision OHLC differs"):
+        attach_group_a_dip_struct_ctx_columns(
+            decision,
+            multi_tf=multi_tf,
+            context_m5=frame,
+        )
+
+
 def test_attach_marks_only_real_warmup_and_shared_trim_removes_it() -> None:
     frame = _market_frame(18_400)
     multi_tf = build_multi_tf_per_bar_features_v2(frame)

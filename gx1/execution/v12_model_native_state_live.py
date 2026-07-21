@@ -380,6 +380,7 @@ class ModelNativeStateBuilder:
         joined: pd.DataFrame,
         bucket_ctx_cat: pd.DataFrame | None = None,
         multi_tf: dict | None = None,
+        context_m5: pd.DataFrame | None = None,
     ) -> pd.DataFrame:
         """Take joined cv3+BASE28 rows [history start .. decision bar] and
         recompute the frame-dependent families
@@ -391,6 +392,10 @@ class ModelNativeStateBuilder:
         async-context path (serving-wave gap 3) passes the snapshot's bundle so
         one decision is internally consistent even if the background refresh
         swaps `self.multi_tf` mid-call; None keeps the legacy self.multi_tf.
+
+        `context_m5`: complete causal M5 prefix through the decision cutoff.
+        Live passes it explicitly so D1/H4 liquidity state is not reset at the
+        model's feature-history boundary.
         """
         if joined.empty:
             raise RuntimeError("[MODEL_NATIVE_STATE] empty joined frame")
@@ -527,6 +532,7 @@ class ModelNativeStateBuilder:
             frame,
             multi_tf=mtf,
             journal_label="model_native_live",
+            context_m5=context_m5,
         )
         from gx1.features.regime_v4_features import (
             REGIME_V4_DERIVED_COLS,
@@ -761,8 +767,12 @@ def compute_htf_ctx_full_frame(
         )
     contract = _require_state_contract(state_contract)
     sub_idx = cv3.index[cv3.index >= contract.feature_history_start_utc]
-    m5 = cv3.loc[sub_idx, ["open", "high", "low", "close"]].copy()
-    work = pd.DataFrame(index=sub_idx)
+    # Compute on the complete causal cv3 prefix and only then slice to the
+    # model history window.  Starting at feature_history_start discarded prior
+    # D1 transitions and made bars_since_d1_regime_change frame-dependent.
+    full_idx = cv3.index
+    m5 = cv3.loc[full_idx, ["open", "high", "low", "close"]].copy()
+    work = pd.DataFrame(index=full_idx)
     _add_htf_features(work, m5)
     cols = [
         "D1_dist_from_ema200_atr",
@@ -794,7 +804,7 @@ def compute_htf_ctx_full_frame(
         raise RuntimeError(
             f"[MODEL_NATIVE_STATE] REGIME_V4 source cols missing from cv3: {missing_src}"
         )
-    rv_work = cv3.loc[sub_idx, src_cols].copy()
+    rv_work = cv3.loc[full_idx, src_cols].copy()
     rv_work["D1_dist_from_ema200_atr"] = work["D1_dist_from_ema200_atr"].to_numpy()
     add_regime_v4_features(rv_work)
     derived = [
@@ -810,7 +820,7 @@ def compute_htf_ctx_full_frame(
     out = work[cols].copy()
     for c in derived:
         out[c] = rv_work[c].to_numpy()
-    return out
+    return out.loc[sub_idx].copy()
 
 
 def build_multi_tf_from_cv3(cv3: pd.DataFrame) -> dict:
