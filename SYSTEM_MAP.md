@@ -506,9 +506,10 @@ FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
                 (capped 30G)
                 → dataset/*__HOLD_03B_{train,val,test}.parquet + DATASET_BUILD_PROOF.json
 Kjede-driver: scripts/run_seq513_rebuild_chain_v1.sh --run-id --event-root
---feature-ranking-json --signal-manifest --preflight-out-dir. Rankingstien,
-manifeststien og preflight-mappen må være nye; kjeden produserer og binder
-rankingen selv. Ingen inferred resume, glob/mtime eller leksikalsk latest.
+--feature-ranking-json --preflight-out-dir. Rankingstien og preflight-mappen
+må være nye; kjeden produserer og binder rankingen selv og allokerer den eksakte
+timestampede manifeststien først ved manifest-produsentgrensen. Ingen inferred
+resume, glob/mtime eller leksikalsk latest.
 Kun én eksakt hash-bundet checkpoint-retry er tillatt etter capped feil.
 Telegram-ping er kun operasjonell status; validerte split-manifester er
 terminal autoritet.

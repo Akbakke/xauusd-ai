@@ -415,10 +415,11 @@ Ordered steps (each gate fail-closed; stop at first red):
    active TRAIN window. Never discover or pre-populate it through a directory
    glob or lexical/mtime "latest" selection.
 3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with `--run-id`,
-   `--event-root`, `--feature-ranking-json`, `--signal-manifest` and
-   `--preflight-out-dir`. All three target paths must be fresh. The driver
-   creates the v4 rank reference first, then computes/revalidates the ranking,
-   manifest, preflight, dataset and split/audit outputs. It never resumes
+   `--event-root`, `--feature-ranking-json` and `--preflight-out-dir`. Both
+   caller-supplied target paths must be fresh. The driver creates the v4 rank
+   reference first, computes the ranking, then allocates the exact timestamped
+   manifest path at its producer boundary before preflight, dataset and
+   split/audit outputs. It never resumes
    inferred debris; only its
    exact hash-bound bounded checkpoint may be retried once after capped failure.
 4. Accept the rebuild only from the driver's terminal validated split

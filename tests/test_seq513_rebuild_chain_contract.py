@@ -16,11 +16,11 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "--run-id",
         "--event-root",
         "--feature-ranking-json",
-        "--signal-manifest",
         "--preflight-out-dir",
         'path.relative_to(event)',
         'feature ranking output must be a fresh timestamped JSON',
-        'signal manifest output must be a fresh timestamped JSON',
+        'MANIFEST="$EVENT/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_${MANIFEST_STAMP}.json"',
+        'fresh signal manifest allocation collided',
         'preflight output directory must be fresh',
         'fresh event outputs required',
         'preflight namespace must contain exactly one artifact',
@@ -93,7 +93,7 @@ def test_chain_cli_rejects_old_positional_interface() -> None:
     )
     assert help_result.returncode == 0
     assert "--feature-ranking-json" in help_result.stdout
-    assert "--signal-manifest" in help_result.stdout
+    assert "--signal-manifest" not in help_result.stdout
     assert "--preflight-out-dir" in help_result.stdout
 
     old = subprocess.run(
@@ -113,9 +113,7 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     event = (tmp_path / "event").resolve()
     event.mkdir()
     ranking = event / "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_20260719T200000000000Z.json"
-    ranking.write_text("{}\n", encoding="utf-8")
     outside = (tmp_path / "outside").resolve()
-    manifest = outside / "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20260719T200001000000Z.json"
     preflight = event / "preflight-20260719T200002000000Z"
     run_id = "XAU_SEQ513_REBUILD_UNIT_V1"
     env = dict(os.environ)
@@ -133,10 +131,8 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
             str(event),
             "--feature-ranking-json",
             str(ranking),
-            "--signal-manifest",
-            str(manifest),
             "--preflight-out-dir",
-            str(preflight),
+            str(outside / preflight.name),
         ],
         cwd=REPO,
         env=env,
@@ -150,7 +146,7 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     status = json.loads((event / "CHAIN_STATUS.json").read_text(encoding="utf-8"))
     assert status["state"] == "RED"
     # A dirty development checkout fails at the earlier source gate; a clean CI
-    # checkout reaches the intentionally out-of-event manifest rejection.
+    # checkout reaches the intentionally out-of-event preflight rejection.
     assert status["step"] in {"source-revision", "contract-validation"}
     assert status["entry_run_id"] == run_id
     assert status["event_root"] == str(event)

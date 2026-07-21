@@ -23,9 +23,10 @@ usage() {
   printf '%s\n' \
     "Usage: $0 --run-id ID --event-root /absolute/event/root" \
     "  --feature-ranking-json /absolute/event/root/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<UTC>.json" \
-    "  --signal-manifest /absolute/event/root/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_<UTC>.json" \
     "  --preflight-out-dir /absolute/event/root/fresh-preflight-dir" \
-    "The ranking, signal manifest, and preflight targets must all be fresh."
+    "The ranking and preflight targets must be fresh. The chain allocates the" \
+    "signal-manifest path at its producer boundary so its immutable timestamp" \
+    "is both newer than ranking and inside the producer's freshness window."
 }
 
 die_args() {
@@ -54,12 +55,6 @@ while (($#)); do
       RANKING=$2
       shift 2
       ;;
-    --signal-manifest)
-      (($# >= 2)) || die_args "--signal-manifest requires a value"
-      [[ -z $MANIFEST ]] || die_args "duplicate --signal-manifest"
-      MANIFEST=$2
-      shift 2
-      ;;
     --preflight-out-dir)
       (($# >= 2)) || die_args "--preflight-out-dir requires a value"
       [[ -z $PRE_OUT ]] || die_args "duplicate --preflight-out-dir"
@@ -76,7 +71,7 @@ while (($#)); do
   esac
 done
 
-for name in RUN_ID EVENT RANKING MANIFEST PRE_OUT; do
+for name in RUN_ID EVENT RANKING PRE_OUT; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
@@ -341,13 +336,13 @@ require_source_identity() {
 }
 
 # Validate all operator-supplied identities before any producer starts. The
-# ranking, fresh manifest target, and fresh preflight namespace must be exact
+# ranking and fresh preflight namespace must be exact
 # canonical absolute paths below this event root; symlink indirection, mutable
 # latest names, pre-existing outputs, and implicit resume debris all fail.
 CURRENT_STEP=contract-validation
 write_status "$CURRENT_STEP" RUNNING
 if ! "$PY" - \
-  "$EVENT" "$RANKING" "$MANIFEST" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
+  "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
   "$SRC" "$CV2" "$MTF" "$TAPE" >>"$LOG" 2>&1 <<'PYEOF'
 import re
 import sys
@@ -356,7 +351,6 @@ from pathlib import Path
 (
     raw_event,
     raw_ranking,
-    raw_manifest,
     raw_preflight,
     raw_rank_npz,
     raw_output,
@@ -385,7 +379,6 @@ if not event.is_dir() or event.is_symlink():
     raise RuntimeError(f"event root is not a regular directory: {event}")
 
 ranking = exact_path(raw_ranking, label="feature ranking")
-manifest = exact_path(raw_manifest, label="signal manifest")
 preflight = exact_path(raw_preflight, label="preflight output directory")
 rank_npz = exact_path(raw_rank_npz, label="rank reference")
 output = exact_path(raw_output, label="dataset output")
@@ -397,7 +390,6 @@ tape = exact_path(raw_tape, label="tape root")
 
 for label, path in (
     ("feature ranking", ranking),
-    ("signal manifest", manifest),
     ("preflight output directory", preflight),
     ("rank reference", rank_npz),
     ("dataset output", output),
@@ -415,13 +407,8 @@ for label, path in (
 ranking_pattern = re.compile(
     r"ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_\d{8}T\d{6}(?:\d{6})?Z\.json"
 )
-manifest_pattern = re.compile(
-    r"ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_\d{8}T\d{6}(?:\d{6})?Z\.json"
-)
 if ranking.exists() or ranking.is_symlink() or not ranking_pattern.fullmatch(ranking.name):
     raise RuntimeError(f"feature ranking output must be a fresh timestamped JSON: {ranking}")
-if manifest.exists() or manifest.is_symlink() or not manifest_pattern.fullmatch(manifest.name):
-    raise RuntimeError(f"signal manifest output must be a fresh timestamped JSON: {manifest}")
 if preflight.exists() or preflight.is_symlink():
     raise RuntimeError(f"preflight output directory must be fresh: {preflight}")
 if not source.is_file() or source.is_symlink():
@@ -549,9 +536,14 @@ require_rank_reference_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
 
-# Materialize exactly the caller-selected fresh signal-manifest output. Existing
-# manifests are never reused, even if one happens to be present under EVENT.
+# Allocate one exact event-local output at the producer boundary.  Preallocating
+# its timestamp before the long ranker run is unsatisfiable: the manifest must
+# be newer than ranking and no more than five minutes old.  This is allocation,
+# never discovery; no glob, mtime, latest alias, or existing manifest is read.
 CURRENT_STEP=signal-manifest
+MANIFEST_STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
+MANIFEST="$EVENT/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_${MANIFEST_STAMP}.json"
+[[ ! -e $MANIFEST && ! -L $MANIFEST ]] || fail "fresh signal manifest allocation collided"
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_rank_reference_unchanged
