@@ -3,6 +3,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "rebuild_entry_model_native_seq513_dataset.sh"
+CAPPED_RUNNER = REPO / "scripts" / "gx1_capped_run.sh"
 
 
 def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
@@ -76,6 +77,10 @@ def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> Non
     assert source.count('--feature-ranking-json "$FEATURE_RANKING_JSON"') == 1
     assert "SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON" in source
     assert "--run-id has invalid format" in source
+    assert "--resume-exact-checkpoints" in source
+    assert "MODEL_NATIVE_RANK_RESUME_RUN_ID_MISMATCH" in source
+    assert "MODEL_NATIVE_RANK_RESUME_SOURCE_SHA_MISMATCH" in source
+    assert "MODEL_NATIVE_RANK_RESUME_FIT_WINDOW_MISMATCH" in source
 
 
 def test_seq513_rebuild_full_input_liveness_precedes_target_preflight() -> None:
@@ -86,3 +91,14 @@ def test_seq513_rebuild_full_input_liveness_precedes_target_preflight() -> None:
     target_audit = source.index("audit_xau_direction_repair_pretrain_v1")
 
     assert materialize < validate < target_audit
+
+
+def test_capped_runner_serializes_every_heavy_job() -> None:
+    source = CAPPED_RUNNER.read_text(encoding="utf-8")
+
+    assert "gx1-heavy-job.lock" in source
+    assert "flock -n 9" in source
+    assert "another GX1 heavy job owns the exclusive lock" in source
+    assert "exit 75" in source
+    assert "systemd-run --user --scope --quiet" in source
+    assert "exec systemd-run" not in source

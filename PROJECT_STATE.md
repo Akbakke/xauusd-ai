@@ -14,6 +14,14 @@ the restored scoped runner lost the rank process. All V3/V4 partial
 proof/status has no authority. See ROADMAP.md and the handover for the
 required recovery order.
 
+The execution-path source repair is now present: ranking is owned by the same
+chain as the dataset build, every capped heavy command competes for one
+host-wide exclusive lock, Group-A persists exact 4096-row chunks with
+frame/MTF/field/run-window identity, the ranker and builder permit one exact
+checkpoint retry, and terminal chain exits publish immutable schema-v3 events.
+Focused and causal integration tests pass. No fresh full rebuild has exercised
+this repair, so it creates no accepted dataset or empirical authority.
+
 There is no accepted model-native seq513 bundle. The active source contract is
 513 signals, 142 continuous context fields, 5 categorical context fields,
 sequence length 96, five timeframes, eight specialists and one calibrated
@@ -130,11 +138,10 @@ parquet and produced no learned predictions. Immutable historical selection-
 benchmark bytes and exact learned-probe evidence are absent, so this proves
 neither abstention quality nor direction edge and authorizes nothing.
 
-The abstention verifier cannot accept free-standing JSON assertions. A
-historical benchmark must equal the exact registered comparison artifact, and
-learned rows must be rejoined one-for-one to an immutable candidate TEST
-prediction event with matching report/predictions hashes, bundle, dataset,
-UTC keys and recomputed model direction. Those inputs remain absent.
+Because the historical bytes do not exist, the unreachable pre-rebuild
+abstention verifier/control route is deleted. Future abstention admission begins
+with fresh immutable candidate TEST rows and requires a bound proxy comparison
+plus absolute OOT/cost/live-like support; metadata cannot substitute.
 
 The original Entry-IQL row/model benchmark was deleted incorrectly on
 2026-07-07 after a dry-run protected it with abbreviated literal `...`

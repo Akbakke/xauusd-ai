@@ -24,8 +24,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ $# -ge 1 ]] || { echo "FATAL: no command given after '--'"; exit 2; }
+LOCK_PATH=/run/user/$(id -u)/gx1-heavy-job.lock
+[[ -d ${LOCK_PATH%/*} ]] || { echo "FATAL: heavy-job lock directory missing: ${LOCK_PATH%/*}"; exit 2; }
+exec 9>>"$LOCK_PATH"
+if ! flock -n 9; then
+  echo "FATAL: another GX1 heavy job owns the exclusive lock: $LOCK_PATH" >&2
+  exit 75
+fi
 echo "[capped_run] MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP"
 echo "[capped_run] cmd: $*"
-exec systemd-run --user --scope --quiet \
+systemd-run --user --scope --quiet \
   -p MemoryMax="$MEM" -p MemoryHigh="$MEM" -p MemorySwapMax="$SWAP" \
   -- "$@"
+exit_code=$?
+flock -u 9
+exit "$exit_code"

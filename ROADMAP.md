@@ -23,12 +23,19 @@ service path failed without a user bus, and the restored scope runner lost the
 fresh rank process before any ranking artifact/checkpoint existed. No dataset,
 bundle, candidate, OOS edge or launch evidence is accepted.
 
+Source repair is now implemented but not yet empirically exercised by a fresh
+full run. The one chain owns ranking through dataset audit, the capped runner
+holds one host-wide exclusive heavy-job lock, Group-A persists exact
+4096-row hash-bound chunks and can make one strict same-attempt resume, and
+normal/signal exits publish immutable schema-v3 terminal events. V3/V4 remain
+failure evidence; their partial files are not resume inputs.
+
 ## Ordered gates
 
-1. Repair the rebuild execution path before another full run: every ranker and
-   dataset-builder exit must write immutable terminal status/checkpoints, and
-   Group-A must materialize inside its 30 GiB cgroup without changing feature
-   semantics. Rebuild only from a fresh event root after that source repair.
+1. Source repair DONE; empirical execution proof pending. Rebuild from one
+   fresh event root and prove the exclusive runner, bounded checkpoints,
+   exact-resume path and immutable terminal event under the 30 GiB cgroup,
+   without changing Group-A feature semantics.
 2. Accept only a fresh dataset whose split manifests, full-input liveness,
    target, specialist, leakage and pretrain audits all bind the same bytes.
 3. Run smoke training, calibration and bundle audit with the exact recipe.

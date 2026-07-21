@@ -9,6 +9,7 @@ HANDOVER_VIEWER = REPO / "scripts/gx1_handover.sh"
 CONTROL = REPO / "scripts/entry_next_edge_control.sh"
 AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
+    REPO / "ROADMAP.md",
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
     REPO / "PROJECT_STATE.md",
@@ -296,6 +297,9 @@ def test_obsolete_mega_guardrails_and_plan_tombstone_are_deleted() -> None:
     assert not (REPO / "gx1/scripts/verify_entry_foundation_guardrails_v1.py").exists()
     assert not (REPO / "gx1/scripts/verify_entry_next_edge_guardrails_v1.py").exists()
     assert not (REPO / "gx1/scripts/verify_entry_next_edge_plan_state_v1.py").exists()
+    assert not (REPO / "gx1/scripts/verify_entry_model_native_abstention_probe_v1.py").exists()
+    assert not (REPO / "gx1/contracts/entry_model_native_abstention_probe_v1.py").exists()
+    assert "model-native-abstention-probe" not in CONTROL.read_text(encoding="utf-8")
 
 
 def test_control_surface_selftest_is_report_only_and_launch_closed() -> None:

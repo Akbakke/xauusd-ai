@@ -414,6 +414,10 @@ activation routes. `scripts/gx1_handover.sh` is the only handover script.
 
 Current facts:
 
+- source now has one chain-owned ranker/dataset path, a host-wide exclusive
+  capped-job lock, immutable bounded Group-A chunks, one exact checkpoint
+  retry and schema-v3 immutable terminal events; no fresh full execution has
+  yet proven this repair;
 - 2026-07-21 V3 has fresh ranking/manifest/preflight lineage but is
   non-authoritative failure evidence: the builder stopped after canonical join
   before Group-A completion and did not write terminal status;
@@ -447,13 +451,10 @@ Current facts:
   (`1400/4095`, `34.19%`), validation (`530/1536`, `34.51%`) and TEST
   (`516/1536`, `33.59%`) and active FLAT/utility/margin weights are positive,
   but it read zero parquet and produced no learned-probe evidence;
-- immutable historical selection-benchmark bytes and exact learned-probe OOT
-  evidence are absent; obtaining both is the next empirical gate and the
-  metadata run authorizes no rebuild, training or launch;
-- abstention evidence cannot pass as two unrelated JSON declarations: the
-  historical file must equal the registry path/SHA, while learned TEST rows
-  must match a newest immutable prediction report/parquet and its exact
-  bundle/dataset UTC/model-direction lineage;
+- historical selection-benchmark bytes are absent and cannot be a satisfiable
+  pre-rebuild gate. The old report-only abstention verifier/control route is
+  deleted; fresh candidate TEST rows must instead pass the current immutable
+  proxy comparison plus absolute OOT/cost/live-like gates;
 - Entry candidate, replay, paper/demo/live and promotion remain blocked.
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
@@ -482,9 +483,10 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
                     → FULL_PLUS_CTX_v3src.parquet (207 kol) + manifester
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
-FULL_PLUS + cache ─ materialize_entry_model_native_train_feature_ranker_v1
+FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
+      └─ materialize_entry_model_native_train_feature_ranker_v1
         --run-id --source-parquet --mtf-cache-dir --history-start --train-start
-        --train-end --out-dir  (checkpoint: EVENT/_ranker_checkpoint.npz)
+        --train-end --out  (bounded Group-A chunks + EVENT/_ranker_checkpoint.npz)
         → ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<stamp>.json
   └─ materialize_entry_model_native_seq513_signal_manifest_v1 --feature-ranking-json --out --run-id
       └─ entry_next_edge_control.sh model-native-rebuild-preflight
@@ -494,10 +496,12 @@ FULL_PLUS + cache ─ materialize_entry_model_native_train_feature_ranker_v1
                 (capped 30G)
                 → dataset/*__HOLD_03B_{train,val,test}.parquet + DATASET_BUILD_PROOF.json
 Kjede-driver: scripts/run_seq513_rebuild_chain_v1.sh --run-id --event-root
---feature-ranking-json --signal-manifest --preflight-out-dir. Ranking må finnes;
-manifeststien og preflight-mappen må være nye. Ingen resume, glob/mtime eller
-leksikalsk latest. Telegram-ping er kun operasjonell status; validerte
-split-manifester er terminal autoritet.
+--feature-ranking-json --signal-manifest --preflight-out-dir. Rankingstien,
+manifeststien og preflight-mappen må være nye; kjeden produserer og binder
+rankingen selv. Ingen inferred resume, glob/mtime eller leksikalsk latest.
+Kun én eksakt hash-bundet checkpoint-retry er tillatt etter capped feil.
+Telegram-ping er kun operasjonell status; validerte split-manifester er
+terminal autoritet.
 ```
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
@@ -511,7 +515,9 @@ split-manifester er terminal autoritet.
   komposisjonen). KOST: 85 ms/rad serielt; warmup 13 439 rader (~4 mnd,
   trimmes). Parallellisér ALLTID som i rankerens `_attach_group_a_parallel`:
   full-serie-kontekst én gang + rad-loop over workers. 1-års-persentilene
-  ligger i konteksten → chunk-med-overlapp er FEIL tilnærming.
+  ligger i konteksten → chunk-med-overlapp er FEIL tilnærming. De eksakte
+  radområdene checkpointes uten overlapp i 4096-raders immutable NPZ-chunks;
+  manifestet binder frame-, MTF-, felt- og run/window-identitet.
 - ctx 13 ENTRY_SMART_DERIVED (smc_*_pressure, sr_*):
   `gx1/features/entry_smart_context.py::add_entry_smart_context_features`.
 - ctx is_ASIA: builder ~linje 1799, `(session_id==0).astype(int8)`.

@@ -107,7 +107,7 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
     }
 
     ranking_path = ranker.emit_ranking(
-        out_dir=tmp_path,
+        out_path=tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_{_stamp(RANKING_CREATED)}.json",
         run_id=RUN_ID,
         train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
         train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
@@ -154,7 +154,7 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
         "session_regime.ccc": 0.9,
     }
     path = ranker.emit_ranking(
-        out_dir=tmp_path,
+        out_path=tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_{_stamp(RANKING_CREATED)}.json",
         run_id=RUN_ID,
         train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
         train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
@@ -174,3 +174,42 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
         "session_regime.bbb",
     ]
     assert [row["rank"] for row in rows] == [1, 2, 3]
+
+
+def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
+    base = {
+        "run_id": RUN_ID,
+        "source_sha256": "1" * 64,
+        "mtf_cache_sha256": "2" * 64,
+        "history_start": pd.Timestamp("2021-01-05T00:00:00Z"),
+        "train_start": pd.Timestamp("2021-03-16T00:00:00Z"),
+        "train_end": pd.Timestamp("2026-03-31T23:59:59Z"),
+    }
+    expected = ranker._ranker_checkpoint_key(**base)
+    assert len(expected) == 64
+    for field, changed in (
+        ("run_id", "FEATURE_RANKER_OTHER_RUN_ID"),
+        ("source_sha256", "3" * 64),
+        ("mtf_cache_sha256", "4" * 64),
+        ("train_start", pd.Timestamp("2021-03-17T00:00:00Z")),
+    ):
+        variant = dict(base)
+        variant[field] = changed
+        assert ranker._ranker_checkpoint_key(**variant) != expected
+
+
+def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path) -> None:
+    out = tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_20260718T090000000001Z.json"
+    with pytest.raises(RuntimeError, match="OUTPUT_TIMESTAMP_MISMATCH"):
+        ranker.emit_ranking(
+            out_path=out,
+            run_id=RUN_ID,
+            train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
+            train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
+            source_time_max=pd.Timestamp("2026-03-31T23:55:00Z"),
+            target_time_max=pd.Timestamp("2026-03-31T21:55:00Z"),
+            source_sha256="1" * 64,
+            target_sha256="2" * 64,
+            scores={"session_regime.test": 1.0},
+            created=datetime(2026, 7, 18, 9, 0, 0, 2, tzinfo=timezone.utc),
+        )

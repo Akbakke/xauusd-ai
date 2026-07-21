@@ -30,6 +30,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
@@ -66,10 +67,10 @@ RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
 TARGET_HORIZON_BARS = 24
 MIN_SUPPORT_FRACTION = 0.10
 SCORE_DECIMALS = 12
-
-
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v2"
+_RANKING_OUTPUT_RE = re.compile(
+    rf"^{RANKING_EVENT_PREFIX}_(\d{{8}}T\d{{6}}(?:\d{{6}})?Z)\.json$"
+)
 
 
 def _parse_utc_arg(value: str, *, field: str) -> pd.Timestamp:
@@ -85,6 +86,83 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _mtf_cache_sha256(cache_dir: Path) -> str:
+    """Bind the exact manifest-named M5/M15/H1/H4/D1 cache bytes."""
+    manifest_path = cache_dir / "manifest.json"
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_MANIFEST_MISSING: {manifest_path}")
+    raw = manifest_path.read_bytes()
+    try:
+        manifest = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("FEATURE_RANKER_MTF_CACHE_MANIFEST_INVALID") from exc
+    tfs = manifest.get("tfs") if isinstance(manifest, dict) else None
+    if not isinstance(tfs, dict) or set(tfs) != {"M5", "M15", "H1", "H4", "D1"}:
+        raise RuntimeError("FEATURE_RANKER_MTF_CACHE_MANIFEST_TFS_INVALID")
+    digest = hashlib.sha256()
+    digest.update(b"entry_model_native_ranker_mtf_cache_v1\0")
+    digest.update(raw)
+    for tf_name in ("M5", "M15", "H1", "H4", "D1"):
+        info = tfs[tf_name]
+        if not isinstance(info, dict):
+            raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_ENTRY_INVALID: {tf_name}")
+        for field in ("feats_npy", "ts_npy"):
+            filename = str(info.get(field) or "")
+            if Path(filename).name != filename:
+                raise RuntimeError(
+                    f"FEATURE_RANKER_MTF_CACHE_FILENAME_INVALID: {tf_name}.{field}"
+                )
+            path = cache_dir / filename
+            if not path.is_file() or path.is_symlink():
+                raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_FILE_MISSING: {path}")
+            digest.update(tf_name.encode("ascii") + b"\0" + field.encode("ascii") + b"\0")
+            digest.update(bytes.fromhex(_sha256_file(path)))
+    return digest.hexdigest()
+
+
+def _ranker_checkpoint_key(
+    *,
+    run_id: str,
+    source_sha256: str,
+    mtf_cache_sha256: str,
+    history_start: pd.Timestamp,
+    train_start: pd.Timestamp,
+    train_end: pd.Timestamp,
+) -> str:
+    payload = {
+        "schema_version": RANKER_CHECKPOINT_SCHEMA_VERSION,
+        "entry_run_id": run_id,
+        "source_sha256": source_sha256,
+        "mtf_cache_sha256": mtf_cache_sha256,
+        "history_start_utc": history_start.isoformat(),
+        "train_start_utc": train_start.isoformat(),
+        "train_end_utc": train_end.isoformat(),
+        "producer_version": TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
+        "target_horizon_bars": TARGET_HORIZON_BARS,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _write_ranker_checkpoint(path: Path, **arrays: Any) -> None:
+    temporary = path.with_name(f".{path.name}.partial-{os.getpid()}")
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_CHECKPOINT_ALREADY_EXISTS: {path}")
+    if temporary.exists() or temporary.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_CHECKPOINT_PARTIAL_EXISTS: {temporary}")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(temporary, flags, 0o644)
+    try:
+        with os.fdopen(descriptor, "wb", closefd=False) as handle:
+            np.savez(handle, **arrays)
+            handle.flush()
+            os.fsync(handle.fileno())
+    finally:
+        os.close(descriptor)
+    os.replace(temporary, path)
 
 
 def _sha256_target(times: np.ndarray, values: np.ndarray) -> str:
@@ -136,7 +214,7 @@ def _candidate_universe(source_ctx_cont: Sequence[str]) -> List[str]:
     )
 
 
-ATTACH_WORKERS = 12
+ATTACH_WORKERS = 8
 
 
 def _load_train_frame(
@@ -145,6 +223,8 @@ def _load_train_frame(
     history_start: pd.Timestamp,
     train_end: pd.Timestamp,
     mtf_cache_dir: Path,
+    checkpoint_dir: Path,
+    checkpoint_key: str,
 ) -> Tuple[pd.DataFrame, List[str]]:
     frame = pd.read_parquet(source_parquet)
     if "time" not in frame.columns:
@@ -190,6 +270,8 @@ def _load_train_frame(
         multi_tf=load_multi_tf_v2_cache(mtf_cache_dir),
         journal_label="train_feature_ranker",
         workers=ATTACH_WORKERS,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_key=checkpoint_key,
     )
     frame = trim_causal_context_warmup_prefix(frame, group_a_required).reset_index(
         drop=True
@@ -303,7 +385,7 @@ def _spearman_scores(
 
 def emit_ranking(
     *,
-    out_dir: Path,
+    out_path: Path,
     run_id: str,
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
@@ -314,9 +396,19 @@ def emit_ranking(
     scores: Dict[str, float],
     created: datetime | None = None,
 ) -> Path:
-    created = created or _utc_now()
-    stamp = created.strftime("%Y%m%dT%H%M%S%fZ")
-    out_path = out_dir / f"{RANKING_EVENT_PREFIX}_{stamp}.json"
+    out_path = out_path.expanduser().resolve()
+    match = _RANKING_OUTPUT_RE.fullmatch(out_path.name)
+    if match is None or out_path.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_IDENTITY_INVALID: {out_path}")
+    stamp = match.group(1)
+    stamp_format = "%Y%m%dT%H%M%SZ" if len(stamp) == 16 else "%Y%m%dT%H%M%S%fZ"
+    filename_created = datetime.strptime(stamp, stamp_format).replace(tzinfo=timezone.utc)
+    if created is not None and created != filename_created:
+        raise RuntimeError(
+            "FEATURE_RANKER_OUTPUT_TIMESTAMP_MISMATCH: "
+            f"filename={filename_created.isoformat()} created={created.isoformat()}"
+        )
+    created = filename_created
     ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
     payload: Dict[str, Any] = {
         "schema_version": TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
@@ -338,7 +430,7 @@ def emit_ranking(
             for index, (name, score) in enumerate(ranked, start=1)
         ],
     }
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     encoded = (json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n").encode(
         "utf-8"
     )
@@ -357,7 +449,7 @@ def main() -> None:
     parser.add_argument("--history-start", required=True)
     parser.add_argument("--train-start", required=True)
     parser.add_argument("--train-end", required=True)
-    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
 
     run_id = require_entry_run_id(args.run_id)
@@ -371,37 +463,84 @@ def main() -> None:
     if not source_parquet.is_file():
         raise RuntimeError(f"FEATURE_RANKER_SOURCE_MISSING: {source_parquet}")
     source_sha256 = _sha256_file(source_parquet)
+    mtf_cache_dir = args.mtf_cache_dir.expanduser().resolve()
+    if not mtf_cache_dir.is_dir() or mtf_cache_dir.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_MISSING: {mtf_cache_dir}")
+    mtf_cache_sha256 = _mtf_cache_sha256(mtf_cache_dir)
+    checkpoint_key = _ranker_checkpoint_key(
+        run_id=run_id,
+        source_sha256=source_sha256,
+        mtf_cache_sha256=mtf_cache_sha256,
+        history_start=history_start,
+        train_start=train_start,
+        train_end=train_end,
+    )
 
     # Checkpoint: attach + extension cost hours; a trivial late failure must
-    # never force recomputation. Bound to source sha + exact window key.
-    out_dir = args.out_dir.expanduser().resolve()
+    # never force recomputation. Bound to run/source/cache and exact window.
+    out_path = args.out.expanduser().resolve()
+    if not _RANKING_OUTPUT_RE.fullmatch(out_path.name):
+        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_IDENTITY_INVALID: {out_path}")
+    if out_path.exists() or out_path.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_ALREADY_EXISTS: {out_path}")
+    out_dir = out_path.parent
     checkpoint_path = out_dir / "_ranker_checkpoint.npz"
-    window_key = (
-        f"{history_start.isoformat()}|{train_start.isoformat()}|{train_end.isoformat()}"
-    )
+    group_a_checkpoint_dir = out_dir / "_ranker_group_a_checkpoint"
+    if out_dir.exists():
+        interrupted = sorted(
+            path
+            for path in out_dir.iterdir()
+            if path.name.startswith(f".{checkpoint_path.name}.partial-")
+        )
+        if interrupted:
+            raise RuntimeError(
+                f"FEATURE_RANKER_CHECKPOINT_INTERRUPTED_REQUIRES_FRESH_EVENT: {interrupted}"
+            )
     matrix = None
     if checkpoint_path.exists():
-        ck = np.load(checkpoint_path, allow_pickle=False)
-        if (
-            str(ck["source_sha256"]) == source_sha256
-            and str(ck["window_key"]) == window_key
-        ):
-            matrix = ck["matrix"]
-            names = [str(n) for n in ck["names"]]
-            times = ck["times_ns"].view("datetime64[ns]")
-            target = ck["target"]
-            train_rows = int(ck["train_rows"])
-            source_time_max = pd.Timestamp(int(ck["source_time_max_ns"]), tz="UTC")
-            print(f"[CHECKPOINT] gjenbrukt {checkpoint_path}", flush=True)
-        else:
-            print("[CHECKPOINT] stale (sha/vindu-avvik) — beregner på nytt", flush=True)
+        try:
+            with np.load(checkpoint_path, allow_pickle=False) as ck:
+                expected_keys = {
+                    "schema_version",
+                    "checkpoint_key",
+                    "matrix",
+                    "names",
+                    "times_ns",
+                    "target",
+                    "train_rows",
+                    "source_time_max_ns",
+                    "source_sha256",
+                    "mtf_cache_sha256",
+                }
+                if set(ck.files) != expected_keys:
+                    raise RuntimeError("key set mismatch")
+                if (
+                    str(ck["schema_version"]) != RANKER_CHECKPOINT_SCHEMA_VERSION
+                    or str(ck["checkpoint_key"]) != checkpoint_key
+                    or str(ck["source_sha256"]) != source_sha256
+                    or str(ck["mtf_cache_sha256"]) != mtf_cache_sha256
+                ):
+                    raise RuntimeError("identity mismatch")
+                matrix = ck["matrix"]
+                names = [str(n) for n in ck["names"]]
+                times = ck["times_ns"].view("datetime64[ns]")
+                target = ck["target"]
+                train_rows = int(ck["train_rows"])
+                source_time_max = pd.Timestamp(int(ck["source_time_max_ns"]), tz="UTC")
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            raise RuntimeError(
+                f"FEATURE_RANKER_CHECKPOINT_INVALID: {checkpoint_path}: {exc}"
+            ) from exc
+        print(f"[CHECKPOINT] gjenbrukt {checkpoint_path}", flush=True)
 
     if matrix is None:
         frame, source_ctx_cont = _load_train_frame(
             source_parquet,
             history_start=history_start,
             train_end=train_end,
-            mtf_cache_dir=args.mtf_cache_dir.expanduser().resolve(),
+            mtf_cache_dir=mtf_cache_dir,
+            checkpoint_dir=group_a_checkpoint_dir,
+            checkpoint_key=checkpoint_key,
         )
         candidates = _candidate_universe(source_ctx_cont)
         if len(candidates) < 174:
@@ -423,8 +562,10 @@ def main() -> None:
             _stm.tz_convert("UTC") if _stm.tzinfo else _stm.tz_localize("UTC")
         )
         out_dir.mkdir(parents=True, exist_ok=True)
-        np.savez(
+        _write_ranker_checkpoint(
             checkpoint_path,
+            schema_version=np.array(RANKER_CHECKPOINT_SCHEMA_VERSION),
+            checkpoint_key=np.array(checkpoint_key),
             matrix=np.asarray(matrix, dtype=np.float32),
             names=np.array(list(names)),
             times_ns=pd.DatetimeIndex(times).asi8,
@@ -432,7 +573,7 @@ def main() -> None:
             train_rows=np.int64(train_rows),
             source_time_max_ns=np.int64(source_time_max.value),
             source_sha256=np.array(source_sha256),
-            window_key=np.array(window_key),
+            mtf_cache_sha256=np.array(mtf_cache_sha256),
         )
         print(f"[CHECKPOINT] skrevet {checkpoint_path}", flush=True)
 
@@ -450,7 +591,7 @@ def main() -> None:
     )
 
     out_path = emit_ranking(
-        out_dir=args.out_dir.expanduser().resolve(),
+        out_path=out_path,
         run_id=run_id,
         train_start=train_start,
         train_end=train_end,

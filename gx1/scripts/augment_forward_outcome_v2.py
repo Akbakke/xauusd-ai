@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import gc
+import hashlib
 import json
 import math
 import os
@@ -883,13 +884,255 @@ def compute_attach_rows(
 
 _PARALLEL_ATTACH_SHARED: tuple = ()
 
+_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "group_a_attach_checkpoint_v1"
+_GROUP_A_CHECKPOINT_CHUNK_ROWS = 4096
+
+
+def _sha256_bytes_iter(parts) -> str:
+    digest = hashlib.sha256()
+    for part in parts:
+        digest.update(part)
+    return digest.hexdigest()
+
+
+def _group_a_array_bytes(value: np.ndarray) -> bytes:
+    array = np.ascontiguousarray(value)
+    header = json.dumps(
+        {"dtype": array.dtype.str, "shape": list(array.shape)},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return header + b"\0" + array.tobytes()
+
+
+def _group_a_checkpoint_manifest(
+    *,
+    checkpoint_key: str,
+    df: pd.DataFrame,
+    ts_index: pd.DatetimeIndex,
+    multi_tf: dict,
+    extract: list[str],
+    smc_col: str,
+    chunk_rows: int,
+) -> dict:
+    if not isinstance(checkpoint_key, str) or len(checkpoint_key) != 64 or any(
+        ch not in "0123456789abcdef" for ch in checkpoint_key
+    ):
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] checkpoint_key must be lowercase SHA-256")
+    if isinstance(chunk_rows, bool) or not isinstance(chunk_rows, int) or chunk_rows <= 0:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] chunk_rows must be a positive integer")
+    frame_digest = hashlib.sha256()
+    frame_digest.update(b"group_a_attach_frame_v1\0")
+    for name, values in (
+        ("time_ns", ts_index.asi8.astype(np.int64, copy=False)),
+        ("high", pd.to_numeric(df["high"], errors="coerce").to_numpy(np.float64)),
+        ("low", pd.to_numeric(df["low"], errors="coerce").to_numpy(np.float64)),
+        ("close", pd.to_numeric(df["close"], errors="coerce").to_numpy(np.float64)),
+        (smc_col, pd.to_numeric(df[smc_col], errors="coerce").to_numpy(np.float64)),
+    ):
+        frame_digest.update(name.encode("utf-8") + b"\0")
+        frame_digest.update(_group_a_array_bytes(values))
+
+    mtf_digest = hashlib.sha256()
+    mtf_digest.update(b"group_a_attach_multi_tf_v1\0")
+    if set(multi_tf) != set(TF_NAMES):
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] exact five-timeframe cache required")
+    for tf_name in TF_NAMES:
+        frame = multi_tf[tf_name]
+        ts_values = np.asarray(frame.attrs.get("ts_int64"))
+        feat_values = np.asarray(frame.attrs.get("feats_np"))
+        mtf_digest.update(tf_name.encode("ascii") + b"\0")
+        mtf_digest.update(_group_a_array_bytes(ts_values))
+        mtf_digest.update(_group_a_array_bytes(feat_values))
+
+    bounds = [
+        [lo, min(lo + chunk_rows, len(df))]
+        for lo in range(0, len(df), chunk_rows)
+    ]
+    return {
+        "schema_version": _GROUP_A_CHECKPOINT_SCHEMA_VERSION,
+        "checkpoint_key": checkpoint_key,
+        "row_count": int(len(df)),
+        "frame_sha256": frame_digest.hexdigest(),
+        "multi_tf_sha256": mtf_digest.hexdigest(),
+        "extract": list(extract),
+        "extract_sha256": _sha256_bytes_iter(
+            [b"group_a_extract_v1\0", "\n".join(extract).encode("utf-8")]
+        ),
+        "smc_col": smc_col,
+        "chunk_rows": int(chunk_rows),
+        "bounds": bounds,
+    }
+
+
+def _canonical_json_bytes(payload: dict) -> bytes:
+    return (
+        json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    ).encode("utf-8")
+
+
+def _write_exclusive_bytes(path: Path, encoded: bytes) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags, 0o644)
+    try:
+        view = memoryview(encoded)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError(f"short write: {path}")
+            view = view[written:]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _initialize_group_a_checkpoint(
+    checkpoint_dir: Path,
+    manifest: dict,
+) -> tuple[Path, str]:
+    checkpoint_dir = checkpoint_dir.expanduser().resolve()
+    if checkpoint_dir.is_symlink():
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] checkpoint directory may not be a symlink")
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    if not checkpoint_dir.is_dir():
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] checkpoint path is not a directory")
+    manifest_path = checkpoint_dir / "CHECKPOINT_MANIFEST.json"
+    encoded = _canonical_json_bytes(manifest)
+    if manifest_path.exists():
+        if manifest_path.is_symlink() or manifest_path.read_bytes() != encoded:
+            raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest identity mismatch")
+    else:
+        unexpected = list(checkpoint_dir.iterdir())
+        if unexpected:
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] files exist before manifest: {unexpected}"
+            )
+        _write_exclusive_bytes(manifest_path, encoded)
+    return manifest_path, hashlib.sha256(encoded).hexdigest()
+
+
+def _group_a_chunk_path(checkpoint_dir: Path, lo: int, hi: int) -> Path:
+    return checkpoint_dir / f"chunk_{lo:09d}_{hi:09d}.npz"
+
+
+def _write_group_a_chunk(
+    path: Path,
+    *,
+    manifest_sha256: str,
+    checkpoint_key: str,
+    lo: int,
+    hi: int,
+    times_ns: np.ndarray,
+    values: np.ndarray,
+) -> None:
+    temporary = path.with_name(f".{path.name}.partial-{os.getpid()}")
+    if temporary.exists() or temporary.is_symlink():
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] stale partial file: {temporary}")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(temporary, flags, 0o644)
+    try:
+        with os.fdopen(descriptor, "wb", closefd=False) as handle:
+            np.savez(
+                handle,
+                schema_version=np.array(_GROUP_A_CHECKPOINT_SCHEMA_VERSION),
+                manifest_sha256=np.array(manifest_sha256),
+                checkpoint_key=np.array(checkpoint_key),
+                lo=np.int64(lo),
+                hi=np.int64(hi),
+                times_ns=np.asarray(times_ns, dtype=np.int64),
+                values=np.asarray(values, dtype=np.float32),
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+    finally:
+        os.close(descriptor)
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] chunk path already exists: {path}")
+    os.replace(temporary, path)
+
+
+def _load_group_a_chunk(
+    path: Path,
+    *,
+    manifest_sha256: str,
+    checkpoint_key: str,
+    lo: int,
+    hi: int,
+    expected_times_ns: np.ndarray,
+    width: int,
+) -> np.ndarray:
+    if not path.is_file() or path.is_symlink():
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] chunk is missing/non-regular: {path}")
+    try:
+        with np.load(path, allow_pickle=False) as payload:
+            expected_keys = {
+                "schema_version",
+                "manifest_sha256",
+                "checkpoint_key",
+                "lo",
+                "hi",
+                "times_ns",
+                "values",
+            }
+            if set(payload.files) != expected_keys:
+                raise RuntimeError("chunk key set mismatch")
+            values = np.asarray(payload["values"], dtype=np.float32)
+            if (
+                str(payload["schema_version"]) != _GROUP_A_CHECKPOINT_SCHEMA_VERSION
+                or str(payload["manifest_sha256"]) != manifest_sha256
+                or str(payload["checkpoint_key"]) != checkpoint_key
+                or int(payload["lo"]) != lo
+                or int(payload["hi"]) != hi
+                or not np.array_equal(
+                    np.asarray(payload["times_ns"], dtype=np.int64),
+                    np.asarray(expected_times_ns, dtype=np.int64),
+                )
+                or values.shape != (hi - lo, width)
+            ):
+                raise RuntimeError("chunk identity/shape mismatch")
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] invalid chunk {path}: {exc}") from exc
+    return values
+
+
+def _compute_attach_rows_compact(
+    ctx,
+    ts_index: pd.DatetimeIndex,
+    lo: int,
+    hi: int,
+    *,
+    extract: list[str],
+) -> np.ndarray:
+    """Exact row loop returning only [lo, hi), avoiding full-N worker arrays."""
+    values = np.full((hi - lo, len(extract)), np.nan, dtype=np.float32)
+    complete_started = False
+    for row, i in enumerate(range(lo, hi)):
+        ts = ts_index[i]
+        try:
+            feat = augment_candidate(ctx, ts, include_portfolio=False)
+        except CausalContextWarmupError:
+            if complete_started:
+                raise RuntimeError(
+                    f"[CTX_CONT_PARITY] causal source gap after warmup at {ts}"
+                )
+            continue
+        complete_started = True
+        for column, name in enumerate(extract):
+            if name not in feat:
+                raise RuntimeError(f"[CTX_CONT_PARITY] derived feature missing: {name}")
+            value = float(feat[name])
+            if not np.isfinite(value):
+                raise RuntimeError(f"[CTX_CONT_PARITY] non-finite derived feature: {name}")
+            values[row, column] = value
+    return values
+
 
 def _parallel_attach_chunk_worker(args: tuple) -> tuple:
     """Row-loop worker over [lo, hi) against the fork-shared full context."""
     chunk_index, lo, hi = args
     ctx, ts_index, extract = _PARALLEL_ATTACH_SHARED
-    cols = compute_attach_rows(ctx, ts_index, lo, hi, extract=extract)
-    return chunk_index, lo, hi, {k: v[lo:hi] for k, v in cols.items()}
+    values = _compute_attach_rows_compact(ctx, ts_index, lo, hi, extract=extract)
+    return chunk_index, lo, hi, values
 
 
 def attach_group_a_dip_struct_ctx_columns_parallel(
@@ -900,6 +1143,9 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
     smc_col: str = "smc_swing_state",
     workers: int = 12,
     spot_check_rows: int = 40,
+    checkpoint_dir: Path | None = None,
+    checkpoint_key: str | None = None,
+    checkpoint_chunk_rows: int = _GROUP_A_CHECKPOINT_CHUNK_ROWS,
 ) -> pd.DataFrame:
     """Exact parallel variant of attach_group_a_dip_struct_ctx_columns.
 
@@ -916,22 +1162,151 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
     ctx, ts_index, extract, dip_from_aug = build_attach_context(
         df, multi_tf=multi_tf, journal_label=journal_label, smc_col=smc_col
     )
+    if (checkpoint_dir is None) != (checkpoint_key is None):
+        raise RuntimeError(
+            "[CTX_CONT_CHECKPOINT] checkpoint_dir and checkpoint_key are jointly required"
+        )
     n = len(df)
     workers = max(1, min(int(workers), n))
-    bounds = np.linspace(0, n, workers + 1, dtype=int)
-    tasks = [(k, int(bounds[k]), int(bounds[k + 1])) for k in range(workers)]
+    chunk_rows = int(checkpoint_chunk_rows)
+    bounds = [
+        (index, lo, min(lo + chunk_rows, n))
+        for index, lo in enumerate(range(0, n, chunk_rows))
+    ]
+    checkpoint_path = None
+    manifest_sha256 = None
+    manifest = None
+    if checkpoint_dir is not None:
+        checkpoint_path = Path(checkpoint_dir).expanduser().resolve()
+        manifest = _group_a_checkpoint_manifest(
+            checkpoint_key=str(checkpoint_key),
+            df=df,
+            ts_index=ts_index,
+            multi_tf=multi_tf,
+            extract=extract,
+            smc_col=smc_col,
+            chunk_rows=chunk_rows,
+        )
+        _, manifest_sha256 = _initialize_group_a_checkpoint(
+            checkpoint_path, manifest
+        )
+        expected_names = {
+            "CHECKPOINT_MANIFEST.json",
+            "CHECKPOINT_COMPLETE.json",
+            *{
+                _group_a_chunk_path(checkpoint_path, lo, hi).name
+                for _, lo, hi in bounds
+            },
+        }
+        entries = list(checkpoint_path.iterdir())
+        partials = sorted(
+            path for path in entries if path.name.startswith(".") and ".partial-" in path.name
+        )
+        if partials:
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] interrupted partial chunks require a fresh event: {partials}"
+            )
+        unexpected = sorted(path for path in entries if path.name not in expected_names)
+        if unexpected:
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] unexpected checkpoint entries: {unexpected}"
+            )
+
+    cols = {k: np.full(n, np.nan, dtype=np.float32) for k in extract}
+    pending = []
+    completed_paths: list[Path] = []
+    for chunk_index, lo, hi in bounds:
+        chunk_path = (
+            _group_a_chunk_path(checkpoint_path, lo, hi)
+            if checkpoint_path is not None
+            else None
+        )
+        if chunk_path is not None and chunk_path.exists():
+            values = _load_group_a_chunk(
+                chunk_path,
+                manifest_sha256=str(manifest_sha256),
+                checkpoint_key=str(checkpoint_key),
+                lo=lo,
+                hi=hi,
+                expected_times_ns=ts_index.asi8[lo:hi],
+                width=len(extract),
+            )
+            for column, name in enumerate(extract):
+                cols[name][lo:hi] = values[:, column]
+            completed_paths.append(chunk_path)
+        else:
+            pending.append((chunk_index, lo, hi))
+
     _PARALLEL_ATTACH_SHARED = (ctx, ts_index, extract)
     try:
-        mp_ctx = mp.get_context("fork")
-        with mp_ctx.Pool(processes=workers) as pool:
-            results = pool.map(_parallel_attach_chunk_worker, tasks)
+        if workers == 1:
+            results = map(_parallel_attach_chunk_worker, pending)
+            pool = None
+        else:
+            mp_ctx = mp.get_context("fork")
+            pool = mp_ctx.Pool(processes=workers)
+            results = pool.imap_unordered(
+                _parallel_attach_chunk_worker, pending, chunksize=1
+            )
+        try:
+            for _, lo, hi, values in results:
+                if checkpoint_path is not None:
+                    chunk_path = _group_a_chunk_path(checkpoint_path, lo, hi)
+                    _write_group_a_chunk(
+                        chunk_path,
+                        manifest_sha256=str(manifest_sha256),
+                        checkpoint_key=str(checkpoint_key),
+                        lo=lo,
+                        hi=hi,
+                        times_ns=ts_index.asi8[lo:hi],
+                        values=values,
+                    )
+                    completed_paths.append(chunk_path)
+                for column, name in enumerate(extract):
+                    cols[name][lo:hi] = values[:, column]
+        except BaseException:
+            if pool is not None:
+                pool.terminate()
+                pool.join()
+            raise
+        else:
+            if pool is not None:
+                pool.close()
+                pool.join()
     finally:
         _PARALLEL_ATTACH_SHARED = ()
-    results.sort(key=lambda item: item[0])
-    cols = {k: np.full(n, np.nan, dtype=np.float32) for k in extract}
-    for _, lo, hi, chunk_cols in results:
-        for k, values in chunk_cols.items():
-            cols[k][lo:hi] = values
+
+    complete_path = None
+    complete_sha256 = None
+    if checkpoint_path is not None:
+        expected_chunk_paths = [
+            _group_a_chunk_path(checkpoint_path, lo, hi) for _, lo, hi in bounds
+        ]
+        if sorted(set(completed_paths)) != sorted(expected_chunk_paths):
+            raise RuntimeError("[CTX_CONT_CHECKPOINT] incomplete exact chunk set")
+        chunk_hashes = []
+        for path in expected_chunk_paths:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            chunk_hashes.append(
+                {"path": str(path), "sha256": digest, "size_bytes": path.stat().st_size}
+            )
+        complete_payload = {
+            "schema_version": _GROUP_A_CHECKPOINT_SCHEMA_VERSION,
+            "checkpoint_key": checkpoint_key,
+            "checkpoint_manifest_path": str(checkpoint_path / "CHECKPOINT_MANIFEST.json"),
+            "checkpoint_manifest_sha256": manifest_sha256,
+            "row_count": n,
+            "chunk_count": len(expected_chunk_paths),
+            "chunks": chunk_hashes,
+        }
+        complete_path = checkpoint_path / "CHECKPOINT_COMPLETE.json"
+        encoded = _canonical_json_bytes(complete_payload)
+        if complete_path.exists():
+            if complete_path.is_symlink() or complete_path.read_bytes() != encoded:
+                raise RuntimeError("[CTX_CONT_CHECKPOINT] completion identity mismatch")
+        else:
+            _write_exclusive_bytes(complete_path, encoded)
+        complete_sha256 = hashlib.sha256(encoded).hexdigest()
 
     finite = np.flatnonzero(np.isfinite(cols[extract[0]]))
     if len(finite) == 0:
@@ -954,9 +1329,14 @@ def attach_group_a_dip_struct_ctx_columns_parallel(
                     "[CTX_CONT_PARITY] parallel attach spot-check mismatch: "
                     f"row={int(i)} col={k} serial={a} parallel={b}"
                 )
-    return finalize_attach_columns(
+    result = finalize_attach_columns(
         df, cols, smc_col=smc_col, dip_from_aug=dip_from_aug
     )
+    if complete_path is not None:
+        result.attrs["group_a_checkpoint_complete_path"] = str(complete_path)
+        result.attrs["group_a_checkpoint_complete_sha256"] = complete_sha256
+        result.attrs["group_a_checkpoint_key"] = checkpoint_key
+    return result
 
 
 def attach_group_a_dip_struct_ctx_columns(

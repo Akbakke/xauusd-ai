@@ -70,6 +70,12 @@ contract fails closed. The trim contract also covers every REGIME_V4 source and
 derived field, including long-lookback HTF availability, the 288-M5 D1 ROC and
 the first observable D1 regime transition.
 
+Long Group-A materialization uses one full-series causal context and disjoint
+4096-row work ranges. Each persisted chunk is bound to exact frame bytes,
+five-timeframe cache arrays, ordered output fields and the run/window key.
+Resume accepts only that exact namespace and completion contract; overlapping
+context chunks, partial files, changed inputs and inferred checkpoints fail.
+
 ## Input tensors
 
 The accepted Entry tensor contract is sequence length 96 with 513 genuine

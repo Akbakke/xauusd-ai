@@ -195,7 +195,13 @@ Operational discipline (paid for in the 2026-07-18/19 campaign; follow always):
 
 - Any computation over ~15 minutes MUST persist a checkpoint of its expensive
   intermediate result before its final write step, bound to input sha and
-  window key, and reuse it on rerun (pattern: ranker `_ranker_checkpoint.npz`).
+  window key, and reuse it on an exact same-attempt rerun. Group-A uses
+  immutable 4096-row chunk checkpoints plus a hash-bound completion event;
+  the ranker also binds its final matrix checkpoint to run/source/cache/window.
+- Every heavy command must enter through `scripts/gx1_capped_run.sh`, whose
+  host-wide nonblocking lock forbids overlapping ranker, builder, trainer or
+  replay jobs. Lock refusal is terminal failure, never permission to bypass
+  the capped runner.
 - A watcher that polls for a process must match the exact python command line
   (anchored `pgrep -f '^...python -m module'`), never a substring a wrapper
   shell also contains; a dead job must alert immediately, not wait silently.

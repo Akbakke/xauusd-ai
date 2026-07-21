@@ -1789,10 +1789,11 @@ def _log_label_distribution_proof(df: pd.DataFrame, split: str) -> None:
 # -----------------------------------------------------------------------------
 # Core builder
 # -----------------------------------------------------------------------------
-# The Group-A workers fork the full common-history frame. Two workers keep the
-# exact per-row calculation safely within the rebuild cgroup's 30 GiB ceiling;
-# output parity is still asserted after the merge by the helper itself.
-_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 2
+# Workers share one read-only full-history context through fork and allocate
+# only one bounded 4096-row result at a time. Eight-way fanout remains inside
+# the rebuild cgroup while preserving exact serial spot-check parity.
+_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS = 8
+_MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "entry_dataset_group_a_checkpoint_v1"
 
 
 def build_dataset_canonical(
@@ -2452,12 +2453,58 @@ def build_dataset_canonical(
     merged3 = merged3.drop(
         columns=[name for name in _group_a_required if name in merged3.columns]
     )
+    if output_path is None:
+        raise RuntimeError(
+            "MODEL_NATIVE_GROUP_A_CHECKPOINT_OUTPUT_REQUIRED: exact split output path is mandatory"
+        )
+    _group_a_checkpoint_payload = {
+        "schema_version": _MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION,
+        "split_name": split_name,
+        "source_parquet_sha256": parquet_sha,
+        "canonical_v2_parquet_sha256": canonical_v2_sha256,
+        "signal_manifest_sha256": _sha256_file(
+            Path(seq_structure_manifest_path).expanduser().resolve()
+        ),
+        "rank_reference_sha256": _sha256_file(
+            Path(model_native_rank_reference_npz).expanduser().resolve()
+        ),
+        "feature_history_start_utc": start.isoformat(),
+        "feature_computation_end_utc": end.isoformat(),
+        "emission_start_utc": emit_start.isoformat(),
+        "emission_end_utc": emit_end.isoformat(),
+        "output_path": str(Path(output_path).expanduser().resolve()),
+    }
+    _group_a_checkpoint_key = hashlib.sha256(
+        json.dumps(
+            _group_a_checkpoint_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    _group_a_checkpoint_dir = Path(output_path).expanduser().resolve().parent / (
+        f"_{Path(output_path).stem}_GROUP_A_CHECKPOINT"
+    )
     merged3 = _attach_group_a(
         merged3,
         multi_tf=_ga_load_cache(_cache_dir),
         journal_label="model_native_offline",
         workers=_MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS,
+        checkpoint_dir=_group_a_checkpoint_dir,
+        checkpoint_key=_group_a_checkpoint_key,
     )
+    _group_a_checkpoint_meta = {
+        **_group_a_checkpoint_payload,
+        "checkpoint_key": _group_a_checkpoint_key,
+        "complete_path": merged3.attrs.get("group_a_checkpoint_complete_path"),
+        "complete_sha256": merged3.attrs.get(
+            "group_a_checkpoint_complete_sha256"
+        ),
+    }
+    if (
+        not _group_a_checkpoint_meta["complete_path"]
+        or not _group_a_checkpoint_meta["complete_sha256"]
+    ):
+        raise RuntimeError("MODEL_NATIVE_GROUP_A_CHECKPOINT_COMPLETION_MISSING")
     _causal_group_a_warmup_rows = int(
         merged3.attrs.get("causal_context_warmup_rows", 0)
     )
@@ -3473,6 +3520,7 @@ def build_dataset_canonical(
         "split_reset_allowed": False,
         "causal_context_warmup_rows_trimmed": int(_causal_context_warmup_rows_trimmed),
         "causal_group_a_warmup_rows": int(_causal_group_a_warmup_rows),
+        "group_a_checkpoint": _group_a_checkpoint_meta,
         "causal_regime_v4_warmup_rows": int(_causal_regime_v4_warmup_rows),
         "clean_history_rows_before_emission": int(pre_emit_history_rows),
         "seq_len": int(seq_len),
@@ -3587,6 +3635,14 @@ def main() -> None:
 
     parser.add_argument(
         "--output", type=str, required=True, help="Output dataset path (.parquet)."
+    )
+    parser.add_argument(
+        "--resume-exact-checkpoints",
+        action="store_true",
+        help=(
+            "Resume only exact hash-bound Group-A checkpoints after a failed capped "
+            "attempt; existing dataset splits remain forbidden."
+        ),
     )
     parser.add_argument(
         "--run-id",
@@ -3870,17 +3926,36 @@ def main() -> None:
         }
     )
     proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
-    try:
-        with proof_path.open("x", encoding="utf-8") as f:
-            json.dump(proof_payload, f, indent=2, sort_keys=True, allow_nan=False)
-            f.write("\n")
-            f.flush()
-            os.fsync(f.fileno())
-    except FileExistsError as exc:
-        raise RuntimeError(
-            f"DATASET_BUILD_PROOF_ALREADY_EXISTS: choose a fresh output directory: {proof_path}"
-        ) from exc
-    log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
+    proof_bytes = (
+        json.dumps(proof_payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    ).encode("utf-8")
+    if proof_path.exists() or proof_path.is_symlink():
+        if not args.resume_exact_checkpoints:
+            raise RuntimeError(
+                "DATASET_BUILD_PROOF_ALREADY_EXISTS: choose a fresh output directory "
+                f"or use explicit exact-checkpoint recovery: {proof_path}"
+            )
+        if proof_path.is_symlink() or not proof_path.is_file():
+            raise RuntimeError("DATASET_BUILD_PROOF_RESUME_PATH_INVALID")
+        if proof_path.read_bytes() != proof_bytes:
+            raise RuntimeError("DATASET_BUILD_PROOF_RESUME_IDENTITY_MISMATCH")
+        log.info("[DATASET_BUILD_PROOF] exact resume identity validated %s", proof_path)
+    else:
+        if args.resume_exact_checkpoints:
+            raise RuntimeError("DATASET_BUILD_PROOF_RESUME_MISSING")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(proof_path, flags, 0o644)
+        try:
+            view = memoryview(proof_bytes)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise OSError(f"short dataset build proof write: {proof_path}")
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
 
     if args.dry_run:
         log.info("[DRY_RUN] Inputs exist and CTX contract is valid. Exiting.")

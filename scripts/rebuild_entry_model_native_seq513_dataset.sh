@@ -24,6 +24,7 @@ VAL_END=
 TEST_START=
 TEST_END=
 HISTORY_START=
+RESUME_EXACT_CHECKPOINTS=0
 
 usage() {
   printf '%s\n' \
@@ -32,7 +33,7 @@ usage() {
     "  --mtf-cache-dir PATH --tape-root PATH" \
     "  --output /new/dir/STEM__HOLD_03B.parquet --audit-out-dir /new/report/dir" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
-    "  --test-start UTC --test-end UTC"
+    "  --test-start UTC --test-end UTC [--resume-exact-checkpoints]"
 }
 
 while (($#)); do
@@ -54,6 +55,7 @@ while (($#)); do
     --val-end) VAL_END=${2:-}; shift 2 ;;
     --test-start) TEST_START=${2:-}; shift 2 ;;
     --test-end) TEST_END=${2:-}; shift 2 ;;
+    --resume-exact-checkpoints) RESUME_EXACT_CHECKPOINTS=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) printf '[ABORT] unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
@@ -113,7 +115,7 @@ if [[ -e $AUDIT_OUT_DIR || -L $AUDIT_OUT_DIR ]]; then
   printf '[ABORT] audit output directory already exists; choose a fresh immutable path: %s\n' "$AUDIT_OUT_DIR" >&2
   exit 2
 fi
-if [[ -e "$OUTPUT_DIR/DATASET_BUILD_PROOF.json" ]]; then
+if [[ $RESUME_EXACT_CHECKPOINTS -eq 0 && -e "$OUTPUT_DIR/DATASET_BUILD_PROOF.json" ]]; then
   printf '[ABORT] dataset build proof already exists; choose a fresh immutable output directory: %s\n' "$OUTPUT_DIR/DATASET_BUILD_PROOF.json" >&2
   exit 2
 fi
@@ -123,7 +125,7 @@ for split in train val test; do
     exit 2
   fi
 done
-if [[ -e $RANK_REFERENCE_NPZ || -e ${RANK_REFERENCE_NPZ}.json ]]; then
+if [[ $RESUME_EXACT_CHECKPOINTS -eq 0 && ( -e $RANK_REFERENCE_NPZ || -e ${RANK_REFERENCE_NPZ}.json ) ]]; then
   printf '[ABORT] rank reference already exists; choose a fresh immutable path: %s\n' "$RANK_REFERENCE_NPZ" >&2
   exit 2
 fi
@@ -163,16 +165,59 @@ PY
 
 export GX1_V10_MULTI_TF_V2_CACHE_DIR=$MTF_CACHE_DIR
 
-"${CAP[@]}" "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
-  --run-id "$RUN_ID" \
-  --source-parquet "$SOURCE_PARQUET" \
-  --out "$RANK_REFERENCE_NPZ" \
-  --history-start "$HISTORY_START" \
-  --fit-start "$TRAIN_START" \
-  --fit-end "$TRAIN_END"
+if [[ $RESUME_EXACT_CHECKPOINTS -eq 0 ]]; then
+  "${CAP[@]}" "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
+    --run-id "$RUN_ID" \
+    --source-parquet "$SOURCE_PARQUET" \
+    --out "$RANK_REFERENCE_NPZ" \
+    --history-start "$HISTORY_START" \
+    --fit-start "$TRAIN_START" \
+    --fit-end "$TRAIN_END"
+else
+  "$PY" - "$RANK_REFERENCE_NPZ" "$RUN_ID" "$SOURCE_PARQUET" \
+    "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+from gx1.contracts.entry_model_native_state_v2 import (
+    load_train_rank_reference_v2,
+    parse_utc,
+)
+
+rank_path = Path(sys.argv[1]).expanduser().resolve()
+run_id = sys.argv[2]
+source_path = Path(sys.argv[3]).expanduser().resolve()
+history_start = parse_utc(sys.argv[4], field="history_start")
+fit_start = parse_utc(sys.argv[5], field="fit_start")
+fit_end = parse_utc(sys.argv[6], field="fit_end")
+reference = load_train_rank_reference_v2(rank_path)
+sidecar = reference.sidecar
+digest = hashlib.sha256()
+with source_path.open("rb") as handle:
+    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+        digest.update(chunk)
+if str(sidecar.get("entry_run_id") or "") != run_id:
+    raise RuntimeError("MODEL_NATIVE_RANK_RESUME_RUN_ID_MISMATCH")
+if Path(str(sidecar.get("source_parquet") or "")).expanduser().resolve() != source_path:
+    raise RuntimeError("MODEL_NATIVE_RANK_RESUME_SOURCE_PATH_MISMATCH")
+if str(sidecar.get("source_parquet_sha256") or "").lower() != digest.hexdigest():
+    raise RuntimeError("MODEL_NATIVE_RANK_RESUME_SOURCE_SHA_MISMATCH")
+if parse_utc(sidecar.get("history_start_utc"), field="history_start_utc") != history_start:
+    raise RuntimeError("MODEL_NATIVE_RANK_RESUME_HISTORY_START_MISMATCH")
+if reference.fit_start_utc != fit_start or reference.fit_end_utc != fit_end:
+    raise RuntimeError("MODEL_NATIVE_RANK_RESUME_FIT_WINDOW_MISMATCH")
+print(f"[GATE] exact train-rank checkpoint resume identity: {rank_path}")
+PY
+fi
 
 mkdir -p "$OUTPUT_DIR"
+BUILDER_RESUME_ARGS=()
+if [[ $RESUME_EXACT_CHECKPOINTS -eq 1 ]]; then
+  BUILDER_RESUME_ARGS+=(--resume-exact-checkpoints)
+fi
 "${CAP[@]}" "$PY" -m gx1.scripts.build_entry_v10_ctx_training_dataset_v3 \
+  "${BUILDER_RESUME_ARGS[@]}" \
   --run-id "$RUN_ID" \
   --source-parquet "$SOURCE_PARQUET" \
   --canonical_v2_parquet "$CANONICAL_V2_PARQUET" \

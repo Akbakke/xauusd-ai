@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # One-shot fail-closed chain driver for one fresh seq513 dataset event:
-#   explicit TRAIN ranking -> fresh explicit signal manifest -> fresh preflight
+#   fresh explicit TRAIN ranking -> fresh explicit signal manifest -> fresh preflight
 #   -> fresh dataset rebuild
 #
 # The driver never discovers artifacts, waits for an external producer, resumes
-# from inferred debris, or treats existing split manifests as completion.  It
-# stops before the smoke gate.  Every producer receives the same explicit
+# from inferred debris, or treats existing split manifests as completion. It
+# owns the ranker so a second heavyweight path cannot overlap the dataset job,
+# and stops before the smoke gate. Every producer receives the same explicit
 # run_id, ranking identity, split window, and event-local immutable paths.
 set -Eeuo pipefail
 
@@ -24,7 +25,7 @@ usage() {
     "  --feature-ranking-json /absolute/event/root/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<UTC>.json" \
     "  --signal-manifest /absolute/event/root/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_<UTC>.json" \
     "  --preflight-out-dir /absolute/event/root/fresh-preflight-dir" \
-    "The ranking must already exist. The signal manifest path and preflight directory must be fresh."
+    "The ranking, signal manifest, and preflight targets must all be fresh."
 }
 
 die_args() {
@@ -92,6 +93,7 @@ TAPE="$EVENT/m5_tape_repaired_dec2024"
 RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
 AUDIT="$EVENT/audit"
+TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__HOLD_03B_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
 # history < train strictly. Source (FULL_PLUS) first row is 2021-01-04T23:55.
 HISTORY_START=2021-01-05T00:00:00Z
 TRAIN_START=2021-03-16T00:00:00Z
@@ -102,6 +104,9 @@ TEST_START=2026-05-01T00:00:00Z
 TEST_END=2026-06-14T23:55:00Z
 
 STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
+STARTED_UTC=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')
+IFS= read -r BOOT_ID </proc/sys/kernel/random/boot_id
+CHAIN_PID=$$
 LOG="$EVENT/CHAIN_LOG_${STAMP}.txt"
 STATUS="$EVENT/CHAIN_STATUS.json"
 
@@ -137,7 +142,8 @@ write_status() {
   "$PY" - \
     "$step" "$state" "$reason" "$exit_code" "$STATUS" "$RUN_ID" "$EVENT" \
     "$LOG" "$GIT_HEAD" "$RANKING" "$RANKING_SHA256" "$MANIFEST" \
-    "$MANIFEST_SHA256" "$PRE_OUT" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" <<'PYEOF'
+    "$MANIFEST_SHA256" "$PRE_OUT" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" \
+    "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" <<'PYEOF'
 import json
 import os
 import sys
@@ -161,15 +167,27 @@ from pathlib import Path
     preflight_out_dir,
     preflight_json,
     preflight_sha256,
+    started_utc,
+    boot_id,
+    chain_pid,
 ) = sys.argv[1:]
 path = Path(raw_path)
+now = datetime.now(timezone.utc)
+terminal_states = {"GREEN", "RED", "ABORTED"}
+terminal_path = None
+if state in terminal_states:
+    stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
+    terminal_path = path.with_name(f"CHAIN_TERMINAL_{stamp}_{state}.json")
 payload = {
-    "schema_version": "seq513_rebuild_chain_status_v2",
+    "schema_version": "seq513_rebuild_chain_status_v3",
     "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
     "state": state,
-    "updated_utc": datetime.now(timezone.utc).isoformat(),
+    "started_utc": started_utc,
+    "updated_utc": now.isoformat(),
+    "boot_id": boot_id,
+    "chain_pid": int(chain_pid),
     "log_path": log_path,
     "git_head": git_head or None,
     "feature_ranking": {
@@ -185,6 +203,7 @@ payload = {
         "json_path": preflight_json or None,
         "sha256": preflight_sha256 or None,
     },
+    "terminal_event_path": str(terminal_path) if terminal_path else None,
 }
 if reason:
     payload["reason"] = reason
@@ -205,6 +224,19 @@ try:
 finally:
     os.close(descriptor)
 os.replace(temporary, path)
+if terminal_path is not None:
+    terminal_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    terminal_descriptor = os.open(terminal_path, terminal_flags, 0o644)
+    try:
+        terminal_view = memoryview(encoded)
+        while terminal_view:
+            written = os.write(terminal_descriptor, terminal_view)
+            if written <= 0:
+                raise OSError(f"short terminal status write: {terminal_path}")
+            terminal_view = terminal_view[written:]
+        os.fsync(terminal_descriptor)
+    finally:
+        os.close(terminal_descriptor)
 PYEOF
 }
 
@@ -374,8 +406,8 @@ ranking_pattern = re.compile(
 manifest_pattern = re.compile(
     r"ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_\d{8}T\d{6}(?:\d{6})?Z\.json"
 )
-if not ranking.is_file() or ranking.is_symlink() or not ranking_pattern.fullmatch(ranking.name):
-    raise RuntimeError(f"feature ranking is not an immutable timestamped regular JSON: {ranking}")
+if ranking.exists() or ranking.is_symlink() or not ranking_pattern.fullmatch(ranking.name):
+    raise RuntimeError(f"feature ranking output must be a fresh timestamped JSON: {ranking}")
 if manifest.exists() or manifest.is_symlink() or not manifest_pattern.fullmatch(manifest.name):
     raise RuntimeError(f"signal manifest output must be a fresh timestamped JSON: {manifest}")
 if preflight.exists() or preflight.is_symlink():
@@ -392,6 +424,9 @@ if not tape.is_dir() or tape.is_symlink():
 output_dir = output.parent
 output_stem = output.stem
 fresh_paths = [
+    ranking,
+    event / "_ranker_checkpoint.npz",
+    event / "_ranker_group_a_checkpoint",
     rank_npz,
     Path(f"{rank_npz}.json"),
     output,
@@ -433,7 +468,39 @@ require_unchanged() {
   [[ $observed == "$expected" ]] || fail "$label changed after identity binding"
 }
 
+# Ranking is part of this one chain, not a separately launched heavyweight
+# producer. The capped runner's global lock makes overlapping V3/V4-style
+# ranker/builder execution impossible. Its exact checkpoint namespace is bound
+# to run/source/cache/window identity by the producer.
+CURRENT_STEP=feature-ranking
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+run_feature_ranker() {
+  (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 30G --swap 2G -- \
+    "$PY" -m gx1.scripts.materialize_entry_model_native_train_feature_ranker_v1 \
+    --run-id "$RUN_ID" \
+    --source-parquet "$SRC" \
+    --mtf-cache-dir "$MTF" \
+    --history-start "$HISTORY_START" \
+    --train-start "$TRAIN_START" \
+    --train-end "$TRAIN_END" \
+    --out "$RANKING")
+}
+if ! run_feature_ranker >>"$LOG" 2>&1; then
+  if [[ -f $EVENT/_ranker_checkpoint.npz || -f $EVENT/_ranker_group_a_checkpoint/CHECKPOINT_MANIFEST.json ]]; then
+    CURRENT_STEP=feature-ranking-exact-checkpoint-resume
+    write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
+    require_source_identity
+    if ! run_feature_ranker >>"$LOG" 2>&1; then
+      fail "feature ranking exact-checkpoint retry failed"
+    fi
+  else
+    fail "feature ranking failed before an exact resumable checkpoint existed"
+  fi
+fi
+[[ -f $RANKING && ! -L $RANKING ]] || fail "feature ranking output missing/non-regular"
 RANKING_SHA256=$(hash_file "$RANKING")
+require_source_identity
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
 
@@ -521,18 +588,40 @@ require_source_identity
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
-if ! (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \
-  --run-id "$RUN_ID" \
-  --feature-ranking-json "$RANKING" \
-  --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
-  --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
-  --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
-  --output "$OUTPUT" --audit-out-dir "$AUDIT" \
-  --history-start "$HISTORY_START" \
-  --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
-  --val-start "$VAL_START" --val-end "$VAL_END" \
-  --test-start "$TEST_START" --test-end "$TEST_END") >>"$LOG" 2>&1; then
-  fail "dataset rebuild failed"
+run_dataset_rebuild() {
+  local resume_mode=$1
+  local -a resume_args=()
+  if [[ $resume_mode == exact-checkpoint ]]; then
+    resume_args+=(--resume-exact-checkpoints)
+  fi
+  (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \
+    --run-id "$RUN_ID" \
+    --feature-ranking-json "$RANKING" \
+    --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
+    --signal-manifest "$MANIFEST" --rank-reference-npz "$RANK_NPZ" \
+    --mtf-cache-dir "$MTF" --tape-root "$TAPE" \
+    --output "$OUTPUT" --audit-out-dir "$AUDIT" \
+    --history-start "$HISTORY_START" \
+    --train-start "$TRAIN_START" --train-end "$TRAIN_END" \
+    --val-start "$VAL_START" --val-end "$VAL_END" \
+    --test-start "$TEST_START" --test-end "$TEST_END" \
+    "${resume_args[@]}")
+}
+
+if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
+  if [[ -f $TRAIN_GROUP_A_CHECKPOINT_MANIFEST && -f $RANK_NPZ && -f ${RANK_NPZ}.json && -f $EVENT/dataset/DATASET_BUILD_PROOF.json ]]; then
+    CURRENT_STEP=dataset-rebuild-exact-checkpoint-resume
+    write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
+    require_source_identity
+    require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
+    require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
+    require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
+    if ! run_dataset_rebuild exact-checkpoint >>"$LOG" 2>&1; then
+      fail "dataset rebuild exact-checkpoint retry failed"
+    fi
+  else
+    fail "dataset rebuild failed before an exact resumable checkpoint existed"
+  fi
 fi
 require_source_identity
 

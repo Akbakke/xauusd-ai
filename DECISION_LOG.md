@@ -4,6 +4,30 @@ Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
 decisions that constrain the current model-native Entry work.
 
+## 2026-07-21 — one durable rebuild owner and one heavy job at a time
+
+V3 did not fail with a model/data exception: its log stayed inside the silent
+Group-A row loop after canonical join. A separately launched V4 ranker then
+overlapped that still-running builder before the host environment stopped.
+Neither attempt wrote admissible terminal dataset evidence.
+
+The rebuild chain now owns the fresh TRAIN ranking as well as manifest,
+preflight and dataset construction. Every heavy stage enters through the
+capped runner's host-wide nonblocking lock, so overlapping ranker/builder/
+trainer/replay jobs fail immediately. Group-A keeps one full causal context,
+fans only disjoint 4096-row ranges, writes immutable per-range checkpoints and
+binds completion to frame, MTF arrays, field order and run/window identity.
+Worker allocations are range-sized instead of full-frame-sized. The ranker and
+builder may make one exact checkpoint retry; changed, partial, unexpected or
+unbound checkpoint bytes fail closed. Normal and trapped chain exits publish
+immutable schema-v3 terminal events with boot and process identity.
+
+Focused and causal integration tests prove this source contract. No fresh full
+rebuild has run under it, V3/V4 remain rejected, and launch remains `BLOCK`.
+The unreachable pre-rebuild abstention verifier, its control route, contract
+and sole-purpose tests are deleted because the required historical bytes do
+not exist; future selection evidence starts from fresh candidate TEST rows.
+
 ## 2026-07-20 — adaptation is an immutable offline lifecycle, never live learning
 
 The model-native adaptation source boundary is now implemented. Drift schema
@@ -133,19 +157,6 @@ execute, same-device atomic quarantine, staged revalidation and terminal
 evidence. Source cleanup remains continuous, but is performed as reviewed
 source edits rather than through a data-deletion script.
 
-## 2026-07-19 — abstention evidence is source-recomputed, not self-asserted
-
-The historical selection evidence file must be exactly the path and SHA-256
-registered as retired Entry-IQL comparison evidence; registering an unrelated
-file no longer satisfies the gate. Model-native learned rows require an exact
-hash-bound candidate predictions parquet, matching newest immutable prediction
-report, bundle and dataset. TEST UTC coverage and `pred_direction` are joined
-and compared row-for-row. Free-standing JSON, `calibrated_argmax=true` or an
-unrelated registered artifact cannot produce a comparison or PASS.
-
-This verifier change grants no run, rebuild, training, direction or launch
-authority. Both real evidence families remain absent.
-
 ## 2026-07-19 — one exact split identity survives every Entry evidence stage
 
 Foundation feature, target and specialist audits must resolve TRAIN/VAL/TEST
@@ -181,23 +192,6 @@ threshold, veto, flip or replace model direction.
 values remain useful as the intended next-build window, but its ID cannot
 authorize a new ranking, rebuild, smoke or candidate run. A new explicit
 vedtak is required after the abstention-baseline decision; no name is inferred.
-
-## 2026-07-19 — abstention metadata is not empirical admission evidence
-
-The report-only `model-native-abstention-probe` metadata run is terminal
-`BLOCK_ABSTENTION_EMPIRICAL_GATE`. It proved only that the declared labels are
-not FLAT-starved — TRAIN `1400/4095` (`34.19%`), validation `530/1536`
-(`34.51%`) and TEST `516/1536` (`33.59%`) — and that the active FLAT, utility
-and margin objectives have positive weights. It read zero parquet rows and
-did not fit or evaluate a learned probe.
-
-No immutable bytes for the historical Entry-IQL selection benchmark and no
-exact learned-probe prediction/evaluation evidence are present. Consequently
-the run cannot establish take/skip separation, comparable coverage, OOT
-utility or any direction edge, and it cannot authorize rebuild, training,
-candidate, replay or launch. The next empirical gate is to bind the benchmark
-bytes and produce exact immutable learned-probe evidence; launch remains
-`BLOCK` if either is absent or red.
 
 ## 2026-07-19 — Entry route is bridge-free and context fails closed
 

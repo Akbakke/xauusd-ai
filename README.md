@@ -19,7 +19,9 @@ remain controlled only by their evidence contracts. A report-only abstention met
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
 objective weights are not learned evidence. It read zero parquet; immutable
 historical selection-benchmark bytes and exact learned-probe OOT evidence are
-still absent and are the next empirical gate.
+absent, so that historical comparison cannot be a pre-rebuild gate. The next
+empirical gate is a fresh accepted seq513 dataset/candidate followed by an
+immutable proxy comparison and absolute untouched OOT/cost/live-like proof.
 
 On 2026-07-21, fresh V3 ranking/manifest/preflight passed but the dataset
 builder stopped non-terminally after canonical join while beginning Group-A
@@ -27,6 +29,13 @@ context. A follow-up V4 attempt also failed closed before any fresh ranking
 artifact/checkpoint existed: the service runner had no user bus and the
 restored scope runner lost the rank process. V3/V4 are failure evidence only.
 See ROADMAP.md and the handover before starting any recovery.
+
+The source recovery now routes ranking and dataset construction through one
+chain, serializes all capped heavy jobs with one host-wide lock, checkpoints
+Group-A in exact hash-bound 4096-row chunks, permits one strict checkpoint
+retry, and emits immutable terminal chain events. This has source-test proof
+only; the next admissible action is one fresh full rebuild execution. V3/V4
+partials remain rejected.
 
 ## Active Entry contract
 

@@ -39,6 +39,15 @@ marked RUNNING may be used as authority. Repair must preserve Group-A
 semantics, persist progress and guarantee a terminal event before another
 fresh rebuild. ROADMAP.md is the concise current takeover plan.
 
+The source-side recovery is now implemented and unit/integration-tested, but
+has not yet completed a fresh full rebuild. `run_seq513_rebuild_chain_v1.sh`
+now owns ranking, manifest, preflight and dataset execution under one lineage;
+`gx1_capped_run.sh` holds a host-wide exclusive heavy-job lock; Group-A writes
+exact 4096-row chunks bound to the source frame, five-TF cache, ordered fields
+and run/window key; the ranker and builder may make one exact checkpoint retry;
+and normal/signal exits publish immutable schema-v3 terminal events. This is
+source proof only. V3/V4 checkpoints and partial outputs remain rejected.
+
 `PROJECT_STATE_xau_direction_launch.json` is the current Entry launch state.
 Every earlier Entry dataset, bundle and report is rejected by the current
 contract; none can act as launch, direction or compatibility authority.
@@ -79,11 +88,10 @@ run read zero parquet, trained no probe and emitted no learned predictions.
 Historical selection-benchmark bytes and exact learned-probe evidence are
 absent, so it authorizes nothing and proves no edge.
 
-The empirical verifier now rejects evidence-only pass-throughs. Historical
-benchmark JSON must be the exact path/SHA registered under retired Entry-IQL,
-and learned TEST rows must match an exact hash-bound newest prediction report,
-predictions parquet, bundle and dataset row-for-row in UTC and model direction.
-This hardening does not create either missing artifact or authorize a run.
+The old empirical verifier/control route is deleted because its mandatory
+historical bytes do not exist and therefore could never authorize a rebuild.
+Future abstention admission begins with exact hash-bound candidate TEST rows,
+an immutable proxy comparison and absolute OOT/cost/live-like gates.
 
 ## Exact Entry contract
 
@@ -269,14 +277,13 @@ source cleanup settles.
    incumbent/challenger bid/ask comparison with absolute and lower-95%
    improvement gates. Failed refreshes invalidate older
    green events. No real lifecycle evidence was produced.
-4. Keep launch state `BLOCK`. The metadata-only abstention probe is not the
-   required diagnostic. First bind immutable historical selection-benchmark
-   bytes and produce exact learned-probe OOT evidence at comparable coverage.
-   Only a green empirical probe may justify returning to the hardened rebuild
-   chain with newly matched ranking/manifest inputs; training remains closed
-   until an accepted dataset and all downstream gates exist.
+4. DONE 2026-07-21: removed the unreachable metadata-only abstention control
+   route. The deleted historical benchmark is not a satisfiable pre-rebuild
+   gate. Fresh candidate TEST rows must later pass the immutable proxy and
+   absolute OOT/cost/live-like gates; training remains closed until an accepted
+   dataset and all downstream prerequisites exist.
 
-## Rebuild runbook (contingent on a green abstention probe)
+## Rebuild runbook
 
 User decision 2026-07-17 (DECISION_LOG): the primary empirical admission
 criterion is ABSTENTION QUALITY — the learned `FLAT` surface must match or
@@ -325,12 +332,13 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
 3. Full source cascade rebuilt on the repaired tape: canonical_features_v2 ->
    cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE (current
    builder version) -> FULL_PLUS_CTX (207 cols, column-identical to July-16).
-4. `scripts/run_seq513_rebuild_chain_v1.sh` — fail-closed chain driver
-   (existing explicit ranking -> fresh manifest -> fresh preflight -> fresh
-   build), with immutable artifact inputs rather than glob/lexical-latest
-   selection or inferred resume. Telegram ⚙️/🔴/✅ and process-watch output are
-   operational signals only; terminal authority still requires all three
-   validated split manifests.
+4. `scripts/run_seq513_rebuild_chain_v1.sh` — fail-closed chain driver. It now
+   owns fresh ranking -> fresh manifest -> fresh preflight -> fresh build, with
+   immutable artifact targets rather than glob/lexical-latest selection or
+   inferred resume. One exact checkpoint retry is allowed after a capped
+   process failure. Telegram ⚙️/🔴/✅ and process-watch output are operational
+   signals only; terminal authority still requires all three validated split
+   manifests.
 5. `attach_group_a_dip_struct_ctx_columns` factored into
    build_attach_context / compute_attach_rows / finalize_attach_columns plus
    `attach_group_a_dip_struct_ctx_columns_parallel` in the owner module —
@@ -367,14 +375,11 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 ### Open decisions / next work
 
-1. No rebuild or training is in flight. Before another heavy rebuild, bind the
-   immutable historical selection-benchmark bytes and run the exact learned
-   model-native abstention probe OOT. The current metadata-only result read no
-   parquet and cannot satisfy this gate. If and only if that probe passes,
-   regenerate the feature ranking and signal manifest for the exact active
-   TRAIN window and rerun the hardened preflight/build chain. Smoke needs its
-   own vedtak; zero FLAT predictions remains hard-red by definition
-   (DECISION_LOG 2026-07-17 abstention criterion).
+1. No rebuild or training is in flight. Run the repaired one-owner chain from
+   one fresh event root; it materializes the exact-window ranking, signal
+   manifest, preflight and dataset under the same lineage. Accept only complete
+   terminal split/audit evidence. Zero FLAT predictions remains hard-red by
+   definition (DECISION_LOG 2026-07-17 abstention criterion).
    After an accepted candidate exists, adaptation still requires fresh real
    TEST reference, settled zero-order broker-shadow rows and the complete
    immutable lifecycle, including paired incumbent/challenger shadow paths;
@@ -393,15 +398,15 @@ Ordered steps (each gate fail-closed; stop at first red):
    Use `XAU_SEQ513_REBUILD_20260720_V2` as the one immutable `--run-id` bound
    into rank NPZ, sidecar, build proof, state contract and all split manifests.
    The ID is provenance, not a manual approval gate.
-2. Materialize a fresh feature-ranking JSON for the exact active TRAIN window.
-   Never discover it through a directory glob or lexical/mtime "latest"
-   selection.
+2. Allocate one fresh immutable feature-ranking output path for the exact
+   active TRAIN window. Never discover or pre-populate it through a directory
+   glob or lexical/mtime "latest" selection.
 3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with `--run-id`,
    `--event-root`, `--feature-ranking-json`, `--signal-manifest` and
-   `--preflight-out-dir`. The ranking must already exist; the manifest path and
-   preflight directory must be fresh. The driver creates and revalidates the
-   manifest, preflight, v4 rank reference, dataset and split/audit outputs and
-   never resumes inferred debris.
+   `--preflight-out-dir`. All three target paths must be fresh. The driver
+   creates and revalidates the ranking, manifest, preflight, v4 rank reference,
+   dataset and split/audit outputs. It never resumes inferred debris; only its
+   exact hash-bound bounded checkpoint may be retried once after capped failure.
 4. Accept the rebuild only from the driver's terminal validated split
    manifests. Console output, Telegram status, partial files and an earlier
    preflight cannot substitute for them.
