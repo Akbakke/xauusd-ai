@@ -2,10 +2,12 @@
 
 The live collector is a mutable external source.  This producer snapshots the
 exact parquet bytes it reads, rejects schema/geometry/nonfinite/conflicting
-duplicate values, aggregates only provably complete M5 buckets, and requires
-bit-exact overlap with the already repaired event-local M5 tape.  The complete
-output directory is published atomically and carries hashes for every year and
-every collector snapshot.  No canonical or live file is modified.
+duplicate values, admits only M1-complete or overlap-proven session-reopen M5
+buckets, and requires bit-exact overlap with the already repaired event-local
+M5 tape.  Unsupported partial buckets are omitted with exact evidence, never
+filled or passed through.  The complete output directory is published
+atomically and carries hashes for every year and every collector snapshot.  No
+canonical or live file is modified.
 """
 
 from __future__ import annotations
@@ -166,6 +168,64 @@ def _reject_conflicting_duplicates(frame: pd.DataFrame) -> int:
     return int(duplicate["time"].nunique())
 
 
+def _filter_supported_m5_buckets(
+    m1: pd.DataFrame, aggregated: pd.DataFrame
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Keep only M5 buckets whose M1 coverage has an evidenced interpretation.
+
+    Normal liquid-market buckets need all five minute bars.  OANDA's daily
+    XAUUSD reopen is a stable exception: the 22:00 UTC M5 candle can consist of
+    the sole 22:04 M1 candle.  That sparse convention is separately required
+    to match native M5 exactly across the overlap before any tail is admitted.
+    Other partial buckets are collector holes and are omitted explicitly.
+    """
+
+    work = m1.loc[:, ["time"]].copy()
+    work["bucket"] = work["time"].dt.floor("5min")
+    offsets_by_bucket: dict[pd.Timestamp, tuple[int, ...]] = {}
+    for bucket, group in work.groupby("bucket", sort=False):
+        offsets = tuple(
+            int(value)
+            for value in ((group["time"] - bucket) / pd.Timedelta(minutes=1)).tolist()
+        )
+        offsets_by_bucket[pd.Timestamp(bucket)] = offsets
+
+    admitted: list[pd.Timestamp] = []
+    reopen_timestamps: list[str] = []
+    dense_rows = 0
+    reopen_rows = 0
+    dropped: list[dict[str, Any]] = []
+    for raw_timestamp in aggregated["time"]:
+        timestamp = pd.Timestamp(raw_timestamp)
+        offsets = offsets_by_bucket.get(timestamp, ())
+        if offsets == (0, 1, 2, 3, 4):
+            dense_rows += 1
+            admitted.append(timestamp)
+        elif timestamp.hour == 22 and timestamp.minute == 0 and offsets == (4,):
+            reopen_rows += 1
+            admitted.append(timestamp)
+            reopen_timestamps.append(timestamp.isoformat())
+        else:
+            dropped.append(
+                {
+                    "time_utc": timestamp.isoformat(),
+                    "m1_offsets_minutes": list(offsets),
+                    "reason": "unsupported_partial_m1_bucket",
+                }
+            )
+
+    mask = aggregated["time"].isin(admitted)
+    filtered = aggregated.loc[mask].reset_index(drop=True)
+    return filtered, {
+        "policy": "five_exact_minutes_or_22utc_reopen_at_offset4",
+        "dense_m5_rows": dense_rows,
+        "session_reopen_sparse_m5_rows": reopen_rows,
+        "session_reopen_sparse_m5_buckets": reopen_timestamps,
+        "dropped_unsupported_partial_m5_rows": len(dropped),
+        "dropped_unsupported_partial_m5_buckets": dropped,
+    }
+
+
 def _copy_file(source: Path, destination: Path) -> None:
     temporary = destination.with_name(f".{destination.name}.tmp-{uuid.uuid4().hex}")
     try:
@@ -256,6 +316,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             m5_from_collector.loc[:, ["time", *REQUIRED_COLUMNS]],
             label="AGGREGATED",
         )
+        m5_from_collector, coverage_proof = _filter_supported_m5_buckets(
+            collected, m5_from_collector
+        )
+        if m5_from_collector.empty:
+            raise RuntimeError("CURRENT_M5_SUPPORTED_BUCKETS_EMPTY")
         expected_last_m5 = (cutoff - pd.Timedelta(minutes=4)).floor("5min")
         actual_last_m5 = pd.Timestamp(m5_from_collector["time"].iloc[-1])
         if actual_last_m5 != expected_last_m5:
@@ -309,7 +374,34 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     raise RuntimeError(
                         f"CURRENT_M5_OVERLAP_MISMATCH: max_abs_diff={float(delta.max())}"
                     )
+                base_min = pd.Timestamp(base["time"].iloc[0])
                 base_max = pd.Timestamp(base["time"].iloc[-1])
+                sparse_timestamps = {
+                    pd.Timestamp(value)
+                    for value in coverage_proof["session_reopen_sparse_m5_buckets"]
+                }
+                sparse_overlap = {
+                    pd.Timestamp(value) for value in overlap_times
+                } & sparse_timestamps
+                sparse_tail = {
+                    timestamp for timestamp in sparse_timestamps if timestamp > base_max
+                }
+                if sparse_tail and not sparse_overlap:
+                    raise RuntimeError("CURRENT_M5_SPARSE_REOPEN_OVERLAP_PROOF_MISSING")
+                dropped_overlap = [
+                    row
+                    for row in coverage_proof[
+                        "dropped_unsupported_partial_m5_buckets"
+                    ]
+                    if base_min <= pd.Timestamp(row["time_utc"]) <= base_max
+                ]
+                dropped_tail = [
+                    row
+                    for row in coverage_proof[
+                        "dropped_unsupported_partial_m5_buckets"
+                    ]
+                    if pd.Timestamp(row["time_utc"]) > base_max
+                ]
                 tail = m5_from_collector.loc[m5_from_collector["time"] > base_max]
                 if tail.empty:
                     raise RuntimeError("CURRENT_M5_NEW_TAIL_EMPTY")
@@ -324,6 +416,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "max_abs_diff": 0.0,
                     "new_tail_rows": int(len(tail)),
                     "base_time_max_utc": base_max.isoformat(),
+                    "session_reopen_sparse_rows": len(sparse_overlap),
+                    "session_reopen_sparse_tail_rows": len(sparse_tail),
+                    "unsupported_overlap_buckets_omitted": len(dropped_overlap),
+                    "unsupported_tail_buckets_omitted": len(dropped_tail),
                 }
             output = pd.read_parquet(destination, columns=["time"])
             output_time = pd.to_datetime(output["time"], utc=True, errors="coerce")
@@ -349,6 +445,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "collector_sources": collector_sources,
             "collector_unique_rows_through_cutoff": int(len(collected)),
             "collector_duplicate_timestamps_identical": duplicate_timestamps,
+            "m1_coverage_proof": coverage_proof,
             "overlap_exact": True,
             "overlap_proof": overlap_proof,
             "geometry_bad_total_after": 0,

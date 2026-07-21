@@ -465,3 +465,15 @@ child-buffer extraction validates all offsets and was bit-exact on a real
 512-row `96 x 513` batch (max difference zero), reducing that conversion from
 6.49 seconds to 0.00073 seconds. The exhaustive finiteness, shape,
 seq/snap-parity and 660-field statistics remain unchanged.
+
+The first V13 M1-to-M5 seam attempt then exposed an important distinction:
+the 47,086-row exact result was collector M1 versus canonical M1, not proof
+that every aggregated M5 bucket was complete. Across 9,451 native-M5 overlap
+buckets, all 9,404 buckets containing offsets `[0,1,2,3,4]` were bit-exact.
+Another 35 daily 22:00 UTC reopen buckets containing only offset `[4]` were
+also bit-exact. Twelve other partial buckets were collector holes and differed
+from native M5, including large price and volume omissions. V13 therefore
+admits only the two overlap-proven coverage forms. Unsupported partial buckets
+are omitted and enumerated, not filled; any mismatch among admitted overlap
+rows or loss of the declared final M5 bar aborts publication. This is a source
+coverage contract and has no direction authority.

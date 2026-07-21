@@ -13,6 +13,7 @@ from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5
 from gx1.scripts.materialize_current_m5_snapshot_v1 import (
     REQUIRED_COLUMNS,
     SCHEMA_VERSION,
+    _filter_supported_m5_buckets,
     run,
 )
 
@@ -130,6 +131,39 @@ def test_rejects_conflicting_collector_duplicate(tmp_path: Path) -> None:
     conflict.to_parquet(conflict_path, index=False)
 
     with pytest.raises(RuntimeError, match="DUPLICATE_CONFLICT"):
+        run(_args(tmp_path, base, collector))
+
+    assert not (tmp_path / "current").exists()
+
+
+def test_omits_unsupported_partial_bucket_without_filling() -> None:
+    m1 = _m1().drop(index=6).reset_index(drop=True)
+    aggregated = m1_to_m5(m1, tape_end=pd.Timestamp("2026-07-21T00:14:00Z"))
+
+    filtered, proof = _filter_supported_m5_buckets(m1, aggregated)
+
+    assert filtered["time"].tolist() == [
+        pd.Timestamp("2026-07-21T00:00:00Z"),
+        pd.Timestamp("2026-07-21T00:10:00Z"),
+    ]
+    assert proof["dropped_unsupported_partial_m5_rows"] == 1
+    assert proof["dropped_unsupported_partial_m5_buckets"] == [
+        {
+            "time_utc": "2026-07-21T00:05:00+00:00",
+            "m1_offsets_minutes": [0, 2, 3, 4],
+            "reason": "unsupported_partial_m1_bucket",
+        }
+    ]
+
+
+def test_rejects_dense_overlap_value_mismatch(tmp_path: Path) -> None:
+    base, collector = _fixture(tmp_path)
+    collector_path = collector / "xauusd_m1_20260721.parquet"
+    changed = pd.read_parquet(collector_path)
+    changed.loc[5, "volume"] += 1.0
+    changed.to_parquet(collector_path, index=False)
+
+    with pytest.raises(RuntimeError, match="OVERLAP_MISMATCH"):
         run(_args(tmp_path, base, collector))
 
     assert not (tmp_path / "current").exists()

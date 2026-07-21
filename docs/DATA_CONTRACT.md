@@ -22,10 +22,14 @@ gaps fail. Mid-only substitution is forbidden.
 The current-data rebuild never edits a running collector or canonical tape.
 It snapshots the exact collector parquet bytes into one fresh event, rejects
 conflicting duplicate timestamps, proves finite OHLC/bid-ask geometry, builds
-only M5 buckets whose complete M1 horizon is present and requires bit-exact
-overlap with the repaired event-local M5 tape. The snapshot manifest binds
-every source/snapshot/year hash and the explicit last complete M1/M5 cutoff.
-Changing live source files after snapshot cannot change event bytes.
+M5 only from either all five exact M1 minutes or the separately overlap-proven
+OANDA 22:00 UTC reopen pattern (one candle at minute offset 4), and requires
+bit-exact native-M5 overlap for every admitted bucket. Any other partial M1
+bucket is an unsupported collector hole: it is omitted with its timestamp and
+observed minute offsets in the manifest, never filled or silently admitted.
+The last declared M5 bucket itself must remain admitted. The snapshot manifest
+binds every source/snapshot/year hash and the explicit last complete M1/M5
+cutoff. Changing live source files after snapshot cannot change event bytes.
 
 ## Entry split artifact
 
