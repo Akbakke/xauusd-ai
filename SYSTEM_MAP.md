@@ -438,8 +438,8 @@ Current facts:
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
-- invalidated V1 is historical RED evidence and cannot be reused; the selected
-  fresh lineage is `XAU_SEQ513_REBUILD_20260720_V2`;
+- invalidated V1/V2/V3/V4 lineages are historical failure evidence and cannot
+  be reused; the next chain must allocate a wholly fresh immutable run ID;
 - no rebuild process is running; partial event artifacts have no authority,
   and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
   `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes;
@@ -461,8 +461,8 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-20 for run lineage `XAU_SEQ513_REBUILD_20260720_V2`. V1-forsøkene ga
-ingen godkjent datasettartefakt; kartet beskriver den herdede, påkrevde
+Oppdatert 2026-07-21 etter at V1/V2/V3/V4 ble ugyldiggjort. Ingen av forsøkene
+ga en godkjent datasettartefakt; kartet beskriver den herdede, påkrevde
 artefakt-DAG-en og kolonne-eierskapet. Les dette FØR du rg-jakter i builderen.
 
 ### Artefakt-DAG (produsent → output)

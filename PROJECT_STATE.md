@@ -226,8 +226,8 @@ cost/live-like, abstention-support and joint Exit/sizing gates. No historical
 metadata is allowed to soften those gates. Only the complete source contract
 may justify returning to the hardened seq513 rebuild runbook with a newly
 matched ranking/manifest. The selected immutable lineage is
-`XAU_SEQ513_REBUILD_20260720_V2`; it grants no authority, and invalidated
-`XAU_SEQ513_REBUILD_20260718_V1` cannot be reused;
+not preallocated: invalidated V1/V2/V3/V4 lineages cannot be reused, and the
+next chain must allocate a wholly fresh immutable run ID that grants no authority;
 only an accepted rebuild may advance to smoke. Zero FLAT predictions remains
 hard-red. No accepted rebuild, training result or empirical precision result
 exists yet.
