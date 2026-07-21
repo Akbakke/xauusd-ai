@@ -33,6 +33,13 @@ import numpy as np
 import pandas as pd
 
 from gx1_guards.gates import require_retrain_vedtak
+from gx1.contracts.xau_tape_provenance_v1 import (
+    BASE_REPAIR_METHOD,
+    BASE_REPAIR_SCHEMA,
+    XAU_INSTRUMENT,
+    canonical_xau_source_descriptor_v1,
+    validate_xau_tape_provenance_v1,
+)
 
 REPAIR_WINDOW_START = pd.Timestamp("2024-11-30T00:00:00Z")
 REPAIR_WINDOW_END = pd.Timestamp("2025-01-01T00:00:00Z")  # exclusive
@@ -136,8 +143,16 @@ def main() -> None:
     args = parser.parse_args()
 
     vedtak = require_retrain_vedtak(args.vedtak)
-    m5_root = args.m5_tape_root.expanduser().resolve()
-    m1_root = args.m1_tape_root.expanduser().resolve()
+    m5_source = canonical_xau_source_descriptor_v1(
+        args.m5_tape_root.expanduser(),
+        timeframe="M5",
+    )
+    m1_source = canonical_xau_source_descriptor_v1(
+        args.m1_tape_root.expanduser(),
+        timeframe="M1",
+    )
+    m5_root = Path(m5_source["root"])
+    m1_root = Path(m1_source["root"])
     out_root = args.out_root.expanduser().resolve()
     if out_root.exists():
         raise RuntimeError(f"TAPE_REPAIR_OUT_ROOT_NOT_FRESH: {out_root}")
@@ -151,13 +166,15 @@ def main() -> None:
     m1_2024["time"] = pd.to_datetime(m1_2024["time"], utc=True)
 
     manifest: dict = {
-        "schema_version": "m5_tape_dec2024_repair_manifest_v1",
+        "schema_version": BASE_REPAIR_SCHEMA,
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "instrument": XAU_INSTRUMENT,
         "explicit_vedtak_id": vedtak,
-        "method": "recompute_window_from_canonical_m1_drop_unbacked_bars",
+        "method": BASE_REPAIR_METHOD,
         "repair_window": [str(REPAIR_WINDOW_START), str(REPAIR_WINDOW_END)],
         "m5_tape_root": str(m5_root),
         "m1_tape_root": str(m1_root),
+        "canonical_sources": {"m5": m5_source, "m1": m1_source},
         "m1_2024_sha256": _sha256_file(m1_2024_path),
         "years": {},
     }
@@ -231,6 +248,11 @@ def main() -> None:
 
     manifest_path = out_root / "REPAIR_MANIFEST.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    validate_xau_tape_provenance_v1(
+        out_root,
+        expected_run_id=vedtak,
+        require_current=False,
+    )
     print(json.dumps({k: v for k, v in manifest.items() if k != "years"}, indent=2))
     print(json.dumps(manifest["years"].get("year=2024", {}), indent=2))
 

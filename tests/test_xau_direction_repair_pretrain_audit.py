@@ -19,6 +19,15 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
 )
+from gx1.contracts.xau_tape_provenance_v1 import (
+    BASE_REPAIR_METHOD,
+    BASE_REPAIR_SCHEMA,
+    CURRENT_SNAPSHOT_METHOD,
+    CURRENT_SNAPSHOT_SCHEMA,
+    XAU_INSTRUMENT,
+    canonical_xau_source_descriptor_v1,
+    validate_xau_tape_provenance_v1,
+)
 from gx1.scripts.audit_xau_direction_repair_pretrain_v1 import (
     DEFAULT_STEM,
     REQUIRED_POLARITY_FEATURES,
@@ -34,6 +43,103 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
 )
 
 
+RUN_ID = "MODEL_NATIVE_PRETRAIN_AUDIT_PYTEST"
+
+
+def _write_xau_tape(root: Path, *, instrument: str) -> Path:
+    tape = root / "xauusd_tape_fixture"
+    if tape.exists():
+        return tape.resolve()
+    canonical_sources = {}
+    for key, timeframe in (("m5", "M5"), ("m1", "M1")):
+        canonical_root = root / f"canonical_{key}"
+        canonical_root.mkdir()
+        (canonical_root / "MANIFEST.json").write_text(
+            json.dumps(
+                {
+                    "instrument": "XAUUSD",
+                    "timeframe": timeframe,
+                    "out_root": str(canonical_root.resolve()),
+                }
+            ),
+            encoding="utf-8",
+        )
+        canonical_sources[key] = canonical_xau_source_descriptor_v1(
+            canonical_root.resolve(), timeframe=timeframe
+        )
+    base = root / "base_tape_fixture"
+    base_part = base / "year=2026" / "part-000.parquet"
+    base_part.parent.mkdir(parents=True)
+    base_part.write_bytes(b"base-xau-tape")
+    base_year_hashes = {"year=2026": hashlib.sha256(base_part.read_bytes()).hexdigest()}
+    base_manifest_path = base / "REPAIR_MANIFEST.json"
+    base_manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": BASE_REPAIR_SCHEMA,
+                "instrument": XAU_INSTRUMENT,
+                "explicit_vedtak_id": RUN_ID,
+                "method": BASE_REPAIR_METHOD,
+                "geometry_bad_total_after": 0,
+                "m5_tape_root": canonical_sources["m5"]["root"],
+                "m1_tape_root": canonical_sources["m1"]["root"],
+                "canonical_sources": canonical_sources,
+                "years": {
+                    "year=2026": {"output_sha256": base_year_hashes["year=2026"]}
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    current_part = tape / "year=2026" / "part-000.parquet"
+    current_part.parent.mkdir(parents=True)
+    current_part.write_bytes(b"current-xau-tape")
+    snapshot = tape / "collector_snapshot" / "xauusd_m1_fixture.parquet"
+    snapshot.parent.mkdir()
+    snapshot.write_bytes(b"immutable-xau-m1-snapshot")
+    (tape / "REPAIR_MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "schema_version": CURRENT_SNAPSHOT_SCHEMA,
+                "instrument": instrument,
+                "entry_run_id": RUN_ID,
+                "method": CURRENT_SNAPSHOT_METHOD,
+                "last_complete_m5_utc": "2026-07-21T00:00:00+00:00",
+                "base_tape_root": str(base.resolve()),
+                "base_manifest_path": str(base_manifest_path.resolve()),
+                "base_manifest_sha256": hashlib.sha256(
+                    base_manifest_path.read_bytes()
+                ).hexdigest(),
+                "base_year_sha256": base_year_hashes,
+                "collector_sources": [
+                    {
+                        "source_path": "/collector/xauusd_m1_fixture.parquet",
+                        "snapshot_path": str(snapshot.resolve()),
+                        "sha256": hashlib.sha256(snapshot.read_bytes()).hexdigest(),
+                        "rows": 1,
+                    }
+                ],
+                "overlap_exact": True,
+                "overlap_proof": {
+                    "rows": 1,
+                    "max_abs_diff": 0.0,
+                    "new_tail_rows": 1,
+                },
+                "geometry_bad_total_after": 0,
+                "years": {
+                    "year=2026": {
+                        "output_sha256": hashlib.sha256(
+                            current_part.read_bytes()
+                        ).hexdigest()
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return tape.resolve()
+
+
 def _write_split(
     root: Path,
     split: str,
@@ -46,9 +152,19 @@ def _write_split(
     alias_mismatch: bool = False,
     forced_utility: bool = False,
     target_mode_id: int = 1,
-    tape_root: str = "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL",
+    tape_root: str | None = None,
+    tape_instrument: str = XAU_INSTRUMENT,
     stem: str = DEFAULT_STEM,
 ) -> None:
+    if tape_root is None:
+        tape_root = str(_write_xau_tape(root, instrument=tape_instrument))
+    tape_provenance = None
+    if tape_instrument == XAU_INSTRUMENT:
+        tape_provenance = validate_xau_tape_provenance_v1(
+            tape_root,
+            expected_run_id=RUN_ID,
+            require_current=True,
+        )
     rank_ref = root / "model_native_rank_reference_xau_direction_repair.npz"
     if not rank_ref.exists():
         fit_start = pd.Timestamp("2020-11-09T00:00:00Z")
@@ -59,7 +175,7 @@ def _write_split(
             fit_start_ns=np.asarray([fit_start.value], dtype=np.int64),
             fit_end_ns=np.asarray([fit_end.value], dtype=np.int64),
             fit_row_count=np.asarray([1], dtype=np.int64),
-            entry_run_id=np.asarray(["MODEL_NATIVE_PRETRAIN_AUDIT_PYTEST"]),
+            entry_run_id=np.asarray([RUN_ID]),
             atr_bps_sorted=np.asarray([10.0], dtype=np.float64),
             spread_bps_sorted=np.asarray([1.0], dtype=np.float64),
         )
@@ -71,7 +187,7 @@ def _write_split(
                     "fit_scope": "train_only",
                     "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
                     "row_level_state_present": False,
-                    "entry_run_id": "MODEL_NATIVE_PRETRAIN_AUDIT_PYTEST",
+                    "entry_run_id": RUN_ID,
                     "out_npz": str(rank_ref.resolve()),
                     "out_npz_sha256": rank_ref_sha,
                     "fit_start_utc": str(fit_start),
@@ -218,6 +334,7 @@ def _write_split(
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
             "model_native_signal_contract": signal_contract,
+            "xau_tape_provenance": tape_provenance,
             "signal_bridge": {
                 "neutral_xgb_bridge": False,
                 "bridge_source": None,
@@ -248,7 +365,7 @@ def _write_split(
                 "split_reset_allowed": False,
                 "post_fit_rows_in_rank_reference": False,
                 "runtime_rule_free": True,
-                "entry_run_id": "MODEL_NATIVE_PRETRAIN_AUDIT_PYTEST",
+                "entry_run_id": RUN_ID,
             },
         },
         "feature_contract": {"signal_bridge_fields": fields},
@@ -403,7 +520,7 @@ def test_xau_direction_repair_pretrain_audit_fails_non_xau_provenance(tmp_path: 
             tmp_path,
             split,
             inverted=False,
-            tape_root="/home/andre2/GX1_DATA/data/oanda/canonical/foreign_fx_m5_bid_ask__CANONICAL",
+            tape_instrument="INVALID_INSTRUMENT",
         )
 
     with pytest.raises(SystemExit):
@@ -411,7 +528,39 @@ def test_xau_direction_repair_pretrain_audit_fails_non_xau_provenance(tmp_path: 
 
     report = _read_immutable_audit(tmp_path)
     assert report["decision"] == "FAIL"
-    assert any("requires XAUUSD tape_root provenance" in item for item in report["failures"])
+    assert any("XAU_TAPE_CURRENT_INSTRUMENT_MISMATCH" in item for item in report["failures"])
+
+
+def test_xau_direction_repair_pretrain_audit_rejects_tape_byte_drift(tmp_path: Path) -> None:
+    for split in ("train", "val", "test"):
+        _write_split(tmp_path, split, inverted=False)
+    tape_part = tmp_path / "xauusd_tape_fixture" / "year=2026" / "part-000.parquet"
+    tape_part.write_bytes(tape_part.read_bytes() + b"-mutated")
+
+    with pytest.raises(SystemExit):
+        run(_args(tmp_path))
+
+    report = _read_immutable_audit(tmp_path)
+    assert report["decision"] == "FAIL"
+    assert any("HASH_MISMATCH" in item for item in report["failures"])
+
+
+def test_xau_direction_repair_pretrain_audit_rejects_dataset_tape_rebinding(
+    tmp_path: Path,
+) -> None:
+    for split in ("train", "val", "test"):
+        _write_split(tmp_path, split, inverted=False)
+    manifest_path = tmp_path / f"{DEFAULT_STEM}_train.manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["extra"]["xau_tape_provenance"]["manifest_sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        run(_args(tmp_path))
+
+    report = _read_immutable_audit(tmp_path)
+    assert report["decision"] == "FAIL"
+    assert any("tape binding differs" in item for item in report["failures"])
 
 
 def test_xau_direction_repair_pretrain_audit_rejects_auto_discovered_stem(tmp_path: Path) -> None:

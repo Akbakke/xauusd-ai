@@ -57,7 +57,7 @@ from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v2"
 RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v1"
-PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v1"
+PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
 CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
 

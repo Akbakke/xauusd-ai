@@ -151,7 +151,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     pretrain_path = _write_json(
         evidence / "XAU_PRETRAIN_AUDIT_20260716T115958123456Z.json",
         {
-            "schema_version": "xau_direction_repair_pretrain_audit_v1",
+            "schema_version": "xau_direction_repair_pretrain_audit_v2",
             "decision": "PASS",
             "failures": [],
         },
@@ -207,7 +207,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
             },
             "pretrain": {
                 **binding(pretrain_path),
-                "schema_version": "xau_direction_repair_pretrain_audit_v1",
+                "schema_version": "xau_direction_repair_pretrain_audit_v2",
                 "decision": "PASS",
                 "failures": [],
             },

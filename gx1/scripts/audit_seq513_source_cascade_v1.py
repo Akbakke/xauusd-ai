@@ -15,6 +15,10 @@ import numpy as np
 import pandas as pd
 
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CURRENT_SNAPSHOT_SCHEMA,
+    validate_xau_tape_provenance_v1,
+)
 from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
     ENTRY_DEAD_CONSTANT_COLUMNS,
@@ -23,7 +27,7 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
 )
 
 
-SCHEMA_VERSION = "seq513_source_cascade_proof_v4"
+SCHEMA_VERSION = "seq513_source_cascade_proof_v5"
 EXPECTED_CV2_COLUMNS = 118
 # canonical-v3 computes this manifest count before surfacing the DatetimeIndex
 # as the plain `time` column.  The parquet is 113 wide; the manifest's
@@ -183,41 +187,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     tape = root / "m5_tape_repaired_dec2024"
     repair = _json(tape / "REPAIR_MANIFEST.json", label="REPAIR_MANIFEST")
-    repair_schema = repair.get("schema_version")
-    if repair_schema == "m5_tape_dec2024_repair_manifest_v1":
-        _same(repair.get("explicit_vedtak_id"), run_id, label="REPAIR_RUN_ID")
-    elif repair_schema == "m5_tape_current_snapshot_v1":
-        _same(repair.get("entry_run_id"), run_id, label="REPAIR_RUN_ID")
-        _same(
-            _utc(repair.get("last_complete_m5_utc"), label="REPAIR_LAST_COMPLETE_M5"),
-            expected_full_time_max,
-            label="REPAIR_LAST_COMPLETE_M5",
-        )
-        _same(repair.get("overlap_exact"), True, label="REPAIR_OVERLAP_EXACT")
-    else:
-        raise RuntimeError(f"SEQ513_SOURCE_REPAIR_SCHEMA_MISMATCH: {repair_schema!r}")
-    _same(repair.get("geometry_bad_total_after"), 0, label="REPAIR_GEOMETRY")
-    years = repair.get("years")
-    if not isinstance(years, dict) or not years:
-        raise RuntimeError("SEQ513_SOURCE_REPAIR_YEAR_SET_INVALID")
-    year_numbers = []
-    for key in years:
-        if not str(key).startswith("year="):
-            raise RuntimeError("SEQ513_SOURCE_REPAIR_YEAR_SET_INVALID")
-        try:
-            year_numbers.append(int(str(key).split("=", 1)[1]))
-        except ValueError as exc:
-            raise RuntimeError("SEQ513_SOURCE_REPAIR_YEAR_SET_INVALID") from exc
-    year_numbers.sort()
-    if year_numbers != list(range(year_numbers[0], year_numbers[-1] + 1)):
-        raise RuntimeError("SEQ513_SOURCE_REPAIR_YEAR_SET_INVALID")
-    tape_hashes: dict[str, str] = {}
-    for year in year_numbers:
-        key = f"year={year}"
-        part = _regular(tape / key / "part-000.parquet", label=f"TAPE_{year}")
-        digest = _sha256_file(part)
-        _same(years[key].get("output_sha256"), digest, label=f"TAPE_{year}_HASH")
-        tape_hashes[key] = digest
+    tape_provenance = validate_xau_tape_provenance_v1(
+        tape,
+        expected_run_id=run_id,
+        require_current=True,
+    )
+    _same(repair.get("schema_version"), CURRENT_SNAPSHOT_SCHEMA, label="REPAIR_SCHEMA")
+    _same(
+        _utc(repair.get("last_complete_m5_utc"), label="REPAIR_LAST_COMPLETE_M5"),
+        expected_full_time_max,
+        label="REPAIR_LAST_COMPLETE_M5",
+    )
+    tape_hashes = dict(tape_provenance["year_sha256"])
+    year_numbers = sorted(int(key.split("=", 1)[1]) for key in tape_hashes)
 
     cv2 = _regular(root / "canonical_features_v2.parquet", label="CV2")
     cv2_sha = _sha256_file(cv2)
@@ -379,6 +361,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ),
         },
         "contracts": {
+            "xau_tape_provenance": tape_provenance,
             "no_stale_self_paths": True,
             "no_symlink_artifacts": True,
             "exact_run_lineage": True,

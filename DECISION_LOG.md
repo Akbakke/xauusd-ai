@@ -552,3 +552,27 @@ TEST plus at least 96 pre-TRAIN rows. It also rejects a future timestamp in the
 requested fresh ranking filename. Both failures therefore occur before rank
 state/ranking in the next lineage. V17 must rebuild from raw model-range start
 2020-11-13; V14-V16 remain non-authoritative terminal evidence.
+
+## 2026-07-21 — V17 proves full input liveness; instrument identity is manifest-bound
+
+V17 rebuilt independently through the last complete M5 bar at 18:40 UTC. Its
+source, TRAIN-only ranking, exact 513-field manifest, preflight, all three
+datasets and exhaustive schema-v3 input-liveness contract passed. This proves
+that 513 signals plus 142 continuous and five categorical context fields are
+present, ordered and active under their declared TRAIN/event contracts. It is
+not yet evidence of model precision or profitable OOS direction selection.
+
+The next pretrain gate failed solely because it searched the event-local tape
+directory name for an instrument substring. That heuristic is deleted from
+both audit and trainer. One shared fail-closed contract now traces exact
+`XAU_USD` identity to the canonical M1/M5 manifests and binds run id, producer
+method, repaired/current manifests, geometry, overlap, every yearly tape hash
+and every collector-snapshot hash. Dataset manifests capture that proof and
+consumers revalidate it. The repair and current-snapshot schemas advance to
+v2, source-cascade proof to v5 and pretrain audit to v2; older artifacts cannot
+pass. V17 remains terminal RED, and only a fresh V18 lineage may proceed.
+
+The command hook is now GX1-local and retains only its Git/secret safety floor.
+Runtime market identity belongs to the model/data contracts, not path-name
+blacklists. Explicit references to instruments outside GX1 were removed from
+the repository and active hook; negative tests use an abstract invalid token.

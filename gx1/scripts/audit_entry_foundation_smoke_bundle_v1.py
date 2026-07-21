@@ -179,7 +179,7 @@ _INPUT_AUDIT_CONTRACTS = {
         "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT",
     ),
     "pretrain": (
-        "xau_direction_repair_pretrain_audit_v1",
+        "xau_direction_repair_pretrain_audit_v2",
         "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT",
     ),
 }

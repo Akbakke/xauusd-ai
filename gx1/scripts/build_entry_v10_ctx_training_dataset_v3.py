@@ -80,6 +80,7 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     UTILITY_MFE_WEIGHT,
     UTILITY_PATH_WEIGHT,
 )
+from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_FORECAST_HORIZONS,
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
@@ -3918,12 +3919,18 @@ def main() -> None:
     tape_root = Path(args.tape_root).expanduser().resolve()
     if not tape_root.is_dir():
         raise RuntimeError(f"CANONICAL_TAPE_ROOT_MISSING: {tape_root}")
+    xau_tape_provenance = validate_xau_tape_provenance_v1(
+        tape_root,
+        expected_run_id=entry_run_id,
+        require_current=True,
+    )
     canonical_v2_path = Path(args.canonical_v2_parquet).expanduser().resolve()
     if not canonical_v2_path.is_file():
         raise RuntimeError(f"CANONICAL_V2_PARQUET_NOT_FOUND: {canonical_v2_path}")
     proof_payload.update(
         {
             "tape_root": str(tape_root),
+            "xau_tape_provenance": xau_tape_provenance,
             "time_start_utc": str(start),
             "time_end_utc": str(end),
         }
@@ -4010,6 +4017,7 @@ def main() -> None:
                     "mode": "mandatory_inline_common_causal_history_v1",
                 },
                 "model_native_state_contract": state_contract,
+                "xau_tape_provenance": xau_tape_provenance,
                 "entry_run_id": entry_run_id,
             },
         )
@@ -4085,6 +4093,7 @@ def main() -> None:
             extra={
                 **metas[split_name],
                 "model_native_state_contract": state_contract,
+                "xau_tape_provenance": xau_tape_provenance,
                 "entry_run_id": entry_run_id,
             },
         )

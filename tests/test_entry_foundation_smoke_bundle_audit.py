@@ -532,7 +532,7 @@ def test_run_publishes_exact_consumer_contract_without_latest(
     audit_schemas = {
         "target": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
         "specialist": "entry_specialist_feature_group_audit_v1",
-        "pretrain": "xau_direction_repair_pretrain_audit_v1",
+        "pretrain": "xau_direction_repair_pretrain_audit_v2",
     }
 
     def fake_input_audit_contract(

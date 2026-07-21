@@ -292,7 +292,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     artifacts["pretrain_audit_json"] = _write_json(
         evidence_dir / f"XAU_PRETRAIN_AUDIT_{STAMP}.json",
         {
-            "schema_version": "xau_direction_repair_pretrain_audit_v1",
+            "schema_version": "xau_direction_repair_pretrain_audit_v2",
             "decision": "PASS",
             "failures": [],
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
@@ -384,7 +384,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     },
                     "pretrain": {
                         **simple_binding(artifacts["pretrain_audit_json"]),
-                        "schema_version": "xau_direction_repair_pretrain_audit_v1",
+                        "schema_version": "xau_direction_repair_pretrain_audit_v2",
                         "decision": "PASS",
                         "failures": [],
                     },

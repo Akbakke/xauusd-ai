@@ -53,6 +53,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
 )
+from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     FIXED_POSITIVE_LOSS_WEIGHTS as _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS,
     active_loss_weight_failures as _model_native_active_loss_weight_failures,
@@ -1762,10 +1763,6 @@ def _xau_direction_repair_source_failures(paths: Dict[str, Any]) -> list[str]:
         if not text:
             failures.append(f"{label} missing for XAU direction repair")
             continue
-        if "/eur" in low or "\\eur" in low or "_eur" in low or "eur_" in low:
-            failures.append(f"{label} must not reference non-XAU project data for XAU direction repair: {text}")
-        if "xau" not in low:
-            failures.append(f"{label} must be XAU-specific for XAU direction repair: {text}")
         for marker in stale_markers:
             if marker in low:
                 failures.append(f"{label} references stale pre-repair dataset marker {marker!r}: {text}")
@@ -1775,10 +1772,12 @@ def _xau_direction_repair_source_failures(paths: Dict[str, Any]) -> list[str]:
 def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> list[str]:
     failures: list[str] = []
     state_contracts: Dict[str, Dict[str, Any]] = {}
+    tape_provenance_cache: Dict[tuple[str, str], Dict[str, Any]] = {}
+    tape_provenance_by_split: Dict[str, Dict[str, Any]] = {}
     for split, raw_path in parquet_paths.items():
         parquet_path = Path(raw_path).expanduser()
         manifest_path = parquet_path.with_suffix(".manifest.json")
-        if not manifest_path.is_file():
+        if manifest_path.is_symlink() or not manifest_path.is_file():
             failures.append(f"{split} manifest missing for XAU direction repair: {manifest_path}")
             continue
         try:
@@ -1797,11 +1796,26 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
             or extra.get("tape_root")
             or inputs.get("tape_root")
             or ""
-        ).lower()
-        if "xauusd" not in tape_root:
-            failures.append(f"{split} manifest must prove XAUUSD tape_root for XAU direction repair, got {tape_root!r}")
+        ).strip()
         state_contract = _model_native_state_contract_from_manifest_obj(manifest)
         failures.extend(_model_native_state_contract_failures(state_contract, split=split))
+        expected_run_id = str(state_contract.get("entry_run_id") or "").strip()
+        cache_key = (tape_root, expected_run_id)
+        try:
+            if cache_key not in tape_provenance_cache:
+                tape_provenance_cache[cache_key] = validate_xau_tape_provenance_v1(
+                    tape_root,
+                    expected_run_id=expected_run_id,
+                    require_current=True,
+                )
+            tape_provenance_by_split[split] = tape_provenance_cache[cache_key]
+            if extra.get("xau_tape_provenance") != tape_provenance_by_split[split]:
+                failures.append(
+                    f"{split} dataset manifest XAU_USD tape binding differs from "
+                    "the revalidated immutable tape lineage"
+                )
+        except (RuntimeError, OSError, ValueError) as exc:
+            failures.append(f"{split} immutable XAU_USD tape provenance invalid: {exc}")
         split_windows = manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {}
         train_window = (
             split_windows.get("train")
@@ -1838,6 +1852,15 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
                 failures.append(
                     f"{split} model_native_state_contract differs from {baseline_split}; "
                     "TRAIN/VAL/TEST must share one immutable rank/history contract"
+                )
+    if len(tape_provenance_by_split) > 1:
+        baseline_split = next(iter(tape_provenance_by_split))
+        baseline = tape_provenance_by_split[baseline_split]
+        for split, proof in tape_provenance_by_split.items():
+            if proof != baseline:
+                failures.append(
+                    f"{split} immutable XAU_USD tape provenance differs from "
+                    f"{baseline_split}; TRAIN/VAL must share one exact tape lineage"
                 )
     return failures
 

@@ -28,10 +28,16 @@ import numpy as np
 import pandas as pd
 
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CURRENT_SNAPSHOT_METHOD,
+    CURRENT_SNAPSHOT_SCHEMA,
+    XAU_INSTRUMENT,
+    validate_xau_tape_provenance_v1,
+)
 from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5
 
 
-SCHEMA_VERSION = "m5_tape_current_snapshot_v1"
+SCHEMA_VERSION = CURRENT_SNAPSHOT_SCHEMA
 REQUIRED_COLUMNS = (
     "open",
     "high",
@@ -258,12 +264,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     base_manifest_path = base_root / "REPAIR_MANIFEST.json"
     base_manifest = _read_json(base_manifest_path, label="BASE_MANIFEST")
-    if base_manifest.get("schema_version") != "m5_tape_dec2024_repair_manifest_v1":
-        raise RuntimeError("CURRENT_M5_BASE_MANIFEST_SCHEMA_INVALID")
-    if base_manifest.get("explicit_vedtak_id") != run_id:
-        raise RuntimeError("CURRENT_M5_BASE_RUN_ID_MISMATCH")
-    if base_manifest.get("geometry_bad_total_after") != 0:
-        raise RuntimeError("CURRENT_M5_BASE_GEOMETRY_NOT_PROVEN")
+    validate_xau_tape_provenance_v1(
+        base_root,
+        expected_run_id=run_id,
+        require_current=False,
+    )
     base_years = base_manifest.get("years")
     if not isinstance(base_years, dict) or not base_years:
         raise RuntimeError("CURRENT_M5_BASE_YEARS_INVALID")
@@ -433,8 +438,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         report = {
             "schema_version": SCHEMA_VERSION,
             "created_utc": datetime.now(timezone.utc).isoformat(),
+            "instrument": XAU_INSTRUMENT,
             "entry_run_id": run_id,
-            "method": "immutable_live_collector_snapshot_exact_m5_overlap",
+            "method": CURRENT_SNAPSHOT_METHOD,
             "cutoff_complete_m1_utc": cutoff.isoformat(),
             "last_complete_m5_utc": actual_last_m5.isoformat(),
             "base_tape_root": str(base_root),
@@ -453,6 +459,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         }
         _atomic_json(stage / "REPAIR_MANIFEST.json", report)
         os.replace(stage, out_root)
+        validate_xau_tape_provenance_v1(
+            out_root,
+            expected_run_id=run_id,
+            require_current=True,
+        )
         return report
     except Exception:
         if stage.exists() and stage.parent == out_root.parent and stage.name.startswith(

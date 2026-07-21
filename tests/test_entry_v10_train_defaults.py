@@ -1546,14 +1546,13 @@ def test_entry_v10_xau_direction_repair_requires_xau_sources() -> None:
 
     failures = trainer._xau_direction_repair_source_failures(
         {
-            "train_parquet": "/data/foreign_fx/v10_dataset_20260710_train.parquet",
+            "train_parquet": "/data/untrusted_asset/v10_dataset_20260710_train.parquet",
             "val_parquet": "/data/generic/v10_dataset_val.parquet",
             "m5_prebuilt_path": "",
         }
     )
 
     text = "\n".join(failures)
-    assert "XAU-specific" in text
     assert "stale pre-repair dataset marker" in text
     assert "m5_prebuilt_path missing" in text
 
@@ -1568,7 +1567,7 @@ def test_entry_v10_xau_direction_repair_requires_xau_manifest_provenance(tmp_pat
     parquet.with_suffix(".manifest.json").write_text(
         json.dumps(
             {
-                "tape_root": "/home/andre2/GX1_DATA/data/oanda/canonical/foreign_fx_m5_bid_ask__CANONICAL",
+                "tape_root": "/data/untrusted_asset/m5_bid_ask",
             }
         ),
         encoding="utf-8",
@@ -1576,7 +1575,7 @@ def test_entry_v10_xau_direction_repair_requires_xau_manifest_provenance(tmp_pat
 
     failures = trainer._xau_direction_repair_manifest_failures({"train": parquet})
 
-    assert any("XAUUSD tape_root" in item for item in failures)
+    assert any("immutable XAU_USD tape provenance invalid" in item for item in failures)
 
 
 def test_entry_v10_outcome_target_contract_does_not_rewrite_structural_rows() -> None:

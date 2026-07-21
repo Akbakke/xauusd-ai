@@ -20,6 +20,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
 )
+from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     V12_DIRECTION_UTILITY_MAE_WEIGHT,
     V12_DIRECTION_UTILITY_MFE_WEIGHT,
@@ -160,6 +161,7 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
         "contract_mode": str(extra.get("contract_mode") or ""),
         "direction_logit_mode": str(extra.get("direction_logit_mode") or ""),
         "model_native_signal_contract": extra.get("model_native_signal_contract"),
+        "xau_tape_provenance": extra.get("xau_tape_provenance"),
         "fields": list(bridge.get("fields") or []),
         "splits": manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {},
         "model_native_state_contract": (
@@ -606,6 +608,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if marker in dataset_dir_text:
             failures.append(f"dataset_dir contains known stale XAU repair marker {marker!r}: {dataset_dir}")
 
+    tape_provenance_cache: dict[tuple[str, str], dict[str, Any]] = {}
+    tape_provenance_by_split: dict[str, dict[str, Any]] = {}
     for row in split_reports:
         split = str(row.get("split"))
         seq_mode = row.get("seq_structure_extension_mode")
@@ -640,20 +644,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         if forbidden:
             failures.append(f"{split}: forbidden legacy bridge fields: {forbidden}")
-        tape_root = str(provenance.get("tape_root") or "").lower()
-        if "xauusd" not in tape_root:
-            failures.append(
-                f"{split}: XAU repair requires XAUUSD tape_root provenance; observed={tape_root!r}"
-            )
-        failures.extend(
-            _state_contract_failures(
-                provenance.get("model_native_state_contract")
-                if isinstance(provenance.get("model_native_state_contract"), dict)
-                else {},
-                split=split,
-            )
-        )
         state_contract = provenance.get("model_native_state_contract")
+        state_contract = state_contract if isinstance(state_contract, dict) else {}
+        failures.extend(_state_contract_failures(state_contract, split=split))
+        tape_root = str(provenance.get("tape_root") or "").strip()
+        expected_run_id = str(state_contract.get("entry_run_id") or "").strip()
+        cache_key = (tape_root, expected_run_id)
+        try:
+            if cache_key not in tape_provenance_cache:
+                tape_provenance_cache[cache_key] = validate_xau_tape_provenance_v1(
+                    tape_root,
+                    expected_run_id=expected_run_id,
+                    require_current=True,
+                )
+            tape_provenance_by_split[split] = tape_provenance_cache[cache_key]
+            declared_tape_provenance = provenance.get("xau_tape_provenance")
+            if declared_tape_provenance != tape_provenance_by_split[split]:
+                failures.append(
+                    f"{split}: dataset manifest XAU_USD tape binding differs from "
+                    "the revalidated immutable tape lineage"
+                )
+        except (RuntimeError, OSError, ValueError) as exc:
+            failures.append(f"{split}: immutable XAU_USD tape provenance invalid: {exc}")
         splits_contract = provenance.get("splits")
         train_window = (
             splits_contract.get("train")
@@ -760,9 +772,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "TRAIN/VAL/TEST must share one immutable common-history/TRAIN-rank contract"
                 )
 
+    if len(tape_provenance_by_split) > 1:
+        baseline_split = next(iter(tape_provenance_by_split))
+        baseline = tape_provenance_by_split[baseline_split]
+        for split, proof in tape_provenance_by_split.items():
+            if proof != baseline:
+                failures.append(
+                    f"{split}: immutable XAU_USD tape provenance differs from "
+                    f"{baseline_split}; TRAIN/VAL/TEST must share one exact tape lineage"
+                )
+
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     report = {
-        "schema_version": "xau_direction_repair_pretrain_audit_v1",
+        "schema_version": "xau_direction_repair_pretrain_audit_v2",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         "dataset_dir": str(dataset_dir),
@@ -775,6 +797,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "required_rail_features": list(REQUIRED_RAIL_FEATURES),
         "missing_rail_features": missing_rail_features,
         "required_xau_target_columns": list(REQUIRED_XAU_TARGET_COLUMNS),
+        "tape_provenance": tape_provenance_by_split,
         "thresholds": {
             "support_dominance_min": float(args.support_dominance_min),
             "min_pocket_rows": int(args.min_pocket_rows),

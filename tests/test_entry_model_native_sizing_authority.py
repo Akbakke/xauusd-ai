@@ -141,7 +141,7 @@ def test_flat_is_exact_zero_without_changing_direction(tmp_path: Path) -> None:
         None,
         {"account_equity": float("nan")},
         {"account_equity": 0.0},
-        {"instrument": "EUR_USD"},
+        {"instrument": "INVALID_INSTRUMENT"},
         {"margin_rate": 0.04},
         {"unit_step": 2},
         {"maximum_gross_xau_units": 999},

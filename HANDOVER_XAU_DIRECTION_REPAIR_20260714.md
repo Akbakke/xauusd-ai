@@ -24,13 +24,31 @@ authority. Candidate, replay, paper/demo/live and promotion remain closed.
 
 ### 2026-07-21 active rebuild incident
 
-V12 is now the latest terminal attempt and is `ABORTED`. Its source cascade,
-ranking, manifest and preflight passed; its full-history dataset build also
-passed with 2,207 warmup rows and emitted train=357,519, val=5,676 and
-test=8,406. It was stopped during the exhaustive liveness scan before that
-producer wrote any artifact because the inherited source/test cutoff was
-2026-06-14 and fresh data through 2026-07-21 was available. V12 proves the
-history fix, but no V12 file is current empirical authority.
+V17 is the latest terminal attempt and is immutable `RED`; it must not be
+retried or resumed. Its fresh source reaches the last complete M5 bar at
+2026-07-21T18:40Z. The source audit passed on 392,979 x 188 FULL_PLUS rows:
+all 187 numeric fields were finite and live, with no constants or exact
+duplicates. Exact seq513 preflight and dataset materialization passed with
+train=369,081, val=5,904 and test=3,918. The exhaustive schema-v3 input
+liveness contract then passed all 513 signal fields, 142 continuous context
+fields, five categorical context fields and the target-completeness checks.
+
+V17 stopped at the pretrain audit because that consumer inferred instrument
+identity from whether the event-local directory name contained `xauusd`.
+The directory was correctly named `m5_tape_repaired_dec2024`; the immutable
+repair manifest and its source hashes were valid. This was a brittle
+path-name heuristic, not a data, feature or target failure. V17 remains RED
+because output-bearing lineages are never repaired in place.
+
+The heuristic has now been removed from the pretrain audit and trainer. The
+replacement `xau_tape_provenance_v1` contract requires explicit `XAU_USD`,
+the exact run id, producer method, zero geometry failures, exact collector/M5
+overlap, canonical M1/M5 manifest identity, every base/current year hash and
+every immutable collector-snapshot hash. Dataset manifests bind the complete
+proof and consumers revalidate it against disk. Repair/current tape schemas
+are v2, source-cascade proof is v5 and pretrain audit is v2; older schemas fail
+closed. All explicit non-XAU instrument references were removed from the GX1
+repository and active project hook. A wholly fresh V18 lineage is required.
 
 The active OANDA collector has been checked read-only through 2026-07-21:
 47,086 canonical-overlap M1 rows are bit-exact across all 13 numeric fields;
@@ -42,7 +60,7 @@ that seam but was rejected before dataset construction because its MTF cache
 used trimmed model-range rather than full canonical-v3. V14 rebuilt fresh and
 its source cascade is PASS through 2026-07-21T17:00Z (392,959 x 188; all 187
 numeric fields live; no constants, exact duplicates, nonfinite or fallback).
-V14 uses TRAIN ending 2026-05-31, June VAL and July TEST through the explicit
+V14 used TRAIN ending 2026-05-31, June VAL and July TEST through the explicit
 last closed M5 cutoff. End dates are mandatory CLI inputs, never defaults.
 
 Historical V11 incident follows for root-cause provenance.
@@ -72,9 +90,11 @@ row. The earlier zero-copy commit `1a51ce42` raised complete feature throughput
 to about 2,062 rows/s; a 4,096-row block measured 1.99 seconds and was
 bit-identical to V10 output over 17 x 60 sampled values.
 
-No V11-V13 ranking, manifest, preflight, checkpoint or source artifact may be
-resumed. The next authority candidate is the wholly fresh V14 chain. V1-V13
-remain failure/diagnostic evidence only.
+No V1-V17 ranking, manifest, preflight, checkpoint, dataset or source artifact
+may be promoted or resumed. The next authority candidate is a wholly fresh
+V18 chain. Earlier runs remain failure/diagnostic evidence only; V17's full
+input-liveness PASS is genuine diagnostic proof but grants no training or
+launch authority.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
 another heavy run: the TRAIN-rank reference is created before ranking and

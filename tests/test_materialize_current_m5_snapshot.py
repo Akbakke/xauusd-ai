@@ -9,6 +9,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.xau_tape_provenance_v1 import (
+    BASE_REPAIR_METHOD,
+    BASE_REPAIR_SCHEMA,
+    XAU_INSTRUMENT,
+    canonical_xau_source_descriptor_v1,
+)
 from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5
 from gx1.scripts.materialize_current_m5_snapshot_v1 import (
     REQUIRED_COLUMNS,
@@ -50,6 +56,24 @@ def _m1() -> pd.DataFrame:
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path]:
+    canonical_sources = {}
+    for key, timeframe in (("m5", "M5"), ("m1", "M1")):
+        canonical_root = tmp_path / f"canonical_{key}"
+        canonical_root.mkdir()
+        (canonical_root / "MANIFEST.json").write_text(
+            json.dumps(
+                {
+                    "instrument": "XAUUSD",
+                    "timeframe": timeframe,
+                    "out_root": str(canonical_root.resolve()),
+                }
+            ),
+            encoding="utf-8",
+        )
+        canonical_sources[key] = canonical_xau_source_descriptor_v1(
+            canonical_root.resolve(),
+            timeframe=timeframe,
+        )
     base = tmp_path / "base"
     part = base / "year=2026" / "part-000.parquet"
     part.parent.mkdir(parents=True)
@@ -75,9 +99,14 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     (base / "REPAIR_MANIFEST.json").write_text(
         json.dumps(
             {
-                "schema_version": "m5_tape_dec2024_repair_manifest_v1",
+                "schema_version": BASE_REPAIR_SCHEMA,
+                "instrument": XAU_INSTRUMENT,
                 "explicit_vedtak_id": RUN_ID,
+                "method": BASE_REPAIR_METHOD,
                 "geometry_bad_total_after": 0,
+                "m5_tape_root": canonical_sources["m5"]["root"],
+                "m1_tape_root": canonical_sources["m1"]["root"],
+                "canonical_sources": canonical_sources,
                 "years": {"year=2026": {"output_sha256": _sha(part)}},
             }
         ),
@@ -109,6 +138,7 @@ def test_materializes_immutable_current_tape_with_exact_overlap(tmp_path: Path) 
 
     output = pd.read_parquet(args.out_root / "year=2026" / "part-000.parquet")
     assert report["schema_version"] == SCHEMA_VERSION
+    assert report["instrument"] == XAU_INSTRUMENT
     assert report["entry_run_id"] == RUN_ID
     assert report["overlap_exact"] is True
     assert report["overlap_proof"]["rows"] == 2

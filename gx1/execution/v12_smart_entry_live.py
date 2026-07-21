@@ -923,7 +923,7 @@ def assert_smart_serving_gate() -> dict:
     parity_dataset_low = parity_dataset.lower()
     if not parity_dataset:
         problems.append("parity report missing dataset_dir")
-    elif "xau" not in parity_dataset_low or "eur" in parity_dataset_low:
+    elif "xau" not in parity_dataset_low:
         problems.append(f"parity dataset_dir must be XAU-only, got {parity_dataset}")
     for stale_marker in ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext"):
         if stale_marker in parity_dataset_low:
@@ -964,7 +964,7 @@ def assert_smart_serving_gate() -> dict:
             audit_low = audit_path.lower()
             if not audit_path:
                 problems.append(f"direction pocket audit missing {audit_field}")
-            elif "xau" not in audit_low or "eur" in audit_low:
+            elif "xau" not in audit_low:
                 problems.append(f"direction pocket audit {audit_field} must be XAU-only, got {audit_path}")
             for stale_marker in ("utilityrepair", "20260710", "smart_candidate_20260630", "julyext"):
                 if stale_marker in audit_low:

@@ -54,7 +54,7 @@ BUNDLE_ARTIFACT_KEYS = (
 INPUT_AUDIT_SCHEMAS = {
     "target": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
     "specialist": "entry_specialist_feature_group_audit_v1",
-    "pretrain": "xau_direction_repair_pretrain_audit_v1",
+    "pretrain": "xau_direction_repair_pretrain_audit_v2",
 }
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _CLASS_NAMES = ("LONG", "SHORT", "FLAT")

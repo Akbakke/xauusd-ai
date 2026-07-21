@@ -8,6 +8,14 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from gx1.contracts.xau_tape_provenance_v1 import (
+    BASE_REPAIR_METHOD,
+    BASE_REPAIR_SCHEMA,
+    CURRENT_SNAPSHOT_METHOD,
+    CURRENT_SNAPSHOT_SCHEMA,
+    XAU_INSTRUMENT,
+    canonical_xau_source_descriptor_v1,
+)
 from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.scripts import audit_seq513_source_cascade_v1 as audit
 from gx1.scripts.materialize_cv3_modelrange_v1 import SCHEMA_VERSION as MODELRANGE_SCHEMA
@@ -32,6 +40,42 @@ def _write_json(path: Path, payload: dict) -> None:
 def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = tmp_path / "event"
     root.mkdir()
+    canonical_sources = {}
+    for key, timeframe in (("m5", "M5"), ("m1", "M1")):
+        canonical_root = tmp_path / f"canonical_{key}"
+        canonical_root.mkdir()
+        _write_json(
+            canonical_root / "MANIFEST.json",
+            {
+                "instrument": "XAUUSD",
+                "timeframe": timeframe,
+                "out_root": str(canonical_root.resolve()),
+            },
+        )
+        canonical_sources[key] = canonical_xau_source_descriptor_v1(
+            canonical_root.resolve(), timeframe=timeframe
+        )
+    base_tape = tmp_path / "base_tape"
+    base_years = {}
+    for year in range(2020, 2027):
+        part = base_tape / f"year={year}" / "part-000.parquet"
+        part.parent.mkdir(parents=True)
+        part.write_bytes(f"base-tape-{year}".encode())
+        base_years[f"year={year}"] = {"output_sha256": _sha(part)}
+    _write_json(
+        base_tape / "REPAIR_MANIFEST.json",
+        {
+            "schema_version": BASE_REPAIR_SCHEMA,
+            "instrument": XAU_INSTRUMENT,
+            "explicit_vedtak_id": RUN_ID,
+            "method": BASE_REPAIR_METHOD,
+            "geometry_bad_total_after": 0,
+            "m5_tape_root": canonical_sources["m5"]["root"],
+            "m1_tape_root": canonical_sources["m1"]["root"],
+            "canonical_sources": canonical_sources,
+            "years": base_years,
+        },
+    )
     tape = root / "m5_tape_repaired_dec2024"
     years = {}
     for year in range(2020, 2027):
@@ -39,11 +83,33 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         part.parent.mkdir(parents=True)
         part.write_bytes(f"tape-{year}".encode())
         years[f"year={year}"] = {"output_sha256": _sha(part)}
+    snapshot = tape / "collector_snapshot" / "xauusd_m1_fixture.parquet"
+    snapshot.parent.mkdir()
+    snapshot.write_bytes(b"immutable-xau-collector-snapshot")
     _write_json(
         tape / "REPAIR_MANIFEST.json",
         {
-            "schema_version": "m5_tape_dec2024_repair_manifest_v1",
-            "explicit_vedtak_id": RUN_ID,
+            "schema_version": CURRENT_SNAPSHOT_SCHEMA,
+            "instrument": XAU_INSTRUMENT,
+            "entry_run_id": RUN_ID,
+            "method": CURRENT_SNAPSHOT_METHOD,
+            "last_complete_m5_utc": "2026-01-01T00:05:00+00:00",
+            "base_tape_root": str(base_tape.resolve()),
+            "base_manifest_path": str((base_tape / "REPAIR_MANIFEST.json").resolve()),
+            "base_manifest_sha256": _sha(base_tape / "REPAIR_MANIFEST.json"),
+            "base_year_sha256": {
+                key: value["output_sha256"] for key, value in base_years.items()
+            },
+            "collector_sources": [
+                {
+                    "source_path": "/collector/xauusd_m1_fixture.parquet",
+                    "snapshot_path": str(snapshot.resolve()),
+                    "sha256": _sha(snapshot),
+                    "rows": 1,
+                }
+            ],
+            "overlap_exact": True,
+            "overlap_proof": {"rows": 1, "max_abs_diff": 0.0, "new_tail_rows": 1},
             "geometry_bad_total_after": 0,
             "years": years,
         },

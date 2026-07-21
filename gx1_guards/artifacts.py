@@ -63,7 +63,6 @@ SELECTION_CONTRACT = REPO_ROOT / "PROJECT_STATE_artifacts.json"
 XAU_DIRECTION_LAUNCH_CONTRACT = REPO_ROOT / "PROJECT_STATE_xau_direction_launch.json"
 
 THIS_PROJECT = "XAUUSD"
-FORBIDDEN_PATH_FRAGMENTS = ("/eur", "\\eur", "_eur", "eur_")
 SERVE_GATE_EVIDENCE_CONTRACT = {
     "model_native_serve_parity": (
         "MODEL_NATIVE_SERVE_PARITY",
@@ -96,15 +95,6 @@ def _load_contract() -> dict:
             "Decisioning requires an explicit ACTIVE contract — refusing to guess."
         )
     return json.loads(SELECTION_CONTRACT.read_text())
-
-
-def _check_isolation(path_str: str) -> None:
-    low = path_str.lower()
-    if any(fragment in low for fragment in FORBIDDEN_PATH_FRAGMENTS):
-        raise ArtifactGuardError(
-            f"Project isolation violation: '{path_str}' references a non-XAU project "
-            f"inside a {THIS_PROJECT} run. Project artifacts must never mix."
-        )
 
 
 def _sha256_file(path: Path) -> str:
@@ -631,7 +621,6 @@ def load_decision_entry(role: str) -> dict:
             f"Artifact for '{role}' is flagged in_sample_only — never decision-valid."
         )
     path_str = entry["path"]
-    _check_isolation(path_str)
     path = Path(path_str)
     if not path.is_absolute():
         path = (REPO_ROOT / path).resolve()
