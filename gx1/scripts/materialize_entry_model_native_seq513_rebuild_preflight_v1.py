@@ -24,6 +24,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+    validate_train_rank_reference_lineage_v2,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -658,7 +659,10 @@ def _freshness_contract(
         "rank_reference_npz": str(rank_reference),
         "rank_reference_sidecar": str(rank_sidecar),
         "rank_reference_suffix_valid": rank_reference.suffix == ".npz",
-        "rank_reference_fresh": not rank_reference.exists() and not rank_sidecar.exists(),
+        "rank_reference_present": rank_reference.is_file()
+        and not rank_reference.is_symlink(),
+        "rank_reference_sidecar_present": rank_sidecar.is_file()
+        and not rank_sidecar.is_symlink(),
         "output": str(output),
         "output_suffix_valid": output.name.endswith("__HOLD_03B.parquet"),
         "existing_output_artifacts": existing,
@@ -704,6 +708,7 @@ def _command_contract(
         str(feature_ranking_json),
         "--rank-reference-npz",
         str(rank_reference_npz),
+        "--existing-rank-reference",
         "--mtf-cache-dir",
         str(mtf_cache_dir),
         "--tape-root",
@@ -767,6 +772,7 @@ def _command_contract(
                 rank_reference_npz.with_suffix(rank_reference_npz.suffix + ".json")
             ),
             "materialized_before_dataset_builder": True,
+            "materialized_before_feature_ranker": True,
             "feature_history_start_utc": split_schedule["history"]["start"],
             "fit_start_utc": split_schedule["train"]["start"],
             "fit_end_utc": split_schedule["train"]["end"],
@@ -780,6 +786,7 @@ def _command_contract(
             "run_lineage_required": True,
             "run_id_bound_in_npz_and_sidecar": True,
             "dataset_builder_requires_same_run_id": True,
+            "preflight_validates_exact_existing_reference": True,
         },
         "fixed_builder_contract": {
             "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
@@ -1036,10 +1043,48 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     _check(
         checks,
-        "rank-reference NPZ and sidecar paths are fresh",
+        "rank-reference NPZ and sidecar are explicit existing immutable inputs",
         freshness["rank_reference_suffix_valid"]
-        and freshness["rank_reference_fresh"],
+        and freshness["rank_reference_present"]
+        and freshness["rank_reference_sidecar_present"],
         freshness,
+    )
+    rank_reference_lineage: dict[str, Any] = {}
+    rank_reference_failures: list[str] = []
+    if split_schedule and source_sha:
+        try:
+            reference = validate_train_rank_reference_lineage_v2(
+                rank_reference_npz,
+                expected_run_id=entry_run_id,
+                expected_source_parquet=source_parquet,
+                expected_source_sha256=source_sha,
+                expected_history_start_utc=split_schedule["history"]["start"],
+                expected_fit_start_utc=split_schedule["train"]["start"],
+                expected_fit_end_utc=split_schedule["train"]["end"],
+            )
+            rank_reference_lineage = {
+                "path": str(reference.path),
+                "sha256": reference.sha256,
+                "sidecar_sha256": reference.sidecar_sha256,
+                "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+                "fit_start_utc": reference.fit_start_utc.isoformat(),
+                "fit_end_utc": reference.fit_end_utc.isoformat(),
+                "fit_row_count": reference.fit_row_count,
+            }
+        except (RuntimeError, TypeError, ValueError) as exc:
+            rank_reference_failures.append(str(exc))
+    else:
+        rank_reference_failures.append(
+            "source hash and valid split schedule are required before rank-reference validation"
+        )
+    _check(
+        checks,
+        "rank-reference binds the exact run_id, source hash, history, and TRAIN window",
+        not rank_reference_failures,
+        {
+            "lineage": rank_reference_lineage,
+            "failures": rank_reference_failures,
+        },
     )
     _check(
         checks,
@@ -1083,7 +1128,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures = [row for row in checks if not row["ok"]]
     created_utc = datetime.now(timezone.utc)
     report = {
-        "schema_version": "entry_model_native_seq513_rebuild_preflight_v2",
+        "schema_version": "entry_model_native_seq513_rebuild_preflight_v3",
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,
@@ -1129,6 +1174,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "signal_manifest": _artifact_meta(signal_manifest_path),
             "feature_ranking_json": _artifact_meta(feature_ranking_path),
             "rank_and_output_freshness": freshness,
+            "rank_reference_lineage": rank_reference_lineage,
             "source_time_contract": source_time,
             "multi_tf_cache": mtf,
             "tape": tape,

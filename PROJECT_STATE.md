@@ -14,13 +14,23 @@ the restored scoped runner lost the rank process. All V3/V4 partial
 proof/status has no authority. See ROADMAP.md and the handover for the
 required recovery order.
 
-The execution-path source repair is now present: ranking is owned by the same
-chain as the dataset build, every capped heavy command competes for one
+The execution-path source repair is now present: the immutable TRAIN-rank
+reference is created before and bound into ranking, and ranking is owned by the
+same chain as the dataset build. Every capped heavy command competes for one
 host-wide exclusive lock, Group-A persists exact 4096-row chunks with
 frame/MTF/field/run-window identity, the ranker and builder permit one exact
-checkpoint retry, and terminal chain exits publish immutable schema-v3 events.
+checkpoint retry, and terminal chain exits publish immutable schema-v4 events.
 Focused and causal integration tests pass. No fresh full rebuild has exercised
 this repair, so it creates no accepted dataset or empirical authority.
+
+The feature audit also closed four source mismatches before any new rebuild:
+ranking now applies the same immutable TRAIN ECDF/ATR transform as dataset and
+serve; the EMA layer uses exact common-history `close` and recomputed `atr`
+with no schema fallback; signed BOS/sweep pressure is split symmetrically; and
+the unprovable partial live MTF splice is removed in favor of an exact
+zero-gap/full-refresh requirement. The mandatory specialist prefix is 316
+fields across eleven families, including all 11 M5 EMA50/200 state/cross
+fields; 163 positions remain deterministic TRAIN-only ranking-owned.
 
 There is no accepted model-native seq513 bundle. The active source contract is
 513 signals, 142 continuous context fields, 5 categorical context fields,
@@ -29,9 +39,9 @@ sequence length 96, five timeframes, eight specialists and one calibrated
 feed one exact learned 26-group/96-value fusion (`96 -> 128 -> 3`).
 
 The 513 signals are 34 code-owned base fields plus 479 specialist fields. The
-first 305 specialist fields are every output from ten registered causal
+first 316 specialist fields are every output from eleven registered causal
 full-stack layers and are mandatory in exact registry order. Only the final
-174 positions are chosen by deterministic TRAIN-only ranking. This prevents
+163 positions are chosen by deterministic TRAIN-only ranking. This prevents
 feature selection from ranking away an entire trend, session, liquidity,
 structure, volatility, momentum, price-action, support/resistance or MTF
 evidence layer.

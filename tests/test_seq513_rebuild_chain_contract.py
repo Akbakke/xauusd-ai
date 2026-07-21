@@ -31,10 +31,16 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         assert required in source
 
     assert source.count('--feature-ranking-json "$RANKING"') == 3
-    assert source.count('--run-id "$RUN_ID"') == 4
+    assert source.count('--run-id "$RUN_ID"') == 5
+    assert "materialize_model_native_train_rank_reference_v2" in source
     assert "materialize_entry_model_native_train_feature_ranker_v1" in source
+    assert '--rank-reference-npz "$RANK_NPZ"' in source
+    assert '--existing-rank-reference' in source
     assert '--out "$RANKING"' in source
     assert "gx1_capped_run.sh --mem 30G --swap 2G" in source
+    assert source.index("materialize_model_native_train_rank_reference_v2") < source.index(
+        "materialize_entry_model_native_train_feature_ranker_v1"
+    )
     for forbidden in (
         "pgrep",
         "sleep 60",
@@ -54,7 +60,7 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
 
     assert 'git -C "$ENG" rev-parse --verify HEAD' in source
     assert 'git -C "$ENG" status --porcelain --untracked-files=all' in source
-    assert source.count("require_source_identity") == 9
+    assert source.count("require_source_identity") == 11
     assert 'repository HEAD changed after binding' in source
     assert 'repository worktree changed after binding' in source
     assert '"git_head": git_head or None' in source
@@ -67,7 +73,8 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
     assert '"entry_run_id": run_id' in source
     assert '"step": step' in source
     assert '"state": state' in source
-    assert '"schema_version": "seq513_rebuild_chain_status_v3"' in source
+    assert '"schema_version": "seq513_rebuild_chain_status_v4"' in source
+    assert '"rank_reference": {' in source
     assert '"boot_id": boot_id' in source
     assert '"chain_pid": int(chain_pid)' in source
     assert 'f"CHAIN_TERMINAL_{stamp}_{state}.json"' in source
@@ -150,7 +157,13 @@ def test_chain_validation_failure_persists_red_run_lineage_and_revision(
     assert re.fullmatch(r"[0-9a-f]{40}", status["git_head"])
     assert Path(status["log_path"]).is_file()
     assert status["exit_code"] == 2
-    assert status["schema_version"] == "seq513_rebuild_chain_status_v3"
+    assert status["schema_version"] == "seq513_rebuild_chain_status_v4"
+    assert status["rank_reference"]["path"].endswith(
+        "model_native_train_rank_reference_v4.npz"
+    )
+    assert status["rank_reference"]["sidecar_path"].endswith(
+        "model_native_train_rank_reference_v4.npz.json"
+    )
     assert re.fullmatch(r"[0-9a-f-]{36}", status["boot_id"])
     assert status["chain_pid"] > 0
     terminal = Path(status["terminal_event_path"])

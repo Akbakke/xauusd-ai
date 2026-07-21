@@ -14,7 +14,7 @@ live rule or fallback.
 
 ## Current state
 
-Run lineage is XAU_SEQ513_REBUILD_20260720_V2. V1, V2, V3 and V4 event
+There is no reusable active run lineage. V1, V2, V3 and V4 event
 attempts are non-authoritative failure evidence. Fresh V3 ranking, manifest
 and preflight validated, but the V3 dataset builder stopped non-terminally
 immediately after the canonical join while beginning Group-A causal context.
@@ -24,10 +24,15 @@ fresh rank process before any ranking artifact/checkpoint existed. No dataset,
 bundle, candidate, OOS edge or launch evidence is accepted.
 
 Source repair is now implemented but not yet empirically exercised by a fresh
-full run. The one chain owns ranking through dataset audit, the capped runner
+full run. The one chain creates the immutable TRAIN-rank reference before
+ranking and owns that reference through dataset audit; the capped runner
 holds one host-wide exclusive heavy-job lock, Group-A persists exact
 4096-row hash-bound chunks and can make one strict same-attempt resume, and
-normal/signal exits publish immutable schema-v3 terminal events. V3/V4 remain
+normal/signal exits publish immutable schema-v4 terminal events. The mandatory
+specialist prefix is now 316 fields across eleven families, including exact M5
+EMA50/200 state/cross evidence; only 163 fields are TRAIN-ranked. Ranking,
+dataset and live use the same bound ECDF/ATR state and exact `close`/`atr`
+inline source. V3/V4 remain
 failure evidence; their partial files are not resume inputs.
 
 ## Ordered gates

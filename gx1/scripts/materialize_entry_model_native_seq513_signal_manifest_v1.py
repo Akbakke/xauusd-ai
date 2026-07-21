@@ -4,7 +4,7 @@
 The upstream feature-ranking JSON is a required offline TRAIN-only input, not
 runtime authority and not a selected-field pass-through.  This consumer always
 places every code-owned causal full-stack field first, in registry order, then
-fills only the remaining 174 positions from the deterministic ranking.
+fills only the remaining positions from the deterministic ranking.
 """
 from __future__ import annotations
 
@@ -40,17 +40,23 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     group_features_by_specialist,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_model_native_state_v2 import (
+    MODEL_NATIVE_RANK_TRANSFORM,
+    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+    parse_utc as parse_state_utc,
+    validate_train_rank_reference_lineage_v2,
+)
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v2"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v3"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v2"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v3"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v2"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v3"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v2"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v3"
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "score_descending",
     "tie_break": "feature_name_ascending",
@@ -81,9 +87,28 @@ _RANKING_TOP_LEVEL_KEYS = frozenset(
         "target_time_max_utc",
         "source_sha256",
         "target_sha256",
+        "rank_reference",
         "ranking_order",
         "causality_contract",
         "ranked_features",
+    }
+)
+_RANK_REFERENCE_KEYS = frozenset(
+    {
+        "path",
+        "sha256",
+        "sidecar_path",
+        "sidecar_sha256",
+        "schema_version",
+        "entry_run_id",
+        "source_parquet",
+        "source_parquet_sha256",
+        "history_start_utc",
+        "fit_start_utc",
+        "fit_end_utc",
+        "fit_row_count",
+        "fit_scope",
+        "rank_transform",
     }
 )
 _RANKING_ROW_KEYS = frozenset({"rank", "name", "score"})
@@ -301,6 +326,53 @@ def load_and_validate_train_feature_ranking(
     if source_hash == target_hash:
         raise RuntimeError("FEATURE_RANKING_SOURCE_TARGET_HASH_COLLISION")
 
+    raw_rank_reference = ranking.get("rank_reference")
+    if (
+        not isinstance(raw_rank_reference, dict)
+        or frozenset(raw_rank_reference) != _RANK_REFERENCE_KEYS
+    ):
+        raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_SCHEMA_INVALID")
+    rank_path = _absolute_without_resolving(
+        Path(str(raw_rank_reference.get("path") or ""))
+    )
+    _require_no_symlink_components(rank_path, field="FEATURE_RANKING_RANK_REFERENCE")
+    history_start = parse_state_utc(
+        raw_rank_reference.get("history_start_utc"), field="history_start_utc"
+    )
+    reference = validate_train_rank_reference_lineage_v2(
+        rank_path,
+        expected_run_id=entry_run_id,
+        expected_source_parquet=Path(
+            str(raw_rank_reference.get("source_parquet") or "")
+        ),
+        expected_source_sha256=source_hash,
+        expected_history_start_utc=history_start,
+        expected_fit_start_utc=train_start,
+        expected_fit_end_utc=train_end,
+    )
+    expected_rank_reference = {
+        "path": str(reference.path),
+        "sha256": reference.sha256,
+        "sidecar_path": str(
+            reference.path.with_suffix(reference.path.suffix + ".json")
+        ),
+        "sidecar_sha256": reference.sidecar_sha256,
+        "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+        "entry_run_id": entry_run_id,
+        "source_parquet": str(
+            Path(str(reference.sidecar["source_parquet"])).expanduser().resolve()
+        ),
+        "source_parquet_sha256": source_hash,
+        "history_start_utc": history_start.isoformat(),
+        "fit_start_utc": reference.fit_start_utc.isoformat(),
+        "fit_end_utc": reference.fit_end_utc.isoformat(),
+        "fit_row_count": reference.fit_row_count,
+        "fit_scope": "train_only",
+        "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
+    }
+    if raw_rank_reference != expected_rank_reference:
+        raise RuntimeError("FEATURE_RANKING_RANK_REFERENCE_METADATA_MISMATCH")
+
     raw_rows = ranking.get("ranked_features")
     if not isinstance(raw_rows, list) or not raw_rows:
         raise RuntimeError("FEATURE_RANKING_ROWS_MISSING")
@@ -454,6 +526,7 @@ def validate_signal_manifest_training_lineage(
         "target_sha256": ranking["target_sha256"],
         "ranking_order": ranking["ranking_order"],
         "causality_contract": ranking["causality_contract"],
+        "rank_reference": ranking["rank_reference"],
         "ranked_feature_count": len(ranked_names),
         "eligible_ranked_remainder_count": len(eligible_ranked_names),
         "mandatory_names_in_ranking_count": len(ranked_names)
@@ -625,6 +698,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "target_sha256": ranking["target_sha256"],
             "ranking_order": ranking["ranking_order"],
             "causality_contract": ranking["causality_contract"],
+            "rank_reference": ranking["rank_reference"],
             "ranked_feature_count": len(ranked_names),
             "eligible_ranked_remainder_count": len(eligible_ranked_names),
             "mandatory_names_in_ranking_count": len(ranked_names)

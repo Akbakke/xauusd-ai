@@ -33,7 +33,7 @@ def _valid_inputs(tmp_path: Path, *, rows: int = 240):
         {
             "time": times,
             "mid": mid,
-            "_v1_atr14": 2.0 + 0.1 * np.cos(index * 0.09),
+            "atr": 2.0 + 0.1 * np.cos(index * 0.09),
             "open": open_,
             "high": np.maximum(open_, close) + 0.2,
             "low": np.minimum(open_, close) - 0.2,
@@ -67,14 +67,14 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 242),
-            "8958e1eb2cd189a1c8a41a2f12cb741dd577aab6959dfff42631777435814600",
+            "ad9c0db57d7c3eea1f4bf371f014ca5ccd58484dd46e17eac9e7ec172aebc34c",
             "df40b572938f61d81be0cac5dad4df44e6f48b1233a0d224cc734c14e1ff01d9",
         ),
         "price": (
             price_x,
             price_names,
             (240, 11),
-            "9c05ab71393cdc2cb59ad528c8e37d8f0f7383dd894b8b78fc236b2bb3e8f102",
+            "f3c674be109a152bd7ba4936f6ae7ae080c58265b642f42e3b56ef67f190ffa6",
             "cbc76f9975d8087be90ab336ee5fc3cfc2e5bba0fdc42bf64bcd5dec5fcd5f1a",
         ),
         "candle": (
@@ -88,7 +88,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             deep_x,
             deep_names,
             (240, 315),
-            "41f82cbc9f0d0c6ebb046c459de0806f92c384a1f2171ac099a13d399b7c85d6",
+            "1d56def10301459fea2189935841fcc07f1ab2a8fa3637e9e10e766309023722",
             "8492ae7579b24364d21edbe08678177ea4610edb8e1a3cecf97d96625c4f82a8",
         ),
     }
@@ -122,12 +122,12 @@ def test_price_layer_rejects_missing_or_invalid_source_evidence(tmp_path: Path) 
     _matrix, _names, samples, source, _source_path = _valid_inputs(tmp_path)
 
     missing_atr = tmp_path / "missing_atr.parquet"
-    source.drop(columns=["_v1_atr14"]).to_parquet(missing_atr, index=False)
+    source.drop(columns=["atr"]).to_parquet(missing_atr, index=False)
     with pytest.raises(RuntimeError, match="PRICE_DERIVED_SOURCE_ATR_MISSING"):
         build_price_derived_layer(samples, missing_atr)
 
     nonfinite = source.copy()
-    nonfinite.loc[10, "_v1_atr14"] = np.nan
+    nonfinite.loc[10, "atr"] = np.nan
     nonfinite_path = tmp_path / "nonfinite_atr.parquet"
     nonfinite.to_parquet(nonfinite_path, index=False)
     with pytest.raises(RuntimeError, match="PRICE_DERIVED_SOURCE_NONFINITE"):
@@ -149,6 +149,53 @@ def test_price_layer_rejects_missing_or_invalid_source_evidence(tmp_path: Path) 
     )
     with pytest.raises(RuntimeError, match="PRICE_DERIVED_SOURCE_ROW_GAP"):
         build_price_derived_layer(gap_samples, tmp_path / "canonical_source.parquet")
+
+
+def test_price_layer_uses_exact_close_and_has_no_mid_fallback(tmp_path: Path) -> None:
+    _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
+    expected, expected_names = build_price_derived_layer(samples, source_path)
+
+    changed_mid = source.copy()
+    changed_mid["mid"] = changed_mid["mid"] * 7.0 + 123.0
+    changed_mid_path = tmp_path / "changed_mid.parquet"
+    changed_mid.to_parquet(changed_mid_path, index=False)
+    observed, observed_names = build_price_derived_layer(samples, changed_mid_path)
+    assert observed_names == expected_names
+    np.testing.assert_array_equal(observed, expected)
+
+    mid_only_path = tmp_path / "mid_only.parquet"
+    source.drop(columns=["close"]).to_parquet(mid_only_path, index=False)
+    with pytest.raises(RuntimeError, match="PRICE_DERIVED_SOURCE_PRICE_MISSING"):
+        build_price_derived_layer(samples, mid_only_path)
+
+
+def test_chart_layer_bos_and_sweep_pressures_are_directionally_symmetric(
+    tmp_path: Path,
+) -> None:
+    _matrix, names, _samples, _source, _source_path = _valid_inputs(tmp_path, rows=2)
+    matrix = np.zeros((2, len(names)), dtype=np.float32)
+    index = {name: column for column, name in enumerate(names)}
+
+    for name in (
+        "ctx_cont._v1h1_ema_diff",
+        "ctx_cont._v1h4_ema_diff",
+        "ctx_cont.d1_ema_slope_20_canon_v2",
+        "ctx_cont.m15_trend_sign_canon_v2",
+    ):
+        matrix[:, index[name]] = np.asarray([1.0, -1.0], dtype=np.float32)
+    matrix[:, index["ctx_cont.smc_bos_pressure_last12"]] = [0.8, -0.8]
+    matrix[:, index["ctx_cont.smc_bos_pressure_last48"]] = [0.4, -0.4]
+    matrix[:, index["ctx_cont.smc_sweep_bull_pressure_last12"]] = [0.8, -0.8]
+    matrix[:, index["ctx_cont.smc_sweep_bull_pressure_last48"]] = [0.4, -0.4]
+
+    values, output_names = build_chart_layer(matrix, names)
+    output = {name: values[:, column] for column, name in enumerate(output_names)}
+    assert output["chart.hh_breakout_proxy"][0] == pytest.approx(
+        output["chart.ll_breakdown_proxy"][1]
+    )
+    assert output["chart.false_breakout_low_reject"][0] == pytest.approx(
+        output["chart.false_breakout_high_reject"][1]
+    )
 
 
 def test_candlestick_and_deep_layers_reject_bad_geometry_and_row_mismatch(tmp_path: Path) -> None:

@@ -31,6 +31,11 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
     specialist_contract_training_allowed_for_mode,
 )
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    PRICE_DERIVED_FEATURE_NAMES,
+)
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
@@ -38,16 +43,16 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
-# The 305 code-owned family fields plus 174 ranked fixture fields form the
-# exact selected surface.  The genuine 34-field base produces these totals.
+# The code-owned family fields plus ranked fixture fields form the exact
+# selected surface. The genuine 34-field base produces these totals.
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "chart_geometry_encoder": 17,
     "momentum_flow_encoder": 30,
     "price_action_candle_encoder": 35,
-    "session_regime_encoder": 253,
+    "session_regime_encoder": 242,
     "smc_liquidity_encoder": 69,
     "structure_swing_encoder": 37,
-    "trend_ema_encoder": 32,
+    "trend_ema_encoder": 43,
     "vol_compression_encoder": 40,
 }
 
@@ -131,6 +136,17 @@ def test_model_native_signal_contract_is_exact_34_plus_479_and_all_groups_live()
     )
 
 
+def test_exact_m5_ema50_200_evidence_is_mandatory_and_trend_owned() -> None:
+    families = dict(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
+    assert families["price_ema50_200_layer"] == PRICE_DERIVED_FEATURE_NAMES
+    assert set(PRICE_DERIVED_FEATURE_NAMES).issubset(
+        set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    )
+    assert {
+        classify_entry_specialist_feature(name) for name in PRICE_DERIVED_FEATURE_NAMES
+    } == {"trend_ema_encoder"}
+
+
 def test_active_context_contract_always_contains_full_regime_stack(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -195,7 +211,7 @@ def test_manifest_rejects_same_size_same_group_replacement_of_one_mandatory_fiel
 
 
 def test_signal_contract_rejects_scattered_mandatory_registry_prefix() -> None:
-    # All 305 mandatory fields present, but two swapped out of exact registry
+    # All mandatory fields present, but two swapped out of exact registry
     # order: membership alone must not pass the documented prefix invariant.
     selected = _selected_fields()
     selected[0], selected[1] = selected[1], selected[0]
@@ -277,6 +293,7 @@ def test_state_builder_exposes_only_model_native_513_symbols(tmp_path) -> None:
     reference = TrainRankReferenceV2(
         path=tmp_path / "unused-in-init.npz",
         sha256="0" * 64,
+        sidecar_sha256="0" * 64,
         sidecar={},
         fit_start_utc=fit_start,
         fit_end_utc=fit_end,

@@ -334,8 +334,12 @@ def _smart_contract_failures(
             "model-native source feature count metadata stale: "
             f"declared={source_counts} expected={expected_source_counts}"
         )
-    if len(smart_family_rows) != 10:
-        failures.append(f"model-native smart family contract must have exactly 10 families: {len(smart_family_rows)}")
+    expected_family_count = len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
+    if len(smart_family_rows) != expected_family_count:
+        failures.append(
+            "model-native smart family contract count mismatch: "
+            f"observed={len(smart_family_rows)} expected={expected_family_count}"
+        )
     for row in smart_family_rows:
         if row.get("feature_count_matches") is not True:
             failures.append(

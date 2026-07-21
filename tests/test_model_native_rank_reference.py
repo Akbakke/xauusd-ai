@@ -14,6 +14,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
     TRAIN_RANK_NPZ_KEYS,
     load_train_rank_reference_v2,
     sha256_file,
+    validate_train_rank_reference_lineage_v2,
 )
 from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError
 from gx1.scripts.materialize_model_native_train_rank_reference_v2 import run
@@ -159,3 +160,34 @@ def test_train_rank_loader_rejects_npz_run_id_mismatch(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="NPZ_RUN_ID_MISMATCH"):
         load_train_rank_reference_v2(out)
+
+
+def test_rank_reference_lineage_binds_source_run_history_and_fit_window(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.parquet"
+    _market_frame().to_parquet(source, index=False)
+    out = tmp_path / "rank.npz"
+    _materialize(source, out)
+
+    reference = validate_train_rank_reference_lineage_v2(
+        out,
+        expected_run_id="MODEL_NATIVE_RANK_REFERENCE_PYTEST",
+        expected_source_parquet=source,
+        expected_source_sha256=sha256_file(source),
+        expected_history_start_utc="2026-05-21T00:00:00Z",
+        expected_fit_start_utc="2026-05-21T00:25:00Z",
+        expected_fit_end_utc="2026-05-21T01:35:00Z",
+    )
+    assert reference.path == out.resolve()
+
+    with pytest.raises(RuntimeError, match="LINEAGE_SOURCE_SHA_MISMATCH"):
+        validate_train_rank_reference_lineage_v2(
+            out,
+            expected_run_id="MODEL_NATIVE_RANK_REFERENCE_PYTEST",
+            expected_source_parquet=source,
+            expected_source_sha256="f" * 64,
+            expected_history_start_utc="2026-05-21T00:00:00Z",
+            expected_fit_start_utc="2026-05-21T00:25:00Z",
+            expected_fit_end_utc="2026-05-21T01:35:00Z",
+        )

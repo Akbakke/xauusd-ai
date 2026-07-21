@@ -15,6 +15,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
 )
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as producer
+from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
 
 RUN_ID = "SEQ513_FULL_STACK_RETENTION_TEST"
@@ -26,7 +27,14 @@ def _stamp(value: datetime) -> str:
     return value.strftime("%Y%m%dT%H%M%S%fZ")
 
 
-def _ranking_payload() -> dict:
+def _ranking_payload(tmp_path: Path) -> dict:
+    source_path, reference = materialize_test_rank_reference(
+        tmp_path / "rank_reference",
+        run_id=RUN_ID,
+        history_start="2019-12-31T00:00:00Z",
+        fit_start="2020-01-01T00:00:00Z",
+        fit_end="2025-12-31T23:59:59Z",
+    )
     names = [
         MODEL_NATIVE_MANDATORY_SELECTED_FIELDS[0],
         *[
@@ -45,8 +53,28 @@ def _ranking_payload() -> dict:
         "train_end_utc": "2025-12-31T23:59:59+00:00",
         "source_time_max_utc": "2025-12-31T23:55:00+00:00",
         "target_time_max_utc": "2025-12-31T23:55:00+00:00",
-        "source_sha256": "1" * 64,
+        "source_sha256": str(reference.sidecar["source_parquet_sha256"]),
         "target_sha256": "2" * 64,
+        "rank_reference": {
+            "path": str(reference.path),
+            "sha256": reference.sha256,
+            "sidecar_path": str(
+                reference.path.with_suffix(reference.path.suffix + ".json")
+            ),
+            "sidecar_sha256": reference.sidecar_sha256,
+            "schema_version": reference.sidecar["schema_version"],
+            "entry_run_id": RUN_ID,
+            "source_parquet": str(source_path),
+            "source_parquet_sha256": str(
+                reference.sidecar["source_parquet_sha256"]
+            ),
+            "history_start_utc": "2019-12-31T00:00:00+00:00",
+            "fit_start_utc": "2020-01-01T00:00:00+00:00",
+            "fit_end_utc": "2025-12-31T23:59:59+00:00",
+            "fit_row_count": reference.fit_row_count,
+            "fit_scope": "train_only",
+            "rank_transform": reference.sidecar["rank_transform"],
+        },
         "ranking_order": dict(producer.TRAIN_FEATURE_RANKING_ORDER),
         "causality_contract": {
             **producer.TRAIN_FEATURE_CAUSALITY_CONTRACT,
@@ -66,7 +94,7 @@ def _write_ranking(tmp_path: Path, payload: dict | None = None) -> Path:
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(payload or _ranking_payload(), allow_nan=True) + "\n",
+        json.dumps(payload or _ranking_payload(tmp_path), allow_nan=True) + "\n",
         encoding="utf-8",
     )
     return path
@@ -94,7 +122,7 @@ def _freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-def test_producer_keeps_305_code_owned_fields_first_and_ranks_only_174(
+def test_producer_keeps_all_code_owned_fields_first_and_only_ranks_remainder(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -106,11 +134,15 @@ def test_producer_keeps_305_code_owned_fields_first_and_ranks_only_174(
 
     assert out.is_file()
     assert manifest["selected_feature_count"] == MODEL_NATIVE_SELECTED_FEATURE_COUNT
-    assert manifest["selected_features"][:305] == list(
+    mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    assert manifest["selected_features"][:mandatory_count] == list(
         MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
     )
-    assert manifest["ranked_remainder_feature_count"] == 174
-    assert manifest["selected_features"][305:] == [
+    assert (
+        manifest["ranked_remainder_feature_count"]
+        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+    )
+    assert manifest["selected_features"][mandatory_count:] == [
         f"session_regime.rank_candidate_{index:03d}"
         for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
     ]
@@ -152,6 +184,12 @@ def test_producer_keeps_305_code_owned_fields_first_and_ranks_only_174(
             ),
             "CAUSALITY_CONTRACT_INVALID",
         ),
+        (
+            lambda payload: payload["rank_reference"].update(
+                {"sha256": "f" * 64}
+            ),
+            "RANK_REFERENCE_METADATA_MISMATCH",
+        ),
     ],
 )
 def test_invalid_ranking_fails_before_output_write(
@@ -161,12 +199,34 @@ def test_invalid_ranking_fails_before_output_write(
     error: str,
 ) -> None:
     _freeze_clock(monkeypatch)
-    payload = _ranking_payload()
+    payload = _ranking_payload(tmp_path)
     mutate(payload)
     ranking = _write_ranking(tmp_path, payload)
     out = _out(tmp_path)
 
     with pytest.raises(RuntimeError, match=error):
+        producer.run(_args(ranking, out))
+
+    assert not out.exists()
+
+
+def test_mutated_rank_reference_sidecar_fails_before_output_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _freeze_clock(monkeypatch)
+    payload = _ranking_payload(tmp_path)
+    sidecar_path = Path(payload["rank_reference"]["sidecar_path"])
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    sidecar["created_utc"] = "2026-07-21T00:00:00+00:00"
+    sidecar_path.write_text(
+        json.dumps(sidecar, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    ranking = _write_ranking(tmp_path, payload)
+    out = _out(tmp_path)
+
+    with pytest.raises(RuntimeError, match="RANK_REFERENCE_METADATA_MISMATCH"):
         producer.run(_args(ranking, out))
 
     assert not out.exists()

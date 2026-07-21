@@ -99,7 +99,6 @@ from gx1.execution.v12_model_native_state_live import (
     SIGNAL_DIM_MODEL_NATIVE,
     ModelNativeStateContract,
     ModelNativeStateBuilder,
-    append_multi_tf_incremental,
     build_multi_tf_from_cv3,
 )
 
@@ -209,11 +208,10 @@ SMART_PARITY_GATE_MAX_AGE_HOURS = 18.0
 SMART_PARITY_GATE_MAX_CUTOFF_LAG_HOURS = 18.0
 SMART_DIRECTION_AUDIT_MAX_AGE_HOURS = 18.0
 
-# Fail-closed context-staleness cap for LIVE decisions (serving-wave gap 3): when the
-# last COMPLETED smart-context snapshot lags the decision bar by MORE than this many
-# cv3 M5 bars, no direction is emitted (journaled smart_ctx_stale_refresh_pending)
-# until the background refresh lands — never decide on rotten context. Steady state is
-# age<=1: the ~2-min refresh finishes well inside one M5 cycle.
+# LIVE direction requires the completed context snapshot to include the exact
+# decision bar. The retired tail splice could not prove bit identity for M5,
+# H4, and D1, so even one gap bar fails closed until the background full-history
+# refresh lands.
 SMART_CTX_MAX_STALENESS_M5 = 0
 
 class SmartContextStaleError(RuntimeError):
@@ -902,6 +900,7 @@ def assert_smart_serving_gate() -> dict:
             "rank_fit_end_utc",
             "rank_reference_npz",
             "rank_reference_npz_sha256",
+            "rank_reference_sidecar_sha256",
             "rank_reference_schema_version",
             "normalization_fit_scope",
             "rank_transform",
@@ -1347,35 +1346,20 @@ class SmartEntryLiveInference:
     def _effective_context(
         self, cv3: pd.DataFrame, ctx: SmartCtxSnapshot, end_ts: pd.Timestamp,
     ) -> tuple[dict, pd.DataFrame, int, bool]:
-        """The snapshot context extended to end_ts (age > 0 = gap bars exist):
-          * override tables — CHEAP (~0.6s, gap-3 probe) FULL-frame recompute on
-            the current cv3 via the same one-truth functions the snapshot build
-            used: causal + frozen-rank digitize, so overlapping rows are
-            bit-identical and the gap bars are EXACT by construction (no ffill,
-            no staleness).
-          * MTF cache — the heavy part (~94s full): self-test-proven incremental
-            tail splice (append_multi_tf_incremental) for M5/M15/H1; H4/D1 keep
-            snapshot rows (forming-bar staleness only, journaled via
-            context_age_m5_bars, capped by SMART_CTX_MAX_STALENESS_M5).
-        Returns (multi_tf, frame_overrides, age, mtf_spliced)."""
+        """Return only a snapshot that exactly covers ``end_ts``.
+
+        A positive age is not repaired, forward-filled, or partially spliced:
+        all M5/M15/H1/H4/D1 state must come from one completed full refresh.
+        """
         age = self.context_age_m5_bars(cv3, end_ts, ctx)
         if age <= 0:
             return ctx.multi_tf, ctx.frame_overrides, age, False
-        from gx1.execution.v12_model_native_state_live import (
-            compute_bucket_ctx_cat_full_frame,
-            compute_htf_ctx_full_frame,
+        raise SmartContextStaleError(
+            age=age,
+            cap=SMART_CTX_MAX_STALENESS_M5,
+            ctx_cutoff=ctx.cv3_cutoff,
+            end_ts=end_ts,
         )
-        if self._state_contract is None:
-            raise RuntimeError("[SMART_ENTRY] model-native state contract not loaded")
-        overrides = pd.concat(
-            [
-                compute_bucket_ctx_cat_full_frame(cv3, self._state_contract),
-                compute_htf_ctx_full_frame(cv3, self._state_contract),
-            ],
-            axis=1,
-        )
-        multi_tf, spliced = append_multi_tf_incremental(cv3, ctx.multi_tf)
-        return multi_tf, overrides, age, spliced
 
     def _prepare_common_history_frame(
         self, loader, cv3: pd.DataFrame, end_ts: pd.Timestamp,
@@ -1749,9 +1733,9 @@ class SmartEntryLiveInference:
         background thread, scheduled here on cv3 cutoff advance). One atomic
         snapshot grab keeps state build + model forward internally consistent.
 
-        Fail-closed: raises SmartContextStaleError when the snapshot lags the
-        decision bar by more than SMART_CTX_MAX_STALENESS_M5 cv3 bars (the
-        pipeline journals model-direction unavailability and retries next poll).
+        Fail-closed: raises SmartContextStaleError whenever the snapshot does
+        not cover the decision bar (the pipeline journals model-direction
+        unavailability and retries next poll).
         Journals staleness on every result: context_age_m5_bars / context_cutoff_ts /
         context_refresh_in_flight / context_mtf_incremental.
         """

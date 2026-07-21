@@ -11,8 +11,8 @@ Group-A row loop after canonical join. A separately launched V4 ranker then
 overlapped that still-running builder before the host environment stopped.
 Neither attempt wrote admissible terminal dataset evidence.
 
-The rebuild chain now owns the fresh TRAIN ranking as well as manifest,
-preflight and dataset construction. Every heavy stage enters through the
+The rebuild chain now owns the fresh TRAIN-rank reference and ranking as well
+as manifest, preflight and dataset construction. Every heavy stage enters through the
 capped runner's host-wide nonblocking lock, so overlapping ranker/builder/
 trainer/replay jobs fail immediately. Group-A keeps one full causal context,
 fans only disjoint 4096-row ranges, writes immutable per-range checkpoints and
@@ -20,7 +20,7 @@ binds completion to frame, MTF arrays, field order and run/window identity.
 Worker allocations are range-sized instead of full-frame-sized. The ranker and
 builder may make one exact checkpoint retry; changed, partial, unexpected or
 unbound checkpoint bytes fail closed. Normal and trapped chain exits publish
-immutable schema-v3 terminal events with boot and process identity.
+immutable schema-v4 terminal events with boot and process identity.
 
 Focused and causal integration tests prove this source contract. No fresh full
 rebuild has run under it, V3/V4 remain rejected, and launch remains `BLOCK`.
@@ -275,7 +275,7 @@ dead `GX1_SIGNAL_BRIDGE_VERSION` env write, and all empty migration-residue
 directories (runtime paths `data/`, `runs/`, `gx1/live/logs` preserved). The
 absence guard test now pins these as ModuleNotFound.
 
-Hardened in the same wave: the 305-field mandatory causal-layer prefix ORDER is
+Hardened in the same wave: the mandatory causal-layer prefix ORDER is
 now validated at every manifest consumer (membership alone no longer passes);
 the five previously unvalidated `required_*` partition constants in the launch
 JSON are enforced against code constants on the ALLOW path; the 90-second Entry
@@ -295,8 +295,8 @@ Fresh Exit evidence requires the new exact builder
 
 ## 2026-07-17 — full-stack families cannot be ranked away
 
-The 479-field specialist surface is now exactly 305 code-owned mandatory
-outputs from ten registered causal feature layers followed by 174 fields from
+The 479-field specialist surface is now exactly 316 code-owned mandatory
+outputs from eleven registered causal feature layers followed by 163 fields from
 deterministic TRAIN-only ranking. The emitted exact order and both components
 are hash-bound. This retains genuine trend, session, liquidity, structure,
 volatility, momentum, price-action, support/resistance and MTF evidence while
@@ -400,3 +400,23 @@ pre-rebuild gate. A fresh seq513 rebuild and candidate are required to produce
 learned OOT rows; selection/abstention admission then uses a fresh immutable
 proxy comparison plus absolute OOT support/confidence, cost and live-like
 gates. Historical metadata can never substitute for those bytes.
+
+## 2026-07-21 — one feature state before ranking, dataset and serve
+
+The immutable TRAIN-rank reference is now an upstream feature-computation
+input. The chain creates it before ranking; ranking, manifest, preflight,
+dataset and serve bind the same NPZ bytes, sidecar bytes, source hash,
+common-history start and TRAIN window. The dataset wrapper accepts only an
+already-bound reference.
+
+The model-native specialist partition remains 479 fields but is now 316
+mandatory outputs from eleven causal families plus 163 deterministic
+TRAIN-ranked fields. The new mandatory family is the exact 11-field M5
+EMA50/200 state/cross/slope/location layer, routed to the learned trend
+specialist. Price-derived features use only common-history `close` and
+recomputed `atr`; schema fallback to `mid` or older ATR aliases is forbidden.
+Signed BOS and sweep pressures are directionally symmetric. The partial live
+MTF splice is retired because exact M5/H4/D1 parity was unproven; any positive
+context age now yields no direction until one full five-timeframe refresh is
+complete. None of these source repairs proves trading edge, so launch remains
+`BLOCK` pending fresh rebuild and empirical gates.

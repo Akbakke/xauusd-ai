@@ -21,9 +21,7 @@ def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
         "--output",
         "--audit-out-dir",
         "--history-start",
-        "materialize_model_native_train_rank_reference_v2",
-        "--fit-start",
-        "--fit-end",
+        "validate_train_rank_reference_lineage_v2",
         "validate_signal_manifest_training_lineage",
         "expected_run_id",
         "expected_source_sha256",
@@ -71,16 +69,18 @@ def test_seq513_rebuild_rejects_legacy_environment_and_existing_outputs() -> Non
     assert "export GX1_TREND_REGIME_FROM_D1" not in source
     assert "output split already exists" in source
     assert "dataset build proof already exists" in source
-    assert "rank reference already exists" in source
+    assert "--existing-rank-reference is required" in source
     assert "audit output directory already exists" in source
-    assert source.count('--run-id "$RUN_ID"') == 3
+    assert source.count('--run-id "$RUN_ID"') == 2
     assert source.count('--feature-ranking-json "$FEATURE_RANKING_JSON"') == 1
     assert "SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON" in source
     assert "--run-id has invalid format" in source
     assert "--resume-exact-checkpoints" in source
-    assert "MODEL_NATIVE_RANK_RESUME_RUN_ID_MISMATCH" in source
-    assert "MODEL_NATIVE_RANK_RESUME_SOURCE_SHA_MISMATCH" in source
-    assert "MODEL_NATIVE_RANK_RESUME_FIT_WINDOW_MISMATCH" in source
+    assert "--existing-rank-reference" in source
+    assert "validate_train_rank_reference_lineage_v2" in source
+    assert "expected_run_id=run_id" in source
+    assert "expected_source_sha256=digest.hexdigest()" in source
+    assert "expected_fit_start_utc=fit_start" in source
 
 
 def test_seq513_rebuild_full_input_liveness_precedes_target_preflight() -> None:

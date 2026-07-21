@@ -1461,6 +1461,7 @@ def _require_model_native_manifest_contract(
             raise RuntimeError(f"MODEL_NATIVE_MANIFEST_STATE_FIELD_MISSING: {key}")
     for key in (
         "rank_reference_npz_sha256",
+        "rank_reference_sidecar_sha256",
         "rank_reference_source_parquet_sha256",
     ):
         value = str(state_contract.get(key) or "").strip().lower()
@@ -1692,6 +1693,7 @@ def _model_native_state_contract(
         "rank_fit_end_utc": str(train_end),
         "rank_reference_npz": str(npz_path),
         "rank_reference_npz_sha256": npz_sha,
+        "rank_reference_sidecar_sha256": reference.sidecar_sha256,
         "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
         "rank_reference_sidecar_json": str(sidecar_path),
         "rank_reference_fit_row_count": int(reference.fit_row_count),

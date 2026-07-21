@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-shot fail-closed chain driver for one fresh seq513 dataset event:
-#   fresh explicit TRAIN ranking -> fresh explicit signal manifest -> fresh preflight
-#   -> fresh dataset rebuild
+#   fresh immutable TRAIN rank reference -> fresh explicit TRAIN ranking
+#   -> fresh explicit signal manifest -> fresh preflight -> fresh dataset rebuild
 #
 # The driver never discovers artifacts, waits for an external producer, resumes
 # from inferred debris, or treats existing split manifests as completion. It
@@ -116,6 +116,8 @@ STATUS_INITIALIZED=1
 GIT_HEAD=
 WORKTREE_STATUS=
 RANKING_SHA256=
+RANK_REFERENCE_SHA256=
+RANK_REFERENCE_SIDECAR_SHA256=
 MANIFEST_SHA256=
 PREFLIGHT_JSON=
 PREFLIGHT_SHA256=
@@ -143,7 +145,8 @@ write_status() {
     "$step" "$state" "$reason" "$exit_code" "$STATUS" "$RUN_ID" "$EVENT" \
     "$LOG" "$GIT_HEAD" "$RANKING" "$RANKING_SHA256" "$MANIFEST" \
     "$MANIFEST_SHA256" "$PRE_OUT" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256" \
-    "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" <<'PYEOF'
+    "$STARTED_UTC" "$BOOT_ID" "$CHAIN_PID" "$RANK_NPZ" \
+    "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" <<'PYEOF'
 import json
 import os
 import sys
@@ -170,6 +173,9 @@ from pathlib import Path
     started_utc,
     boot_id,
     chain_pid,
+    rank_reference_path,
+    rank_reference_sha256,
+    rank_reference_sidecar_sha256,
 ) = sys.argv[1:]
 path = Path(raw_path)
 now = datetime.now(timezone.utc)
@@ -179,7 +185,7 @@ if state in terminal_states:
     stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     terminal_path = path.with_name(f"CHAIN_TERMINAL_{stamp}_{state}.json")
 payload = {
-    "schema_version": "seq513_rebuild_chain_status_v3",
+    "schema_version": "seq513_rebuild_chain_status_v4",
     "entry_run_id": run_id,
     "event_root": event_root,
     "step": step,
@@ -193,6 +199,12 @@ payload = {
     "feature_ranking": {
         "path": ranking_path,
         "sha256": ranking_sha256 or None,
+    },
+    "rank_reference": {
+        "path": rank_reference_path,
+        "sha256": rank_reference_sha256 or None,
+        "sidecar_path": f"{rank_reference_path}.json",
+        "sidecar_sha256": rank_reference_sidecar_sha256 or None,
     },
     "signal_manifest": {
         "path": manifest_path,
@@ -468,6 +480,37 @@ require_unchanged() {
   [[ $observed == "$expected" ]] || fail "$label changed after identity binding"
 }
 
+require_rank_reference_unchanged() {
+  require_unchanged "rank reference" "$RANK_NPZ" "$RANK_REFERENCE_SHA256"
+  require_unchanged "rank reference sidecar" "${RANK_NPZ}.json" \
+    "$RANK_REFERENCE_SIDECAR_SHA256"
+}
+
+# The frozen TRAIN-only ECDF/ATR state is upstream of feature computation.
+# Ranking, manifest, preflight, dataset, and live must therefore bind these
+# exact bytes rather than letting the dataset wrapper create a later artifact.
+CURRENT_STEP=train-rank-reference
+write_status "$CURRENT_STEP" RUNNING
+require_source_identity
+if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --mem 30G --swap 2G -- \
+  "$PY" -m gx1.scripts.materialize_model_native_train_rank_reference_v2 \
+  --run-id "$RUN_ID" \
+  --source-parquet "$SRC" \
+  --out "$RANK_NPZ" \
+  --history-start "$HISTORY_START" \
+  --fit-start "$TRAIN_START" \
+  --fit-end "$TRAIN_END") >>"$LOG" 2>&1; then
+  fail "TRAIN rank-reference materialization failed"
+fi
+[[ -f $RANK_NPZ && ! -L $RANK_NPZ && -f ${RANK_NPZ}.json && ! -L ${RANK_NPZ}.json ]] \
+  || fail "TRAIN rank-reference output/sidecar missing or non-regular"
+RANK_REFERENCE_SHA256=$(hash_file "$RANK_NPZ")
+RANK_REFERENCE_SIDECAR_SHA256=$(hash_file "${RANK_NPZ}.json")
+require_source_identity
+write_status "$CURRENT_STEP" RUNNING
+printf '[chain] rank-reference=%s sha256=%s sidecar_sha256=%s\n' \
+  "$RANK_NPZ" "$RANK_REFERENCE_SHA256" "$RANK_REFERENCE_SIDECAR_SHA256" >>"$LOG"
+
 # Ranking is part of this one chain, not a separately launched heavyweight
 # producer. The capped runner's global lock makes overlapping V3/V4-style
 # ranker/builder execution impossible. Its exact checkpoint namespace is bound
@@ -481,6 +524,7 @@ run_feature_ranker() {
     --run-id "$RUN_ID" \
     --source-parquet "$SRC" \
     --mtf-cache-dir "$MTF" \
+    --rank-reference-npz "$RANK_NPZ" \
     --history-start "$HISTORY_START" \
     --train-start "$TRAIN_START" \
     --train-end "$TRAIN_END" \
@@ -501,6 +545,7 @@ fi
 [[ -f $RANKING && ! -L $RANKING ]] || fail "feature ranking output missing/non-regular"
 RANKING_SHA256=$(hash_file "$RANKING")
 require_source_identity
+require_rank_reference_unchanged
 write_status "$CURRENT_STEP" RUNNING
 printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
 
@@ -509,6 +554,7 @@ printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
 CURRENT_STEP=signal-manifest
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
+require_rank_reference_unchanged
 if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
   --feature-ranking-json "$RANKING" \
   --out "$MANIFEST" \
@@ -525,6 +571,7 @@ printf '[chain] manifest=%s sha256=%s\n' "$MANIFEST" "$MANIFEST_SHA256" >>"$LOG"
 CURRENT_STEP=rebuild-preflight
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
+require_rank_reference_unchanged
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
   --run-id "$RUN_ID" \
   --feature-ranking-json "$RANKING" \
@@ -574,6 +621,7 @@ fi
 IFS=$'\t' read -r PREFLIGHT_JSON PREFLIGHT_SHA256 <<<"$PREFLIGHT_ID"
 [[ -n $PREFLIGHT_JSON && -n $PREFLIGHT_SHA256 ]] || fail "preflight identity is empty"
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
+require_rank_reference_unchanged
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
 write_status "$CURRENT_STEP" RUNNING
@@ -585,6 +633,7 @@ CURRENT_STEP=dataset-rebuild
 write_status "$CURRENT_STEP" RUNNING
 tg "GX1 seq513: preflight GREEN; dataset rebuild startet. run_id=$RUN_ID"
 require_source_identity
+require_rank_reference_unchanged
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
 require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
@@ -595,6 +644,7 @@ run_dataset_rebuild() {
     resume_args+=(--resume-exact-checkpoints)
   fi
   (cd "$ENG" && bash scripts/rebuild_entry_model_native_seq513_dataset.sh \
+    --existing-rank-reference \
     --run-id "$RUN_ID" \
     --feature-ranking-json "$RANKING" \
     --source-parquet "$SRC" --canonical-v2-parquet "$CV2" \
@@ -613,6 +663,7 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
     CURRENT_STEP=dataset-rebuild-exact-checkpoint-resume
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
     require_source_identity
+    require_rank_reference_unchanged
     require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
     require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
     require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
@@ -624,6 +675,10 @@ if ! run_dataset_rebuild fresh >>"$LOG" 2>&1; then
   fi
 fi
 require_source_identity
+require_rank_reference_unchanged
+require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
+require_unchanged "signal manifest" "$MANIFEST" "$MANIFEST_SHA256"
+require_unchanged "preflight artifact" "$PREFLIGHT_JSON" "$PREFLIGHT_SHA256"
 
 CURRENT_STEP=chain-complete
 write_status "$CURRENT_STEP" GREEN "stopped at smoke gate" 0

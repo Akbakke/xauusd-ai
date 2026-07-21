@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -55,6 +56,7 @@ def _early_validation_builder(tmp_path: Path) -> ModelNativeStateBuilder:
     reference = TrainRankReferenceV2(
         path=tmp_path / "unused_for_early_validation.npz",
         sha256="0" * 64,
+        sidecar_sha256="0" * 64,
         sidecar={},
         fit_start_utc=fit_start,
         fit_end_utc=fit_end,
@@ -243,6 +245,9 @@ def _state_metadata(rank_ref: Path, report: dict, *, sha256: str | None = None) 
         "rank_fit_end_utc": "2026-05-21T01:00:00Z",
         "rank_reference_npz": str(rank_ref),
         "rank_reference_npz_sha256": sha256 or report["out_npz_sha256"],
+        "rank_reference_sidecar_sha256": hashlib.sha256(
+            rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
+        ).hexdigest(),
         "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
         "normalization_fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
@@ -265,6 +270,17 @@ def test_model_native_state_contract_verifies_train_rank_reference_sha(tmp_path:
     contract = ModelNativeStateContract.from_metadata(raw)
     assert contract.rank_reference_npz == rank_ref.resolve()
     assert contract.rank_reference.fit_row_count == report["fit_row_count"]
+
+
+def test_model_native_state_contract_rejects_mutated_rank_sidecar(tmp_path: Path) -> None:
+    rank_ref, report = _rank_artifact(tmp_path)
+    raw = _state_metadata(rank_ref, report)
+    sidecar_path = rank_ref.with_suffix(rank_ref.suffix + ".json")
+    sidecar = sidecar_path.read_text(encoding="utf-8")
+    sidecar_path.write_text(sidecar + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="STATE_RANK_SIDECAR_SHA_MISMATCH"):
+        ModelNativeStateContract.from_metadata(raw)
 
 
 @pytest.mark.parametrize(

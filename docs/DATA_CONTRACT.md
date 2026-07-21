@@ -53,11 +53,12 @@ pinned ATR state are forbidden. Its sidecar binds source and artifact hashes,
 declares `fit_scope=train_only`, and proves that no validation or test rows are
 stored.
 
-The deterministic feature-ranking JSON that selects the final 174 specialist
+The deterministic feature-ranking JSON that selects the final 163 specialist
 fields and the derived seq513 signal manifest are explicit immutable inputs.
-Preflight, rebuild wrapper and dataset builder all revalidate their nested
-lineage, Entry run ID, source hash and exact TRAIN start/end against the
-requested build. A directory glob, mtime or lexical "latest" result is not an
+The chain creates the TRAIN-rank NPZ before ranking. Ranking, manifest,
+preflight, rebuild wrapper and dataset builder all revalidate their nested
+lineage, Entry run ID, source hash, NPZ hash, sidecar hash and exact TRAIN
+start/end against the requested build. A directory glob, mtime or lexical "latest" result is not an
 artifact identity. Any mismatch invalidates the entire attempt; partial files
 and non-terminal chain-status records cannot be promoted or resumed as proof.
 
@@ -82,8 +83,8 @@ The accepted Entry tensor contract is sequence length 96 with 513 genuine
 ordered signal fields, a 513-field snapshot, 142 continuous context fields and
 5 categorical context fields. The five timeframes are M5/M15/H1/H4/D1.
 The 479-field specialist extension is generated inline from that split's common
-causal history. It consists of the exact 305 code-owned outputs from all ten
-registered causal layers plus 174 eligible fields from deterministic
+causal history. It consists of the exact 316 code-owned outputs from all eleven
+registered causal layers plus 163 eligible fields from deterministic
 TRAIN-only ranking. A separately materialized sample-parquet extension is
 forbidden.
 

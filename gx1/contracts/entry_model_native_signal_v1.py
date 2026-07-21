@@ -6,8 +6,8 @@ with constants, while the Transformer still interpreted three of them as
 direction-anchor probabilities.  This contract removes that dead bridge from
 the input surface and makes the Transformer direction logits model-native.
 
-Of the selected 479 specialist fields, all 305 registered causal full-stack
-layer outputs are code-owned and mandatory.  Only the remaining 174 positions
+Of the selected 479 specialist fields, all 316 registered causal full-stack
+layer outputs are code-owned and mandatory.  Only the remaining 163 positions
 are ranking-owned.  The emitted manifest still owns the audited exact order,
 while this module owns the immutable base order, mandatory registry identity,
 dimensions, forbidden legacy fields, and validation of the combined surface.
@@ -265,10 +265,10 @@ if "trend_regime_id" in MODEL_NATIVE_CTX_CAT_FIELDS:
     raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_CONTAIN_RETIRED_TREND_BUCKET")
 if set(MODEL_NATIVE_BASE_FIELDS) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_BASE_FIELDS_CONTAIN_FORBIDDEN_BRIDGE_FIELDS")
-if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 174:
+if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 163:
     raise RuntimeError(
         "MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT_MISMATCH: "
-        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=174"
+        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=163"
     )
 if set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) & set(MODEL_NATIVE_BASE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_FIELDS_OVERLAP_BASE_FIELDS")
@@ -398,7 +398,7 @@ def ordered_model_native_signal_fields(
             f"{missing_mandatory[:20]} total={len(missing_mandatory)}"
         )
     else:
-        # The first 305 positions must exactly equal the immutable causal-layer
+        # The mandatory prefix must exactly equal the immutable causal-layer
         # registry order; membership alone is not the documented contract.
         mandatory_prefix = tuple(
             selected[:MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT]

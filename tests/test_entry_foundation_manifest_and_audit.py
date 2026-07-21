@@ -9,6 +9,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
@@ -73,7 +74,7 @@ def _foundation_selection_manifest(selected: list[str]) -> dict:
     mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
     ranked_remainder = selected[mandatory_count:]
     return {
-        "schema_version": "entry_model_native_seq513_signal_manifest_v2",
+        "schema_version": "entry_model_native_seq513_signal_manifest_v3",
         "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
         "base_signal_feature_count": len(MODEL_NATIVE_BASE_FIELDS),
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
@@ -105,13 +106,19 @@ def test_foundation_audit_requires_exact_train_ranked_partition(tmp_path) -> Non
 
     features, metadata = foundation_audit._load_manifest_features(manifest_path)
 
-    assert features[:305] == list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
-    assert len(features[305:]) == 174
-    assert metadata["manifest_mandatory_selected_feature_count"] == 305
-    assert metadata["manifest_ranked_remainder_feature_count"] == 174
+    mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    assert features[:mandatory_count] == list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    assert len(features[mandatory_count:]) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+    assert metadata["manifest_mandatory_selected_feature_count"] == mandatory_count
+    assert (
+        metadata["manifest_ranked_remainder_feature_count"]
+        == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
+    )
     assert metadata["feature_ranking_fit_scope"] == "train_only"
 
-    manifest["ranked_remainder_feature_count"] = 173
+    manifest["ranked_remainder_feature_count"] = (
+        MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT - 1
+    )
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(RuntimeError, match="MODEL_NATIVE_PARTITION_INVALID"):
         foundation_audit._load_manifest_features(manifest_path)
@@ -206,6 +213,7 @@ def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> No
                 "rank_fit_end_utc": "2025-09-30T23:59:59Z",
                 "rank_reference_npz": "/immutable/rank_reference.npz",
                 "rank_reference_npz_sha256": "a" * 64,
+                "rank_reference_sidecar_sha256": "c" * 64,
                 "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
                 "rank_reference_sidecar_json": "/immutable/rank_reference.npz.json",
                 "rank_reference_source_parquet": "/immutable/source.parquet",
@@ -712,7 +720,7 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(
             "low": np.linspace(0.99, 1.09, periods),
             "close": np.linspace(1.005, 1.105, periods),
             "mid": np.linspace(1.005, 1.105, periods),
-            "_v1_atr14": np.full(periods, 0.01),
+            "atr": np.full(periods, 0.01),
         }
     ).to_parquet(source)
     requested = [

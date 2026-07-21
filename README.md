@@ -13,9 +13,9 @@ The July-19 seq513 rebuild attempts under
 `XAU_SEQ513_REBUILD_20260718_V1` were terminated and invalidated after a
 feature-ranking TRAIN-window mismatch; no rebuild process or accepted dataset
 exists now, no seq513 training process is running, and partial artifacts have
-no authority. V1 cannot be reused. The next immutable run lineage is
-`XAU_SEQ513_REBUILD_20260720_V2`; this ID grants no permission and all stages
-remain controlled only by their evidence contracts. A report-only abstention metadata check is
+no authority. No V1/V2/V3/V4 lineage can be reused; the next run requires a
+fresh immutable ID, and all stages remain controlled only by their evidence
+contracts. A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
 objective weights are not learned evidence. It read zero parquet; immutable
 historical selection-benchmark bytes and exact learned-probe OOT evidence are
@@ -30,10 +30,11 @@ artifact/checkpoint existed: the service runner had no user bus and the
 restored scope runner lost the rank process. V3/V4 are failure evidence only.
 See ROADMAP.md and the handover before starting any recovery.
 
-The source recovery now routes ranking and dataset construction through one
-chain, serializes all capped heavy jobs with one host-wide lock, checkpoints
+The source recovery now creates and binds the TRAIN-rank reference before
+feature ranking, then routes ranking and dataset construction through one
+chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
 Group-A in exact hash-bound 4096-row chunks, permits one strict checkpoint
-retry, and emits immutable terminal chain events. This has source-test proof
+retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
 only; the next admissible action is one fresh full rebuild execution. V3/V4
 partials remain rejected.
 
@@ -41,8 +42,8 @@ partials remain rejected.
 
 - XAUUSD only; M5 decision cadence with M5/M15/H1/H4/D1 context.
 - 513 ordered signals: 34 genuine base price-state fields plus 479 specialist
-  fields. Of those 479, all 305 outputs from ten registered causal feature
-  layers are code-owned and mandatory; only the remaining 174 positions come
+  fields. Of those 479, all 316 outputs from eleven registered causal feature
+  layers are code-owned and mandatory; only the remaining 163 positions come
   from deterministic TRAIN-only ranking.
 - 142 continuous and 5 categorical context fields.
 - Eight learned specialists: structure/swing, SMC/liquidity, trend/EMA,

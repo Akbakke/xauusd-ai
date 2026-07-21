@@ -31,7 +31,6 @@ the common causal frame.  Immutable serve parity remains mandatory.
 from __future__ import annotations
 
 import logging
-import os
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -303,6 +302,9 @@ class ModelNativeStateContract:
             "rank_reference_npz": str(self.rank_reference_npz),
             "rank_reference_npz_sha256": str(
                 self.raw.get("rank_reference_npz_sha256") or ""
+            ),
+            "rank_reference_sidecar_sha256": str(
+                self.raw.get("rank_reference_sidecar_sha256") or ""
             ),
             "rank_reference_schema_version": str(
                 self.raw.get("rank_reference_schema_version") or ""
@@ -841,103 +843,3 @@ def build_multi_tf_from_cv3(cv3: pd.DataFrame) -> dict:
             "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for MTF build"
         )
     return build_multi_tf_per_bar_features_v2(m5)
-
-
-# ── incremental MTF extension (serving-wave gap 3 — async refresh) ──────────────
-# Entry decisions must never block on the ~2-min full context refresh (it starved
-# the per-M1 exit loop). Probe 2026-07-08 on the full 6-yr cv3: the refresh is
-# build_multi_tf_from_cv3 ~94s (dominant) + buckets ~0.2s + HTF/REGIME ~0.4s.
-# The refresh runs in a background thread (v12_smart_entry_live); the cheap+causal
-# override tables are simply recomputed FRESH per decision (exact by construction);
-# ONLY the MTF cache needs the incremental splice below to make gap-bar decisions
-# exact. Every completed full refresh REPLACES the spliced bundle, so incremental
-# output can never live longer than one refresh cycle. Bit identity versus a
-# full rebuild is part of the mandatory model-native serve-parity evidence.
-
-# Per-TF splice set for the incremental MTF append: ONLY TFs whose tail-recompute is
-# float32-bit-identical to the full rebuild after MODEL_NATIVE_MTF_SPLICE_WARMUP_M5 bars of
-# warmup. EMA-200 tail-convergence (adjust=False recursion, alpha=2/201) over the warmup:
-#   M5  : 30000 bars   -> (1-a)^30000 ~ e^-299  (far below float32 ulp)
-#   M15 : 10000 bars   -> ~ e^-100
-#   H1  :  2500 bars   -> ~ e^-25  ~ 1.4e-11    (below float32 ulp 6e-8)
-#   H4  :   625 bars   -> ~ e^-6.2 ~ 2e-3       NOT converged -> NEVER spliced
-#   D1  :   ~75 bars   -> ~ e^-0.75             NOT converged (needs ~7 YEARS) -> NEVER spliced
-# H4/D1 keep the snapshot rows: their CLOSED bars are exact by causality; only the
-# FORMING bar lags by the (journaled, capped) context age. Proven empirically by the
-# immutable parity report; keep this set in sync with that report.
-# M5 removed from the splice set 2026-07-09: the async selftest (TEST B) found
-# the M5 splice 1 ulp off bit-identity (2.4e-07) — per its own remedy, M5 does
-# a FULL recompute in the async refresh thread (slower refresh, still off the
-# exit path); M15/H1 splices are selftest-proven bit-identical.
-_RETIRED_MTF_SPLICE_OVERRIDE_ENV = (
-    "GX1_SMART_CTX_MTF_WARMUP_M5",
-    "GX1_MODEL_NATIVE_CTX_MTF_WARMUP_M5",
-)
-_present_mtf_splice_overrides = [
-    name for name in _RETIRED_MTF_SPLICE_OVERRIDE_ENV if name in os.environ
-]
-if _present_mtf_splice_overrides:
-    raise RuntimeError(
-        "[MODEL_NATIVE_STATE_RETIRED_ENV] MTF splice contract is immutable; "
-        f"remove overrides {_present_mtf_splice_overrides}"
-    )
-MODEL_NATIVE_MTF_SPLICE_TFS = ("M15", "H1")
-MODEL_NATIVE_MTF_SPLICE_WARMUP_M5 = 30000
-
-
-def append_multi_tf_incremental(
-    cv3: pd.DataFrame,
-    multi_tf: dict,
-) -> tuple[dict, bool]:
-    """Extend an in-memory float32 MTF-v2 bundle (build_multi_tf_from_cv3 output) to
-    cv3's current cutoff WITHOUT the full-history rebuild: rebuild only a warmup TAIL
-    (one-truth build_multi_tf_from_cv3 on the tail slice — no formula re-derivation)
-    and splice, per TF in `splice_tfs`, every row whose label >= the TF-period start
-    of the first NEW M5 bar (the only rows whose aggregation can have changed; all
-    earlier rows are causal and therefore already exact in the snapshot).
-
-    Float32 bit identity for the MODEL_NATIVE_MTF_SPLICE_TFS set must be proven
-    by the immutable model-native serve-parity report;
-    H4/D1 keep snapshot rows (forming-bar staleness only, journaled + capped).
-    Returns (bundle, spliced) — spliced=False when nothing new. Never mutates input.
-    """
-    m5_feats = multi_tf.get("M5")
-    if m5_feats is None or len(m5_feats) == 0:
-        raise RuntimeError("[MODEL_NATIVE_STATE] multi_tf bundle lacks the M5 frame")
-    old_last = pd.Timestamp(m5_feats.index[-1])
-    idx = cv3.index
-    new_mask = idx > old_last
-    if not new_mask.any():
-        return multi_tf, False
-    first_new = idx[new_mask][0]
-    lo = max(
-        0,
-        int(idx.searchsorted(first_new)) - MODEL_NATIVE_MTF_SPLICE_WARMUP_M5,
-    )
-    tail_bundle = build_multi_tf_from_cv3(cv3.iloc[lo:])
-    from gx1.features.htf_features import MULTI_TF_RESAMPLE_RULES
-
-    out: dict = {}
-    for tf, old in multi_tf.items():
-        if tf not in MODEL_NATIVE_MTF_SPLICE_TFS:
-            out[tf] = old
-            continue
-        tail = tail_bundle[tf]
-        splice_ns = int(first_new.floor(MULTI_TF_RESAMPLE_RULES[tf]).value)
-        old_ts = np.asarray(old.attrs["ts_int64"])
-        old_np = np.asarray(old.attrs["feats_np"])
-        tail_ts = np.asarray(tail.attrs["ts_int64"])
-        tail_np = np.asarray(tail.attrs["feats_np"])
-        k_old = int(np.searchsorted(old_ts, splice_ns, side="left"))
-        k_tail = int(np.searchsorted(tail_ts, splice_ns, side="left"))
-        new_ts = np.concatenate([old_ts[:k_old], tail_ts[k_tail:]])
-        new_np = np.concatenate([old_np[:k_old], tail_np[k_tail:]], axis=0)
-        df = pd.DataFrame(
-            new_np,
-            index=old.index[:k_old].append(tail.index[k_tail:]),
-            columns=list(old.columns),
-        )
-        df.attrs["ts_int64"] = new_ts
-        df.attrs["feats_np"] = new_np
-        out[tf] = df
-    return out, True

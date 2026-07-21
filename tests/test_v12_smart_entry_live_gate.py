@@ -139,6 +139,9 @@ def _write_gate_artifacts(
         "rank_fit_end_utc": str(fit_end),
         "rank_reference_npz": str(rank_ref.resolve()),
         "rank_reference_npz_sha256": rank_ref_sha,
+        "rank_reference_sidecar_sha256": hashlib.sha256(
+            rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
+        ).hexdigest(),
         "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
         "normalization_fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,

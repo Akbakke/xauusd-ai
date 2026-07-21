@@ -147,6 +147,7 @@ def bucket_against_train_reference(values: np.ndarray, sorted_reference: np.ndar
 class TrainRankReferenceV2:
     path: Path
     sha256: str
+    sidecar_sha256: str
     sidecar: dict[str, Any]
     fit_start_utc: pd.Timestamp
     fit_end_utc: pd.Timestamp
@@ -173,7 +174,8 @@ def load_train_rank_reference_v2(
     if not sidecar_path.is_file():
         raise RuntimeError(f"MODEL_NATIVE_TRAIN_RANK_SIDECAR_MISSING: {sidecar_path}")
     try:
-        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        sidecar_bytes = sidecar_path.read_bytes()
+        sidecar = json.loads(sidecar_bytes)
     except Exception as exc:
         raise RuntimeError(f"MODEL_NATIVE_TRAIN_RANK_SIDECAR_INVALID: {sidecar_path}") from exc
     if not isinstance(sidecar, dict):
@@ -243,6 +245,7 @@ def load_train_rank_reference_v2(
     return TrainRankReferenceV2(
         path=rank_path,
         sha256=actual_sha,
+        sidecar_sha256=hashlib.sha256(sidecar_bytes).hexdigest(),
         sidecar=sidecar,
         fit_start_utc=fit_start,
         fit_end_utc=fit_end,
@@ -250,6 +253,50 @@ def load_train_rank_reference_v2(
         atr_bps_sorted=atr_sorted,
         spread_bps_sorted=spread_sorted,
     )
+
+
+def validate_train_rank_reference_lineage_v2(
+    path: Path,
+    *,
+    expected_run_id: str,
+    expected_source_parquet: Path,
+    expected_source_sha256: str,
+    expected_history_start_utc: Any,
+    expected_fit_start_utc: Any,
+    expected_fit_end_utc: Any,
+) -> TrainRankReferenceV2:
+    """Load and bind one rank reference to its exact source and fit window."""
+
+    reference = load_train_rank_reference_v2(path)
+    sidecar = reference.sidecar
+    run_id = str(expected_run_id or "").strip()
+    if str(sidecar.get("entry_run_id") or "").strip() != run_id:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_LINEAGE_RUN_ID_MISMATCH")
+    source_path = Path(expected_source_parquet).expanduser().resolve()
+    declared_source = Path(str(sidecar.get("source_parquet") or "")).expanduser().resolve()
+    if declared_source != source_path:
+        raise RuntimeError(
+            "MODEL_NATIVE_TRAIN_RANK_LINEAGE_SOURCE_PATH_MISMATCH: "
+            f"declared={declared_source} expected={source_path}"
+        )
+    source_sha = str(expected_source_sha256 or "").strip().lower()
+    if len(source_sha) != 64 or any(char not in "0123456789abcdef" for char in source_sha):
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_LINEAGE_SOURCE_SHA_INVALID")
+    if str(sidecar.get("source_parquet_sha256") or "").strip().lower() != source_sha:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_LINEAGE_SOURCE_SHA_MISMATCH")
+    history_start = parse_utc(
+        expected_history_start_utc, field="expected_history_start_utc"
+    )
+    declared_history_start = parse_utc(
+        sidecar.get("history_start_utc"), field="history_start_utc"
+    )
+    if declared_history_start != history_start:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_LINEAGE_HISTORY_START_MISMATCH")
+    fit_start = parse_utc(expected_fit_start_utc, field="expected_fit_start_utc")
+    fit_end = parse_utc(expected_fit_end_utc, field="expected_fit_end_utc")
+    if reference.fit_start_utc != fit_start or reference.fit_end_utc != fit_end:
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_LINEAGE_FIT_WINDOW_MISMATCH")
+    return reference
 
 
 def apply_train_rank_reference_v2(
@@ -294,6 +341,7 @@ def validate_state_contract_metadata_v2(
         "rank_fit_end_utc",
         "rank_reference_npz",
         "rank_reference_npz_sha256",
+        "rank_reference_sidecar_sha256",
         "rank_reference_schema_version",
         "normalization_fit_scope",
         "rank_transform",
@@ -332,6 +380,11 @@ def validate_state_contract_metadata_v2(
     sha = str(data["rank_reference_npz_sha256"]).strip().lower()
     if len(sha) != 64 or any(char not in "0123456789abcdef" for char in sha):
         raise RuntimeError("MODEL_NATIVE_STATE_RANK_SHA_INVALID")
+    sidecar_sha = str(data["rank_reference_sidecar_sha256"]).strip().lower()
+    if len(sidecar_sha) != 64 or any(
+        char not in "0123456789abcdef" for char in sidecar_sha
+    ):
+        raise RuntimeError("MODEL_NATIVE_STATE_RANK_SIDECAR_SHA_INVALID")
     rank_path = Path(str(data["rank_reference_npz"] or "")).expanduser()
     low = str(rank_path).lower()
     for marker in STALE_ARTIFACT_MARKERS:
@@ -339,6 +392,8 @@ def validate_state_contract_metadata_v2(
             raise RuntimeError(f"MODEL_NATIVE_STATE_STALE_RANK_ARTIFACT: marker={marker!r}")
     if require_artifact:
         reference = load_train_rank_reference_v2(rank_path, expected_sha256=sha)
+        if reference.sidecar_sha256 != sidecar_sha:
+            raise RuntimeError("MODEL_NATIVE_STATE_RANK_SIDECAR_SHA_MISMATCH")
         if reference.fit_start_utc != fit_start or reference.fit_end_utc != fit_end:
             raise RuntimeError("MODEL_NATIVE_STATE_RANK_FIT_WINDOW_MISMATCH")
         if str(reference.sidecar.get("entry_run_id") or "").strip() != entry_run_id:

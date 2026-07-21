@@ -412,7 +412,7 @@ def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None
         and int(feature.get("manifest_mandatory_selected_feature_count") or 0)
         == MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
         and mandatory_prefix == MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
-        "feature audit mandatory 305-field prefix/order mismatch",
+        "feature audit mandatory full-stack prefix/order mismatch",
     )
     _require(
         int(feature.get("ranked_remainder_feature_count") or 0)
@@ -422,7 +422,7 @@ def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None
         and len(ranked_remainder) == MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT
         and feature.get("ranked_remainder_fields_sha256")
         == canonical_json_sha256(list(ranked_remainder)),
-        "feature audit ranked 174-field remainder mismatch",
+        "feature audit ranked remainder mismatch",
     )
     _require(
         feature.get("feature_ranking_fit_scope") == "train_only"

@@ -82,6 +82,9 @@ def _write_split(
             encoding="utf-8",
         )
     rank_ref_sha = hashlib.sha256(rank_ref.read_bytes()).hexdigest()
+    rank_ref_sidecar_sha = hashlib.sha256(
+        rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
+    ).hexdigest()
     selected_fields = list(REQUIRED_POLARITY_FEATURES)
     if include_rail:
         selected_fields.extend(REQUIRED_RAIL_FEATURES)
@@ -237,6 +240,7 @@ def _write_split(
                 "rank_fit_end_utc": "2025-09-30T23:59:59Z",
                 "rank_reference_npz": str(rank_ref.resolve()),
                 "rank_reference_npz_sha256": rank_ref_sha,
+                "rank_reference_sidecar_sha256": rank_ref_sidecar_sha,
                 "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
                 "normalization_fit_scope": "train_only",
                 "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,

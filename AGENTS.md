@@ -70,8 +70,8 @@ permission to use another policy.
 The exact model-native surface is:
 
 - 513 ordered signals = 34 genuine base fields + 479 specialist fields;
-- the 479 specialist fields = all 305 outputs from ten code-owned causal
-  layers in exact registry order + 174 deterministic TRAIN-only ranked fields;
+- the 479 specialist fields = all 316 outputs from eleven code-owned causal
+  layers in exact registry order + 163 deterministic TRAIN-only ranked fields;
 - 142 ordered continuous context fields;
 - 5 ordered categorical context fields;
 - sequence length 96;

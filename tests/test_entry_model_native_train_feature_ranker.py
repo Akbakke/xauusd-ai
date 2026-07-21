@@ -18,6 +18,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIELDS
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as manifest_producer
 from gx1.scripts import materialize_entry_model_native_train_feature_ranker_v1 as ranker
+from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
 
 RUN_ID = "FEATURE_RANKER_UNIT_RUN_ID"
@@ -27,6 +28,16 @@ MANIFEST_CREATED = datetime(2026, 7, 18, 9, 0, 1, 1, tzinfo=timezone.utc)
 
 def _stamp(value: datetime) -> str:
     return value.strftime("%Y%m%dT%H%M%S%fZ")
+
+
+def _rank_reference(tmp_path: Path):
+    return materialize_test_rank_reference(
+        tmp_path / "rank_reference",
+        run_id=RUN_ID,
+        history_start="2019-12-31T00:00:00Z",
+        fit_start="2020-11-09T00:00:00Z",
+        fit_end="2026-03-31T23:59:59Z",
+    )[1]
 
 
 def test_candidate_universe_is_clean_and_large_enough() -> None:
@@ -93,10 +104,64 @@ def test_forward_return_target_is_train_capped_and_correct() -> None:
     assert target[10] == pytest.approx(np.log(2.0) * 1e4, rel=1e-6)
 
 
+def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import build_entry_v10_ctx_training_dataset_v3 as builder
+
+    times = pd.date_range("2026-01-01", periods=4, freq="5min", tz="UTC")
+    frame = pd.DataFrame(
+        {
+            "time": times,
+            "close": [100.0, 101.0, 102.0, 103.0],
+            "atr": [1.0, 1.1, 1.2, 1.3],
+            "open": [99.5, 100.5, 101.5, 102.5],
+            "high": [100.5, 101.5, 102.5, 103.5],
+            "low": [99.0, 100.0, 101.0, 102.0],
+        }
+    )
+    captured_path: Path | None = None
+
+    def fake_inline(
+        observed_frame,
+        *,
+        requested_features,
+        ctx_cont_names,
+        ctx_cat_names,
+        source_parquet,
+        source_contract_label,
+    ):
+        nonlocal captured_path
+        captured_path = Path(source_parquet)
+        source = pd.read_parquet(captured_path)
+        assert list(source.columns) == ["time", "close", "atr", "open", "high", "low"]
+        np.testing.assert_array_equal(source["close"], observed_frame["close"])
+        np.testing.assert_array_equal(source["atr"], observed_frame["atr"])
+        assert source_contract_label == "train_feature_ranker_common_causal_history_v2"
+        return (
+            np.arange(len(observed_frame), dtype=np.float32).reshape(-1, 1),
+            list(requested_features),
+            {},
+        )
+
+    monkeypatch.setattr(builder, "_build_inline_seq_structure_extension", fake_inline)
+    values, names = ranker._compute_candidate_matrix(
+        frame,
+        candidates=["trend.fixture_candidate"],
+        source_ctx_cont=[],
+    )
+
+    assert names == ["trend.fixture_candidate"]
+    assert values.shape == (4, 1)
+    assert captured_path is not None and not captured_path.exists()
+
+
 def test_emit_ranking_round_trips_through_the_real_manifest_producer(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    reference = _rank_reference(tmp_path)
     candidates = [
         f"session_regime.rank_candidate_{index:03d}"
         for index in range(MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT)
@@ -113,8 +178,9 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
         train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
         source_time_max=pd.Timestamp("2026-03-31T23:55:00Z"),
         target_time_max=pd.Timestamp("2026-03-31T21:55:00Z"),
-        source_sha256="1" * 64,
+        source_sha256=str(reference.sidecar["source_parquet_sha256"]),
         target_sha256="2" * 64,
+        rank_reference=reference,
         scores=scores,
         created=RANKING_CREATED,
     )
@@ -140,14 +206,16 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
     )
 
     assert out.is_file()
-    assert manifest["selected_features"][:305] == list(
+    mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
+    assert manifest["selected_features"][:mandatory_count] == list(
         MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
     )
-    assert manifest["selected_features"][305:] == candidates
+    assert manifest["selected_features"][mandatory_count:] == candidates
     require_model_native_manifest(manifest, context="RANKER_ROUND_TRIP_TEST")
 
 
 def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
+    reference = _rank_reference(tmp_path)
     scores = {
         "session_regime.bbb": 0.5,
         "session_regime.aaa": 0.5,
@@ -160,8 +228,9 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
         train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
         source_time_max=pd.Timestamp("2026-03-31T23:55:00Z"),
         target_time_max=pd.Timestamp("2026-03-31T21:55:00Z"),
-        source_sha256="1" * 64,
+        source_sha256=str(reference.sidecar["source_parquet_sha256"]),
         target_sha256="2" * 64,
+        rank_reference=reference,
         scores=scores,
         created=RANKING_CREATED,
     )
@@ -181,6 +250,8 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         "run_id": RUN_ID,
         "source_sha256": "1" * 64,
         "mtf_cache_sha256": "2" * 64,
+        "rank_reference_sha256": "5" * 64,
+        "rank_reference_sidecar_sha256": "7" * 64,
         "history_start": pd.Timestamp("2021-01-05T00:00:00Z"),
         "train_start": pd.Timestamp("2021-03-16T00:00:00Z"),
         "train_end": pd.Timestamp("2026-03-31T23:59:59Z"),
@@ -191,6 +262,8 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         ("run_id", "FEATURE_RANKER_OTHER_RUN_ID"),
         ("source_sha256", "3" * 64),
         ("mtf_cache_sha256", "4" * 64),
+        ("rank_reference_sha256", "6" * 64),
+        ("rank_reference_sidecar_sha256", "8" * 64),
         ("train_start", pd.Timestamp("2021-03-17T00:00:00Z")),
     ):
         variant = dict(base)
@@ -199,6 +272,7 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
 
 
 def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path) -> None:
+    reference = _rank_reference(tmp_path)
     out = tmp_path / f"{ranker.RANKING_EVENT_PREFIX}_20260718T090000000001Z.json"
     with pytest.raises(RuntimeError, match="OUTPUT_TIMESTAMP_MISMATCH"):
         ranker.emit_ranking(
@@ -208,8 +282,9 @@ def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path
             train_end=pd.Timestamp("2026-03-31T23:59:59Z"),
             source_time_max=pd.Timestamp("2026-03-31T23:55:00Z"),
             target_time_max=pd.Timestamp("2026-03-31T21:55:00Z"),
-            source_sha256="1" * 64,
+            source_sha256=str(reference.sidecar["source_parquet_sha256"]),
             target_sha256="2" * 64,
+            rank_reference=reference,
             scores={"session_regime.test": 1.0},
             created=datetime(2026, 7, 18, 9, 0, 0, 2, tzinfo=timezone.utc),
         )

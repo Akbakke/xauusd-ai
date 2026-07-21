@@ -14,8 +14,8 @@ exact split manifests and chronological leak-safe rows
         |
         +-- 34 genuine base price-state fields
         +-- 479 specialist fields
-        |     +-- 305 mandatory outputs from 10 causal layers
-        |     +-- 174 deterministic TRAIN-only ranked fields
+        |     +-- 316 mandatory outputs from 11 causal layers
+        |     +-- 163 deterministic TRAIN-only ranked fields
         +-- 142 continuous context fields
         +-- 5 categorical context fields
         +-- M5/M15/H1/H4/D1 sequences, length 96
@@ -67,8 +67,8 @@ shape and forbids the seven retired bridge fields:
 - contract mode `xau_seq513_model_native_direction_v1`;
 - direction mode `model_native`;
 - 34 base + 479 specialist = 513 signal fields;
-- the specialist surface is 305 mandatory code-owned causal-layer outputs plus
-  174 deterministic TRAIN-only ranked fields;
+- the specialist surface is 316 mandatory code-owned causal-layer outputs plus
+  163 deterministic TRAIN-only ranked fields;
 - sequence length 96;
 - 142 continuous + 5 categorical context fields;
 - no bridge source and no anchor source.
@@ -86,15 +86,16 @@ exact source prebuilt exclusively owns context-v3-5 + regime-source15 + raw
 volume. A duplicated or missing owner field is a hard failure; there is no
 source/canonical preference fallback.
 
-The complete 479-field order is manifest-owned and hash-bound. The first 305
+The complete 479-field order is manifest-owned and hash-bound. The first 316
 positions must exactly equal the immutable causal-layer registry; the final
-174 come from one validated deterministic TRAIN-only ranking. It cannot be
+163 come from one validated deterministic TRAIN-only ranking. It cannot be
 reconstructed from a mutable registry at train or serve time.
 
-`gx1/features/entry_model_native_feature_layers_v1.py` owns the ten mandatory
+`gx1/features/entry_model_native_feature_layers_v1.py` owns the eleven mandatory
 causal layers: trend/EMA, SMC/liquidity, structure/swing, momentum/flow,
 session/regime, volatility/compression, chart geometry,
-price-action/candles, support/resistance memory and MTF confluence.
+price-action/candles, support/resistance memory, MTF confluence and exact M5
+EMA50/200 state/cross evidence.
 `gx1/features/entry_specialist_feature_groups_v1.py` routes the complete
 479-field surface into the exact eight-way learned specialist partition:
 
@@ -212,7 +213,8 @@ utility/sizing targets without invoking Entry XGB inference.
 
 The rebuild wrapper, TRAIN-only rank-reference producer and dataset builder
 all require the same `--run-id`. The rank NPZ embeds it, the rank sidecar
-repeats it, and the state contract/build proof/split manifests bind it.
+repeats it, and the state contract/build proof/split manifests bind both
+artifact hashes.
 Missing or unequal IDs invalidate the chain. The ID is immutable provenance,
 not an approval or direction authority.
 
@@ -224,7 +226,7 @@ The feature-ranking JSON and its derived seq513 signal manifest are explicit
 immutable inputs, never files selected by glob, mtime or lexical "latest".
 Preflight, wrapper and builder revalidate the nested ranking lineage, run ID,
 source hash and exact requested TRAIN start/end. A ranking produced for a
-different split cannot authorize a build even when its schema and 305+174
+different split cannot authorize a build even when its schema and 316+163
 shape are otherwise valid.
 
 `gx1/contracts/entry_model_native_train_launch_v1.py` binds explicit immutable
@@ -484,9 +486,13 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
 FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
+      └─ materialize_model_native_train_rank_reference_v2
+        --run-id --source-parquet --history-start --fit-start --fit-end --out
+        → model_native_train_rank_reference_v4.npz + sidecar
       └─ materialize_entry_model_native_train_feature_ranker_v1
-        --run-id --source-parquet --mtf-cache-dir --history-start --train-start
-        --train-end --out  (bounded Group-A chunks + EVENT/_ranker_checkpoint.npz)
+        --run-id --source-parquet --mtf-cache-dir --rank-reference-npz
+        --history-start --train-start --train-end --out
+        (bounded Group-A chunks + EVENT/_ranker_checkpoint.npz)
         → ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<stamp>.json
   └─ materialize_entry_model_native_seq513_signal_manifest_v1 --feature-ranking-json --out --run-id
       └─ entry_next_edge_control.sh model-native-rebuild-preflight
@@ -522,8 +528,9 @@ terminal autoritet.
   `gx1/features/entry_smart_context.py::add_entry_smart_context_features`.
 - ctx is_ASIA: builder ~linje 1799, `(session_id==0).astype(int8)`.
 - ctx_cat 5: ctx-adderen emitterer; ORDERED_CTX_CAT_NAMES_V3.
-- 305 obligatoriske specialist-felt: entry_model_native_feature_layers_v1 + de
-  ni entry_*-lagmodulene; 84 kandidat-ekstra fra samme modulers
+- 316 obligatoriske specialist-felt: entry_model_native_feature_layers_v1 + de
+  ni entry_*-lagmodulene, inkludert 11 eksakte M5 EMA50/200-felt; kandidat-
+  ekstra fra samme modulers
   *_FEATURE_NAMES-konstanter; alt beregnes av builderens
   `_build_inline_seq_structure_extension` (~linje 674) som krever
   base+ctx142+cat5 i rammen.

@@ -40,6 +40,7 @@ from gx1.scripts import (
     materialize_entry_model_native_seq513_signal_manifest_v1 as signal_manifest_producer,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
 
 STAMP = "20260716T120000123456Z"
@@ -141,6 +142,14 @@ def _build_fixture(
         "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_"
         f"{_stamp(ranking_created)}.json"
     )
+    _rank_source, rank_reference = materialize_test_rank_reference(
+        tmp_path / "run/rank",
+        run_id=RUN_ID,
+        history_start=SPLITS["history_start"],
+        fit_start=SPLITS["train_start"],
+        fit_end=SPLITS["train_end"],
+        source_path=source,
+    )
     ranking = {
         "schema_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
         "created_utc": ranking_created.isoformat(),
@@ -154,6 +163,28 @@ def _build_fixture(
         "target_time_max_utc": SPLITS["train_end"],
         "source_sha256": _sha256(source),
         "target_sha256": "2" * 64,
+        "rank_reference": {
+            "path": str(rank_reference.path),
+            "sha256": rank_reference.sha256,
+            "sidecar_path": str(
+                rank_reference.path.with_suffix(rank_reference.path.suffix + ".json")
+            ),
+            "sidecar_sha256": rank_reference.sidecar_sha256,
+            "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+            "entry_run_id": RUN_ID,
+            "source_parquet": str(source.resolve()),
+            "source_parquet_sha256": _sha256(source),
+            "history_start_utc": datetime.fromisoformat(
+                SPLITS["history_start"]
+            ).isoformat(),
+            "fit_start_utc": datetime.fromisoformat(
+                SPLITS["train_start"]
+            ).isoformat(),
+            "fit_end_utc": datetime.fromisoformat(SPLITS["train_end"]).isoformat(),
+            "fit_row_count": rank_reference.fit_row_count,
+            "fit_scope": "train_only",
+            "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
+        },
         "ranking_order": dict(signal_manifest_producer.TRAIN_FEATURE_RANKING_ORDER),
         "causality_contract": dict(
             signal_manifest_producer.TRAIN_FEATURE_CAUSALITY_CONTRACT
@@ -276,7 +307,7 @@ def _build_fixture(
         canonical_v2_parquet=str(canonical),
         signal_manifest=str(manifest_path),
         feature_ranking_json=str(ranking_path),
-        rank_reference_npz=str(tmp_path / "run/rank/model_native_rank.npz"),
+        rank_reference_npz=str(rank_reference.path),
         mtf_cache_dir=str(mtf_cache),
         tape_root=str(tape_root),
         output=str(tmp_path / "run/dataset/model_native__HOLD_03B.parquet"),
@@ -294,7 +325,7 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     report = preflight.run(args)
 
     assert report["decision"] == preflight.READY_DECISION
-    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v2"
+    assert report["schema_version"] == "entry_model_native_seq513_rebuild_preflight_v3"
     assert not report["failures"]
     assert report["counts"] == {
         "base_signal_features": MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -369,6 +400,7 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "output_npz": str(Path(args.rank_reference_npz).resolve()),
         "sidecar_json": str(Path(args.rank_reference_npz).resolve()) + ".json",
         "materialized_before_dataset_builder": True,
+        "materialized_before_feature_ranker": True,
         "feature_history_start_utc": SPLITS["history_start"],
         "fit_start_utc": SPLITS["train_start"],
         "fit_end_utc": SPLITS["train_end"],
@@ -382,6 +414,7 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
         "run_lineage_required": True,
         "run_id_bound_in_npz_and_sidecar": True,
         "dataset_builder_requires_same_run_id": True,
+        "preflight_validates_exact_existing_reference": True,
     }
     assert command["fixed_builder_contract"]["state_schema_version"] == MODEL_NATIVE_STATE_SCHEMA_VERSION
     assert command["fixed_builder_contract"]["direction_target_mode"] == "path_utility_v2"
@@ -468,11 +501,11 @@ def test_preflight_blocks_incomplete_contracts(
         ),
         (
             {"break_ranking_source_hash": True},
-            "FEATURE_RANKING_SOURCE_SHA256_MISMATCH",
+            "MODEL_NATIVE_TRAIN_RANK_LINEAGE_SOURCE_SHA_MISMATCH",
         ),
         (
             {"break_ranking_train_window": True},
-            "FEATURE_RANKING_TRAIN_WINDOW_MISMATCH",
+            "MODEL_NATIVE_TRAIN_RANK_LINEAGE_FIT_WINDOW_MISMATCH",
         ),
     ],
 )
@@ -552,7 +585,7 @@ def test_preflight_rejects_mutable_manifest_and_existing_outputs(tmp_path: Path)
 
     args = _build_fixture(tmp_path / "existing")
     rank = Path(args.rank_reference_npz)
-    rank.parent.mkdir(parents=True)
+    rank.parent.mkdir(parents=True, exist_ok=True)
     rank.write_bytes(b"stale")
     output = Path(args.output)
     output.parent.mkdir(parents=True)
@@ -561,7 +594,10 @@ def test_preflight_rejects_mutable_manifest_and_existing_outputs(tmp_path: Path)
     report = preflight.run(args)
     failure_names = {row["name"] for row in report["failures"]}
     assert report["decision"] == preflight.BLOCKED_DECISION
-    assert "rank-reference NPZ and sidecar paths are fresh" in failure_names
+    assert (
+        "rank-reference binds the exact run_id, source hash, history, and TRAIN window"
+        in failure_names
+    )
     assert "dataset output path and derived split artifacts are fresh" in failure_names
     assert "audit output directory is fresh" in failure_names
 

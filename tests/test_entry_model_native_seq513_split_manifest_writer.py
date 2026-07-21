@@ -88,6 +88,7 @@ def _extra() -> dict:
             "rank_fit_end_utc": "2025-09-30T23:59:59Z",
             "rank_reference_npz": "/immutable/rank_reference.npz",
             "rank_reference_npz_sha256": "a" * 64,
+            "rank_reference_sidecar_sha256": "c" * 64,
             "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
             "rank_reference_sidecar_json": "/immutable/rank_reference.npz.json",
             "rank_reference_source_parquet": "/immutable/source.parquet",

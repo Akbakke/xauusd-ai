@@ -467,6 +467,15 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 "purpose": "Cross-family MTF confluence and disagreement features that route back to their mechanism owners.",
             },
         ),
+        (
+            "price_ema50_200_layer",
+            {
+                "expected_feature_count": 11,
+                "expected_specialist_counts": {"trend_ema_encoder": 11},
+                "owned_specialists": ("trend_ema_encoder",),
+                "purpose": "Exact M5 EMA50/200 state, crosses, slopes, acceleration and price location.",
+            },
+        ),
     ]
 )
 
@@ -561,6 +570,10 @@ def classify_entry_specialist_feature(name: str) -> str:
 
     if n.startswith("chart.structure_swing_") or bare.startswith("structure_swing_"):
         return "structure_swing_encoder"
+    if bare.startswith(
+        ("m5_ema50_200_", "m5_price_vs_ema", "m5_ema50_", "m5_ema200_")
+    ):
+        return "trend_ema_encoder"
 
     if _contains_any(
         n,

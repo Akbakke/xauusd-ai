@@ -4,8 +4,8 @@
 This is the producer side of `entry_model_native_train_feature_ranking_v1`,
 consumed exclusively by
 `gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1`.
-The 305 mandatory causal-layer fields are code-owned and never ranked here;
-this producer scores only the CANDIDATE pool competing for the 174 remainder
+The mandatory causal-layer fields are code-owned and never ranked here; this
+producer scores only the CANDIDATE pool competing for the ranked remainder
 positions.
 
 Determinism contract (declared in the emitted JSON and enforced downstream):
@@ -31,6 +31,7 @@ import json
 import math
 import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
@@ -42,6 +43,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -61,13 +63,21 @@ from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import
     _is_forbidden_leak_name,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_model_native_state_v2 import (
+    MODEL_NATIVE_RANK_TRANSFORM,
+    MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+    TrainRankReferenceV2,
+    apply_train_rank_reference_v2,
+    parse_utc,
+    validate_train_rank_reference_lineage_v2,
+)
 
 
 RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
 TARGET_HORIZON_BARS = 24
 MIN_SUPPORT_FRACTION = 0.10
 SCORE_DECIMALS = 12
-RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v2"
+RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v3"
 _RANKING_OUTPUT_RE = re.compile(
     rf"^{RANKING_EVENT_PREFIX}_(\d{{8}}T\d{{6}}(?:\d{{6}})?Z)\.json$"
 )
@@ -127,6 +137,8 @@ def _ranker_checkpoint_key(
     run_id: str,
     source_sha256: str,
     mtf_cache_sha256: str,
+    rank_reference_sha256: str,
+    rank_reference_sidecar_sha256: str,
     history_start: pd.Timestamp,
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
@@ -136,6 +148,8 @@ def _ranker_checkpoint_key(
         "entry_run_id": run_id,
         "source_sha256": source_sha256,
         "mtf_cache_sha256": mtf_cache_sha256,
+        "rank_reference_sha256": rank_reference_sha256,
+        "rank_reference_sidecar_sha256": rank_reference_sidecar_sha256,
         "history_start_utc": history_start.isoformat(),
         "train_start_utc": train_start.isoformat(),
         "train_end_utc": train_end.isoformat(),
@@ -225,6 +239,7 @@ def _load_train_frame(
     mtf_cache_dir: Path,
     checkpoint_dir: Path,
     checkpoint_key: str,
+    rank_reference: TrainRankReferenceV2,
 ) -> Tuple[pd.DataFrame, List[str]]:
     frame = pd.read_parquet(source_parquet)
     if "time" not in frame.columns:
@@ -235,6 +250,10 @@ def _load_train_frame(
     ].sort_values("time").reset_index(drop=True)
     if frame.empty:
         raise RuntimeError("FEATURE_RANKER_TRAIN_WINDOW_EMPTY")
+    # Apply the same immutable TRAIN-fit ECDF/ATR state before any downstream
+    # regime, GROUP_A, smart-context, or candidate construction.  Ranking on
+    # source-provided buckets while dataset/live overwrite them is forbidden.
+    frame = apply_train_rank_reference_v2(frame, rank_reference)
     frame = add_volume_features(frame)
 
     # GROUP_A + DIP_STRUCT ctx columns are not carried by the source parquet;
@@ -307,7 +326,6 @@ def _load_train_frame(
 def _compute_candidate_matrix(
     frame: pd.DataFrame,
     *,
-    source_parquet: Path,
     candidates: Sequence[str],
     source_ctx_cont: Sequence[str],
 ) -> Tuple[np.ndarray, List[str]]:
@@ -316,14 +334,28 @@ def _compute_candidate_matrix(
         _build_inline_seq_structure_extension,
     )
 
-    matrix, names, _meta = _build_inline_seq_structure_extension(
-        frame,
-        requested_features=list(candidates),
-        ctx_cont_names=list(source_ctx_cont),
-        ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
-        source_parquet=source_parquet,
-        source_contract_label="train_feature_ranker_v1",
-    )
+    inline_source_columns = ["time", "close", "atr", "open", "high", "low"]
+    missing_inline = [name for name in inline_source_columns if name not in frame.columns]
+    if missing_inline:
+        raise RuntimeError(
+            f"FEATURE_RANKER_INLINE_CAUSAL_SOURCE_MISSING: {missing_inline}"
+        )
+    with tempfile.NamedTemporaryFile(
+        suffix="_train_feature_ranker_common_history.parquet", delete=False
+    ) as temporary:
+        inline_source_path = Path(temporary.name)
+    try:
+        frame[inline_source_columns].to_parquet(inline_source_path, index=False)
+        matrix, names, _meta = _build_inline_seq_structure_extension(
+            frame,
+            requested_features=list(candidates),
+            ctx_cont_names=list(source_ctx_cont),
+            ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
+            source_parquet=inline_source_path,
+            source_contract_label="train_feature_ranker_common_causal_history_v2",
+        )
+    finally:
+        inline_source_path.unlink(missing_ok=True)
     matrix = np.asarray(matrix, dtype=np.float32)
     index_by_name = {name: column for column, name in enumerate(names)}
     missing = [name for name in candidates if name not in index_by_name]
@@ -393,6 +425,7 @@ def emit_ranking(
     target_time_max: pd.Timestamp,
     source_sha256: str,
     target_sha256: str,
+    rank_reference: TrainRankReferenceV2,
     scores: Dict[str, float],
     created: datetime | None = None,
 ) -> Path:
@@ -423,6 +456,29 @@ def emit_ranking(
         "target_time_max_utc": target_time_max.isoformat(),
         "source_sha256": source_sha256,
         "target_sha256": target_sha256,
+        "rank_reference": {
+            "path": str(rank_reference.path),
+            "sha256": rank_reference.sha256,
+            "sidecar_path": str(
+                rank_reference.path.with_suffix(rank_reference.path.suffix + ".json")
+            ),
+            "sidecar_sha256": rank_reference.sidecar_sha256,
+            "schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
+            "entry_run_id": str(rank_reference.sidecar["entry_run_id"]),
+            "source_parquet": str(rank_reference.sidecar["source_parquet"]),
+            "source_parquet_sha256": str(
+                rank_reference.sidecar["source_parquet_sha256"]
+            ),
+            "history_start_utc": parse_utc(
+                rank_reference.sidecar["history_start_utc"],
+                field="history_start_utc",
+            ).isoformat(),
+            "fit_start_utc": rank_reference.fit_start_utc.isoformat(),
+            "fit_end_utc": rank_reference.fit_end_utc.isoformat(),
+            "fit_row_count": rank_reference.fit_row_count,
+            "fit_scope": "train_only",
+            "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
+        },
         "ranking_order": dict(TRAIN_FEATURE_RANKING_ORDER),
         "causality_contract": dict(TRAIN_FEATURE_CAUSALITY_CONTRACT),
         "ranked_features": [
@@ -446,6 +502,7 @@ def main() -> None:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--source-parquet", type=Path, required=True)
     parser.add_argument("--mtf-cache-dir", type=Path, required=True)
+    parser.add_argument("--rank-reference-npz", type=Path, required=True)
     parser.add_argument("--history-start", required=True)
     parser.add_argument("--train-start", required=True)
     parser.add_argument("--train-end", required=True)
@@ -463,6 +520,15 @@ def main() -> None:
     if not source_parquet.is_file():
         raise RuntimeError(f"FEATURE_RANKER_SOURCE_MISSING: {source_parquet}")
     source_sha256 = _sha256_file(source_parquet)
+    rank_reference = validate_train_rank_reference_lineage_v2(
+        args.rank_reference_npz,
+        expected_run_id=run_id,
+        expected_source_parquet=source_parquet,
+        expected_source_sha256=source_sha256,
+        expected_history_start_utc=history_start,
+        expected_fit_start_utc=train_start,
+        expected_fit_end_utc=train_end,
+    )
     mtf_cache_dir = args.mtf_cache_dir.expanduser().resolve()
     if not mtf_cache_dir.is_dir() or mtf_cache_dir.is_symlink():
         raise RuntimeError(f"FEATURE_RANKER_MTF_CACHE_MISSING: {mtf_cache_dir}")
@@ -471,6 +537,8 @@ def main() -> None:
         run_id=run_id,
         source_sha256=source_sha256,
         mtf_cache_sha256=mtf_cache_sha256,
+        rank_reference_sha256=rank_reference.sha256,
+        rank_reference_sidecar_sha256=rank_reference.sidecar_sha256,
         history_start=history_start,
         train_start=train_start,
         train_end=train_end,
@@ -511,6 +579,8 @@ def main() -> None:
                     "source_time_max_ns",
                     "source_sha256",
                     "mtf_cache_sha256",
+                    "rank_reference_sha256",
+                    "rank_reference_sidecar_sha256",
                 }
                 if set(ck.files) != expected_keys:
                     raise RuntimeError("key set mismatch")
@@ -519,6 +589,10 @@ def main() -> None:
                     or str(ck["checkpoint_key"]) != checkpoint_key
                     or str(ck["source_sha256"]) != source_sha256
                     or str(ck["mtf_cache_sha256"]) != mtf_cache_sha256
+                    or str(ck["rank_reference_sha256"])
+                    != rank_reference.sha256
+                    or str(ck["rank_reference_sidecar_sha256"])
+                    != rank_reference.sidecar_sha256
                 ):
                     raise RuntimeError("identity mismatch")
                 matrix = ck["matrix"]
@@ -541,15 +615,16 @@ def main() -> None:
             mtf_cache_dir=mtf_cache_dir,
             checkpoint_dir=group_a_checkpoint_dir,
             checkpoint_key=checkpoint_key,
+            rank_reference=rank_reference,
         )
         candidates = _candidate_universe(source_ctx_cont)
-        if len(candidates) < 174:
+        if len(candidates) < MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT:
             raise RuntimeError(
-                f"FEATURE_RANKER_CANDIDATE_POOL_TOO_SMALL: {len(candidates)} < 174"
+                "FEATURE_RANKER_CANDIDATE_POOL_TOO_SMALL: "
+                f"{len(candidates)} < {MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT}"
             )
         matrix, names = _compute_candidate_matrix(
             frame,
-            source_parquet=source_parquet,
             candidates=candidates,
             source_ctx_cont=source_ctx_cont,
         )
@@ -574,6 +649,10 @@ def main() -> None:
             source_time_max_ns=np.int64(source_time_max.value),
             source_sha256=np.array(source_sha256),
             mtf_cache_sha256=np.array(mtf_cache_sha256),
+            rank_reference_sha256=np.array(rank_reference.sha256),
+            rank_reference_sidecar_sha256=np.array(
+                rank_reference.sidecar_sha256
+            ),
         )
         print(f"[CHECKPOINT] skrevet {checkpoint_path}", flush=True)
 
@@ -599,6 +678,7 @@ def main() -> None:
         target_time_max=target_time_max,
         source_sha256=source_sha256,
         target_sha256=target_sha256,
+        rank_reference=rank_reference,
         scores=scores,
     )
     nonzero = sum(1 for s in scores.values() if s > 0.0)

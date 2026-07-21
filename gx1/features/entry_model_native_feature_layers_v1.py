@@ -46,6 +46,25 @@ from gx1.features.entry_trend_ema_v1 import TREND_EMA_FEATURE_NAMES
 from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES
 
 
+# Exact raw M5 trend-state evidence.  The offline builder and live adapter
+# both supply these columns from the TRAIN-ranked common-history frame.
+PRICE_DERIVED_SOURCE_PRICE_FIELD = "close"
+PRICE_DERIVED_SOURCE_ATR_FIELD = "atr"
+PRICE_DERIVED_FEATURE_NAMES = (
+    "chart.m5_ema50_200_spread_bps",
+    "chart.m5_ema50_200_spread_atr",
+    "chart.m5_ema50_200_bull_state",
+    "chart.m5_ema50_200_cross_up",
+    "chart.m5_ema50_200_cross_down",
+    "chart.m5_price_vs_ema50_bps",
+    "chart.m5_price_vs_ema200_bps",
+    "chart.m5_ema50_slope_bps",
+    "chart.m5_ema200_slope_bps",
+    "chart.m5_ema50_200_spread_delta",
+    "chart.m5_ema50_200_spread_accel",
+)
+
+
 # Ordered ownership registry for every generated specialist layer that the
 # canonical seq513 builder may materialize.  This belongs beside the builders,
 # not in a report/materializer script with mutable historical artifact paths.
@@ -71,6 +90,7 @@ MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     ),
     ("support_resistance_memory_layer", SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES),
     ("mtf_confluence_layer", MTF_CONFLUENCE_FEATURE_NAMES),
+    ("price_ema50_200_layer", PRICE_DERIVED_FEATURE_NAMES),
 )
 
 # This is the code-owned full-stack retention contract.  A feature-selection
@@ -83,8 +103,8 @@ MODEL_NATIVE_MANDATORY_SELECTED_FIELDS = tuple(
     for _family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
     for feature in features
 )
-MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 10
-MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 305
+MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 11
+MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 316
 
 _mandatory_family_labels = tuple(
     family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
@@ -114,23 +134,6 @@ if any(
     for feature in MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
 ):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_SELECTED_FIELD_INVALID")
-
-
-PRICE_DERIVED_SOURCE_PRICE_FIELDS = ("mid", "close")
-PRICE_DERIVED_SOURCE_ATR_FIELDS = ("atr", "atr50", "_v1_atr14")
-PRICE_DERIVED_FEATURE_NAMES = (
-    "chart.m5_ema50_200_spread_bps",
-    "chart.m5_ema50_200_spread_atr",
-    "chart.m5_ema50_200_bull_state",
-    "chart.m5_ema50_200_cross_up",
-    "chart.m5_ema50_200_cross_down",
-    "chart.m5_price_vs_ema50_bps",
-    "chart.m5_price_vs_ema200_bps",
-    "chart.m5_ema50_slope_bps",
-    "chart.m5_ema200_slope_bps",
-    "chart.m5_ema50_200_spread_delta",
-    "chart.m5_ema50_200_spread_accel",
-)
 
 
 def _ordered_unique(values: Iterable[str]) -> tuple[str, ...]:
@@ -371,18 +374,12 @@ def build_price_derived_layer(
     available = _read_source_schema(source, context=context)
     if "time" not in available:
         raise RuntimeError(f"{context}_SOURCE_FIELDS_MISSING: ['time']")
-    price_fields = [name for name in PRICE_DERIVED_SOURCE_PRICE_FIELDS if name in available]
-    atr_fields = [name for name in PRICE_DERIVED_SOURCE_ATR_FIELDS if name in available]
-    if not price_fields:
-        raise RuntimeError(
-            f"{context}_SOURCE_PRICE_MISSING: require_one_of={list(PRICE_DERIVED_SOURCE_PRICE_FIELDS)}"
-        )
-    if not atr_fields:
-        raise RuntimeError(
-            f"{context}_SOURCE_ATR_MISSING: require_one_of={list(PRICE_DERIVED_SOURCE_ATR_FIELDS)}"
-        )
-    price_field = price_fields[0]
-    atr_field = atr_fields[0]
+    price_field = PRICE_DERIVED_SOURCE_PRICE_FIELD
+    atr_field = PRICE_DERIVED_SOURCE_ATR_FIELD
+    if price_field not in available:
+        raise RuntimeError(f"{context}_SOURCE_PRICE_MISSING: required={price_field}")
+    if atr_field not in available:
+        raise RuntimeError(f"{context}_SOURCE_ATR_MISSING: required={atr_field}")
     src = pd.read_parquet(source, columns=["time", price_field, atr_field], engine="pyarrow")
     src = _normalize_source_times(src, context=context)
     close_values = _require_finite_positive_column(src, price_field, context=context)
@@ -559,18 +556,23 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
     add_chart_feature(arrays, names, "near_recent_swing_high", high_context)
     add_chart_feature(arrays, names, "near_recent_swing_low", low_context)
 
+    bos_pressure_12 = _col(x, idx, "ctx_cont.smc_bos_pressure_last12")
+    bos_pressure_48 = _col(x, idx, "ctx_cont.smc_bos_pressure_last48")
     bos_up = _clip(
         _col(x, idx, "snap.smc_bos_up")
-        + 0.5 * _col(x, idx, "ctx_cont.smc_bos_pressure_last12")
+        + 0.5 * _pos(bos_pressure_12)
+        + 0.25 * _pos(bos_pressure_48),
+        0.0,
+        1.0,
     )
     bos_down = _clip(
         _col(x, idx, "snap.smc_bos_down")
-        + 0.5 * _col(x, idx, "ctx_cont.smc_bos_pressure_last12")
+        + 0.5 * _neg(bos_pressure_12)
+        + 0.25 * _neg(bos_pressure_48),
+        0.0,
+        1.0,
     )
-    bos_pressure = _clip(
-        _col(x, idx, "ctx_cont.smc_bos_pressure_last48")
-        + _col(x, idx, "ctx_cont.smc_bos_pressure_last12")
-    )
+    bos_pressure = _clip(bos_pressure_48 + bos_pressure_12)
     choch = _clip(
         _col(x, idx, "snap.smc_choch")
         + _col(x, idx, "ctx_cont.smc_choch_recent_tau12")
@@ -601,13 +603,25 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
         choch * _col(x, idx, "ctx_cont.regime_divergence_flag_v3"),
     )
 
+    sweep_bull_pressure_12 = _col(
+        x, idx, "ctx_cont.smc_sweep_bull_pressure_last12"
+    )
+    sweep_bull_pressure_48 = _col(
+        x, idx, "ctx_cont.smc_sweep_bull_pressure_last48"
+    )
     sweep_up = _clip(
         _col(x, idx, "snap.smc_sweep_up")
-        + _col(x, idx, "ctx_cont.smc_sweep_bull_pressure_last12")
+        + 0.5 * _neg(sweep_bull_pressure_12)
+        + 0.25 * _neg(sweep_bull_pressure_48),
+        0.0,
+        1.0,
     )
     sweep_down = _clip(
         _col(x, idx, "snap.smc_sweep_down")
-        + _col(x, idx, "ctx_cont.smc_sweep_bull_pressure_last48")
+        + 0.5 * _pos(sweep_bull_pressure_12)
+        + 0.25 * _pos(sweep_bull_pressure_48),
+        0.0,
+        1.0,
     )
     sweep_recent = _clip(
         _recency(_col(x, idx, "snap.smc_bars_since_sweep"))

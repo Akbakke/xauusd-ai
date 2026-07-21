@@ -413,7 +413,12 @@ def _feature_checks(
             split_rows=split_rows,
         ),
         _check(
-            "feature audit proves exact model-native 34 plus 305 plus 174 partition",
+            (
+                "feature audit proves exact model-native "
+                f"{MODEL_NATIVE_BASE_SIGNAL_DIM} plus "
+                f"{MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT} plus "
+                f"{MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} partition"
+            ),
             partition_exact,
             {
                 "contract_error": contract_error,

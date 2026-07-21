@@ -340,14 +340,18 @@ def test_runner_rejects_presence_of_retired_entry_override_env(monkeypatch) -> N
         runner.assert_no_retired_entry_overrides()
 
 
-def test_model_native_mtf_splice_contract_has_no_runtime_tuning_surface() -> None:
+def test_model_native_context_gap_has_no_partial_mtf_splice_surface() -> None:
     from gx1.execution import v12_model_native_state_live as state_live
+    from gx1.execution import v12_smart_entry_live as smart_live
 
-    assert state_live.MODEL_NATIVE_MTF_SPLICE_TFS == ("M15", "H1")
-    assert state_live.MODEL_NATIVE_MTF_SPLICE_WARMUP_M5 == 30000
-    assert tuple(
-        inspect.signature(state_live.append_multi_tf_incremental).parameters
-    ) == ("cv3", "multi_tf")
+    assert not hasattr(state_live, "append_multi_tf_incremental")
+    assert not hasattr(state_live, "MODEL_NATIVE_MTF_SPLICE_TFS")
+    assert smart_live.SMART_CTX_MAX_STALENESS_M5 == 0
+    effective_source = inspect.getsource(
+        smart_live.SmartEntryLiveInference._effective_context
+    )
+    assert "raise SmartContextStaleError" in effective_source
+    assert "append_multi_tf_incremental" not in effective_source
 
 
 def test_entry_latency_override_is_retired_from_runner_and_launcher(

@@ -41,12 +41,23 @@ fresh rebuild. ROADMAP.md is the concise current takeover plan.
 
 The source-side recovery is now implemented and unit/integration-tested, but
 has not yet completed a fresh full rebuild. `run_seq513_rebuild_chain_v1.sh`
-now owns ranking, manifest, preflight and dataset execution under one lineage;
+now owns TRAIN-rank reference, ranking, manifest, preflight and dataset
+execution under one lineage;
 `gx1_capped_run.sh` holds a host-wide exclusive heavy-job lock; Group-A writes
 exact 4096-row chunks bound to the source frame, five-TF cache, ordered fields
 and run/window key; the ranker and builder may make one exact checkpoint retry;
-and normal/signal exits publish immutable schema-v3 terminal events. This is
+and normal/signal exits publish immutable schema-v4 terminal events. This is
 source proof only. V3/V4 checkpoints and partial outputs remain rejected.
+
+The 2026-07-21 feature audit then closed the remaining build/serve skew before
+another heavy run: the TRAIN-rank reference is created before ranking and
+hash-bound through manifest/preflight/dataset; price-derived EMA inputs use
+only ranked common-history `close`/`atr`; signed BOS/sweep pressure is
+directionally symmetric; and the unprovable partial live MTF splice is removed
+so any context gap emits no direction until full refresh. The exact specialist
+partition is now 316 mandatory fields across eleven families (including all
+11 M5 EMA50/200 fields) plus 163 TRAIN-ranked fields. These are source-contract
+repairs only; launch remains BLOCK and a wholly fresh rebuild is still required.
 
 `PROJECT_STATE_xau_direction_launch.json` is the current Entry launch state.
 Every earlier Entry dataset, bundle and report is rejected by the current
@@ -98,8 +109,8 @@ an immutable proxy comparison and absolute OOT/cost/live-like gates.
 - contract mode: `xau_seq513_model_native_direction_v1`;
 - direction mode: `model_native`;
 - 513 signals: 34 genuine base fields + 479 exact specialist fields;
-- the 479 specialist fields contain all 305 outputs from ten code-owned causal
-  layers in registry order, plus exactly 174 deterministic TRAIN-only ranked
+- the 479 specialist fields contain all 316 outputs from eleven code-owned causal
+  layers in registry order, plus exactly 163 deterministic TRAIN-only ranked
   fields;
 - 142 continuous context fields and 5 categorical context fields;
 - sequence length 96;
@@ -171,8 +182,8 @@ to `FLAT`, a cached decision or backlog execution.
 - Added exact seq513 signal, split-manifest, readiness, train-launch,
   objective, immutable-event and full-input-liveness contracts.
 - Made full-stack retention executable rather than aspirational: the signal
-  manifest producer always retains all 305 registered causal-layer outputs and
-  permits deterministic TRAIN-only ranking to fill only the remaining 174
+  manifest producer always retains all 316 registered causal-layer outputs and
+  permits deterministic TRAIN-only ranking to fill only the remaining 163
   specialist positions.
 - Closed the rebuild-lineage provenance gap: the wrapper now passes one
   validated `--run-id` into both writing producers. The rank NPZ and sidecar,
@@ -266,7 +277,7 @@ source cleanup settles.
    contract-consistency audit completed (55 adversarially verified findings);
    zero-reachability deletions executed under explicit user approval; full test
    suite green (1341 pass / 5 skip / 0 fail). See DECISION_LOG 2026-07-17.
-2. DONE 2026-07-17: contract hardening — the 305-field mandatory causal-layer
+2. DONE 2026-07-17: contract hardening — the mandatory causal-layer
    registry PREFIX ORDER is validated at every manifest consumer; the five
    launch-JSON `required_*` partition constants are enforced against code
    constants; the 90-second Entry latency limit has one numeric owner.
@@ -299,7 +310,7 @@ Verified source material for a fresh seq513 rebuild (immutable, July-16 build):
 - tape root: same dir, `cv3/`
 - REJECTED and must be reproduced fresh under the new vedtak: the old
   `smart520_rank_reference_*.npz` (schema v1; the contract requires
-  `model_native_train_rank_reference_v3`) and the 520-wide dataset
+  `model_native_train_rank_reference_v4`) and the 520-wide dataset
   (7 constant neutral-XGB bridge fields).
 
 ## 2026-07-18/19 campaign handover (vedtak XAU_SEQ513_REBUILD_20260718_V1)
@@ -323,7 +334,7 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
    parallel GROUP_A attach). Five source-contract tests included a round-trip
    through the real manifest producer. The ranking produced during the
    campaign is invalid for the active split because its TRAIN start differs;
-   its scores and derived 305+174 manifest have no admission authority.
+   its scores and derived pre-EMA-mandatory manifest have no admission authority.
 2. `gx1/scripts/repair_m5_tape_dec2024_from_m1_v1.py` — event-local repair of
    the Dec-2024 canonical M5 geometry defect (2375 impossible rows -> 0) from
    the clean canonical M1; convention proof (high/low EXACT vs M1 aggregation,
@@ -333,7 +344,8 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
    cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE (current
    builder version) -> FULL_PLUS_CTX (207 cols, column-identical to July-16).
 4. `scripts/run_seq513_rebuild_chain_v1.sh` — fail-closed chain driver. It now
-   owns fresh ranking -> fresh manifest -> fresh preflight -> fresh build, with
+   owns fresh TRAIN-rank reference -> fresh ranking -> fresh manifest -> fresh
+   preflight -> fresh build, with
    immutable artifact targets rather than glob/lexical-latest selection or
    inferred resume. One exact checkpoint retry is allowed after a capped
    process failure. Telegram ⚙️/🔴/✅ and process-watch output are operational
@@ -394,18 +406,19 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse invalidated run lineage `XAU_SEQ513_REBUILD_20260718_V1`.
-   Use `XAU_SEQ513_REBUILD_20260720_V2` as the one immutable `--run-id` bound
-   into rank NPZ, sidecar, build proof, state contract and all split manifests.
-   The ID is provenance, not a manual approval gate.
+1. Do **not** reuse any invalidated V1/V2/V3/V4 lineage. Allocate one fresh
+   immutable `--run-id` bound into rank NPZ, sidecar, ranking, manifest, build
+   proof, state contract and all split manifests. The ID is provenance, not a
+   manual approval gate.
 2. Allocate one fresh immutable feature-ranking output path for the exact
    active TRAIN window. Never discover or pre-populate it through a directory
    glob or lexical/mtime "latest" selection.
 3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with `--run-id`,
    `--event-root`, `--feature-ranking-json`, `--signal-manifest` and
    `--preflight-out-dir`. All three target paths must be fresh. The driver
-   creates and revalidates the ranking, manifest, preflight, v4 rank reference,
-   dataset and split/audit outputs. It never resumes inferred debris; only its
+   creates the v4 rank reference first, then computes/revalidates the ranking,
+   manifest, preflight, dataset and split/audit outputs. It never resumes
+   inferred debris; only its
    exact hash-bound bounded checkpoint may be retried once after capped failure.
 4. Accept the rebuild only from the driver's terminal validated split
    manifests. Console output, Telegram status, partial files and an earlier
