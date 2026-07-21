@@ -477,8 +477,9 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
         → canonical_features_v2.parquet
       └─ gx1.scripts.materialize_canonical_v3_augment  --input --output-dir
             → cv3/ (113 kol = cv2 − 12 redundante + 6 nye)
-          └─ modelrange = cv3 join 11 kol fra cf2 + radtrim (inline; se
-                cv3_modelrange.provenance.json; 124 kol)
+          └─ gx1.scripts.materialize_cv3_modelrange_v1 --run-id --cv3
+                --canonical-v2 --out (eksakt radakse, join 11 kol fra cf2,
+                eksplisitt vindustrim og hashbundet provenance; 124 kol)
               └─ gx1.scripts.add_ctx_cont_columns_to_prebuilt
                     --prebuilt_parquet --output_parquet --raw_m5_parquet <7 år-parter>
                     --tape-root  (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
