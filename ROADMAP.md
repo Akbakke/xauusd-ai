@@ -14,17 +14,21 @@ live rule or fallback.
 
 ## Current state
 
-Run lineage is XAU_SEQ513_REBUILD_20260720_V2. V1 and V2 event attempts are
-non-authoritative failure evidence. Fresh V3 ranking, manifest and preflight
-validated, but the V3 dataset builder stopped non-terminally immediately after
-the canonical join while beginning Group-A causal context. No dataset, bundle,
-candidate, OOS edge or launch evidence is accepted.
+Run lineage is XAU_SEQ513_REBUILD_20260720_V2. V1, V2, V3 and V4 event
+attempts are non-authoritative failure evidence. Fresh V3 ranking, manifest
+and preflight validated, but the V3 dataset builder stopped non-terminally
+immediately after the canonical join while beginning Group-A causal context.
+V4 then proved the capped runner is also not robust enough: the transient
+service path failed without a user bus, and the restored scope runner lost the
+fresh rank process before any ranking artifact/checkpoint existed. No dataset,
+bundle, candidate, OOS edge or launch evidence is accepted.
 
 ## Ordered gates
 
-1. Repair the V3 builder execution path so every exit writes immutable terminal
-   status and Group-A materializes inside its 30 GiB cgroup without changing
-   feature semantics; rebuild from a fresh event root.
+1. Repair the rebuild execution path before another full run: every ranker and
+   dataset-builder exit must write immutable terminal status/checkpoints, and
+   Group-A must materialize inside its 30 GiB cgroup without changing feature
+   semantics. Rebuild only from a fresh event root after that source repair.
 2. Accept only a fresh dataset whose split manifests, full-input liveness,
    target, specialist, leakage and pretrain audits all bind the same bytes.
 3. Run smoke training, calibration and bundle audit with the exact recipe.

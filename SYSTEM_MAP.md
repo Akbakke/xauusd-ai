@@ -417,9 +417,13 @@ Current facts:
 - 2026-07-21 V3 has fresh ranking/manifest/preflight lineage but is
   non-authoritative failure evidence: the builder stopped after canonical join
   before Group-A completion and did not write terminal status;
-- Group-A output semantics must remain exact; reducing workers to four did not
-  cure this pre-worker/full-context failure, so recovery needs bounded
-  checkpointing and terminal-status durability rather than a direction fallback;
+- 2026-07-21 V4 is also non-authoritative failure evidence: transient service
+  execution had no user bus, and the restored scoped runner lost the fresh
+  rank process before any ranking artifact or checkpoint existed;
+- Group-A output semantics must remain exact; reducing workers did not cure
+  this process/terminal-status failure, so recovery needs bounded
+  checkpointing and terminal-status durability rather than a direction
+  fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;

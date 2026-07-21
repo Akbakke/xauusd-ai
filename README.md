@@ -23,8 +23,10 @@ still absent and are the next empirical gate.
 
 On 2026-07-21, fresh V3 ranking/manifest/preflight passed but the dataset
 builder stopped non-terminally after canonical join while beginning Group-A
-context. V3 is failure evidence only. See ROADMAP.md and the handover before
-starting any recovery.
+context. A follow-up V4 attempt also failed closed before any fresh ranking
+artifact/checkpoint existed: the service runner had no user bus and the
+restored scope runner lost the rank process. V3/V4 are failure evidence only.
+See ROADMAP.md and the handover before starting any recovery.
 
 ## Active Entry contract
 

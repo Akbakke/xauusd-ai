@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-20.
+Updated 2026-07-21.
 
 ## Entry direction
 
@@ -8,8 +8,11 @@ Status: **BLOCK**.
 
 2026-07-21 update: fresh V3 ranking, signal manifest and preflight passed, but
 the V3 dataset builder stopped non-terminally immediately after canonical join
-when entering Group-A causal context. Its partial proof/status has no
-authority. See ROADMAP.md and the handover for the required recovery order.
+when entering Group-A causal context. A V4 follow-up then failed closed before
+fresh ranking output existed: the transient service path had no user bus and
+the restored scoped runner lost the rank process. All V3/V4 partial
+proof/status has no authority. See ROADMAP.md and the handover for the
+required recovery order.
 
 There is no accepted model-native seq513 bundle. The active source contract is
 513 signals, 142 continuous context fields, 5 categorical context fields,

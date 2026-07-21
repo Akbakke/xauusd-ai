@@ -1,6 +1,6 @@
 # XAUUSD model-native direction handover
 
-Updated 2026-07-20. This is the only GX1 handover document. Run
+Updated 2026-07-21. This is the only GX1 handover document. Run
 `bash scripts/gx1_handover.sh` once for the compact repository/launch/process
 snapshot, `--check` on continuations, and `--verbose` only when the full
 document must be printed again.
@@ -28,10 +28,16 @@ V3 was the first fresh event after current-source TRAIN-only ranking,
 manifest and preflight validation. Its dataset builder recomputed the
 source-owned micro/swing/session fields and completed the canonical join, but
 then stopped non-terminally while entering Group-A causal context. The same
-failure occurred after reducing the fork count to four. No V3 split, proof,
-rank reference or status marked RUNNING may be used as authority. Repair must
-preserve Group-A semantics, persist progress and guarantee a terminal event
-before another fresh rebuild. ROADMAP.md is the concise current takeover plan.
+failure occurred after reducing the fork count to four.
+
+V4 then showed the runner itself is not authoritative enough for another blind
+heavy retry. The attempted transient service launch failed with
+`Failed to connect to bus: No such file or directory`; after restoring the
+supported scoped runner, the fresh rank process disappeared before any ranking
+artifact or checkpoint existed. No V3/V4 split, proof, rank reference or status
+marked RUNNING may be used as authority. Repair must preserve Group-A
+semantics, persist progress and guarantee a terminal event before another
+fresh rebuild. ROADMAP.md is the concise current takeover plan.
 
 `PROJECT_STATE_xau_direction_launch.json` is the current Entry launch state.
 Every earlier Entry dataset, bundle and report is rejected by the current
