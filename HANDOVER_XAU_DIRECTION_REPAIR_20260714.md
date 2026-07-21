@@ -342,7 +342,8 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
    synthetic closed-market bars dropped; immutable REPAIR_MANIFEST.
 3. Full source cascade rebuilt on the repaired tape: canonical_features_v2 ->
    cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE (current
-   builder version) -> FULL_PLUS_CTX (207 cols, column-identical to July-16).
+   builder version) -> FULL_PLUS_CTX (208 cols under the active v2 prebuilt
+   contract, including explicit `is_ASIA`; the historical July-16 file was 207-wide).
 4. `scripts/run_seq513_rebuild_chain_v1.sh` — fail-closed chain driver. It now
    owns fresh TRAIN-rank reference -> fresh ranking -> fresh manifest -> fresh
    preflight -> fresh build, with

@@ -483,7 +483,7 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
               └─ gx1.scripts.add_ctx_cont_columns_to_prebuilt
                     --prebuilt_parquet --output_parquet --raw_m5_parquet <7 år-parter>
                     --tape-root  (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
-                    → FULL_PLUS_CTX_v3src.parquet (207 kol) + manifester
+                    → FULL_PLUS_CTX_v3src.parquet (208 kol; aktiv v2-kontrakt) + manifester
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
 reparert tape + cv2 + cv3 + modelrange + cache + FULL_PLUS
