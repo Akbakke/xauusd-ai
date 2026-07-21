@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import numpy as np
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
@@ -51,8 +52,8 @@ OUTPUT_PREFIX = "ENTRY_FULL_INPUT_LIVENESS_CONTRACT"
 OUTPUT_FILENAME_RE = re.compile(
     rf"{OUTPUT_PREFIX}_\d{{8}}T\d{{6}}(?:\d{{6}})?Z\.json"
 )
-PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v2"
-DEFAULT_BATCH_SIZE = 128
+PRODUCER_SCHEMA_VERSION = "entry_full_input_liveness_materializer_v3"
+DEFAULT_BATCH_SIZE = 512
 REQUIRED_COLUMNS = ("seq", "snap", "ctx_cont", "ctx_cat")
 
 
@@ -182,13 +183,70 @@ class _ColumnStats:
         return result
 
 
-def _stack_column(batch: Any, name: str, *, dtype: np.dtype[Any]) -> np.ndarray:
+def _stack_column(
+    batch: Any,
+    name: str,
+    *,
+    dtype: np.dtype[Any],
+    expected_shape: tuple[int, ...],
+) -> np.ndarray:
+    """Expose a regular nested Arrow list column as one validated NumPy tensor.
+
+    ``to_pylist()`` materialized every scalar as a Python object before NumPy
+    converted it back to a number.  On the 96x513 signal surface that made the
+    exhaustive liveness scan CPU-bound for more than an hour.  Parquet already
+    decoded the primitive child buffer, so validate every list offset and read
+    that buffer directly instead.  This is still a full scan: no row, timestep,
+    signal, context value, finiteness check, or seq/snap parity check is sampled.
+    """
+
     index = batch.schema.get_field_index(name)
     if index < 0:
         raise RuntimeError(f"PARQUET_COLUMN_MISSING_DURING_SCAN: {name}")
-    values = batch.column(index).to_pylist()
+    if not expected_shape or expected_shape[0] != int(batch.num_rows):
+        raise RuntimeError(
+            f"PARQUET_COLUMN_EXPECTED_SHAPE_INVALID: {name}: {list(expected_shape)}"
+        )
+
+    values = batch.column(index)
     try:
-        return np.asarray(values, dtype=dtype)
+        for depth, width in enumerate(expected_shape[1:], start=1):
+            if not (pa.types.is_list(values.type) or pa.types.is_large_list(values.type)):
+                raise RuntimeError(
+                    f"PARQUET_COLUMN_LIST_DEPTH_INVALID: {name}: depth={depth} "
+                    f"type={values.type}"
+                )
+            if values.null_count:
+                raise RuntimeError(
+                    f"PARQUET_COLUMN_LIST_NULL_INVALID: {name}: depth={depth}"
+                )
+            offsets = values.offsets.to_numpy(zero_copy_only=False).astype(
+                np.int64, copy=False
+            )
+            expected_offsets = offsets[0] + np.arange(
+                len(offsets), dtype=np.int64
+            ) * int(width)
+            if not np.array_equal(offsets, expected_offsets):
+                raise RuntimeError(
+                    f"PARQUET_COLUMN_LIST_WIDTH_INVALID: {name}: depth={depth} "
+                    f"expected_width={width}"
+                )
+            start = int(offsets[0])
+            stop = int(offsets[-1])
+            values = values.values.slice(start, stop - start)
+
+        if values.null_count:
+            raise RuntimeError(f"PARQUET_COLUMN_VALUE_NULL_INVALID: {name}")
+        flat = values.to_numpy(zero_copy_only=False)
+        expected_size = int(np.prod(expected_shape, dtype=np.int64))
+        if int(flat.size) != expected_size:
+            raise RuntimeError(
+                f"PARQUET_COLUMN_VALUE_COUNT_INVALID: {name}: "
+                f"got={flat.size} expected={expected_size}"
+            )
+        return np.asarray(flat, dtype=dtype).reshape(expected_shape)
+    except RuntimeError:
+        raise
     except (TypeError, ValueError) as exc:
         raise RuntimeError(f"PARQUET_COLUMN_STACK_FAILED: {name}: {exc}") from exc
 
@@ -285,10 +343,6 @@ def _scan_split(
         parquet.iter_batches(batch_size=int(batch_size), columns=list(REQUIRED_COLUMNS))
     ):
         try:
-            seq = _stack_column(batch, "seq", dtype=np.float64)
-            snap = _stack_column(batch, "snap", dtype=np.float64)
-            ctx_cont = _stack_column(batch, "ctx_cont", dtype=np.float64)
-            ctx_cat = _stack_column(batch, "ctx_cat", dtype=np.float64)
             rows = int(batch.num_rows)
             expected_shapes = {
                 "seq": (rows, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM),
@@ -296,6 +350,30 @@ def _scan_split(
                 "ctx_cont": (rows, MODEL_NATIVE_CTX_CONT_DIM),
                 "ctx_cat": (rows, MODEL_NATIVE_CTX_CAT_DIM),
             }
+            seq = _stack_column(
+                batch,
+                "seq",
+                dtype=np.float64,
+                expected_shape=expected_shapes["seq"],
+            )
+            snap = _stack_column(
+                batch,
+                "snap",
+                dtype=np.float64,
+                expected_shape=expected_shapes["snap"],
+            )
+            ctx_cont = _stack_column(
+                batch,
+                "ctx_cont",
+                dtype=np.float64,
+                expected_shape=expected_shapes["ctx_cont"],
+            )
+            ctx_cat = _stack_column(
+                batch,
+                "ctx_cat",
+                dtype=np.float64,
+                expected_shape=expected_shapes["ctx_cat"],
+            )
             observed = {
                 "seq": tuple(seq.shape),
                 "snap": tuple(snap.shape),

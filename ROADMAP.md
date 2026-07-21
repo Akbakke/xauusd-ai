@@ -14,11 +14,17 @@ live rule or fallback.
 
 ## Current state
 
-There is no reusable active run lineage. V1-V11 are non-authoritative failure
-evidence. V11 completed a fresh 188-column/385,677-row source proof, ranking,
-exact 513 manifest and preflight, then failed closed because truncated
-Group-A history left one clean row before TRAIN instead of 95. No dataset,
-bundle, candidate, OOS edge or launch evidence is accepted.
+There is no reusable active run lineage. V1-V12 are non-authoritative failure
+or diagnostic evidence. V12 proved the full-history repair and built all three
+splits, but was deliberately terminalized `ABORTED` before liveness PASS when
+its 2026-06-14 cutoff was found stale. No dataset, bundle, candidate, OOS edge
+or launch evidence is accepted.
+
+V13 is the next lineage. It must snapshot the active OANDA M1 collector through
+an explicit 2026-07-21 cutoff, reject conflicting duplicates/nonfinite/geometry
+errors, prove exact overlap with the repaired event tape, aggregate only fully
+closed M5 buckets and use explicit rolling split arguments. The chain has no
+default end date.
 
 The history-boundary repair is implemented but not yet exercised by a fresh
 full run. Group-A now consumes an explicit full causal M5 prefix, validates
@@ -37,10 +43,10 @@ resume inputs.
 
 ## Ordered gates
 
-1. Source/history repair DONE; empirical execution proof pending. Rebuild from one
-   fresh event root and prove the exclusive runner, bounded checkpoints,
-   full-history Group-A path and immutable terminal event under the 30 GiB
-   cgroup, without changing model direction semantics.
+1. Source/history repair and full-scale V12 execution proof DONE; current-data
+   rebuild pending. Build V13 from one fresh collector snapshot/event root and
+   prove its exact cutoff/overlap, exclusive runner, bounded checkpoints and
+   immutable terminal event under the 30 GiB cgroup.
 2. Accept only a fresh dataset whose split manifests, full-input liveness,
    target, specialist, leakage and pretrain audits all bind the same bytes.
 3. Run smoke training, calibration and bundle audit with the exact recipe.

@@ -19,6 +19,14 @@ Required price columns are `open`, `high`, `low`, `close`, `volume`, the four
 non-finite prices, duplicates, non-monotonic timestamps or unexplained grid
 gaps fail. Mid-only substitution is forbidden.
 
+The current-data rebuild never edits a running collector or canonical tape.
+It snapshots the exact collector parquet bytes into one fresh event, rejects
+conflicting duplicate timestamps, proves finite OHLC/bid-ask geometry, builds
+only M5 buckets whose complete M1 horizon is present and requires bit-exact
+overlap with the repaired event-local M5 tape. The snapshot manifest binds
+every source/snapshot/year hash and the explicit last complete M1/M5 cutoff.
+Changing live source files after snapshot cannot change event bytes.
+
 ## Entry split artifact
 
 Each train/validation/test split has an exact immutable manifest with:
@@ -34,6 +42,8 @@ Each train/validation/test split has an exact immutable manifest with:
 Splits may not overlap. Calibration and threshold-free evaluation operate only
 on their declared split. Test data cannot influence field selection,
 normalization, recipe selection, calibration or stopping.
+All history/train/validation/test boundaries are explicit required chain
+arguments and strictly ordered. There is no default model-range end date.
 
 ## TRAIN-only state and common history
 
@@ -124,6 +134,9 @@ Full-input liveness evaluates every 513+142+5 field on train, validation and
 test. Unallowlisted constants, non-finite values, duplicate/reordered fields,
 weak categorical support, forbidden fields and declared ATR drift violations
 fail. All five timeframe representations must be present, alive and distinct.
+The materializer scans every `96 x 513` sequence value and requires exact
+`seq[-1] == snap`; direct Arrow-buffer access is only a zero-copy performance
+path and validates every nested-list offset before use. It does not sample.
 
 Consumers revalidate bound bytes. A copied manifest or report-level `PASS`
 without matching content hashes is not evidence.

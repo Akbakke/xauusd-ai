@@ -27,13 +27,12 @@ import pandas as pd
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SCHEMA_VERSION = "cv3_modelrange_provenance_v4"
+SCHEMA_VERSION = "cv3_modelrange_provenance_v5"
 PRODUCER = "gx1.scripts.materialize_cv3_modelrange_v1"
-PRODUCER_VERSION = "v3"
+PRODUCER_VERSION = "v4"
 EXPECTED_CV3_COLUMN_COUNT = 113
 EXPECTED_OUTPUT_COLUMN_COUNT = 109
 DEFAULT_START_UTC = "2020-11-13T00:00:00Z"
-DEFAULT_END_UTC = "2026-06-14T23:59:59Z"
 EXTRA_COLUMNS_FROM_CANONICAL_V2 = (
     "atr",
 )
@@ -227,7 +226,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--canonical-v2", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--start", default=DEFAULT_START_UTC)
-    parser.add_argument("--end", default=DEFAULT_END_UTC)
+    parser.add_argument(
+        "--end",
+        required=True,
+        help="Explicit inclusive UTC model-range cutoff; no stale default is allowed.",
+    )
     return parser
 
 

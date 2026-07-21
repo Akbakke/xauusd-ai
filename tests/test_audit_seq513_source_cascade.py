@@ -49,8 +49,9 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         },
     )
 
+    times = pd.date_range("2026-01-01T00:00:00Z", periods=2, freq="5min")
     cv2 = root / "canonical_features_v2.parquet"
-    cv2.write_bytes(b"cv2")
+    pd.DataFrame({"time": times}).to_parquet(cv2, index=False)
     _write_json(
         root / "canonical_features_v2_summary.json",
         {
@@ -63,7 +64,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     )
     cv3 = root / "cv3" / "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
     cv3.parent.mkdir()
-    cv3.write_bytes(b"cv3")
+    pd.DataFrame({"time": times}).to_parquet(cv3, index=False)
     _write_json(
         root / "cv3" / "CURRENT_MANIFEST.json",
         {
@@ -77,7 +78,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         },
     )
     modelrange = root / "cv3_modelrange.parquet"
-    modelrange.write_bytes(b"modelrange")
+    pd.DataFrame({"time": times}).to_parquet(modelrange, index=False)
     _write_json(
         root / "cv3_modelrange.provenance.json",
         {
@@ -93,6 +94,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             "output_sha256": _sha(modelrange),
             "rows": 2,
             "columns": 3,
+            "time_max_utc": times[-1].isoformat(),
             "extra_columns_from_canonical_v2": list(
                 EXTRA_COLUMNS_FROM_CANONICAL_V2
             ),
@@ -120,7 +122,6 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         },
     )
     full = root / "FULL_PLUS_CTX_v3src.parquet"
-    times = pd.date_range("2026-01-01T00:00:00Z", periods=2, freq="5min")
     pd.DataFrame({"time": times, "one": [1.0, 2.0], "two": [3.0, 4.0]}).to_parquet(
         full, index=False
     )
@@ -151,16 +152,10 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         root / "FULL_PLUS_CTX_v3src.schema_manifest.json",
         {"required_all_features": ["time", "one", "two"]},
     )
-    monkeypatch.setattr(audit, "EXPECTED_CV2_ROWS", 2)
     monkeypatch.setattr(audit, "EXPECTED_CV2_COLUMNS", 3)
-    monkeypatch.setattr(audit, "EXPECTED_CV3_ROWS", 2)
     monkeypatch.setattr(audit, "EXPECTED_CV3_MANIFEST_COLUMNS", 3)
-    monkeypatch.setattr(audit, "EXPECTED_MODELRANGE_ROWS", 2)
     monkeypatch.setattr(audit, "EXPECTED_MODELRANGE_COLUMNS", 3)
-    monkeypatch.setattr(audit, "EXPECTED_FULL_ROWS", 2)
     monkeypatch.setattr(audit, "EXPECTED_FULL_COLUMNS", 3)
-    monkeypatch.setattr(audit, "EXPECTED_FULL_TIME_MIN", times[0])
-    monkeypatch.setattr(audit, "EXPECTED_FULL_TIME_MAX", times[-1])
     return root
 
 
@@ -169,6 +164,8 @@ def _args(root: Path) -> argparse.Namespace:
         run_id=RUN_ID,
         event_root=root,
         out=root / "SOURCE_CASCADE_PROOF.json",
+        expected_full_time_min="2026-01-01T00:00:00Z",
+        expected_full_time_max="2026-01-01T00:05:00Z",
     )
 
 

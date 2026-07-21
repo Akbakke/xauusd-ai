@@ -18,12 +18,21 @@ EVENT=
 RANKING=
 MANIFEST=
 PRE_OUT=
+HISTORY_START=
+TRAIN_START=
+TRAIN_END=
+VAL_START=
+VAL_END=
+TEST_START=
+TEST_END=
 
 usage() {
   printf '%s\n' \
     "Usage: $0 --run-id ID --event-root /absolute/event/root" \
     "  --feature-ranking-json /absolute/event/root/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_<UTC>.json" \
     "  --preflight-out-dir /absolute/event/root/fresh-preflight-dir" \
+    "  --history-start UTC --train-start UTC --train-end UTC" \
+    "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
     "signal-manifest path at its producer boundary so its immutable timestamp" \
     "is both newer than ranking and inside the producer's freshness window."
@@ -61,6 +70,48 @@ while (($#)); do
       PRE_OUT=$2
       shift 2
       ;;
+    --history-start)
+      (($# >= 2)) || die_args "--history-start requires a value"
+      [[ -z $HISTORY_START ]] || die_args "duplicate --history-start"
+      HISTORY_START=$2
+      shift 2
+      ;;
+    --train-start)
+      (($# >= 2)) || die_args "--train-start requires a value"
+      [[ -z $TRAIN_START ]] || die_args "duplicate --train-start"
+      TRAIN_START=$2
+      shift 2
+      ;;
+    --train-end)
+      (($# >= 2)) || die_args "--train-end requires a value"
+      [[ -z $TRAIN_END ]] || die_args "duplicate --train-end"
+      TRAIN_END=$2
+      shift 2
+      ;;
+    --val-start)
+      (($# >= 2)) || die_args "--val-start requires a value"
+      [[ -z $VAL_START ]] || die_args "duplicate --val-start"
+      VAL_START=$2
+      shift 2
+      ;;
+    --val-end)
+      (($# >= 2)) || die_args "--val-end requires a value"
+      [[ -z $VAL_END ]] || die_args "duplicate --val-end"
+      VAL_END=$2
+      shift 2
+      ;;
+    --test-start)
+      (($# >= 2)) || die_args "--test-start requires a value"
+      [[ -z $TEST_START ]] || die_args "duplicate --test-start"
+      TEST_START=$2
+      shift 2
+      ;;
+    --test-end)
+      (($# >= 2)) || die_args "--test-end requires a value"
+      [[ -z $TEST_END ]] || die_args "duplicate --test-end"
+      TEST_END=$2
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -71,7 +122,9 @@ while (($#)); do
   esac
 done
 
-for name in RUN_ID EVENT RANKING PRE_OUT; do
+for name in \
+  RUN_ID EVENT RANKING PRE_OUT HISTORY_START TRAIN_START TRAIN_END \
+  VAL_START VAL_END TEST_START TEST_END; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
@@ -89,15 +142,6 @@ RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
 AUDIT="$EVENT/audit"
 TRAIN_GROUP_A_CHECKPOINT_MANIFEST="$EVENT/dataset/_v10_seq513_dataset__HOLD_03B_train_GROUP_A_CHECKPOINT/CHECKPOINT_MANIFEST.json"
-# history < train strictly. Source (FULL_PLUS) first row is 2021-01-04T23:55.
-HISTORY_START=2021-01-05T00:00:00Z
-TRAIN_START=2021-03-16T00:00:00Z
-TRAIN_END=2026-03-31T23:59:59Z
-VAL_START=2026-04-01T00:00:00Z
-VAL_END=2026-04-30T23:59:59Z
-TEST_START=2026-05-01T00:00:00Z
-TEST_END=2026-06-14T23:55:00Z
-
 STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 STARTED_UTC=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')
 IFS= read -r BOOT_ID </proc/sys/kernel/random/boot_id
@@ -343,10 +387,14 @@ CURRENT_STEP=contract-validation
 write_status "$CURRENT_STEP" RUNNING
 if ! "$PY" - \
   "$EVENT" "$RANKING" "$PRE_OUT" "$RANK_NPZ" "$OUTPUT" "$AUDIT" \
-  "$SRC" "$CV2" "$MTF" "$TAPE" >>"$LOG" 2>&1 <<'PYEOF'
+  "$SRC" "$CV2" "$MTF" "$TAPE" \
+  "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
+  "$TEST_START" "$TEST_END" >>"$LOG" 2>&1 <<'PYEOF'
 import re
 import sys
 from pathlib import Path
+
+import pandas as pd
 
 (
     raw_event,
@@ -359,6 +407,13 @@ from pathlib import Path
     raw_canonical,
     raw_mtf,
     raw_tape,
+    raw_history_start,
+    raw_train_start,
+    raw_train_end,
+    raw_val_start,
+    raw_val_end,
+    raw_test_start,
+    raw_test_end,
 ) = sys.argv[1:]
 
 
@@ -419,6 +474,39 @@ if not mtf.is_dir() or mtf.is_symlink():
     raise RuntimeError(f"MTF cache is missing/non-regular: {mtf}")
 if not tape.is_dir() or tape.is_symlink():
     raise RuntimeError(f"tape root is missing/non-regular: {tape}")
+
+labels = (
+    "history_start",
+    "train_start",
+    "train_end",
+    "val_start",
+    "val_end",
+    "test_start",
+    "test_end",
+)
+raw_times = (
+    raw_history_start,
+    raw_train_start,
+    raw_train_end,
+    raw_val_start,
+    raw_val_end,
+    raw_test_start,
+    raw_test_end,
+)
+times = []
+for label, raw in zip(labels, raw_times):
+    try:
+        parsed = pd.to_datetime(raw, utc=True, errors="raise")
+    except Exception as exc:
+        raise RuntimeError(f"invalid UTC split timestamp: {label}={raw!r}") from exc
+    if pd.isna(parsed):
+        raise RuntimeError(f"invalid UTC split timestamp: {label}={raw!r}")
+    times.append(pd.Timestamp(parsed))
+if not all(left < right for left, right in zip(times, times[1:])):
+    raise RuntimeError(
+        "split timestamps must be strictly ordered: "
+        + ", ".join(f"{label}={value.isoformat()}" for label, value in zip(labels, times))
+    )
 
 output_dir = output.parent
 output_stem = output.stem

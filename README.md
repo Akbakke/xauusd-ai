@@ -9,16 +9,14 @@ direction policy.
 Current status: **BLOCKED**. No fresh seq513 bundle is accepted and no Entry
 launch is authorized. The old Smart520 evidence is historical and cannot be
 used for training, replay, paper trading, live trading or promotion.
-The 2026-07-21 V11 audit produced a fresh 385,677-row source cascade and
-TRAIN-only 513-field ranking/manifest/preflight, then failed closed at dataset
-construction. Root cause was a common-history mismatch: all 60 Group-A,
-liquidity and dip/structure fields rebuilt their 60-D1-bar state from the
-truncated January window, leaving one clean row before TRAIN instead of the
-required 95. V11 is terminal RED and none of its otherwise-green partials has
-authority. The repair now requires an explicit full causal M5 prefix, exact
-decision-OHLC equality and a context hash in every Group-A checkpoint; live
-HTF/regime state also computes on the full prefix before slicing. The next run
-must use a fresh immutable lineage and commit.
+The 2026-07-21 V12 run proved the repaired full-history path at scale and built
+all three seq513 splits, but it was intentionally stopped before liveness PASS
+because its inherited source/test cutoff was 2026-06-14. V12 is terminal
+`ABORTED` and cannot authorize training. The live OANDA collector is now
+bit-exact against canonical data on 47,086 overlapping M1 bars and extends to
+2026-07-21. The next admissible lineage is V13: immutable collector snapshot,
+provably complete M5 aggregation, exact tape overlap, explicit rolling
+TRAIN/VAL/TEST windows and a wholly fresh source/rank/dataset chain.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
@@ -34,8 +32,8 @@ chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
 Group-A in exact hash-bound 4096-row chunks, including the complete causal M5
 context identity, permits one strict checkpoint
 retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
-only; the next admissible action is one fresh V12-or-later full rebuild.
-V1-V11 partials remain rejected.
+only; the next admissible action is one fresh V13 full rebuild.
+V1-V12 partials remain rejected.
 
 ## Active Entry contract
 

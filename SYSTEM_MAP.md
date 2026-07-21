@@ -419,14 +419,15 @@ Current facts:
 - source has one chain-owned ranker/dataset path, a host-wide exclusive
   capped-job lock, immutable bounded Group-A chunks, one exact checkpoint
   retry and schema-v4 immutable terminal events;
-- V11 proved that owner path operationally and is terminal RED. Its fresh
-  source/ranking/manifest/preflight partials are non-authoritative because the
-  dataset had one clean pre-TRAIN row instead of 95;
+- V11 proved the old failure and is terminal RED; V12 proved the repaired
+  owner path and built all splits but is terminal ABORTED because its cutoff
+  was stale. Neither lineage is authoritative;
 - checkpoint inspection found all 60 Group-A/dip/structure outputs unavailable
   until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
 - commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
   decision OHLC checks, and mirrors full-prefix-before-slice in live. A fresh
-  V12+ execution must prove it; there is no direction fallback;
+  V12 proved it at dataset scale; V13 must repeat it on current data and there
+  is no direction fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
@@ -435,12 +436,12 @@ Current facts:
   `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
   95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
   the Jan-5 decision boundary. Commit `4134ca19` repairs this with an explicit,
-  OHLC-verified and checkpoint-hashed full M5 prefix; V12+ must rebuild fresh;
+  OHLC-verified and checkpoint-hashed full M5 prefix; V13 must rebuild fresh;
 - run lineage `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
-- invalidated V1-V11 lineages are historical failure evidence and cannot
+- invalidated V1-V12 lineages are historical failure/diagnostic evidence and cannot
   be reused; the next chain must allocate a wholly fresh immutable run ID;
 - no rebuild process is running; partial event artifacts have no authority,
   and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
@@ -566,9 +567,11 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- Aktiv vinduskontrakt er history-start 2021-01-05, TRAIN
-  2021-03-16..2026-03-31, VAL 2026-04-01..2026-04-30 og TEST
-  2026-05-01..2026-06-14T23:55. Rankingens TRAIN-vindu må matche eksakt.
+- Aktiv V13-vinduskontrakt er history-start 2021-01-05, TRAIN
+  2021-03-16..2026-05-31, VAL 2026-06-01..2026-06-30 og TEST
+  2026-07-01 til snapshotets eksplisitte siste lukkede M5-bar. Alle syv
+  grenser er obligatoriske kjede-input; ingen sluttdato har fallback/default.
+  Rankingens TRAIN-vindu må matche eksakt.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

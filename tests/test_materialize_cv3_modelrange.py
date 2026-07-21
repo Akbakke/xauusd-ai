@@ -10,13 +10,13 @@ import pandas as pd
 import pytest
 
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
-    DEFAULT_END_UTC,
     DEFAULT_START_UTC,
     ENTRY_DEAD_CONSTANT_COLUMNS,
     EXPECTED_CV3_COLUMN_COUNT,
     EXPECTED_OUTPUT_COLUMN_COUNT,
     EXTRA_COLUMNS_FROM_CANONICAL_V2,
     SCHEMA_VERSION,
+    build_parser,
     run,
 )
 
@@ -101,7 +101,22 @@ def test_rejects_existing_output_or_sidecar(tmp_path: Path) -> None:
         run(args)
 
 
-def test_active_window_defaults_are_pinned() -> None:
+def test_history_start_default_is_pinned_but_end_is_explicit() -> None:
     assert DEFAULT_START_UTC == "2020-11-13T00:00:00Z"
-    assert DEFAULT_END_UTC == "2026-06-14T23:59:59Z"
     assert EXTRA_COLUMNS_FROM_CANONICAL_V2 == ("atr",)
+
+
+def test_modelrange_parser_rejects_missing_explicit_end() -> None:
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(
+            [
+                "--run-id",
+                RUN_ID,
+                "--cv3",
+                "/tmp/cv3.parquet",
+                "--canonical-v2",
+                "/tmp/cv2.parquet",
+                "--out",
+                "/tmp/out.parquet",
+            ]
+        )

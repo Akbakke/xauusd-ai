@@ -11,10 +11,15 @@ contracts prove the required direction edge.
 Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
 Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
 and cannot authorize a run or launch.
-V11 is the latest terminal RED lineage: source/ranking/manifest/preflight
-passed, but dataset warmup failed after Group-A reset its 60-D1 state at the
-history boundary. Commit `4134ca19` repairs that boundary; V12+ must rebuild
-from a fresh event root and no V11 partial may be resumed.
+V12 is the latest terminal lineage and is intentionally `ABORTED`, not PASS.
+It proved the Group-A history repair at full scale (`trimmed warmup rows=2207`)
+and built fresh train/val/test rows, but its source/test cutoff remained
+2026-06-14. When current OANDA data through 2026-07-21 became available, the
+slow liveness scan was stopped before it emitted an artifact. V12 is diagnostic
+evidence only. V13 must snapshot the running collector into an immutable event,
+prove exact overlap with the repaired tape, use explicit rolling split dates
+and rebuild every source/rank/dataset artifact. No V11/V12 partial may be used
+as authority or resumed into V13.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

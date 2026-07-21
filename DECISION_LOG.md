@@ -439,5 +439,29 @@ full M5 prefix must end causally, contain every decision timestamp with exact
 high/low/close, and is SHA-bound into checkpoint schema v2 together with the
 five-TF arrays and ordered fields. Dataset and live preparation use this same
 owner path; live HTF/REGIME_V4 computes on full cv3 before slicing. No V11
-partial may be resumed after the code change. A fresh V12-or-later run is
-required, and launch remains `BLOCK` until downstream empirical gates pass.
+partial may be resumed after the code change. V12 later proved this repair but
+was aborted for a stale cutoff; V13 is required, and launch remains `BLOCK`
+until downstream empirical gates pass.
+
+## 2026-07-21 — stale V12 cutoff rejected; V13 snapshots current collector
+
+V12 proved the full causal history repair and built all three seq513 splits,
+but its inherited source/test end remained 2026-06-14. Once complete OANDA M1
+through 2026-07-21 was available, V12 was interrupted during liveness and
+terminalized `ABORTED`; no liveness artifact had been emitted. Its files are
+diagnostic only and cannot be resumed into V13.
+
+Read-only comparison found 47,086 collector/canonical overlap timestamps with
+zero difference across mid/bid/ask/volume, no conflicting duplicates,
+nonfinite values or invalid geometry. V13 therefore snapshots exact collector
+bytes event-locally, aggregates only provably complete M5 bars and requires
+bit-exact overlap with the repaired M5 tape before atomic publication. The
+model-range end and all seven split boundaries are explicit required inputs.
+The active rolling split is TRAIN through 2026-05-31, June VAL and July TEST
+through the snapshot's last closed M5 bar.
+
+The liveness reader's Python-object conversion was also removed. Direct Arrow
+child-buffer extraction validates all offsets and was bit-exact on a real
+512-row `96 x 513` batch (max difference zero), reducing that conversion from
+6.49 seconds to 0.00073 seconds. The exhaustive finiteness, shape,
+seq/snap-parity and 660-field statistics remain unchanged.

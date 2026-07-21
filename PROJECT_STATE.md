@@ -6,14 +6,23 @@ Updated 2026-07-21.
 
 Status: **BLOCK**.
 
-2026-07-21 latest update: V11 completed a fresh source cascade whose v2 audit
-proved 385,677 rows x 188 columns, 187/187 numeric fields finite/non-constant,
-and zero exact duplicate groups. Ranking, the 34+479=513 signal manifest and
-preflight completed, but the dataset build terminally failed
-`MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT`: only one clean pre-TRAIN row
-remained. Every one of the 60 Group-A/dip/structure checkpoint fields was NaN
-until 2021-03-15 because its D1 liquidity history was incorrectly reset at the
-2021-01-05 common-history boundary.
+2026-07-21 latest update: V12 rebuilt the source cascade and proved 385,677
+rows x 188 columns with all 187 numeric fields live, then exercised the full
+history fix: Group-A trimmed 2,207 causal warmup rows rather than V11's 13,714.
+It produced train=357,519, val=5,676 and test=8,406 rows with exact 513+142+5
+input schemas and complete path-quality labels. V12 was then deliberately
+interrupted during full-input liveness, before any liveness PASS was written,
+because the source/test cutoff was still 2026-06-14. Its terminal state is
+`ABORTED`; it is diagnostic history, not a reusable dataset authority.
+
+The running OANDA collector now supplies complete M1 candles through
+2026-07-21. A read-only audit found 47,086 timestamps overlapping canonical
+M1 with exact zero difference in every mid/bid/ask/volume field, 1,481
+identical duplicate timestamps, no conflicting duplicates, no nonfinite data
+and no bad OHLC/bid-ask geometry. V13 must atomically snapshot those bytes,
+aggregate only provably complete M5 buckets, require bit-exact M5 overlap and
+use explicit rolling windows: TRAIN through 2026-05-31, VAL June, TEST July
+through the snapshot's last closed M5 bar.
 
 The repaired contract now supplies the full causal M5 prefix independently of
 the decision slice, proves exact timestamp/OHLC inclusion, hashes that prefix
@@ -22,7 +31,7 @@ January probe changed Group-A warmup from 13,714 rows to zero while preserving
 finite D1 liquidity, ATR-term, dip and five-TF structure evidence. Live
 HTF/REGIME_V4 is likewise computed on the complete prefix before the model
 history slice. Commit `4134ca19` owns this repair; V11 remains terminal RED and
-cannot be resumed. A wholly fresh V12-or-later source/ranking/dataset lineage
+V12 remains terminal ABORTED. A wholly fresh V13 source/ranking/dataset lineage
 is required.
 
 The execution-path source repair is present: the immutable TRAIN-rank
@@ -31,9 +40,8 @@ same chain as the dataset build. Every capped heavy command competes for one
 host-wide exclusive lock, Group-A persists exact 4096-row chunks with
 frame/MTF/field/run-window identity, the ranker and builder permit one exact
 checkpoint retry, and terminal chain exits publish immutable schema-v4 events.
-Focused, causal and full-suite tests cover the repair. No fresh full rebuild
-has yet exercised commit `4134ca19`, so it creates no accepted dataset or
-empirical authority.
+Focused, causal and full-suite tests cover the repair. V12 exercised it but is
+stale/aborted, so it creates no accepted dataset or empirical authority.
 
 The feature audit also closed four source mismatches before any new rebuild:
 ranking now applies the same immutable TRAIN ECDF/ATR transform as dataset and

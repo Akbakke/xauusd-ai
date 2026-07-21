@@ -24,7 +24,26 @@ authority. Candidate, replay, paper/demo/live and promotion remain closed.
 
 ### 2026-07-21 active rebuild incident
 
-V11 is the latest terminal attempt. It completed a fresh v2 source-cascade
+V12 is now the latest terminal attempt and is `ABORTED`. Its source cascade,
+ranking, manifest and preflight passed; its full-history dataset build also
+passed with 2,207 warmup rows and emitted train=357,519, val=5,676 and
+test=8,406. It was stopped during the exhaustive liveness scan before that
+producer wrote any artifact because the inherited source/test cutoff was
+2026-06-14 and fresh data through 2026-07-21 was available. V12 proves the
+history fix, but no V12 file is current empirical authority.
+
+The active OANDA collector has been checked read-only through 2026-07-21:
+47,086 canonical-overlap M1 rows are bit-exact across all 13 numeric fields;
+all duplicate timestamps agree; all values and OHLC/bid-ask geometry are
+valid. The new `materialize_current_m5_snapshot_v1` producer snapshots exact
+collector bytes into the event, rejects conflicts, emits only provably complete
+M5 buckets and requires exact M5 overlap before atomic publication. V13 must
+use TRAIN ending 2026-05-31, June VAL and July TEST through the explicit last
+closed M5 cutoff. End dates are mandatory CLI inputs, never defaults.
+
+Historical V11 incident follows for root-cause provenance.
+
+V11 was the prior terminal attempt. It completed a fresh v2 source-cascade
 audit (385,677 rows, 188 columns, all 187 numeric fields live, no constants or
 exact duplicates), TRAIN-only rank reference, feature ranking, exact 513-field
 manifest and green preflight. Dataset construction then failed closed twice
@@ -51,7 +70,7 @@ bit-identical to V10 output over 17 x 60 sampled values.
 
 No V11 ranking, manifest, preflight, checkpoint or source artifact may be
 resumed after the new commit. The next authority candidate is a wholly fresh
-V12-or-later cascade and chain. V1-V11 remain failure evidence only.
+V13 cascade and chain. V1-V12 remain failure/diagnostic evidence only.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
 another heavy run: the TRAIN-rank reference is created before ranking and
@@ -383,16 +402,16 @@ cost seconds).
 Source (FULL_PLUS) first row 2021-01-04T23:55 (ctx-adder trims own warmup).
 HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16. The old claim of 13,439
 Group-A warmup rows and 277 clean rows was disproved by V11: truncated context
-actually produced 13,714 warmup rows and only one clean row. With the explicit
-full M5 prefix, a real Jan-5 probe has Group-A warmup zero; V12+ must still
-prove the complete REGIME_V4 trim leaves >=95 rows. TRAIN_END=2026-03-31 <
-VAL 2026-04-01..04-30 < TEST 2026-05-01..2026-06-14T23:55 (source's exact
-last bar).
+actually produced 13,714 warmup rows and only one clean row. V12 then proved
+the explicit full-prefix path leaves 2,207 causal REGIME_V4 warmup rows and
+ample pre-TRAIN history. The active V13 split is TRAIN_END=2026-05-31 < VAL
+2026-06-01..06-30 < TEST 2026-07-01 through the snapshot's explicit last
+closed M5 bar.
 
 The old preflight did not actually prove this end to end: it accepted a nested
 feature ranking beginning `2020-11-13`. The hardened chain must regenerate and
 bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
-`2026-03-31`; a green status from the invalid attempts cannot be inherited.
+`2026-05-31`; a green status from the invalid attempts cannot be inherited.
 
 ### Open decisions / next work
 
@@ -415,7 +434,7 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse any invalidated V1-V11 lineage. Allocate one fresh
+1. Do **not** reuse any invalidated V1-V12 lineage. Allocate one fresh
    immutable `--run-id` bound into rank NPZ, sidecar, ranking, manifest, build
    proof, state contract and all split manifests. The ID is provenance, not a
    manual approval gate.
@@ -423,7 +442,8 @@ Ordered steps (each gate fail-closed; stop at first red):
    active TRAIN window. Never discover or pre-populate it through a directory
    glob or lexical/mtime "latest" selection.
 3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with `--run-id`,
-   `--event-root`, `--feature-ranking-json` and `--preflight-out-dir`. Both
+   `--event-root`, `--feature-ranking-json`, `--preflight-out-dir` and all
+   seven explicit history/train/val/test boundaries. Both
    caller-supplied target paths must be fresh. The driver creates the v4 rank
    reference first, computes the ranking, then allocates the exact timestamped
    manifest path at its producer boundary before preflight, dataset and
@@ -434,8 +454,9 @@ Ordered steps (each gate fail-closed; stop at first red):
    manifests. Console output, Telegram status, partial files and an earlier
    preflight cannot substitute for them.
 5. Exact run-lineage-bound window: history start `2021-01-05T00:00:00Z`; TRAIN
-   `2021-03-16T00:00:00Z..2026-03-31T23:59:59Z`; validation
-   `2026-04-01..2026-04-30`; TEST `2026-05-01..2026-06-14T23:55:00Z`.
+   `2021-03-16T00:00:00Z..2026-05-31T23:59:59Z`; validation
+   `2026-06-01..2026-06-30`; TEST `2026-07-01` through the snapshot's
+   explicit last closed M5 timestamp.
 6. `model-native-smoke-manifest` -> `model-native-smoke-readiness` ->
    `model-native-smoke-train --run-id … --dry-run` then `--execute`.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
