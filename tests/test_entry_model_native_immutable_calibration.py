@@ -152,9 +152,13 @@ def _source_bundle(tmp_path: Path) -> Path:
         "model_path_relative": "model_state_dict.pt",
         "model_sha256": state_sha,
     }
-    specialist_indices = {
-        name: [index] for index, name in enumerate(_MODEL_NATIVE_REQUIRED_SPECIALISTS)
-    }
+    specialist_indices = {name: [] for name in _MODEL_NATIVE_REQUIRED_SPECIALISTS}
+    for index in range(MODEL_NATIVE_SIGNAL_DIM):
+        specialist_indices[
+            _MODEL_NATIVE_REQUIRED_SPECIALISTS[
+                index % len(_MODEL_NATIVE_REQUIRED_SPECIALISTS)
+            ]
+        ].append(index)
     metadata = {
         **shared,
         "state_dict_sha256": state_sha,
@@ -204,6 +208,7 @@ def _source_bundle(tmp_path: Path) -> Path:
             "trainable_specialists": list(_MODEL_NATIVE_REQUIRED_SPECIALISTS),
             "num_layers": 1,
             "fusion_scale": 0.25,
+            "cross_family_fusion_scale": 0.25,
         },
         "feature_meta_path": "feature_meta.json",
     }

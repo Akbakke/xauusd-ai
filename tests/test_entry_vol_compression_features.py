@@ -118,6 +118,13 @@ def test_vol_compression_layer_builds_requested_smart_features() -> None:
     assert out[2, idx["vol_compression.mtf_vol_agreement_score"]] > out[6, idx["vol_compression.mtf_vol_agreement_score"]]
     assert out[6, idx["vol_compression.mtf_vol_divergence_score"]] > out[2, idx["vol_compression.mtf_vol_divergence_score"]]
     assert out[3, idx["vol_compression.short_tf_vol_expansion_pressure"]] > out[2, idx["vol_compression.short_tf_vol_expansion_pressure"]]
+    blend = out[:, idx["vol_compression.atr_percentile_blend"]]
+    low_tail = out[:, idx["vol_compression.low_atr_percentile_pressure"]]
+    high_tail = out[:, idx["vol_compression.high_atr_percentile_pressure"]]
+    assert not np.array_equal(blend, high_tail)
+    assert not np.array_equal(blend, low_tail)
+    assert np.all(low_tail[blend >= 0.5] == 0.0)
+    assert np.all(high_tail[blend <= 0.5] == 0.0)
 
 
 def test_vol_compression_layer_rejects_unprefixed_aliases() -> None:

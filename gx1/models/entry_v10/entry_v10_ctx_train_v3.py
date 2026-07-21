@@ -429,6 +429,8 @@ _MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS = {
     "bad_path_logit": 1,
     "public_trade_flat_decision_logits": 2,
     "specialist_gate": 8,
+    "tf_gate": 5,
+    "family_tf_cooperation_gate": 13,
 }
 
 
@@ -536,9 +538,9 @@ def _running_in_wsl() -> bool:
 # Secondary training controls. The model-native launch audit owns the exact
 # subset that may affect its decision path.
 # -----------------------------------------------------------------------------
-SHORT_CLASS_WEIGHT = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT", "0.90"))
-ENTRY_LONG_CLASS_WEIGHT_CAP = float(_env_str("ENTRY_LONG_CLASS_WEIGHT_CAP", "20.0"))
-ENTRY_SHORT_CLASS_WEIGHT_CAP = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT_CAP", "8.0"))
+ENTRY_DIRECTION_CLASS_WEIGHT_CAP = float(
+    _env_str("ENTRY_DIRECTION_CLASS_WEIGHT_CAP", "8.0")
+)
 ENTRY_FLAT_CLASS_WEIGHT_FLOOR = float(_env_str("ENTRY_FLAT_CLASS_WEIGHT_FLOOR", "1.0"))
 # -----------------------------------------------------------------------------
 # Cost-sensitive loss (ENTRY 3-class)
@@ -587,8 +589,15 @@ ENTRY_OFFLINE_RL_RANK_WEIGHT = float(_env_str("ENTRY_OFFLINE_RL_RANK_WEIGHT", "0
 # was selected on TOTAL multi-head val loss, which saves the aux-overfit epoch (the cement froze
 # at epoch-2 = the aux optimum, NOT the best-direction epoch). "dir_acc" instead keeps the epoch
 # with the highest direction validation accuracy (the metric the chain actually acts on).
-# Default "val_loss" = bit-identical to the historical behavior.
-ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR", "val_loss").strip().lower()
+# Direction is the production objective; aggregate auxiliary validation loss
+# can select an epoch with worse LONG/SHORT/FLAT decisions.  Invalid monitor
+# values fail closed instead of silently reverting to the historical behavior.
+ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR", "dir_acc").strip().lower()
+if ENTRY_CKPT_MONITOR not in {"val_loss", "dir_acc"}:
+    raise RuntimeError(
+        "[ENTRY_CKPT_MONITOR_INVALID] "
+        f"got={ENTRY_CKPT_MONITOR!r} expected=val_loss|dir_acc"
+    )
 ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", "0.0"))
 ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", "0.0"))
 ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", "0.0"))
@@ -927,9 +936,7 @@ def _current_model_native_active_loss_weights() -> Dict[str, float]:
     }
 
 _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
-    "ENTRY_SHORT_CLASS_WEIGHT": "0.90",
-    "ENTRY_LONG_CLASS_WEIGHT_CAP": "20.0",
-    "ENTRY_SHORT_CLASS_WEIGHT_CAP": "8.0",
+    "ENTRY_DIRECTION_CLASS_WEIGHT_CAP": "8.0",
     "ENTRY_FLAT_CLASS_WEIGHT_FLOOR": "1.0",
     "ENTRY_COST_SENSITIVE_LOSS": "1",
     "ENTRY_COST_SENSITIVE_SCALE": "0.25",
@@ -1416,6 +1423,15 @@ def _load_specialist_fusion_contract(
             )
         seen_indices.update(idx)
         indices[key] = idx
+    expected_indices = set(range(int(expected_signal_dim)))
+    if seen_indices != expected_indices:
+        missing_indices = sorted(expected_indices - seen_indices)
+        unexpected_indices = sorted(seen_indices - expected_indices)
+        raise RuntimeError(
+            "[SPECIALIST_INDEX_COVERAGE_INVALID] "
+            f"missing={missing_indices[:20]} total_missing={len(missing_indices)} "
+            f"unexpected={unexpected_indices[:20]} total_unexpected={len(unexpected_indices)}"
+        )
     required = list(required_training_specialists)
     missing = [name for name in required if name not in indices]
     if missing:
@@ -4342,24 +4358,36 @@ def _build_cost_sensitive_criterion(
     return criterion, cost_matrix
 
 
-def _specialist_gate_regularization(out: dict[str, Any], device: torch.device) -> tuple[torch.Tensor, dict[str, float]]:
-    gate = out.get("specialist_gate")
+def _probability_gate_regularization(
+    out: dict[str, Any],
+    device: torch.device,
+    *,
+    output_name: str,
+    expected_width: int,
+) -> tuple[torch.Tensor, dict[str, float]]:
+    gate = out.get(output_name)
     if not isinstance(gate, torch.Tensor):
         raise RuntimeError(
-            "[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output=specialist_gate"
+            f"[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output={output_name}"
         )
-    if gate.ndim != 2 or gate.shape[1] != 8 or gate.numel() == 0:
+    if gate.ndim != 2 or gate.shape[1] != expected_width or gate.numel() == 0:
         raise RuntimeError(
-            "[ENTRY_SPECIALIST_GATE_SHAPE_INVALID] "
-            f"shape={tuple(gate.shape)} expected=(batch,8)"
+            "[ENTRY_MODEL_NATIVE_GATE_SHAPE_INVALID] "
+            f"output={output_name} shape={tuple(gate.shape)} "
+            f"expected=(batch,{expected_width})"
         )
     if not bool(torch.isfinite(gate).all().item()):
-        raise RuntimeError("[ENTRY_SPECIALIST_GATE_NONFINITE]")
+        raise RuntimeError(
+            f"[ENTRY_MODEL_NATIVE_GATE_NONFINITE] output={output_name}"
+        )
     gate = gate.float().clamp(min=1e-8)
     mean_gate = gate.mean(dim=0)
     entropy = -(gate * gate.log()).sum(dim=1).mean()
     max_entropy = torch.log(torch.tensor(float(gate.shape[1]), device=device, dtype=gate.dtype))
-    entropy_loss = (max_entropy - entropy).clamp_min(0.0)
+    # Prevent one-token collapse without forcing every market state to use an
+    # almost-uniform gate. Dynamic specialization is the point of these gates.
+    entropy_floor = 0.5 * max_entropy
+    entropy_loss = (entropy_floor - entropy).clamp_min(0.0)
     uniform = torch.full_like(mean_gate, 1.0 / float(mean_gate.numel()))
     kl_uniform = (uniform * (uniform.clamp(min=1e-8).log() - mean_gate.clamp(min=1e-8).log())).sum()
     floor = torch.tensor(float(ENTRY_SPECIALIST_GATE_MIN_MEAN), device=device, dtype=gate.dtype)
@@ -4374,6 +4402,44 @@ def _specialist_gate_regularization(out: dict[str, Any], device: torch.device) -
         "kl_uniform": float(kl_uniform.detach().cpu().item()),
         "floor_hinge": float(floor_hinge.detach().cpu().item()),
     }
+
+
+def _specialist_gate_regularization(
+    out: dict[str, Any], device: torch.device
+) -> tuple[torch.Tensor, dict[str, float]]:
+    """Keep every learned cooperation gate live without prescribing direction.
+
+    The loss only prevents token starvation/collapse.  It does not encode any
+    LONG/SHORT/FLAT preference or hand-written confluence rule.
+    """
+    configurations = (
+        ("specialist_gate", 8),
+        ("tf_gate", 5),
+        ("family_tf_cooperation_gate", 13),
+    )
+    losses: list[torch.Tensor] = []
+    all_stats: dict[str, float] = {}
+    for output_name, expected_width in configurations:
+        gate_loss, gate_stats = _probability_gate_regularization(
+            out,
+            device,
+            output_name=output_name,
+            expected_width=expected_width,
+        )
+        losses.append(gate_loss)
+        prefix = "specialist_gate" if output_name == "specialist_gate" else output_name
+        for key, value in gate_stats.items():
+            all_stats[f"{prefix}_{key}"] = value
+    # Preserve the historical specialist statistic names consumed by logs.
+    all_stats.update(
+        {
+            "entropy": all_stats["specialist_gate_entropy"],
+            "min_mean": all_stats["specialist_gate_min_mean"],
+            "kl_uniform": all_stats["specialist_gate_kl_uniform"],
+            "floor_hinge": all_stats["specialist_gate_floor_hinge"],
+        }
+    )
+    return torch.stack(losses).mean(), all_stats
 
 
 def _bad_path_quality_rank_loss(
@@ -7104,17 +7170,16 @@ def run_train(
     # (4.5 vs 1.0). With the re-balanced labels (~18/18/63) that aggressive scheme
     # over-corrects. Fix: ONE shared directional weight from the COMBINED directional
     # rate (removes long/short asymmetry), sqrt-softened (shrinks the directional-vs-
-    # flat gap). Env caps still clamp. flat stays 1.0.
+    # flat gap). One shared cap clamps both directions. flat stays 1.0.
     _dir_rate = 0.5 * (float(train_long_rate) + float(train_short_rate))
     _raw_dir = ((1.0 - _dir_rate) / max(_dir_rate, 1e-9)) if _dir_rate > 0.0 else 1.0
     _dir_w = float(np.sqrt(max(_raw_dir, 1.0)))  # sqrt-soften; >=1
     raw_long_class_weight = _raw_dir   # kept for the proof log
     raw_short_class_weight = _raw_dir
-    long_class_weight = float(min(float(ENTRY_LONG_CLASS_WEIGHT_CAP), max(1.0, _dir_w)))
-    if train_short_rate > 0.0:
-        short_class_weight = float(min(float(ENTRY_SHORT_CLASS_WEIGHT_CAP), max(1.0, _dir_w)))
-    else:
-        short_class_weight = 0.0
+    long_class_weight = float(
+        min(float(ENTRY_DIRECTION_CLASS_WEIGHT_CAP), max(1.0, _dir_w))
+    )
+    short_class_weight = long_class_weight
     flat_class_weight = float(max(float(ENTRY_FLAT_CLASS_WEIGHT_FLOOR), 1.0))
     log.info(
         "[ENTRY_BAD_PATH_BALANCE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
@@ -7343,6 +7408,7 @@ def run_train(
         specialist_input_indices=specialist_indices,
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
+        cross_family_fusion_scale=float(specialist_fusion_scale),
         tf_input_scale_init_m5=tf_input_scale_init_m5,
         tf_input_scale_init_m15=tf_input_scale_init_m15,
         tf_input_scale_init_h1=tf_input_scale_init_h1,
@@ -7935,12 +8001,13 @@ def run_train(
     )
     log.info(
         "[ENTRY_TRAIN_SECONDARY_CONTROLS] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f pred_balance_class_weights=%s "
-        "short_class_weight=%.3f",
+        "directional_class_weights=(long=%.3f,short=%.3f)",
         int(bool(ENTRY_COST_SENSITIVE_ENABLED)),
         float(ENTRY_COST_SENSITIVE_SCALE),
         float(ENTRY_PRED_BALANCE_ALPHA),
         ",".join(f"{float(value):.3f}" for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS),
-        float(SHORT_CLASS_WEIGHT),
+        float(long_class_weight),
+        float(short_class_weight),
     )
     log.info(
         "[ENTRY_SPECIALIST_GATE_RECIPE] entropy_w=%.3f balance_w=%.3f min_mean=%.3f",
@@ -8151,7 +8218,7 @@ def run_train(
     last_epoch = 0
     early_stopped = False
     hard_red_stopped = False
-    _ckpt_monitor = ENTRY_CKPT_MONITOR if ENTRY_CKPT_MONITOR in {"val_loss", "dir_acc"} else "val_loss"
+    _ckpt_monitor = ENTRY_CKPT_MONITOR
     log.info(
         "[CKPT_MONITOR] selecting best checkpoint on %s class_balance_guard_weight=%.3f min_pred_to_label=%.3f min_pred_rate=%.3f",
         _ckpt_monitor,
@@ -9111,6 +9178,7 @@ def run_train(
             **specialist_meta,
             "num_layers": int(specialist_num_layers),
             "fusion_scale": float(specialist_fusion_scale),
+            "cross_family_fusion_scale": float(specialist_fusion_scale),
         },
         "state_dict_sha256": state_dict_sha256,
         "anchored_entry_enabled": False,

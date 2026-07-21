@@ -41,7 +41,6 @@ MTF_CONFLUENCE_SOURCE_FIELDS = (
     "chart.foundation_bos_down_recent_tau24",
     "chart.foundation_bos_recent_balance",
     "chart.foundation_choch_recent_tau24",
-    "chart.foundation_impulse_direction",
     "chart.foundation_pullback_phase_up",
     "chart.foundation_pullback_phase_down",
     "chart.foundation_pullback_depth_norm",

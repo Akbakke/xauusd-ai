@@ -731,6 +731,7 @@ def _bundle_contract_report(
         "regime_film": False,
         "learned_tf_input_scales": False,
         "specialist_fusion": False,
+        "cross_family_cooperation": False,
         "learned_direction_evidence_fusion": False,
         "canonical_trade_flat_from_final_logits": False,
         "retired_direction_state_absent": False,
@@ -757,6 +758,9 @@ def _bundle_contract_report(
                 "cross_tf_attention": bool(
                     any(key.startswith("cross_tf_attn.") for key in model_keys)
                     and "tf_gate_logits" in model_keys
+                    and "tf_token_identity" in model_keys
+                    and any(key.startswith("tf_context_gate.") for key in model_keys)
+                    and any(key.startswith("tf_token_gate.") for key in model_keys)
                     and any(key.startswith("cross_tf_out.") for key in model_keys)
                 ),
                 "mtf_direction_head": bool(
@@ -785,6 +789,16 @@ def _bundle_contract_report(
                     isinstance(specialist, dict)
                     and specialist.get("enabled") is True
                     and any(key.startswith("specialist_encoder.") for key in model_keys)
+                    and "specialist_token_identity" in model_keys
+                    and any(key.startswith("specialist_cross_attn.") for key in model_keys)
+                    and any(key.startswith("specialist_token_gate.") for key in model_keys)
+                ),
+                "cross_family_cooperation": bool(
+                    "family_tf_token_identity" in model_keys
+                    and any(key.startswith("family_tf_cross_attn.") for key in model_keys)
+                    and any(key.startswith("family_tf_context_gate.") for key in model_keys)
+                    and any(key.startswith("family_tf_token_gate.") for key in model_keys)
+                    and finite_nonzero_tensor("family_tf_cooperation_out.weight")
                 ),
                 "learned_direction_evidence_fusion": bool(
                     isinstance(fusion_metadata, dict)

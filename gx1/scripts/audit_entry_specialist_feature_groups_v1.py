@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import Counter
 from datetime import datetime, timezone
@@ -45,6 +46,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    SPECIALIST_SHARED_REACHABLE_HEADS,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
     group_features_by_specialist,
@@ -386,9 +388,11 @@ def _specialist_input_liveness_rows(
     splits: list[str],
     signal_fields: list[str],
     required_specialists: tuple[str, ...],
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     groups_by_feature = [classify_entry_specialist_feature(feature) for feature in signal_fields]
     rows: list[dict[str, Any]] = []
+    feature_rows: list[dict[str, Any]] = []
+    duplicate_rows: list[dict[str, Any]] = []
     for split in splits:
         parquet_path = Path(split_artifacts[split]["parquet_path"])
         snap = _stack_list_column(pd.read_parquet(parquet_path, columns=["snap"])["snap"], np.float32)
@@ -396,6 +400,56 @@ def _specialist_input_liveness_rows(
             raise RuntimeError(
                 f"{split}: snap matrix shape {list(snap.shape)} does not match signal field count {len(signal_fields)}"
             )
+        all_finite = np.isfinite(snap)
+        all_clean = np.where(all_finite, snap, 0.0)
+        all_std = np.std(all_clean, axis=0)
+        all_active_rate = np.mean(
+            np.abs(all_clean) > float(LIVENESS_EPSILON), axis=0
+        )
+        all_finite_by_feature = np.all(all_finite, axis=0)
+        all_live = (
+            all_finite_by_feature
+            & (all_std > float(NEAR_CONSTANT_STD))
+            & (all_active_rate >= float(MIN_FEATURE_ACTIVE_RATE))
+        )
+        for index, feature in enumerate(signal_fields):
+            feature_rows.append(
+                {
+                    "split": split,
+                    "index": int(index),
+                    "feature": feature,
+                    "specialist": groups_by_feature[index],
+                    "finite": bool(all_finite_by_feature[index]),
+                    "std": float(all_std[index]),
+                    "active_rate": float(all_active_rate[index]),
+                    "live": bool(all_live[index]),
+                }
+            )
+
+        # Exact value duplicates are dead/redundant decision slots even when
+        # the names and routing differ. Hash first, then byte-verify collisions.
+        digest_groups: dict[str, list[int]] = {}
+        for index in range(len(signal_fields)):
+            values = np.ascontiguousarray(all_clean[:, index], dtype=np.float32)
+            digest = hashlib.sha256(values.tobytes(order="C")).hexdigest()
+            digest_groups.setdefault(digest, []).append(index)
+        for digest, indices in digest_groups.items():
+            if len(indices) < 2:
+                continue
+            verified = [
+                index
+                for index in indices
+                if np.array_equal(all_clean[:, indices[0]], all_clean[:, index])
+            ]
+            if len(verified) > 1:
+                duplicate_rows.append(
+                    {
+                        "split": split,
+                        "sha256": digest,
+                        "indices": verified,
+                        "features": [signal_fields[index] for index in verified],
+                    }
+                )
         for group in required_specialists:
             idx = [i for i, owner in enumerate(groups_by_feature) if owner == group]
             features = [signal_fields[i] for i in idx]
@@ -435,7 +489,7 @@ def _specialist_input_liveness_rows(
                     "near_constant_features": near_constant_features,
                 }
             )
-    return rows
+    return rows, feature_rows, duplicate_rows
 
 
 def _specialist_liveness_failures(
@@ -568,9 +622,12 @@ def _specialist_model_contract_failures(
         supports_heads = tuple(str(x) for x in spec.get("supports_heads") or () if str(x))
         if not supports_heads:
             failures.append(f"{specialist}: specialist model contract missing supports_heads")
-        unsupported_heads = sorted(set(supports_heads) - active_heads)
-        if unsupported_heads:
-            failures.append(f"{specialist}: specialist model contract references inactive heads: {unsupported_heads}")
+        if supports_heads != SPECIALIST_SHARED_REACHABLE_HEADS:
+            failures.append(
+                f"{specialist}: specialist reachable-head topology mismatch: "
+                f"observed={list(supports_heads)} "
+                f"expected={list(SPECIALIST_SHARED_REACHABLE_HEADS)}"
+            )
         for objective in tuple(str(x) for x in spec.get("owned_objectives") or () if str(x)):
             expected = FOUNDATION_OBJECTIVE_SPECIALISTS.get(objective)
             if expected is None:
@@ -607,12 +664,13 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
         "seq_len": 96,
         "specialist_input_indices": by_group,
         "recommended_fusion": {
-            "type": "gated_mixture_of_specialist_encoders",
+            "type": "cross_attended_dynamic_gated_specialists_plus_five_tf_cooperation",
             "gate_context": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
             "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
-            "direction_path": "sole learned specialist fusion -> calibrated LONG/SHORT/FLAT argmax",
+            "direction_path": "specialist cross-attention -> dynamic specialist gate -> specialist+five-TF cross-attention -> 96-value learned evidence fusion -> calibrated LONG/SHORT/FLAT argmax",
+            "independent_timeframe_only_head": "mtf_direction",
         },
     }
 
@@ -765,7 +823,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if selected_count_by_group.get(group, 0) <= 0:
             failures.append(f"{group}: no selected sequence-extension features assigned")
 
-    specialist_input_liveness = _specialist_input_liveness_rows(
+    (
+        specialist_input_liveness,
+        signal_feature_liveness,
+        exact_duplicate_signal_groups,
+    ) = _specialist_input_liveness_rows(
         split_artifacts,
         splits,
         signal_fields,
@@ -777,6 +839,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         required_training_specialists,
     )
     failures.extend(specialist_input_liveness_failures)
+    train_dead_features = [
+        str(row["feature"])
+        for row in signal_feature_liveness
+        if row.get("split") == "train" and not bool(row.get("live"))
+    ]
+    if train_dead_features:
+        failures.append(
+            "train: every one of the 513 signal fields must be finite, variable, "
+            "and active; dead fields="
+            f"{train_dead_features[:30]} total={len(train_dead_features)}"
+        )
+    train_duplicate_groups = [
+        row for row in exact_duplicate_signal_groups if row.get("split") == "train"
+    ]
+    if train_duplicate_groups:
+        failures.append(
+            "train: exact duplicate signal value columns are forbidden: "
+            f"{[row['features'] for row in train_duplicate_groups[:10]]} "
+            f"total_groups={len(train_duplicate_groups)}"
+        )
     context_routing_rows = _context_routing_rows(context_contracts)
     context_routing_unmapped_fields = [
         str(row.get("feature"))
@@ -863,6 +945,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "specialist_counts": specialist_counts,
         "specialist_input_liveness": specialist_input_liveness,
         "specialist_input_liveness_all_live": not specialist_input_liveness_failures,
+        "signal_feature_liveness": signal_feature_liveness,
+        "train_dead_signal_feature_count": int(len(train_dead_features)),
+        "train_dead_signal_features": train_dead_features,
+        "every_train_signal_feature_live": not train_dead_features,
+        "exact_duplicate_signal_groups": exact_duplicate_signal_groups,
+        "train_exact_duplicate_signal_group_count": int(
+            len(train_duplicate_groups)
+        ),
+        "no_train_exact_duplicate_signal_values": not train_duplicate_groups,
         "context_contracts": {
             split: {
                 "manifest_path": contract.get("manifest_path"),

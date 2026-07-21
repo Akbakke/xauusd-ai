@@ -166,10 +166,11 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             **model_native_target_audit_evidence(),
         },
     )
-    specialist_indices = {
-        name: [20 + idx, 120 + idx]
-        for idx, name in enumerate(readiness.REQUIRED_SPECIALISTS)
-    }
+    specialist_indices = {name: [] for name in readiness.REQUIRED_SPECIALISTS}
+    for index in range(MODEL_NATIVE_SIGNAL_DIM):
+        specialist_indices[
+            readiness.REQUIRED_SPECIALISTS[index % len(readiness.REQUIRED_SPECIALISTS)]
+        ].append(index)
     specialist_liveness = [
         {
             "split": split,

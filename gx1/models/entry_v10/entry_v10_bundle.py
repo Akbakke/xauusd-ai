@@ -457,17 +457,36 @@ def _require_exact_model_native_bundle_metadata(
                 f"{specialist_name} overlap={sorted(overlap)}"
             )
         seen_specialist_indices.update(indices)
+    expected_specialist_indices = set(range(MODEL_NATIVE_SIGNAL_DIM))
+    if seen_specialist_indices != expected_specialist_indices:
+        missing = sorted(expected_specialist_indices - seen_specialist_indices)
+        unexpected = sorted(seen_specialist_indices - expected_specialist_indices)
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDEX_COVERAGE_INVALID] "
+            f"missing={missing[:20]} total_missing={len(missing)} "
+            f"unexpected={unexpected[:20]} total_unexpected={len(unexpected)}"
+        )
     if list(specialist.get("trainable_specialists") or []) != list(
         _MODEL_NATIVE_REQUIRED_SPECIALISTS
     ):
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRAINABLE_SPECIALISTS_MISMATCH]")
-    for key in ("num_layers", "fusion_scale"):
+    for key in ("num_layers", "fusion_scale", "cross_family_fusion_scale"):
         if key not in specialist:
             raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_METADATA_MISSING] {key}")
     if isinstance(specialist["num_layers"], bool) or int(specialist["num_layers"]) <= 0:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_NUM_LAYERS_INVALID]")
-    if float(specialist["fusion_scale"]) <= 0.0:
+    if (
+        not math.isfinite(float(specialist["fusion_scale"]))
+        or float(specialist["fusion_scale"]) <= 0.0
+    ):
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_FUSION_SCALE_INVALID]")
+    if (
+        not math.isfinite(float(specialist["cross_family_fusion_scale"]))
+        or float(specialist["cross_family_fusion_scale"]) <= 0.0
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_CROSS_FAMILY_FUSION_SCALE_INVALID]"
+        )
 
     direction_calibration = meta.get("direction_calibration")
     if direction_calibration is not None:
@@ -550,6 +569,10 @@ _MODEL_NATIVE_ZERO_INIT_COMPONENT_GROUPS: Dict[str, tuple[str, ...]] = {
         "cross_tf_out.bias",
     ),
     "cross_tf_gate": ("tf_gate_logits",),
+    "family_tf_cooperation_output": (
+        "family_tf_cooperation_out.weight",
+        "family_tf_cooperation_out.bias",
+    ),
 }
 
 _RETIRED_DIRECTION_STATE_PREFIXES = (
@@ -775,6 +798,9 @@ def load_entry_v10_ctx_bundle(
         },
         specialist_num_layers=int(_specialist_cfg["num_layers"]),
         specialist_fusion_scale=float(_specialist_cfg["fusion_scale"]),
+        cross_family_fusion_scale=float(
+            _specialist_cfg["cross_family_fusion_scale"]
+        ),
     ).to(dev)
 
     state_dict = state_dict_preview

@@ -67,7 +67,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 242),
-            "ad9c0db57d7c3eea1f4bf371f014ca5ccd58484dd46e17eac9e7ec172aebc34c",
+            "1a6a502abbb256c45e50373bfb3a164156428a082cb6762e041e69cc3dc8538d",
             "df40b572938f61d81be0cac5dad4df44e6f48b1233a0d224cc734c14e1ff01d9",
         ),
         "price": (
@@ -88,7 +88,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             deep_x,
             deep_names,
             (240, 315),
-            "1d56def10301459fea2189935841fcc07f1ab2a8fa3637e9e10e766309023722",
+            "d91d67432bb18d077683d5079e749f1f56cbab08c08c00e1ff8aec95189be61e",
             "8492ae7579b24364d21edbe08678177ea4610edb8e1a3cecf97d96625c4f82a8",
         ),
     }
@@ -196,6 +196,27 @@ def test_chart_layer_bos_and_sweep_pressures_are_directionally_symmetric(
     assert output["chart.false_breakout_low_reject"][0] == pytest.approx(
         output["chart.false_breakout_high_reject"][1]
     )
+
+
+def test_deep_layer_inverts_normalized_d1_regime_age_without_compression(
+    tmp_path: Path,
+) -> None:
+    matrix, names, samples, _source, source_path = _valid_inputs(tmp_path, rows=2)
+    matrix.fill(0.0)
+    source_index = {name: column for column, name in enumerate(names)}
+    matrix[:, source_index["ctx_cont.bars_since_d1_regime_change_v3"]] = [0.0, 1.0]
+    matrix[:, source_index["ctx_cont.d1_regime_changed_flag_v3"]] = 0.0
+
+    chart_x, chart_names = build_chart_layer(matrix, names)
+    price_x, price_names = build_price_derived_layer(samples, source_path)
+    candle_x, candle_names = build_candlestick_derived_layer(samples, source_path)
+    deep_x, deep_names = build_deep_interaction_layer(
+        np.concatenate([matrix, chart_x, price_x, candle_x], axis=1),
+        names + chart_names + price_names + candle_names,
+        samples,
+    )
+    fresh = deep_x[:, deep_names.index("chart.fresh_d1_regime_change_pressure")]
+    np.testing.assert_array_equal(fresh, np.asarray([1.0, 0.0], dtype=np.float32))
 
 
 def test_candlestick_and_deep_layers_reject_bad_geometry_and_row_mismatch(tmp_path: Path) -> None:

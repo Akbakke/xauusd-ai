@@ -71,7 +71,6 @@ SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS = (
     "chart.geometry_support_line_proximity_stack",
     "chart.geometry_resistance_line_proximity_stack",
     "chart.geometry_support_minus_resistance_stack",
-    "chart.geometry_major_level_proximity_max",
     "chart.geometry_support_bounce_long_pressure",
     "chart.geometry_resistance_reject_short_pressure",
     "chart.geometry_trendline_break_up_pressure",

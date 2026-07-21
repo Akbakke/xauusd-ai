@@ -520,22 +520,10 @@ MULTI_TF_FEATURE_COUNT_V2 = len(MULTI_TF_PER_BAR_FEATURES_V2)   # = 25
 HTF_V2_CACHE_BUILDER_VERSION = "prebuild_multi_tf_cache_v2_causal_no_fallback_20260717"
 HTF_V2_MATRIX_CONTRACT = "HTF_V2_CAUSAL_MATRIX_V1"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# V3 (2026-06-10): V2 + ema20_50_diff_atr — the LEARNED EMA20×EMA50 cross/distance
-# (user ask: "ema20 som krysser ema50"). Signed gap = which EMA is on top (cross STATE),
-# |mag| = separation, zero-crossing = the cross EVENT; flips EARLIER than ema_stack_aligned_v2
-# (which needs the full 20<50<100<200 stack) → earlier dip/recovery signal. DEFINED ONLY here +
-# co-exists with V2 (compute_per_bar_features_v2(..., feature_set=V3) returns 26). NOT yet wired
-# into any trainer/cache (V2 stays mandatory) — the revival retrain flips it (25→26 cascade:
-# MTF cache → V10 → candidates → V3; warm-start the per-TF *_proj). Pure-additive until then.
-# ─────────────────────────────────────────────────────────────────────────────
-MULTI_TF_PER_BAR_FEATURES_V3 = MULTI_TF_PER_BAR_FEATURES_V2 + ("ema20_50_diff_atr",)
-MULTI_TF_FEATURE_COUNT_V3 = len(MULTI_TF_PER_BAR_FEATURES_V3)   # = 26
-
 MULTI_TF_RESAMPLE_RULES = {
     # V10 (entry) base is M5 → uses M15+H1+H4+D1.
     # V3 (exit) base is M1 → uses M5+M15+H1+H4+D1 (M5 added below).
-    "M5": "5min",     # 96 bars = 8h — micro momentum (V3 only — V10 has M5 as base)
+    "M5": "5min",     # 96 bars = 8h — micro momentum
     "M15": "15min",   # 96 bars = 24h — intraday momentum
     "H1": "1h",       # 96 bars = 4 days
     "H4": "4h",       # 96 bars = 16 days
@@ -758,16 +746,16 @@ def validate_causal_feature_matrix(
 
 def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
                                 feature_set: tuple = MULTI_TF_PER_BAR_FEATURES_V2) -> pd.DataFrame:
-    """Compute the exact causal V2/V3 per-bar feature contract from OHLCV.
+    """Compute the exact causal V2 per-bar feature contract from OHLCV.
 
     Initial indicator warmup remains NaN. Consumers must request a fully
     observed historical window; they may not replace missing history with a
     neutral numeric value.
     """
     requested = tuple(feature_set)
-    if requested not in (MULTI_TF_PER_BAR_FEATURES_V2, MULTI_TF_PER_BAR_FEATURES_V3):
+    if requested != MULTI_TF_PER_BAR_FEATURES_V2:
         raise RuntimeError(
-            "HTF_V2_FEATURE_CONTRACT_MISMATCH: feature_set must be the exact V2 or V3 contract"
+            "HTF_V2_FEATURE_CONTRACT_MISMATCH: feature_set must be the exact V2 contract"
         )
     _validate_m5_input(ohlcv, require_volume=True)
     df = ohlcv[["open", "high", "low", "close", "volume"]].astype(np.float64).copy()
@@ -812,10 +800,6 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
     out["ema20_slope_atr"] = ((ema20 - ema20.shift(5)) / atr_safe).clip(-5.0, 5.0)
     out["ema50_slope_atr"] = ((ema50 - ema50.shift(5)) / atr_safe).clip(-5.0, 5.0)
     out["ema200_slope_atr"] = ((ema200 - ema200.shift(5)) / atr_safe).clip(-5.0, 5.0)
-    # V3 (additive): EMA20×EMA50 cross/distance in ATR units. Always computed (cheap — both EMAs are
-    # already above); only RETURNED when feature_set=V3 (else dropped by the V2 column filter below).
-    out["ema20_50_diff_atr"] = ((ema20 - ema50) / atr_safe).clip(-15.0, 15.0)
-
     # ─── NEW: EMA-stack regime (2) ───────────────────────────────────
     # 2026-05-24: now uses ffill'd EMAs above + checks full stack (50<100<200) for
     # stricter alignment. Previously bear/bull only checked 20<50<200, missing 100.

@@ -108,7 +108,8 @@ class TestEntryV10CtxProof:
             h4_seq_len=30,
             d1_seq_len=30,
             specialist_input_indices={
-                name: [index] for index, name in enumerate(EXACT_SPECIALIST_NAMES)
+                name: list(range(index, 16, len(EXACT_SPECIALIST_NAMES)))
+                for index, name in enumerate(EXACT_SPECIALIST_NAMES)
             },
         )
         model.eval()

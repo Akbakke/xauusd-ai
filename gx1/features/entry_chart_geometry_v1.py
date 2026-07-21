@@ -34,7 +34,6 @@ CHART_GEOMETRY_SOURCE_FIELDS = (
     "ctx_cont.dist_last_swing_low_atr",
     "ctx_cont.bars_since_swing_high",
     "ctx_cont.bars_since_swing_low",
-    "ctx_cont.sr_nearest_pivot_abs_atr",
     "ctx_cont.sr_support_proximity_exp",
     "ctx_cont.sr_resistance_proximity_exp",
     "ctx_cont.sr_support_minus_resistance_prox",
@@ -487,7 +486,11 @@ def build_entry_chart_geometry_layer(
         arrays,
         names,
         "fib_pullback_long_pressure",
-        trend_up * fib_support_confluence * (0.75 + ema_bull_follow),
+        trend_up
+        * golden
+        * (0.50 + retracement)
+        * (0.50 + support_stack)
+        * (0.75 + ema_bull_follow),
         lo=0.0,
         hi=3.0,
     )
@@ -495,7 +498,11 @@ def build_entry_chart_geometry_layer(
         arrays,
         names,
         "fib_pullback_short_pressure",
-        trend_down * fib_resistance_confluence * (0.75 + ema_bear_follow),
+        trend_down
+        * golden
+        * (0.50 + retracement)
+        * (0.50 + resistance_stack)
+        * (0.75 + ema_bear_follow),
         lo=0.0,
         hi=3.0,
     )

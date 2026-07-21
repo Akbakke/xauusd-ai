@@ -144,6 +144,9 @@ CHART_LAYER_SOURCE_FIELDS = _ordered_unique(
     (
         *FOUNDATION_STRUCTURE_SOURCE_FIELDS,
         *CHART_GEOMETRY_SOURCE_FIELDS,
+        # Consumed directly by the legacy-free core chart layer (not by the
+        # chart-geometry sublayer), so ownership must remain explicit here.
+        "ctx_cont.sr_nearest_pivot_abs_atr",
         "ctx_cont.struct_tf_agree_count_v3",
         "ctx_cont.d1_range_z_20_canon_v2",
         "ctx_cont.d1_trend_age_mature_flag_v3",
@@ -921,13 +924,21 @@ def build_deep_interaction_layer(
     regime_agree = _clip(c("ctx_cont.regime_tf_agreement_v3"))
     regime_div = _clip(c("ctx_cont.regime_divergence_flag_v3"))
     d1_changed = _clip(c("ctx_cont.d1_regime_changed_flag_v3"))
-    bars_since_d1_change = _recency(c("ctx_cont.bars_since_d1_regime_change_v3"))
+    # ``bars_since_d1_regime_change_v3`` is already the normalized log-age
+    # contract in [0, 1] (0=fresh, 1=old).  Treating it as a raw bar count in
+    # ``_recency`` compressed the entire range to [0.5, 1.0] and made stale D1
+    # regimes look almost fresh.  Invert the normalized age directly.
+    d1_regime_change_recency = _clip(
+        1.0 - c("ctx_cont.bars_since_d1_regime_change_v3"),
+        0.0,
+        1.0,
+    )
     add_chart_feature(arrays, names, "regime_stack_delta", _delta(regime_stack))
     add_chart_feature(
         arrays,
         names,
         "fresh_d1_regime_change_pressure",
-        d1_changed + bars_since_d1_change,
+        d1_changed + d1_regime_change_recency,
     )
     add_chart_feature(
         arrays,
@@ -957,7 +968,7 @@ def build_deep_interaction_layer(
         arrays,
         names,
         "fresh_regime_x_true_ema_cross",
-        (d1_changed + bars_since_d1_change) * np.abs(ema50_200_cross),
+        (d1_changed + d1_regime_change_recency) * np.abs(ema50_200_cross),
     )
 
     sweep = _clip(c("chart.sweep_recent_combo") + c("snap.smc_sweep_up") + c("snap.smc_sweep_down"))
@@ -1016,7 +1027,7 @@ def build_deep_interaction_layer(
         arrays,
         names,
         "tail_pressure_x_regime_fresh",
-        tail_pressure * (d1_changed + bars_since_d1_change),
+        tail_pressure * (d1_changed + d1_regime_change_recency),
     )
     add_chart_feature(
         arrays,

@@ -25,7 +25,10 @@ TF_DIM = 3
 
 
 def _specialist_indices() -> dict[str, list[int]]:
-    return {name: [index] for index, name in enumerate(EXACT_SPECIALIST_NAMES)}
+    grouped = {name: [] for name in EXACT_SPECIALIST_NAMES}
+    for index in range(SEQ_DIM):
+        grouped[EXACT_SPECIALIST_NAMES[index % len(EXACT_SPECIALIST_NAMES)]].append(index)
+    return grouped
 
 
 def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
@@ -86,6 +89,8 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         "clean_edge_logit": 1,
         "survival_logit": 1,
         "specialist_gate": 8,
+        "tf_gate": 5,
+        "family_tf_cooperation_gate": 13,
         "trade_logit": 1,
         "side_logits": 2,
         "side_utility": 2,
@@ -111,6 +116,12 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         assert torch.isfinite(out[name]).all(), name
     assert torch.all(out["timing_pred"] >= 0.0)
     assert torch.all(out["timing_pred"] <= 1.0)
+    for gate_name in ("specialist_gate", "tf_gate", "family_tf_cooperation_gate"):
+        assert torch.allclose(
+            out[gate_name].sum(dim=1),
+            torch.ones(2),
+            atol=1e-6,
+        )
 
 
 def test_public_trade_flat_decision_is_post_calibration_argmax_ssot() -> None:
@@ -174,7 +185,49 @@ def test_public_direction_gradient_reaches_every_fused_evidence_head() -> None:
         model.regime_film[-1].weight,
         model.cross_tf_out.weight,
         model.specialist_out.weight,
+        model.family_tf_cooperation_out.weight,
     ):
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all()
+        assert parameter.grad.abs().sum().item() > 0.0
+
+
+def test_public_direction_reaches_every_specialist_tf_and_cooperation_branch_after_cold_start() -> None:
+    torch.manual_seed(1307)
+    model = _make_model().train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
+    targets = torch.tensor([0, 1, 2, 0])
+
+    # The three residual outputs are intentionally zero-initialized.  The first
+    # step must move their output projections; the second then proves gradient
+    # reachability through every upstream cooperation branch.
+    for _ in range(2):
+        optimizer.zero_grad(set_to_none=True)
+        out = _forward(model, batch_size=4)
+        torch.nn.functional.cross_entropy(out["direction_logits"], targets).backward()
+        optimizer.step()
+
+    optimizer.zero_grad(set_to_none=True)
+    out = _forward(model, batch_size=4)
+    torch.nn.functional.cross_entropy(out["direction_logits"], targets).backward()
+    parameters = [
+        model.specialist_cross_attn.layers[0].self_attn.in_proj_weight,
+        model.family_tf_cross_attn.layers[0].self_attn.in_proj_weight,
+        model.cross_tf_attn.layers[0].self_attn.in_proj_weight,
+        model.specialist_gate.weight,
+        model.specialist_token_gate.weight,
+        model.tf_context_gate.weight,
+        model.tf_token_gate.weight,
+        model.family_tf_context_gate.weight,
+        model.family_tf_token_gate.weight,
+        *(projection.weight for projection in model.specialist_proj.values()),
+        model.m5_proj.weight,
+        model.m15_proj.weight,
+        model.h1_proj.weight,
+        model.h4_proj.weight,
+        model.d1_proj.weight,
+    ]
+    for parameter in parameters:
         assert parameter.grad is not None
         assert torch.isfinite(parameter.grad).all()
         assert parameter.grad.abs().sum().item() > 0.0
@@ -222,6 +275,7 @@ def test_report_only_path_calibration_cannot_change_direction_fusion() -> None:
     (
         "multi_tf_scale",
         "specialist_fusion_scale",
+        "cross_family_fusion_scale",
         "tf_input_scale_init_m5",
         "tf_input_scale_init_m15",
         "tf_input_scale_init_h1",

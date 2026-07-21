@@ -87,7 +87,6 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     set_col("chart.foundation_bos_down_recent_tau24", [0.4, 0, 0, 0, 0.8, 1, 0.8, 0.2])
     set_col("chart.foundation_bos_recent_balance", [-0.5, 0.3, 1.0, 0.8, 0.0, -1.0, -0.8, 0.0])
     set_col("chart.foundation_choch_recent_tau24", [0.4, 0.1, 0.0, 0.0, 1.0, 0.0, 0.1, 0.2])
-    set_col("chart.foundation_impulse_direction", [-1, 0.5, 1.5, 1.2, 0, -1.5, -1.2, 0])
     set_col("chart.foundation_pullback_phase_up", [0, 0.3, 0.4, 0.7, 0.8, 0, 0, 0.2])
     set_col("chart.foundation_pullback_phase_down", [0.3, 0, 0, 0, 0.8, 0.5, 0.7, 0.2])
     set_col("chart.foundation_pullback_depth_norm", [0.2, 0.3, 0.4, 0.618, 0.9, 0.4, 0.618, 0.2])

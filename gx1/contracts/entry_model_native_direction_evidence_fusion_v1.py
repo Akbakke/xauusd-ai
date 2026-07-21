@@ -7,7 +7,7 @@ import json
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "entry_model_native_direction_evidence_fusion_v1"
+SCHEMA_VERSION = "entry_model_native_direction_evidence_fusion_v2"
 FUSION_MODE = "sole_learned_acyclic_96x128x3"
 CLASS_ORDER = ("LONG", "SHORT", "FLAT")
 INPUT_DIM = 96
@@ -83,7 +83,23 @@ def direction_evidence_fusion_metadata() -> dict[str, Any]:
         "normalization": "LayerNorm",
         "activation": "GELU",
         "raw_pre_aux_calibration": True,
-        "no_direction_derived_inputs": True,
+        # Directional sibling heads are valid causal evidence.  What is
+        # forbidden is feedback from this block's own final fused output.
+        "no_final_fused_direction_feedback": True,
+        "directional_sibling_evidence_inputs": [
+            "model_native_logits",
+            "mtf_dir_logits",
+            "side_logits",
+            "side_utility",
+            "side_bad_path_logit",
+            "side_mae",
+            "side_validity_logit",
+            "action_value",
+            "action_advantage",
+        ],
+        "derived_evidence_relations": {
+            "action_advantage": "action_value - expectile_value_by_horizon"
+        },
         "no_detach": True,
         "sole_direction_path": True,
         "additive_direction_overrides": False,

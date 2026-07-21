@@ -231,8 +231,12 @@ def build_entry_vol_compression_layer(
         + 0.15 * d1_atr_pct
         + 0.05 * np.maximum(atr_bucket, vol_regime)
     )
-    low_atr_pressure = _clip01(1.0 - atr_percentile)
-    high_atr_pressure = atr_percentile
+    # Preserve the continuous percentile blend as its own feature and express
+    # low/high *tail* pressure only outside the central half.  The previous
+    # high-pressure field was byte-identical to ``atr_percentile_blend`` and
+    # therefore occupied a mandatory slot without adding information.
+    low_atr_pressure = _clip01((0.5 - atr_percentile) * 2.0)
+    high_atr_pressure = _clip01((atr_percentile - 0.5) * 2.0)
     atr_m5_h1_spread = _clip(
         0.55 * (m5_vol_pct - h1_vol_pct)
         + 0.25 * m5_m15_ratio

@@ -20,11 +20,13 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHyb
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
 
 
-def _specialist_indices() -> dict[str, list[int]]:
-    return {
-        name: [index]
-        for index, name in enumerate(MODEL_NATIVE_TRAINING_SPECIALISTS)
-    }
+def _specialist_indices(
+    signal_dim: int = MODEL_NATIVE_SIGNAL_DIM,
+) -> dict[str, list[int]]:
+    grouped = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    for index in range(signal_dim):
+        grouped[MODEL_NATIVE_TRAINING_SPECIALISTS[index % len(grouped)]].append(index)
+    return grouped
 
 
 def _audit_payload() -> dict:
@@ -72,7 +74,7 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
         h1_seq_len=16,
         h4_seq_len=16,
         d1_seq_len=16,
-        specialist_input_indices=_specialist_indices(),
+        specialist_input_indices=_specialist_indices(16),
     ).eval()
 
     assert any("specialist" in key for key in model.state_dict())
@@ -125,6 +127,12 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
     assert out["specialist_gate"].shape == (2, len(MODEL_NATIVE_TRAINING_SPECIALISTS))
     assert torch.allclose(out["specialist_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
     assert torch.isfinite(out["specialist_gate"]).all()
+    assert out["tf_gate"].shape == (2, 5)
+    assert out["family_tf_cooperation_gate"].shape == (2, 13)
+    assert torch.allclose(out["tf_gate"].sum(dim=1), torch.ones(2), atol=1e-6)
+    assert torch.allclose(
+        out["family_tf_cooperation_gate"].sum(dim=1), torch.ones(2), atol=1e-6
+    )
 
 
 def test_entry_v10_specialist_loader_accepts_only_exact_model_native_audit(
@@ -147,6 +155,23 @@ def test_entry_v10_specialist_loader_accepts_only_exact_model_native_audit(
     assert specialist_meta["specialist_model_contract"] == json.loads(
         json.dumps(MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT)
     )
+
+
+def test_entry_v10_specialist_loader_rejects_partial_513_coverage(
+    tmp_path: Path,
+) -> None:
+    payload = _audit_payload()
+    payload["architecture_contract"]["specialist_input_indices"] = {
+        name: [index]
+        for index, name in enumerate(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    }
+
+    with pytest.raises(RuntimeError, match="SPECIALIST_INDEX_COVERAGE_INVALID"):
+        _load_specialist_fusion_contract(
+            _write_audit(tmp_path, payload),
+            expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+            contract_mode=MODEL_NATIVE_CONTRACT_MODE,
+        )
 
 
 def test_entry_v10_specialist_loader_rejects_tampered_model_contract(tmp_path: Path) -> None:

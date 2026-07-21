@@ -63,7 +63,6 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("ctx_cont.dist_last_swing_low_atr", [0.2, 0.1, 0.2, 0.1, 2, 3])
     set_col("ctx_cont.bars_since_swing_high", [20, 10, 3, 8, 1, 1])
     set_col("ctx_cont.bars_since_swing_low", [1, 1, 2, 1, 8, 10])
-    set_col("ctx_cont.sr_nearest_pivot_abs_atr", [1, 0.5, 0.2, 0.1, 0.2, 0.1])
     set_col("ctx_cont.sr_support_proximity_exp", [0.8, 1.0, 0.9, 1.0, 0.1, 0.1])
     set_col("ctx_cont.sr_resistance_proximity_exp", [0.2, 0.2, 0.6, 0.3, 1.0, 1.0])
     set_col("ctx_cont.sr_support_minus_resistance_prox", [0.5, 0.8, 0.3, 0.7, -0.8, -0.9])
@@ -142,6 +141,14 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     assert out[5, idx["chart.geometry_falling_resistance_rail_long_trap_pressure"]] > 0.0
     assert out[3, idx["chart.geometry_fib_support_confluence_long_pressure"]] > out[3, idx["chart.geometry_fib_resistance_confluence_short_pressure"]]
     assert out[5, idx["chart.geometry_fib_resistance_confluence_short_pressure"]] > out[5, idx["chart.geometry_fib_support_confluence_long_pressure"]]
+    assert not np.array_equal(
+        out[:, idx["chart.geometry_fib_pullback_long_pressure"]],
+        out[:, idx["chart.geometry_fib_support_confluence_long_pressure"]],
+    )
+    assert not np.array_equal(
+        out[:, idx["chart.geometry_fib_pullback_short_pressure"]],
+        out[:, idx["chart.geometry_fib_resistance_confluence_short_pressure"]],
+    )
     assert out[2, idx["chart.geometry_triangle_apex_compression_pressure"]] > out[0, idx["chart.geometry_triangle_apex_compression_pressure"]]
     assert out[3, idx["chart.geometry_flag_breakout_readiness_pressure"]] > 0.0
     assert out[1, idx["chart.geometry_channel_position_low_to_high"]] < 0.42

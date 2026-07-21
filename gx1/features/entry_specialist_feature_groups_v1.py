@@ -119,6 +119,16 @@ SPECIALIST_FUSION_ACTIVE_HEADS = (
 )
 
 SPECIALIST_FUSION_BLOCKED_HEADS = ("hold_horizon",)
+SPECIALIST_SHARED_REACHABLE_HEADS = tuple(
+    head for head in SPECIALIST_FUSION_ACTIVE_HEADS if head != "mtf_direction"
+) + (
+    "trade_side_hierarchy",
+    "trendline_rail",
+    "side_validity",
+    "offline_rl_action_value",
+    "offline_rl_expectile_value",
+    "model_native_evidence_fusion",
+)
 
 FORBIDDEN_LEGACY_BRIDGE_SPECIALIST = "forbidden_legacy_bridge"
 _FORBIDDEN_LEGACY_BRIDGE_FIELDS = frozenset(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
@@ -251,7 +261,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "impulse/pullback phase",
                     "structure break recency",
                 ),
-                "supports_heads": ("direction", "tradable", "timing", "mtf_direction", "path_quality"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -266,7 +276,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "wick liquidity",
                     "premium/discount",
                 ),
-                "supports_heads": ("tradable", "bad_path", "tail_risk", "path_quality", "position_size"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -281,7 +291,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "trend age",
                     "multi-timeframe agreement",
                 ),
-                "supports_heads": ("direction", "tf_agreement", "mtf_direction", "forecast"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -296,7 +306,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "compression release",
                     "expansion direction",
                 ),
-                "supports_heads": ("vol_forecast", "tail_risk", "position_size", "path_quality_log_var"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -311,7 +321,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "CLV",
                     "volatility-adjusted follow-through",
                 ),
-                "supports_heads": ("direction", "dip", "forecast", "clean_edge", "mfe_first_n"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -326,7 +336,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "spread bucket",
                     "session x structure interactions",
                 ),
-                "supports_heads": ("tradable", "timing", "bad_path", "survival", "position_size"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -341,7 +351,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "EMA cross pressure",
                     "triangle/flag/compression chart-pattern proxies",
                 ),
-                "supports_heads": ("direction", "tradable", "timing", "path_quality", "tail_risk"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
         (
@@ -357,7 +367,7 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
                     "inside/outside bar compression and expansion",
                     "three-candle continuation/reversal patterns",
                 ),
-                "supports_heads": ("direction", "tradable", "timing", "bad_path", "tail_risk"),
+                "supports_heads": SPECIALIST_SHARED_REACHABLE_HEADS,
             },
         ),
     ]

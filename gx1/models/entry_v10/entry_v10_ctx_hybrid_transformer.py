@@ -145,6 +145,7 @@ class CtxModelConfig:
     # Mandatory specialist and fusion hyperparameters.
     specialist_num_layers: int = 1
     specialist_fusion_scale: float = 0.25
+    cross_family_fusion_scale: float = 0.25
 
 
 class EntryV10CtxHybridTransformer(nn.Module):
@@ -193,6 +194,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         tf_input_scale_init_h1: float = 0.7,
         tf_input_scale_init_h4: float = 0.5,
         tf_input_scale_init_d1: float = 0.3,
+        cross_family_fusion_scale: float = 0.25,
     ) -> None:
         super().__init__()
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
@@ -217,6 +219,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         mandatory_positive_scales = {
             "multi_tf_scale": multi_tf_scale,
             "specialist_fusion_scale": specialist_fusion_scale,
+            "cross_family_fusion_scale": cross_family_fusion_scale,
             "tf_input_scale_init_m5": tf_input_scale_init_m5,
             "tf_input_scale_init_m15": tf_input_scale_init_m15,
             "tf_input_scale_init_h1": tf_input_scale_init_h1,
@@ -253,6 +256,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             multi_tf_scale=float(multi_tf_scale),
             specialist_num_layers=int(specialist_num_layers),
             specialist_fusion_scale=float(specialist_fusion_scale),
+            cross_family_fusion_scale=float(cross_family_fusion_scale),
             tf_input_scale_init_m5=float(tf_input_scale_init_m5),
             tf_input_scale_init_m15=float(tf_input_scale_init_m15),
             tf_input_scale_init_h1=float(tf_input_scale_init_h1),
@@ -322,6 +326,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 raise RuntimeError(f"SPECIALIST_INDEX_OVERLAP: {name} overlap={sorted(overlap)}")
             seen_indices.update(raw_idx)
             cleaned[name] = list(raw_idx)
+        expected_indices = set(range(int(seq_input_dim)))
+        if seen_indices != expected_indices:
+            missing = sorted(expected_indices - seen_indices)
+            unexpected = sorted(seen_indices - expected_indices)
+            raise RuntimeError(
+                "SPECIALIST_INDEX_COVERAGE_INVALID: "
+                f"missing={missing[:20]} total_missing={len(missing)} "
+                f"unexpected={unexpected[:20]} total_unexpected={len(unexpected)}"
+            )
         self._specialist_names = EXACT_SPECIALIST_NAMES
         self.specialist_proj = nn.ModuleDict(
             {name: nn.Linear(len(idx), d_model) for name, idx in cleaned.items()}
@@ -345,6 +358,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.specialist_encoder = nn.ModuleDict(
             {name: _mk_encoder(specialist_layers) for name in self._specialist_names}
         )
+        # Specialists first reason over their own temporal fields, then attend
+        # to one another.  This makes structure×trend, S/R×momentum,
+        # SMC×candles, etc. learned interactions instead of isolated votes.
+        self.specialist_token_identity = nn.Parameter(
+            torch.empty(1, len(self._specialist_names), d_model)
+        )
+        nn.init.normal_(self.specialist_token_identity, std=0.02)
+        self.specialist_cross_attn = _mk_encoder(1)
         for name, idx in cleaned.items():
             self.register_buffer(
                 f"specialist_idx_{name}",
@@ -352,6 +373,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 persistent=False,
             )
         self.specialist_gate = nn.Linear(d_model, len(self._specialist_names))
+        self.specialist_token_gate = nn.Linear(d_model, 1)
         self.specialist_out = nn.Linear(d_model, d_model)
         nn.init.zeros_(self.specialist_out.weight)
         nn.init.zeros_(self.specialist_out.bias)
@@ -431,7 +453,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.h4_encoder = _mk_encoder(mtf_layers)
         self.d1_encoder = _mk_encoder(mtf_layers)
         self.cross_tf_attn = _mk_encoder(1)
+        self.tf_token_identity = nn.Parameter(torch.empty(1, 5, d_model))
+        nn.init.normal_(self.tf_token_identity, std=0.02)
         self.tf_gate_logits = nn.Parameter(torch.zeros(5))
+        self.tf_context_gate = nn.Linear(d_model, 5)
+        self.tf_token_gate = nn.Linear(d_model, 1)
         self.cross_tf_out = nn.Linear(d_model, d_model)
         nn.init.zeros_(self.cross_tf_out.weight)
         nn.init.zeros_(self.cross_tf_out.bias)
@@ -446,6 +472,27 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.tf_input_scale_h1 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_h1)))
         self.tf_input_scale_h4 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_h4)))
         self.tf_input_scale_d1 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_d1)))
+
+        # Learned high-order cooperation across all eight feature-family
+        # specialists and all five timeframe representations.  Token identity
+        # prevents the attention block from treating e.g. trend and H4 as
+        # interchangeable slots.  Its zero-init output keeps cold-start stable;
+        # bundle liveness contracts require the block to move during training.
+        cooperation_token_count = len(self._specialist_names) + 5
+        self.family_tf_token_identity = nn.Parameter(
+            torch.empty(1, cooperation_token_count, d_model)
+        )
+        nn.init.normal_(self.family_tf_token_identity, std=0.02)
+        self.family_tf_cross_attn = _mk_encoder(1)
+        self.family_tf_context_gate = nn.Linear(d_model, cooperation_token_count)
+        self.family_tf_token_gate = nn.Linear(d_model, 1)
+        self.family_tf_cooperation_out = nn.Linear(d_model, d_model)
+        nn.init.zeros_(self.family_tf_cooperation_out.weight)
+        nn.init.zeros_(self.family_tf_cooperation_out.bias)
+        self.register_buffer(
+            "cross_family_fusion_scale",
+            torch.tensor(float(self.cfg.cross_family_fusion_scale)),
+        )
 
         # Strict markers (useful for debugging)
         self._expected_seq_dim = int(seq_input_dim)
@@ -633,7 +680,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
             spec_h = self._add_pe(self.specialist_proj[name](seq_part), "pos_enc")
             pools.append(self.specialist_encoder[name](spec_h).mean(dim=1))
         specialist_tokens = torch.stack(pools, dim=1)
-        specialist_gate = torch.softmax(self.specialist_gate(z_v3), dim=1)
+        specialist_tokens = self.specialist_cross_attn(
+            specialist_tokens + self.specialist_token_identity
+        )
+        specialist_gate = torch.softmax(
+            self.specialist_gate(z_v3)
+            + self.specialist_token_gate(specialist_tokens).squeeze(-1),
+            dim=1,
+        )
         specialist_pool = (specialist_tokens * specialist_gate.unsqueeze(-1)).sum(dim=1)
         specialist_correction = self.specialist_out(specialist_pool)
         _assert_finite("specialist_correction", specialist_correction)
@@ -673,13 +727,39 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
             pool_list.append(encoded.mean(dim=1))
         tf_tokens = torch.stack(pool_list, dim=1)
-        tf_attended = self.cross_tf_attn(tf_tokens)
-        tf_gate = torch.softmax(self.tf_gate_logits, dim=0)
-        mtf_repr = (tf_attended * tf_gate.view(1, -1, 1)).sum(dim=1)
+        tf_attended = self.cross_tf_attn(tf_tokens + self.tf_token_identity)
+        tf_gate = torch.softmax(
+            self.tf_gate_logits.view(1, -1)
+            + self.tf_context_gate(z_v3)
+            + self.tf_token_gate(tf_attended).squeeze(-1),
+            dim=1,
+        )
+        mtf_repr = (tf_attended * tf_gate.unsqueeze(-1)).sum(dim=1)
         mtf_correction = self.cross_tf_out(mtf_repr)
         _assert_finite("mtf_repr", mtf_repr)
         _assert_finite("mtf_correction", mtf_correction)
-        z = z_v3 + self.multi_tf_scale.to(mtf_correction.dtype) * mtf_correction
+        cooperation_tokens = torch.cat((specialist_tokens, tf_attended), dim=1)
+        cooperation_tokens = self.family_tf_cross_attn(
+            cooperation_tokens + self.family_tf_token_identity
+        )
+        family_tf_cooperation_gate = torch.softmax(
+            self.family_tf_context_gate(z_v3)
+            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
+            dim=1,
+        )
+        cooperation_pool = (
+            cooperation_tokens * family_tf_cooperation_gate.unsqueeze(-1)
+        ).sum(dim=1)
+        cooperation_correction = self.family_tf_cooperation_out(cooperation_pool)
+        _assert_finite("tf_gate", tf_gate)
+        _assert_finite("family_tf_cooperation_gate", family_tf_cooperation_gate)
+        _assert_finite("cooperation_correction", cooperation_correction)
+        z = (
+            z_v3
+            + self.multi_tf_scale.to(mtf_correction.dtype) * mtf_correction
+            + self.cross_family_fusion_scale.to(cooperation_correction.dtype)
+            * cooperation_correction
+        )
 
         # Regime FiLM (BIG-9): modulate a SEPARATE z_dir for the direction head only,
         # leaving z untouched for the aux heads + downstream. Zero-init -> z_dir==z at cold
@@ -727,6 +807,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "survival_logit": survival_logit,
         }
         out["specialist_gate"] = specialist_gate
+        out["tf_gate"] = tf_gate
+        out["family_tf_cooperation_gate"] = family_tf_cooperation_gate
         trade_logit = self.head_trade(z)
         side_logits = self.head_side(z)
 
