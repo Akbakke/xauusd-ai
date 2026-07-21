@@ -144,7 +144,7 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(audit, "EXPECTED_CV2_ROWS", 2)
     monkeypatch.setattr(audit, "EXPECTED_CV2_COLUMNS", 3)
     monkeypatch.setattr(audit, "EXPECTED_CV3_ROWS", 2)
-    monkeypatch.setattr(audit, "EXPECTED_CV3_COLUMNS", 3)
+    monkeypatch.setattr(audit, "EXPECTED_CV3_MANIFEST_COLUMNS", 3)
     monkeypatch.setattr(audit, "EXPECTED_MODELRANGE_ROWS", 2)
     monkeypatch.setattr(audit, "EXPECTED_MODELRANGE_COLUMNS", 3)
     monkeypatch.setattr(audit, "EXPECTED_FULL_ROWS", 2)

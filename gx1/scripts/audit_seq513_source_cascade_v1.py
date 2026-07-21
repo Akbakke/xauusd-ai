@@ -22,7 +22,10 @@ SCHEMA_VERSION = "seq513_source_cascade_proof_v1"
 EXPECTED_CV2_ROWS = 461_017
 EXPECTED_CV2_COLUMNS = 118
 EXPECTED_CV3_ROWS = 461_017
-EXPECTED_CV3_COLUMNS = 113
+# canonical-v3 computes this manifest count before surfacing the DatetimeIndex
+# as the plain `time` column.  The parquet is 113 wide; the manifest's
+# `cols_total` is therefore the exact 112 feature-column count.
+EXPECTED_CV3_MANIFEST_COLUMNS = 112
 EXPECTED_MODELRANGE_ROWS = 395_211
 EXPECTED_MODELRANGE_COLUMNS = 124
 EXPECTED_FULL_ROWS = 385_677
@@ -142,7 +145,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _same_path(cv3_manifest.get("source_v2_parquet"), cv2, label="CV3_SOURCE")
     _same(cv3_manifest.get("source_v2_parquet_sha256"), cv2_sha, label="CV3_SOURCE_HASH")
     _same(cv3_manifest.get("rows"), EXPECTED_CV3_ROWS, label="CV3_ROWS")
-    _same(cv3_manifest.get("cols_total"), EXPECTED_CV3_COLUMNS, label="CV3_COLUMNS")
+    _same(
+        cv3_manifest.get("cols_total"),
+        EXPECTED_CV3_MANIFEST_COLUMNS,
+        label="CV3_COLUMNS",
+    )
     _same(cv3_manifest.get("source_v2_no_lookahead"), True, label="CV3_NO_LOOKAHEAD")
 
     modelrange = _regular(root / "cv3_modelrange.parquet", label="MODELRANGE")
