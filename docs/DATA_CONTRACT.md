@@ -71,9 +71,17 @@ contract fails closed. The trim contract also covers every REGIME_V4 source and
 derived field, including long-lookback HTF availability, the 288-M5 D1 ROC and
 the first observable D1 regime transition.
 
+The decision/history frame is not itself sufficient context for Group-A. Its
+M5/M15/H1/H4/D1 liquidity, pivots, volatility percentiles and dip/structure
+features consume a separate complete causal M5 prefix through the decision
+cutoff. Every decision timestamp and high/low/close tuple must occur identically
+in that prefix. Missing/mismatched rows fail; the implementation cannot reset
+the 60-closed-D1 liquidity window at `feature_history_start_utc`.
+
 Long Group-A materialization uses one full-series causal context and disjoint
-4096-row work ranges. Each persisted chunk is bound to exact frame bytes,
-five-timeframe cache arrays, ordered output fields and the run/window key.
+4096-row work ranges. Each schema-v2 persisted chunk is bound to exact decision
+frame bytes, full causal M5-prefix bytes, five-timeframe cache arrays, ordered
+output fields and the run/window key.
 Resume accepts only that exact namespace and completion contract; overlapping
 context chunks, partial files, changed inputs and inferred checkpoints fail.
 

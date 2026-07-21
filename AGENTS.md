@@ -11,6 +11,10 @@ contracts prove the required direction edge.
 Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
 Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
 and cannot authorize a run or launch.
+V11 is the latest terminal RED lineage: source/ranking/manifest/preflight
+passed, but dataset warmup failed after Group-A reset its 60-D1 state at the
+history boundary. Commit `4134ca19` repairs that boundary; V12+ must rebuild
+from a fresh event root and no V11 partial may be resumed.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
@@ -210,10 +214,14 @@ Operational discipline (paid for in the 2026-07-18/19 campaign; follow always):
   empty results and `python -m gx1...` fails to resolve).
 - Never let a pipe swallow an exit code: capture command output to a file and
   append the real `$?`, or check PIPESTATUS.
-- Per-row loops over the tape are ~85 ms/row: parallelize with one shared
-  full-series context and a fanned row loop (exact by construction), never
-  with chunk overlap — long-memory features (trailing-1yr percentiles) make
-  overlap both wrong and slow.
+- Per-row Group-A lookup must remain zero-copy (`int64` timestamps,
+  `float32` MTF matrices) and resolve each TF snapshot once. The 2026-07-21
+  six-year probe measured ~2,062 complete rows/s; a dtype cast inside
+  `_tf_cache_row` regresses to full-matrix copies and is forbidden.
+- Decision slices MUST receive an explicit full causal M5 prefix for Group-A.
+  Hash and validate exact decision OHLC against it, then fan disjoint row
+  ranges over the one shared context. Never reset 60-D1 liquidity at a split
+  boundary and never use chunk overlap; long-memory features make both wrong.
 
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python` for repository Python.
 Use `rg`/`rg --files` for source discovery so `.gitignore` excludes `.venv`,

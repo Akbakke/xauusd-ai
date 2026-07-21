@@ -416,29 +416,31 @@ activation routes. `scripts/gx1_handover.sh` is the only handover script.
 
 Current facts:
 
-- source now has one chain-owned ranker/dataset path, a host-wide exclusive
+- source has one chain-owned ranker/dataset path, a host-wide exclusive
   capped-job lock, immutable bounded Group-A chunks, one exact checkpoint
-  retry and schema-v3 immutable terminal events; no fresh full execution has
-  yet proven this repair;
-- 2026-07-21 V3 has fresh ranking/manifest/preflight lineage but is
-  non-authoritative failure evidence: the builder stopped after canonical join
-  before Group-A completion and did not write terminal status;
-- 2026-07-21 V4 is also non-authoritative failure evidence: transient service
-  execution had no user bus, and the restored scoped runner lost the fresh
-  rank process before any ranking artifact or checkpoint existed;
-- Group-A output semantics must remain exact; reducing workers did not cure
-  this process/terminal-status failure, so recovery needs bounded
-  checkpointing and terminal-status durability rather than a direction
-  fallback;
+  retry and schema-v4 immutable terminal events;
+- V11 proved that owner path operationally and is terminal RED. Its fresh
+  source/ranking/manifest/preflight partials are non-authoritative because the
+  dataset had one clean pre-TRAIN row instead of 95;
+- checkpoint inspection found all 60 Group-A/dip/structure outputs unavailable
+  until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
+- commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
+  decision OHLC checks, and mirrors full-prefix-before-slice in live. A fresh
+  V12+ execution must prove it; there is no direction fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
 - no accepted fresh seq513 dataset/bundle/OOS result exists;
 - no seq513 rebuild chain or training process is running;
+- V11 completed source/ranking/manifest/preflight but is terminal RED at
+  `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
+  95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
+  the Jan-5 decision boundary. Commit `4134ca19` repairs this with an explicit,
+  OHLC-verified and checkpoint-hashed full M5 prefix; V12+ must rebuild fresh;
 - run lineage `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
-- invalidated V1/V2/V3/V4 lineages are historical failure evidence and cannot
+- invalidated V1-V11 lineages are historical failure evidence and cannot
   be reused; the next chain must allocate a wholly fresh immutable run ID;
 - no rebuild process is running; partial event artifacts have no authority,
   and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
@@ -461,7 +463,7 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-21 etter at V1/V2/V3/V4 ble ugyldiggjort. Ingen av forsøkene
+Oppdatert 2026-07-21 etter at V1-V11 ble ugyldiggjort. Ingen av forsøkene
 ga en godkjent datasettartefakt; kartet beskriver den herdede, påkrevde
 artefakt-DAG-en og kolonne-eierskapet. Les dette FØR du rg-jakter i builderen.
 
@@ -476,14 +478,14 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
   └─ gx1.scripts.materialize_build_canonical_features_v2  --m5-root --out-path
         → canonical_features_v2.parquet
       └─ gx1.scripts.materialize_canonical_v3_augment  --input --output-dir
-            → cv3/ (113 kol = cv2 − 12 redundante + 6 nye)
+            → cv3/ (113 filkolonner = cv2 − 11 redundante + 6 nye)
           └─ gx1.scripts.materialize_cv3_modelrange_v1 --run-id --cv3
-                --canonical-v2 --out (eksakt radakse, join 11 kol fra cf2,
-                eksplisitt vindustrim og hashbundet provenance; 124 kol)
+                --canonical-v2 --out (eksakt radakse, bare `atr` fra cv2,
+                eksplisitt vindustrim og hashbundet provenance; 109 kol)
               └─ gx1.scripts.add_ctx_cont_columns_to_prebuilt
                     --prebuilt_parquet --output_parquet --raw_m5_parquet <7 år-parter>
                     --tape-root  (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
-                    → FULL_PLUS_CTX_v3src.parquet (208 kol; aktiv v2-kontrakt) + manifester
+                    → FULL_PLUS_CTX_v3src.parquet (188 kol; aktiv v2-kontrakt) + manifester
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
 reparert tape + cv2 + cv3 + modelrange + cache + FULL_PLUS
@@ -523,12 +525,15 @@ terminal autoritet.
 - ctx ~80 GROUP_A_PARITY + DIP_STRUCT (dist_to_*, dip_*, struct_*, atr_ratio_*,
   vol_pct_*_1yr): `augment_forward_outcome_v2` via `build_attach_context` +
   `compute_attach_rows` + `finalize_attach_columns` (attach_group_a… er
-  komposisjonen). KOST: 85 ms/rad serielt; warmup 13 439 rader (~4 mnd,
-  trimmes). Parallellisér ALLTID som i rankerens `_attach_group_a_parallel`:
-  full-serie-kontekst én gang + rad-loop over workers. 1-års-persentilene
-  ligger i konteksten → chunk-med-overlapp er FEIL tilnærming. De eksakte
+  komposisjonen). Nullkopiert måling: 4096 komplette rader på 1,99 s
+  (~2062 rader/s). Beslutningsrammen og full kausal M5-kontekst er separate:
+  hver beslutningsrad må ha eksakt lik timestamp/OHLC i konteksten. Dette gir
+  Group-A-warmup=0 ved Jan-5 i stedet for den feilaktige 13 714-raders
+  60-D1-resetten. Parallellisér med full-serie-kontekst én gang + disjunkte
+  rad-loop over workers. 1-års-persentilene ligger i konteksten →
+  chunk-med-overlapp er FEIL tilnærming. De eksakte
   radområdene checkpointes uten overlapp i 4096-raders immutable NPZ-chunks;
-  manifestet binder frame-, MTF-, felt- og run/window-identitet.
+  schema v2 binder decision-frame, full M5-kontekst, MTF, felt og run/window.
 - ctx 13 ENTRY_SMART_DERIVED (smc_*_pressure, sr_*):
   `gx1/features/entry_smart_context.py::add_entry_smart_context_features`.
 - ctx is_ASIA: builder ~linje 1799, `(session_id==0).astype(int8)`.

@@ -14,17 +14,17 @@ live rule or fallback.
 
 ## Current state
 
-There is no reusable active run lineage. V1, V2, V3 and V4 event
-attempts are non-authoritative failure evidence. Fresh V3 ranking, manifest
-and preflight validated, but the V3 dataset builder stopped non-terminally
-immediately after the canonical join while beginning Group-A causal context.
-V4 then proved the capped runner is also not robust enough: the transient
-service path failed without a user bus, and the restored scope runner lost the
-fresh rank process before any ranking artifact/checkpoint existed. No dataset,
+There is no reusable active run lineage. V1-V11 are non-authoritative failure
+evidence. V11 completed a fresh 188-column/385,677-row source proof, ranking,
+exact 513 manifest and preflight, then failed closed because truncated
+Group-A history left one clean row before TRAIN instead of 95. No dataset,
 bundle, candidate, OOS edge or launch evidence is accepted.
 
-Source repair is now implemented but not yet empirically exercised by a fresh
-full run. The one chain creates the immutable TRAIN-rank reference before
+The history-boundary repair is implemented but not yet exercised by a fresh
+full run. Group-A now consumes an explicit full causal M5 prefix, validates
+decision OHLC exactly and binds that prefix into checkpoint schema v2; live
+HTF/regime state computes on the full prefix before slicing. The one chain
+creates the immutable TRAIN-rank reference before
 ranking and owns that reference through dataset audit; the capped runner
 holds one host-wide exclusive heavy-job lock, Group-A persists exact
 4096-row hash-bound chunks and can make one strict same-attempt resume, and
@@ -32,15 +32,15 @@ normal/signal exits publish immutable schema-v4 terminal events. The mandatory
 specialist prefix is now 316 fields across eleven families, including exact M5
 EMA50/200 state/cross evidence; only 163 fields are TRAIN-ranked. Ranking,
 dataset and live use the same bound ECDF/ATR state and exact `close`/`atr`
-inline source. V3/V4 remain
-failure evidence; their partial files are not resume inputs.
+inline source. V1-V11 remain failure evidence; their partial files are not
+resume inputs.
 
 ## Ordered gates
 
-1. Source repair DONE; empirical execution proof pending. Rebuild from one
+1. Source/history repair DONE; empirical execution proof pending. Rebuild from one
    fresh event root and prove the exclusive runner, bounded checkpoints,
-   exact-resume path and immutable terminal event under the 30 GiB cgroup,
-   without changing Group-A feature semantics.
+   full-history Group-A path and immutable terminal event under the 30 GiB
+   cgroup, without changing model direction semantics.
 2. Accept only a fresh dataset whose split manifests, full-input liveness,
    target, specialist, leakage and pretrain audits all bind the same bytes.
 3. Run smoke training, calibration and bundle audit with the exact recipe.

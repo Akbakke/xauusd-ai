@@ -6,22 +6,34 @@ Updated 2026-07-21.
 
 Status: **BLOCK**.
 
-2026-07-21 update: fresh V3 ranking, signal manifest and preflight passed, but
-the V3 dataset builder stopped non-terminally immediately after canonical join
-when entering Group-A causal context. A V4 follow-up then failed closed before
-fresh ranking output existed: the transient service path had no user bus and
-the restored scoped runner lost the rank process. All V3/V4 partial
-proof/status has no authority. See ROADMAP.md and the handover for the
-required recovery order.
+2026-07-21 latest update: V11 completed a fresh source cascade whose v2 audit
+proved 385,677 rows x 188 columns, 187/187 numeric fields finite/non-constant,
+and zero exact duplicate groups. Ranking, the 34+479=513 signal manifest and
+preflight completed, but the dataset build terminally failed
+`MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT`: only one clean pre-TRAIN row
+remained. Every one of the 60 Group-A/dip/structure checkpoint fields was NaN
+until 2021-03-15 because its D1 liquidity history was incorrectly reset at the
+2021-01-05 common-history boundary.
 
-The execution-path source repair is now present: the immutable TRAIN-rank
+The repaired contract now supplies the full causal M5 prefix independently of
+the decision slice, proves exact timestamp/OHLC inclusion, hashes that prefix
+into checkpoint schema v2 and uses the same rule in live preparation. A real
+January probe changed Group-A warmup from 13,714 rows to zero while preserving
+finite D1 liquidity, ATR-term, dip and five-TF structure evidence. Live
+HTF/REGIME_V4 is likewise computed on the complete prefix before the model
+history slice. Commit `4134ca19` owns this repair; V11 remains terminal RED and
+cannot be resumed. A wholly fresh V12-or-later source/ranking/dataset lineage
+is required.
+
+The execution-path source repair is present: the immutable TRAIN-rank
 reference is created before and bound into ranking, and ranking is owned by the
 same chain as the dataset build. Every capped heavy command competes for one
 host-wide exclusive lock, Group-A persists exact 4096-row chunks with
 frame/MTF/field/run-window identity, the ranker and builder permit one exact
 checkpoint retry, and terminal chain exits publish immutable schema-v4 events.
-Focused and causal integration tests pass. No fresh full rebuild has exercised
-this repair, so it creates no accepted dataset or empirical authority.
+Focused, causal and full-suite tests cover the repair. No fresh full rebuild
+has yet exercised commit `4134ca19`, so it creates no accepted dataset or
+empirical authority.
 
 The feature audit also closed four source mismatches before any new rebuild:
 ranking now applies the same immutable TRAIN ECDF/ATR transform as dataset and
@@ -226,8 +238,8 @@ cost/live-like, abstention-support and joint Exit/sizing gates. No historical
 metadata is allowed to soften those gates. Only the complete source contract
 may justify returning to the hardened seq513 rebuild runbook with a newly
 matched ranking/manifest. The selected immutable lineage is
-not preallocated: invalidated V1/V2/V3/V4 lineages cannot be reused, and the
-next chain must allocate a wholly fresh immutable run ID that grants no authority;
+not preallocated: invalidated V1-V11 lineages cannot be reused, and the next
+chain must allocate a wholly fresh immutable run ID that grants no authority;
 only an accepted rebuild may advance to smoke. Zero FLAT predictions remains
 hard-red. No accepted rebuild, training result or empirical precision result
 exists yet.

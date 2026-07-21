@@ -9,13 +9,18 @@ direction policy.
 Current status: **BLOCKED**. No fresh seq513 bundle is accepted and no Entry
 launch is authorized. The old Smart520 evidence is historical and cannot be
 used for training, replay, paper trading, live trading or promotion.
-The July-19 seq513 rebuild attempts under
-`XAU_SEQ513_REBUILD_20260718_V1` were terminated and invalidated after a
-feature-ranking TRAIN-window mismatch; no rebuild process or accepted dataset
-exists now, no seq513 training process is running, and partial artifacts have
-no authority. No V1/V2/V3/V4 lineage can be reused; the next run requires a
-fresh immutable ID, and all stages remain controlled only by their evidence
-contracts. A report-only abstention metadata check is
+The 2026-07-21 V11 audit produced a fresh 385,677-row source cascade and
+TRAIN-only 513-field ranking/manifest/preflight, then failed closed at dataset
+construction. Root cause was a common-history mismatch: all 60 Group-A,
+liquidity and dip/structure fields rebuilt their 60-D1-bar state from the
+truncated January window, leaving one clean row before TRAIN instead of the
+required 95. V11 is terminal RED and none of its otherwise-green partials has
+authority. The repair now requires an explicit full causal M5 prefix, exact
+decision-OHLC equality and a context hash in every Group-A checkpoint; live
+HTF/regime state also computes on the full prefix before slicing. The next run
+must use a fresh immutable lineage and commit.
+
+A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
 objective weights are not learned evidence. It read zero parquet; immutable
 historical selection-benchmark bytes and exact learned-probe OOT evidence are
@@ -23,20 +28,14 @@ absent, so that historical comparison cannot be a pre-rebuild gate. The next
 empirical gate is a fresh accepted seq513 dataset/candidate followed by an
 immutable proxy comparison and absolute untouched OOT/cost/live-like proof.
 
-On 2026-07-21, fresh V3 ranking/manifest/preflight passed but the dataset
-builder stopped non-terminally after canonical join while beginning Group-A
-context. A follow-up V4 attempt also failed closed before any fresh ranking
-artifact/checkpoint existed: the service runner had no user bus and the
-restored scope runner lost the rank process. V3/V4 are failure evidence only.
-See ROADMAP.md and the handover before starting any recovery.
-
 The source recovery now creates and binds the TRAIN-rank reference before
 feature ranking, then routes ranking and dataset construction through one
 chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
-Group-A in exact hash-bound 4096-row chunks, permits one strict checkpoint
+Group-A in exact hash-bound 4096-row chunks, including the complete causal M5
+context identity, permits one strict checkpoint
 retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
-only; the next admissible action is one fresh full rebuild execution. V3/V4
-partials remain rejected.
+only; the next admissible action is one fresh V12-or-later full rebuild.
+V1-V11 partials remain rejected.
 
 ## Active Entry contract
 

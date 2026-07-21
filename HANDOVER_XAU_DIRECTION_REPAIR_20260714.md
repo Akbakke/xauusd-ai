@@ -24,30 +24,34 @@ authority. Candidate, replay, paper/demo/live and promotion remain closed.
 
 ### 2026-07-21 active rebuild incident
 
-V3 was the first fresh event after current-source TRAIN-only ranking,
-manifest and preflight validation. Its dataset builder recomputed the
-source-owned micro/swing/session fields and completed the canonical join, but
-then stopped non-terminally while entering Group-A causal context. The same
-failure occurred after reducing the fork count to four.
+V11 is the latest terminal attempt. It completed a fresh v2 source-cascade
+audit (385,677 rows, 188 columns, all 187 numeric fields live, no constants or
+exact duplicates), TRAIN-only rank reference, feature ranking, exact 513-field
+manifest and green preflight. Dataset construction then failed closed twice
+(initial attempt plus its one exact retry) with
+`MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT: clean_rows_before_emit=1
+required=95`.
 
-V4 then showed the runner itself is not authoritative enough for another blind
-heavy retry. The attempted transient service launch failed with
-`Failed to connect to bus: No such file or directory`; after restoring the
-supported scoped runner, the fresh rank process disappeared before any ranking
-artifact or checkpoint existed. No V3/V4 split, proof, rank reference or status
-marked RUNNING may be used as authority. Repair must preserve Group-A
-semantics, persist progress and guarantee a terminal event before another
-fresh rebuild. ROADMAP.md is the concise current takeover plan.
+The exhaustive checkpoint inspection proved that all 60 Group-A,
+liquidity/dip and structure outputs remained NaN for 13,714 rows, through
+2021-03-15T23:55Z. The code rebuilt 60 closed D1 bars from the decision slice
+beginning 2021-01-05 instead of from the full causal tape. This was a
+train/live history-boundary mismatch, not missing market evidence. The
+documented 13,439-row/277-clean-row assumption was false.
 
-The source-side recovery is now implemented and unit/integration-tested, but
-has not yet completed a fresh full rebuild. `run_seq513_rebuild_chain_v1.sh`
-now owns TRAIN-rank reference, ranking, manifest, preflight and dataset
-execution under one lineage;
-`gx1_capped_run.sh` holds a host-wide exclusive heavy-job lock; Group-A writes
-exact 4096-row chunks bound to the source frame, five-TF cache, ordered fields
-and run/window key; the ranker and builder may make one exact checkpoint retry;
-and normal/signal exits publish immutable schema-v4 terminal events. This is
-source proof only. V3/V4 checkpoints and partial outputs remain rejected.
+Commit `4134ca19` repairs the owner path: attach accepts a separate full M5
+prefix, verifies every decision timestamp and high/low/close exactly, binds
+the full prefix into checkpoint schema v2, and dataset/live callers pass the
+complete causal history through the decision cutoff. Live HTF/REGIME_V4 also
+computes on full cv3 before slicing. A real Jan-5 probe over 276 rows proved
+Group-A warmup=0 and finite D1 liquidity/ATR-term/dip/structure from the first
+row. The earlier zero-copy commit `1a51ce42` raised complete feature throughput
+to about 2,062 rows/s; a 4,096-row block measured 1.99 seconds and was
+bit-identical to V10 output over 17 x 60 sampled values.
+
+No V11 ranking, manifest, preflight, checkpoint or source artifact may be
+resumed after the new commit. The next authority candidate is a wholly fresh
+V12-or-later cascade and chain. V1-V11 remain failure evidence only.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
 another heavy run: the TRAIN-rank reference is created before ranking and
@@ -341,9 +345,9 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
    open/close boundary-tick tolerance documented); 5757 bars rebuilt, 3459
    synthetic closed-market bars dropped; immutable REPAIR_MANIFEST.
 3. Full source cascade rebuilt on the repaired tape: canonical_features_v2 ->
-   cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE (current
-   builder version) -> FULL_PLUS_CTX (208 cols under the active v2 prebuilt
-   contract, including explicit `is_ASIA`; the historical July-16 file was 207-wide).
+   cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE ->
+   FULL_PLUS_CTX. That campaign's 208-column surface is historical; the active
+   liveness-clean source is now 188 columns after dead-source removal.
 4. `scripts/run_seq513_rebuild_chain_v1.sh` — fail-closed chain driver. It now
    owns fresh TRAIN-rank reference -> fresh ranking -> fresh manifest -> fresh
    preflight -> fresh build, with
@@ -355,9 +359,10 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
 5. `attach_group_a_dip_struct_ctx_columns` factored into
    build_attach_context / compute_attach_rows / finalize_attach_columns plus
    `attach_group_a_dip_struct_ctx_columns_parallel` in the owner module —
-   ONE full-series context fanned over 12 fork workers (exact by
-   construction; serial spot-check). Serial cost measured 85.4 ms/row (~9 h);
-   parallel ~1 h. Builder and ranker share it.
+   ONE full-series context fanned over workers (exact by construction; serial
+   spot-check). The old 85.4 ms/row measurement was caused by a full float32 to
+   float64 cache copy per lookup and is retired; current measured throughput is
+   ~2,062 rows/s. Builder and ranker share it.
 
 ### Fixed: the 2026-07-17 hardening's requirement/supplier gaps
 
@@ -376,8 +381,11 @@ cost seconds).
 ### Exact active window contract
 
 Source (FULL_PLUS) first row 2021-01-04T23:55 (ctx-adder trims own warmup).
-HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16 (GROUP_A warmup 13,439 rows
--> 277 clean rows >= 95 required by seq_len 96) <= TRAIN_END=2026-03-31 <
+HISTORY_START=2021-01-05 < TRAIN_START=2021-03-16. The old claim of 13,439
+Group-A warmup rows and 277 clean rows was disproved by V11: truncated context
+actually produced 13,714 warmup rows and only one clean row. With the explicit
+full M5 prefix, a real Jan-5 probe has Group-A warmup zero; V12+ must still
+prove the complete REGIME_V4 trim leaves >=95 rows. TRAIN_END=2026-03-31 <
 VAL 2026-04-01..04-30 < TEST 2026-05-01..2026-06-14T23:55 (source's exact
 last bar).
 
@@ -407,7 +415,7 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse any invalidated V1/V2/V3/V4 lineage. Allocate one fresh
+1. Do **not** reuse any invalidated V1-V11 lineage. Allocate one fresh
    immutable `--run-id` bound into rank NPZ, sidecar, ranking, manifest, build
    proof, state contract and all split manifests. The ID is provenance, not a
    manual approval gate.

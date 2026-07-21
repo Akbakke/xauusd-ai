@@ -22,8 +22,10 @@ builder may make one exact checkpoint retry; changed, partial, unexpected or
 unbound checkpoint bytes fail closed. Normal and trapped chain exits publish
 immutable schema-v4 terminal events with boot and process identity.
 
-Focused and causal integration tests prove this source contract. No fresh full
-rebuild has run under it, V3/V4 remain rejected, and launch remains `BLOCK`.
+Focused and causal integration tests prove this source contract. V11 exercised
+the durable owner/checkpoint path and wrote terminal RED evidence, then exposed
+the separate full-history reset fixed by checkpoint schema v2. V1-V11 remain
+rejected, and launch remains `BLOCK`.
 The unreachable pre-rebuild abstention verifier, its control route, contract
 and sole-purpose tests are deleted because the required historical bytes do
 not exist; future selection evidence starts from fresh candidate TEST rows.
@@ -240,6 +242,9 @@ the 07-17 re-versioning. The Dec-2024 tape defect is repaired ONLY in the
 event copy; canonical root and live prebuilt repairs are a separate open
 decision.
 
+This historical clean-row estimate is explicitly superseded by the later V11
+decision below; it must not be used as a rebuild premise.
+
 ## 2026-07-17 — Entry success criterion is abstention quality, not direction precision
 
 User vedtak (explicit choice over "restore promoted chain" and "continue
@@ -420,3 +425,19 @@ MTF splice is retired because exact M5/H4/D1 parity was unproven; any positive
 context age now yields no direction until one full five-timeframe refresh is
 complete. None of these source repairs proves trading edge, so launch remains
 `BLOCK` pending fresh rebuild and empirical gates.
+
+## 2026-07-21 — full causal history is a bound Group-A input
+
+V11 terminally disproved the previous common-history assumption. Although its
+source cascade, TRAIN ranking, 513 manifest and preflight passed, every one of
+the 60 Group-A/dip/structure outputs stayed unavailable for 13,714 rows because
+the 60-D1 liquidity window was rebuilt from the Jan-5 decision slice. Only one
+clean row remained before TRAIN; seq_len=96 requires 95.
+
+Decision rows and long-memory context are now separate explicit inputs. The
+full M5 prefix must end causally, contain every decision timestamp with exact
+high/low/close, and is SHA-bound into checkpoint schema v2 together with the
+five-TF arrays and ordered fields. Dataset and live preparation use this same
+owner path; live HTF/REGIME_V4 computes on full cv3 before slicing. No V11
+partial may be resumed after the code change. A fresh V12-or-later run is
+required, and launch remains `BLOCK` until downstream empirical gates pass.
