@@ -465,11 +465,11 @@ Current facts:
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
-- invalidated V1-V18 lineages are historical failure/diagnostic evidence and
-  cannot be reused; V19 may advance only through exact downstream gates;
-- no rebuild process is running; V19's immutable chain terminal is GREEN and
-  intentionally stopped at the smoke gate, which grants dataset but not model
-  or launch authority;
+- invalidated V1-V19 lineages are historical failure/diagnostic evidence and
+  cannot be reused; only a fresh V20 lineage may enter the active v2 gates;
+- no rebuild process is running; V19's immutable former-v1 chain terminal is
+  GREEN, but its missing foundation surface rejects the dataset before
+  training and grants no active-contract authority;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
   detached feature modules, manual sizing modules and stale research launchers
   have been deleted rather than retained as alternatives;
@@ -484,9 +484,10 @@ Current facts:
   pre-rebuild gate. The old report-only abstention verifier/control route is
   deleted; fresh candidate TEST rows must instead pass the current immutable
   proxy comparison plus absolute OOT/cost/live-like gates;
-- post-rebuild readiness is a first-class producer binding V19's terminal,
-  preflight, liveness, pretrain and six split artifacts; smoke must use the same
-  canonical dataset rather than a separately copied smoke split;
+- post-rebuild readiness is a first-class producer, first exercised on V19,
+  binding one lineage's terminal, preflight, liveness, pretrain and six split
+  artifacts; V20 smoke must use its same canonical dataset rather than a
+  separately copied smoke split;
 - H1/H4 has one causal full-array alignment owner. Leading warmup remains NaN,
   no completed HTF evidence fails closed, and the unreachable stateful branch
   with conflicting shift semantics has been removed;
@@ -494,7 +495,8 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-22 etter at V19 ga den første godkjente datasettartefakten.
+Oppdatert 2026-07-22 etter at V19s foundation-mangel avviste den tidligere
+grønne datasettkjeden og gjorde en full V20-rebuild obligatorisk.
 Kartet beskriver den herdede, påkrevde artefakt-DAG-en og kolonne-eierskapet.
 Les dette FØR du rg-jakter i builderen.
 
@@ -548,7 +550,7 @@ resume, glob/mtime eller leksikalsk latest.
 Kun én eksakt hash-bundet checkpoint-retry er tillatt etter capped feil.
 Telegram-ping er kun operasjonell status; validerte split-manifester er
 terminal autoritet.
-V19-terminal + preflight + liveness + pretrain + seks split-filer/manifester
+V20-terminal + preflight + liveness + pretrain + seks split-filer/manifester
   └─ entry_next_edge_control.sh model-native-post-rebuild-readiness
         → immutable post-rebuild readiness; source_dataset_dir == smoke_dataset_dir
       └─ foundation feature/target/specialist audits
@@ -606,7 +608,7 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- V19-vinduskontrakten har rå model-range-start 2020-11-13 og ferdig
+- Den aktive V20-vinduskontrakten har rå model-range-start 2020-11-13 og ferdig
   common-history-start 2021-01-05. V15 beviste framtidsstempel-fellen og V16
   beviste at model-range-start 2021-01-04 gir for sen finite start 2021-01-14;
   begge er terminal RED. Kjeden avviser nå begge feil før ranking. TRAIN er
