@@ -25,6 +25,9 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-state-selftest",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
+    "model-native-foundation-feature-audit",
+    "model-native-foundation-target-audit",
+    "model-native-specialist-feature-audit",
     "model-native-adoption-candidate",
     "model-native-smoke-manifest",
     "model-native-smoke-readiness",
@@ -326,6 +329,43 @@ def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
     ):
         assert flag in route
     assert "materialize_entry_model_native_seq513_post_rebuild_readiness_v1" in route
+
+
+def test_foundation_audit_routes_bind_all_canonical_split_hashes() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    routes = {
+        "model-native-foundation-feature-audit": (
+            "audit_entry_foundation_features_v1",
+            True,
+        ),
+        "model-native-foundation-target-audit": (
+            "audit_entry_foundation_targets_v1",
+            False,
+        ),
+        "model-native-specialist-feature-audit": (
+            "audit_entry_specialist_feature_groups_v1",
+            True,
+        ),
+    }
+    common_flags = (
+        "--dataset-dir",
+        "--train-manifest-json",
+        "--train-manifest-sha256",
+        "--train-parquet-sha256",
+        "--val-manifest-json",
+        "--val-manifest-sha256",
+        "--val-parquet-sha256",
+        "--test-manifest-json",
+        "--test-manifest-sha256",
+        "--test-parquet-sha256",
+        "--out-dir",
+    )
+    for route_name, (module_name, requires_structure) in routes.items():
+        route = source.split(f"  {route_name})", 1)[1].split("    ;;", 1)[0]
+        assert module_name in route
+        for flag in common_flags:
+            assert flag in route
+        assert ("--seq-structure-manifest" in route) is requires_structure
 
 
 def test_obsolete_mega_guardrails_and_plan_tombstone_are_deleted() -> None:

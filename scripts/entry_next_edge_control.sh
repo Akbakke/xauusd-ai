@@ -19,6 +19,9 @@ Model-native seq513 evidence:
   model-native-state-selftest
   model-native-rebuild-preflight
   model-native-post-rebuild-readiness
+  model-native-foundation-feature-audit
+  model-native-foundation-target-audit
+  model-native-specialist-feature-audit
   model-native-adoption-candidate
   model-native-smoke-manifest
   model-native-smoke-readiness
@@ -185,6 +188,65 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 "$@"
+    ;;
+
+  model-native-foundation-feature-audit)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --dataset-dir \
+      --train-manifest-json \
+      --train-manifest-sha256 \
+      --train-parquet-sha256 \
+      --val-manifest-json \
+      --val-manifest-sha256 \
+      --val-parquet-sha256 \
+      --test-manifest-json \
+      --test-manifest-sha256 \
+      --test-parquet-sha256 \
+      --seq-structure-manifest \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.audit_entry_foundation_features_v1 "$@"
+    ;;
+
+  model-native-foundation-target-audit)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --dataset-dir \
+      --train-manifest-json \
+      --train-manifest-sha256 \
+      --train-parquet-sha256 \
+      --val-manifest-json \
+      --val-manifest-sha256 \
+      --val-parquet-sha256 \
+      --test-manifest-json \
+      --test-manifest-sha256 \
+      --test-parquet-sha256 \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.audit_entry_foundation_targets_v1 "$@"
+    ;;
+
+  model-native-specialist-feature-audit)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --dataset-dir \
+      --train-manifest-json \
+      --train-manifest-sha256 \
+      --train-parquet-sha256 \
+      --val-manifest-json \
+      --val-manifest-sha256 \
+      --val-parquet-sha256 \
+      --test-manifest-json \
+      --test-manifest-sha256 \
+      --test-parquet-sha256 \
+      --seq-structure-manifest \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.audit_entry_specialist_feature_groups_v1 "$@"
     ;;
 
   model-native-adoption-candidate)
