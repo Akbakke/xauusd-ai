@@ -7,16 +7,16 @@ documentation and code together.
 
 ## Non-negotiable rules
 
-1. Trade XAUUSD only. Cross-asset data may be read only as model features and
-   must never become another traded output.
+1. Trade and model XAUUSD only. Entry contracts must not depend on market data
+   from another instrument or expose another traded output.
 2. No fallback, guessed default, mutable `latest`, stale artifact, synthetic
    decision input or soft pass-through is allowed.
 3. Entry direction comes only from the accepted model's calibrated
    `LONG/SHORT/FLAT` logits. No post-model trend, session, confidence, utility
    or threshold rule may veto, flip or manufacture direction.
 4. Keep every genuine feature family in the learned path. Removing a retired
-   rule must never remove its underlying market evidence. The 316 registered
-   causal-layer outputs are mandatory; only 163 additional specialist fields
+   rule must never remove its underlying market evidence. The 373 registered
+   causal-layer outputs are mandatory; only 106 additional specialist fields
    may be selected by deterministic TRAIN-only ranking.
 5. The learned size head is mandatory evidence. Label-horizon sizing proof is
    diagnostic only; paper/live additionally requires an exact joint adopted-

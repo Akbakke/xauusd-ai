@@ -48,11 +48,6 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
     missing_foundation_structure_source_fields,
 )
-SPLIT_CONSTANT_ALLOWLIST = {
-    # XAU direction repair uses this as a regime-context bit. It can be
-    # constant inside short val/test windows while still being live in train.
-    "session_regime.h4_d1_regime_sign_agreement",
-}
 KNOWN_SPARSE_SOURCE_FIELDS = {
     "snap.smc_choch",
 }
@@ -73,6 +68,10 @@ MIN_REQUIRED_SOURCE_ACTIVE_COUNT = int(
     _FEATURE_AUDIT_POLICY["min_required_source_active_count"]
 )
 PARQUET_BATCH_SIZE = int(_FEATURE_AUDIT_POLICY["parquet_batch_size"])
+SELECTED_FEATURE_LEARNABILITY_SPLITS = tuple(
+    str(split)
+    for split in _FEATURE_AUDIT_POLICY["selected_feature_learnability_splits"]
+)
 
 REQUIRED_FOUNDATION_LIVENESS_FAMILIES = (
     "foundation_hh_hl_lh_ll",
@@ -198,14 +197,7 @@ def _feature_family(name: str) -> str:
         return "momentum_trend"
     if any(k in n for k in ("session", "hour", "dow", "is_asia", "is_eu", "is_us", "overlap")):
         return "session_time"
-    if _strip_feature_prefix(name) in SPLIT_CONSTANT_ALLOWLIST:
-        return "allowed_split_constant"
     return "other"
-
-
-def _is_neutral_constant_allowed(name: str) -> bool:
-    stripped = _strip_feature_prefix(name)
-    return stripped in SPLIT_CONSTANT_ALLOWLIST
 
 
 def _load_manifest_features(path: Path | None) -> tuple[list[str], dict[str, Any]]:
@@ -426,7 +418,7 @@ def _stats_rows(
                 "min": float(np.min(clean)) if len(values) else 0.0,
                 "max": float(np.max(clean)) if len(values) else 0.0,
                 "near_constant": bool(std <= float(near_constant_std)),
-                "constant_allowed": _is_neutral_constant_allowed(name),
+                "constant_allowed": False,
             }
         )
     return rows
@@ -542,7 +534,7 @@ class _StreamingStatsAccumulator:
                     "feature": name,
                     "family": _feature_family(name),
                     **base,
-                    "constant_allowed": _is_neutral_constant_allowed(name),
+                    "constant_allowed": False,
                 }
             )
         return rows
@@ -1257,7 +1249,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         feature = str(row["feature"])
         if int(row["nonfinite_count"]) > 0:
             failures.append(f"{row['split']}: non-finite values in {feature}: {row['nonfinite_count']}")
-        if bool(row["near_constant"]) and not bool(row["constant_allowed"]):
+        if (
+            str(row["split"]) in SELECTED_FEATURE_LEARNABILITY_SPLITS
+            and bool(row["near_constant"])
+        ):
             failures.append(f"{row['split']}: unexpected near-constant feature {feature} std={row['std']}")
 
     families_present = {str(row["family"]) for row in stats}
@@ -1337,6 +1332,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "failures": failures,
         "stats": stats,
         "required_foundation_liveness_families": list(REQUIRED_FOUNDATION_LIVENESS_FAMILIES),
+        "selected_feature_learnability_splits": list(
+            SELECTED_FEATURE_LEARNABILITY_SPLITS
+        ),
         "min_required_family_active_rate": MIN_REQUIRED_FAMILY_ACTIVE_RATE,
         "min_required_objective_active_rate": MIN_REQUIRED_OBJECTIVE_ACTIVE_RATE,
         "min_required_source_active_rate": MIN_REQUIRED_SOURCE_ACTIVE_RATE,

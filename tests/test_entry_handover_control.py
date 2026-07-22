@@ -77,7 +77,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "selects LONG/SHORT/FLAT direction" in result.stdout
     assert "Use this script only: scripts/gx1_handover.sh" in result.stdout
     assert "decision: BLOCK" in result.stdout
-    assert "required_contract_mode: xau_seq513_model_native_direction_v1" in result.stdout
+    assert "required_contract_mode: xau_seq513_model_native_direction_v2" in result.stdout
     assert "active_seq513_chain" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert "## Required evidence before Entry can open" not in result.stdout
@@ -101,7 +101,7 @@ def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> N
     )[1]
     assert rendered_handover == authoritative_handover
     assert "## Exact Entry contract" in rendered_handover
-    assert "xau_seq513_model_native_direction_v1" in rendered_handover
+    assert "xau_seq513_model_native_direction_v2" in rendered_handover
     assert "## Required evidence before Entry can open" in rendered_handover
     assert "## Operational takeover" in rendered_handover
     assert rendered_handover.splitlines()[-1] == authoritative_handover.splitlines()[-1]

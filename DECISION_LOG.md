@@ -298,7 +298,7 @@ live library owners for the retained Exit-IQL chain
 Fresh Exit evidence requires the new exact builder
 (`BLOCKED_PENDING_NEW_EXACT_BUILDER`).
 
-## 2026-07-17 — full-stack families cannot be ranked away
+## 2026-07-17 — full-stack families cannot be ranked away (v1, superseded)
 
 The 479-field specialist surface is now exactly 316 code-owned mandatory
 outputs from eleven registered causal feature layers followed by 163 fields from
@@ -406,7 +406,7 @@ learned OOT rows; selection/abstention admission then uses a fresh immutable
 proxy comparison plus absolute OOT support/confidence, cost and live-like
 gates. Historical metadata can never substitute for those bytes.
 
-## 2026-07-21 — one feature state before ranking, dataset and serve
+## 2026-07-21 — one feature state before ranking, dataset and serve (v1, superseded)
 
 The immutable TRAIN-rank reference is now an upstream feature-computation
 input. The chain creates it before ranking; ranking, manifest, preflight,
@@ -629,3 +629,51 @@ stateful alignment branch with no constructor/caller and with `j-1` HTF-bar
 semantics, while the active path shifted one M5 row. That branch and its unused
 state fields are deleted. H1 and H4 now share one causal alignment owner, so
 dataset/serve parity cannot silently depend on which branch happened to run.
+
+## 2026-07-22 — V19 is rejected; all 57 foundation fields become mandatory
+
+The corrected post-rebuild producer passed V19 with immutable event
+`ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260722T070548397061Z.json`
+and SHA-256
+`405f827162779ecea57e01c361a0c73e2d933501dd5f9e3dcfabc977ee3dd920`.
+The next real foundation-feature audit then failed closed. V19 contains none of
+the 57 implemented `chart.foundation_*` fields, and its split metadata cannot
+claim the required foundation version/count/all-selected contract.
+
+The root mismatch was deterministic: `build_chart_layer()` computes the full
+foundation layer and the downstream structure/SMC/volatility/session layers
+consume it, but the mandatory registry omitted it. The TRAIN ranker's
+reflective candidate-universe scan also did not expose
+`FOUNDATION_STRUCTURE_FEATURE_NAMES`, so none of the fields could enter the
+163 ranking-owned positions. Tests had used synthetic manifests that manually
+inserted the fields and therefore did not exercise the real producer path.
+
+An independent scan of all 5,808 post-warmup V19 validation rows proved every
+foundation field active. No foundation field was exactly equal to any of the
+prior 316 mandatory fields. Expected semantic correlations are high for some
+derived pairs, but 28 explicit session-by-structure interactions and the raw
+HH/HL/LH/LL, BOS/CHoCH age, sweep/reclaim, compression-release and
+impulse/pullback surfaces retain distinct values.
+
+The active signal contract is therefore
+`xau_seq513_model_native_direction_v2`: 34 base fields plus 479 specialist
+fields, partitioned as 373 mandatory outputs from twelve code-owned layers and
+106 deterministic TRAIN-only ranked fields. Signal, mandatory-stack, ranking
+and manifest schemas are versioned forward. All 57 foundation fields route to
+one of four learned specialists (19 structure, 5 SMC/liquidity, 5 volatility,
+28 session/regime), while the final direction remains model-only. V19 and all
+older artifacts fail the new contract and cannot be trained; V20 must rebuild
+the full ranking/manifest/split chain from immutable inputs.
+
+The same formula audit found a separate sign mismatch shared by four active
+builders. `H1_range_compression_ratio` and
+`M15_range_compression_ratio` are `ATR14 / ATR100`, so values below one mean
+compression and values above one mean expansion. `_v1_bb_squeeze_20_2` is
+`bandwidth / mean_bandwidth - 1`, so negative values mean squeeze. Foundation,
+volatility, chart-geometry, chart-core and deep-interaction code had treated
+the raw positive value as compression. One strict owner now converts both
+source contracts into separate [0,1] compression/expansion pressures, and
+release uses lagged compression followed by positive expansion acceleration.
+Impossible non-positive ATR ratios fail closed. On the 5,808 post-warmup V19
+validation rows, all 57 corrected foundation fields remain finite and
+non-constant; this diagnostic does not rehabilitate V19 or select a feature.

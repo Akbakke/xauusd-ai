@@ -11,9 +11,16 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.features.entry_volatility_semantics_v1 import (
+    atr_ratio_compression_pressure,
+    atr_ratio_expansion_pressure,
+    bollinger_expansion_pressure,
+    bollinger_squeeze_pressure,
+)
+
 
 FOUNDATION_STRUCTURE_FEATURE_VERSION = (
-    "entry_foundation_structure_v1_20260717_directional_smc_pressure_failclosed"
+    "entry_foundation_structure_v2_20260722_exact_compression_semantics_failclosed"
 )
 FOUNDATION_STRUCTURE_FEATURE_PREFIX = "chart.foundation_"
 FOUNDATION_STRUCTURE_REQUIRED_FAMILIES = (
@@ -288,16 +295,29 @@ def build_entry_foundation_structure_layer(
     _add(arrays, names, "false_breakout_low_followthrough_up_proxy", false_low_follow_up, lo=0.0, hi=5.0)
     _add(arrays, names, "sweep_reclaim_balance_proxy", sweep_low_reclaim_up - sweep_high_reclaim_down, lo=-5.0, hi=5.0)
 
-    h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
-    m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))
-    squeeze = _clip01(c("snap._v1_bb_squeeze_20_2"))
+    h1_ratio = c("ctx_cont.H1_range_compression_ratio")
+    m15_ratio = c("ctx_cont.M15_range_compression_ratio")
+    bb_relative_width = c("snap._v1_bb_squeeze_20_2")
+    h1_compression = atr_ratio_compression_pressure(h1_ratio)
+    m15_compression = atr_ratio_compression_pressure(m15_ratio)
+    squeeze = bollinger_squeeze_pressure(bb_relative_width)
+    h1_expansion = atr_ratio_expansion_pressure(h1_ratio)
+    m15_expansion = atr_ratio_expansion_pressure(m15_ratio)
+    bb_expansion = bollinger_expansion_pressure(bb_relative_width)
     atr_z = _pos(_tanh(c("snap.atr_z"), scale=2.0))
     rvol = _pos(_tanh(c("snap.rvol_20"), scale=2.0))
     vol_ratio = _pos(_tanh(c("snap.vol_ratio_5_20"), scale=2.0))
     compression = _clip01(0.45 * h1_compression + 0.35 * m15_compression + 0.20 * squeeze)
-    expansion = _clip01(compression * (0.45 * atr_z + 0.35 * rvol + 0.20 * vol_ratio))
+    expansion = _clip01(
+        0.20 * h1_expansion
+        + 0.15 * m15_expansion
+        + 0.15 * bb_expansion
+        + 0.20 * atr_z
+        + 0.15 * rvol
+        + 0.15 * vol_ratio
+    )
     expansion_delta = _pos(expansion - _lag1(expansion))
-    release_trigger = _clip(compression * expansion_delta, 0.0, 5.0)
+    release_trigger = _clip(_lag1(compression) * expansion_delta, 0.0, 5.0)
     _add(arrays, names, "compression_state", compression, lo=0.0, hi=1.0)
     _add(arrays, names, "expansion_state", expansion, lo=0.0, hi=1.0)
     _add(arrays, names, "compression_release_trigger", release_trigger, lo=0.0, hi=5.0)
@@ -353,10 +373,18 @@ def build_entry_foundation_structure_layer(
     return out, names
 
 
+_FOUNDATION_NAME_PROBE = np.zeros(
+    (1, len(FOUNDATION_STRUCTURE_SOURCE_FIELDS)), dtype=np.float32
+)
+for _ratio_field in (
+    "ctx_cont.H1_range_compression_ratio",
+    "ctx_cont.M15_range_compression_ratio",
+):
+    _FOUNDATION_NAME_PROBE[0, FOUNDATION_STRUCTURE_SOURCE_FIELDS.index(_ratio_field)] = 1.0
 FOUNDATION_STRUCTURE_FEATURE_NAMES = tuple(
-    name
-    for name in build_entry_foundation_structure_layer(
-        np.zeros((1, len(FOUNDATION_STRUCTURE_SOURCE_FIELDS)), dtype=np.float32),
+    build_entry_foundation_structure_layer(
+        _FOUNDATION_NAME_PROBE,
         list(FOUNDATION_STRUCTURE_SOURCE_FIELDS),
     )[1]
 )
+del _FOUNDATION_NAME_PROBE, _ratio_field

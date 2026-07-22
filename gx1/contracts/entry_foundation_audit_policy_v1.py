@@ -11,7 +11,7 @@ from typing import Any
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 
 
-FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v3"
+FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v4"
 FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v2"
 FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val", "test")
 FOUNDATION_AUDIT_SMOKE_SPLITS = ("val", "test")
@@ -43,6 +43,11 @@ _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
         "min_required_source_active_rate": 0.0001,
         "min_required_source_active_count": 1,
         "parquet_batch_size": 4096,
+        "selected_feature_learnability_splits": ["train"],
+        "selected_features_finite_all_splits": True,
+        "foundation_outputs_live_all_splits": True,
+        "foundation_sources_live_all_splits": True,
+        "oos_single_state_is_observation_not_train_learnability_failure": True,
     },
     "target_quality": {
         "max_majority_rate": 0.90,

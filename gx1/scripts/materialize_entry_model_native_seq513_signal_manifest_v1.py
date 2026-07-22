@@ -39,6 +39,10 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
     group_features_by_specialist,
 )
+from gx1.features.entry_foundation_structure_v1 import (
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
+    FOUNDATION_STRUCTURE_FEATURE_VERSION,
+)
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_RANK_TRANSFORM,
@@ -48,15 +52,15 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v3"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v4"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v3"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v4"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v3"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v4"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v3"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v4"
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "score_descending",
     "tie_break": "feature_name_ascending",
@@ -458,6 +462,10 @@ def validate_signal_manifest_training_lineage(
         "manifest_only": True,
         "training_allowed": False,
         "shadow_live_promotion_allowed": False,
+        "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
+        "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
+        "foundation_structure_missing_feature_count": 0,
+        "foundation_structure_all_required_selected": True,
     }
     for field, expected in exact_top_level.items():
         if manifest.get(field) != expected:
@@ -632,6 +640,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     selected = [*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *ranked_remainder]
     if len(selected) != MODEL_NATIVE_SELECTED_FEATURE_COUNT:
         raise RuntimeError("SIGNAL_MANIFEST_SELECTED_FEATURE_COUNT_INTERNAL_MISMATCH")
+    foundation_missing = [
+        name for name in FOUNDATION_STRUCTURE_FEATURE_NAMES if name not in selected
+    ]
+    if foundation_missing:
+        raise RuntimeError(
+            "SIGNAL_MANIFEST_FOUNDATION_MANDATORY_FIELDS_MISSING: "
+            f"{foundation_missing[:20]} total={len(foundation_missing)}"
+        )
     signal_contract = model_native_signal_contract_metadata(selected)
     grouped = group_features_by_specialist(selected)
     if grouped.get("unmapped") or grouped.get("forbidden_legacy_bridge"):
@@ -667,6 +683,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "mandatory_full_stack": mandatory_metadata,
         "mandatory_full_stack_sha256": MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256,
         "mandatory_selected_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
+        "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
+        "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
+        "foundation_structure_missing_feature_count": 0,
+        "foundation_structure_all_required_selected": True,
         "ranked_remainder_feature_count": MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
         "ranked_remainder_features": ranked_remainder,
         "ranked_remainder_fields_sha256": _sha256_json(ranked_remainder),

@@ -40,7 +40,7 @@ from gx1.scripts.audit_entry_foundation_features_v1 import (
     _required_objective_liveness_failures,
     _required_family_liveness_failures,
     _required_source_field_liveness_failures,
-    _is_neutral_constant_allowed,
+    SELECTED_FEATURE_LEARNABILITY_SPLITS,
     _load_emitted_contract,
     _source_field_liveness_rows,
     _stats_rows,
@@ -74,7 +74,7 @@ def _foundation_selection_manifest(selected: list[str]) -> dict:
     mandatory_count = len(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS)
     ranked_remainder = selected[mandatory_count:]
     return {
-        "schema_version": "entry_model_native_seq513_signal_manifest_v3",
+        "schema_version": "entry_model_native_seq513_signal_manifest_v4",
         "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
         "base_signal_feature_count": len(MODEL_NATIVE_BASE_FIELDS),
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
@@ -165,12 +165,8 @@ def test_foundation_audit_loads_exact_model_native_emitted_contract(tmp_path) ->
     assert emitted["neutral_xgb_bridge"] is False
 
 
-def test_xau_regime_agreement_feature_can_be_split_constant() -> None:
-    assert (
-        _is_neutral_constant_allowed("session_regime.h4_d1_regime_sign_agreement")
-        is True
-    )
-    assert _is_neutral_constant_allowed("session_regime.some_other_context") is False
+def test_selected_feature_learnability_is_train_owned_without_allowlist() -> None:
+    assert SELECTED_FEATURE_LEARNABILITY_SPLITS == ("train",)
 
 
 def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> None:
@@ -286,7 +282,7 @@ def test_foundation_audit_stats_report_liveness_and_allow_proven_split_constant(
     )
     allowed = by_name["session_regime.h4_d1_regime_sign_agreement"]
     assert allowed["near_constant"] is True
-    assert allowed["constant_allowed"] is True
+    assert allowed["constant_allowed"] is False
 
     family_rows = _family_liveness(rows)
     families = {row["family"] for row in family_rows}

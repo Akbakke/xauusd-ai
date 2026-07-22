@@ -534,7 +534,12 @@ def test_preflight_rejects_479_field_manifest_that_swaps_one_mandatory_member(
     manifest_path = Path(args.signal_manifest)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     selected = list(manifest["selected_features"])
-    victim = MODEL_NATIVE_MANDATORY_SELECTED_FIELDS[0]
+    trend_fields = set(group_features_by_specialist(selected)["trend_ema_encoder"])
+    victim = next(
+        name
+        for name in MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+        if name in trend_fields
+    )
     replacement = "trend.ema_adversarial_replacement_fixture"
     before = {
         name: len(fields)

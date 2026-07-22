@@ -50,6 +50,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     ModelNativeRuntimeEvidenceError,
     require_model_native_runtime_evidence,
 )
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
 from gx1.execution.v12_xgb_live import XGBLiveInference as ExitXGBLiveInference
 from gx1.execution.v12_model_native_state_live import SEQ_LEN_MODEL_NATIVE as ENTRY_SEQ_LEN
@@ -284,9 +285,10 @@ class V12Pipeline:
         smart_entry.refresh_multi_tf(loader._cv3)
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
         LOG.info(
-            "  prebuilt cutoff: %s  entry=xau_seq513_model_native_direction_v1 "
+            "  prebuilt cutoff: %s  entry=%s "
             "exit_mtf=%s",
             loader.cutoff_ts,
+            MODEL_NATIVE_CONTRACT_MODE,
             getattr(v3, "_enable_multi_tf", False),
         )
         return cls(

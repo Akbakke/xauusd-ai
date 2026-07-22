@@ -15,6 +15,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
 )
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as producer
+from gx1.features.entry_foundation_structure_v1 import (
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
+    FOUNDATION_STRUCTURE_FEATURE_VERSION,
+)
 from tests.model_native_rank_reference_support import materialize_test_rank_reference
 
 
@@ -150,6 +154,14 @@ def test_producer_keeps_all_code_owned_fields_first_and_only_ranks_remainder(
         family: len(features)
         for family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
     }
+    assert manifest["foundation_structure_feature_version"] == (
+        FOUNDATION_STRUCTURE_FEATURE_VERSION
+    )
+    assert manifest["foundation_structure_feature_count"] == len(
+        FOUNDATION_STRUCTURE_FEATURE_NAMES
+    )
+    assert manifest["foundation_structure_missing_feature_count"] == 0
+    assert manifest["foundation_structure_all_required_selected"] is True
     assert manifest["feature_ranking"]["sha256"]
     assert manifest[
         "ranking_artifact_is_upstream_prerequisite_not_runtime_authority"

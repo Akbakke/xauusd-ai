@@ -777,6 +777,9 @@ def _build_inline_seq_structure_extension(
         build_price_derived_layer,
     )
     from gx1.features.entry_chart_geometry_v1 import build_entry_chart_geometry_layer
+    from gx1.features.entry_foundation_structure_v1 import (
+        build_entry_foundation_structure_layer,
+    )
     from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
     from gx1.features.entry_mtf_confluence_v1 import build_entry_mtf_confluence_layer
     from gx1.features.entry_session_regime_interactions_v1 import (
@@ -900,6 +903,7 @@ def _build_inline_seq_structure_extension(
         return build_entry_chart_geometry_layer(all_x, all_names)
 
     smart_builders = {
+        "foundation_cross_family_layer": build_entry_foundation_structure_layer,
         "trend_ema_smart_layer": build_entry_trend_ema_layer,
         "smc_liquidity_quality_layer": build_entry_smc_liquidity_quality_layer,
         "structure_swing_derivation_layer": build_entry_structure_swing_derivation_layer,

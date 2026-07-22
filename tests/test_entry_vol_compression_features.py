@@ -56,7 +56,7 @@ def _matrix(names: list[str], n: int = 7) -> np.ndarray:
     set_col("snap.atr_z", [-1.0, -1.4, -1.6, 1.1, 3.0, 1.3, -0.2])
     set_col("snap.rvol_20", [-1.0, -1.3, -1.5, 1.6, 3.5, 1.8, 0.2])
     set_col("snap._v1_range_z", [-0.8, -1.2, -1.5, 1.7, 3.3, 1.8, 0.4])
-    set_col("snap._v1_bb_squeeze_20_2", [0.1, 0.8, 0.95, 0.35, 0.15, 0.35, 0.8])
+    set_col("snap._v1_bb_squeeze_20_2", [0.0, -0.7, -0.9, 0.5, 0.8, 0.5, -0.6])
     set_col("snap._v1_bb_bandwidth_delta_10", [0.0, -0.9, -1.0, 1.0, 1.3, 1.0, -0.6])
     set_col("snap.vol_ratio_5_20", [-0.5, -0.8, -1.0, 2.0, 3.0, 2.0, -0.5])
     set_col("snap.signed_vol_z_20", [0.0, 0.1, 0.2, 2.2, -0.2, -2.4, 0.0])
@@ -65,8 +65,8 @@ def _matrix(names: list[str], n: int = 7) -> np.ndarray:
     set_col("ctx_cont.vol_pct_m5_1yr", [0.40, 0.12, 0.10, 0.80, 0.98, 0.82, 0.95])
     set_col("ctx_cont.vol_pct_h1_1yr", [0.42, 0.15, 0.12, 0.70, 0.90, 0.75, 0.10])
     set_col("ctx_cont.D1_atr_percentile_252", [0.45, 0.20, 0.15, 0.60, 0.96, 0.70, 0.20])
-    set_col("ctx_cont.H1_range_compression_ratio", [0.2, 0.8, 0.95, 0.4, 0.2, 0.4, 0.9])
-    set_col("ctx_cont.M15_range_compression_ratio", [0.2, 0.7, 0.90, 0.35, 0.2, 0.35, 0.2])
+    set_col("ctx_cont.H1_range_compression_ratio", [1.0, 0.6, 0.5, 1.4, 2.0, 1.4, 0.55])
+    set_col("ctx_cont.M15_range_compression_ratio", [1.0, 0.7, 0.5, 1.5, 2.0, 1.5, 0.6])
     set_col("ctx_cont.atr_ratio_m5_m15", [1.0, 0.6, 0.5, 2.2, 3.0, 2.1, 3.0])
     set_col("ctx_cont.atr_ratio_m5_h4", [1.0, 0.5, 0.5, 2.0, 3.2, 2.2, 3.5])
     set_col("ctx_cont.atr_ratio_m15_d1", [1.0, 0.7, 0.6, 1.5, 2.8, 1.7, 0.4])
@@ -160,6 +160,11 @@ def test_vol_compression_layer_is_future_row_invariant_and_ignores_targets() -> 
         changed[:, source_idx["future_mfe_bps"]] = 999_999.0
         changed[:, source_idx["y_direction"]] = np.arange(x.shape[0], dtype=np.float32)
         changed[:, source_idx["reward_bps"]] = -999_999.0
+        for ratio_name in (
+            "ctx_cont.H1_range_compression_ratio",
+            "ctx_cont.M15_range_compression_ratio",
+        ):
+            changed[:, source_idx[ratio_name]] = x[:, source_idx[ratio_name]]
         mutated, mutated_names = build_entry_vol_compression_layer(changed, names)
 
         assert mutated_names == base_names

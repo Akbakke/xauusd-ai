@@ -9,8 +9,13 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.features.entry_volatility_semantics_v1 import (
+    atr_ratio_compression_pressure,
+    bollinger_squeeze_pressure,
+)
 
-VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v1_20260630_causal_atr_squeeze_release_mtf"
+
+VOL_COMPRESSION_FEATURE_VERSION = "entry_vol_compression_v2_20260722_exact_ratio_and_squeeze_semantics"
 VOL_COMPRESSION_FEATURE_PREFIX = "vol_compression."
 
 VOL_COMPRESSION_SOURCE_FIELDS = (
@@ -246,9 +251,13 @@ def build_entry_vol_compression_layer(
         1.0,
     )
 
-    h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
-    m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))
-    squeeze = _clip01(c("snap._v1_bb_squeeze_20_2"))
+    h1_compression = atr_ratio_compression_pressure(
+        c("ctx_cont.H1_range_compression_ratio")
+    )
+    m15_compression = atr_ratio_compression_pressure(
+        c("ctx_cont.M15_range_compression_ratio")
+    )
+    squeeze = bollinger_squeeze_pressure(c("snap._v1_bb_squeeze_20_2"))
     bb_delta = _tanh(c("snap._v1_bb_bandwidth_delta_10"), scale=1.0)
     bandwidth_narrowing = _neg(bb_delta)
     bandwidth_expanding = _pos(bb_delta)

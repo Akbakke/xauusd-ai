@@ -53,9 +53,9 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     set_col("snap.wick_asym", [0, -0.5, 0.1, 0, 0, 0, 0.6, 0.2])
     set_col("ctx_cont.sr_support_proximity_exp", [0.1, 1, 0.6, 0.2, 0.1, 0.2, 0.3, 0.4])
     set_col("ctx_cont.sr_resistance_proximity_exp", [0.2, 0.2, 0.3, 0.5, 0.7, 1, 1, 0.4])
-    set_col("ctx_cont.H1_range_compression_ratio", [0.1, 0.2, 0.7, 0.9, 0.5, 0.3, 0.8, 0.2])
-    set_col("ctx_cont.M15_range_compression_ratio", [0.1, 0.3, 0.8, 0.9, 0.4, 0.3, 0.7, 0.2])
-    set_col("snap._v1_bb_squeeze_20_2", [0.1, 0.2, 0.8, 1, 0.4, 0.2, 0.8, 0.2])
+    set_col("ctx_cont.H1_range_compression_ratio", [1.0, 0.8, 0.5, 0.4, 0.7, 0.9, 0.6, 0.8])
+    set_col("ctx_cont.M15_range_compression_ratio", [1.0, 0.7, 0.5, 0.4, 0.6, 0.9, 0.6, 0.8])
+    set_col("snap._v1_bb_squeeze_20_2", [0.0, -0.2, -0.8, -1.0, -0.4, -0.2, -0.8, -0.2])
     set_col("snap.atr_z", [0.1, 0.2, 2, 3, 0.5, 0.3, 2, 0.2])
     set_col("snap.rvol_20", [0.1, 0.3, 2, 3, 0.5, 0.3, 2, 0.2])
     set_col("snap.vol_ratio_5_20", [0.1, 0.3, 2, 3, 0.5, 0.3, 2, 0.2])
@@ -172,6 +172,8 @@ def test_foundation_structure_layer_uses_signed_smc_pressure_directionally() -> 
     set_col("ctx_cont.wick_ratio", [0.0, 0.0, 1.0, 1.0])
     set_col("ctx_cont.sr_support_proximity_exp", [0.0, 0.0, 1.0, 1.0])
     set_col("ctx_cont.sr_resistance_proximity_exp", [0.0, 0.0, 1.0, 1.0])
+    set_col("ctx_cont.H1_range_compression_ratio", [1.0, 1.0, 1.0, 1.0])
+    set_col("ctx_cont.M15_range_compression_ratio", [1.0, 1.0, 1.0, 1.0])
 
     out, out_names = build_entry_foundation_structure_layer(x, names)
     out_idx = {name: i for i, name in enumerate(out_names)}

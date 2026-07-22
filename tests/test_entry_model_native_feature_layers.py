@@ -67,7 +67,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             chart_x,
             chart_names,
             (240, 242),
-            "1a6a502abbb256c45e50373bfb3a164156428a082cb6762e041e69cc3dc8538d",
+            "1fe67c0955071f318526501b237555c2dc41ad7245f8af6d712db799e547da1b",
             "df40b572938f61d81be0cac5dad4df44e6f48b1233a0d224cc734c14e1ff01d9",
         ),
         "price": (
@@ -88,7 +88,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             deep_x,
             deep_names,
             (240, 315),
-            "d91d67432bb18d077683d5079e749f1f56cbab08c08c00e1ff8aec95189be61e",
+            "52bd308e3c409fc96ebc77a933d178dec0e93fde752b3ee9be2d5df9ea17893c",
             "8492ae7579b24364d21edbe08678177ea4610edb8e1a3cecf97d96625c4f82a8",
         ),
     }
@@ -183,6 +183,8 @@ def test_chart_layer_bos_and_sweep_pressures_are_directionally_symmetric(
         "ctx_cont.m15_trend_sign_canon_v2",
     ):
         matrix[:, index[name]] = np.asarray([1.0, -1.0], dtype=np.float32)
+    matrix[:, index["ctx_cont.H1_range_compression_ratio"]] = 1.0
+    matrix[:, index["ctx_cont.M15_range_compression_ratio"]] = 1.0
     matrix[:, index["ctx_cont.smc_bos_pressure_last12"]] = [0.8, -0.8]
     matrix[:, index["ctx_cont.smc_bos_pressure_last48"]] = [0.4, -0.4]
     matrix[:, index["ctx_cont.smc_sweep_bull_pressure_last12"]] = [0.8, -0.8]
@@ -204,6 +206,8 @@ def test_deep_layer_inverts_normalized_d1_regime_age_without_compression(
     matrix, names, samples, _source, source_path = _valid_inputs(tmp_path, rows=2)
     matrix.fill(0.0)
     source_index = {name: column for column, name in enumerate(names)}
+    matrix[:, source_index["ctx_cont.H1_range_compression_ratio"]] = 1.0
+    matrix[:, source_index["ctx_cont.M15_range_compression_ratio"]] = 1.0
     matrix[:, source_index["ctx_cont.bars_since_d1_regime_change_v3"]] = [0.0, 1.0]
     matrix[:, source_index["ctx_cont.d1_regime_changed_flag_v3"]] = 0.0
 

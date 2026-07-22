@@ -111,7 +111,7 @@ def test_only_model_native_seq513_specialist_contract_is_registered() -> None:
 
     family_contract = smart_family_contract_for_mode(MODEL_NATIVE_CONTRACT_MODE)
     assert family_contract == MODEL_NATIVE_SMART_FAMILY_CONTRACT
-    assert len(family_contract) == len(MODEL_NATIVE_SMART_FAMILY_CONTRACT) == 11
+    assert len(family_contract) == len(MODEL_NATIVE_SMART_FAMILY_CONTRACT) == 12
     assert sum(int(spec["expected_feature_count"]) for spec in family_contract.values()) == (
         MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT
     )
@@ -303,7 +303,7 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert report["smart_family_contract_required"] is True
     assert report["smart_family_contract_valid"] is True
     assert report["smart_family_contract_failures"] == []
-    assert len(report["smart_family_contract_rows"]) == 11
+    assert len(report["smart_family_contract_rows"]) == 12
     assert all(row["feature_count_matches"] is True for row in report["smart_family_contract_rows"])
     assert len(report["specialist_input_liveness"]) == 24
     assert report["specialist_input_liveness_all_live"] is True

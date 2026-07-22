@@ -25,6 +25,7 @@ from gx1.features.entry_chart_geometry_v1 import (
     build_entry_chart_geometry_layer,
 )
 from gx1.features.entry_foundation_structure_v1 import (
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
     build_entry_foundation_structure_layer,
 )
@@ -44,6 +45,10 @@ from gx1.features.entry_support_resistance_memory_v1 import (
 )
 from gx1.features.entry_trend_ema_v1 import TREND_EMA_FEATURE_NAMES
 from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES
+from gx1.features.entry_volatility_semantics_v1 import (
+    atr_ratio_compression_pressure,
+    bollinger_squeeze_pressure,
+)
 
 
 # Exact raw M5 trend-state evidence.  The offline builder and live adapter
@@ -71,6 +76,7 @@ PRICE_DERIVED_FEATURE_NAMES = (
 MODEL_NATIVE_SPECIALIST_LAYER_FEATURES: tuple[
     tuple[str, tuple[str, ...]], ...
 ] = (
+    ("foundation_cross_family_layer", FOUNDATION_STRUCTURE_FEATURE_NAMES),
     ("trend_ema_smart_layer", TREND_EMA_FEATURE_NAMES),
     ("smc_liquidity_quality_layer", SMC_LIQUIDITY_QUALITY_FEATURE_NAMES),
     (
@@ -103,8 +109,8 @@ MODEL_NATIVE_MANDATORY_SELECTED_FIELDS = tuple(
     for _family, features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
     for feature in features
 )
-MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 11
-MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 316
+MODEL_NATIVE_MANDATORY_FAMILY_COUNT = 12
+MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = 373
 
 _mandatory_family_labels = tuple(
     family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
@@ -660,15 +666,25 @@ def build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarr
     add_chart_feature(arrays, names, "sweep_size_x_wick", sweep_size * wick_ratio)
     add_chart_feature(arrays, names, "sweep_x_choch", sweep_recent * choch)
 
-    h1_compression = _clip(_col(x, idx, "ctx_cont.H1_range_compression_ratio"))
-    m15_compression = _clip(_col(x, idx, "ctx_cont.M15_range_compression_ratio"))
-    squeeze = _clip(_col(x, idx, "snap._v1_bb_squeeze_20_2"))
-    atr_z = _clip(_col(x, idx, "snap.atr_z"))
-    rvol = _clip(_col(x, idx, "snap.rvol_20"))
-    vol_ratio = _clip(_col(x, idx, "snap.vol_ratio_5_20"))
+    h1_compression = atr_ratio_compression_pressure(
+        _col(x, idx, "ctx_cont.H1_range_compression_ratio")
+    )
+    m15_compression = atr_ratio_compression_pressure(
+        _col(x, idx, "ctx_cont.M15_range_compression_ratio")
+    )
+    squeeze = bollinger_squeeze_pressure(
+        _col(x, idx, "snap._v1_bb_squeeze_20_2")
+    )
+    atr_z = _pos(_tanh(_col(x, idx, "snap.atr_z"), scale=2.0))
+    rvol = _pos(_tanh(_col(x, idx, "snap.rvol_20"), scale=2.0))
+    vol_ratio = _pos(_tanh(_col(x, idx, "snap.vol_ratio_5_20"), scale=2.0))
     d1_range_z = _clip(_col(x, idx, "ctx_cont.d1_range_z_20_canon_v2"))
     compression = _clip(0.45 * h1_compression + 0.35 * m15_compression + 0.20 * squeeze)
-    expansion = _clip(compression * (0.45 * atr_z + 0.35 * rvol + 0.20 * vol_ratio))
+    expansion = _clip(
+        _lag1(compression) * (0.45 * atr_z + 0.35 * rvol + 0.20 * vol_ratio),
+        0.0,
+        1.0,
+    )
     add_chart_feature(arrays, names, "compression_h1_m15_bb", compression)
     add_chart_feature(arrays, names, "compression_to_expansion_proxy", expansion)
     add_chart_feature(arrays, names, "compression_x_bos", compression * bos_pressure)
@@ -895,8 +911,14 @@ def build_deep_interaction_layer(
 
     compression = _clip(
         0.45 * c("chart.compression_h1_m15_bb")
-        + 0.30 * c("ctx_cont.H1_range_compression_ratio")
-        + 0.25 * c("ctx_cont.M15_range_compression_ratio")
+        + 0.30
+        * atr_ratio_compression_pressure(
+            c("ctx_cont.H1_range_compression_ratio")
+        )
+        + 0.25
+        * atr_ratio_compression_pressure(
+            c("ctx_cont.M15_range_compression_ratio")
+        )
     )
     expansion = _clip(
         c("chart.compression_to_expansion_proxy")

@@ -9,17 +9,12 @@ direction policy.
 Current status: **BLOCKED**. No fresh seq513 bundle is accepted and no Entry
 launch is authorized. The old Smart520 evidence is historical and cannot be
 used for training, replay, paper trading, live trading or promotion.
-The 2026-07-21 V12 run proved the repaired full-history path at scale and built
-all three seq513 splits, but it was intentionally stopped before liveness PASS
-because its inherited source/test cutoff was 2026-06-14. V12 is terminal
-`ABORTED` and cannot authorize training. The live OANDA collector is now
-bit-exact against canonical data on 47,086 overlapping M1 bars and extends to
-2026-07-21. V13 snapshotting passed but its MTF cache was built from the wrong
-trimmed source and the partial was rejected before dataset construction. V14
-built the full dataset but is terminal RED under the repaired liveness policy;
-V15 failed a future ranking-timestamp contract and V16 failed common-history
-coverage before dataset construction. A fresh V17 must rebuild model-range
-from 2020-11-13 and pass the hardened early source/timestamp gates.
+V19 reached a GREEN terminal under the former v1 dataset surface and proved
+current source coverage through 2026-07-21T20:00:00Z, but the first real
+foundation audit showed that its selected tensor omitted all 57 required
+foundation fields. V19 is immutable superseded evidence and cannot authorize
+training. The active v2 contract requires a fresh V20 source, TRAIN ranking,
+manifest and dataset lineage.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
@@ -35,15 +30,15 @@ chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
 Group-A in exact hash-bound 4096-row chunks, including the complete causal M5
 context identity, permits one strict checkpoint
 retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
-only; the next admissible action is the fresh V17 source/rank/dataset chain.
-All earlier partials remain rejected.
+only. The active v2 contract now requires a fresh V20 source/rank/dataset
+chain; V19 and all earlier partials remain rejected for training.
 
 ## Active Entry contract
 
 - XAUUSD only; M5 decision cadence with M5/M15/H1/H4/D1 context.
 - 513 ordered signals: 34 genuine base price-state fields plus 479 specialist
-  fields. Of those 479, all 316 outputs from eleven registered causal feature
-  layers are code-owned and mandatory; only the remaining 163 positions come
+  fields. Of those 479, all 373 outputs from twelve registered causal feature
+  layers are code-owned and mandatory; only the remaining 106 positions come
   from deterministic TRAIN-only ranking.
 - 142 continuous and 5 categorical context fields.
 - Eight learned specialists: structure/swing, SMC/liquidity, trend/EMA,

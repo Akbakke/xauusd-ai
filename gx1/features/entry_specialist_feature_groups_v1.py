@@ -376,6 +376,30 @@ MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT = OrderedDict(
 MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
     [
         (
+            "foundation_cross_family_layer",
+            {
+                "expected_feature_count": 57,
+                "expected_specialist_counts": {
+                    "structure_swing_encoder": 19,
+                    "smc_liquidity_encoder": 5,
+                    "vol_compression_encoder": 5,
+                    "session_regime_encoder": 28,
+                },
+                "owned_specialists": (
+                    "structure_swing_encoder",
+                    "smc_liquidity_encoder",
+                    "vol_compression_encoder",
+                    "session_regime_encoder",
+                ),
+                "purpose": (
+                    "Primitive HH/HL/LH/LL, BOS/CHoCH age, sweep/reclaim, "
+                    "compression-release, impulse/pullback and explicit "
+                    "session-by-structure evidence retained alongside its "
+                    "higher-order specialist derivations."
+                ),
+            },
+        ),
+        (
             "trend_ema_smart_layer",
             {
                 "expected_feature_count": 20,

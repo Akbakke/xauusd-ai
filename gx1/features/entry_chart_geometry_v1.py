@@ -11,9 +11,16 @@ from typing import Iterable
 
 import numpy as np
 
+from gx1.features.entry_volatility_semantics_v1 import (
+    atr_ratio_compression_pressure,
+    atr_ratio_expansion_pressure,
+    bollinger_expansion_pressure,
+    bollinger_squeeze_pressure,
+)
+
 
 CHART_GEOMETRY_FEATURE_VERSION = (
-    "entry_chart_geometry_v1_20260717_numeric_lines_fib_patterns_failclosed"
+    "entry_chart_geometry_v2_20260722_exact_compression_semantics_failclosed"
 )
 CHART_GEOMETRY_FEATURE_PREFIX = "chart.geometry_"
 
@@ -370,16 +377,25 @@ def build_entry_chart_geometry_layer(
     _add(arrays, names, "channel_center_bias", channel_center, lo=0.0, hi=1.0)
     _add(arrays, names, "channel_edge_pressure", channel_edge, lo=0.0, hi=1.0)
 
-    h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
-    m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))
-    squeeze = _clip01(c("snap._v1_bb_squeeze_20_2"))
+    h1_ratio = c("ctx_cont.H1_range_compression_ratio")
+    m15_ratio = c("ctx_cont.M15_range_compression_ratio")
+    bb_relative_width = c("snap._v1_bb_squeeze_20_2")
+    h1_compression = atr_ratio_compression_pressure(h1_ratio)
+    m15_compression = atr_ratio_compression_pressure(m15_ratio)
+    squeeze = bollinger_squeeze_pressure(bb_relative_width)
     compression = _clip01(0.40 * h1_compression + 0.35 * m15_compression + 0.25 * squeeze)
     vol_impulse = _clip01(
         0.34 * _pos(_tanh(c("snap.atr_z"), scale=2.0))
         + 0.33 * _pos(_tanh(c("snap.rvol_20"), scale=2.0))
         + 0.33 * _pos(_tanh(c("snap.vol_ratio_5_20"), scale=2.0))
     )
-    release = _clip01(compression * _pos(_delta(vol_impulse)))
+    expansion_impulse = _clip01(
+        0.30 * atr_ratio_expansion_pressure(h1_ratio)
+        + 0.25 * atr_ratio_expansion_pressure(m15_ratio)
+        + 0.20 * bollinger_expansion_pressure(bb_relative_width)
+        + 0.25 * vol_impulse
+    )
+    release = _clip01(_lag1(compression) * _pos(_delta(expansion_impulse)))
     trend_age = _clip01(
         0.5 * c("ctx_cont.h1_trend_age_bars_norm_v2") + 0.5 * c("ctx_cont.h4_trend_age_bars_norm_v2")
     )
@@ -716,13 +732,23 @@ def build_entry_chart_geometry_layer(
     return out, names
 
 
+_CHART_GEOMETRY_NAME_PROBE = np.zeros(
+    (1, len(CHART_GEOMETRY_SOURCE_FIELDS)), dtype=np.float32
+)
+for _ratio_field in (
+    "ctx_cont.H1_range_compression_ratio",
+    "ctx_cont.M15_range_compression_ratio",
+):
+    _CHART_GEOMETRY_NAME_PROBE[
+        0, CHART_GEOMETRY_SOURCE_FIELDS.index(_ratio_field)
+    ] = 1.0
 CHART_GEOMETRY_FEATURE_NAMES = tuple(
-    name
-    for name in build_entry_chart_geometry_layer(
-        np.zeros((1, len(CHART_GEOMETRY_SOURCE_FIELDS)), dtype=np.float32),
+    build_entry_chart_geometry_layer(
+        _CHART_GEOMETRY_NAME_PROBE,
         list(CHART_GEOMETRY_SOURCE_FIELDS),
     )[1]
 )
+del _CHART_GEOMETRY_NAME_PROBE, _ratio_field
 
 CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[41:]
 

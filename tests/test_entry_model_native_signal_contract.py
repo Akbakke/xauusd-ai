@@ -36,6 +36,9 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     PRICE_DERIVED_FEATURE_NAMES,
 )
+from gx1.features.entry_foundation_structure_v1 import (
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
+)
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
@@ -49,11 +52,11 @@ _EXPECTED_FULL_SPECIALIST_COUNTS = {
     "chart_geometry_encoder": 17,
     "momentum_flow_encoder": 30,
     "price_action_candle_encoder": 35,
-    "session_regime_encoder": 242,
-    "smc_liquidity_encoder": 69,
-    "structure_swing_encoder": 37,
+    "session_regime_encoder": 213,
+    "smc_liquidity_encoder": 74,
+    "structure_swing_encoder": 56,
     "trend_ema_encoder": 43,
-    "vol_compression_encoder": 40,
+    "vol_compression_encoder": 45,
 }
 
 
@@ -145,6 +148,25 @@ def test_exact_m5_ema50_200_evidence_is_mandatory_and_trend_owned() -> None:
     assert {
         classify_entry_specialist_feature(name) for name in PRICE_DERIVED_FEATURE_NAMES
     } == {"trend_ema_encoder"}
+
+
+def test_all_foundation_cross_family_evidence_is_mandatory_and_routed() -> None:
+    families = dict(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES)
+    assert families["foundation_cross_family_layer"] == (
+        FOUNDATION_STRUCTURE_FEATURE_NAMES
+    )
+    assert tuple(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS[:57]) == (
+        FOUNDATION_STRUCTURE_FEATURE_NAMES
+    )
+    assert Counter(
+        classify_entry_specialist_feature(name)
+        for name in FOUNDATION_STRUCTURE_FEATURE_NAMES
+    ) == {
+        "structure_swing_encoder": 19,
+        "smc_liquidity_encoder": 5,
+        "vol_compression_encoder": 5,
+        "session_regime_encoder": 28,
+    }
 
 
 def test_active_context_contract_always_contains_full_regime_stack(

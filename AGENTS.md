@@ -11,8 +11,8 @@ contracts prove the required direction edge.
 Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
 Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
 and cannot authorize a run or launch.
-V19 is the first accepted fresh current-data dataset lineage. Its immutable
-chain terminal is `GREEN` and intentionally stopped at the smoke gate. It
+V19 was the first current-data dataset lineage to reach a `GREEN` chain
+terminal under the former v1 surface, intentionally stopped at the smoke gate. It
 binds exact `XAU_USD` M1/M5 tape provenance, source cascade v5, TRAIN-only
 ranking, 513 ordered signals, 142 continuous context fields, five categorical
 fields, all three chronological split manifests, exhaustive schema-v3 input
@@ -21,8 +21,10 @@ and 3,934 TEST rows through 2026-07-21T20:00:00Z. All 1,980 field/split
 liveness records validate; June/July H4/D1 ATR shift is recorded as genuine
 OOD diagnostic evidence, not rewritten or waived.
 
-V19 proves dataset integrity and learnable input coverage, not direction edge,
-precision or launch authority. No model has yet been trained on V19. V18 is
+The subsequent foundation audit proved that V19 omitted all 57 required
+`chart.foundation_*` fields from the model input. V19 is therefore immutable
+superseded evidence, not an accepted training dataset under the active v2
+contract. No model was trained on V19. V18 is
 terminal `RED` because a host clock rollback made its requested ranking
 filename temporally impossible; it has no reusable output. V17 and all earlier
 lineages remain immutable failure/diagnostic evidence. The post-rebuild smoke
@@ -90,8 +92,8 @@ permission to use another policy.
 The exact model-native surface is:
 
 - 513 ordered signals = 34 genuine base fields + 479 specialist fields;
-- the 479 specialist fields = all 316 outputs from eleven code-owned causal
-  layers in exact registry order + 163 deterministic TRAIN-only ranked fields;
+- the 479 specialist fields = all 373 outputs from twelve code-owned causal
+  layers in exact registry order + 106 deterministic TRAIN-only ranked fields;
 - 142 ordered continuous context fields;
 - 5 ordered categorical context fields;
 - sequence length 96;

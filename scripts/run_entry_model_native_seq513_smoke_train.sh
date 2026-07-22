@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v1
+MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v2
 MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native
 MODEL_NATIVE_SIGNAL_DIM=513
 PROFILE=smoke

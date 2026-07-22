@@ -493,7 +493,7 @@ def test_adoption_rejects_swapped_mandatory_signal_prefix(tmp_path: Path) -> Non
         for row in report["failures"]
         if row["gate"] == "feature_audit"
         and row["check"]
-        == "feature audit proves exact model-native 34 plus 316 plus 163 partition"
+        == "feature audit proves exact model-native 34 plus 373 plus 106 partition"
     )
     assert "mandatory_registry_prefix_order_violation" in partition_failure[
         "details"
@@ -519,7 +519,7 @@ def test_adoption_rejects_stale_partition_count(tmp_path: Path) -> None:
     assert any(
         row["gate"] == "feature_audit"
         and row["check"]
-        == "feature audit proves exact model-native 34 plus 316 plus 163 partition"
+        == "feature audit proves exact model-native 34 plus 373 plus 106 partition"
         for row in report["failures"]
     )
 
