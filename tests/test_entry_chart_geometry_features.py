@@ -34,6 +34,13 @@ SMART2_CHART_GEOMETRY_FEATURE_NAMES = (
     "chart.geometry_mtf_channel_retest_short_quality",
 )
 
+STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES = (
+    "chart.geometry_support_line_proximity_stack",
+    "chart.geometry_resistance_line_proximity_stack",
+    "chart.geometry_channel_position_low_to_high",
+    "chart.geometry_channel_edge_pressure",
+)
+
 
 def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     x = np.zeros((n, len(names)), dtype=np.float32)
@@ -113,8 +120,11 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     assert tuple(out_names) == CHART_GEOMETRY_FEATURE_NAMES
     assert CHART_GEOMETRY_SMART2_FEATURE_NAMES == SMART2_CHART_GEOMETRY_FEATURE_NAMES
     assert tuple(out_names[-len(SMART2_CHART_GEOMETRY_FEATURE_NAMES) :]) == CHART_GEOMETRY_SMART2_FEATURE_NAMES
-    assert len(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES) == 13
-    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES).issubset(
+    assert len(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES) == 17
+    assert CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[:4] == (
+        STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES
+    )
+    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[4:]).issubset(
         set(CHART_GEOMETRY_SMART2_FEATURE_NAMES)
     )
     assert (

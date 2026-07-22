@@ -23,16 +23,17 @@ OOD diagnostic evidence, not rewritten or waived.
 
 The subsequent foundation audit proved that V19 omitted all 57 required
 `chart.foundation_*` fields from the model input. V19 is therefore immutable
-superseded evidence, not an accepted training dataset under the active v2
-contract. No model was trained on V19. V18 is
-terminal `RED` because a host clock rollback made its requested ranking
-filename temporally impossible; it has no reusable output. V17 and all earlier
-lineages remain immutable failure/diagnostic evidence. The post-rebuild smoke
-route now consumes the same canonical V19 dataset instead of a nonexistent
-legacy smoke split, and H1/H4 construction has one causal alignment path:
-historical warmup is explicit `NaN`, while absent completed HTF evidence fails
-closed. Launch remains `BLOCK` until smoke, candidate, untouched OOS, replay,
-serve parity, sizing and shadow gates all pass.
+superseded evidence, not an accepted training dataset. No model was trained on
+V19. V20 rebuilt fresh current source through 2026-07-22T07:35:00Z and passed
+source audit, TRAIN-only ranking, the 513-field manifest and preflight. Dataset
+construction then failed closed before any split publication because
+`chart.geometry_channel_position_low_to_high`, a structural auxiliary-label
+prerequisite, was optional ranking evidence. V20 is terminal `RED` and must
+never be reused. The active v3 contract owns all 19 structural-label signal
+requirements in the mandatory prefix: 377 mandatory plus 102 ranked fields.
+Only a wholly fresh V21 may proceed. Launch remains `BLOCK` until rebuild,
+smoke, candidate, untouched OOS, replay, serve parity, sizing and shadow gates
+all pass.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
@@ -92,8 +93,8 @@ permission to use another policy.
 The exact model-native surface is:
 
 - 513 ordered signals = 34 genuine base fields + 479 specialist fields;
-- the 479 specialist fields = all 373 outputs from twelve code-owned causal
-  layers in exact registry order + 106 deterministic TRAIN-only ranked fields;
+- the 479 specialist fields = all 377 outputs from twelve code-owned causal
+  layers in exact registry order + 102 deterministic TRAIN-only ranked fields;
 - 142 ordered continuous context fields;
 - 5 ordered categorical context fields;
 - sequence length 96;

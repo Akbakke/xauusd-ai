@@ -1128,7 +1128,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures = [row for row in checks if not row["ok"]]
     created_utc = datetime.now(timezone.utc)
     report = {
-        "schema_version": "entry_model_native_seq513_rebuild_preflight_v3",
+        "schema_version": "entry_model_native_seq513_rebuild_preflight_v4",
         "created_utc": created_utc.isoformat(),
         "decision": READY_DECISION if not failures else BLOCKED_DECISION,
         "report_only": True,

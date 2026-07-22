@@ -80,6 +80,9 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     UTILITY_MFE_WEIGHT,
     UTILITY_PATH_WEIGHT,
 )
+from gx1.contracts.entry_structural_aux_label_signal_v1 import (
+    STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS,
+)
 from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_FORECAST_HORIZONS,
@@ -3015,48 +3018,49 @@ def build_dataset_canonical(
             + repr(list(names))
         )
 
-    _trend_score = _sig_col(
-        [
-            "trend.mtf_confluence_trend_direction_score",
-            "trend.ema_stack_alignment_score",
-        ]
-    )
-    _trend_conflict = _sig_col(["trend.mtf_confluence_trend_tf_conflict"])
-    _long_trend_bias = _sig_col(["trend.mtf_confluence_long_trend_bias"])
-    _short_trend_bias = _sig_col(["trend.mtf_confluence_short_trend_bias"])
-    _structure_dir = _sig_col(
-        ["chart.structure_swing_mtf_confluence_structure_direction_score"]
-    )
+    def _structural_signal(requirement: str) -> np.ndarray:
+        try:
+            candidates = STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS[requirement]
+        except KeyError as exc:
+            raise RuntimeError(
+                "XAU_STRUCTURAL_AUX_LABEL_REQUIREMENT_UNKNOWN: "
+                f"{requirement}"
+            ) from exc
+        return _sig_col(candidates)
+
+    _trend_score = _structural_signal("trend_score")
+    _trend_conflict = _structural_signal("trend_conflict")
+    _long_trend_bias = _structural_signal("long_trend_bias")
+    _short_trend_bias = _structural_signal("short_trend_bias")
+    _structure_dir = _structural_signal("structure_direction")
     _support_prox = np.maximum.reduce(
         [
-            _sig_col(["chart.geometry_support_line_proximity_stack"]),
-            _sig_col(["chart.sr_memory_support_level_proximity_stack"]),
-            _sig_col(["chart.sr_memory_support_respect_pressure_long"]),
-            _sig_col(["chart.sr_memory_support_reclaim_pressure_long"]),
+            _structural_signal("geometry_support_line_proximity"),
+            _structural_signal("support_level_proximity"),
+            _structural_signal("support_respect"),
+            _structural_signal("support_reclaim"),
         ]
     )
     _resistance_prox = np.maximum.reduce(
         [
-            _sig_col(["chart.geometry_resistance_line_proximity_stack"]),
-            _sig_col(["chart.sr_memory_resistance_level_proximity_stack"]),
-            _sig_col(["chart.sr_memory_resistance_respect_pressure_short"]),
-            _sig_col(["chart.sr_memory_resistance_reclaim_pressure_short"]),
+            _structural_signal("geometry_resistance_line_proximity"),
+            _structural_signal("resistance_level_proximity"),
+            _structural_signal("resistance_respect"),
+            _structural_signal("resistance_reclaim"),
         ]
     )
-    _channel_edge = _sig_col(["chart.geometry_channel_edge_pressure"])
-    _channel_pos = _sig_col(["chart.geometry_channel_position_low_to_high"])
+    _channel_edge = _structural_signal("geometry_channel_edge")
+    _channel_pos = _structural_signal("geometry_channel_position")
     _support_respect = np.maximum(
-        _sig_col(["chart.sr_memory_support_respect_pressure_long"]),
-        _sig_col(["chart.sr_memory_liquidity_low_level_rejection_long"]),
+        _structural_signal("support_respect"),
+        _structural_signal("support_liquidity_rejection"),
     )
     _resistance_respect = np.maximum(
-        _sig_col(["chart.sr_memory_resistance_respect_pressure_short"]),
-        _sig_col(["chart.sr_memory_liquidity_high_level_rejection_short"]),
+        _structural_signal("resistance_respect"),
+        _structural_signal("resistance_liquidity_rejection"),
     )
-    _geom_long_prox = _sig_col(["chart.geometry_mtf_confluence_fib_sr_long_proximity"])
-    _geom_short_prox = _sig_col(
-        ["chart.geometry_mtf_confluence_fib_sr_short_proximity"]
-    )
+    _geom_long_prox = _structural_signal("geometry_long_fib_sr_proximity")
+    _geom_short_prox = _structural_signal("geometry_short_fib_sr_proximity")
 
     _intraday_up = (
         (_trend_score >= 0.0)

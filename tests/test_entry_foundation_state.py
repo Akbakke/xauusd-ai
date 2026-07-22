@@ -73,7 +73,7 @@ def _evidence_events(tmp_path: Path, *, broken_preflight: bool = False) -> dict[
         tmp_path / "preflight",
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT",
         {
-            "schema_version": "entry_model_native_seq513_rebuild_preflight_v3",
+            "schema_version": "entry_model_native_seq513_rebuild_preflight_v4",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD",
             "report_only": True,
             "side_effects_started": {"dataset_rebuild": False, "training": False},

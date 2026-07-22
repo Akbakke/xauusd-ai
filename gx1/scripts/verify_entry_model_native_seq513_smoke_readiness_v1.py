@@ -39,6 +39,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
@@ -74,7 +75,7 @@ EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
 SMOKE_MANIFEST_READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
 SMOKE_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
 SMOKE_DATASET_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
-SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_model_native_seq513_split_manifest_v2"
+SMOKE_SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 _TIMESTAMPED_JSON_RE = re.compile(
     r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
 )

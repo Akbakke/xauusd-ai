@@ -23,6 +23,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     model_native_signal_contract_failures,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import (
@@ -41,7 +42,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 SPLITS = ("train", "val", "test")
 SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v2"
-SPLIT_SCHEMA_VERSION = "entry_model_native_seq513_split_manifest_v2"
+SPLIT_SCHEMA_VERSION = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v2"
 MANIFEST_VARIANT = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SEQ_SNAP_WIDTH = MODEL_NATIVE_SIGNAL_DIM

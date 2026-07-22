@@ -677,3 +677,29 @@ release uses lagged compression followed by positive expansion acceleration.
 Impossible non-positive ATR ratios fail closed. On the 5,808 post-warmup V19
 validation rows, all 57 corrected foundation fields remain finite and
 non-constant; this diagnostic does not rehabilitate V19 or select a feature.
+
+## 2026-07-22 — V20 is structural-label RED; all target prerequisites become mandatory
+
+V20 rebuilt all source artifacts from canonical roots through the last complete
+M5 bar at 2026-07-22T07:35:00Z. Its 393,122 x 188 FULL_PLUS source audit passed
+with all 187 numeric fields finite/live and no constants, exact duplicates or
+fallback. A fresh TRAIN-only ranking, real 513-field manifest and rebuild
+preflight also passed. No V19 artifact was reused.
+
+Dataset construction then failed closed before any split publication because
+`chart.geometry_channel_position_low_to_high` is consumed by the structural
+auxiliary-label producer but had remained optional ranking evidence. It did not
+win V20 selection. The one exact checkpoint retry failed identically. V20's
+immutable terminal is RED at `dataset-rebuild-exact-checkpoint-resume`, SHA-256
+`0b60ceda8b72f45cc76d83c3e4bb681bc5f190f1b0200a67391140e0a293e606`.
+Nothing from V20 may be resumed or reused.
+
+All 19 current-bar structural-label signal requirements now have one code-owned
+registry imported by both the model-native signal contract and dataset builder.
+Every requirement must resolve to a mandatory selected field. The four geometry
+prerequisites are promoted into the chart-geometry layer, changing the exact
+partition from 373 mandatory + 106 ranked to 377 mandatory + 102 ranked while
+preserving 34 + 479 = 513 total fields. Signal, split-manifest, ranking,
+signal-manifest, preflight and foundation-policy identities are versioned
+forward. This repairs ownership and construction reachability only; a wholly
+fresh V21 must still prove dataset validity and empirical direction edge.

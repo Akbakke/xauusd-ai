@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-22T07:36:50Z.
+Updated 2026-07-22.
 
 ## Entry direction
 
@@ -13,11 +13,11 @@ it must never become a guessed direction, synthetic FLAT, cached decision or
 manual overlay.
 
 The active signal contract is
-`xau_seq513_model_native_direction_v2`:
+`xau_seq513_model_native_direction_v3`:
 
 - 513 ordered signal fields: 34 base + 479 specialist fields;
-- 373 mandatory fields from twelve code-owned causal feature layers;
-- 106 deterministic TRAIN-only ranked remainder fields;
+- 377 mandatory fields from twelve code-owned causal feature layers;
+- 102 deterministic TRAIN-only ranked remainder fields;
 - 142 continuous and five categorical context fields;
 - sequence length 96;
 - five causal timeframe caches with 25 values per timeframe;
@@ -25,7 +25,7 @@ The active signal contract is
 - 26 learned evidence groups producing one exact 96-value fusion;
 - one final model-native `96 -> 128 -> 3` LONG/SHORT/FLAT direction path.
 
-All 57 `chart.foundation_*` fields are now part of the mandatory 373-field
+All 57 `chart.foundation_*` fields are now part of the mandatory 377-field
 prefix. They route to four learned specialists: 19 structure/swing, five
 SMC/liquidity, five volatility/compression and 28 session/regime fields. They
 remain available beside their higher-order derivations so feature selection
@@ -67,7 +67,7 @@ The omission had two source causes. The chart builder computed the foundation
 layer but the old mandatory registry did not retain it; the ranker's reflective
 candidate discovery also did not expose its name registry. Synthetic test
 manifests had manually inserted foundation fields and masked the producer
-mismatch. The real producer now binds the exact 373 + 106 partition,
+mismatch. The real producer now binds the exact 377 + 102 partition,
 foundation version/count/all-selected metadata and the mandatory prefix.
 
 A separate formula audit found inverted volatility semantics in four active
@@ -83,6 +83,29 @@ On 5,808 settled V19 validation rows, all 57 corrected foundation outputs were
 finite and non-constant. No field was exactly equal to a field in the former
 mandatory surface. This is diagnostic liveness and semantic evidence only; it
 does not authorize V19 or prove predictive edge.
+
+V20 (`XAU_SEQ513_REBUILD_20260722_V20`) rebuilt the full source cascade from
+canonical roots through `2026-07-22T07:35:00Z`. Its source audit passed on
+393,122 x 188 FULL_PLUS rows: all 187 numeric fields were finite and live,
+with no constants, exact duplicates or fallback. A fresh TRAIN-only ranking,
+513-field manifest and rebuild preflight also passed.
+
+Dataset construction then failed closed before any split was published. The
+structural auxiliary-label producer requires
+`chart.geometry_channel_position_low_to_high`, but that field was still
+ranking-owned and did not win V20 selection. The exact checkpoint retry failed
+identically. V20 is terminal `RED` at
+`dataset-rebuild-exact-checkpoint-resume`; its terminal SHA-256 is
+`0b60ceda8b72f45cc76d83c3e4bb681bc5f190f1b0200a67391140e0a293e606`.
+No V20 artifact may be reused.
+
+The repair gives one code-owned registry to all 19 current-bar requirements
+used by structural auxiliary-label construction. The dataset builder resolves
+signals only through that registry, while the signal contract proves every
+requirement has a mandatory candidate. Four geometry prerequisites are now
+mandatory, producing the exact 377 + 102 partition without changing the total
+513-field surface. This removes the target/ranking dependency; it does not
+prove predictive edge.
 
 ## Evidence and runtime boundary
 
@@ -111,14 +134,14 @@ environment override, artifact search, default value, cached row or synthetic
 FLAT.
 
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable launch
-decision. It is `BLOCK`, has no accepted dataset or bundle, and identifies V19
-only as superseded evidence.
+decision. It is `BLOCK`, has no accepted dataset or bundle, identifies V19 as
+superseded evidence and V20 as the latest terminal failure.
 
 ## Verification state
 
-The active v2 source changes pass:
+The active v3 source changes pass:
 
-- the complete affected-area suite: 219 tests, zero failures;
+- the complete affected-area suite: 139 tests, zero failures;
 - the full repository suite: 100% pass, five explicit skips, zero failures;
 - Python compilation for `gx1` and `tests`;
 - `git diff --check`;
@@ -141,11 +164,11 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Allocate a fresh immutable V20 lineage and rebuild the complete source,
-TRAIN-only ranking, v2 signal manifest and TRAIN/VAL/TEST dataset chain. V20
+Allocate a fresh immutable V21 lineage and rebuild the complete source,
+TRAIN-only ranking, v3 signal manifest and TRAIN/VAL/TEST dataset chain. V21
 must then pass post-rebuild readiness, foundation feature/target/specialist
 audits, smoke manifest/readiness/trainability and a capped smoke training run.
-Stop at the first red gate; do not reuse any V1-V19 ranking, checkpoint,
+Stop at the first red gate; do not reuse any V1-V20 ranking, checkpoint,
 manifest, split or dataset artifact.
 
 Only after smoke passes may a candidate be calibrated and evaluated. Compare a

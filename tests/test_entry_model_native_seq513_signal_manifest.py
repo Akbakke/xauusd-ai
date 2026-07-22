@@ -12,6 +12,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT,
     require_model_native_manifest,
 )
 from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as producer
@@ -162,6 +163,9 @@ def test_producer_keeps_all_code_owned_fields_first_and_only_ranks_remainder(
     )
     assert manifest["foundation_structure_missing_feature_count"] == 0
     assert manifest["foundation_structure_all_required_selected"] is True
+    assert manifest["structural_aux_label_signal_contract"] == (
+        MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
+    )
     assert manifest["feature_ranking"]["sha256"]
     assert manifest[
         "ranking_artifact_is_upstream_prerequisite_not_runtime_authority"

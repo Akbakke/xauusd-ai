@@ -49,10 +49,10 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 # The code-owned family fields plus ranked fixture fields form the exact
 # selected surface. The genuine 34-field base produces these totals.
 _EXPECTED_FULL_SPECIALIST_COUNTS = {
-    "chart_geometry_encoder": 17,
+    "chart_geometry_encoder": 21,
     "momentum_flow_encoder": 30,
     "price_action_candle_encoder": 35,
-    "session_regime_encoder": 213,
+    "session_regime_encoder": 209,
     "smc_liquidity_encoder": 74,
     "structure_swing_encoder": 56,
     "trend_ema_encoder": 43,

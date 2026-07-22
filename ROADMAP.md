@@ -15,13 +15,22 @@ live rule or fallback.
 ## Current state
 
 V19 is the first current-data lineage that reached a GREEN dataset-chain
-terminal, but it is not accepted under the active v2 contract. Source, TRAIN-only
+terminal, but it is not accepted under the active contract. Source, TRAIN-only
 ranking, exact 513 manifest, preflight, 369,081 TRAIN / 5,904 VAL / 3,934 TEST
 rows, exhaustive 513+142+5 liveness and all 34 auxiliary-target checks bind
 the same XAU tape and end at 2026-07-21T20:00:00Z. June/July H4/D1 volatility
 shift is retained as `SHIFT_OBSERVED` evidence. The subsequent foundation
 audit proved that all 57 required foundation fields were absent from V19's
-selected tensor, so V19 is immutable superseded evidence only. There is no
+selected tensor, so V19 is immutable superseded evidence only.
+
+V20 then rebuilt all source from canonical roots through the last complete M5
+bar at 2026-07-22T07:35:00Z. Its 393,122 x 188 FULL_PLUS source audit passed:
+all 187 numeric fields were finite/live, with no constants, exact duplicates or
+fallback. Fresh TRAIN ranking, the exact 513 manifest and preflight also
+passed. Dataset construction failed closed before split publication because
+`chart.geometry_channel_position_low_to_high` was used by structural
+auxiliary-label construction but could still be removed by optional ranking.
+V20 is terminal RED and no V20 artifact may be resumed or reused. There is no
 accepted dataset, bundle, candidate, untouched OOS edge or launch evidence.
 
 V18 is terminal RED because a host clock rollback made its ranking timestamp
@@ -43,19 +52,19 @@ holds one host-wide exclusive heavy-job lock, Group-A persists exact
 4096-row hash-bound chunks and can make one strict same-attempt resume only
 before any immutable split/audit output exists, and
 normal/signal exits publish immutable schema-v4 terminal events. The mandatory
-specialist prefix is now 373 fields across twelve families: the 57-field
+specialist prefix is now 377 fields across twelve families: the 57-field
 foundation cross-family layer, all prior specialist layers and exact M5
-EMA50/200 state/cross evidence. Only 106 fields are TRAIN-ranked. Ranking,
+EMA50/200 state/cross evidence, plus every structural auxiliary-label signal
+prerequisite. Only 102 fields are TRAIN-ranked. Ranking,
 dataset and live use the same bound ECDF/ATR state and exact `close`/`atr`
 inline source. V1-V11 remain failure evidence; their partial files are not
 resume inputs.
 
 ## Ordered gates
 
-1. Build V20 under `xau_seq513_model_native_direction_v2`, then run post-rebuild
+1. Build V21 under `xau_seq513_model_native_direction_v3`, then run post-rebuild
    readiness plus foundation feature, target and specialist audits against its
-   exact split bytes. V19 is immutable rejected evidence because all 57
-   foundation fields were omitted from its selected surface.
+   exact split bytes. V19 and V20 are immutable rejected/failure evidence.
 2. Run smoke manifest, smoke readiness, trainability and recipe audits. Any
    copied dataset, stale schema, hash drift or different source/smoke identity
    stops the path.

@@ -4,11 +4,11 @@
 
 V19 is rejected for training. Its real signal-manifest producer emitted zero
 of the 57 implemented foundation fields, while the feature audit requires all
-57. The active v2 contract retains the complete layer as mandatory:
+57. The active v3 contract retains the complete layer as mandatory:
 
 - 34 base + 479 specialist = 513 signals;
-- 373 mandatory fields from 12 code-owned layers;
-- 106 deterministic TRAIN-only ranked fields;
+- 377 mandatory fields from 12 code-owned layers;
+- 102 deterministic TRAIN-only ranked fields;
 - 57/57 foundation fields retained and routed;
 - no foundation field is an exact duplicate of any field in the former
   316-field mandatory surface.
@@ -35,6 +35,13 @@ not select, remove or authorize a field.
 5. The split-constant allowlist was deleted. Selected-field learnability is
    TRAIN-owned; all selected fields must remain finite in every split, while
    all foundation outputs and sources must remain live in TRAIN, VAL and TEST.
+6. V20 exposed one additional cross-contract mismatch after this audit: four
+   geometry fields consumed by the structural auxiliary-label producer were
+   not all guaranteed by the mandatory registry. All four are now mandatory,
+   and a single 19-requirement registry is imported by both the signal
+   contract and dataset builder. This raises the mandatory partition from 373
+   to 377 and reduces the TRAIN-ranked remainder from 106 to 102 without
+   changing 513 total.
 
 The `eu` token in field names denotes European trading-session hours. It is a
 time/session feature, not a price series or an independently traded instrument.
@@ -114,7 +121,7 @@ time/session feature, not a price series or an independently traded instrument.
 The negative compression correlation is expected in this diagnostic: the
 comparison column is the rejected V19 value built with the inverted source
 semantics. Both the primitive foundation field and its higher-order volatility
-counterpart are corrected for V20.
+counterpart were corrected before V20.
 
 ## Learned cooperation path
 
@@ -125,7 +132,8 @@ surface and the exact 26-group/96-value fusion. Only the final calibrated
 three-logit model output may select LONG, SHORT or FLAT.
 
 This routing proves presence, liveness and differentiable connectivity. It
-does not prove predictive edge. V20 must still pass fresh ranking, rebuild,
+does not prove predictive edge. V20 later failed closed on a separate
+ranking-owned structural-label prerequisite. V21 must pass fresh ranking, rebuild,
 foundation/source liveness, target/specialist audits, smoke training,
 untouched OOS evaluation, replay, train-equals-serve parity, learned sizing and
 shadow evidence.

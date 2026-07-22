@@ -30,6 +30,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT,
     model_native_mandatory_full_stack_metadata,
     model_native_signal_contract_metadata,
     require_model_native_manifest,
@@ -52,15 +53,15 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v4"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v5"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v4"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v5"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v4"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v5"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v4"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v5"
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "score_descending",
     "tie_break": "feature_name_ascending",
@@ -466,6 +467,9 @@ def validate_signal_manifest_training_lineage(
         "foundation_structure_feature_count": len(FOUNDATION_STRUCTURE_FEATURE_NAMES),
         "foundation_structure_missing_feature_count": 0,
         "foundation_structure_all_required_selected": True,
+        "structural_aux_label_signal_contract": (
+            MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
+        ),
     }
     for field, expected in exact_top_level.items():
         if manifest.get(field) != expected:
@@ -680,6 +684,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "base_signal_feature_count": MODEL_NATIVE_BASE_SIGNAL_DIM,
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
         "model_native_signal_contract": signal_contract,
+        "structural_aux_label_signal_contract": (
+            MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
+        ),
         "mandatory_full_stack": mandatory_metadata,
         "mandatory_full_stack_sha256": MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256,
         "mandatory_selected_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,

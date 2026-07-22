@@ -20,7 +20,7 @@ selection, mutable-latest evidence or soft compatibility path.
 ## Current terminal status
 
 **BLOCK.** No dataset exists for the active
-`xau_seq513_model_native_direction_v2` contract, and there is no accepted model
+`xau_seq513_model_native_direction_v3` contract, and there is no accepted model
 bundle or empirical direction-edge proof. Candidate, replay, paper/demo/live
 and promotion remain closed.
 
@@ -56,8 +56,8 @@ volatility and session specialist layers consume their derivations. Root cause:
 the ranker's reflective candidate discovery never exposed
 `FOUNDATION_STRUCTURE_FEATURE_NAMES`, while the 316-field mandatory registry
 also omitted them. A V19 validation scan proved all 57 active and found no
-exact duplicate among the prior 316 fields. The active v2 contract therefore
-retains all 57 as a mandatory cross-family layer: 373 mandatory + 106
+exact duplicate among the prior 316 fields. The active contract therefore
+retains all 57 as a mandatory cross-family layer: 377 mandatory + 102
 TRAIN-ranked = 479 specialist fields, still 513 total with the 34 base fields.
 V19 is immutable rejected evidence and cannot be trained or smoke-tested.
 
@@ -73,6 +73,32 @@ finite and variable on the 5,808 post-warmup V19 validation rows, but those
 rows are diagnostic only and cannot authorize reuse.
 The complete 57-row routing/duplicate table is in
 `docs/FOUNDATION_FEATURE_ROUTING_AUDIT_20260722.md`.
+
+### 2026-07-22 V20 structural-label dependency failure
+
+V20 (`XAU_SEQ513_REBUILD_20260722_V20`) rebuilt every source artifact from
+canonical roots; it did not reuse V19. The source snapshot ended at the last
+complete M5 bar `2026-07-22T07:35:00Z`. Its 393,122 x 188 FULL_PLUS source
+audit passed with all 187 numeric fields finite/live and no constants, exact
+duplicates or fallback. The fresh TRAIN-only ranking, real 513-field manifest
+and rebuild preflight also passed.
+
+Dataset construction then failed before any split was published:
+`chart.geometry_channel_position_low_to_high` is consumed by structural
+auxiliary-label construction, but it was not mandatory and did not win the
+optional ranked remainder. The one exact checkpoint retry failed identically.
+The immutable RED terminal is
+`CHAIN_TERMINAL_20260722T075705018658Z_RED.json`, SHA-256
+`0b60ceda8b72f45cc76d83c3e4bb681bc5f190f1b0200a67391140e0a293e606`,
+at step `dataset-rebuild-exact-checkpoint-resume`. V20 cannot be resumed,
+copied forward or used as source/ranking/checkpoint evidence.
+
+The repair adds one exact 19-requirement structural-label signal registry.
+Both the signal contract and dataset builder consume it, and every requirement
+must resolve within the mandatory prefix. Four geometry fields are promoted,
+changing the internal partition from 373+106 to 377+102 while preserving 479
+specialist and 513 total signal fields. This proves ownership and fail-closed
+routing only; V21 must still provide fresh empirical evidence.
 
 The next routing audit found that smoke execution was impossible even after a
 green rebuild: it required a post-rebuild artifact whose producer had been
@@ -134,8 +160,8 @@ row. The earlier zero-copy commit `1a51ce42` raised complete feature throughput
 to about 2,062 rows/s; a 4,096-row block measured 1.99 seconds and was
 bit-identical to V10 output over 17 x 60 sampled values.
 
-No V1-V19 ranking, manifest, preflight, checkpoint, dataset or source artifact
-may be promoted or resumed. Only a fresh V20 lineage under the active v2
+No V1-V20 ranking, manifest, preflight, checkpoint, dataset or source artifact
+may be promoted or resumed. Only a fresh V21 lineage under the active v3
 contract may advance through the exact post-rebuild and empirical gates.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
@@ -144,8 +170,9 @@ hash-bound through manifest/preflight/dataset; price-derived EMA inputs use
 only ranked common-history `close`/`atr`; signed BOS/sweep pressure is
 directionally symmetric; and the unprovable partial live MTF splice is removed
 so any context gap emits no direction until full refresh. The exact specialist
-partition is now 373 mandatory fields across twelve families (including all
-57 foundation cross-family fields and all 11 M5 EMA50/200 fields) plus 106
+partition is now 377 mandatory fields across twelve families (including all
+57 foundation cross-family fields, all 11 M5 EMA50/200 fields and all
+structural auxiliary-label prerequisites) plus 102
 TRAIN-ranked fields. These are source-contract
 repairs only; launch remains BLOCK and a wholly fresh rebuild is still required.
 
@@ -196,11 +223,11 @@ an immutable proxy comparison and absolute OOT/cost/live-like gates.
 
 ## Exact Entry contract
 
-- contract mode: `xau_seq513_model_native_direction_v2`;
+- contract mode: `xau_seq513_model_native_direction_v3`;
 - direction mode: `model_native`;
 - 513 signals: 34 genuine base fields + 479 exact specialist fields;
-- the 479 specialist fields contain all 373 outputs from twelve code-owned causal
-  layers in registry order, plus exactly 106 deterministic TRAIN-only ranked
+- the 479 specialist fields contain all 377 outputs from twelve code-owned causal
+  layers in registry order, plus exactly 102 deterministic TRAIN-only ranked
   fields;
 - 142 continuous context fields and 5 categorical context fields;
 - sequence length 96;
@@ -272,8 +299,8 @@ to `FLAT`, a cached decision or backlog execution.
 - Added exact seq513 signal, split-manifest, readiness, train-launch,
   objective, immutable-event and full-input-liveness contracts.
 - Made full-stack retention executable rather than aspirational: the signal
-  manifest producer always retains all 373 registered causal-layer outputs and
-  permits deterministic TRAIN-only ranking to fill only the remaining 106
+  manifest producer always retains all 377 registered causal-layer outputs and
+  permits deterministic TRAIN-only ranking to fill only the remaining 102
   specialist positions.
 - Closed the rebuild-lineage provenance gap: the wrapper now passes one
   validated `--run-id` into both writing producers. The rank NPZ and sidecar,
@@ -482,8 +509,8 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 ### Open decisions / next work
 
-1. No training is in flight and no dataset satisfies the active v2 contract.
-   Build V20, materialize its post-rebuild readiness, run foundation
+1. No training is in flight and no dataset satisfies the active v3 contract.
+   Build V21, materialize its post-rebuild readiness, run foundation
    feature/target/specialist audits, then smoke manifest/readiness/trainability
    and the exact dry-run/execute
    recipe. Zero FLAT predictions remains hard-red by definition (DECISION_LOG
@@ -502,21 +529,21 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse any invalidated V1-V19 lineage. Create fresh V20 paths and
+1. Do **not** reuse any invalidated V1-V20 lineage. Create fresh V21 paths and
    hashes; never discover inputs through glob, mtime, symlink or mutable
    `latest` selection.
 2. Run the full source/rank/manifest/split chain under
-   `xau_seq513_model_native_direction_v2`, then run
-   `model-native-post-rebuild-readiness` against V20's green terminal,
+   `xau_seq513_model_native_direction_v3`, then run
+   `model-native-post-rebuild-readiness` against V21's green terminal,
    preflight, liveness, pretrain and six canonical split files/manifests. It
    must prove source and smoke dataset directories are identical.
-3. Run the exact foundation feature, target and specialist audits on V20.
+3. Run the exact foundation feature, target and specialist audits on V21.
    Accept only immutable PASS events bound to the same split bytes and seq513
    structure manifest.
 4. Materialize `model-native-smoke-manifest`, then run
    `model-native-smoke-readiness` and trainability/recipe audits without
    changing dataset identity.
-5. Run `model-native-smoke-train` with V20's immutable run id and `--dry-run`,
+5. Run `model-native-smoke-train` with V21's immutable run id and `--dry-run`,
    validate the command
    contract, then run the capped `--execute` path only if every upstream gate
    is green.

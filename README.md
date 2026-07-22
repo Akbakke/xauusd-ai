@@ -13,7 +13,10 @@ V19 reached a GREEN terminal under the former v1 dataset surface and proved
 current source coverage through 2026-07-21T20:00:00Z, but the first real
 foundation audit showed that its selected tensor omitted all 57 required
 foundation fields. V19 is immutable superseded evidence and cannot authorize
-training. The active v2 contract requires a fresh V20 source, TRAIN ranking,
+training. V20 then failed closed before split publication because a structural
+auxiliary-label input had been left ranking-owned. The active v3 contract
+promotes every such prerequisite into the mandatory prefix and requires a
+wholly fresh V21 source, TRAIN ranking,
 manifest and dataset lineage.
 
 A report-only abstention metadata check is
@@ -30,15 +33,15 @@ chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
 Group-A in exact hash-bound 4096-row chunks, including the complete causal M5
 context identity, permits one strict checkpoint
 retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
-only. The active v2 contract now requires a fresh V20 source/rank/dataset
-chain; V19 and all earlier partials remain rejected for training.
+only. The active v3 contract now requires a fresh V21 source/rank/dataset
+chain; V20 and all earlier lineages remain rejected for training.
 
 ## Active Entry contract
 
 - XAUUSD only; M5 decision cadence with M5/M15/H1/H4/D1 context.
 - 513 ordered signals: 34 genuine base price-state fields plus 479 specialist
-  fields. Of those 479, all 373 outputs from twelve registered causal feature
-  layers are code-owned and mandatory; only the remaining 106 positions come
+  fields. Of those 479, all 377 outputs from twelve registered causal feature
+  layers are code-owned and mandatory; only the remaining 102 positions come
   from deterministic TRAIN-only ranking.
 - 142 continuous and 5 categorical context fields.
 - Eight learned specialists: structure/swing, SMC/liquidity, trend/EMA,

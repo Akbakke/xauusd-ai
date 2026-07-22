@@ -34,6 +34,7 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
@@ -45,8 +46,8 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 
 
 SPLITS = ("train", "val", "test")
-SPLIT_MANIFEST_SCHEMA = "entry_model_native_seq513_split_manifest_v2"
-PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v3"
+SPLIT_MANIFEST_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+PREFLIGHT_SCHEMA = "entry_model_native_seq513_rebuild_preflight_v4"
 PREFLIGHT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
 PRETRAIN_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 CHAIN_SCHEMA = "seq513_rebuild_chain_status_v4"
