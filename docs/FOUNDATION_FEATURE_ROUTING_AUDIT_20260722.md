@@ -142,7 +142,9 @@ three-logit model output may select LONG, SHORT or FLAT.
 This routing proves presence, liveness and differentiable connectivity. It
 does not prove predictive edge. V20 later failed closed on a separate
 ranking-owned structural-label prerequisite, and V21 later failed on the
-pretrain-polarity dependency recorded above. V22 must pass fresh ranking, rebuild,
-foundation/source liveness, target/specialist audits, smoke training,
-untouched OOS evaluation, replay, train-equals-serve parity, learned sizing and
-shadow evidence.
+pretrain-polarity dependency recorded above. V22 then exposed duplicate
+SMC-liquidity/S/R semantics; V23 proved their separation but lacked the
+explicit `iql_distillation=false` preflight key. V24 now passes fresh ranking,
+rebuild, foundation/source liveness and target/specialist audits on the exact
+current split bytes. Smoke training, untouched OOS evaluation, replay,
+train-equals-serve parity, learned sizing and shadow evidence remain unproved.

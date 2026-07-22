@@ -2,7 +2,64 @@
 
 Historical implementation narratives were removed because they repeatedly
 acted as stale authority. Git history retains them. This file records only
-decisions that constrain the current model-native Entry work.
+decisions that constrain the current model-native Entry work. Later entries
+supersede earlier event-specific state; historical headings below describe the
+boundary at which each decision was made, not current artifact authority.
+
+## 2026-07-22 — V24 is the current audited dataset, not model authority
+
+V24 rebuilt the complete XAU source cascade through the last complete M5 bar
+at `2026-07-22T12:05:00Z` and terminalized GREEN at the designed smoke gate.
+Its 369,081 TRAIN / 5,904 June VAL / 4,115 July TEST rows bind the exact
+513+142+5 surface. Exhaustive liveness, pretrain, post-rebuild, foundation
+feature, complete 46-target, specialist, smoke-manifest, smoke-readiness and
+trainability reviews pass on the same six split bytes.
+
+The specialist audit proves zero TRAIN dead signals, zero TRAIN exact duplicate
+groups, zero unmapped signal/context fields and all eight model contracts. One
+six-field D1 duplicate group is observed only in June VAL because the short
+chronological window occupies one regime state; OOS state is recorded rather
+than fabricated. V24 is therefore the only current dataset input to the next
+smoke gate. It is not an accepted bundle and proves no direction edge.
+
+## 2026-07-22 — liquidity pools, sparse events and preflight keys are exact
+
+V22 failed the specialist audit because five genuine sparse TRAIN events were
+evaluated by a generic activity floor and because SMC liquidity-pool low/high
+proximity were exact duplicates of S/R support/resistance proximity. Sparse
+events now use the canonical liveness support table. SMC pool proximity is a
+distinct causal blend of dedicated liquidity proximity (55%), recent swing
+(25%) and M5/M15/H1/H4/D1 level clustering (20%); S/R retains repeated-level
+memory. V23 and V24 prove zero TRAIN duplicate groups.
+
+V23 then reached smoke readiness and failed only because preflight omitted the
+required explicit `iql_distillation` side-effect key. The producer now emits
+the exact six-key map with every value false. V24 proves it in a fresh artifact.
+
+## 2026-07-22 — source-wiring proof follows contract ownership
+
+The first V24 trainability review incorrectly required four downstream source
+files to contain the resolved contract-mode string and numeric width. Those
+files correctly imported `MODEL_NATIVE_CONTRACT_MODE` and
+`MODEL_NATIVE_SIGNAL_DIM` from the one signal-contract owner, so duplicating
+literals would have weakened the architecture. Commit `0f2b9468` replaces raw
+text matching with AST proof that both exact constants are imported from the
+owner and used. A hard-coded literal without the import now fails. The
+corrected immutable trainability review is READY.
+
+Smoke training is still not executable: the required immutable recipe-audit
+has no canonical producer, and the existing exact post-smoke bundle audit is
+not exposed in the single control surface. Hand-authored evidence and direct
+route bypasses are forbidden. This is the next source boundary.
+
+## 2026-07-22 — rejected V21/V22/V23 large splits are removed
+
+The user explicitly requested deletion of large failed artifacts. V22 and V23
+split parquets were removed while their small terminal/manifests/audits were
+retained. V21 cleanup later used the sole evidence-retention owner with exact
+three-file plan, immutable approval, same-device staging/revalidation and
+terminal `DELETE_COMPLETE`; it removed 75,648,062,117 bytes. V24 and canonical
+XAU sources were not touched.
 
 ## 2026-07-21 — one durable rebuild owner and one heavy job at a time
 
@@ -401,10 +458,11 @@ may execute or must fail closed. Live/paper launch, promotion and destructive
 GX1_DATA cleanup retain their separate safety boundaries.
 
 The deleted historical Entry-IQL row/model benchmark is not a satisfiable
-pre-rebuild gate. A fresh seq513 rebuild and candidate are required to produce
-learned OOT rows; selection/abstention admission then uses a fresh immutable
-proxy comparison plus absolute OOT support/confidence, cost and live-like
-gates. Historical metadata can never substitute for those bytes.
+pre-rebuild gate. At that boundary a fresh seq513 rebuild and candidate were
+required to produce learned OOT rows; V24 now satisfies the dataset half only.
+Selection/abstention admission still requires a fresh immutable proxy
+comparison plus absolute OOT support/confidence, cost and live-like gates.
+Historical metadata can never substitute for those bytes.
 
 ## 2026-07-21 — one feature state before ranking, dataset and serve (v1, superseded)
 
@@ -553,7 +611,7 @@ requested fresh ranking filename. Both failures therefore occur before rank
 state/ranking in the next lineage. V17 must rebuild from raw model-range start
 2020-11-13; V14-V16 remain non-authoritative terminal evidence.
 
-## 2026-07-21 — V17 proves full input liveness; instrument identity is manifest-bound
+## 2026-07-21 — V17 proved input liveness; later superseded
 
 V17 rebuilt independently through the last complete M5 bar at 18:40 UTC. Its
 source, TRAIN-only ranking, exact 513-field manifest, preflight, all three
@@ -568,16 +626,17 @@ both audit and trainer. One shared fail-closed contract now traces exact
 `XAU_USD` identity to the canonical M1/M5 manifests and binds run id, producer
 method, repaired/current manifests, geometry, overlap, every yearly tape hash
 and every collector-snapshot hash. Dataset manifests capture that proof and
-consumers revalidate it. The repair and current-snapshot schemas advance to
-v2, source-cascade proof to v5 and pretrain audit to v2; older artifacts cannot
-pass. V17 remains terminal RED, and only a fresh V18 lineage may proceed.
+consumers revalidate it. The repair and current-snapshot schemas advanced to
+v2, source-cascade proof to v5 and pretrain audit to v2; older artifacts could
+not pass. V17 remains terminal RED. At that historical boundary only a fresh
+V18 lineage could proceed; V24 is now current.
 
 The command hook is now GX1-local and retains only its Git/secret safety floor.
 Runtime market identity belongs to the model/data contracts, not path-name
 blacklists. Explicit references to instruments outside GX1 were removed from
 the repository and active hook; negative tests use an abstract invalid token.
 
-## 2026-07-22 — V18 is clock-order RED; V19 is the accepted dataset lineage
+## 2026-07-22 — V18 clock-order RED; V19 temporarily admitted, later rejected
 
 V18 rebuilt current source successfully but could not cross the fresh-ranking
 boundary after the host clock moved backwards by roughly 22 seconds. The
@@ -591,9 +650,10 @@ states `stopped at smoke gate`. The lineage binds exact XAU tape provenance,
 five-timeframe caches, TRAIN-only ranking, exact 513 manifest and 369,081 /
 5,904 / 3,934 chronological TRAIN/VAL/TEST rows. Exhaustive input liveness
 validates all 1,980 field/split records; pretrain validates all 34 auxiliary
-targets and zero consistency mismatches. June/July H4/D1 ATR shift is retained
-as `SHIFT_OBSERVED`. V19 is accepted dataset evidence only. It contains no
-trained model and grants no direction-edge, bundle or launch authority.
+targets and zero consistency mismatches. June/July H4/D1 ATR shift was retained
+as `SHIFT_OBSERVED`. V19 was temporarily admitted as dataset evidence only
+under that contract. The later foundation audit below rejected it; it never
+contained a trained model or granted direction-edge, bundle or launch authority.
 
 ## 2026-07-22 — post-rebuild smoke uses the canonical dataset or fails closed
 
@@ -736,7 +796,8 @@ while retaining 479 specialist and 513 total signals. The pretrain audit
 computes target liveness and consistency even when polarity evidence is
 missing; missing polarity still independently fails closed. All dependent
 signal, mandatory-stack, split-manifest, ranking, manifest, preflight and
-foundation-policy identities are versioned forward. V22 must be wholly fresh.
+foundation-policy identities were versioned forward. At that historical
+boundary V22 had to be wholly fresh; V24 now proves the repaired partition.
 
 At the operator's request, 18 large parquet splits from rejected V12, V14,
 V17, V19 and the obsolete pre-foundation seq520 lineage were deleted after

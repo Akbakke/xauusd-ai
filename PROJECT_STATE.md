@@ -6,11 +6,11 @@ Updated 2026-07-22.
 
 Status: **BLOCK**.
 
-GX1 has no accepted Entry dataset, trained model, prediction evidence, bundle
-or launch authority under the active contract. Paper, demo and live Entry
-trading remain closed. The absence of proof means no direction and no order;
-it must never become a guessed direction, synthetic FLAT, cached decision or
-manual overlay.
+GX1 has one current audited Entry dataset lineage, V24, but no trained model,
+prediction evidence, accepted bundle or launch authority. Paper, demo and live
+Entry trading remain closed. The absence of model/edge proof means no direction
+and no order; it must never become a guessed direction, synthetic FLAT, cached
+decision or manual overlay.
 
 The active signal contract is
 `xau_seq513_model_native_direction_v4`:
@@ -45,75 +45,52 @@ resistance, momentum, SMC or MTF rule may change the result.
 
 ## Dataset evidence
 
-V19 terminalized GREEN under the former v1 dataset contract only. Its source
-reached the last complete M5 bar at `2026-07-21T20:00:00Z` and proved 392,995
-rows x 188 columns, all 187 numeric source fields finite and live, full-v3
-five-timeframe ownership, exact chronological TRAIN/VAL/TEST splits and all
-1,980 input-field/split liveness records. Its immutable terminal event is:
+V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable data lineage.
+It rebuilt a fresh source cascade through the last complete M5 bar at
+`2026-07-22T12:05:00Z`; FULL_PLUS contains 393,176 rows x 188 columns and its
+source-cascade proof is PASS. The chain terminal is GREEN, stopped at the
+designed smoke gate, with SHA-256
+`aaf5458fa53e83f16c436031650ff7ede322094b2376a9747fbe30f388891e48`.
+The terminal producer Git head is `c18a07181140b4fb2838c7fc62a59306cdf4709b`.
 
-- run ID: `XAU_SEQ513_REBUILD_20260721_V19`;
-- terminal SHA-256:
-  `5ea7d75fd093677e2d6104ca4e8bfc649ed9dc8693cbab06b163ca7b2fbdc0df`;
-- terminal reason: `stopped at smoke gate`.
+The exact V24 split identity is:
 
-The corrected post-rebuild readiness event passed with SHA-256
-`405f827162779ecea57e01c361a0c73e2d933501dd5f9e3dcfabc977ee3dd920`.
-The first real foundation audit then failed closed: V19 contains zero of the
-57 required foundation fields in its selected surface and split metadata.
-V19 is therefore immutable superseded evidence, not an accepted dataset, and
-must not be trained, copied forward or rehabilitated by editing metadata.
+- TRAIN: 369,081 rows, parquet SHA-256
+  `b4c7455cd16ed01d815af546ca59fb39d7790c242b3a37c8df2bb1cd64a479ee`;
+- VAL: 5,904 June rows, parquet SHA-256
+  `15488f69ee8ce5b48b458bc9e9e091b2672103ba1a18cbfe4e9d354fd02f1bc3`;
+- TEST: 4,115 July rows through 12:05 UTC, parquet SHA-256
+  `2cbc718fb8aa7d8122c5847c62ae9950bdb2dc862fccfd09388494398802a666`.
 
-The omission had two source causes. The chart builder computed the foundation
-layer but the old mandatory registry did not retain it; the ranker's reflective
-candidate discovery also did not expose its name registry. Synthetic test
-manifests had manually inserted foundation fields and masked the producer
-mismatch. The real producer now binds the exact 378 + 101 partition,
-foundation version/count/all-selected metadata and the mandatory prefix.
+Exhaustive input liveness and pretrain pass. Post-rebuild readiness, foundation
+feature, complete 46-target and specialist audits all pass on those same
+bytes. The specialist audit proves 513/513 signals and 479/479 selected
+features, all eight model contracts, zero TRAIN dead signals, zero TRAIN exact
+duplicate groups and zero unmapped signal/context fields. Sparse TRAIN support
+includes CHoCH 375, bullish/bearish outside-after-inside 3,345/3,129 and M5
+EMA50/200 cross-up/down 1,114/1,114. A six-field D1 exact duplicate group exists
+only in June VAL because that short OOS window occupies one regime state; it is
+diagnostic OOD evidence, not a TRAIN code duplicate.
 
-A separate formula audit found inverted volatility semantics in four active
-builders. H1/M15 range ratios are `ATR14 / ATR100`, so values below one mean
-compression and values above one mean expansion. Relative Bollinger bandwidth
-is `bandwidth / mean_bandwidth - 1`, so negative means squeeze and positive
-means expansion. One strict transform owner now supplies compression and
-expansion pressure to foundation, volatility, chart geometry, chart core and
-deep interactions. Release requires lagged compression followed by positive
-expansion acceleration; non-positive ATR ratios fail closed.
+V22 had failed this specialist audit because SMC liquidity-pool proximity was
+exactly identical to S/R-memory proximity and because sparse events were judged
+by the wrong generic floor. V23 proved the semantic separation and canonical
+sparse floors, then smoke readiness failed only because preflight omitted the
+required `iql_distillation=false` key. V24 proves all six side-effect keys
+explicitly false and smoke readiness is READY.
 
-On 5,808 settled V19 validation rows, all 57 corrected foundation outputs were
-finite and non-constant. No field was exactly equal to a field in the former
-mandatory surface. This is diagnostic liveness and semantic evidence only; it
-does not authorize V19 or prove predictive edge.
+The first V24 trainability audit caught one more source mismatch: it searched
+downstream source text for duplicated contract literals even though all four
+consumers correctly imported the exact mode and width from the signal-contract
+owner. Commit `0f2b9468f396bdfd7d850749fd045294662a9bd4` replaces that check
+with AST-proven import and use. The corrected trainability review is READY,
+SHA-256 `bf1487b68ffa5caf30b3c6408bb1282617c68054ee0df04537c8e824b4a494f7`.
 
-V20 (`XAU_SEQ513_REBUILD_20260722_V20`) rebuilt the full source cascade from
-canonical roots through `2026-07-22T07:35:00Z`. Its source audit passed on
-393,122 x 188 FULL_PLUS rows: all 187 numeric fields were finite and live,
-with no constants, exact duplicates or fallback. A fresh TRAIN-only ranking,
-513-field manifest and rebuild preflight also passed.
-
-Dataset construction then failed closed before any split was published. The
-structural auxiliary-label producer requires
-`chart.geometry_channel_position_low_to_high`, but that field was still
-ranking-owned and did not win V20 selection. The exact checkpoint retry failed
-identically. V20 is terminal `RED` at
-`dataset-rebuild-exact-checkpoint-resume`; its terminal SHA-256 is
-`0b60ceda8b72f45cc76d83c3e4bb681bc5f190f1b0200a67391140e0a293e606`.
-No V20 artifact may be reused.
-
-The repair gave one code-owned registry to all 19 current-bar requirements
-used by structural auxiliary-label construction. V21 then built all three
-splits and passed exhaustive full-input liveness, but the pretrain audit found
-one more cross-contract dependency:
-`chart.geometry_support_minus_resistance_stack` was required for channel
-polarity proof while still ranking-owned and absent. V21 terminalized RED at
-`CHAIN_TERMINAL_20260722T090624433275Z_RED.json`, SHA-256
-`4c6186eb37992c8b576ba334bc02375c18b73a60ab80af4b3826f07d4c01e2d8`.
-
-The active v4 contract embeds all four pretrain-polarity inputs and makes the
-support-minus-resistance field mandatory. The partition is now 378 mandatory
-+ 101 TRAIN-ranked without changing the 479 specialist or 513 total width.
-Missing polarity still fails, while target liveness and consistency are
-computed independently so it cannot mask a second target failure. V22 must
-rebuild wholly fresh; no V21 artifact may be reused.
+No smoke training has started. A canonical immutable recipe-audit producer is
+absent, and the exact post-smoke bundle audit is not exposed through the one
+control surface. Those are real source blockers; a hand-authored JSON or direct
+script bypass is forbidden. V21/V22/V23 large rejected split parquets have
+been deleted, while their small terminal/manifest/audit evidence remains.
 
 ## Evidence and runtime boundary
 
@@ -142,18 +119,19 @@ environment override, artifact search, default value, cached row or synthetic
 FLAT.
 
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable launch
-decision. It is `BLOCK`, has no accepted dataset or bundle, identifies V19 as
-superseded evidence and V20 as the latest terminal failure.
+decision. It is `BLOCK`, identifies V24 as the current audited dataset
+lineage, and has no accepted bundle or launch evidence.
 
 ## Verification state
 
-The active v4 source changes pass:
+The active v4 source and V24 data contracts pass:
 
-- the complete affected-area suite: 139 tests, zero failures;
 - the full repository suite: 100% pass, five explicit skips, zero failures;
 - Python compilation for `gx1` and `tests`;
 - `git diff --check`;
 - exact contract/count/routing assertions;
+- V24 post-rebuild, foundation feature/target/specialist, smoke-readiness and
+  trainability reviews;
 - repository and active-hook forbidden-instrument zero-scan.
 
 These are source and contract proofs. They do not prove market edge,
@@ -172,12 +150,11 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Allocate a fresh immutable V22 lineage and rebuild the complete source,
-TRAIN-only ranking, v4 signal manifest and TRAIN/VAL/TEST dataset chain. V22
-must then pass post-rebuild readiness, foundation feature/target/specialist
-audits, smoke manifest/readiness/trainability and a capped smoke training run.
-Stop at the first red gate; do not reuse any V1-V21 ranking, checkpoint,
-manifest, split or dataset artifact.
+Implement the missing canonical recipe-audit producer and expose the exact
+post-smoke bundle audit through `scripts/entry_next_edge_control.sh`. Re-run
+readiness/trainability against V24 after those changes, then perform the exact
+smoke wrapper dry-run and capped execution. Stop at the first red gate; do not
+hand-author an authority artifact or bypass the control surface.
 
 Only after smoke passes may a candidate be calibrated and evaluated. Compare a
 declared full-history baseline with a TRAIN-only recent-regime challenger,

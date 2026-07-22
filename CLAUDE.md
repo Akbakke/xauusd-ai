@@ -25,7 +25,10 @@ documentation and code together.
 6. Train equals serve: exact ordered fields, dimensions, normalization,
    timeframe construction, hashes and final-logit semantics must match.
 7. Newest valid terminal evidence wins. A newer red event blocks every older
-   green event. Missing or malformed evidence is red.
+   green event. Missing or malformed evidence is red. A GREEN dataset admits
+   only those exact bytes to the next evidence gate; it does not admit a model,
+   direction, bundle or launch. Keep that distinction explicit in both
+   Markdown and `PROJECT_STATE_xau_direction_launch.json`.
 8. Every Entry train/rebuild needs one immutable `--run-id`, immutable inputs
    and a clean, resource-safe execution plan. The ID is lineage, not manual
    approval; evidence contracts alone admit execution. Never auto-promote an
@@ -39,3 +42,6 @@ documentation and code together.
     unrelated working-tree changes.
 12. Finish every change with focused tests, syntax checks, stale-path scans,
     `git diff --check` and an honest statement of what remains unproved.
+13. Source-wiring audits must prove import and executable use of the exact
+    contract owner. Repeating the expected mode, dimension or field literal in
+    a consumer is not ownership proof and must never be required as one.

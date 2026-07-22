@@ -1,10 +1,10 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-22T09:18:02Z",
+  "updated_utc": "2026-07-22T13:44:26Z",
   "decision": "BLOCK",
-  "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V21",
-  "latest_terminal_event_decision": "RED",
+  "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
+  "latest_terminal_event_decision": "GREEN",
   "decision_surface": "model_direction_argmax",
   "public_trade_flat_surface": "public_trade_flat_decision_logits",
   "required_contract_mode": "xau_seq513_model_native_direction_v4",
@@ -18,9 +18,62 @@
   "required_ctx_cat_dim": 5,
   "accepted_bundle_dir": null,
   "bundle_metadata_sha256": null,
-  "dataset_event_id": null,
-  "accepted_dataset_dir": null,
-  "accepted_dataset_terminal_evidence": null,
+  "dataset_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
+  "dataset_admission_stage": "READY_FOR_SMOKE_IMPLEMENTATION_REVIEW",
+  "accepted_dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/dataset",
+  "accepted_dataset_terminal_evidence": {
+    "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/CHAIN_TERMINAL_20260722T130501752412Z_GREEN.json",
+    "sha256": "aaf5458fa53e83f16c436031650ff7ede322094b2376a9747fbe30f388891e48",
+    "state": "GREEN",
+    "reason": "V24 rebuilt from fresh XAU source through the last complete 2026-07-22T12:05:00Z M5 bar and stopped at the designed smoke gate. This admits only the exact dataset bytes to the next evidence review; it does not admit a model, bundle, direction or launch."
+  },
+  "current_audited_dataset_evidence": {
+    "full_input_liveness": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/audit/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260722T122318009618Z.json",
+      "sha256": "b4859fa3d50231adf11f745fda2d2037d9f4336214409eba257a10318d4021a9",
+      "decision": "PASS"
+    },
+    "pretrain_audit": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/audit/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260722T130501336452Z.json",
+      "sha256": "fcabbd9026402a4d0df3548066aeab13a8bdda886113b155a76f987542656097",
+      "decision": "PASS"
+    },
+    "post_rebuild_readiness": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/post_rebuild_20260722T131000Z/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260722T131234473938Z.json",
+      "sha256": "4ba78a377f502398f84cf8e362e8ee54c778a997483c86a21105538472129999",
+      "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW"
+    },
+    "foundation_feature_audit": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/foundation_feature_20260722T131800Z/ENTRY_FEATURE_FOUNDATION_AUDIT_20260722T131551Z.json",
+      "sha256": "7b0aee42f1e9bca4ec4805dd6f4aef94745785ae86a80f652260c8331911088b",
+      "decision": "PASS"
+    },
+    "foundation_target_audit": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/foundation_target_20260722T131600Z/ENTRY_TARGET_FOUNDATION_AUDIT_20260722T131819Z.json",
+      "sha256": "a56bd90ce4796a032406a0bb06ba7896a550354249425272eb3fa6c6c3ce7e60",
+      "decision": "PASS"
+    },
+    "specialist_feature_audit": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/specialist_feature_20260722T132100Z/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260722T132056Z.json",
+      "sha256": "a56df5b4b7b629c85d241358610e1f49d73d8eb4489b5afdcb35ed3ef86ce25c",
+      "decision": "PASS"
+    },
+    "smoke_manifest": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/smoke_manifest_20260722T132500Z/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_20260722T132330674449Z.json",
+      "sha256": "ea9b337c4f697f925d48bd419fca7014673bec8e18b255419cd02b2007c59b33",
+      "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
+    },
+    "smoke_readiness": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/smoke_readiness_20260722T132700Z/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260722T132601239143Z.json",
+      "sha256": "b19b7b9cfd9a690c147f735c99ff1da0658a1a3ed3ea403ad2982a6ff2800434",
+      "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
+    },
+    "trainability_readiness": {
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/trainability_20260722T134000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260722T132827793575Z.json",
+      "sha256": "bf1487b68ffa5caf30b3c6408bb1282617c68054ee0df04537c8e824b4a494f7",
+      "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
+    }
+  },
   "superseded_dataset_evidence": {
     "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v19_6yr_rebuild_20260721_seq513_model_native_v19/dataset",
     "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v19_6yr_rebuild_20260721_seq513_model_native_v19/CHAIN_TERMINAL_20260721T210042061946Z_GREEN.json",
@@ -35,16 +88,22 @@
     "failed_step": "dataset-rebuild",
     "reason": "V21 built all three splits and passed exhaustive full-input liveness, then failed closed in pretrain because chart.geometry_support_minus_resistance_stack was required for channel-polarity proof but was still ranking-owned and absent. V21 is immutable failure evidence and cannot be reused."
   },
+  "latest_rejected_downstream_evidence": {
+    "event_id": "XAU_SEQ513_REBUILD_20260722_V23",
+    "stage": "smoke_readiness",
+    "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v23_6yr_rebuild_20260722_seq513_model_native_v23/smoke_readiness_20260722T120500Z/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260722T120637773061Z.json",
+    "sha256": "2166ef936ee426c7e5c08b133b5f02741d22466cf43b61affb8cf11122369daf",
+    "reason": "V23 passed the specialist audit but smoke readiness rejected the missing explicit iql_distillation=false preflight side-effect key. V24 supersedes it with all six side effects proven false."
+  },
   "accepted_via_vedtak": null,
   "blockers": [
-    "No dataset exists for the active xau_seq513_model_native_direction_v4 contract. V19 is superseded; V20 and V21 are terminal RED.",
-    "A fresh V22 source-to-split rebuild must prove the exact 34 + 378 mandatory + 101 ranked = 513 partition, all 19 structural auxiliary-label requirements, all four pretrain-polarity requirements, and foundation metadata/liveness.",
-    "No V22 smoke recipe, trained smoke bundle, calibration, or audited non-degenerate LONG/SHORT/FLAT prediction evidence exists.",
-    "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for final untouched evaluation.",
-    "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration, and cost gates.",
-    "No candidate replay or exact train-equals-serve proof exists for all five timeframes, eight specialists, and 26 fusion groups.",
-    "No learned-size adoption, joint active Exit replay, zero-order runtime sizing parity, or incumbent/challenger shadow lifecycle proof exists.",
+    "No smoke model, accepted bundle, calibration or learned LONG/SHORT/FLAT prediction evidence exists for the V24 dataset.",
+    "Smoke execution remains source-blocked: no canonical immutable entry_model_native_seq513_train_recipe_audit_v1 producer exists, and the exact post-smoke bundle audit is not exposed through scripts/entry_next_edge_control.sh. Hand-authored authority JSON and direct control-surface bypass are forbidden.",
+    "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for one final untouched evaluation.",
+    "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration and cost gates.",
+    "No candidate replay or exact train-equals-serve proof exists for all five timeframes, eight specialists and 26 fusion groups.",
+    "No learned-size adoption, joint active Exit replay, zero-order runtime sizing parity or incumbent/challenger shadow lifecycle proof exists.",
     "Near-perfect practical precision is not claimed without immutable OOS and live-like empirical proof.",
-    "Candidate, replay, paper/demo/live, and promotion remain closed. Large rejected split parquet files were explicitly deleted while their small terminal/manifest/audit evidence was retained."
+    "Candidate, replay, paper/demo/live and promotion remain closed. V21/V22/V23 large rejected split parquets were explicitly deleted while their small terminal/manifest/audit evidence was retained."
   ]
 }

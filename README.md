@@ -6,19 +6,21 @@ stack and prove its edge through immutable out-of-sample contracts. Missing,
 stale or contradictory evidence blocks the system; there is no fallback
 direction policy.
 
-Current status: **BLOCKED**. No fresh seq513 bundle is accepted and no Entry
-launch is authorized. The old Smart520 evidence is historical and cannot be
-used for training, replay, paper trading, live trading or promotion.
-V19 reached a GREEN terminal under the former v1 dataset surface and proved
-current source coverage through 2026-07-21T20:00:00Z, but the first real
-foundation audit showed that its selected tensor omitted all 57 required
-foundation fields. V19 is immutable superseded evidence and cannot authorize
-training. V20 then failed before split publication on a structural-label
-dependency; V21 built all splits and passed liveness before failing pretrain
-on ranking-owned support-minus-resistance polarity evidence. The active v4
-contract promotes both dependency sets and requires a wholly fresh V22 source,
-TRAIN ranking,
-manifest and dataset lineage.
+Current status: **BLOCKED FOR MODEL/EDGE/LAUNCH**, with one current audited
+dataset lineage. V24 rebuilt fresh XAU source through
+`2026-07-22T12:05:00Z`, terminalized GREEN at the designed smoke gate and
+passed post-rebuild, full-input, pretrain, foundation-feature, all-46-target,
+eight-specialist, smoke-readiness and trainability review. Its exact splits
+contain 369,081 TRAIN, 5,904 VAL and 4,115 TEST rows. TRAIN has zero dead
+signals, zero exact duplicate signal groups and zero unmapped signal/context
+fields. This proves data/routing contracts, not direction edge.
+
+No smoke model, bundle, calibration or learned prediction evidence exists, so
+no Entry launch is authorized. Smoke execution remains source-blocked until a
+canonical immutable recipe-audit producer and the post-smoke bundle-audit
+control route exist; manually composing those artifacts is forbidden. The old
+Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
+be used for training, replay, paper trading, live trading or promotion.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
@@ -28,14 +30,16 @@ absent, so that historical comparison cannot be a pre-rebuild gate. The next
 empirical gate is a fresh accepted seq513 dataset/candidate followed by an
 immutable proxy comparison and absolute untouched OOT/cost/live-like proof.
 
-The source recovery now creates and binds the TRAIN-rank reference before
+The source recovery creates and binds the TRAIN-rank reference before
 feature ranking, then routes ranking and dataset construction through one
 chain. It serializes all capped heavy jobs with one host-wide lock, checkpoints
 Group-A in exact hash-bound 4096-row chunks, including the complete causal M5
 context identity, permits one strict checkpoint
 retry, and emits immutable schema-v4 terminal chain events. This has source-test proof
-only. The active v4 contract now requires a fresh V22 source/rank/dataset
-chain; V21 and all earlier lineages remain rejected for training.
+and current V24 artifact proof. V22 exposed duplicate liquidity/SR semantics;
+V23 proved their separation but exposed an omitted preflight side-effect key;
+V24 proves both repairs. V21/V22/V23 large split parquets were deleted while
+their small failure/audit evidence was retained.
 
 ## Active Entry contract
 

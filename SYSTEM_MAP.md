@@ -440,70 +440,31 @@ Current facts:
 - source has one chain-owned ranker/dataset path, a host-wide exclusive
   capped-job lock, immutable bounded Group-A chunks, one exact checkpoint
   retry and schema-v4 immutable terminal events;
-- V11 proved the old failure and is terminal RED; V12 proved the repaired
-  owner path and built all splits but is terminal ABORTED because its cutoff
-  was stale. Neither lineage is authoritative;
-- checkpoint inspection found all 60 Group-A/dip/structure outputs unavailable
-  until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
-- commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
-  decision OHLC checks, and mirrors full-prefix-before-slice in live. V14
-  first proved it at current-data dataset scale, and V19 proved the history
-  repair before its later foundation-contract rejection; there is no direction
-  fallback;
-
-- source contracts and focused tests prove the intended exact architecture;
-- V19's former-v1 GREEN terminal, exact XAU tape provenance,
-  source/ranking/preflight, 513+142+5 split bytes, exhaustive liveness and
-  pretrain audit agree through 2026-07-21T20:00:00Z, but its selected surface
-  omits all 57 required foundation fields. No dataset is accepted under the
-  active contract;
-- no accepted bundle/OOS edge result exists and no training process is running;
-- V14 source, TRAIN-only ranking and all three dataset splits completed, but
-  schema-v2 liveness misclassified sparse impulses and genuine one-state OOS
-  regimes, then the wrapper attempted an invalid retry after immutable output
-  existed. V14 is terminal RED. Schema-v3 repairs the semantics and retry
-  boundary. V15/V16/V17/V18 subsequently failed immutable timestamp, history,
-  tape-identity or clock-order gates; none may be reused;
-- V11 completed source/ranking/manifest/preflight but is terminal RED at
-  `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
-  95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
-  the Jan-5 decision boundary. Commit `4134ca19` repairs this with an explicit,
-  OHLC-verified and checkpoint-hashed full M5 prefix; V14 proved that repair
-  but cannot be resumed after its terminal liveness failure;
-- run lineage `XAU_SEQ513_REBUILD_20260718_V1` exists, but both July-19 rebuild
-  attempts were terminated and invalidated after a reused feature-ranking
-  TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
-  TRAIN window (`2021-03-16..2026-03-31`);
-- V20 rebuilt a fresh source cascade through 2026-07-22T07:35:00Z and passed
-  source audit, TRAIN ranking, signal manifest and preflight, then failed
-  closed before split publication because a structural auxiliary-label input
-  was ranking-owned and absent. Its exact retry failed identically and its
-  immutable terminal is RED;
-- V21 built all splits and passed full-input liveness, then terminalized RED
-  because support-minus-resistance polarity evidence was ranking-owned and
-  absent from the final signal surface;
-- invalidated V1-V21 lineages are historical failure/diagnostic evidence and
-  cannot be reused; only a fresh V22 lineage may enter the active v4 gates;
-- no rebuild process is running; V19 is superseded GREEN evidence, while V20
-  and V21 are RED. None grants active-contract authority;
+- V24 is GREEN at the designed smoke gate and binds current XAU data through
+  `2026-07-22T12:05:00Z`, 369,081/5,904/4,115 split rows and the exact
+  513+142+5 field surface;
+- V24 post-rebuild, liveness, pretrain, foundation feature, complete target,
+  specialist, smoke-readiness and trainability reviews pass on the same split
+  bytes. TRAIN has zero dead signals, exact duplicate groups or unmapped
+  fields; the only exact OOS duplicate group is six D1 regime-state fields in
+  June VAL and is recorded, not waived;
+- V22 proved and failed on two TRAIN duplicate liquidity/SR pairs plus sparse
+  event semantics. V23 proved their repair, then exposed the missing explicit
+  `iql_distillation=false` preflight side-effect declaration. V24 proves both
+  repairs and all six side-effect keys;
+- trainability source wiring validates that downstream owners import and use
+  `MODEL_NATIVE_CONTRACT_MODE` and `MODEL_NATIVE_SIGNAL_DIM` from the exact
+  signal contract. Resolved-literal grep is not contract proof;
+- no model training is running. Smoke execution is source-blocked because no
+  canonical immutable recipe-audit producer exists and the exact post-smoke
+  bundle audit is not exposed in the control surface;
+- rejected V21/V22/V23 large split parquets are deleted; their terminal,
+  manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
   detached feature modules, manual sizing modules and stale research launchers
   have been deleted rather than retained as alternatives;
 - no practical-precision or trading-edge claim exists without new immutable OOS
   and live-like proof;
-- the report-only abstention metadata run is
-  `BLOCK_ABSTENTION_EMPIRICAL_GATE`: FLAT labels are balanced on TRAIN
-  (`1400/4095`, `34.19%`), validation (`530/1536`, `34.51%`) and TEST
-  (`516/1536`, `33.59%`) and active FLAT/utility/margin weights are positive,
-  but it read zero parquet and produced no learned-probe evidence;
-- historical selection-benchmark bytes are absent and cannot be a satisfiable
-  pre-rebuild gate. The old report-only abstention verifier/control route is
-  deleted; fresh candidate TEST rows must instead pass the current immutable
-  proxy comparison plus absolute OOT/cost/live-like gates;
-- post-rebuild readiness is a first-class producer, first exercised on V19,
-  binding one lineage's terminal, preflight, liveness, pretrain and six split
-  artifacts; V22 smoke must use its same canonical dataset rather than a
-  separately copied smoke split;
 - H1/H4 has one causal full-array alignment owner. Leading warmup remains NaN,
   no completed HTF evidence fails closed, and the unreachable stateful branch
   with conflicting shift semantics has been removed;
@@ -511,9 +472,10 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-22 etter at V21 avdekket at pretrain-polaritetsbevis fortsatt
-kunne avhenge av valgfri ranking. Alle 19 strukturelle krav og alle fire
-polaritetskrav er nå obligatoriske, og en full V22-rebuild er påkrevd.
+Oppdatert 2026-07-22 etter V24s komplette dataset- og auditkjede. Alle 19
+strukturelle krav og alle fire polaritetskrav er obligatoriske; V24 har bevist
+378+101-flaten, separat likviditets-/S/R-semantikk, sparse-event-livlighet og
+den komplette seksnøklers preflightkontrakten.
 Kartet beskriver den herdede, påkrevde artefakt-DAG-en og kolonne-eierskapet.
 Les dette FØR du rg-jakter i builderen.
 
@@ -567,13 +529,20 @@ resume, glob/mtime eller leksikalsk latest.
 Kun én eksakt hash-bundet checkpoint-retry er tillatt etter capped feil.
 Telegram-ping er kun operasjonell status; validerte split-manifester er
 terminal autoritet.
-V22-terminal + preflight + liveness + pretrain + seks split-filer/manifester
+V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
   └─ entry_next_edge_control.sh model-native-post-rebuild-readiness
         → immutable post-rebuild readiness; source_dataset_dir == smoke_dataset_dir
       └─ foundation feature/target/specialist audits
           └─ model-native-smoke-manifest → smoke-readiness → trainability/recipe
               → model-native-smoke-train --dry-run → capped --execute
 ```
+
+V24 har nådd og bestått `trainability`-review, men pilen videre til
+`model-native-smoke-train` er foreløpig ikke kjørbar: den obligatoriske
+`entry_model_native_seq513_train_recipe_audit_v1` har ingen aktiv produsent,
+og den eksisterende eksakte smoke-bundle-auditen mangler kontrollrute. Begge
+må få én kanonisk eier og bytebinding; håndskrevet JSON eller direkte scriptkall
+er ikke en tillatt erstatning.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
 
@@ -631,7 +600,7 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
   `chart.geometry_channel_position_low_to_high` ble brukt av strukturell
   aux-label-bygging uten å være obligatorisk. V21 passerte dette, men feilet
   senere fordi `chart.geometry_support_minus_resistance_stack` manglet i
-  pretrain-polaritetsflaten. Den aktive V22-vinduskontrakten
+  pretrain-polaritetsflaten. Den beviste V24-vinduskontrakten
   har rå model-range-start 2020-11-13 og ferdig
   common-history-start 2021-01-05. V15 beviste framtidsstempel-fellen og V16
   beviste at model-range-start 2021-01-04 gir for sen finite start 2021-01-14;

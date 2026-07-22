@@ -1,4 +1,5 @@
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 
@@ -7,6 +8,7 @@ REPO = Path("/home/andre2/src/GX1_ENGINE")
 HANDOVER = REPO / "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 HANDOVER_VIEWER = REPO / "scripts/gx1_handover.sh"
 CONTROL = REPO / "scripts/entry_next_edge_control.sh"
+LAUNCH_STATE = REPO / "PROJECT_STATE_xau_direction_launch.json"
 AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
     REPO / "ROADMAP.md",
@@ -78,10 +80,53 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "Use this script only: scripts/gx1_handover.sh" in result.stdout
     assert "decision: BLOCK" in result.stdout
     assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
+    assert "dataset_event_id: XAU_SEQ513_REBUILD_20260722_V24" in result.stdout
+    assert "dataset_admission_stage: READY_FOR_SMOKE_IMPLEMENTATION_REVIEW" in result.stdout
+    assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
+    assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
+    assert "accepted_bundle_dir: NONE" in result.stdout
     assert "active_seq513_chain" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert "## Required evidence before Entry can open" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < len(HANDOVER.read_bytes())
+
+
+def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
+    state = json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
+
+    assert state["decision"] == "BLOCK"
+    assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
+    assert state["latest_terminal_event_decision"] == "GREEN"
+    assert state["dataset_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
+    assert state["dataset_admission_stage"] == "READY_FOR_SMOKE_IMPLEMENTATION_REVIEW"
+    assert state["accepted_bundle_dir"] is None
+    assert state["bundle_metadata_sha256"] is None
+
+    terminal = state["accepted_dataset_terminal_evidence"]
+    terminal_path = Path(terminal["path"])
+    assert terminal_path.is_file()
+    assert hashlib.sha256(terminal_path.read_bytes()).hexdigest() == terminal["sha256"]
+    terminal_state = json.loads(terminal_path.read_text(encoding="utf-8"))
+    assert terminal_state["entry_run_id"] == state["dataset_event_id"]
+    assert terminal_state["state"] == terminal["state"] == "GREEN"
+
+    audits = state["current_audited_dataset_evidence"]
+    assert len(audits) == 9
+    for binding in audits.values():
+        audit_path = Path(binding["path"])
+        audit_bytes = audit_path.read_bytes()
+        assert hashlib.sha256(audit_bytes).hexdigest() == binding["sha256"]
+        audit = json.loads(audit_bytes)
+        assert audit["decision"] == binding["decision"]
+
+    rejected = state["latest_rejected_downstream_evidence"]
+    rejected_path = Path(rejected["path"])
+    assert hashlib.sha256(rejected_path.read_bytes()).hexdigest() == rejected["sha256"]
+
+    blockers = "\n".join(state["blockers"])
+    assert "No smoke model" in blockers
+    assert "recipe_audit_v1 producer" in blockers
+    assert "post-smoke bundle audit" in blockers
 
 
 def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> None:

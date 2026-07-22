@@ -75,6 +75,51 @@ for key in ("decision", "updated_utc"):
     if not isinstance(state.get(key), str) or not state[key]:
         raise SystemExit(f"FATAL: malformed launch authority: missing {key}")
 
+dataset_event_id = state.get("dataset_event_id")
+terminal = state.get("accepted_dataset_terminal_evidence")
+if dataset_event_id is not None:
+    if not isinstance(dataset_event_id, str) or not dataset_event_id:
+        raise SystemExit("FATAL: malformed launch authority: invalid dataset_event_id")
+    if not isinstance(terminal, dict):
+        raise SystemExit("FATAL: dataset event has no terminal evidence object")
+    terminal_path = Path(str(terminal.get("path", "")))
+    expected_sha256 = terminal.get("sha256")
+    if (
+        not terminal_path.is_absolute()
+        or terminal_path.resolve() != terminal_path
+        or not terminal_path.is_file()
+        or terminal_path.is_symlink()
+    ):
+        raise SystemExit("FATAL: dataset terminal evidence path is not an exact regular file")
+    observed_sha256 = hashlib.sha256(terminal_path.read_bytes()).hexdigest()
+    if observed_sha256 != expected_sha256:
+        raise SystemExit("FATAL: dataset terminal evidence SHA-256 mismatch")
+    terminal_state = json.loads(terminal_path.read_text(encoding="utf-8"))
+    if terminal_state.get("entry_run_id") != dataset_event_id:
+        raise SystemExit("FATAL: dataset terminal evidence run-id mismatch")
+    if terminal_state.get("state") != terminal.get("state"):
+        raise SystemExit("FATAL: dataset terminal evidence state mismatch")
+    audits = state.get("current_audited_dataset_evidence")
+    if not isinstance(audits, dict) or not audits:
+        raise SystemExit("FATAL: dataset event has no audited evidence bindings")
+    for name, binding in audits.items():
+        if not isinstance(binding, dict):
+            raise SystemExit(f"FATAL: malformed dataset audit binding: {name}")
+        audit_path = Path(str(binding.get("path", "")))
+        if (
+            not audit_path.is_absolute()
+            or audit_path.resolve() != audit_path
+            or not audit_path.is_file()
+            or audit_path.is_symlink()
+        ):
+            raise SystemExit(f"FATAL: dataset audit path is not exact: {name}")
+        audit_bytes = audit_path.read_bytes()
+        if hashlib.sha256(audit_bytes).hexdigest() != binding.get("sha256"):
+            raise SystemExit(f"FATAL: dataset audit SHA-256 mismatch: {name}")
+        audit = json.loads(audit_bytes)
+        if audit.get("decision") != binding.get("decision"):
+            raise SystemExit(f"FATAL: dataset audit decision mismatch: {name}")
+
 print("mode: check")
 print(f"authority_fingerprint: {digest.hexdigest()}")
 print(f"decision: {state['decision']}")
@@ -103,6 +148,7 @@ echo "Use this script only: scripts/gx1_handover.sh"
 echo
 echo "## Launch authority"
 "$PY" - "$LAUNCH_STATE" <<'PY'
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -115,6 +161,70 @@ for key in (
 ):
     value = state.get(key)
     print(f"{key}: {'NONE' if value is None else value}")
+for key in ("dataset_event_id", "dataset_admission_stage", "accepted_dataset_dir"):
+    value = state.get(key)
+    print(f"{key}: {'NONE' if value is None else value}")
+
+terminal = state.get("accepted_dataset_terminal_evidence")
+dataset_event_id = state.get("dataset_event_id")
+if dataset_event_id is None:
+    if terminal is not None:
+        raise SystemExit("FATAL: terminal evidence exists without dataset_event_id")
+    print("dataset_terminal_evidence: NONE")
+else:
+    if not isinstance(terminal, dict):
+        raise SystemExit("FATAL: dataset event has no terminal evidence object")
+    terminal_path = Path(str(terminal.get("path", "")))
+    expected_sha256 = terminal.get("sha256")
+    dataset_dir = Path(str(state.get("accepted_dataset_dir", "")))
+    if (
+        not dataset_dir.is_absolute()
+        or dataset_dir.resolve() != dataset_dir
+        or not dataset_dir.is_dir()
+        or dataset_dir.is_symlink()
+    ):
+        raise SystemExit("FATAL: accepted dataset is not an exact directory")
+    if (
+        not terminal_path.is_absolute()
+        or terminal_path.resolve() != terminal_path
+        or not terminal_path.is_file()
+        or terminal_path.is_symlink()
+    ):
+        raise SystemExit("FATAL: dataset terminal evidence path is not an exact regular file")
+    observed_sha256 = hashlib.sha256(terminal_path.read_bytes()).hexdigest()
+    if observed_sha256 != expected_sha256:
+        raise SystemExit("FATAL: dataset terminal evidence SHA-256 mismatch")
+    terminal_state = json.loads(terminal_path.read_text(encoding="utf-8"))
+    if terminal_state.get("entry_run_id") != dataset_event_id:
+        raise SystemExit("FATAL: dataset terminal evidence run-id mismatch")
+    if terminal_state.get("state") != terminal.get("state"):
+        raise SystemExit("FATAL: dataset terminal evidence state mismatch")
+    print(
+        "dataset_terminal_evidence: VERIFIED "
+        f"state={terminal['state']} sha256={observed_sha256}"
+    )
+    print(f"dataset_terminal_path: {terminal_path}")
+    audits = state.get("current_audited_dataset_evidence")
+    if not isinstance(audits, dict) or not audits:
+        raise SystemExit("FATAL: dataset event has no audited evidence bindings")
+    for name, binding in audits.items():
+        if not isinstance(binding, dict):
+            raise SystemExit(f"FATAL: malformed dataset audit binding: {name}")
+        audit_path = Path(str(binding.get("path", "")))
+        if (
+            not audit_path.is_absolute()
+            or audit_path.resolve() != audit_path
+            or not audit_path.is_file()
+            or audit_path.is_symlink()
+        ):
+            raise SystemExit(f"FATAL: dataset audit path is not exact: {name}")
+        audit_bytes = audit_path.read_bytes()
+        if hashlib.sha256(audit_bytes).hexdigest() != binding.get("sha256"):
+            raise SystemExit(f"FATAL: dataset audit SHA-256 mismatch: {name}")
+        audit = json.loads(audit_bytes)
+        if audit.get("decision") != binding.get("decision"):
+            raise SystemExit(f"FATAL: dataset audit decision mismatch: {name}")
+    print(f"dataset_audit_evidence: VERIFIED count={len(audits)}")
 print(
     "dimensions: "
     + " ".join(
@@ -132,6 +242,8 @@ print(
 )
 blockers = state.get("blockers")
 print(f"blocker_count: {len(blockers) if isinstance(blockers, list) else 'INVALID'}")
+if isinstance(blockers, list) and blockers:
+    print(f"next_blocker: {blockers[0]}")
 PY
 echo
 echo "## Source worktree"
@@ -153,6 +265,7 @@ echo "swap_free_bytes: $(awk '/^SwapFree:/ {printf "%.0f", $2 * 1024}' /proc/mem
 echo
 echo "## Active GX1 process groups"
 declare -A process_count=() process_pids=() process_ppids=() process_states=()
+declare -A chain_spec_seen=()
 declare -a chain_specs=()
 while read -r pid ppid state _cpu _mem _elapsed args; do
   executable="${args%% *}"
@@ -191,7 +304,11 @@ while read -r pid ppid state _cpu _mem _elapsed args; do
       esac
     done
     if [[ -n "$chain_run_id" && -n "$chain_event_dir" ]]; then
-      chain_specs+=("$chain_run_id|$chain_event_dir")
+      chain_spec="$chain_run_id|$chain_event_dir"
+      if [[ -z "${chain_spec_seen[$chain_spec]:-}" ]]; then
+        chain_specs+=("$chain_spec")
+        chain_spec_seen["$chain_spec"]=1
+      fi
     fi
   fi
 done < <(ps -ww -eo pid=,ppid=,stat=,%cpu=,%mem=,etime=,args=)

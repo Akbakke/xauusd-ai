@@ -8,35 +8,39 @@ model-native decision path. Near-perfect practical precision is the target,
 not a current claim. The system stays closed until immutable out-of-sample
 contracts prove the required direction edge.
 
-Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
-Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
-and cannot authorize a run or launch.
-V19 was the first current-data dataset lineage to reach a `GREEN` chain
-terminal under the former v1 surface, intentionally stopped at the smoke gate. It
-binds exact `XAU_USD` M1/M5 tape provenance, source cascade v5, TRAIN-only
-ranking, 513 ordered signals, 142 continuous context fields, five categorical
-fields, all three chronological split manifests, exhaustive schema-v3 input
-liveness and pretrain audit v2. The splits contain 369,081 TRAIN, 5,904 VAL
-and 3,934 TEST rows through 2026-07-21T20:00:00Z. All 1,980 field/split
-liveness records validate; June/July H4/D1 ATR shift is recorded as genuine
-OOD diagnostic evidence, not rewritten or waived.
+Current Entry status is **BLOCK**. There is no accepted model bundle, no
+empirical direction-edge proof and no launch authority. Old Smart520,
+neutral-XGB, anchored Entry and Entry-IQL evidence is historical and cannot
+authorize a run or launch.
 
-The subsequent foundation audit proved that V19 omitted all 57 required
-`chart.foundation_*` fields from the model input. V19 is therefore immutable
-superseded evidence, not an accepted training dataset. No model was trained on
-V19. V20 rebuilt fresh current source through 2026-07-22T07:35:00Z and passed
-source audit, TRAIN-only ranking, the 513-field manifest and preflight. Dataset
-construction then failed closed before any split publication because
-`chart.geometry_channel_position_low_to_high`, a structural auxiliary-label
-prerequisite, was optional ranking evidence. V20 is terminal `RED` and must
-never be reused. V21 passed that construction point but terminalized RED when
-pretrain polarity still depended on an optional field. The active v4 contract
-owns all 19 structural-label signal
-requirements and every pretrain-polarity input in the mandatory prefix: 378
-mandatory plus 101 ranked fields.
-Only a wholly fresh V22 may proceed. Launch remains `BLOCK` until rebuild,
-smoke, candidate, untouched OOS, replay, serve parity, sizing and shadow gates
-all pass.
+V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable dataset
+lineage. It rebuilt a fresh XAU source cascade through the last complete M5 bar
+at `2026-07-22T12:05:00Z` and terminalized `GREEN` at the designed smoke gate.
+The exact 369,081 TRAIN / 5,904 VAL / 4,115 TEST rows bind 513 ordered signals,
+142 continuous context fields, five categorical fields, exhaustive 1,980-row
+input liveness and pretrain target/polarity evidence. Post-rebuild, foundation
+feature, all-46-target and eight-specialist audits pass on the same six split
+bytes. TRAIN has zero dead signals, zero exact duplicate signal groups and
+zero unmapped signal/context fields. One exact six-field D1 duplicate group in
+June VAL is recorded as a truthful one-regime OOS observation; it is not a
+TRAIN duplicate and is not fabricated away.
+
+V22 previously exposed two exact TRAIN duplicate SMC-liquidity/SR pairs and a
+sparse-event policy mismatch. V23 proved those repairs and all specialist
+contracts, then smoke readiness failed solely because the preflight producer
+omitted the required explicit `iql_distillation=false` side-effect key. V24
+proves the repaired six-key preflight and reaches smoke/readiness/trainability
+review. The first V24 trainability attempt then exposed a raw-source-text
+contract check that rejected correct imports from the signal-contract owner;
+commit `0f2b9468` replaced literal duplication with AST-proven import/use and
+the immutable trainability review now passes.
+
+This is a data and contract breakthrough, not a model or trading-edge
+breakthrough. No smoke model has been trained. The smoke package still lacks a
+canonical recipe-audit producer and an exposed immutable post-smoke bundle
+audit route; do not synthesize either artifact by hand. Launch remains `BLOCK`
+until smoke, candidate, untouched OOS, replay, serve parity, sizing and shadow
+gates all pass.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
@@ -185,6 +189,9 @@ evidence; otherwise fail closed.
   metadata, lock, calibration, predictions, replay journal and audit events.
 - Validate file identity again at every authority boundary. A report saying
   `PASS` without proving its bound bytes is not evidence.
+- Source-wiring audits must validate the exact contract owner and actual use.
+  Do not require consumers to duplicate resolved mode/dimension literals merely
+  so a raw-text grep can find them; conversely, an unused import is not proof.
 - Newest terminal event for the same family wins. Newer red, malformed or
   incomplete evidence invalidates older green evidence.
 - Train/validation/test must be chronological and leakage-safe. Calibration
