@@ -28,6 +28,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_readiness_v1 import (
     model_native_readiness_contract_metadata,
 )
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    READY_DECISION as POST_REBUILD_READY_DECISION,
+    REQUIRED_PROOF_CHECKS as REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS,
+    SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
+)
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
@@ -36,7 +41,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 SPLITS = ("train", "val", "test")
 SCHEMA_VERSION = "entry_model_native_seq513_smoke_dataset_v2"
-SPLIT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_split_manifest_v2"
+SPLIT_SCHEMA_VERSION = "entry_model_native_seq513_split_manifest_v2"
 REPORT_SCHEMA_VERSION = "entry_model_native_seq513_smoke_manifest_v2"
 MANIFEST_VARIANT = MODEL_NATIVE_CONTRACT_MODE
 EXPECTED_SEQ_SNAP_WIDTH = MODEL_NATIVE_SIGNAL_DIM
@@ -45,14 +50,6 @@ SMART_SPECIALIST_CONTRACT_MODE = MODEL_NATIVE_CONTRACT_MODE
 EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
 _TIMESTAMPED_JSON_RE = re.compile(
     r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
-)
-POST_REBUILD_READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
-REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS = (
-    "smart rebuild preflight decision is ready",
-    "smart rebuild preflight proves feature harmony",
-    "smart rebuild preflight proves feature orchestration",
-    "smart rebuild preflight manifest hash matches post-rebuild manifest",
-    "smart rebuild preflight planned dataset matches audited dataset",
 )
 RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
 DEFAULT_MEMORY_CAP = "22G"
@@ -829,7 +826,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else {}
     )
     raw_dataset_dir = str(args.smart_smoke_dataset_dir or "").strip()
-    contract_dataset_dir = str(post_rebuild_refresh_contract.get("smart_smoke_dataset_dir") or "").strip()
+    contract_dataset_dir = str(post_rebuild_refresh_contract.get("smoke_dataset_dir") or "").strip()
     dataset_dir_source = "argument"
     dataset_dir_missing = not bool(raw_dataset_dir)
     dataset_dir = Path(raw_dataset_dir).expanduser().resolve()
@@ -903,8 +900,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check(
             "smart post-rebuild readiness decision is ready",
-            post_rebuild_readiness.get("decision") == POST_REBUILD_READY_DECISION,
-            {"decision": post_rebuild_readiness.get("decision"), "expected": POST_REBUILD_READY_DECISION},
+            post_rebuild_readiness.get("schema_version")
+            == POST_REBUILD_SCHEMA_VERSION
+            and post_rebuild_readiness.get("decision")
+            == POST_REBUILD_READY_DECISION,
+            {
+                "schema_version": post_rebuild_readiness.get("schema_version"),
+                "expected_schema_version": POST_REBUILD_SCHEMA_VERSION,
+                "decision": post_rebuild_readiness.get("decision"),
+                "expected": POST_REBUILD_READY_DECISION,
+            },
         ),
         _check(
             "smart post-rebuild readiness proves orchestration provenance",
@@ -918,10 +923,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check(
             "smart post-rebuild refresh contract points at this smoke dataset",
-            str(Path(str(post_rebuild_refresh_contract.get("smart_smoke_dataset_dir") or "")).expanduser().resolve())
+            str(Path(str(post_rebuild_refresh_contract.get("smoke_dataset_dir") or "")).expanduser().resolve())
             == str(dataset_dir),
             {
-                "reported_smart_smoke_dataset_dir": post_rebuild_refresh_contract.get("smart_smoke_dataset_dir"),
+                "reported_smoke_dataset_dir": post_rebuild_refresh_contract.get("smoke_dataset_dir"),
                 "actual_smart_smoke_dataset_dir": str(dataset_dir),
             },
         ),

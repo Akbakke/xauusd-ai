@@ -69,6 +69,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
@@ -427,8 +428,8 @@ def _dataset_manifest_contract(
             except RuntimeError as exc:
                 row_failures.append(str(exc))
         if payload:
-            if payload.get("schema_version") != "entry_model_native_seq513_smoke_split_manifest_v2":
-                row_failures.append("split manifest schema is not exact model-native smoke v1")
+            if payload.get("schema_version") != MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION:
+                row_failures.append("split manifest schema is not exact model-native seq513 v2")
             if payload.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE:
                 row_failures.append("split manifest contract mode mismatch")
             if int(payload.get("expected_seq_snap_width") or -1) != MODEL_NATIVE_SIGNAL_DIM:

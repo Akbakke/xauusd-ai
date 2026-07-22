@@ -1,6 +1,6 @@
 # XAUUSD model-native direction handover
 
-Updated 2026-07-21. This is the only GX1 handover document. Run
+Updated 2026-07-22. This is the only GX1 handover document. Run
 `bash scripts/gx1_handover.sh` once for the compact repository/launch/process
 snapshot, `--check` on continuations, and `--verbose` only when the full
 document must be printed again.
@@ -19,36 +19,54 @@ selection, mutable-latest evidence or soft compatibility path.
 
 ## Current terminal status
 
-**BLOCK.** There is no accepted fresh seq513 dataset/bundle and no launch
-authority. Candidate, replay, paper/demo/live and promotion remain closed.
+**BLOCK.** V19 is an accepted fresh seq513 dataset lineage, but there is no
+accepted model bundle or empirical direction-edge proof. Candidate, replay,
+paper/demo/live and promotion remain closed.
 
-### 2026-07-21 active rebuild incident
+### 2026-07-21/22 accepted rebuild and downstream incident
 
-V17 is the latest terminal attempt and is immutable `RED`; it must not be
-retried or resumed. Its fresh source reaches the last complete M5 bar at
-2026-07-21T18:40Z. The source audit passed on 392,979 x 188 FULL_PLUS rows:
-all 187 numeric fields were finite and live, with no constants or exact
-duplicates. Exact seq513 preflight and dataset materialization passed with
-train=369,081, val=5,904 and test=3,918. The exhaustive schema-v3 input
-liveness contract then passed all 513 signal fields, 142 continuous context
-fields, five categorical context fields and the target-completeness checks.
+V19 (`XAU_SEQ513_REBUILD_20260721_V19`) is the first accepted fresh dataset
+lineage. Its immutable terminal event is `GREEN`, exit zero, with reason
+`stopped at smoke gate`. The source reaches the last complete M5 bar at
+2026-07-21T20:00:00Z and contains 392,995 x 188 FULL_PLUS rows. All 187
+numeric source fields are live, finite and free of constants/exact duplicates;
+all five MTF caches bind full canonical-v3.
 
-V17 stopped at the pretrain audit because that consumer inferred instrument
-identity from whether the event-local directory name contained `xauusd`.
-The directory was correctly named `m5_tape_repaired_dec2024`; the immutable
-repair manifest and its source hashes were valid. This was a brittle
-path-name heuristic, not a data, feature or target failure. V17 remains RED
-because output-bearing lineages are never repaired in place.
+V19 then passed the exact TRAIN-only ranking, 513 manifest, preflight, all
+three dataset splits, exhaustive liveness and pretrain audit. Split sizes are
+369,081 TRAIN, 5,904 VAL and 3,934 TEST; every split binds 513 signals, 142
+continuous context fields, five categorical fields, exact XAU tape bytes and
+the same source/ranking identities. All 1,980 field/split liveness records
+validate. Every one of the 34 auxiliary target fields is live across splits,
+and target consistency has zero mismatches. June/July H4/D1 ATR shift is
+explicitly recorded as `SHIFT_OBSERVED`; it is real current-regime evidence,
+not a failure to be filled or normalized away.
 
-The heuristic has now been removed from the pretrain audit and trainer. The
-replacement `xau_tape_provenance_v1` contract requires explicit `XAU_USD`,
-the exact run id, producer method, zero geometry failures, exact collector/M5
-overlap, canonical M1/M5 manifest identity, every base/current year hash and
-every immutable collector-snapshot hash. Dataset manifests bind the complete
-proof and consumers revalidate it against disk. Repair/current tape schemas
-are v2, source-cascade proof is v5 and pretrain audit is v2; older schemas fail
-closed. All explicit non-XAU instrument references were removed from the GX1
-repository and active project hook. A wholly fresh V18 lineage is required.
+This is a dataset breakthrough, not a model breakthrough: V19 has not yet
+trained a model and proves no precision, OOS edge, cost robustness or live
+authority. V18 is immutable `RED`: its chain was stopped when a host clock
+rollback made the requested ranking filename appear in the future. No V18
+output may be reused. V17 and earlier lineages remain diagnostic only.
+
+The next routing audit found that smoke execution was impossible even after a
+green rebuild: it required a post-rebuild artifact whose producer had been
+deleted and a separate smoke-split schema no active producer could emit. The
+new `model-native-post-rebuild-readiness` owner binds V19's exact green
+terminal, preflight, liveness, pretrain and six canonical split artifacts. It
+requires smoke and source to be the same canonical dataset; no copied or
+parallel smoke dataset is admitted. Smoke manifest, readiness and
+trainability now consume that one contract. The launch validator, trainer,
+smoke-bundle audit and adoption-readiness all require V19's canonical split
+schema; the unproducible smoke-only split schema has no remaining consumer.
+
+The V19 source log also exposed 12 initial H1/H4 warmup rows being represented
+as neutral zero in legacy HTF alignment. Those rows were outside every V19
+model split, so they do not invalidate V19. Future dataset/live construction
+now exposes leading warmup as `NaN`, fails closed when no completed HTF bar is
+available, and uses one canonical causal path. An unreachable stateful branch
+with different shift semantics and all of its unused state fields were
+deleted. This closes a potential train/serve parity mismatch without changing
+V19's admitted rows.
 
 The active OANDA collector has been checked read-only through 2026-07-21:
 47,086 canonical-overlap M1 rows are bit-exact across all 13 numeric fields;
@@ -90,11 +108,10 @@ row. The earlier zero-copy commit `1a51ce42` raised complete feature throughput
 to about 2,062 rows/s; a 4,096-row block measured 1.99 seconds and was
 bit-identical to V10 output over 17 x 60 sampled values.
 
-No V1-V17 ranking, manifest, preflight, checkpoint, dataset or source artifact
-may be promoted or resumed. The next authority candidate is a wholly fresh
-V18 chain. Earlier runs remain failure/diagnostic evidence only; V17's full
-input-liveness PASS is genuine diagnostic proof but grants no training or
-launch authority.
+No V1-V18 ranking, manifest, preflight, checkpoint, dataset or source artifact
+may be promoted or resumed. V19 is the sole accepted dataset lineage and may
+advance only through the exact post-rebuild and empirical gates. Its dataset
+PASS grants no model, trading or launch authority.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
 another heavy run: the TRAIN-rank reference is created before ranking and
@@ -439,50 +456,44 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 ### Open decisions / next work
 
-1. No rebuild or training is in flight. Run the repaired one-owner chain from
-   one fresh event root; it materializes the exact-window ranking, signal
-   manifest, preflight and dataset under the same lineage. Accept only complete
-   terminal split/audit evidence. Zero FLAT predictions remains hard-red by
-   definition (DECISION_LOG 2026-07-17 abstention criterion).
-   After an accepted candidate exists, adaptation still requires fresh real
-   TEST reference, settled zero-order broker-shadow rows and the complete
-   immutable lifecycle, including paired incumbent/challenger shadow paths;
-   source tests are not a substitute.
+1. No training is in flight. V19 is the sole accepted dataset. Materialize its
+   post-rebuild readiness, run foundation feature/target/specialist audits,
+   then smoke manifest/readiness/trainability and the exact dry-run/execute
+   recipe. Zero FLAT predictions remains hard-red by definition (DECISION_LOG
+   2026-07-17 abstention criterion). After an accepted candidate exists,
+   adaptation still requires fresh TEST evidence, settled zero-order broker
+   shadow rows and paired incumbent/challenger lifecycle proof.
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
    the event copy is repaired) — separate decision; live Exit serves on it.
 3. Exit env-softeners (3 audit MEDIUMs), CI replacement, gx1/scripts sorting
    and hashing-helper consolidation remain post-smoke backlog. The former ctx
    v1/v3 builder dual-owner is resolved in source and adversarial tests; a fresh
    artifact cascade is still mandatory before it can claim empirical parity.
-4. Two commits may await push (permission prompts): check `git status -sb`.
+4. Recent-regime handling is not yet empirical. Compare full-history baseline
+   with an immutable TRAIN-only recent-regime fine-tune/calibration challenger;
+   June VAL selects, July TEST stays untouched until the declared final gate.
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse any invalidated V1-V12 lineage. Allocate one fresh
-   immutable `--run-id` bound into rank NPZ, sidecar, ranking, manifest, build
-   proof, state contract and all split manifests. The ID is provenance, not a
-   manual approval gate.
-2. Allocate one fresh immutable feature-ranking output path for the exact
-   active TRAIN window. Never discover or pre-populate it through a directory
-   glob or lexical/mtime "latest" selection.
-3. Invoke `scripts/run_seq513_rebuild_chain_v1.sh` with `--run-id`,
-   `--event-root`, `--feature-ranking-json`, `--preflight-out-dir` and all
-   seven explicit history/train/val/test boundaries. Both
-   caller-supplied target paths must be fresh. The driver creates the v4 rank
-   reference first, computes the ranking, then allocates the exact timestamped
-   manifest path at its producer boundary before preflight, dataset and
-   split/audit outputs. It never resumes
-   inferred debris; only its
-   exact hash-bound bounded checkpoint may be retried once after capped failure.
-4. Accept the rebuild only from the driver's terminal validated split
-   manifests. Console output, Telegram status, partial files and an earlier
-   preflight cannot substitute for them.
-5. Exact run-lineage-bound window: history start `2021-01-05T00:00:00Z`; TRAIN
-   `2021-03-16T00:00:00Z..2026-05-31T23:59:59Z`; validation
-   `2026-06-01..2026-06-30`; TEST `2026-07-01` through the snapshot's
-   explicit last closed M5 timestamp.
-6. `model-native-smoke-manifest` -> `model-native-smoke-readiness` ->
-   `model-native-smoke-train --run-id … --dry-run` then `--execute`.
+1. Do **not** reuse any invalidated V1-V18 lineage. Use only V19's exact paths
+   and hashes; never discover inputs through glob, mtime, symlink or mutable
+   `latest` selection.
+2. Run `model-native-post-rebuild-readiness` against V19's green terminal,
+   preflight, liveness, pretrain and six canonical split files/manifests. It
+   must prove source and smoke dataset directories are identical.
+3. Run the exact foundation feature, target and specialist audits on V19.
+   Accept only immutable PASS events bound to the same split bytes and seq513
+   structure manifest.
+4. Materialize `model-native-smoke-manifest`, then run
+   `model-native-smoke-readiness` and trainability/recipe audits without
+   changing dataset identity.
+5. Run `model-native-smoke-train` with run id
+   `XAU_SEQ513_REBUILD_20260721_V19` and `--dry-run`, validate the command
+   contract, then run the capped `--execute` path only if every upstream gate
+   is green.
+6. Compare a declared full-history baseline and TRAIN-only recent-regime
+   challenger. Use June validation for selection/calibration and preserve July
+   TEST for the final untouched evaluation.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.

@@ -24,6 +24,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-state",
     "model-native-state-selftest",
     "model-native-rebuild-preflight",
+    "model-native-post-rebuild-readiness",
     "model-native-adoption-candidate",
     "model-native-smoke-manifest",
     "model-native-smoke-readiness",
@@ -291,6 +292,40 @@ def test_rebuild_preflight_route_fails_before_dispatch_without_lineage_inputs() 
         )
         assert result.returncode == 2
         assert f"requires explicit {missing}" in result.stderr
+
+
+def test_post_rebuild_route_binds_terminal_audits_and_all_split_bytes() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    route = source.split(
+        "  model-native-post-rebuild-readiness)", 1
+    )[1].split("    ;;", 1)[0]
+
+    for flag in (
+        "--run-id",
+        "--event-root",
+        "--repo-dir",
+        "--chain-terminal-json",
+        "--rebuild-preflight-json",
+        "--full-input-liveness-json",
+        "--pretrain-audit-json",
+        "--dataset-dir",
+        "--smoke-dataset-dir",
+        "--train-manifest-json",
+        "--train-manifest-sha256",
+        "--train-parquet",
+        "--train-parquet-sha256",
+        "--val-manifest-json",
+        "--val-manifest-sha256",
+        "--val-parquet",
+        "--val-parquet-sha256",
+        "--test-manifest-json",
+        "--test-manifest-sha256",
+        "--test-parquet",
+        "--test-parquet-sha256",
+        "--out-dir",
+    ):
+        assert flag in route
+    assert "materialize_entry_model_native_seq513_post_rebuild_readiness_v1" in route
 
 
 def test_obsolete_mega_guardrails_and_plan_tombstone_are_deleted() -> None:

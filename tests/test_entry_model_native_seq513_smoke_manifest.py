@@ -120,9 +120,10 @@ def _post_rebuild(
         else "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_20260716T120000123456Z.json"
     )
     payload = {
+        "schema_version": gate.POST_REBUILD_SCHEMA_VERSION,
         "decision": decision,
         "post_rebuild_refresh_command_contract": {
-            "smart_smoke_dataset_dir": str(dataset_dir),
+            "smoke_dataset_dir": str(dataset_dir),
             "all_commands_avoid_training_replay_iql_shadow_live": True,
         },
         "checks": (

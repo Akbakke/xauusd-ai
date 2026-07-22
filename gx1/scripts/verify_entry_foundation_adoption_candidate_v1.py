@@ -51,6 +51,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import (
@@ -69,7 +70,7 @@ SMOKE_REPORT_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
 SMOKE_REPORT_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
 SMOKE_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST"
 SMOKE_DATASET_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
-SMOKE_SPLIT_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v2"
+SMOKE_SPLIT_SCHEMA = MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
 AUDIT_EVENT_PREFIXES = {
     "feature_audit": "ENTRY_FEATURE_FOUNDATION_AUDIT",
     "target_audit": "ENTRY_TARGET_FOUNDATION_AUDIT",

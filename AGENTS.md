@@ -11,32 +11,26 @@ contracts prove the required direction edge.
 Current Entry status is **BLOCK**. There is no accepted fresh seq513 bundle.
 Old Smart520, neutral-XGB, anchored Entry and Entry-IQL evidence is historical
 and cannot authorize a run or launch.
-V12 is terminal `ABORTED`, not PASS.
-It proved the Group-A history repair at full scale (`trimmed warmup rows=2207`)
-and built fresh train/val/test rows, but its source/test cutoff remained
-2026-06-14. When current OANDA data through 2026-07-21 became available, the
-slow liveness scan was stopped before it emitted an artifact. V12 is diagnostic
-evidence only. V13 proved the current-snapshot seam but used the trimmed
-model-range file instead of full canonical-v3 as the MTF-cache source; it is a
-rejected partial and never entered the dataset chain. V14 proved the current
-source cascade at 2026-07-21T17:00Z (392,959 rows x 188, all 187 numeric fields
-live and exact full-v3 ownership for all five MTF caches), completed TRAIN-only
-ranking and materialized all three seq513 splits. Its schema-v2 liveness policy
-then rejected genuine rare impulses, one-state chronological OOS regime windows
-and an aggregate ATR distribution shift. Direct source comparison proved that
-the values were genuine; this was an audit-semantics defect, not permission to
-alter OOS data. V14 is terminal `RED`, and its wrapper's attempted same-lineage
-retry was invalid because immutable split/audit output already existed. The
-repaired schema-v3 liveness/retry contracts require a wholly fresh lineage.
-V15 then stopped before manifest because its caller supplied a ranking filename
-timestamp in the future. V16 passed ranking and the exact 513 manifest, but
-preflight correctly rejected its finite context surface: model-range started
-2021-01-04, context warmup moved the first usable row to 2021-01-14, after the
-required 2021-01-05 common-history boundary. Both are terminal `RED`. Source
-audit schema v4 and the chain's initial contract validation now reject a future
-ranking stamp or a source that does not already cover history/test before any
-ranking work. V17 must rebuild model-range from 2020-11-13, as proven by V14.
-No V14-V16 artifact has model or launch authority or may be resumed.
+V19 is the first accepted fresh current-data dataset lineage. Its immutable
+chain terminal is `GREEN` and intentionally stopped at the smoke gate. It
+binds exact `XAU_USD` M1/M5 tape provenance, source cascade v5, TRAIN-only
+ranking, 513 ordered signals, 142 continuous context fields, five categorical
+fields, all three chronological split manifests, exhaustive schema-v3 input
+liveness and pretrain audit v2. The splits contain 369,081 TRAIN, 5,904 VAL
+and 3,934 TEST rows through 2026-07-21T20:00:00Z. All 1,980 field/split
+liveness records validate; June/July H4/D1 ATR shift is recorded as genuine
+OOD diagnostic evidence, not rewritten or waived.
+
+V19 proves dataset integrity and learnable input coverage, not direction edge,
+precision or launch authority. No model has yet been trained on V19. V18 is
+terminal `RED` because a host clock rollback made its requested ranking
+filename temporally impossible; it has no reusable output. V17 and all earlier
+lineages remain immutable failure/diagnostic evidence. The post-rebuild smoke
+route now consumes the same canonical V19 dataset instead of a nonexistent
+legacy smoke split, and H1/H4 construction has one causal alignment path:
+historical warmup is explicit `NaN`, while absent completed HTF evidence fails
+closed. Launch remains `BLOCK` until smoke, candidate, untouched OOS, replay,
+serve parity, sizing and shadow gates all pass.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

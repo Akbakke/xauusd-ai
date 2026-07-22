@@ -50,9 +50,8 @@ def test_smart_direction_repair_contract_is_consistent_across_gates() -> None:
 
 def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) -> argparse.Namespace:
     smart_dataset_dir = tmp_path / "v10_dataset_smart_candidate_20260630"
-    smart_smoke_dataset_dir = tmp_path / "v10_dataset_smart_seq513_model_native_smoke"
+    smart_smoke_dataset_dir = smart_dataset_dir
     smart_dataset_dir.mkdir()
-    smart_smoke_dataset_dir.mkdir()
     full_input_liveness_path, full_input_liveness, _ = write_full_input_liveness_fixture(
         tmp_path / "full_input_liveness",
         dataset_dir=smart_dataset_dir,
@@ -107,10 +106,11 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
     _write_json(
         tmp_path / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_20260716T120002123456Z.json",
         {
-            "decision": "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW",
+            "schema_version": readiness.POST_REBUILD_SCHEMA_VERSION,
+            "decision": readiness.POST_REBUILD_READY_DECISION,
             "dataset_dir": str(smart_dataset_dir),
             "post_rebuild_refresh_command_contract": {
-                "smart_smoke_dataset_dir": str(smart_smoke_dataset_dir),
+                "smoke_dataset_dir": str(smart_smoke_dataset_dir),
             },
             "full_input_liveness_contract": {
                 "path": str(full_input_liveness_path),
@@ -224,7 +224,7 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
                     "rows": 16,
                     **split_artifacts[split],
                     "split_manifest_schema_version": (
-                        "entry_model_native_seq513_smoke_split_manifest_v2"
+                        readiness.SMOKE_SPLIT_MANIFEST_SCHEMA
                     ),
                 }
                 for split in ("train", "val", "test")

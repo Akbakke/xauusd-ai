@@ -333,13 +333,13 @@ def _validate_source_bindings(
     )
 
 
-def _validate_split_manifest(manifest: Mapping[str, Any], *, path: Path, parquet: Path, profile: str) -> None:
-    expected_schema = (
-        "entry_model_native_seq513_smoke_split_manifest_v2"
-        if profile == "smoke"
-        else MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+def _validate_split_manifest(
+    manifest: Mapping[str, Any], *, path: Path, parquet: Path
+) -> None:
+    _require(
+        manifest.get("schema_version") == MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+        f"split manifest schema mismatch: {path}",
     )
-    _require(manifest.get("schema_version") == expected_schema, f"split manifest schema mismatch: {path}")
     _require(manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, f"split manifest mode mismatch: {path}")
     _require(int(manifest.get("expected_seq_snap_width") or 0) == MODEL_NATIVE_SIGNAL_DIM, f"split manifest width mismatch: {path}")
     _require(Path(str(manifest.get("output_data_path") or "")).resolve() == parquet, f"split manifest output path mismatch: {path}")
@@ -707,7 +707,6 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
             payloads[f"{split}_manifest_json"],
             path=artifacts[f"{split}_manifest_json"],
             parquet=artifacts[f"{split}_parquet"],
-            profile=profile,
         )
     _validate_audits(artifacts, payloads, dataset_dir=dataset_dir, profile=profile)
 

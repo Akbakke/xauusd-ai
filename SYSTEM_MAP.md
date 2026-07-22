@@ -431,18 +431,21 @@ Current facts:
   until 2021-03-15: D1 liquidity was reset at the Jan-5 decision slice;
 - commit `4134ca19` supplies and SHA-binds a full causal M5 prefix with exact
   decision OHLC checks, and mirrors full-prefix-before-slice in live. V14
-  proved it at current-data dataset scale; V17 must repeat it under the repaired
-  liveness and early-history contracts and there is no direction fallback;
+  first proved it at current-data dataset scale, and V19 now proves it in the
+  accepted split/liveness lineage; there is no direction fallback;
 
 - source contracts and focused tests prove the intended exact architecture;
-- no accepted fresh seq513 dataset/bundle/OOS result exists;
-- no seq513 rebuild chain or training process is running;
+- V19 is the sole accepted fresh seq513 dataset lineage: its GREEN terminal,
+  exact XAU tape provenance, source/ranking/preflight, 513+142+5 split bytes,
+  exhaustive liveness and pretrain audit all agree through
+  2026-07-21T20:00:00Z;
+- no accepted bundle/OOS edge result exists and no training process is running;
 - V14 source, TRAIN-only ranking and all three dataset splits completed, but
   schema-v2 liveness misclassified sparse impulses and genuine one-state OOS
   regimes, then the wrapper attempted an invalid retry after immutable output
   existed. V14 is terminal RED. Schema-v3 repairs the semantics and retry
-  boundary. V15/V16 subsequently failed immutable timestamp/history coverage
-  gates; a fresh V17 lineage from raw model-range start 2020-11-13 is required;
+  boundary. V15/V16/V17/V18 subsequently failed immutable timestamp, history,
+  tape-identity or clock-order gates; none may be reused;
 - V11 completed source/ranking/manifest/preflight but is terminal RED at
   `MODEL_NATIVE_COMMON_HISTORY_WARMUP_INSUFFICIENT` (1 clean pre-TRAIN row vs
   95 required). Its 60 Group-A/dip/structure outputs reset 60-D1 liquidity at
@@ -453,11 +456,11 @@ Current facts:
   attempts were terminated and invalidated after a reused feature-ranking
   TRAIN window (`2020-11-13..2026-03-31`) was found to mismatch the active
   TRAIN window (`2021-03-16..2026-03-31`);
-- invalidated V1-V12 lineages are historical failure/diagnostic evidence and cannot
-  be reused; the next chain must allocate a wholly fresh immutable run ID;
-- no rebuild process is running; partial event artifacts have no authority,
-  and schema-v2 `CHAIN_STATUS.json` terminally records `RED` with reason
-  `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` and bound hashes;
+- invalidated V1-V18 lineages are historical failure/diagnostic evidence and
+  cannot be reused; V19 may advance only through exact downstream gates;
+- no rebuild process is running; V19's immutable chain terminal is GREEN and
+  intentionally stopped at the smoke gate, which grants dataset but not model
+  or launch authority;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
   detached feature modules, manual sizing modules and stale research launchers
   have been deleted rather than retained as alternatives;
@@ -472,13 +475,19 @@ Current facts:
   pre-rebuild gate. The old report-only abstention verifier/control route is
   deleted; fresh candidate TEST rows must instead pass the current immutable
   proxy comparison plus absolute OOT/cost/live-like gates;
+- post-rebuild readiness is a first-class producer binding V19's terminal,
+  preflight, liveness, pretrain and six split artifacts; smoke must use the same
+  canonical dataset rather than a separately copied smoke split;
+- H1/H4 has one causal full-array alignment owner. Leading warmup remains NaN,
+  no completed HTF evidence fails closed, and the unreachable stateful branch
+  with conflicting shift semantics has been removed;
 - Entry candidate, replay, paper/demo/live and promotion remain blocked.
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-21 etter at V1-V11 ble ugyldiggjort. Ingen av forsøkene
-ga en godkjent datasettartefakt; kartet beskriver den herdede, påkrevde
-artefakt-DAG-en og kolonne-eierskapet. Les dette FØR du rg-jakter i builderen.
+Oppdatert 2026-07-22 etter at V19 ga den første godkjente datasettartefakten.
+Kartet beskriver den herdede, påkrevde artefakt-DAG-en og kolonne-eierskapet.
+Les dette FØR du rg-jakter i builderen.
 
 ### Artefakt-DAG (produsent → output)
 
@@ -504,7 +513,7 @@ cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
 reparert tape + cv2 + cv3 + modelrange + cache + FULL_PLUS
   └─ gx1.scripts.audit_seq513_source_cascade_v1 --run-id --event-root --out
         --required-history-start --expected-full-time-min --expected-full-time-max
-        → fersk schema-v4 hashbundet SOURCE_CASCADE_PROOF.json; alle self-paths må være
+        → fersk schema-v5 hashbundet SOURCE_CASCADE_PROOF.json; alle self-paths må være
           event-lokale og den ferdige finite flaten må dekke common-history-start
 FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
       └─ materialize_model_native_train_rank_reference_v2
@@ -530,6 +539,12 @@ resume, glob/mtime eller leksikalsk latest.
 Kun én eksakt hash-bundet checkpoint-retry er tillatt etter capped feil.
 Telegram-ping er kun operasjonell status; validerte split-manifester er
 terminal autoritet.
+V19-terminal + preflight + liveness + pretrain + seks split-filer/manifester
+  └─ entry_next_edge_control.sh model-native-post-rebuild-readiness
+        → immutable post-rebuild readiness; source_dataset_dir == smoke_dataset_dir
+      └─ foundation feature/target/specialist audits
+          └─ model-native-smoke-manifest → smoke-readiness → trainability/recipe
+              → model-native-smoke-train --dry-run → capped --execute
 ```
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
@@ -581,7 +596,7 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
-- Neste V17-vinduskontrakt har rå model-range-start 2020-11-13 og ferdig
+- V19-vinduskontrakten har rå model-range-start 2020-11-13 og ferdig
   common-history-start 2021-01-05. V15 beviste framtidsstempel-fellen og V16
   beviste at model-range-start 2021-01-04 gir for sen finite start 2021-01-14;
   begge er terminal RED. Kjeden avviser nå begge feil før ranking. TRAIN er

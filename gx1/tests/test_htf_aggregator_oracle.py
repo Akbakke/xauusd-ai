@@ -284,27 +284,18 @@ class TestHTFAlignmentEquivalence:
         m5_index = pd.to_datetime(timestamps_sec, unit='s', utc=True)
         aligned_pandas = h1_feature_series.reindex(m5_index, method="ffill")
         
-        # Shift(1): use previous bar's value
-        aligned_pandas_shifted = aligned_pandas.shift(1).fillna(0.0)
-        
-        # Compare: skip warmup period (where NumPy has 0.0 but pandas may have NaN)
-        # Find first index where both have valid values
-        numpy_valid = aligned_numpy != 0.0
-        pandas_valid = ~np.isnan(aligned_pandas_shifted.values)
-        both_valid = numpy_valid & pandas_valid
-        
-        if np.any(both_valid):
-            # Compare only where both have valid values
-            numpy_vals = aligned_numpy[both_valid]
-            pandas_vals = aligned_pandas_shifted.values[both_valid]
-            max_diff = np.max(np.abs(numpy_vals - pandas_vals))
-            assert max_diff < 1e-6, (
-                f"H1 alignment mismatch: max_diff={max_diff}, "
-                f"first_valid_idx={np.where(both_valid)[0][0] if np.any(both_valid) else None}"
-            )
-        
-        # First element should be 0.0 (after shift)
-        assert aligned_numpy[0] == 0.0, "First element should be 0.0 after shift"
+        # Shift(1): use previous M5 row's causal alignment. Warmup remains
+        # unavailable (NaN); it must never masquerade as neutral evidence.
+        aligned_pandas_shifted = aligned_pandas.shift(1)
+
+        np.testing.assert_allclose(
+            aligned_numpy,
+            aligned_pandas_shifted.values,
+            rtol=0.0,
+            atol=1e-6,
+            equal_nan=True,
+        )
+        assert np.isnan(aligned_numpy[0]), "First element must expose warmup as NaN"
     
     def test_h4_alignment_equivalence(self):
         """Test H4 alignment matches pandas reindex/ffill/shift."""
@@ -333,20 +324,16 @@ class TestHTFAlignmentEquivalence:
             index=pd.to_datetime(h4_close_times, unit='s', utc=True)
         )
         m5_index = pd.to_datetime(timestamps_sec, unit='s', utc=True)
-        aligned_pandas = h4_feature_series.reindex(m5_index, method="ffill").shift(1).fillna(0.0)
-        
-        # Compare: skip warmup period
-        numpy_valid = aligned_numpy != 0.0
-        pandas_valid = ~np.isnan(aligned_pandas.values)
-        both_valid = numpy_valid & pandas_valid
-        
-        if np.any(both_valid):
-            numpy_vals = aligned_numpy[both_valid]
-            pandas_vals = aligned_pandas.values[both_valid]
-            max_diff = np.max(np.abs(numpy_vals - pandas_vals))
-            assert max_diff < 1e-6, f"H4 alignment mismatch: max_diff={max_diff}"
-        
-        assert aligned_numpy[0] == 0.0, "First element should be 0.0 after shift"
+        aligned_pandas = h4_feature_series.reindex(m5_index, method="ffill").shift(1)
+
+        np.testing.assert_allclose(
+            aligned_numpy,
+            aligned_pandas.values,
+            rtol=0.0,
+            atol=1e-6,
+            equal_nan=True,
+        )
+        assert np.isnan(aligned_numpy[0]), "First element must expose warmup as NaN"
 
 
 class TestHTFEdgeCases:
@@ -378,7 +365,7 @@ class TestHTFEdgeCases:
             )
     
     def test_warmup_before_first_htf_close_live(self):
-        """Test live mode: return zeros with warning when warmup not satisfied."""
+        """Test live mode: hard fail when no completed HTF evidence exists."""
         # Same setup as above
         start_ts = int(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
         timestamps_sec = np.array([start_ts + i * 300 for i in range(11)], dtype=np.int64)
@@ -393,13 +380,28 @@ class TestHTFEdgeCases:
         
         h1_feature = h1_close.copy() if len(h1_close) > 0 else np.array([], dtype=np.float64)
         
-        # In live mode, should return zeros (no exception)
-        aligned = _align_htf_to_m5_numpy(
-            h1_feature, h1_close_times, timestamps_sec, is_replay=False
+        with pytest.raises(RuntimeError, match="warmup not satisfied"):
+            _align_htf_to_m5_numpy(
+                h1_feature, h1_close_times, timestamps_sec, is_replay=False
+            )
+
+    def test_leading_warmup_is_nan_then_finite(self):
+        """A historical prefix is explicit NaN and the valid suffix is finite."""
+        start_ts = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
+        m5_timestamps = np.array(
+            [start_ts + i * 300 for i in range(26)], dtype=np.int64
         )
-        
-        # Should be all zeros (no completed HTF bars)
-        assert np.all(aligned == 0.0), "Live mode should return zeros when warmup not satisfied"
+        close_times = np.array([start_ts + 3600, start_ts + 7200], dtype=np.int64)
+        values = np.array([11.0, 22.0], dtype=np.float64)
+
+        aligned = _align_htf_to_m5_numpy(
+            values, close_times, m5_timestamps, is_replay=True
+        )
+
+        first_finite = int(np.flatnonzero(np.isfinite(aligned))[0])
+        assert np.all(np.isnan(aligned[:first_finite]))
+        assert np.all(np.isfinite(aligned[first_finite:]))
+        assert aligned[first_finite] == 11.0
     
     def test_bucket_boundary_exact_close_time(self):
         """Test M5 bar exactly on HTF close_time."""

@@ -29,6 +29,10 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     RECIPE_AUDIT_SCHEMA,
 )
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    READY_DECISION as POST_REBUILD_READY_DECISION,
+    SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
@@ -668,7 +672,7 @@ def _fresh_source_identity_contract(post_rebuild: dict[str, Any], smoke_readines
     )
     smoke_inputs = smoke_readiness.get("inputs") if isinstance(smoke_readiness.get("inputs"), dict) else {}
     source_dataset = _path_str(post_rebuild.get("dataset_dir"))
-    post_smoke_dataset = _path_str(post_contract.get("smart_smoke_dataset_dir"))
+    post_smoke_dataset = _path_str(post_contract.get("smoke_dataset_dir"))
     readiness_source_dataset = _path_str(smoke_inputs.get("smart_dataset_dir"))
     readiness_smoke_dataset = _path_str(smoke_inputs.get("smart_smoke_dataset_dir"))
     train_argv = future_train.get("wrapper_argv_template")
@@ -856,7 +860,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_wrapper_tail_direction_review = _wrapper_tail_direction_env_review(candidate_wrapper_text)
 
     checks = [
-        _check("smart post-rebuild dataset audit is ready", post_rebuild.get("decision") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW", post_rebuild.get("decision")),
+        _check(
+            "model-native post-rebuild dataset audit is ready",
+            post_rebuild.get("schema_version") == POST_REBUILD_SCHEMA_VERSION
+            and post_rebuild.get("decision") == POST_REBUILD_READY_DECISION,
+            {
+                "schema_version": post_rebuild.get("schema_version"),
+                "decision": post_rebuild.get("decision"),
+            },
+        ),
         _check(
             "model-native seq513 smoke readiness is ready",
             smoke_readiness.get("decision")

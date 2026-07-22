@@ -30,7 +30,7 @@ def _write(path: Path, text: str) -> Path:
 def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
     if not wired:
         return {}
-    smoke_dataset = f"{source_dataset}_smoke"
+    smoke_dataset = source_dataset
     out_bundle = str(
         Path(source_dataset).parent / "v10_entry_model_native_seq513_smoke_<STAMP>"
     )
@@ -100,7 +100,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
     source_dataset = str(
         (tmp_path / "fresh_rebuild" / "v10_dataset_6yr_smartctx_xau_direction_repair").resolve()
     )
-    smoke_dataset = f"{source_dataset}_smoke"
+    smoke_dataset = source_dataset
     full_input_liveness_path, full_input_liveness, _ = write_full_input_liveness_fixture(
         tmp_path / "full_input_liveness",
         dataset_dir=Path(source_dataset),
@@ -120,14 +120,15 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
     _write_json(
         post_rebuild,
         {
+            "schema_version": gate.POST_REBUILD_SCHEMA_VERSION,
             "decision": (
-                "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
+                gate.POST_REBUILD_READY_DECISION
                 if wired
                 else "BLOCKED_BY_ENTRY_SMART_DATASET_POST_REBUILD_AUDIT"
             ),
             "dataset_dir": source_dataset,
             "post_rebuild_refresh_command_contract": {
-                "smart_smoke_dataset_dir": smoke_dataset,
+                "smoke_dataset_dir": smoke_dataset,
             },
             "full_input_liveness_contract": {
                 "path": str(full_input_liveness_path),

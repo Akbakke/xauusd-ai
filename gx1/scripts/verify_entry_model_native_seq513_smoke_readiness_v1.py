@@ -44,6 +44,10 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     RECIPE_AUDIT_SCHEMA,
 )
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    READY_DECISION as POST_REBUILD_READY_DECISION,
+    SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
@@ -70,7 +74,7 @@ EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS"
 SMOKE_MANIFEST_READY_DECISION = "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
 SMOKE_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_manifest_v2"
 SMOKE_DATASET_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_dataset_v2"
-SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_model_native_seq513_smoke_split_manifest_v2"
+SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_model_native_seq513_split_manifest_v2"
 _TIMESTAMPED_JSON_RE = re.compile(
     r"^.+_\d{8}T\d{6}(?:\d{6})?Z\.json$"
 )
@@ -1003,8 +1007,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart post-rebuild readiness is ready",
-                    post_rebuild.get("decision") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW",
-                    {"decision": post_rebuild.get("decision")},
+                    post_rebuild.get("schema_version")
+                    == POST_REBUILD_SCHEMA_VERSION
+                    and post_rebuild.get("decision")
+                    == POST_REBUILD_READY_DECISION,
+                    {
+                        "schema_version": post_rebuild.get("schema_version"),
+                        "decision": post_rebuild.get("decision"),
+                    },
                 ),
                 _check(
                     "smart post-rebuild binds exact full-input liveness artifact",
@@ -1030,9 +1040,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 _check(
                     "smart post-rebuild contract points at selected smoke dataset",
-                    _path_equals(post_rebuild_contract.get("smart_smoke_dataset_dir"), smart_smoke_dataset_dir),
+                    _path_equals(post_rebuild_contract.get("smoke_dataset_dir"), smart_smoke_dataset_dir),
                     {
-                        "contract_smart_smoke_dataset_dir": post_rebuild_contract.get("smart_smoke_dataset_dir"),
+                        "contract_smoke_dataset_dir": post_rebuild_contract.get("smoke_dataset_dir"),
                         "expected": str(smart_smoke_dataset_dir),
                     },
                 ),

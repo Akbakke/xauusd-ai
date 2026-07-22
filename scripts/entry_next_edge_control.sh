@@ -18,6 +18,7 @@ Model-native seq513 evidence:
   model-native-state
   model-native-state-selftest
   model-native-rebuild-preflight
+  model-native-post-rebuild-readiness
   model-native-adoption-candidate
   model-native-smoke-manifest
   model-native-smoke-readiness
@@ -154,6 +155,36 @@ case "$cmd" in
   model-native-rebuild)
     reject_non_authoritative_args "$@"
     exec "$REPO/scripts/rebuild_entry_model_native_seq513_dataset.sh" "$@"
+    ;;
+
+  model-native-post-rebuild-readiness)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --run-id \
+      --event-root \
+      --repo-dir \
+      --chain-terminal-json \
+      --rebuild-preflight-json \
+      --full-input-liveness-json \
+      --pretrain-audit-json \
+      --dataset-dir \
+      --smoke-dataset-dir \
+      --train-manifest-json \
+      --train-manifest-sha256 \
+      --train-parquet \
+      --train-parquet-sha256 \
+      --val-manifest-json \
+      --val-manifest-sha256 \
+      --val-parquet \
+      --val-parquet-sha256 \
+      --test-manifest-json \
+      --test-manifest-sha256 \
+      --test-parquet \
+      --test-parquet-sha256 \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 "$@"
     ;;
 
   model-native-adoption-candidate)

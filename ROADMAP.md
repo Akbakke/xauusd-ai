@@ -1,6 +1,6 @@
 # GX1 XAUUSD model-native roadmap
 
-Updated 2026-07-21. This is the execution roadmap, not launch authority.
+Updated 2026-07-22. This is the execution roadmap, not launch authority.
 PROJECT_STATE_xau_direction_launch.json remains BLOCK until every immutable
 empirical gate below passes for one exact bundle.
 
@@ -14,30 +14,22 @@ live rule or fallback.
 
 ## Current state
 
-There is no accepted dataset or model lineage. V1-V13 are non-authoritative failure
-or diagnostic evidence. V12 proved the full-history repair and built all three
-splits, but was deliberately terminalized `ABORTED` before liveness PASS when
-its 2026-06-14 cutoff was found stale. No dataset, bundle, candidate, OOS edge
-or launch evidence is accepted.
+V19 is the first accepted fresh dataset lineage. Its immutable chain terminal
+is GREEN and stopped intentionally at the smoke gate. Source, TRAIN-only
+ranking, exact 513 manifest, preflight, 369,081 TRAIN / 5,904 VAL / 3,934 TEST
+rows, exhaustive 513+142+5 liveness and all 34 auxiliary-target checks bind
+the same XAU tape and end at 2026-07-21T20:00:00Z. June/July H4/D1 volatility
+shift is retained as `SHIFT_OBSERVED` evidence. There is still no accepted
+bundle, candidate, untouched OOS edge or launch evidence.
 
-V13 was rejected before dataset construction because its MTF cache used
-`cv3_modelrange` rather than full canonical-v3. V14 rebuilt from a fresh event
-and passed its source cascade through 2026-07-21T17:00Z. TRAIN-only ranking
-passed, and it materialized 369,081 TRAIN, 5,904 VAL and 3,898 TEST rows with
-exact 513+142+5 surfaces. Schema-v2 liveness then emitted a genuine FAIL
-artifact: its per-split one-percent rule misclassified rare EMA/CHoCH/D1
-impulses and a legitimate one-state June D1 regime, while its aggregate-TRAIN
-ATR comparison flagged current values covered by recent TRAIN. V14 is terminal
-RED. Schema-v3 now separates strict TRAIN learnability from untouched OOS state
-coverage, retains exact full scans and unknown-category rejection, records ATR
-shift diagnostically, and forbids same-lineage retry after any split/audit
-output exists. V15 was terminalized before manifest because its requested
-ranking filename timestamp was in the future. V16 passed ranking/manifest but
-preflight rejected its context-trimmed source beginning 2021-01-14, after the
-declared 2021-01-05 history boundary. The source auditor and chain now catch
-both conditions before ranking. A fresh V17 must start raw model-range at
-2020-11-13 so the finite surface covers history start. The chain has no default
-end date.
+V18 is terminal RED because a host clock rollback made its ranking timestamp
+temporally impossible. V1-V18 remain failure/diagnostic evidence and cannot be
+resumed or promoted. The downstream audit found and repaired an impossible
+smoke route: the new post-rebuild readiness producer consumes V19's exact
+terminal/preflight/liveness/pretrain/split evidence and requires smoke to use
+the same canonical dataset. A second audit removed an unreachable H1/H4
+stateful branch whose shift semantics differed from the active array path.
+Warmup is now explicit NaN and no completed HTF evidence fails closed.
 
 The history-boundary repair was exercised successfully by V14 at full scale.
 Group-A consumes an explicit full causal M5 prefix, validates
@@ -57,16 +49,16 @@ resume inputs.
 
 ## Ordered gates
 
-1. Start a wholly fresh current-data V17 lineage from the repaired contracts;
-   rerun source/ranking/dataset and prove the exclusive runner, bounded
-   checkpoints and immutable terminal event under the 30 GiB cgroup.
-2. Accept only a fresh dataset whose split manifests, full-input liveness,
-   target, specialist, leakage and pretrain audits all bind the same bytes.
+1. Materialize V19 post-rebuild readiness, then run foundation feature, target
+   and specialist audits against its exact split bytes.
+2. Run smoke manifest, smoke readiness, trainability and recipe audits. Any
+   copied dataset, stale schema, hash drift or different source/smoke identity
+   stops the path.
 3. Run smoke training, calibration and bundle audit with the exact recipe.
    Compare full-history training against a declared recent-regime adaptation
    phase; the trainer currently has no generic recency weighting, so no
    freshness claim is allowed until that candidate is implemented and wins on
-   untouched OOS evidence.
+   validation and then untouched OOS evidence.
 4. Train/evaluate a candidate only if smoke evidence is green; require OOS
    calibration, support, costs, TOP/BOTTOM timing, Q/V/Advantage, specialist,
    context and timeframe influence evidence.

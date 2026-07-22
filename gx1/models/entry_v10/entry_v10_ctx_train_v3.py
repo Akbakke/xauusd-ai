@@ -1512,11 +1512,6 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
 }
-_SMOKE_SPLIT_MANIFEST_SCHEMA_VERSION = (
-    "entry_model_native_seq513_smoke_split_manifest_v2"
-)
-
-
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
     if not raw.is_absolute():
@@ -1551,6 +1546,9 @@ def _resolve_explicit_train_split_artifacts(
     profile: str,
 ) -> Tuple[Dict[str, Path], Dict[str, Path]]:
     """Verify the six launch-bound dataset artifacts without discovery/inference."""
+
+    if profile not in ("smoke", "candidate"):
+        raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
 
     manifests = {
         "train": _explicit_regular_artifact(train_manifest, label="train_manifest"),
@@ -1596,12 +1594,7 @@ def _resolve_explicit_train_split_artifacts(
             ) from exc
         if not isinstance(payload, dict):
             raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_NOT_OBJECT] {split}")
-        expected_schema = (
-            _SMOKE_SPLIT_MANIFEST_SCHEMA_VERSION
-            if profile == "smoke"
-            else MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
-        )
-        if payload.get("schema_version") != expected_schema:
+        if payload.get("schema_version") != MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION:
             raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_SCHEMA_MISMATCH] {split}")
         if payload.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE:
             raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_MANIFEST_MODE_MISMATCH] {split}")

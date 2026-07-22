@@ -75,11 +75,7 @@ def _split_manifest(path: Path, parquet: Path, *, profile: str) -> Path:
     return _write_json(
         path,
         {
-            "schema_version": (
-                "entry_model_native_seq513_smoke_split_manifest_v2"
-                if profile == "smoke"
-                else MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
-            ),
+            "schema_version": MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "output_data_path": str(parquet.resolve()),

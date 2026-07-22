@@ -576,3 +576,47 @@ The command hook is now GX1-local and retains only its Git/secret safety floor.
 Runtime market identity belongs to the model/data contracts, not path-name
 blacklists. Explicit references to instruments outside GX1 were removed from
 the repository and active hook; negative tests use an abstract invalid token.
+
+## 2026-07-22 — V18 is clock-order RED; V19 is the accepted dataset lineage
+
+V18 rebuilt current source successfully but could not cross the fresh-ranking
+boundary after the host clock moved backwards by roughly 22 seconds. The
+requested immutable ranking filename then appeared to be from the future. The
+contract correctly terminalized the lineage RED; no V18 partial may be reused.
+
+V19 rebuilt independently under source revision
+`d2c44fa94c447b9c7d9bf23740b0a811d02c8c62`. Its chain terminal is GREEN and
+states `stopped at smoke gate`. The lineage binds exact XAU tape provenance,
+392,995 x 188 finite/live source rows through 2026-07-21T20:00:00Z, full-v3
+five-timeframe caches, TRAIN-only ranking, exact 513 manifest and 369,081 /
+5,904 / 3,934 chronological TRAIN/VAL/TEST rows. Exhaustive input liveness
+validates all 1,980 field/split records; pretrain validates all 34 auxiliary
+targets and zero consistency mismatches. June/July H4/D1 ATR shift is retained
+as `SHIFT_OBSERVED`. V19 is accepted dataset evidence only. It contains no
+trained model and grants no direction-edge, bundle or launch authority.
+
+## 2026-07-22 — post-rebuild smoke uses the canonical dataset or fails closed
+
+The post-V19 ownership audit found an impossible downstream route: smoke
+required a legacy readiness artifact whose producer had been deleted and a
+separate smoke-split schema no active producer could create. A new immutable
+post-rebuild readiness producer now validates the exact V19 green terminal,
+preflight, full-input liveness, pretrain audit and six split files/manifests.
+It requires `source_dataset_dir == smoke_dataset_dir`; copied, parallel or
+schema-divergent smoke datasets are rejected. Smoke manifest, readiness and
+trainability consume this contract through the single Entry control surface.
+The launch validator, trainer, smoke-bundle audit and adoption-readiness now
+all require the same canonical `entry_model_native_seq513_split_manifest_v2`;
+the unproducible smoke-only split schema is removed end to end.
+
+## 2026-07-22 — unavailable HTF evidence is not a neutral zero
+
+V19 source logs disclosed 12 leading M5 rows before completed H1/H4 evidence.
+They were outside every admitted model split, but the legacy builder represented
+them as zero. Future construction instead keeps the historical warmup prefix
+as NaN so the causal trim contract owns it, and live construction raises when
+no completed HTF evidence exists. The repository also contained an unreachable
+stateful alignment branch with no constructor/caller and with `j-1` HTF-bar
+semantics, while the active path shifted one M5 row. That branch and its unused
+state fields are deleted. H1 and H4 now share one causal alignment owner, so
+dataset/serve parity cannot silently depend on which branch happened to run.

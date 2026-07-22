@@ -261,27 +261,16 @@ def _align_htf_to_m5_numpy(
         is_replay: If True, hard fail on warmup not satisfied
     
     Returns:
-        Aligned values (float64 array), shifted by 1 (first element = 0.0)
+        Aligned values (float64 array), shifted by 1.  A strict historical
+        warmup prefix remains NaN and must be trimmed before model input.
     """
     # PATCH: Per-call timing instrumentation (non-breaking)
     t_align_call_start = time.perf_counter()
     
     if len(htf_close_times) == 0:
-        # No completed HTF bars
-        if is_replay:
-            raise RuntimeError("HTF alignment: No completed HTF bars available (warmup not satisfied)")
-        # Live mode: return zeros with warning
-        import logging
-        log = logging.getLogger(__name__)
-        log.warning("HTF alignment: No completed HTF bars available, returning zeros")
-        result = np.zeros(len(m5_timestamps), dtype=np.float64)
-        # PATCH: Record timing even for early return
-        t_align_call_end = time.perf_counter()
-        if is_replay:
-            from gx1.utils.perf_timer import perf_add
-            perf_add("feat.htf_align.call_total", t_align_call_end - t_align_call_start)
-            perf_add("feat.htf_align.call_count", 1.0)
-        return result
+        raise RuntimeError(
+            "HTF alignment: No completed HTF bars available (warmup not satisfied)"
+        )
     
     # Use searchsorted to find last completed HTF bar for each M5 timestamp
     # searchsorted(htf_close_times, t, side="right") - 1 gives last index where htf_close_times <= t
@@ -293,43 +282,23 @@ def _align_htf_to_m5_numpy(
         from gx1.utils.perf_timer import perf_add
         perf_add("feat.htf_align_idx_min", float(htf_align_idx_min))
     
-    # Check for warmup issues (indices < 0)
-    # In replay mode, we allow the first N bars (before first HTF bar) to have indices < 0
-    # because they are historical context, not bars we're evaluating
-    # But we hard-fail if there are bars AFTER the first HTF bar that don't have HTF data
+    # A strict leading warmup prefix is representable, but it is unavailable
+    # evidence rather than a neutral market state.  Missing rows after the
+    # first valid HTF observation are a broken alignment and always fail.
     if np.any(indices < 0):
-        if is_replay:
-            # Find first valid HTF bar index (first index where indices >= 0)
-            first_valid_idx = None
-            for i, idx in enumerate(indices):
-                if idx >= 0:
-                    first_valid_idx = i
-                    break
-            
-            # If we have bars with indices < 0 AFTER the first valid bar, that's an error
-            if first_valid_idx is not None:
-                missing_after_valid = np.sum(indices[first_valid_idx:] < 0)
-                if missing_after_valid > 0:
-                    n_missing = np.sum(indices < 0)
-                    raise RuntimeError(
-                        f"HTF alignment: {n_missing} M5 bars have no completed HTF bar available "
-                        f"(warmup not satisfied). First missing index: {np.where(indices < 0)[0][0]}"
-                    )
-                # If all missing bars are before first_valid_idx, that's OK (historical context)
-                # We'll set them to 0.0 below
-            else:
-                # No valid bars at all - this is an error
-                n_missing = np.sum(indices < 0)
-                raise RuntimeError(
-                    f"HTF alignment: {n_missing} M5 bars have no completed HTF bar available "
-                    f"(warmup not satisfied). First missing index: {np.where(indices < 0)[0][0]}"
-                )
-        # Live mode: set missing to 0.0 (don't use index 0, set to 0.0 directly)
-        import logging
-        log = logging.getLogger(__name__)
-        n_missing = np.sum(indices < 0)
-        
-        # FASE 5: Quiet mode removed - always log warnings and track timing
+        valid_positions = np.flatnonzero(indices >= 0)
+        n_missing = int(np.sum(indices < 0))
+        if valid_positions.size == 0:
+            raise RuntimeError(
+                f"HTF alignment: {n_missing} M5 bars have no completed HTF bar available "
+                "(warmup not satisfied)"
+            )
+        first_valid_idx = int(valid_positions[0])
+        if np.any(indices[first_valid_idx:] < 0):
+            raise RuntimeError(
+                f"HTF alignment: missing completed HTF evidence after first valid row; "
+                f"missing={n_missing} first_valid_index={first_valid_idx}"
+            )
         if is_replay and n_missing > 0:
             # PATCH: Track warning path timing
             from gx1.utils.perf_timer import perf_add
@@ -357,20 +326,19 @@ def _align_htf_to_m5_numpy(
             except Exception:
                 pass  # Non-fatal: just use module-level cache
             
-            # DEL 2: Do NOT log warning per bar in quiet mode - only count (summary will show total)
-            # No log output here - just count
-        elif n_missing > 0:
-            # Normal logging (not quiet mode)
-            log.warning(f"HTF alignment: {n_missing} M5 bars have no completed HTF bar, setting to 0.0")
-    
-    # Get HTF values (use 0.0 for indices < 0)
-    aligned = np.zeros(len(m5_timestamps), dtype=np.float64)
+            # No per-row warning: the unavailable prefix stays NaN and the
+            # downstream causal warmup contract must trim it.
+
+    # Missing HTF evidence remains NaN.  It cannot masquerade as neutral.
+    aligned = np.full(len(m5_timestamps), np.nan, dtype=np.float64)
     valid_mask = indices >= 0
     aligned[valid_mask] = htf_values[indices[valid_mask]]
-    
-    # Shift(1): move all values one position forward, first becomes 0.0
-    shifted = np.roll(aligned, 1)
-    shifted[0] = 0.0
+
+    # Shift(1): move all values one position forward; the first row and the
+    # warmup boundary remain explicitly unavailable.
+    shifted = np.full(len(aligned), np.nan, dtype=np.float64)
+    if len(aligned) > 1:
+        shifted[1:] = aligned[:-1]
     
     # PATCH: Record per-call timing (non-breaking)
     t_align_call_end = time.perf_counter()
@@ -1092,7 +1060,7 @@ def build_basic_v1(df):
         perf_add(f"feat.htf_zscore.align.{name}.w{win}", t_align_end - t_align_start)
         
         return result
-    
+
     # DEL 2: Build HTF bars using incremental aggregator (NO PANDAS resample)
     if m5_timestamps_sec is not None and len(m5_timestamps_sec) > 0:
             
@@ -1139,130 +1107,42 @@ def build_basic_v1(df):
                 h1_rsi = 100 - 100/(1 + h1_rs)
                 h1_rsi_series = pd.Series(h1_rsi, index=pd.to_datetime(h1_ts, unit='s', utc=True))
                 
-                # PATCH: Use stateful HTF alignment (O(1) per bar) if available, else fallback to legacy
-                # FIX: Removed len(df) == 1 check - stateful aligner works for any df length (uses last bar)
-                from gx1.utils.feature_context import get_feature_state
-                state = get_feature_state()
-                use_stateful_align = (
-                    state is not None
-                    and hasattr(state, "h1_aligner")
-                    and state.h1_aligner is not None
+                # One canonical causal alignment path is shared by dataset and
+                # serving.  The removed stateful branch was unreachable and
+                # used a different meaning of shift(1), preventing parity.
+                h1_ema_diff_htf = h1_ema12_arr - h1_ema26_arr
+                df["_v1h1_ema_diff"] = _align_htf_to_m5_numpy(
+                    h1_ema_diff_htf, h1_close_times, m5_timestamps_sec, is_replay
                 )
-                
-                if use_stateful_align:
-                    # PATCH: Stateful alignment - O(1) per bar using pointer-walk
-                    # Step 1: Update aligner pointer for current M5 timestamp (O(1) amortized)
-                    # Step 2: Use alignment index (j) to get aligned values for all features
-                    # Step 3: Apply shift(1) semantics (use j-1 for previous bar's value)
-                    if state.h1_aligned_values is None:
-                        state.h1_aligned_values = {}
-                    
-                    # Get current M5 timestamp (last bar in df)
-                    current_m5_ts_sec = int(m5_timestamps_sec[-1]) if len(m5_timestamps_sec) > 0 else 0
-                    
-                    # Update aligner pointer for this bar (O(1) pointer-walk, advances j if needed)
-                    # This returns prev_aligned for h1_close (shift(1) semantics)
-                    # Note: step() is called for every bar - aligner internally handles monotonicity
-                    _ = state.h1_aligner.step(current_m5_ts_sec)
-                    # Count this bar as HTF feature compute (for replay invariant)
-                    state.htf_feature_compute_bars = getattr(state, "htf_feature_compute_bars", 0) + 1
-                    
-                    # Get alignment index (j points to last completed HTF bar <= current_m5_ts_sec)
-                    aligner_j = state.h1_aligner.j
-                    
-                    # Shift(1) semantics: use j-1 for previous bar's value (or 0 if j-1 < 0)
-                    aligner_j_prev = aligner_j - 1 if aligner_j >= 0 else -1
-                    
-                    # EMA diff: use j-1 from ema_diff array
-                    h1_ema_diff_htf = h1_ema12_arr - h1_ema26_arr
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h1_ema_diff_htf):
-                        h1_ema_diff_aligned_val = float(h1_ema_diff_htf[aligner_j_prev])
-                    else:
-                        h1_ema_diff_aligned_val = 0.0
-                    state.h1_aligned_values["ema_diff"] = h1_ema_diff_aligned_val
-                    df.loc[df.index[-1], "_v1h1_ema_diff"] = h1_ema_diff_aligned_val
-                    
-                    # VWAP drift: compute HTF array, then use j-1
-                    h1_vwap_roll = _roll(h1_vwap_series, 48, "mean")
-                    h1_vwap_roll_arr = h1_vwap_roll.to_numpy(dtype=np.float64)
-                    h1_vwap_drift_htf = h1_close - h1_vwap_roll_arr
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h1_vwap_drift_htf):
-                        h1_vwap_drift_aligned_val = float(h1_vwap_drift_htf[aligner_j_prev])
-                    else:
-                        h1_vwap_drift_aligned_val = 0.0
-                    state.h1_aligned_values["vwap_drift"] = h1_vwap_drift_aligned_val
-                    df.loc[df.index[-1], "_v1h1_vwap_drift"] = h1_vwap_drift_aligned_val
-                    
-                    # ATR: use j-1 from atr array
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h1_atr14_arr):
-                        h1_atr_aligned_val = float(h1_atr14_arr[aligner_j_prev])
-                    else:
-                        h1_atr_aligned_val = 0.0
-                    state.h1_aligned_values["atr"] = h1_atr_aligned_val
-                    df.loc[df.index[-1], "_v1h1_atr"] = h1_atr_aligned_val
-                    
-                    # RSI z-score: compute zscore, then use j-1
-                    # PHASE 1 FIX: Remove pd.Timestamp.now() fallback for determinism
-                    current_m5_ts = _assert_valid_datetime_index(df, ctx="H1 RSI z-score (stateful aligner)")
-                    h1_rsi_z_htf = _htf_zscore_cached("h1_rsi", h1_rsi_series, 48, current_m5_ts)
-                    h1_rsi_z_htf_arr = h1_rsi_z_htf.to_numpy(dtype=np.float64)
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h1_rsi_z_htf_arr):
-                        h1_rsi_z_aligned_val = float(h1_rsi_z_htf_arr[aligner_j_prev])
-                    else:
-                        h1_rsi_z_aligned_val = 0.0
-                    df.loc[df.index[-1], "_v1h1_rsi14_z"] = h1_rsi_z_aligned_val
-                else:
-                    # PATCH 6: Fallback-path - hard-fail in replay if aligners are available (SSoT protection)
-                    if is_replay:
-                        # In replay, if aligners exist but weren't used, this is a bug
-                        if state is not None and hasattr(state, "h1_aligner") and state.h1_aligner is not None:
-                            state.htf_align_fallback_count = getattr(state, "htf_align_fallback_count", 0) + 1
-                            # Hard-fail if aligner exists but wasn't used (implementation bug)
-                            if os.getenv("GX1_HTF_ALIGN_FALLBACK_ALLOWED") != "1":
-                                raise RuntimeError(
-                                    f"HTF legacy fallback used in replay despite aligner being available (SSoT violation). "
-                                    f"State: {state}, h1_aligner: {getattr(state, 'h1_aligner', None)}, "
-                                    f"len(df): {len(df)}. "
-                                    f"This indicates a bug in use_stateful_align logic. "
-                                    f"Set GX1_HTF_ALIGN_FALLBACK_ALLOWED=1 to allow (not recommended)."
-                                )
-                    
-                    # LEGACY: Full-array alignment (O(N) per call, O(N²) over replay)
-                    # PATCH: Sample m5_len for instrumentation (every 50k calls in replay)
-                    if is_replay and len(m5_timestamps_sec) > 0:
-                        from gx1.utils.perf_timer import perf_add
-                        if not hasattr(_align_htf_to_m5_numpy, "_sample_counter"):
-                            _align_htf_to_m5_numpy._sample_counter = 0  # type: ignore
-                        _align_htf_to_m5_numpy._sample_counter += 1  # type: ignore
-                        if _align_htf_to_m5_numpy._sample_counter % 50000 == 0:  # type: ignore
-                            perf_add("feat.htf_align.m5_len_sample", float(len(m5_timestamps_sec)))
-                            if state is not None:
-                                state.htf_align_m5_len_max = max(state.htf_align_m5_len_max, len(m5_timestamps_sec))
-                    
-                    # Align H1 features to M5 using searchsorted (NO PANDAS)
-                    h1_ema_diff_htf = h1_ema12_arr - h1_ema26_arr
-                    h1_ema_diff_aligned = _align_htf_to_m5_numpy(h1_ema_diff_htf, h1_close_times, m5_timestamps_sec, is_replay)
-                    df["_v1h1_ema_diff"] = h1_ema_diff_aligned
-                    
-                    h1_vwap_roll = _roll(h1_vwap_series, 48, "mean")
-                    h1_vwap_roll_arr = h1_vwap_roll.to_numpy(dtype=np.float64)
-                    h1_vwap_drift_htf = h1_close - h1_vwap_roll_arr
-                    h1_vwap_drift_aligned = _align_htf_to_m5_numpy(h1_vwap_drift_htf, h1_close_times, m5_timestamps_sec, is_replay)
-                    df["_v1h1_vwap_drift"] = h1_vwap_drift_aligned
-                    
-                    h1_atr_aligned = _align_htf_to_m5_numpy(h1_atr14_arr, h1_close_times, m5_timestamps_sec, is_replay)
-                    df["_v1h1_atr"] = h1_atr_aligned
-                    
-                    # RSI z-score (cached, then aligned)
-                    # PHASE 1 FIX: Remove pd.Timestamp.now() fallback for determinism
-                    current_m5_ts = _assert_valid_datetime_index(df, ctx="H1 RSI z-score (legacy aligner)")
-                    target_index = df.index if isinstance(df.index, pd.DatetimeIndex) else pd.to_datetime(df["ts"], utc=True, errors="coerce")
-                    h1_rsi_z_aligned = _htf_zscore_and_align("h1_rsi", h1_rsi_series, 48, target_index, current_m5_ts, h1_close_times)
-                    df["_v1h1_rsi14_z"] = h1_rsi_z_aligned
+
+                h1_vwap_roll = _roll(h1_vwap_series, 48, "mean")
+                h1_vwap_roll_arr = h1_vwap_roll.to_numpy(dtype=np.float64)
+                h1_vwap_drift_htf = h1_close - h1_vwap_roll_arr
+                df["_v1h1_vwap_drift"] = _align_htf_to_m5_numpy(
+                    h1_vwap_drift_htf, h1_close_times, m5_timestamps_sec, is_replay
+                )
+
+                df["_v1h1_atr"] = _align_htf_to_m5_numpy(
+                    h1_atr14_arr, h1_close_times, m5_timestamps_sec, is_replay
+                )
+
+                current_m5_ts = _assert_valid_datetime_index(
+                    df, ctx="H1 RSI z-score (canonical aligner)"
+                )
+                target_index = (
+                    df.index
+                    if isinstance(df.index, pd.DatetimeIndex)
+                    else pd.to_datetime(df["ts"], utc=True, errors="coerce")
+                )
+                df["_v1h1_rsi14_z"] = _htf_zscore_and_align(
+                    "h1_rsi", h1_rsi_series, 48, target_index, current_m5_ts, h1_close_times
+                )
+            else:
+                raise RuntimeError(
+                    "H1 feature construction has no completed HTF bar"
+                )
         except Exception as e:
-            import logging
-            log = logging.getLogger(__name__)
-            log.warning(f"H1 features failed: {e}", exc_info=True)
+            raise RuntimeError("H1 feature construction failed closed") from e
             
         # H4 features (same logic)
         try:
@@ -1303,97 +1183,33 @@ def build_basic_v1(df):
                 h4_rsi = 100 - 100/(1 + h4_rs)
                 h4_rsi_series = pd.Series(h4_rsi, index=pd.to_datetime(h4_ts, unit='s', utc=True))
                 
-                # PATCH: Use stateful HTF alignment (O(1) per bar) if available, else fallback to legacy
-                # FIX: Removed len(df) == 1 check - stateful aligner works for any df length (uses last bar)
-                from gx1.utils.feature_context import get_feature_state
-                state = get_feature_state()
-                use_stateful_align = (
-                    state is not None
-                    and hasattr(state, "h4_aligner")
-                    and state.h4_aligner is not None
+                # Use the same causal alignment implementation as H1.
+                h4_ema_diff_htf = h4_ema12_arr - h4_ema26_arr
+                df["_v1h4_ema_diff"] = _align_htf_to_m5_numpy(
+                    h4_ema_diff_htf, h4_close_times, m5_timestamps_sec, is_replay
                 )
-                
-                if use_stateful_align:
-                    # PATCH: Stateful alignment - O(1) per bar using pointer-walk
-                    # Same logic as H1: update pointer once, use j-1 for shift(1) semantics
-                    current_m5_ts_sec = int(m5_timestamps_sec[-1]) if len(m5_timestamps_sec) > 0 else 0
-                    
-                    if state.h4_aligned_values is None:
-                        state.h4_aligned_values = {}
-                    
-                    # Update aligner pointer for this bar (O(1) pointer-walk)
-                    # Note: step() is called for every bar - aligner internally handles monotonicity
-                    _ = state.h4_aligner.step(current_m5_ts_sec)
-                    # Note: htf_feature_compute_bars already incremented in H1 path (same bar)
-                    
-                    # Get alignment index (j points to last completed HTF bar <= current_m5_ts_sec)
-                    aligner_j = state.h4_aligner.j
-                    
-                    # Shift(1) semantics: use j-1 for previous bar's value (or 0 if j-1 < 0)
-                    aligner_j_prev = aligner_j - 1 if aligner_j >= 0 else -1
-                    
-                    # EMA diff: use j-1 from ema_diff array
-                    h4_ema_diff_htf = h4_ema12_arr - h4_ema26_arr
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h4_ema_diff_htf):
-                        h4_ema_diff_aligned_val = float(h4_ema_diff_htf[aligner_j_prev])
-                    else:
-                        h4_ema_diff_aligned_val = 0.0
-                    state.h4_aligned_values["ema_diff"] = h4_ema_diff_aligned_val
-                    df.loc[df.index[-1], "_v1h4_ema_diff"] = h4_ema_diff_aligned_val
-                    
-                    # ATR: use j-1 from atr array
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h4_atr14_arr):
-                        h4_atr_aligned_val = float(h4_atr14_arr[aligner_j_prev])
-                    else:
-                        h4_atr_aligned_val = 0.0
-                    state.h4_aligned_values["atr"] = h4_atr_aligned_val
-                    df.loc[df.index[-1], "_v1h4_atr"] = h4_atr_aligned_val
-                    
-                    # RSI z-score: compute zscore, then use j-1
-                    # PHASE 1 FIX: Remove pd.Timestamp.now() fallback for determinism
-                    current_m5_ts = _assert_valid_datetime_index(df, ctx="H4 RSI z-score (stateful aligner)")
-                    h4_rsi_z_htf = _htf_zscore_cached("h4_rsi", h4_rsi_series, 48, current_m5_ts)
-                    h4_rsi_z_htf_arr = h4_rsi_z_htf.to_numpy(dtype=np.float64)
-                    if aligner_j_prev >= 0 and aligner_j_prev < len(h4_rsi_z_htf_arr):
-                        h4_rsi_z_aligned_val = float(h4_rsi_z_htf_arr[aligner_j_prev])
-                    else:
-                        h4_rsi_z_aligned_val = 0.0
-                    df.loc[df.index[-1], "_v1h4_rsi14_z"] = h4_rsi_z_aligned_val
-                else:
-                    # PATCH 6: Fallback-path - hard-fail in replay if aligners are available (SSoT protection)
-                    if is_replay:
-                        # In replay, if aligners exist but weren't used, this is a bug
-                        if state is not None and hasattr(state, "h4_aligner") and state.h4_aligner is not None:
-                            state.htf_align_fallback_count = getattr(state, "htf_align_fallback_count", 0) + 1
-                            # Hard-fail if aligner exists but wasn't used (implementation bug)
-                            if os.getenv("GX1_HTF_ALIGN_FALLBACK_ALLOWED") != "1":
-                                raise RuntimeError(
-                                    f"HTF legacy fallback used in replay despite aligner being available (SSoT violation). "
-                                    f"State: {state}, h4_aligner: {getattr(state, 'h4_aligner', None)}, "
-                                    f"len(df): {len(df)}. "
-                                    f"This indicates a bug in use_stateful_align logic. "
-                                    f"Set GX1_HTF_ALIGN_FALLBACK_ALLOWED=1 to allow (not recommended)."
-                                )
-                    
-                    # LEGACY: Full-array alignment (O(N) per call, O(N²) over replay)
-                    # Align H4 features to M5 using searchsorted (NO PANDAS)
-                    h4_ema_diff_htf = h4_ema12_arr - h4_ema26_arr
-                    h4_ema_diff_aligned = _align_htf_to_m5_numpy(h4_ema_diff_htf, h4_close_times, m5_timestamps_sec, is_replay)
-                    df["_v1h4_ema_diff"] = h4_ema_diff_aligned
-                    
-                    h4_atr_aligned = _align_htf_to_m5_numpy(h4_atr14_arr, h4_close_times, m5_timestamps_sec, is_replay)
-                    df["_v1h4_atr"] = h4_atr_aligned
-                    
-                    # RSI z-score (cached, then aligned)
-                    # PHASE 1 FIX: Remove pd.Timestamp.now() fallback for determinism
-                    current_m5_ts = _assert_valid_datetime_index(df, ctx="H4 RSI z-score (legacy aligner)")
-                    target_index = df.index if isinstance(df.index, pd.DatetimeIndex) else pd.to_datetime(df["ts"], utc=True, errors="coerce")
-                    h4_rsi_z_aligned = _htf_zscore_and_align("h4_rsi", h4_rsi_series, 48, target_index, current_m5_ts, h4_close_times)
-                    df["_v1h4_rsi14_z"] = h4_rsi_z_aligned
+
+                df["_v1h4_atr"] = _align_htf_to_m5_numpy(
+                    h4_atr14_arr, h4_close_times, m5_timestamps_sec, is_replay
+                )
+
+                current_m5_ts = _assert_valid_datetime_index(
+                    df, ctx="H4 RSI z-score (canonical aligner)"
+                )
+                target_index = (
+                    df.index
+                    if isinstance(df.index, pd.DatetimeIndex)
+                    else pd.to_datetime(df["ts"], utc=True, errors="coerce")
+                )
+                df["_v1h4_rsi14_z"] = _htf_zscore_and_align(
+                    "h4_rsi", h4_rsi_series, 48, target_index, current_m5_ts, h4_close_times
+                )
+            else:
+                raise RuntimeError(
+                    "H4 feature construction has no completed HTF bar"
+                )
         except Exception as e:
-            import logging
-            log = logging.getLogger(__name__)
-            log.warning(f"H4 features failed: {e}", exc_info=True)
+            raise RuntimeError("H4 feature construction failed closed") from e
     t_htf_end = time.perf_counter()
     perf_add("feat.basic_v1.htf_features", t_htf_end - t_htf_start)
     
