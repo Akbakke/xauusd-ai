@@ -34,6 +34,8 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-manifest",
     "model-native-smoke-readiness",
     "model-native-trainability-readiness",
+    "model-native-train-recipe-audit",
+    "model-native-smoke-bundle-audit",
     "model-native-candidate-readiness",
     "model-native-selective-edge",
     "model-native-replay-trade-log",
@@ -262,6 +264,53 @@ def test_candidate_readiness_route_requires_exact_trainability_event() -> None:
     assert "--upstream-readiness-json" not in route
     assert "foundation" not in route.lower()
     assert "worktree" not in route.lower()
+
+
+def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    recipe = source.split("  model-native-train-recipe-audit)", 1)[1].split(
+        "    ;;", 1
+    )[0]
+    for flag in (
+        "--profile",
+        "--repo",
+        "--wrapper-path",
+        "--run-id",
+        "--dataset-dir",
+        "--out-bundle-dir",
+        "--m5-prebuilt-path",
+        "--post-rebuild-readiness-json",
+        "--full-input-liveness-audit-json",
+        "--feature-audit-json",
+        "--target-audit-json",
+        "--specialist-audit-json",
+        "--pretrain-audit-json",
+        "--trainability-readiness-json",
+        "--memory-cap",
+        "--swap-cap",
+        "--out-dir",
+    ):
+        assert flag in recipe
+    assert "materialize_entry_model_native_seq513_train_recipe_audit_v1" in recipe
+
+    audit = source.split("  model-native-smoke-bundle-audit)", 1)[1].split(
+        "    ;;", 1
+    )[0]
+    for flag in (
+        "--bundle-dir",
+        "--dataset-dir",
+        "--val-manifest-json",
+        "--test-manifest-json",
+        "--predictions-parquet",
+        "--prediction-report-json",
+        "--target-audit-json",
+        "--specialist-audit-json",
+        "--pretrain-audit-json",
+        "--out-dir",
+        "--device",
+    ):
+        assert flag in audit
+    assert "audit_entry_foundation_smoke_bundle_v1" in audit
 
 
 def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> None:

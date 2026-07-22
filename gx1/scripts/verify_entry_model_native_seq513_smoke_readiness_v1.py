@@ -41,9 +41,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
 )
-from gx1.contracts.entry_model_native_train_launch_v1 import (
+from gx1.contracts.entry_model_native_train_launch_v1 import RECIPE_AUDIT_SCHEMA
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
-    RECIPE_AUDIT_SCHEMA,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     READY_DECISION as POST_REBUILD_READY_DECISION,
@@ -211,9 +211,6 @@ DIRECTION_BALANCE_RECIPE_CONTRACT = {
     "hier_side_validity_pos_weight_cap": 8.0,
     "trendline_rail_head_enabled": True,
     "trendline_rail_aux_weight": 1.00,
-    "trendline_rail_utility_margin_weight": 5.00,
-    "trendline_rail_margin": 1.00,
-    "trendline_rail_utility_margin_bps": 30.0,
     "anchor_gate_enabled": False,
 }
 DIRECTION_BALANCE_ENV_TEMPLATE = {
@@ -731,6 +728,7 @@ def _future_contracts(
     smart_dataset_dir: Path,
     smart_smoke_dataset_dir: Path,
     smoke_splits: dict[str, Any],
+    post_rebuild_readiness_json: Path,
     full_input_liveness_json: Path,
     feature_audit_json: Path,
     target_audit_json: Path,
@@ -769,6 +767,8 @@ def _future_contracts(
         _split_artifact("test", "out_parquet"),
         "--m5-prebuilt-path",
         "<IMMUTABLE_TIMESTAMPED_M5_PREBUILT_PATH>",
+        "--post-rebuild-readiness-json",
+        str(post_rebuild_readiness_json),
         "--full-input-liveness-audit-json",
         str(full_input_liveness_json),
         "--feature-audit-json",
@@ -821,6 +821,48 @@ def _future_contracts(
         swap_cap,
         "<EXACTLY_ONE_OF_DRY_RUN_OR_EXECUTE>",
     ]
+    recipe_input_argv = list(wrapper_argv[2:-1])
+    recipe_flag_index = recipe_input_argv.index("--recipe-audit-json")
+    del recipe_input_argv[recipe_flag_index : recipe_flag_index + 2]
+    recipe_argv = [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-train-recipe-audit",
+        "--profile",
+        "smoke",
+        "--repo",
+        "<ABSOLUTE_CLEAN_GX1_REPO>",
+        "--wrapper-path",
+        "<ABSOLUTE_CLEAN_GX1_REPO>/scripts/run_entry_model_native_seq513_smoke_train.sh",
+        *recipe_input_argv,
+        "--out-dir",
+        str(smart_dataset_dir.parent / "train_recipe_<STAMP>"),
+    ]
+    post_smoke_audit_argv = [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-smoke-bundle-audit",
+        "--bundle-dir",
+        out_bundle,
+        "--dataset-dir",
+        str(smart_smoke_dataset_dir),
+        "--val-manifest-json",
+        _split_artifact("val", "out_manifest"),
+        "--test-manifest-json",
+        _split_artifact("test", "out_manifest"),
+        "--predictions-parquet",
+        "<IMMUTABLE_SMOKE_PREDICTIONS_PARQUET>",
+        "--prediction-report-json",
+        "<IMMUTABLE_SMOKE_PREDICTION_REPORT_JSON>",
+        "--target-audit-json",
+        str(target_audit_json),
+        "--specialist-audit-json",
+        str(specialist_audit_json),
+        "--pretrain-audit-json",
+        "<IMMUTABLE_TIMESTAMPED_PRETRAIN_AUDIT_JSON>",
+        "--out-dir",
+        str(smart_dataset_dir.parent / "smoke_bundle_audit_<STAMP>"),
+        "--device",
+        "cuda",
+    ]
     train = {
         "argv_template": wrapper_argv,
         "wrapper_argv_template": wrapper_argv,
@@ -841,10 +883,12 @@ def _future_contracts(
         "starts_iql_distillation": False,
         "touches_shadow_or_live": False,
         "requires_edge_audit": True,
-        "post_smoke_audit_control_route_exposed": False,
-        "post_smoke_audit_blocker": (
-            "no immutable fail-closed smoke-bundle audit route is exposed in the compact control surface"
-        ),
+        "recipe_audit_control_route_exposed": True,
+        "recipe_audit_control_route": "model-native-train-recipe-audit",
+        "recipe_audit_argv_template": recipe_argv,
+        "post_smoke_audit_control_route_exposed": True,
+        "post_smoke_audit_control_route": "model-native-smoke-bundle-audit",
+        "post_smoke_audit_argv_template": post_smoke_audit_argv,
         "recipe_audit_schema": RECIPE_AUDIT_SCHEMA,
         "recipe_env_keys": list(MODEL_NATIVE_RECIPE_ENV_KEYS),
         "required_positive_loss_weights": list(REQUIRED_POSITIVE_LOSS_WEIGHTS),
@@ -966,6 +1010,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if isinstance(smoke_manifest.get("splits"), dict)
             else {}
         ),
+        post_rebuild_readiness_json=post_rebuild_readiness_json,
         full_input_liveness_json=full_input_liveness_json,
         feature_audit_json=feature_audit_json,
         target_audit_json=target_audit_json,
@@ -1353,15 +1398,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
-                    "smart smoke train contract records the unavailable immutable edge-audit route",
+                    "smart smoke train contract exposes the immutable edge-audit route",
                     future_contracts["smart_smoke_train"]["requires_edge_audit"] is True
                     and future_contracts["smart_smoke_train"][
                         "post_smoke_audit_control_route_exposed"
                     ]
-                    is False
+                    is True
+                    and future_contracts["smart_smoke_train"].get(
+                        "post_smoke_audit_control_route"
+                    )
+                    == "model-native-smoke-bundle-audit"
                     and bool(
                         future_contracts["smart_smoke_train"][
-                            "post_smoke_audit_blocker"
+                            "post_smoke_audit_argv_template"
                         ]
                     ),
                     future_contracts["smart_smoke_train"],

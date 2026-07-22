@@ -184,9 +184,6 @@ DIRECTION_BALANCE_RECIPE_CONTRACT = {
     "hier_side_validity_pos_weight_cap": 8.0,
     "trendline_rail_head_enabled": True,
     "trendline_rail_aux_weight": 1.00,
-    "trendline_rail_utility_margin_weight": 5.00,
-    "trendline_rail_margin": 1.00,
-    "trendline_rail_utility_margin_bps": 30.0,
     "anchor_gate_enabled": False,
 }
 DIRECTION_BALANCE_ENV_TEMPLATE = {

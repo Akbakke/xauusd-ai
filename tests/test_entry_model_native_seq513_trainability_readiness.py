@@ -43,6 +43,8 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
         out_bundle,
         "--recipe-audit-json",
         "<IMMUTABLE_RECIPE_AUDIT_JSON>",
+        "--post-rebuild-readiness-json",
+        "<IMMUTABLE_POST_REBUILD_READINESS_JSON>",
     ]
     return {
         "control_route": "model-native-smoke-train",
@@ -50,8 +52,18 @@ def _path_calibration_future_contract(wired: bool, source_dataset: str) -> dict:
         "argv_template": wrapper_argv,
         "wrapper_argv_template": wrapper_argv,
         "requires_edge_audit": True,
-        "post_smoke_audit_control_route_exposed": False,
-        "post_smoke_audit_blocker": "immutable smoke audit route not exposed",
+        "recipe_audit_control_route_exposed": True,
+        "recipe_audit_control_route": "model-native-train-recipe-audit",
+        "recipe_audit_argv_template": [
+            "scripts/entry_next_edge_control.sh",
+            "model-native-train-recipe-audit",
+        ],
+        "post_smoke_audit_control_route_exposed": True,
+        "post_smoke_audit_control_route": "model-native-smoke-bundle-audit",
+        "post_smoke_audit_argv_template": [
+            "scripts/entry_next_edge_control.sh",
+            "model-native-smoke-bundle-audit",
+        ],
         "recipe_audit_schema": gate.RECIPE_AUDIT_SCHEMA,
         "recipe_env_keys": list(gate.MODEL_NATIVE_RECIPE_ENV_KEYS),
         "required_positive_loss_weights": list(
@@ -82,6 +94,7 @@ def _audited_wrapper_text() -> str:
             "--recipe-audit-json",
             "--pretrain-audit-json",
             "--full-input-liveness-audit-json",
+            "--post-rebuild-readiness-json",
             "--trainability-readiness-json",
             "--run-id",
             "--execute",
@@ -183,6 +196,8 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
         control_text = (
             "Usage: model-native-smoke-train --run-id <id>\n"
             "case\nmodel-native-smoke-train) exec wrapper ;;\n"
+            "model-native-train-recipe-audit) exec recipe ;;\n"
+            "model-native-smoke-bundle-audit) exec audit ;;\n"
         )
         smoke_wrapper_text = _audited_wrapper_text()
         candidate_wrapper_text = _audited_wrapper_text()

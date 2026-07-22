@@ -333,9 +333,18 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert train_contract["ram_cap_runner"] == "scripts/gx1_capped_run.sh"
     assert train_contract["num_workers"] == 0
     assert train_contract["requires_edge_audit"] is True
-    assert train_contract["post_smoke_audit_control_route_exposed"] is False
-    assert train_contract["post_smoke_audit_blocker"]
-    assert "post_smoke_audit_argv_template" not in train_contract
+    assert train_contract["recipe_audit_control_route_exposed"] is True
+    assert train_contract["recipe_audit_control_route"] == "model-native-train-recipe-audit"
+    assert train_contract["recipe_audit_argv_template"][:2] == [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-train-recipe-audit",
+    ]
+    assert train_contract["post_smoke_audit_control_route_exposed"] is True
+    assert train_contract["post_smoke_audit_control_route"] == "model-native-smoke-bundle-audit"
+    assert train_contract["post_smoke_audit_argv_template"][:2] == [
+        "scripts/entry_next_edge_control.sh",
+        "model-native-smoke-bundle-audit",
+    ]
     assert train_contract["control_route"] == "model-native-smoke-train"
     assert (
         train_contract["wrapper_path"]
@@ -377,6 +386,7 @@ def test_model_native_seq513_smoke_readiness_passes_as_report_only(monkeypatch, 
     assert "gx1.models.entry_v10.entry_v10_ctx_train_v3" not in train_argv
     assert "audit-smoke-bundle" not in train_argv
     assert "--recipe-audit-json" in train_contract["wrapper_argv_template"]
+    assert "--post-rebuild-readiness-json" in train_contract["wrapper_argv_template"]
     assert "--pretrain-audit-json" in train_contract["wrapper_argv_template"]
     assert Path(report["json_path"]).exists()
 

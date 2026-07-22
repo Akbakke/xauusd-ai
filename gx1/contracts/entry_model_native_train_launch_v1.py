@@ -30,6 +30,10 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 from gx1.contracts.entry_model_native_offline_rl_v1 import (
     require_offline_rl_contract_metadata,
 )
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    READY_DECISION as POST_REBUILD_READY_DECISION,
+    SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -49,6 +53,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     require_smoke_bundle_audit_contract,
 )
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV,
+    MODEL_NATIVE_RECIPE_ENV_KEYS,
+    model_native_recipe_env_contract_metadata,
+    require_model_native_recipe_env,
+)
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
 )
@@ -60,6 +70,16 @@ RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v1"
 PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
 CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
+CONTROL_SURFACE_RELATIVE_PATH = "scripts/entry_next_edge_control.sh"
+LAUNCH_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_model_native_train_launch_v1.py"
+)
+RECIPE_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_model_native_train_recipe_v1.py"
+)
+RECIPE_PRODUCER_RELATIVE_PATH = (
+    "gx1/scripts/materialize_entry_model_native_seq513_train_recipe_audit_v1.py"
+)
 
 REQUIRED_SPECIALISTS = (
     "structure_swing_encoder",
@@ -72,51 +92,6 @@ REQUIRED_SPECIALISTS = (
     "price_action_candle_encoder",
 )
 
-# This is an exact override surface, not a bag of optional knobs. Values live
-# only in the separately audited recipe event. Built-in model architecture and
-# target contracts remain source-owned and are source-hash-bound by that event.
-MODEL_NATIVE_RECIPE_ENV_KEYS = (
-    "ENTRY_AUX_BAD_PATH_WEIGHT",
-    "ENTRY_AUX_CLEAN_EDGE_WEIGHT",
-    "ENTRY_AUX_MFE_WEIGHT",
-    "ENTRY_AUX_PATH_WEIGHT",
-    "ENTRY_AUX_SURVIVAL_WEIGHT",
-    "ENTRY_AUX_TRADABLE_WEIGHT",
-    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT",
-    "ENTRY_CLEAN_EDGE_RANKING_WEIGHT",
-    "ENTRY_DIRECTION_CE_SCALE",
-    "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT",
-    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT",
-    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT",
-    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT",
-    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE",
-    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT",
-    "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT",
-    "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT",
-    "ENTRY_HIER_BAD_PATH_WEIGHT",
-    "ENTRY_HIER_MAE_WEIGHT",
-    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT",
-    "ENTRY_HIER_SIDE_WEIGHT",
-    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT",
-    "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT",
-    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT",
-    "ENTRY_HIER_TRADE_WEIGHT",
-    "ENTRY_HIER_UTILITY_WEIGHT",
-    "ENTRY_MTF_DIR_AUX_WEIGHT",
-    "ENTRY_OFFLINE_RL_Q_WEIGHT",
-    "ENTRY_OFFLINE_RL_RANK_WEIGHT",
-    "ENTRY_OFFLINE_RL_V_WEIGHT",
-    "ENTRY_PATH_QUALITY_RANK_WEIGHT",
-    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT",
-    "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT",
-    "ENTRY_SPECIALIST_GATE_MIN_MEAN",
-    "ENTRY_SYMMETRIC_NEGATIVES",
-    "ENTRY_TAIL_DIRECTION_CE_WEIGHT",
-    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT",
-)
-
 _MISSING_REQUIRED_OBJECTIVE_WEIGHTS = sorted(
     set(REQUIRED_POSITIVE_LOSS_WEIGHTS) - set(MODEL_NATIVE_RECIPE_ENV_KEYS)
 )
@@ -126,13 +101,8 @@ if _MISSING_REQUIRED_OBJECTIVE_WEIGHTS:
         + ",".join(_MISSING_REQUIRED_OBJECTIVE_WEIGHTS)
     )
 
-_BOOLEAN_ONE_ENV_KEYS = {
-    "ENTRY_SYMMETRIC_NEGATIVES",
-}
-_STRING_ENV_VALUES: dict[str, str] = {}
 _STAMP_RE = re.compile(r"(?:^|[^0-9])20[0-9]{6}T[0-9]{6}(?:[0-9]{6})?Z(?:[^0-9]|$)")
 _SHA_RE = re.compile(r"^[0-9a-f]{64}$")
-_ENV_VALUE_RE = re.compile(r"^[A-Za-z0-9_.,:+-]+$")
 _CAP_RE = re.compile(r"^[1-9][0-9]*[KMGT]$")
 _MUTABLE_POINTER_RE = re.compile(r"(?:^|[/_.-])latest(?:[/_.-]|$)", re.IGNORECASE)
 
@@ -144,6 +114,7 @@ _COMMON_BINDING_KEYS = (
     "val_parquet",
     "test_parquet",
     "m5_prebuilt_path",
+    "post_rebuild_readiness_json",
     "full_input_liveness_audit_json",
     "feature_audit_json",
     "target_audit_json",
@@ -161,19 +132,6 @@ _PROFILE_BINDING_KEYS = {
         "smoke_bundle_audit_json",
     ),
 }
-_PRETRAIN_BINDING_KEYS = (
-    "train_manifest_json",
-    "val_manifest_json",
-    "test_manifest_json",
-    "train_parquet",
-    "val_parquet",
-    "test_parquet",
-    "m5_prebuilt_path",
-    "full_input_liveness_audit_json",
-    "feature_audit_json",
-    "target_audit_json",
-    "specialist_audit_json",
-)
 _LARGE_ARTIFACT_KEYS = {
     "train_parquet",
     "val_parquet",
@@ -250,7 +208,6 @@ def _resolved_explicit_path(raw: str, label: str, *, directory: bool = False) ->
     path = Path(raw).expanduser()
     _require(path.is_absolute(), f"{label} must be absolute: {raw}")
     _require(not _MUTABLE_POINTER_RE.search(str(path)), f"{label} uses a mutable pointer: {raw}")
-    _require(bool(_STAMP_RE.search(str(path))), f"{label} must contain an immutable UTC timestamp: {raw}")
     _require(path.exists(), f"{label} does not exist: {raw}")
     _require(not path.is_symlink(), f"{label} must not be a symlink: {raw}")
     resolved = path.resolve(strict=True)
@@ -310,18 +267,35 @@ def _validate_binding_map(
         _require(binding == current, f"{label} binding {key} does not match the current immutable artifact")
 
 
+def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, Path]:
+    return {
+        "control_surface": (repo / CONTROL_SURFACE_RELATIVE_PATH).resolve(strict=True),
+        "launch_contract": (repo / LAUNCH_CONTRACT_RELATIVE_PATH).resolve(strict=True),
+        "recipe_contract": (repo / RECIPE_CONTRACT_RELATIVE_PATH).resolve(strict=True),
+        "recipe_producer": (repo / RECIPE_PRODUCER_RELATIVE_PATH).resolve(strict=True),
+        "wrapper": wrapper_path,
+        "trainer": (repo / TRAINER_RELATIVE_PATH).resolve(strict=True),
+        "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
+    }
+
+
+def recipe_source_bindings(*, repo: Path, wrapper_path: Path) -> dict[str, dict[str, Any]]:
+    return {
+        key: artifact_binding(path)
+        for key, path in recipe_source_binding_paths(
+            repo=repo,
+            wrapper_path=wrapper_path,
+        ).items()
+    }
+
+
 def _validate_source_bindings(
     recipe: Mapping[str, Any],
     *,
+    repo: Path,
     wrapper_path: Path,
-    trainer_path: Path,
-    capped_runner_path: Path,
 ) -> None:
-    expected = {
-        "wrapper": wrapper_path,
-        "trainer": trainer_path,
-        "capped_runner": capped_runner_path,
-    }
+    expected = recipe_source_binding_paths(repo=repo, wrapper_path=wrapper_path)
     bindings = recipe.get("source_bindings")
     _require(isinstance(bindings, dict), "recipe source_bindings must be an object")
     _require(set(bindings) == set(expected), "recipe source binding set is not exact")
@@ -334,7 +308,7 @@ def _validate_source_bindings(
 
 
 def _validate_split_manifest(
-    manifest: Mapping[str, Any], *, path: Path, parquet: Path
+    manifest: Mapping[str, Any], *, path: Path, parquet: Path, m5_prebuilt: Path
 ) -> None:
     _require(
         manifest.get("schema_version") == MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
@@ -359,6 +333,29 @@ def _validate_split_manifest(
     _require(int(signal_bridge.get("seq_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, f"split manifest seq width mismatch: {path}")
     _require(int(signal_bridge.get("snap_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, f"split manifest snap width mismatch: {path}")
     _require(signal_bridge.get("fields") == signal_contract.get("fields"), f"split manifest ordered fields mismatch: {path}")
+    inputs = manifest.get("inputs")
+    _require(isinstance(inputs, dict), f"split manifest inputs missing: {path}")
+    _require(
+        Path(str(inputs.get("source_parquet") or "")).resolve() == m5_prebuilt,
+        f"split manifest source parquet does not match m5_prebuilt_path: {path}",
+    )
+    state_contract = extra.get("model_native_state_contract")
+    _require(
+        isinstance(state_contract, dict),
+        f"split manifest model-native state contract missing: {path}",
+    )
+    _require(
+        Path(str(state_contract.get("rank_reference_source_parquet") or "")).resolve()
+        == m5_prebuilt,
+        f"split manifest rank-reference source mismatch: {path}",
+    )
+    _require(
+        _SHA_RE.fullmatch(
+            str(state_contract.get("rank_reference_source_parquet_sha256") or "")
+        )
+        is not None,
+        f"split manifest source parquet hash missing: {path}",
+    )
 
 
 def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None:
@@ -430,6 +427,101 @@ def _validate_feature_audit_signal_partition(feature: Mapping[str, Any]) -> None
         and all(character in "0123456789abcdef" for character in ranking_sha256),
         "feature audit TRAIN-only ranking binding mismatch",
     )
+
+
+def _validate_post_rebuild_readiness(
+    post_rebuild: Mapping[str, Any],
+    *,
+    artifacts: Mapping[str, Path],
+    dataset_dir: Path,
+) -> dict[str, str]:
+    _zero_failure(
+        post_rebuild,
+        label="post-rebuild readiness",
+        schema=POST_REBUILD_SCHEMA_VERSION,
+        decision=POST_REBUILD_READY_DECISION,
+    )
+    _require(
+        Path(str(post_rebuild.get("dataset_dir") or "")).resolve() == dataset_dir,
+        "post-rebuild readiness dataset mismatch",
+    )
+    _require(
+        Path(str(post_rebuild.get("smoke_dataset_dir") or "")).resolve()
+        == dataset_dir,
+        "post-rebuild readiness smoke dataset mismatch",
+    )
+    _require(
+        post_rebuild.get("report_only") is True
+        and post_rebuild.get("training_allowed") is False,
+        "post-rebuild readiness side-effect boundary mismatch",
+    )
+    side_effects = post_rebuild.get("side_effects_started")
+    _require(
+        isinstance(side_effects, dict)
+        and set(side_effects)
+        == {"dataset_rebuild", "training", "replay", "iql_distillation", "shadow", "live"}
+        and not any(bool(value) for value in side_effects.values()),
+        "post-rebuild readiness side-effect map is not exact zero",
+    )
+    for key, artifact_key in (
+        ("full_input_liveness_contract", "full_input_liveness_audit_json"),
+        ("pretrain_audit", "pretrain_audit_json"),
+    ):
+        binding = post_rebuild.get(key)
+        path = artifacts[artifact_key]
+        _require(isinstance(binding, dict), f"post-rebuild {key} binding missing")
+        _require(
+            binding.get("path") == str(path)
+            and binding.get("sha256") == sha256_file(path),
+            f"post-rebuild {key} binding mismatch",
+        )
+
+    split_artifacts = post_rebuild.get("split_artifacts")
+    _require(
+        isinstance(split_artifacts, dict)
+        and set(split_artifacts) == {"train", "val", "test"},
+        "post-rebuild split artifact set is not exact",
+    )
+    large_hashes: dict[str, str] = {}
+    for split in ("train", "val", "test"):
+        row = split_artifacts[split]
+        _require(isinstance(row, dict), f"post-rebuild {split} split binding invalid")
+        manifest = artifacts[f"{split}_manifest_json"]
+        parquet = artifacts[f"{split}_parquet"]
+        expected_manifest_sha = sha256_file(manifest)
+        parquet_sha = str(row.get("parquet_sha256") or "")
+        _require(
+            row.get("manifest_path") == str(manifest)
+            and row.get("manifest_sha256") == expected_manifest_sha
+            and row.get("parquet_path") == str(parquet)
+            and _SHA_RE.fullmatch(parquet_sha) is not None
+            and int(row.get("rows") or 0) > 0,
+            f"post-rebuild {split} split binding mismatch",
+        )
+        large_hashes[f"{split}_parquet"] = parquet_sha
+    return large_hashes
+
+
+def _m5_source_hash_from_manifests(
+    payloads: Mapping[str, Mapping[str, Any]],
+) -> str:
+    source_hashes = {
+        str(
+            (
+                payloads[f"{split}_manifest_json"].get("extra") or {}
+            ).get("model_native_state_contract", {}).get(
+                "rank_reference_source_parquet_sha256"
+            )
+            or ""
+        )
+        for split in ("train", "val", "test")
+    }
+    _require(
+        len(source_hashes) == 1
+        and _SHA_RE.fullmatch(next(iter(source_hashes))) is not None,
+        "split manifests do not bind one exact m5_prebuilt source hash",
+    )
+    return next(iter(source_hashes))
 
 
 def _validate_audits(
@@ -606,27 +698,10 @@ def _validate_audits(
 
 def _validate_recipe_env(recipe: Mapping[str, Any]) -> list[str]:
     env_map = recipe.get("trainer_env")
-    _require(isinstance(env_map, dict), "recipe trainer_env must be an object")
-    _require(set(env_map) == set(MODEL_NATIVE_RECIPE_ENV_KEYS), "recipe trainer_env key set is not exact")
-    normalized: dict[str, str] = {}
-    for key in MODEL_NATIVE_RECIPE_ENV_KEYS:
-        value = env_map.get(key)
-        _require(isinstance(value, (str, int, float)) and not isinstance(value, bool), f"recipe env {key} has invalid type")
-        text = str(value).strip()
-        _require(bool(text) and _ENV_VALUE_RE.fullmatch(text) is not None, f"recipe env {key} has unsafe value")
-        normalized[key] = text
-    for key in _BOOLEAN_ONE_ENV_KEYS:
-        _require(normalized[key] == "1", f"mandatory model-native recipe toggle {key} must be 1")
-    for key, expected in _STRING_ENV_VALUES.items():
-        _require(normalized[key] == expected, f"model-native recipe value {key} must be {expected}")
-    for key, text in normalized.items():
-        if key in _BOOLEAN_ONE_ENV_KEYS or key in _STRING_ENV_VALUES:
-            continue
-        try:
-            numeric = float(text)
-        except ValueError as exc:
-            raise LaunchContractError(f"mandatory model-native recipe value {key} must be numeric") from exc
-        _require(math.isfinite(numeric) and numeric > 0.0, f"mandatory model-native recipe value {key} must be finite and > 0")
+    try:
+        normalized = require_model_native_recipe_env(env_map)  # type: ignore[arg-type]
+    except RuntimeError as exc:
+        raise LaunchContractError(f"recipe trainer_env is not canonical: {exc}") from exc
     _require(recipe.get("trainer_env_sha256") == recipe_env_sha256(normalized), "recipe trainer_env_sha256 mismatch")
     return [f"{key}={normalized[key]}" for key in MODEL_NATIVE_RECIPE_ENV_KEYS]
 
@@ -676,14 +751,107 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def validate_launch(args: argparse.Namespace) -> list[str]:
+def build_recipe_audit_payload(
+    args: argparse.Namespace,
+    *,
+    created_utc: str,
+) -> dict[str, Any]:
+    """Construct and self-validate one recipe without binding its own bytes."""
+
     run_id = require_entry_run_id(args.run_id)
     profile = str(args.profile)
     _require(profile in _PROFILE_BINDING_KEYS, f"unsupported launch profile: {profile}")
     repo = Path(args.repo).expanduser().resolve(strict=True)
     wrapper_path = Path(args.wrapper_path).expanduser().resolve(strict=True)
-    trainer_path = (repo / TRAINER_RELATIVE_PATH).resolve(strict=True)
-    capped_runner_path = (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True)
+    dataset_dir = _resolved_explicit_path(args.dataset_dir, "dataset_dir", directory=True)
+    out_bundle_dir = _resolved_output_path(args.out_bundle_dir)
+    trainer_cli = _trainer_cli_contract(args)
+    artifact_keys = (*_COMMON_BINDING_KEYS, *_PROFILE_BINDING_KEYS[profile])
+    artifacts = {
+        key: _resolved_explicit_path(str(getattr(args, key)), key)
+        for key in artifact_keys
+    }
+    payloads = {
+        key: _read_json(path, key)
+        for key, path in artifacts.items()
+        if key.endswith("_json")
+    }
+    expected_large_hashes = _validate_post_rebuild_readiness(
+        payloads["post_rebuild_readiness_json"],
+        artifacts=artifacts,
+        dataset_dir=dataset_dir,
+    )
+    expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
+        payloads
+    )
+    artifact_bindings = {
+        key: artifact_binding(
+            path,
+            content_sha256=(
+                expected_large_hashes[key] if key in _LARGE_ARTIFACT_KEYS else None
+            ),
+        )
+        for key, path in artifacts.items()
+    }
+    source_bindings = recipe_source_bindings(
+        repo=repo,
+        wrapper_path=wrapper_path,
+    )
+    recipe = {
+        "schema_version": RECIPE_AUDIT_SCHEMA,
+        "created_utc": created_utc,
+        "decision": "PASS",
+        "failures": [],
+        "profile": profile,
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+        "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+        "execution_allowed": True,
+        "activation_authority": False,
+        "report_only": True,
+        "side_effects_started": {
+            "training": False,
+            "replay": False,
+            "iql_distillation": False,
+            "shadow": False,
+            "live": False,
+        },
+        "run_id": run_id,
+        "dataset_dir": str(dataset_dir),
+        "out_bundle_dir": str(out_bundle_dir),
+        "source_commit": subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            text=True,
+        ).strip(),
+        "trainer_cli": trainer_cli,
+        "trainer_cli_sha256": canonical_json_sha256(trainer_cli),
+        "trainer_env": dict(MODEL_NATIVE_RECIPE_ENV),
+        "trainer_env_sha256": recipe_env_sha256(MODEL_NATIVE_RECIPE_ENV),
+        "trainer_env_contract": model_native_recipe_env_contract_metadata(),
+        "artifact_bindings": artifact_bindings,
+        "artifact_bindings_sha256": canonical_json_sha256(artifact_bindings),
+        "large_artifact_sha256": {
+            key: expected_large_hashes[key]
+            for key in sorted(_LARGE_ARTIFACT_KEYS)
+        },
+        "source_bindings": source_bindings,
+        "source_bindings_sha256": canonical_json_sha256(source_bindings),
+    }
+    validate_launch(args, recipe_payload=recipe)
+    return recipe
+
+
+def validate_launch(
+    args: argparse.Namespace,
+    *,
+    recipe_payload: Mapping[str, Any] | None = None,
+) -> list[str]:
+    run_id = require_entry_run_id(args.run_id)
+    profile = str(args.profile)
+    _require(profile in _PROFILE_BINDING_KEYS, f"unsupported launch profile: {profile}")
+    repo = Path(args.repo).expanduser().resolve(strict=True)
+    wrapper_path = Path(args.wrapper_path).expanduser().resolve(strict=True)
     _require(wrapper_path.parent == repo / "scripts", "wrapper path is outside the repository scripts directory")
 
     dataset_dir = _resolved_explicit_path(args.dataset_dir, "dataset_dir", directory=True)
@@ -707,7 +875,16 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
             payloads[f"{split}_manifest_json"],
             path=artifacts[f"{split}_manifest_json"],
             parquet=artifacts[f"{split}_parquet"],
+            m5_prebuilt=artifacts["m5_prebuilt_path"],
         )
+    expected_large_hashes = _validate_post_rebuild_readiness(
+        payloads["post_rebuild_readiness_json"],
+        artifacts=artifacts,
+        dataset_dir=dataset_dir,
+    )
+    expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
+        payloads
+    )
     _validate_audits(artifacts, payloads, dataset_dir=dataset_dir, profile=profile)
 
     pretrain = payloads["pretrain_audit_json"]
@@ -720,30 +897,21 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
     _require(pretrain.get("require_rail_features") is True, "pretrain audit did not require rail features")
     _require(pretrain.get("require_inline_seq_structure") is True, "pretrain audit did not require inline structure")
     _require(pretrain.get("require_xau_provenance") is True, "pretrain audit did not require XAU provenance")
-    _validate_binding_map(
-        pretrain,
-        label="pretrain audit",
-        expected_paths={key: artifacts[key] for key in _PRETRAIN_BINDING_KEYS},
-    )
-    expected_large_hashes = {
-        key: str(pretrain["artifact_bindings"][key]["sha256"])
-        for key in sorted(_LARGE_ARTIFACT_KEYS)
-    }
-    _require(
-        pretrain.get("large_artifact_hashes_verified") is True,
-        "pretrain audit did not verify every large artifact hash",
-    )
-    _require(
-        pretrain.get("large_artifact_sha256") == expected_large_hashes,
-        "pretrain audit large-artifact hash contract mismatch",
-    )
-
-    recipe_path = artifacts.get("recipe_audit_json")
     # recipe_audit_json is intentionally outside artifact_keys because a recipe
-    # cannot bind its own bytes. It is still an explicit timestamped input.
-    if recipe_path is None:
-        recipe_path = _resolved_explicit_path(args.recipe_audit_json, "recipe_audit_json")
-    recipe = _read_json(recipe_path, "recipe audit")
+    # cannot bind its own bytes. The producer validates its in-memory payload
+    # through this same path before immutable publication.
+    if recipe_payload is None:
+        recipe_path = _resolved_explicit_path(
+            args.recipe_audit_json,
+            "recipe_audit_json",
+        )
+        _require(
+            bool(_STAMP_RE.search(str(recipe_path))),
+            f"recipe_audit_json must contain an immutable UTC timestamp: {recipe_path}",
+        )
+        recipe = _read_json(recipe_path, "recipe audit")
+    else:
+        recipe = dict(recipe_payload)
     _zero_failure(recipe, label="recipe audit", schema=RECIPE_AUDIT_SCHEMA, decision="PASS")
     _require(recipe.get("profile") == profile, "recipe audit profile mismatch")
     _require(recipe.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "recipe audit mode mismatch")
@@ -751,12 +919,38 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
     _require(int(recipe.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "recipe audit signal width mismatch")
     _require(int(recipe.get("expected_selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "recipe audit selected width mismatch")
     _require(recipe.get("execution_allowed") is True, "recipe audit does not authorize execution")
+    _require(
+        recipe.get("activation_authority") is False
+        and recipe.get("report_only") is True,
+        "recipe audit activation/report-only boundary mismatch",
+    )
+    _require(
+        recipe.get("side_effects_started")
+        == {
+            "training": False,
+            "replay": False,
+            "iql_distillation": False,
+            "shadow": False,
+            "live": False,
+        },
+        "recipe audit side-effect map is not exact zero",
+    )
+    _require(
+        isinstance(recipe.get("created_utc"), str)
+        and bool(str(recipe.get("created_utc")).strip()),
+        "recipe audit created_utc missing",
+    )
     _require(recipe.get("run_id") == run_id, "recipe audit run_id mismatch")
     _require(Path(str(recipe.get("dataset_dir") or "")).resolve() == dataset_dir, "recipe audit dataset mismatch")
     _require(Path(str(recipe.get("out_bundle_dir") or "")).resolve() == out_bundle_dir, "recipe audit output mismatch")
     _require(recipe.get("source_commit") == subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip(), "recipe audit source commit mismatch")
     _require(recipe.get("trainer_cli") == trainer_cli, "recipe audit trainer_cli mismatch")
     _require(recipe.get("trainer_cli_sha256") == canonical_json_sha256(trainer_cli), "recipe audit trainer_cli_sha256 mismatch")
+    _require(
+        recipe.get("trainer_env_contract")
+        == model_native_recipe_env_contract_metadata(),
+        "recipe trainer_env contract mismatch",
+    )
     _validate_binding_map(
         recipe,
         label="recipe audit",
@@ -768,9 +962,8 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
     )
     _validate_source_bindings(
         recipe,
+        repo=repo,
         wrapper_path=wrapper_path,
-        trainer_path=trainer_path,
-        capped_runner_path=capped_runner_path,
     )
     env_rows = _validate_recipe_env(recipe)
     recipe_bindings = recipe["artifact_bindings"]
@@ -781,7 +974,7 @@ def validate_launch(args: argparse.Namespace) -> list[str]:
     return env_rows
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=tuple(_PROFILE_BINDING_KEYS), required=True)
     parser.add_argument("--repo", required=True)
@@ -789,7 +982,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--dataset-dir", required=True)
     parser.add_argument("--out-bundle-dir", required=True)
-    parser.add_argument("--recipe-audit-json", required=True)
+    parser.add_argument("--recipe-audit-json", required=require_recipe_audit)
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
     parser.add_argument("--seed", required=True)
     parser.add_argument("--epochs", required=True)

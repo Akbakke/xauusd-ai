@@ -130,7 +130,8 @@ def test_smoke_wrapper_rejects_incomplete_recipe_env(tmp_path: Path) -> None:
     result = _run(*args, "--dry-run")
 
     assert result.returncode == 2
-    assert "trainer_env key set is not exact" in result.stderr
+    assert "MODEL_NATIVE_RECIPE_ENV_MISMATCH" in result.stderr
+    assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT" in result.stderr
 
 
 def test_smoke_wrapper_rejects_stale_target_audit_schema(tmp_path: Path) -> None:

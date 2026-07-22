@@ -26,6 +26,8 @@ Model-native seq513 evidence:
   model-native-smoke-manifest
   model-native-smoke-readiness
   model-native-trainability-readiness
+  model-native-train-recipe-audit
+  model-native-smoke-bundle-audit
   model-native-candidate-readiness
   model-native-selective-edge
   model-native-replay-trade-log
@@ -333,9 +335,72 @@ case "$cmd" in
     exec "$PY" -m gx1.scripts.verify_entry_model_native_seq513_trainability_readiness_v1 "$@"
     ;;
 
+  model-native-train-recipe-audit)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --profile \
+      --repo \
+      --wrapper-path \
+      --run-id \
+      --dataset-dir \
+      --out-bundle-dir \
+      --device \
+      --seed \
+      --epochs \
+      --batch-size \
+      --learning-rate \
+      --early-stop-patience \
+      --early-stop-min-delta \
+      --grad-clip-norm \
+      --weight-decay \
+      --multi-tf-scale \
+      --specialist-fusion-scale \
+      --subsample-rows \
+      --memory-cap \
+      --swap-cap \
+      --gx1-data-root \
+      --train-manifest-json \
+      --val-manifest-json \
+      --test-manifest-json \
+      --train-parquet \
+      --val-parquet \
+      --test-parquet \
+      --m5-prebuilt-path \
+      --post-rebuild-readiness-json \
+      --full-input-liveness-audit-json \
+      --feature-audit-json \
+      --target-audit-json \
+      --specialist-audit-json \
+      --pretrain-audit-json \
+      --trainability-readiness-json \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_train_recipe_audit_v1 "$@"
+    ;;
+
   model-native-smoke-train)
     reject_non_authoritative_args "$@"
     exec "$REPO/scripts/run_entry_model_native_seq513_smoke_train.sh" "$@"
+    ;;
+
+  model-native-smoke-bundle-audit)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --bundle-dir \
+      --dataset-dir \
+      --val-manifest-json \
+      --test-manifest-json \
+      --predictions-parquet \
+      --prediction-report-json \
+      --target-audit-json \
+      --specialist-audit-json \
+      --pretrain-audit-json \
+      --out-dir \
+      --device; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
     ;;
 
   model-native-candidate-readiness)

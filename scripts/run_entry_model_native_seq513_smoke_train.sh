@@ -8,7 +8,7 @@ PROFILE=smoke
 
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd -P)"
-PY=/home/andre2/venvs/gx1/bin/python
+PY="$REPO/.venv/bin/python"
 CAPPED_RUNNER="$REPO/scripts/gx1_capped_run.sh"
 
 usage() {
@@ -21,6 +21,7 @@ Required identity and immutable evidence:
   --train-manifest-json PATH  --val-manifest-json PATH  --test-manifest-json PATH
   --train-parquet PATH        --val-parquet PATH        --test-parquet PATH
   --m5-prebuilt-path PATH
+  --post-rebuild-readiness-json PATH
   --full-input-liveness-audit-json PATH
   --feature-audit-json PATH  --target-audit-json PATH  --specialist-audit-json PATH
   --pretrain-audit-json PATH --recipe-audit-json PATH
@@ -56,6 +57,7 @@ take_value() {
 
 RUN_ID= DATASET_DIR= TRAIN_MANIFEST_JSON= VAL_MANIFEST_JSON= TEST_MANIFEST_JSON=
 TRAIN_PARQUET= VAL_PARQUET= TEST_PARQUET= M5_PREBUILT_PATH=
+POST_REBUILD_READINESS_JSON=
 FULL_INPUT_LIVENESS_AUDIT_JSON= FEATURE_AUDIT_JSON= TARGET_AUDIT_JSON=
 SPECIALIST_AUDIT_JSON= PRETRAIN_AUDIT_JSON= RECIPE_AUDIT_JSON=
 SMOKE_MANIFEST_JSON= SMOKE_READINESS_JSON= TRAINABILITY_READINESS_JSON=
@@ -74,7 +76,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --run-id|--dataset-dir|--train-manifest-json|--val-manifest-json|--test-manifest-json|\
     --train-parquet|--val-parquet|--test-parquet|--m5-prebuilt-path|\
-    --full-input-liveness-audit-json|--feature-audit-json|--target-audit-json|\
+    --post-rebuild-readiness-json|--full-input-liveness-audit-json|--feature-audit-json|--target-audit-json|\
     --specialist-audit-json|--pretrain-audit-json|--recipe-audit-json|\
     --smoke-manifest-json|--smoke-readiness-json|--trainability-readiness-json|\
     --out-bundle-dir|--gx1-data-root|--device|--seed|--epochs|--batch-size|\
@@ -92,6 +94,7 @@ while [[ $# -gt 0 ]]; do
         --val-parquet) variable=VAL_PARQUET ;;
         --test-parquet) variable=TEST_PARQUET ;;
         --m5-prebuilt-path) variable=M5_PREBUILT_PATH ;;
+        --post-rebuild-readiness-json) variable=POST_REBUILD_READINESS_JSON ;;
         --full-input-liveness-audit-json) variable=FULL_INPUT_LIVENESS_AUDIT_JSON ;;
         --feature-audit-json) variable=FEATURE_AUDIT_JSON ;;
         --target-audit-json) variable=TARGET_AUDIT_JSON ;;
@@ -129,7 +132,8 @@ done
 [[ -x "$CAPPED_RUNNER" ]] || die "capped runner is not executable: $CAPPED_RUNNER"
 [[ -n "$RUN_MODE" ]] || die "choose exactly one of --dry-run or --execute"
 for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MANIFEST_JSON \
-  TRAIN_PARQUET VAL_PARQUET TEST_PARQUET M5_PREBUILT_PATH FULL_INPUT_LIVENESS_AUDIT_JSON \
+  TRAIN_PARQUET VAL_PARQUET TEST_PARQUET M5_PREBUILT_PATH POST_REBUILD_READINESS_JSON \
+  FULL_INPUT_LIVENESS_AUDIT_JSON \
   FEATURE_AUDIT_JSON TARGET_AUDIT_JSON SPECIALIST_AUDIT_JSON PRETRAIN_AUDIT_JSON \
   RECIPE_AUDIT_JSON SMOKE_MANIFEST_JSON SMOKE_READINESS_JSON TRAINABILITY_READINESS_JSON \
   OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE LEARNING_RATE \
@@ -146,6 +150,7 @@ VALIDATOR_ARGS=(
   --test-manifest-json "$TEST_MANIFEST_JSON" --train-parquet "$TRAIN_PARQUET"
   --val-parquet "$VAL_PARQUET" --test-parquet "$TEST_PARQUET"
   --m5-prebuilt-path "$M5_PREBUILT_PATH"
+  --post-rebuild-readiness-json "$POST_REBUILD_READINESS_JSON"
   --full-input-liveness-audit-json "$FULL_INPUT_LIVENESS_AUDIT_JSON"
   --feature-audit-json "$FEATURE_AUDIT_JSON" --target-audit-json "$TARGET_AUDIT_JSON"
   --specialist-audit-json "$SPECIALIST_AUDIT_JSON" --pretrain-audit-json "$PRETRAIN_AUDIT_JSON"

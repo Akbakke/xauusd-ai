@@ -78,7 +78,8 @@ def test_candidate_wrapper_rejects_zero_mandatory_recipe_value(tmp_path: Path) -
     result = _run(*args, "--dry-run")
 
     assert result.returncode == 2
-    assert "must be finite and > 0" in result.stderr
+    assert "MODEL_NATIVE_RECIPE_ENV_MISMATCH" in result.stderr
+    assert "ENTRY_MTF_DIR_AUX_WEIGHT" in result.stderr
 
 
 def test_candidate_wrapper_rejects_mutated_readiness_binding(tmp_path: Path) -> None:

@@ -26,9 +26,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
 )
-from gx1.contracts.entry_model_native_train_launch_v1 import (
+from gx1.contracts.entry_model_native_train_launch_v1 import RECIPE_AUDIT_SCHEMA
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
-    RECIPE_AUDIT_SCHEMA,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     READY_DECISION as POST_REBUILD_READY_DECISION,
@@ -189,9 +189,6 @@ DIRECTION_BALANCE_RECIPE_CONTRACT = {
     "hier_side_validity_pos_weight_cap": 8.0,
     "trendline_rail_head_enabled": True,
     "trendline_rail_aux_weight": 1.00,
-    "trendline_rail_utility_margin_weight": 5.00,
-    "trendline_rail_margin": 1.00,
-    "trendline_rail_utility_margin_bps": 30.0,
     "anchor_gate_enabled": False,
 }
 DIRECTION_BALANCE_ENV_TEMPLATE = {
@@ -617,6 +614,7 @@ def _wrapper_recipe_audit_review(text: str, required_env_keys: tuple[str, ...]) 
         "--recipe-audit-json",
         "--pretrain-audit-json",
         "--full-input-liveness-audit-json",
+        "--post-rebuild-readiness-json",
         "--trainability-readiness-json",
         "gx1.contracts.entry_model_native_train_launch_v1",
         "--run-id",
@@ -1063,10 +1061,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             future_train,
         ),
         _check(
-            "smart smoke future contract records unavailable immutable smoke audit route",
+            "smart smoke future contract exposes immutable recipe and smoke audit routes",
             future_train.get("requires_edge_audit") is True
-            and future_train.get("post_smoke_audit_control_route_exposed") is False
-            and bool(future_train.get("post_smoke_audit_blocker")),
+            and future_train.get("recipe_audit_control_route_exposed") is True
+            and future_train.get("recipe_audit_control_route")
+            == "model-native-train-recipe-audit"
+            and bool(future_train.get("recipe_audit_argv_template"))
+            and future_train.get("post_smoke_audit_control_route_exposed") is True
+            and future_train.get("post_smoke_audit_control_route")
+            == "model-native-smoke-bundle-audit"
+            and bool(future_train.get("post_smoke_audit_argv_template"))
+            and "model-native-train-recipe-audit)" in control_text
+            and "model-native-smoke-bundle-audit)" in control_text,
             future_train,
         ),
         _check(

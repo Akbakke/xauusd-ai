@@ -28,14 +28,16 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     model_native_readiness_contract_metadata,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
-    CAPPED_RUNNER_RELATIVE_PATH,
-    MODEL_NATIVE_RECIPE_ENV_KEYS,
     RECIPE_AUDIT_SCHEMA,
     REQUIRED_SPECIALISTS,
-    TRAINER_RELATIVE_PATH,
     artifact_binding,
     canonical_json_sha256,
     recipe_env_sha256,
+    recipe_source_bindings,
+)
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV,
+    model_native_recipe_env_contract_metadata,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
@@ -67,7 +69,13 @@ def _bindings(paths: dict[str, Path]) -> dict[str, dict]:
     return {key: artifact_binding(path) for key, path in paths.items()}
 
 
-def _split_manifest(path: Path, parquet: Path, *, profile: str) -> Path:
+def _split_manifest(
+    path: Path,
+    parquet: Path,
+    *,
+    m5_prebuilt: Path,
+    profile: str,
+) -> Path:
     selected = canonical_model_native_selected_fields(
         remainder_prefix="session_regime.train_wrapper_fixture"
     )
@@ -79,6 +87,7 @@ def _split_manifest(path: Path, parquet: Path, *, profile: str) -> Path:
             "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
             "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
             "output_data_path": str(parquet.resolve()),
+            "inputs": {"source_parquet": str(m5_prebuilt.resolve())},
             "extra": {
                 "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                 "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -88,6 +97,12 @@ def _split_manifest(path: Path, parquet: Path, *, profile: str) -> Path:
                     "fields": contract["fields"],
                     "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                     "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                },
+                "model_native_state_contract": {
+                    "rank_reference_source_parquet": str(m5_prebuilt.resolve()),
+                    "rank_reference_source_parquet_sha256": artifact_binding(
+                        m5_prebuilt
+                    )["sha256"],
                 },
             },
         },
@@ -105,6 +120,12 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     out_bundle = output_parent / f"entry_{profile}_{STAMP}"
 
     artifacts: dict[str, Path] = {}
+    m5_dir = (tmp_path / f"m5_{STAMP}").resolve()
+    m5_dir.mkdir()
+    m5_path = m5_dir / "xau_m5.parquet"
+    m5_path.write_bytes(b"xau-m5-fixture")
+    artifacts["m5_prebuilt_path"] = m5_path.resolve()
+
     for split in ("train", "val", "test"):
         parquet = dataset_dir / f"xau_seq513_{split}.parquet"
         parquet.write_bytes(f"{profile}-{split}-parquet".encode())
@@ -113,14 +134,9 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts[f"{split}_manifest_json"] = _split_manifest(
             manifest,
             parquet,
+            m5_prebuilt=m5_path,
             profile=profile,
         )
-
-    m5_dir = (tmp_path / f"m5_{STAMP}").resolve()
-    m5_dir.mkdir()
-    m5_path = m5_dir / "xau_m5.parquet"
-    m5_path.write_bytes(b"xau-m5-fixture")
-    artifacts["m5_prebuilt_path"] = m5_path.resolve()
 
     evidence_dir = (tmp_path / f"evidence_{STAMP}").resolve()
     liveness_dir = evidence_dir / "liveness"
@@ -267,23 +283,11 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     else:
         pass
 
-    pretrain_binding_keys = (
-        "train_manifest_json",
-        "val_manifest_json",
-        "test_manifest_json",
-        "train_parquet",
-        "val_parquet",
-        "test_parquet",
-        "m5_prebuilt_path",
-        "full_input_liveness_audit_json",
-        "feature_audit_json",
-        "target_audit_json",
-        "specialist_audit_json",
-    )
-    pretrain_bindings = _bindings({key: artifacts[key] for key in pretrain_binding_keys})
     large_artifact_sha256 = {
-        key: pretrain_bindings[key]["sha256"]
-        for key in sorted(("train_parquet", "val_parquet", "test_parquet", "m5_prebuilt_path"))
+        key: artifact_binding(artifacts[key])["sha256"]
+        for key in sorted(
+            ("train_parquet", "val_parquet", "test_parquet", "m5_prebuilt_path")
+        )
     }
     artifacts["pretrain_audit_json"] = _write_json(
         evidence_dir / f"XAU_PRETRAIN_AUDIT_{STAMP}.json",
@@ -299,10 +303,50 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "require_rail_features": True,
             "require_inline_seq_structure": True,
             "require_xau_provenance": True,
-            "artifact_bindings": pretrain_bindings,
-            "artifact_bindings_sha256": canonical_json_sha256(pretrain_bindings),
-            "large_artifact_hashes_verified": True,
-            "large_artifact_sha256": large_artifact_sha256,
+        },
+    )
+    artifacts["post_rebuild_readiness_json"] = _write_json(
+        evidence_dir / f"ENTRY_POST_REBUILD_READINESS_{STAMP}.json",
+        {
+            "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v1",
+            "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW",
+            "failures": [],
+            "dataset_dir": str(dataset_dir),
+            "smoke_dataset_dir": str(dataset_dir),
+            "report_only": True,
+            "training_allowed": False,
+            "side_effects_started": {
+                "dataset_rebuild": False,
+                "training": False,
+                "replay": False,
+                "iql_distillation": False,
+                "shadow": False,
+                "live": False,
+            },
+            "full_input_liveness_contract": {
+                "path": str(artifacts["full_input_liveness_audit_json"]),
+                "sha256": artifact_binding(
+                    artifacts["full_input_liveness_audit_json"]
+                )["sha256"],
+            },
+            "pretrain_audit": {
+                "path": str(artifacts["pretrain_audit_json"]),
+                "sha256": artifact_binding(artifacts["pretrain_audit_json"])[
+                    "sha256"
+                ],
+            },
+            "split_artifacts": {
+                split: {
+                    "manifest_path": str(artifacts[f"{split}_manifest_json"]),
+                    "manifest_sha256": artifact_binding(
+                        artifacts[f"{split}_manifest_json"]
+                    )["sha256"],
+                    "parquet_path": str(artifacts[f"{split}_parquet"]),
+                    "parquet_sha256": large_artifact_sha256[f"{split}_parquet"],
+                    "rows": 1,
+                }
+                for split in ("train", "val", "test")
+            },
         },
     )
 
@@ -473,6 +517,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "val_parquet",
         "test_parquet",
         "m5_prebuilt_path",
+        "post_rebuild_readiness_json",
         "full_input_liveness_audit_json",
         "feature_audit_json",
         "target_audit_json",
@@ -486,13 +531,11 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         ),
     ]
     recipe_bindings = _bindings({key: artifacts[key] for key in recipe_binding_keys})
-    source_paths = {
-        "wrapper": wrapper.resolve(),
-        "trainer": (REPO / TRAINER_RELATIVE_PATH).resolve(),
-        "capped_runner": (REPO / CAPPED_RUNNER_RELATIVE_PATH).resolve(),
-    }
-    source_bindings = _bindings(source_paths)
-    env_map = {key: "1" for key in MODEL_NATIVE_RECIPE_ENV_KEYS}
+    source_bindings = recipe_source_bindings(
+        repo=REPO,
+        wrapper_path=wrapper.resolve(),
+    )
+    env_map = dict(MODEL_NATIVE_RECIPE_ENV)
     trainer_cli = {
         "device": "cpu",
         "seed": 1337,
@@ -515,6 +558,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         recipe_path,
         {
             "schema_version": RECIPE_AUDIT_SCHEMA,
+            "created_utc": "2026-07-16T01:02:03.123456+00:00",
             "decision": "PASS",
             "failures": [],
             "profile": profile,
@@ -523,6 +567,15 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
             "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "execution_allowed": True,
+            "activation_authority": False,
+            "report_only": True,
+            "side_effects_started": {
+                "training": False,
+                "replay": False,
+                "iql_distillation": False,
+                "shadow": False,
+                "live": False,
+            },
             "run_id": RUN_ID,
             "dataset_dir": str(dataset_dir),
             "out_bundle_dir": str(out_bundle),
@@ -533,6 +586,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "trainer_cli_sha256": canonical_json_sha256(trainer_cli),
             "trainer_env": env_map,
             "trainer_env_sha256": recipe_env_sha256(env_map),
+            "trainer_env_contract": model_native_recipe_env_contract_metadata(),
             "artifact_bindings": recipe_bindings,
             "artifact_bindings_sha256": canonical_json_sha256(recipe_bindings),
             "large_artifact_sha256": large_artifact_sha256,
@@ -551,6 +605,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--val-parquet", str(artifacts["val_parquet"]),
         "--test-parquet", str(artifacts["test_parquet"]),
         "--m5-prebuilt-path", str(artifacts["m5_prebuilt_path"]),
+        "--post-rebuild-readiness-json", str(artifacts["post_rebuild_readiness_json"]),
         "--full-input-liveness-audit-json", str(artifacts["full_input_liveness_audit_json"]),
         "--feature-audit-json", str(artifacts["feature_audit_json"]),
         "--target-audit-json", str(artifacts["target_audit_json"]),
