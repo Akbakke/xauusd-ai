@@ -27,10 +27,10 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     binding = foundation_audit_policy_binding()
 
     assert FOUNDATION_AUDIT_POLICY_SHA256 == (
-        "2bc34da612d2c8c2f175a48e251f142f8342161870ca6f24e8d6862adc9055a8"
+        "1ae49d94ac11fe9fec1e5400d11432f60f0fe338aadd76cea4f6aa03c5a12cfd"
     )
     assert binding["foundation_audit_policy"]["schema_version"] == (
-        "entry_foundation_audit_policy_v6"
+        "entry_foundation_audit_policy_v7"
     )
     smoke = binding["foundation_audit_policy"]["smoke_edge_pockets"]
     assert smoke["wilson_confidence_level"] == 0.95
@@ -56,6 +56,15 @@ def test_foundation_audit_policy_has_fixed_identity_and_full_binding() -> None:
     learned_qv = smoke["offline_rl_evidence"]
     assert learned_qv["min_reward_argmax_accuracy_per_horizon"] == 0.70
     assert learned_qv["separate_direction_authority"] is False
+    specialist = binding["foundation_audit_policy"]["specialist_liveness"]
+    assert specialist["train_live_statuses"] == ["LIVE", "ALLOWED_RARE_EVENT"]
+    assert specialist["rare_event_minimum_active_count"] == {
+        "candle.pattern_outside_after_inside_bear_breakout_score": 16,
+        "candle.pattern_outside_after_inside_bull_breakout_score": 16,
+        "chart.m5_ema50_200_cross_down": 128,
+        "chart.m5_ema50_200_cross_up": 128,
+        "smc_choch": 32,
+    }
     assert binding["foundation_audit_policy"]["audit_data_splits"] == list(
         FOUNDATION_AUDIT_DATA_SPLITS
     )

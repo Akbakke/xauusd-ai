@@ -8,10 +8,11 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from gx1.contracts.entry_full_input_liveness_v1 import RARE_EVENT_MINIMUMS
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 
 
-FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v6"
+FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v7"
 FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v2"
 FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val", "test")
 FOUNDATION_AUDIT_SMOKE_SPLITS = ("val", "test")
@@ -30,6 +31,12 @@ _MIN_SPECIALIST_SIGNAL_COUNTS = {
     "session_regime_encoder": 6,
     "chart_geometry_encoder": 8,
     "price_action_candle_encoder": 6,
+}
+
+_SPECIALIST_SIGNAL_RARE_EVENT_MINIMUMS = {
+    field: int(minimums["train"])
+    for (surface, field), minimums in sorted(RARE_EVENT_MINIMUMS.items())
+    if surface == "signal" and "train" in minimums
 }
 
 _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
@@ -91,6 +98,19 @@ _FOUNDATION_AUDIT_POLICY: dict[str, Any] = {
         "liveness_epsilon": 1e-7,
         "near_constant_std": 1e-9,
         "min_feature_active_rate": 0.01,
+        "train_live_statuses": ["LIVE", "ALLOWED_RARE_EVENT"],
+        "oos_observed_statuses": [
+            "OBSERVED_VARIABLE",
+            "OBSERVED_RARE_EVENT",
+            "OBSERVED_SINGLE_STATE",
+        ],
+        "rare_event_minimum_active_count": dict(
+            _SPECIALIST_SIGNAL_RARE_EVENT_MINIMUMS
+        ),
+        "rare_event_rule": (
+            "finite_and_variable_and_exact_train_support_floor; "
+            "never a constant allowlist or direction pass-through"
+        ),
         "min_specialist_mean_active_rate": 0.01,
         "min_signal_counts": dict(_MIN_SPECIALIST_SIGNAL_COUNTS),
         "min_live_feature_counts": dict(_MIN_SPECIALIST_SIGNAL_COUNTS),

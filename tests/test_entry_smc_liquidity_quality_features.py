@@ -8,6 +8,10 @@ from gx1.features.entry_smc_liquidity_quality_v1 import (
     missing_smc_liquidity_quality_source_fields,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
+from gx1.features.entry_support_resistance_memory_v1 import (
+    SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS,
+    build_entry_support_resistance_memory_layer,
+)
 
 
 EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT = 24
@@ -107,6 +111,32 @@ def test_smc_liquidity_quality_layer_builds_directional_closed_bar_features() ->
     assert out[4, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_short"]] > out[1, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_short"]]
     assert out[1, idx["chart.smc_liquidity_continuation_pressure_long"]] > out[0, idx["chart.smc_liquidity_continuation_pressure_long"]]
     assert out[4, idx["chart.smc_liquidity_continuation_pressure_short"]] > out[0, idx["chart.smc_liquidity_continuation_pressure_short"]]
+
+
+def test_smc_liquidity_pool_surface_is_not_support_resistance_duplicate() -> None:
+    names = list(
+        dict.fromkeys(
+            (*SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS, *SUPPORT_RESISTANCE_MEMORY_SOURCE_FIELDS)
+        )
+    )
+    x = _matrix(names)
+    smc, smc_names = build_entry_smc_liquidity_quality_layer(x, names)
+    source_index = {name: index for index, name in enumerate(names)}
+    smc_index = {name: index for index, name in enumerate(smc_names)}
+    for name in set(names) & set(smc_names):
+        x[:, source_index[name]] = smc[:, smc_index[name]]
+
+    sr, sr_names = build_entry_support_resistance_memory_layer(x, names)
+    sr_index = {name: index for index, name in enumerate(sr_names)}
+
+    assert not np.array_equal(
+        smc[:, smc_index["chart.smc_liquidity_liquidity_pool_proximity_low"]],
+        sr[:, sr_index["chart.sr_memory_support_level_proximity_stack"]],
+    )
+    assert not np.array_equal(
+        smc[:, smc_index["chart.smc_liquidity_liquidity_pool_proximity_high"]],
+        sr[:, sr_index["chart.sr_memory_resistance_level_proximity_stack"]],
+    )
 
 
 def test_smc_liquidity_quality_layer_rejects_nonfinite_inputs() -> None:

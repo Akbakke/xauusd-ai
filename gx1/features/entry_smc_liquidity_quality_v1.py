@@ -7,7 +7,7 @@ import numpy as np
 
 
 SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = (
-    "entry_smc_liquidity_quality_v1_20260717_exact_sources_fail_closed"
+    "entry_smc_liquidity_quality_v1_20260722_distinct_liquidity_pool_stack_fail_closed"
 )
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
 
@@ -288,8 +288,44 @@ def build_entry_smc_liquidity_quality_layer(
     resistance_stack = resistance_sources.max(axis=0).astype(np.float32)
     support_touch_count = _count_proxy(support_sources)
     resistance_touch_count = _count_proxy(resistance_sources)
-    low_pool = np.maximum(support_stack, _prox_abs(c("ctx_cont.liquidity_lo_nearest_abs_atr"))).astype(np.float32)
-    high_pool = np.maximum(resistance_stack, _prox_abs(c("ctx_cont.liquidity_hi_nearest_abs_atr"))).astype(np.float32)
+
+    # A liquidity pool is not the same object as generic support/resistance.
+    # The previous max(support_stack, liquidity_proximity) expression was
+    # algebraically identical to support_stack because liquidity_proximity was
+    # already one of the max inputs above.  That silently spent two model
+    # slots on exact S/R duplicates.  Keep the S/R stack for confluence, while
+    # the pool surface now measures a causal blend of the dedicated liquidity
+    # locator, the most recent swing, and clustered lower/higher TF extremes.
+    # This preserves the intended cross-family cooperation without allowing
+    # either family to masquerade as the other.
+    low_liquidity_proximity = _prox_abs(c("ctx_cont.liquidity_lo_nearest_abs_atr"))
+    high_liquidity_proximity = _prox_abs(c("ctx_cont.liquidity_hi_nearest_abs_atr"))
+    low_swing_proximity = _clip01(near_swing_low * (0.50 + recent_swing_low))
+    high_swing_proximity = _clip01(near_swing_high * (0.50 + recent_swing_high))
+    low_tf_cluster = _clip01(
+        0.30 * _prox_abs(c("ctx_cont.dist_to_m5_lo_atr"))
+        + 0.25 * _prox_abs(c("ctx_cont.dist_to_m15_lo_atr"))
+        + 0.20 * _prox_abs(c("ctx_cont.dist_to_h1_lo_atr"))
+        + 0.15 * _prox_abs(c("ctx_cont.dist_to_h4_lo_atr"))
+        + 0.10 * _prox_abs(c("ctx_cont.dist_to_d1_lo_atr"))
+    )
+    high_tf_cluster = _clip01(
+        0.30 * _prox_abs(c("ctx_cont.dist_to_m5_hi_atr"))
+        + 0.25 * _prox_abs(c("ctx_cont.dist_to_m15_hi_atr"))
+        + 0.20 * _prox_abs(c("ctx_cont.dist_to_h1_hi_atr"))
+        + 0.15 * _prox_abs(c("ctx_cont.dist_to_h4_hi_atr"))
+        + 0.10 * _prox_abs(c("ctx_cont.dist_to_d1_hi_atr"))
+    )
+    low_pool = _clip01(
+        0.55 * low_liquidity_proximity
+        + 0.25 * low_swing_proximity
+        + 0.20 * low_tf_cluster
+    )
+    high_pool = _clip01(
+        0.55 * high_liquidity_proximity
+        + 0.25 * high_swing_proximity
+        + 0.20 * high_tf_cluster
+    )
 
     foundation_reclaim_long = _clip01(c("chart.foundation_sweep_low_reclaim_up_proxy") / 5.0)
     foundation_reclaim_short = _clip01(c("chart.foundation_sweep_high_reclaim_down_proxy") / 5.0)

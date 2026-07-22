@@ -32,7 +32,11 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     specialist_model_contract_for_mode,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
-from gx1.scripts.audit_entry_specialist_feature_groups_v1 import _context_routing_failures, run
+from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
+    _context_routing_failures,
+    _specialist_input_liveness_rows,
+    run,
+)
 
 
 def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> None:
@@ -95,6 +99,63 @@ def test_context_routing_failures_fail_closed_for_model_native_contract() -> Non
     assert len(failures) == 1
     assert MODEL_NATIVE_CONTRACT_MODE in failures[0]
     assert "ctx_cont.unowned_context_feature_v1" in failures[0]
+
+
+def test_specialist_liveness_uses_exact_sparse_event_support_contract(
+    tmp_path: Path,
+) -> None:
+    fields = [
+        "smc_choch",
+        "candle.pattern_outside_after_inside_bull_breakout_score",
+        "candle.pattern_outside_after_inside_bear_breakout_score",
+        "chart.m5_ema50_200_cross_up",
+        "chart.m5_ema50_200_cross_down",
+    ]
+    event_counts = [32, 16, 16, 128, 128]
+    split_artifacts: dict[str, dict[str, str]] = {}
+    for split in ("train", "val", "test"):
+        values = np.zeros((20_000, len(fields)), dtype=np.float32)
+        if split == "train":
+            for index, count in enumerate(event_counts):
+                values[:count, index] = 1.0
+        path = tmp_path / f"sparse_{split}.parquet"
+        pd.DataFrame({"snap": values.tolist()}).to_parquet(path, index=False)
+        split_artifacts[split] = {"parquet_path": str(path)}
+
+    _groups, feature_rows, _duplicates = _specialist_input_liveness_rows(
+        split_artifacts,
+        ["train", "val", "test"],
+        fields,
+        (),
+    )
+
+    train = [row for row in feature_rows if row["split"] == "train"]
+    assert [row["active_count"] for row in train] == event_counts
+    assert {row["status"] for row in train} == {"ALLOWED_RARE_EVENT"}
+    assert all(row["live"] is True for row in train)
+    oos = [row for row in feature_rows if row["split"] != "train"]
+    assert {row["status"] for row in oos} == {"OBSERVED_SINGLE_STATE"}
+    assert all(row["live"] is True for row in oos)
+
+
+def test_specialist_liveness_rejects_sparse_event_below_exact_support_floor(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "below_floor.parquet"
+    values = np.zeros((20_000, 1), dtype=np.float32)
+    values[:31, 0] = 1.0
+    pd.DataFrame({"snap": values.tolist()}).to_parquet(path, index=False)
+
+    _groups, feature_rows, _duplicates = _specialist_input_liveness_rows(
+        {"train": {"parquet_path": str(path)}},
+        ["train"],
+        ["smc_choch"],
+        (),
+    )
+
+    assert feature_rows[0]["status"] == "FAIL"
+    assert feature_rows[0]["status_reason"] == "rare_event_support_below_minimum"
+    assert feature_rows[0]["live"] is False
 
 
 def test_only_model_native_seq513_specialist_contract_is_registered() -> None:

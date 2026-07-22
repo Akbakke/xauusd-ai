@@ -22,6 +22,11 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
     foundation_audit_policy_enforcement,
     foundation_audit_policy_metadata,
 )
+from gx1.contracts.entry_full_input_liveness_v1 import (
+    RARE_EVENT_MINIMUMS,
+    canonical_policy as full_input_liveness_policy,
+    classify_field_status,
+)
 from gx1.contracts.entry_dataset_split_artifacts_v1 import (
     ENTRY_DATASET_SPLIT_ARTIFACTS_SCHEMA_VERSION,
     require_dataset_split_artifacts,
@@ -69,6 +74,35 @@ MIN_FEATURE_ACTIVE_RATE = float(
 LIVENESS_EPSILON = float(_SPECIALIST_AUDIT_POLICY["liveness_epsilon"])
 NEAR_CONSTANT_STD = float(_SPECIALIST_AUDIT_POLICY["near_constant_std"])
 SPECIALIST_CONTRACT_MODE = str(_SPECIALIST_AUDIT_POLICY["contract_mode"])
+TRAIN_LIVE_STATUSES = frozenset(
+    str(value) for value in _SPECIALIST_AUDIT_POLICY["train_live_statuses"]
+)
+OOS_OBSERVED_STATUSES = frozenset(
+    str(value) for value in _SPECIALIST_AUDIT_POLICY["oos_observed_statuses"]
+)
+SPECIALIST_RARE_EVENT_MINIMUMS = {
+    str(field): int(count)
+    for field, count in _SPECIALIST_AUDIT_POLICY[
+        "rare_event_minimum_active_count"
+    ].items()
+}
+_CANONICAL_SIGNAL_RARE_EVENT_MINIMUMS = {
+    field: int(minimums["train"])
+    for (surface, field), minimums in RARE_EVENT_MINIMUMS.items()
+    if surface == "signal" and "train" in minimums
+}
+if SPECIALIST_RARE_EVENT_MINIMUMS != _CANONICAL_SIGNAL_RARE_EVENT_MINIMUMS:
+    raise RuntimeError("SPECIALIST_RARE_EVENT_POLICY_DIVERGES_FROM_FULL_INPUT_LIVENESS")
+_FULL_INPUT_NUMERIC_POLICY = full_input_liveness_policy()["numeric"]
+if (
+    float(_FULL_INPUT_NUMERIC_POLICY["active_abs_threshold"])
+    != float(LIVENESS_EPSILON)
+    or float(_FULL_INPUT_NUMERIC_POLICY["near_constant_std"])
+    != float(NEAR_CONSTANT_STD)
+    or float(_FULL_INPUT_NUMERIC_POLICY["min_active_rate"])
+    != float(MIN_FEATURE_ACTIVE_RATE)
+):
+    raise RuntimeError("SPECIALIST_NUMERIC_POLICY_DIVERGES_FROM_FULL_INPUT_LIVENESS")
 
 
 def _json_default(obj: Any) -> Any:
@@ -403,15 +437,43 @@ def _specialist_input_liveness_rows(
         all_finite = np.isfinite(snap)
         all_clean = np.where(all_finite, snap, 0.0)
         all_std = np.std(all_clean, axis=0)
+        all_min = np.min(all_clean, axis=0)
+        all_max = np.max(all_clean, axis=0)
+        all_value_range = all_max - all_min
+        all_active_count = np.sum(
+            np.abs(all_clean) > float(LIVENESS_EPSILON), axis=0
+        )
         all_active_rate = np.mean(
             np.abs(all_clean) > float(LIVENESS_EPSILON), axis=0
         )
         all_finite_by_feature = np.all(all_finite, axis=0)
-        all_live = (
-            all_finite_by_feature
-            & (all_std > float(NEAR_CONSTANT_STD))
-            & (all_active_rate >= float(MIN_FEATURE_ACTIVE_RATE))
+        all_status: list[str] = []
+        all_status_reason: list[str] = []
+        all_live_values: list[bool] = []
+        accepted_statuses = (
+            TRAIN_LIVE_STATUSES if split == "train" else OOS_OBSERVED_STATUSES
         )
+        for index, feature in enumerate(signal_fields):
+            status, reason = classify_field_status(
+                split=split,
+                surface="signal",
+                field=feature,
+                stats={
+                    "row_count": int(snap.shape[0]),
+                    "finite_count": int(np.sum(all_finite[:, index])),
+                    "nonfinite_count": int(np.sum(~all_finite[:, index])),
+                    "std": float(all_std[index]),
+                    "min": float(all_min[index]),
+                    "max": float(all_max[index]),
+                    "value_range": float(all_value_range[index]),
+                    "active_count": int(all_active_count[index]),
+                    "active_rate": float(all_active_rate[index]),
+                },
+            )
+            all_status.append(status)
+            all_status_reason.append(reason)
+            all_live_values.append(status in accepted_statuses)
+        all_live = np.asarray(all_live_values, dtype=bool)
         for index, feature in enumerate(signal_fields):
             feature_rows.append(
                 {
@@ -421,7 +483,11 @@ def _specialist_input_liveness_rows(
                     "specialist": groups_by_feature[index],
                     "finite": bool(all_finite_by_feature[index]),
                     "std": float(all_std[index]),
+                    "value_range": float(all_value_range[index]),
+                    "active_count": int(all_active_count[index]),
                     "active_rate": float(all_active_rate[index]),
+                    "status": all_status[index],
+                    "status_reason": all_status_reason[index],
                     "live": bool(all_live[index]),
                 }
             )
@@ -463,11 +529,7 @@ def _specialist_input_liveness_rows(
                 else np.asarray([], dtype=np.float64)
             )
             finite_by_feature = np.all(finite, axis=0) if finite.size else np.asarray([], dtype=bool)
-            live_mask = (
-                finite_by_feature
-                & (std > float(NEAR_CONSTANT_STD))
-                & (active_rate >= float(MIN_FEATURE_ACTIVE_RATE))
-            )
+            live_mask = all_live[idx] if idx else np.asarray([], dtype=bool)
             live_features = [feature for feature, live in zip(features, live_mask, strict=False) if bool(live)]
             near_constant_features = [
                 feature
@@ -846,8 +908,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ]
     if train_dead_features:
         failures.append(
-            "train: every one of the 513 signal fields must be finite, variable, "
-            "and active; dead fields="
+            "train: every one of the 513 signal fields must satisfy canonical "
+            "finite/variable/activity support; unlearnable fields="
             f"{train_dead_features[:30]} total={len(train_dead_features)}"
         )
     train_duplicate_groups = [
