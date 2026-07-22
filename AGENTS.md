@@ -29,9 +29,12 @@ source audit, TRAIN-only ranking, the 513-field manifest and preflight. Dataset
 construction then failed closed before any split publication because
 `chart.geometry_channel_position_low_to_high`, a structural auxiliary-label
 prerequisite, was optional ranking evidence. V20 is terminal `RED` and must
-never be reused. The active v3 contract owns all 19 structural-label signal
-requirements in the mandatory prefix: 377 mandatory plus 102 ranked fields.
-Only a wholly fresh V21 may proceed. Launch remains `BLOCK` until rebuild,
+never be reused. V21 passed that construction point but terminalized RED when
+pretrain polarity still depended on an optional field. The active v4 contract
+owns all 19 structural-label signal
+requirements and every pretrain-polarity input in the mandatory prefix: 378
+mandatory plus 101 ranked fields.
+Only a wholly fresh V22 may proceed. Launch remains `BLOCK` until rebuild,
 smoke, candidate, untouched OOS, replay, serve parity, sizing and shadow gates
 all pass.
 
@@ -93,8 +96,8 @@ permission to use another policy.
 The exact model-native surface is:
 
 - 513 ordered signals = 34 genuine base fields + 479 specialist fields;
-- the 479 specialist fields = all 377 outputs from twelve code-owned causal
-  layers in exact registry order + 102 deterministic TRAIN-only ranked fields;
+- the 479 specialist fields = all 378 outputs from twelve code-owned causal
+  layers in exact registry order + 101 deterministic TRAIN-only ranked fields;
 - 142 ordered continuous context fields;
 - 5 ordered categorical context fields;
 - sequence length 96;

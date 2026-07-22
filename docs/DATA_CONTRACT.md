@@ -81,7 +81,7 @@ pinned ATR state are forbidden. Its sidecar binds source and artifact hashes,
 declares `fit_scope=train_only`, and proves that no validation or test rows are
 stored.
 
-The deterministic feature-ranking JSON that selects the final 102 specialist
+The deterministic feature-ranking JSON that selects the final 101 specialist
 fields and the derived seq513 signal manifest are explicit immutable inputs.
 The chain creates the TRAIN-rank NPZ before ranking. Ranking, manifest,
 preflight, rebuild wrapper and dataset builder all revalidate their nested
@@ -119,15 +119,21 @@ The accepted Entry tensor contract is sequence length 96 with 513 genuine
 ordered signal fields, a 513-field snapshot, 142 continuous context fields and
 5 categorical context fields. The five timeframes are M5/M15/H1/H4/D1.
 The 479-field specialist extension is generated inline from that split's common
-causal history. It consists of the exact 377 code-owned outputs from all twelve
-registered causal layers plus 102 eligible fields from deterministic
+causal history. It consists of the exact 378 code-owned outputs from all twelve
+registered causal layers plus 101 eligible fields from deterministic
 TRAIN-only ranking. A separately materialized sample-parquet extension is
 forbidden.
 
 The structural auxiliary-label producer consumes only prerequisites declared
 by `entry_structural_aux_label_signal_v1.py`. At least one candidate for each
-of its 19 named requirements must be present in the 377-field mandatory
+of its 19 named requirements must be present in the 378-field mandatory
 prefix; optional ranking may not make target construction conditional.
+
+The pretrain polarity contract additionally binds support proximity,
+resistance proximity, signed support-minus-resistance and channel position to
+the mandatory prefix. The polarity proof and future-outcome target-consistency
+proof are independent audit branches; failure of one never marks the other
+unavailable.
 
 The seven retired XGB/neutral bridge fields are forbidden. There is no zero-
 fill, median-fill, compatibility dimension, optional context or synthetic

@@ -11,7 +11,7 @@ from typing import Any
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 
 
-FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v5"
+FOUNDATION_AUDIT_POLICY_SCHEMA_VERSION = "entry_foundation_audit_policy_v6"
 FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION = "entry_target_foundation_audit_v2"
 FOUNDATION_AUDIT_DATA_SPLITS = ("train", "val", "test")
 FOUNDATION_AUDIT_SMOKE_SPLITS = ("val", "test")

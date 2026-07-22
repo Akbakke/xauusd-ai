@@ -33,6 +33,15 @@ auxiliary-label construction but could still be removed by optional ranking.
 V20 is terminal RED and no V20 artifact may be resumed or reused. There is no
 accepted dataset, bundle, candidate, untouched OOS edge or launch evidence.
 
+V21 rebuilt independently through `2026-07-22T08:05:00Z`, produced 369,081
+TRAIN / 5,904 VAL / 4,067 TEST rows and passed exhaustive 513+142+5 input
+liveness. Its pretrain audit then failed closed because
+`chart.geometry_support_minus_resistance_stack`, required for channel-polarity
+proof and consumed by support/resistance memory, was still ranking-owned and
+absent. V21 is terminal RED. The active v4 contract promotes that field,
+binds every pretrain-polarity input and keeps target-consistency diagnostics
+independent of polarity availability.
+
 V18 is terminal RED because a host clock rollback made its ranking timestamp
 temporally impossible. V1-V18 remain failure/diagnostic evidence and cannot be
 resumed or promoted. The downstream audit found and repaired an impossible
@@ -52,19 +61,20 @@ holds one host-wide exclusive heavy-job lock, Group-A persists exact
 4096-row hash-bound chunks and can make one strict same-attempt resume only
 before any immutable split/audit output exists, and
 normal/signal exits publish immutable schema-v4 terminal events. The mandatory
-specialist prefix is now 377 fields across twelve families: the 57-field
+specialist prefix is now 378 fields across twelve families: the 57-field
 foundation cross-family layer, all prior specialist layers and exact M5
 EMA50/200 state/cross evidence, plus every structural auxiliary-label signal
-prerequisite. Only 102 fields are TRAIN-ranked. Ranking,
+prerequisite and every pretrain-polarity input. Only 101 fields are
+TRAIN-ranked. Ranking,
 dataset and live use the same bound ECDF/ATR state and exact `close`/`atr`
 inline source. V1-V11 remain failure evidence; their partial files are not
 resume inputs.
 
 ## Ordered gates
 
-1. Build V21 under `xau_seq513_model_native_direction_v3`, then run post-rebuild
+1. Build V22 under `xau_seq513_model_native_direction_v4`, then run post-rebuild
    readiness plus foundation feature, target and specialist audits against its
-   exact split bytes. V19 and V20 are immutable rejected/failure evidence.
+   exact split bytes. V19 is rejected; V20 and V21 are immutable RED evidence.
 2. Run smoke manifest, smoke readiness, trainability and recipe audits. Any
    copied dataset, stale schema, hash drift or different source/smoke identity
    stops the path.

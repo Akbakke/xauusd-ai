@@ -456,10 +456,10 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
         (
             "chart_geometry_smart2_layer",
             {
-                "expected_feature_count": 17,
-                "expected_specialist_counts": {"chart_geometry_encoder": 17},
+                "expected_feature_count": 18,
+                "expected_specialist_counts": {"chart_geometry_encoder": 18},
                 "owned_specialists": ("chart_geometry_encoder",),
-                "purpose": "Mandatory structural-label geometry inputs plus curated trendline/channel/Fibonacci rail-trap evidence.",
+                "purpose": "Mandatory structural-label and pretrain-polarity geometry inputs plus curated trendline/channel/Fibonacci rail-trap evidence.",
             },
         ),
         (

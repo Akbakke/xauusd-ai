@@ -6,8 +6,8 @@ with constants, while the Transformer still interpreted three of them as
 direction-anchor probabilities.  This contract removes that dead bridge from
 the input surface and makes the Transformer direction logits model-native.
 
-Of the selected 479 specialist fields, all 377 registered causal full-stack
-layer outputs are code-owned and mandatory.  Only the remaining 102 positions
+Of the selected 479 specialist fields, all 378 registered causal full-stack
+layer outputs are code-owned and mandatory.  Only the remaining 101 positions
 are ranking-owned.  The emitted manifest still owns the audited exact order,
 while this module owns the immutable base order, mandatory registry identity,
 dimensions, forbidden legacy fields, and validation of the combined surface.
@@ -23,6 +23,9 @@ from typing import Any
 from gx1.contracts.entry_structural_aux_label_signal_v1 import (
     structural_aux_label_signal_contract_metadata,
 )
+from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
+    pretrain_polarity_signal_contract_metadata,
+)
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
@@ -34,11 +37,11 @@ from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 from gx1.features.swing_structure_v1 import SWING_FEATURE_NAMES_V1
 
 
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v5"
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v6"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
-    "entry_model_native_seq513_split_manifest_v3"
+    "entry_model_native_seq513_split_manifest_v4"
 )
-MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v3"
+MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v4"
 RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE = "smart_seq520_candidate"
 MODEL_NATIVE_DIRECTION_LOGIT_MODE = "model_native"
 LEGACY_ANCHOR_DIRECTION_LOGIT_MODE = "xgb_anchor_residual"
@@ -268,10 +271,10 @@ if "trend_regime_id" in MODEL_NATIVE_CTX_CAT_FIELDS:
     raise RuntimeError("MODEL_NATIVE_CTX_CAT_FIELDS_CONTAIN_RETIRED_TREND_BUCKET")
 if set(MODEL_NATIVE_BASE_FIELDS) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_BASE_FIELDS_CONTAIN_FORBIDDEN_BRIDGE_FIELDS")
-if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 102:
+if MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT != 101:
     raise RuntimeError(
         "MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT_MISMATCH: "
-        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=102"
+        f"observed={MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT} expected=101"
     )
 if set(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS) & set(MODEL_NATIVE_BASE_FIELDS):
     raise RuntimeError("MODEL_NATIVE_MANDATORY_FIELDS_OVERLAP_BASE_FIELDS")
@@ -316,7 +319,7 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
 
 
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v3"
+    "entry_model_native_mandatory_full_stack_v4"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
@@ -353,6 +356,12 @@ MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT = (
     )
 )
 
+MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT = (
+    pretrain_polarity_signal_contract_metadata(
+        MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
+    )
+)
+
 
 MODEL_NATIVE_STATIC_CONTRACT_SHA256 = _sha256_json(
     {
@@ -367,6 +376,9 @@ MODEL_NATIVE_STATIC_CONTRACT_SHA256 = _sha256_json(
         "mandatory_full_stack": model_native_mandatory_full_stack_metadata(),
         "structural_aux_label_signal_contract": (
             MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
+        ),
+        "pretrain_polarity_signal_contract": (
+            MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT
         ),
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
@@ -460,6 +472,9 @@ def model_native_signal_contract_metadata(
         "structural_aux_label_signal_contract": (
             MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
         ),
+        "pretrain_polarity_signal_contract": (
+            MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT
+        ),
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "seq_len": MODEL_NATIVE_SEQ_LEN,
@@ -538,6 +553,11 @@ def model_native_signal_contract_failures(contract: Mapping[str, Any]) -> list[s
         failures.append("structural_aux_label_signal_contract missing")
     elif dict(aux_declared) != MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT:
         failures.append("structural_aux_label_signal_contract metadata mismatch")
+    polarity_declared = contract.get("pretrain_polarity_signal_contract")
+    if not isinstance(polarity_declared, Mapping):
+        failures.append("pretrain_polarity_signal_contract missing")
+    elif dict(polarity_declared) != MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT:
+        failures.append("pretrain_polarity_signal_contract metadata mismatch")
     try:
         expected_fields = ordered_model_native_signal_fields(selected_fields)
     except RuntimeError as exc:

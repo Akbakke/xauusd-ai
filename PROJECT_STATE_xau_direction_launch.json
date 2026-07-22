@@ -1,18 +1,18 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-22T08:09:04Z",
+  "updated_utc": "2026-07-22T09:18:02Z",
   "decision": "BLOCK",
-  "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V20",
+  "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V21",
   "latest_terminal_event_decision": "RED",
   "decision_surface": "model_direction_argmax",
   "public_trade_flat_surface": "public_trade_flat_decision_logits",
-  "required_contract_mode": "xau_seq513_model_native_direction_v3",
+  "required_contract_mode": "xau_seq513_model_native_direction_v4",
   "required_signal_dim": 513,
   "required_base_signal_dim": 34,
   "required_selected_feature_count": 479,
-  "required_mandatory_causal_layer_feature_count": 377,
-  "required_train_ranked_remainder_feature_count": 102,
+  "required_mandatory_causal_layer_feature_count": 378,
+  "required_train_ranked_remainder_feature_count": 101,
   "required_mandatory_causal_layer_count": 12,
   "required_ctx_cont_dim": 142,
   "required_ctx_cat_dim": 5,
@@ -29,22 +29,22 @@
     "reason": "V19 passed the former v1 dataset chain but is rejected by the active contract because all 57 required foundation fields are absent from its 479-field selected surface."
   },
   "latest_failed_dataset_evidence": {
-    "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v20_6yr_rebuild_20260722_seq513_model_native_v20/CHAIN_TERMINAL_20260722T075705018658Z_RED.json",
-    "sha256": "0b60ceda8b72f45cc76d83c3e4bb681bc5f190f1b0200a67391140e0a293e606",
+    "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v21_6yr_rebuild_20260722_seq513_model_native_v21/CHAIN_TERMINAL_20260722T090624433275Z_RED.json",
+    "sha256": "4c6186eb37992c8b576ba334bc02375c18b73a60ab80af4b3826f07d4c01e2d8",
     "state": "RED",
-    "failed_step": "dataset-rebuild-exact-checkpoint-resume",
-    "reason": "V20 failed before split publication because chart.geometry_channel_position_low_to_high was consumed by structural auxiliary-label construction but was not mandatory and did not win optional TRAIN ranking. V20 is immutable failure evidence and cannot be reused."
+    "failed_step": "dataset-rebuild",
+    "reason": "V21 built all three splits and passed exhaustive full-input liveness, then failed closed in pretrain because chart.geometry_support_minus_resistance_stack was required for channel-polarity proof but was still ranking-owned and absent. V21 is immutable failure evidence and cannot be reused."
   },
   "accepted_via_vedtak": null,
   "blockers": [
-    "No dataset exists for the active xau_seq513_model_native_direction_v3 contract. V19 is superseded and V20 is terminal RED.",
-    "A fresh V21 source-to-split rebuild must prove the exact 34 + 377 mandatory + 102 ranked = 513 partition, all 19 structural auxiliary-label prerequisites, and foundation metadata/liveness.",
-    "No V21 smoke recipe, trained smoke bundle, calibration, or audited non-degenerate LONG/SHORT/FLAT prediction evidence exists.",
+    "No dataset exists for the active xau_seq513_model_native_direction_v4 contract. V19 is superseded; V20 and V21 are terminal RED.",
+    "A fresh V22 source-to-split rebuild must prove the exact 34 + 378 mandatory + 101 ranked = 513 partition, all 19 structural auxiliary-label requirements, all four pretrain-polarity requirements, and foundation metadata/liveness.",
+    "No V22 smoke recipe, trained smoke bundle, calibration, or audited non-degenerate LONG/SHORT/FLAT prediction evidence exists.",
     "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for final untouched evaluation.",
     "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration, and cost gates.",
     "No candidate replay or exact train-equals-serve proof exists for all five timeframes, eight specialists, and 26 fusion groups.",
     "No learned-size adoption, joint active Exit replay, zero-order runtime sizing parity, or incumbent/challenger shadow lifecycle proof exists.",
     "Near-perfect practical precision is not claimed without immutable OOS and live-like empirical proof.",
-    "Candidate, replay, paper/demo/live, promotion, and destructive evidence cleanup remain closed."
+    "Candidate, replay, paper/demo/live, and promotion remain closed. Large rejected split parquet files were explicitly deleted while their small terminal/manifest/audit evidence was retained."
   ]
 }

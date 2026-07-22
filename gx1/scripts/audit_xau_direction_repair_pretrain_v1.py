@@ -29,20 +29,17 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     V12_DIRECTION_UTILITY_PATH_WEIGHT,
 )
 import pyarrow.parquet as pq
+from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
+    CHANNEL_POSITION_FEATURE,
+    PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
+    RESISTANCE_STACK_FEATURE,
+    SUPPORT_MINUS_RESISTANCE_FEATURE,
+    SUPPORT_STACK_FEATURE,
+)
 
 
 DEFAULT_STEM = "v10_6yr_dataset__HOLD_03B"
-CHANNEL_POSITION_FEATURE = "chart.geometry_channel_position_low_to_high"
-SUPPORT_STACK_FEATURE = "chart.geometry_support_line_proximity_stack"
-RESISTANCE_STACK_FEATURE = "chart.geometry_resistance_line_proximity_stack"
-SUPPORT_MINUS_RESISTANCE_FEATURE = "chart.geometry_support_minus_resistance_stack"
-
-REQUIRED_POLARITY_FEATURES = (
-    SUPPORT_STACK_FEATURE,
-    RESISTANCE_STACK_FEATURE,
-    SUPPORT_MINUS_RESISTANCE_FEATURE,
-    CHANNEL_POSITION_FEATURE,
-)
+REQUIRED_POLARITY_FEATURES = PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
 REQUIRED_RAIL_FEATURES = (
     "chart.geometry_rising_support_rail_long_pressure",
     "chart.geometry_rising_support_rail_short_trap_pressure",
@@ -319,36 +316,48 @@ def _audit_split(
     if snap.ndim != 2:
         raise RuntimeError(f"{parquet_path} snap sample is not 2D: {snap.shape}")
     missing_features = [name for name, idx in feature_index.items() if idx is None or idx >= snap.shape[1]]
-    if missing_features:
-        return {
-            "split": split,
-            "parquet_path": str(parquet_path),
-            "manifest_path": str(manifest_path),
-            "rows_sampled": int(snap.shape[0]),
-            "feature_count": int(len(fields)),
-            "seq_structure_extension_mode": _seq_structure_mode(manifest),
-            "provenance": _manifest_provenance(manifest),
-            "missing_polarity_features": missing_features,
-            "missing_target_columns": missing_targets,
-            "polarity": {"available": False},
-            "target_liveness": {},
-            "target_consistency": {"available": False},
+    polarity: dict[str, Any] = {"available": False}
+    if not missing_features:
+        support = snap[:, int(feature_index[SUPPORT_STACK_FEATURE])]
+        resistance = snap[:, int(feature_index[RESISTANCE_STACK_FEATURE])]
+        support_minus_resistance = snap[
+            :, int(feature_index[SUPPORT_MINUS_RESISTANCE_FEATURE])
+        ]
+        channel_position = snap[:, int(feature_index[CHANNEL_POSITION_FEATURE])]
+        support_dom = (support - resistance) > float(support_dominance_min)
+        resistance_dom = (resistance - support) > float(support_dominance_min)
+        support_mean = _safe_mean(channel_position, support_dom)
+        resistance_mean = _safe_mean(channel_position, resistance_dom)
+        delta = (
+            None
+            if support_mean is None or resistance_mean is None
+            else float(resistance_mean - support_mean)
+        )
+        corr = _safe_corr(channel_position, support_minus_resistance)
+        polarity = {
+            "available": True,
+            "support_dominance_min": float(support_dominance_min),
+            "support_dominant_rows": int(support_dom.sum()),
+            "resistance_dominant_rows": int(resistance_dom.sum()),
+            "support_dominant_channel_position_mean": support_mean,
+            "resistance_dominant_channel_position_mean": resistance_mean,
+            "resistance_minus_support_channel_position_mean": delta,
+            "channel_position_vs_support_minus_resistance_corr": corr,
+            "support_dominant_channel_position_lt_042_rate": (
+                _safe_rate(channel_position[support_dom] < 0.42)
+                if int(support_dom.sum())
+                else None
+            ),
+            "resistance_dominant_channel_position_gt_058_rate": (
+                _safe_rate(channel_position[resistance_dom] > 0.58)
+                if int(resistance_dom.sum())
+                else None
+            ),
+            "enough_pocket_rows": bool(
+                int(support_dom.sum()) >= int(min_pocket_rows)
+                and int(resistance_dom.sum()) >= int(min_pocket_rows)
+            ),
         }
-
-    support = snap[:, int(feature_index[SUPPORT_STACK_FEATURE])]
-    resistance = snap[:, int(feature_index[RESISTANCE_STACK_FEATURE])]
-    support_minus_resistance = snap[:, int(feature_index[SUPPORT_MINUS_RESISTANCE_FEATURE])]
-    channel_position = snap[:, int(feature_index[CHANNEL_POSITION_FEATURE])]
-    support_dom = (support - resistance) > float(support_dominance_min)
-    resistance_dom = (resistance - support) > float(support_dominance_min)
-    support_mean = _safe_mean(channel_position, support_dom)
-    resistance_mean = _safe_mean(channel_position, resistance_dom)
-    delta = (
-        None
-        if support_mean is None or resistance_mean is None
-        else float(resistance_mean - support_mean)
-    )
-    corr = _safe_corr(channel_position, support_minus_resistance)
 
     target_liveness = {
         name: _column_liveness(np.asarray(sample[name]))
@@ -535,26 +544,7 @@ def _audit_split(
         "feature_index": feature_index,
         "missing_polarity_features": missing_features,
         "missing_target_columns": missing_targets,
-        "polarity": {
-            "available": True,
-            "support_dominance_min": float(support_dominance_min),
-            "support_dominant_rows": int(support_dom.sum()),
-            "resistance_dominant_rows": int(resistance_dom.sum()),
-            "support_dominant_channel_position_mean": support_mean,
-            "resistance_dominant_channel_position_mean": resistance_mean,
-            "resistance_minus_support_channel_position_mean": delta,
-            "channel_position_vs_support_minus_resistance_corr": corr,
-            "support_dominant_channel_position_lt_042_rate": _safe_rate(channel_position[support_dom] < 0.42)
-            if int(support_dom.sum())
-            else None,
-            "resistance_dominant_channel_position_gt_058_rate": _safe_rate(channel_position[resistance_dom] > 0.58)
-            if int(resistance_dom.sum())
-            else None,
-            "enough_pocket_rows": bool(
-                int(support_dom.sum()) >= int(min_pocket_rows)
-                and int(resistance_dom.sum()) >= int(min_pocket_rows)
-            ),
-        },
+        "polarity": polarity,
         "target_liveness": target_liveness,
         "target_consistency": target_consistency,
         "core_target_policy": "future_path_and_utility_outcomes_only",

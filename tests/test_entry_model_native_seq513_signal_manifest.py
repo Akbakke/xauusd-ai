@@ -10,6 +10,7 @@ import pytest
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT,
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT,
@@ -165,6 +166,9 @@ def test_producer_keeps_all_code_owned_fields_first_and_only_ranks_remainder(
     assert manifest["foundation_structure_all_required_selected"] is True
     assert manifest["structural_aux_label_signal_contract"] == (
         MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
+    )
+    assert manifest["pretrain_polarity_signal_contract"] == (
+        MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT
     )
     assert manifest["feature_ranking"]["sha256"]
     assert manifest[

@@ -753,11 +753,12 @@ del _CHART_GEOMETRY_NAME_PROBE, _ratio_field
 CHART_GEOMETRY_SMART2_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[41:]
 
 # The model-native geometry surface retains the exact current-bar inputs used
-# by structural auxiliary supervision plus the causal rail/trap subset.  A
-# TRAIN ranking may never remove a target-producer prerequisite.
+# by structural auxiliary supervision and pretrain polarity proof, plus the
+# causal rail/trap subset. A TRAIN ranking may never remove either dependency.
 CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES = (
     f"{CHART_GEOMETRY_FEATURE_PREFIX}support_line_proximity_stack",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}resistance_line_proximity_stack",
+    f"{CHART_GEOMETRY_FEATURE_PREFIX}support_minus_resistance_stack",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_position_low_to_high",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}channel_edge_pressure",
     f"{CHART_GEOMETRY_FEATURE_PREFIX}trendline_channel_confluence_pressure",

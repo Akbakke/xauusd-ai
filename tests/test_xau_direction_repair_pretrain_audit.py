@@ -413,6 +413,38 @@ def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: P
     assert report["failures"] == []
 
 
+def test_missing_polarity_field_does_not_mask_target_consistency(
+    tmp_path: Path,
+) -> None:
+    missing = "chart.geometry_support_minus_resistance_stack"
+    for split in ("train", "val", "test"):
+        _write_split(tmp_path, split, inverted=False)
+        manifest_path = tmp_path / f"{DEFAULT_STEM}_{split}.manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for key in ("fields", "snap_fields"):
+            manifest["extra"]["signal_bridge"][key].remove(missing)
+        manifest["feature_contract"]["signal_bridge_fields"].remove(missing)
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        run(_args(tmp_path))
+
+    report = _read_immutable_audit(tmp_path)
+    assert report["decision"] == "FAIL"
+    assert all(
+        row["target_consistency"]["available"] is True
+        for row in report["splits"]
+    )
+    assert any(
+        f"missing channel-polarity feature: {missing}" in failure
+        for failure in report["failures"]
+    )
+    assert not any(
+        "target consistency audit unavailable" in failure
+        for failure in report["failures"]
+    )
+
+
 def test_xau_direction_repair_pretrain_audit_fails_inverted_channel_position(tmp_path: Path) -> None:
     for split in ("train", "val", "test"):
         _write_split(tmp_path, split, inverted=True)

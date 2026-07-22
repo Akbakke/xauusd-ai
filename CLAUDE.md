@@ -15,8 +15,8 @@ documentation and code together.
    `LONG/SHORT/FLAT` logits. No post-model trend, session, confidence, utility
    or threshold rule may veto, flip or manufacture direction.
 4. Keep every genuine feature family in the learned path. Removing a retired
-   rule must never remove its underlying market evidence. The 377 registered
-   causal-layer outputs are mandatory; only 102 additional specialist fields
+   rule must never remove its underlying market evidence. The 378 registered
+   causal-layer outputs are mandatory; only 101 additional specialist fields
    may be selected by deterministic TRAIN-only ranking.
 5. The learned size head is mandatory evidence. Label-horizon sizing proof is
    diagnostic only; paper/live additionally requires an exact joint adopted-

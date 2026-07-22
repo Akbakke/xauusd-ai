@@ -155,7 +155,7 @@ def test_smoke_wrapper_source_is_exact_model_native_and_has_no_stale_launch_path
     text = WRAPPER.read_text(encoding="utf-8")
     lowered = text.lower()
 
-    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v3" in text
+    assert "MODEL_NATIVE_CONTRACT_MODE=xau_seq513_model_native_direction_v4" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
     assert "MODEL_NATIVE_SIGNAL_DIM=513" in text
     assert "--recipe-audit-json" in text

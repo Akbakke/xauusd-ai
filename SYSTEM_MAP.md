@@ -14,8 +14,8 @@ exact split manifests and chronological leak-safe rows
         |
         +-- 34 genuine base price-state fields
         +-- 479 specialist fields
-        |     +-- 377 mandatory outputs from 12 causal layers
-        |     +-- 102 deterministic TRAIN-only ranked fields
+        |     +-- 378 mandatory outputs from 12 causal layers
+        |     +-- 101 deterministic TRAIN-only ranked fields
         +-- 142 continuous context fields
         +-- 5 categorical context fields
         +-- M5/M15/H1/H4/D1 sequences, length 96
@@ -64,11 +64,11 @@ selector.
 `gx1/contracts/entry_model_native_signal_v1.py` owns the exact static Entry
 shape and forbids the seven retired bridge fields:
 
-- contract mode `xau_seq513_model_native_direction_v3`;
+- contract mode `xau_seq513_model_native_direction_v4`;
 - direction mode `model_native`;
 - 34 base + 479 specialist = 513 signal fields;
-- the specialist surface is 377 mandatory code-owned causal-layer outputs plus
-  102 deterministic TRAIN-only ranked fields;
+- the specialist surface is 378 mandatory code-owned causal-layer outputs plus
+  101 deterministic TRAIN-only ranked fields;
 - sequence length 96;
 - 142 continuous + 5 categorical context fields;
 - no bridge source and no anchor source.
@@ -86,9 +86,9 @@ exact source prebuilt exclusively owns context-v3-5 + regime-source15 + raw
 volume. A duplicated or missing owner field is a hard failure; there is no
 source/canonical preference fallback.
 
-The complete 479-field order is manifest-owned and hash-bound. The first 377
+The complete 479-field order is manifest-owned and hash-bound. The first 378
 positions must exactly equal the immutable causal-layer registry; the final
-102 come from one validated deterministic TRAIN-only ranking. It cannot be
+101 come from one validated deterministic TRAIN-only ranking. It cannot be
 reconstructed from a mutable registry at train or serve time.
 
 `gx1/features/entry_model_native_feature_layers_v1.py` owns the twelve mandatory
@@ -99,9 +99,13 @@ price-action/candles, support/resistance memory, MTF confluence and exact M5
 EMA50/200 state/cross evidence.
 `gx1/contracts/entry_structural_aux_label_signal_v1.py` owns the 19 named
 current-bar signal requirements consumed by structural auxiliary-label
-construction. Every requirement must resolve inside the mandatory 377-field
+construction. Every requirement must resolve inside the mandatory 378-field
 prefix. The dataset builder imports this registry directly; optional ranking
 cannot decide whether target construction is possible.
+`gx1/contracts/entry_pretrain_polarity_signal_v1.py` owns the four exact
+geometry inputs used to prove support/resistance channel polarity. They are
+also mandatory and embedded in the signal contract; audit target consistency
+is evaluated independently so missing polarity cannot hide target failures.
 `gx1/features/entry_volatility_semantics_v1.py` owns the sign-preserving
 conversion of canonical ATR14/ATR100 ratios and relative Bollinger bandwidth
 into separate compression and expansion pressure. Feature families may not
@@ -243,7 +247,7 @@ The feature-ranking JSON and its derived seq513 signal manifest are explicit
 immutable inputs, never files selected by glob, mtime or lexical "latest".
 Preflight, wrapper and builder revalidate the nested ranking lineage, run ID,
 source hash and exact requested TRAIN start/end. A ranking produced for a
-different split cannot authorize a build even when its schema and 377+102
+different split cannot authorize a build even when its schema and 378+101
 shape are otherwise valid.
 
 `gx1/contracts/entry_model_native_train_launch_v1.py` binds explicit immutable
@@ -475,10 +479,13 @@ Current facts:
   closed before split publication because a structural auxiliary-label input
   was ranking-owned and absent. Its exact retry failed identically and its
   immutable terminal is RED;
-- invalidated V1-V20 lineages are historical failure/diagnostic evidence and
-  cannot be reused; only a fresh V21 lineage may enter the active v3 gates;
-- no rebuild process is running; V19 is superseded GREEN evidence and V20 is
-  the newest RED terminal. Neither grants active-contract authority;
+- V21 built all splits and passed full-input liveness, then terminalized RED
+  because support-minus-resistance polarity evidence was ranking-owned and
+  absent from the final signal surface;
+- invalidated V1-V21 lineages are historical failure/diagnostic evidence and
+  cannot be reused; only a fresh V22 lineage may enter the active v4 gates;
+- no rebuild process is running; V19 is superseded GREEN evidence, while V20
+  and V21 are RED. None grants active-contract authority;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
   detached feature modules, manual sizing modules and stale research launchers
   have been deleted rather than retained as alternatives;
@@ -495,7 +502,7 @@ Current facts:
   proxy comparison plus absolute OOT/cost/live-like gates;
 - post-rebuild readiness is a first-class producer, first exercised on V19,
   binding one lineage's terminal, preflight, liveness, pretrain and six split
-  artifacts; V21 smoke must use its same canonical dataset rather than a
+  artifacts; V22 smoke must use its same canonical dataset rather than a
   separately copied smoke split;
 - H1/H4 has one causal full-array alignment owner. Leading warmup remains NaN,
   no completed HTF evidence fails closed, and the unreachable stateful branch
@@ -504,9 +511,9 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-22 etter at V20 avdekket at strukturell aux-label-bygging
-fortsatt kunne avhenge av valgfri ranking. Alle 19 krav er nå obligatoriske,
-og en full V21-rebuild er påkrevd.
+Oppdatert 2026-07-22 etter at V21 avdekket at pretrain-polaritetsbevis fortsatt
+kunne avhenge av valgfri ranking. Alle 19 strukturelle krav og alle fire
+polaritetskrav er nå obligatoriske, og en full V22-rebuild er påkrevd.
 Kartet beskriver den herdede, påkrevde artefakt-DAG-en og kolonne-eierskapet.
 Les dette FØR du rg-jakter i builderen.
 
@@ -560,7 +567,7 @@ resume, glob/mtime eller leksikalsk latest.
 Kun én eksakt hash-bundet checkpoint-retry er tillatt etter capped feil.
 Telegram-ping er kun operasjonell status; validerte split-manifester er
 terminal autoritet.
-V21-terminal + preflight + liveness + pretrain + seks split-filer/manifester
+V22-terminal + preflight + liveness + pretrain + seks split-filer/manifester
   └─ entry_next_edge_control.sh model-native-post-rebuild-readiness
         → immutable post-rebuild readiness; source_dataset_dir == smoke_dataset_dir
       └─ foundation feature/target/specialist audits
@@ -589,9 +596,10 @@ V21-terminal + preflight + liveness + pretrain + seks split-filer/manifester
   `gx1/features/entry_smart_context.py::add_entry_smart_context_features`.
 - ctx is_ASIA: builder ~linje 1799, `(session_id==0).astype(int8)`.
 - ctx_cat 5: ctx-adderen emitterer; ORDERED_CTX_CAT_NAMES_V3.
-- 377 obligatoriske specialist-felt: entry_model_native_feature_layers_v1 + de
+- 378 obligatoriske specialist-felt: entry_model_native_feature_layers_v1 + de
   ni entry_*-lagmodulene, inkludert 57 foundation cross-family-felt og 11
-  eksakte M5 EMA50/200-felt samt alle strukturelle aux-label-forutsetninger;
+  eksakte M5 EMA50/200-felt samt alle strukturelle aux-label- og
+  pretrain-polaritetsforutsetninger;
   kandidat-
   ekstra fra samme modulers
   *_FEATURE_NAMES-konstanter; alt beregnes av builderens
@@ -621,7 +629,9 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
   `python -m gx1...` krever repo-cwd.
 - V20 feilet før split-publisering fordi
   `chart.geometry_channel_position_low_to_high` ble brukt av strukturell
-  aux-label-bygging uten å være obligatorisk. Den aktive V21-vinduskontrakten
+  aux-label-bygging uten å være obligatorisk. V21 passerte dette, men feilet
+  senere fordi `chart.geometry_support_minus_resistance_stack` manglet i
+  pretrain-polaritetsflaten. Den aktive V22-vinduskontrakten
   har rå model-range-start 2020-11-13 og ferdig
   common-history-start 2021-01-05. V15 beviste framtidsstempel-fellen og V16
   beviste at model-range-start 2021-01-04 gir for sen finite start 2021-01-14;

@@ -13,11 +13,11 @@ it must never become a guessed direction, synthetic FLAT, cached decision or
 manual overlay.
 
 The active signal contract is
-`xau_seq513_model_native_direction_v3`:
+`xau_seq513_model_native_direction_v4`:
 
 - 513 ordered signal fields: 34 base + 479 specialist fields;
-- 377 mandatory fields from twelve code-owned causal feature layers;
-- 102 deterministic TRAIN-only ranked remainder fields;
+- 378 mandatory fields from twelve code-owned causal feature layers;
+- 101 deterministic TRAIN-only ranked remainder fields;
 - 142 continuous and five categorical context fields;
 - sequence length 96;
 - five causal timeframe caches with 25 values per timeframe;
@@ -25,7 +25,7 @@ The active signal contract is
 - 26 learned evidence groups producing one exact 96-value fusion;
 - one final model-native `96 -> 128 -> 3` LONG/SHORT/FLAT direction path.
 
-All 57 `chart.foundation_*` fields are now part of the mandatory 377-field
+All 57 `chart.foundation_*` fields are now part of the mandatory 378-field
 prefix. They route to four learned specialists: 19 structure/swing, five
 SMC/liquidity, five volatility/compression and 28 session/regime fields. They
 remain available beside their higher-order derivations so feature selection
@@ -67,7 +67,7 @@ The omission had two source causes. The chart builder computed the foundation
 layer but the old mandatory registry did not retain it; the ranker's reflective
 candidate discovery also did not expose its name registry. Synthetic test
 manifests had manually inserted foundation fields and masked the producer
-mismatch. The real producer now binds the exact 377 + 102 partition,
+mismatch. The real producer now binds the exact 378 + 101 partition,
 foundation version/count/all-selected metadata and the mandatory prefix.
 
 A separate formula audit found inverted volatility semantics in four active
@@ -99,13 +99,21 @@ identically. V20 is terminal `RED` at
 `0b60ceda8b72f45cc76d83c3e4bb681bc5f190f1b0200a67391140e0a293e606`.
 No V20 artifact may be reused.
 
-The repair gives one code-owned registry to all 19 current-bar requirements
-used by structural auxiliary-label construction. The dataset builder resolves
-signals only through that registry, while the signal contract proves every
-requirement has a mandatory candidate. Four geometry prerequisites are now
-mandatory, producing the exact 377 + 102 partition without changing the total
-513-field surface. This removes the target/ranking dependency; it does not
-prove predictive edge.
+The repair gave one code-owned registry to all 19 current-bar requirements
+used by structural auxiliary-label construction. V21 then built all three
+splits and passed exhaustive full-input liveness, but the pretrain audit found
+one more cross-contract dependency:
+`chart.geometry_support_minus_resistance_stack` was required for channel
+polarity proof while still ranking-owned and absent. V21 terminalized RED at
+`CHAIN_TERMINAL_20260722T090624433275Z_RED.json`, SHA-256
+`4c6186eb37992c8b576ba334bc02375c18b73a60ab80af4b3826f07d4c01e2d8`.
+
+The active v4 contract embeds all four pretrain-polarity inputs and makes the
+support-minus-resistance field mandatory. The partition is now 378 mandatory
++ 101 TRAIN-ranked without changing the 479 specialist or 513 total width.
+Missing polarity still fails, while target liveness and consistency are
+computed independently so it cannot mask a second target failure. V22 must
+rebuild wholly fresh; no V21 artifact may be reused.
 
 ## Evidence and runtime boundary
 
@@ -139,7 +147,7 @@ superseded evidence and V20 as the latest terminal failure.
 
 ## Verification state
 
-The active v3 source changes pass:
+The active v4 source changes pass:
 
 - the complete affected-area suite: 139 tests, zero failures;
 - the full repository suite: 100% pass, five explicit skips, zero failures;
@@ -164,11 +172,11 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Allocate a fresh immutable V21 lineage and rebuild the complete source,
-TRAIN-only ranking, v3 signal manifest and TRAIN/VAL/TEST dataset chain. V21
+Allocate a fresh immutable V22 lineage and rebuild the complete source,
+TRAIN-only ranking, v4 signal manifest and TRAIN/VAL/TEST dataset chain. V22
 must then pass post-rebuild readiness, foundation feature/target/specialist
 audits, smoke manifest/readiness/trainability and a capped smoke training run.
-Stop at the first red gate; do not reuse any V1-V20 ranking, checkpoint,
+Stop at the first red gate; do not reuse any V1-V21 ranking, checkpoint,
 manifest, split or dataset artifact.
 
 Only after smoke passes may a candidate be calibrated and evaluated. Compare a

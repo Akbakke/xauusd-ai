@@ -4,11 +4,11 @@
 
 V19 is rejected for training. Its real signal-manifest producer emitted zero
 of the 57 implemented foundation fields, while the feature audit requires all
-57. The active v3 contract retains the complete layer as mandatory:
+57. The active v4 contract retains the complete layer as mandatory:
 
 - 34 base + 479 specialist = 513 signals;
-- 377 mandatory fields from 12 code-owned layers;
-- 102 deterministic TRAIN-only ranked fields;
+- 378 mandatory fields from 12 code-owned layers;
+- 101 deterministic TRAIN-only ranked fields;
 - 57/57 foundation fields retained and routed;
 - no foundation field is an exact duplicate of any field in the former
   316-field mandatory surface.
@@ -42,6 +42,14 @@ not select, remove or authorize a field.
    contract and dataset builder. This raises the mandatory partition from 373
    to 377 and reduces the TRAIN-ranked remainder from 106 to 102 without
    changing 513 total.
+7. V21 exposed the remaining pretrain-polarity mismatch:
+   `chart.geometry_support_minus_resistance_stack` was consumed by
+   support/resistance memory and required by the channel-polarity audit, but
+   was not guaranteed by the mandatory registry. It is now the fifth promoted
+   geometry prerequisite, raising the mandatory partition from 377 to 378 and
+   reducing the TRAIN-ranked remainder from 102 to 101. The audit computes
+   target liveness/consistency independently of polarity availability, while a
+   missing polarity field remains hard RED.
 
 The `eu` token in field names denotes European trading-session hours. It is a
 time/session feature, not a price series or an independently traded instrument.
@@ -133,7 +141,8 @@ three-logit model output may select LONG, SHORT or FLAT.
 
 This routing proves presence, liveness and differentiable connectivity. It
 does not prove predictive edge. V20 later failed closed on a separate
-ranking-owned structural-label prerequisite. V21 must pass fresh ranking, rebuild,
+ranking-owned structural-label prerequisite, and V21 later failed on the
+pretrain-polarity dependency recorded above. V22 must pass fresh ranking, rebuild,
 foundation/source liveness, target/specialist audits, smoke training,
 untouched OOS evaluation, replay, train-equals-serve parity, learned sizing and
 shadow evidence.

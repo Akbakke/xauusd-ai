@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
+    PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
+)
 from gx1.features.entry_chart_geometry_v1 import (
     CHART_GEOMETRY_FEATURE_NAMES,
     CHART_GEOMETRY_SMART2_FEATURE_NAMES,
@@ -38,6 +41,10 @@ STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES = (
     "chart.geometry_support_line_proximity_stack",
     "chart.geometry_resistance_line_proximity_stack",
     "chart.geometry_channel_position_low_to_high",
+    "chart.geometry_channel_edge_pressure",
+)
+MANDATORY_RAW_GEOMETRY_FEATURE_NAMES = (
+    *PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS,
     "chart.geometry_channel_edge_pressure",
 )
 
@@ -120,11 +127,14 @@ def test_chart_geometry_layer_builds_manual_trader_proxies() -> None:
     assert tuple(out_names) == CHART_GEOMETRY_FEATURE_NAMES
     assert CHART_GEOMETRY_SMART2_FEATURE_NAMES == SMART2_CHART_GEOMETRY_FEATURE_NAMES
     assert tuple(out_names[-len(SMART2_CHART_GEOMETRY_FEATURE_NAMES) :]) == CHART_GEOMETRY_SMART2_FEATURE_NAMES
-    assert len(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES) == 17
-    assert CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[:4] == (
-        STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES
+    assert len(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES) == 18
+    assert CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[:5] == (
+        MANDATORY_RAW_GEOMETRY_FEATURE_NAMES
     )
-    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[4:]).issubset(
+    assert set(STRUCTURAL_AUX_GEOMETRY_FEATURE_NAMES).issubset(
+        set(MANDATORY_RAW_GEOMETRY_FEATURE_NAMES)
+    )
+    assert set(CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES[5:]).issubset(
         set(CHART_GEOMETRY_SMART2_FEATURE_NAMES)
     )
     assert (

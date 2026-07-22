@@ -701,5 +701,45 @@ prerequisites are promoted into the chart-geometry layer, changing the exact
 partition from 373 mandatory + 106 ranked to 377 mandatory + 102 ranked while
 preserving 34 + 479 = 513 total fields. Signal, split-manifest, ranking,
 signal-manifest, preflight and foundation-policy identities are versioned
-forward. This repairs ownership and construction reachability only; a wholly
-fresh V21 must still prove dataset validity and empirical direction edge.
+forward. This repaired ownership and construction reachability only; V21 was
+still required to prove dataset validity and empirical direction edge.
+
+## 2026-07-22 — V21 is pretrain-polarity RED; audit dependencies are contract-bound
+
+V21 rebuilt independently from current canonical roots through the last closed
+M5 bar at `2026-07-22T08:05:00Z`. It produced 369,081 TRAIN, 5,904 VAL and
+4,067 TEST rows with exact 513+142+5 inputs. LONG/SHORT/FLAT and path-quality
+targets were non-degenerate, and the exhaustive full-input liveness artifact
+passed all 1,980 field/split records.
+
+The post-build pretrain audit then failed because
+`chart.geometry_support_minus_resistance_stack` was a required input to its
+support/resistance channel-polarity proof but was not mandatory and had not won
+the 102-field TRAIN-ranked remainder. Because the audit returned immediately
+on missing polarity, it also reported target consistency unavailable. V21
+terminalized RED at dataset-rebuild. Its terminal SHA-256 is
+`4c6186eb37992c8b576ba334bc02375c18b73a60ab80af4b3826f07d4c01e2d8`;
+no V21 artifact may be resumed or reused.
+
+The repaired audit was then run once against V21 as explicitly non-authoritative
+diagnostic evidence. It remained RED on the old v3 identity and missing field,
+but all required target columns were live in all splits and every target
+consistency mismatch counter was zero. The diagnostic artifact SHA-256 is
+`351e60c0e7f03063fdf03ded7cb5fd716b7c54830e5193c2ccf59b0bff094cbe`.
+V21's TRAIN ranking contained the missing field at rank 123 with nonzero score;
+it was live but fell outside the 102 optional positions.
+
+The polarity requirements now have one contract imported by both the signal
+identity and pretrain audit. Support-minus-resistance joins the mandatory
+chart-geometry family, changing the partition to 378 mandatory + 101 ranked
+while retaining 479 specialist and 513 total signals. The pretrain audit
+computes target liveness and consistency even when polarity evidence is
+missing; missing polarity still independently fails closed. All dependent
+signal, mandatory-stack, split-manifest, ranking, manifest, preflight and
+foundation-policy identities are versioned forward. V22 must be wholly fresh.
+
+At the operator's request, 18 large parquet splits from rejected V12, V14,
+V17, V19 and the obsolete pre-foundation seq520 lineage were deleted after
+exact path/status/reference checks. The deletion removed 386,704,608,791
+bytes. Small terminal, manifest and audit records remain as failure evidence;
+active V21 and canonical XAU sources were not touched.

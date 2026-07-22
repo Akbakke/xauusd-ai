@@ -27,6 +27,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT,
     MODEL_NATIVE_RANKED_REMAINDER_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -53,15 +54,15 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v5"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v6"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v5"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v6"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v5"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v6"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v5"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v6"
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "score_descending",
     "tie_break": "feature_name_ascending",
@@ -470,6 +471,9 @@ def validate_signal_manifest_training_lineage(
         "structural_aux_label_signal_contract": (
             MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
         ),
+        "pretrain_polarity_signal_contract": (
+            MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT
+        ),
     }
     for field, expected in exact_top_level.items():
         if manifest.get(field) != expected:
@@ -686,6 +690,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_native_signal_contract": signal_contract,
         "structural_aux_label_signal_contract": (
             MODEL_NATIVE_STRUCTURAL_AUX_LABEL_SIGNAL_CONTRACT
+        ),
+        "pretrain_polarity_signal_contract": (
+            MODEL_NATIVE_PRETRAIN_POLARITY_SIGNAL_CONTRACT
         ),
         "mandatory_full_stack": mandatory_metadata,
         "mandatory_full_stack_sha256": MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256,
