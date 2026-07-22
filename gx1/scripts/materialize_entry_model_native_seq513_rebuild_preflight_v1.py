@@ -1139,6 +1139,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "dataset_rebuild": False,
             "training": False,
             "replay": False,
+            "iql_distillation": False,
             "shadow": False,
             "live": False,
         },

@@ -435,7 +435,14 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     )
     assert report["signal_training_lineage"]["entry_run_id"] == RUN_ID
     assert report["training_allowed"] is False
-    assert not any(report["side_effects_started"].values())
+    assert report["side_effects_started"] == {
+        "dataset_rebuild": False,
+        "training": False,
+        "replay": False,
+        "iql_distillation": False,
+        "shadow": False,
+        "live": False,
+    }
     assert Path(report["json_path"]).name.startswith(
         "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT_"
     )
