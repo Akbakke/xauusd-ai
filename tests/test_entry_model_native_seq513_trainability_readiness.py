@@ -186,7 +186,14 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
         )
         smoke_wrapper_text = _audited_wrapper_text()
         candidate_wrapper_text = _audited_wrapper_text()
-        smart_script_text = f"{MODEL_NATIVE_CONTRACT_MODE} {MODEL_NATIVE_SIGNAL_DIM}\n"
+        smart_script_text = (
+            "from gx1.contracts.entry_model_native_signal_v1 import (\n"
+            "    MODEL_NATIVE_CONTRACT_MODE,\n"
+            "    MODEL_NATIVE_SIGNAL_DIM,\n"
+            ")\n"
+            "CONTRACT_MODE = MODEL_NATIVE_CONTRACT_MODE\n"
+            "EXPECTED_SIGNAL_DIM = MODEL_NATIVE_SIGNAL_DIM\n"
+        )
     else:
         control_text = "smart-smoke-readiness)\n"
         smoke_wrapper_text = "--challenger-seq215 SPECIALIST_CONTRACT_MODE=challenger_seq215\n"
@@ -257,6 +264,27 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
     event_path = Path(report["json_path"])
     assert event_path.is_file()
     assert list((tmp_path / "reports").iterdir()) == [event_path]
+
+
+def test_smart_trainability_rejects_duplicated_contract_literals_without_ssot_import(
+    tmp_path: Path,
+) -> None:
+    args = _args(tmp_path, wired=True)
+    Path(args.selective_edge_script).write_text(
+        f"CONTRACT_MODE = {MODEL_NATIVE_CONTRACT_MODE!r}\n"
+        f"EXPECTED_SIGNAL_DIM = {MODEL_NATIVE_SIGNAL_DIM}\n",
+        encoding="utf-8",
+    )
+
+    report = _run_blocked(args)
+
+    assert "selective-edge supports model-native seq513" in report["blockers"]
+    failed = next(
+        row
+        for row in report["failures"]
+        if row["name"] == "selective-edge supports model-native seq513"
+    )
+    assert failed["details"]["contract_binding"]["imports_exact_contract_owner"] is False
 
 
 def test_smart_trainability_blocks_mixed_fresh_and_stale_smoke_reports(tmp_path: Path) -> None:

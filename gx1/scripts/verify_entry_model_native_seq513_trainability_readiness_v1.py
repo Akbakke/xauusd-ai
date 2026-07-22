@@ -9,6 +9,7 @@ future trainer can be reviewed.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import re
@@ -398,6 +399,58 @@ def _read_text(path: Path) -> str:
     if not path.exists() or not path.is_file():
         return ""
     return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _source_model_native_contract_binding_review(text: str) -> dict[str, Any]:
+    """Prove that a downstream owner imports and uses the exact SSOT constants.
+
+    A raw search for the resolved contract string or integer is the wrong
+    boundary: correctly factored consumers import these values from the signal
+    contract and therefore should not duplicate either literal in source.
+    """
+
+    required_names = {
+        "MODEL_NATIVE_CONTRACT_MODE",
+        "MODEL_NATIVE_SIGNAL_DIM",
+    }
+    try:
+        tree = ast.parse(text)
+    except SyntaxError as exc:
+        return {
+            "ok": False,
+            "parse_error": f"{exc.__class__.__name__}: {exc}",
+            "required_module": "gx1.contracts.entry_model_native_signal_v1",
+            "required_names": sorted(required_names),
+            "imported_names": [],
+            "used_names": [],
+        }
+
+    imported_names: set[str] = set()
+    used_names: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.level == 0
+            and node.module == "gx1.contracts.entry_model_native_signal_v1"
+        ):
+            imported_names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            used_names.add(node.id)
+
+    imported_exact = required_names.issubset(imported_names)
+    used_exact = required_names.issubset(used_names)
+    return {
+        "ok": bool(imported_exact and used_exact),
+        "parse_error": None,
+        "required_module": "gx1.contracts.entry_model_native_signal_v1",
+        "required_names": sorted(required_names),
+        "imported_names": sorted(imported_names),
+        "used_names": sorted(required_names.intersection(used_names)),
+        "imports_exact_contract_owner": imported_exact,
+        "uses_imported_contract_constants": used_exact,
+        "resolved_contract_mode": CONTRACT_MODE,
+        "resolved_signal_dim": EXPECTED_SIGNAL_DIM,
+    }
 
 
 def _check(name: str, ok: bool, details: Any = None) -> dict[str, Any]:
@@ -835,6 +888,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     selective_edge_text = _read_text(selective_edge_script)
     replay_evidence_text = _read_text(replay_evidence_script)
     replay_readiness_text = _read_text(replay_readiness_script)
+    candidate_readiness_contract_review = (
+        _source_model_native_contract_binding_review(candidate_readiness_text)
+    )
+    selective_edge_contract_review = _source_model_native_contract_binding_review(
+        selective_edge_text
+    )
+    replay_evidence_contract_review = _source_model_native_contract_binding_review(
+        replay_evidence_text
+    )
+    replay_readiness_contract_review = _source_model_native_contract_binding_review(
+        replay_readiness_text
+    )
 
     try:
         required_specialists = tuple(required_training_specialists_for_mode(CONTRACT_MODE))
@@ -1049,7 +1114,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             all(key in trainer_text for key in TAIL_DIRECTION_ENV_KEYS),
             {"required_env_keys": list(TAIL_DIRECTION_ENV_KEYS), "trainer_source": _artifact_meta(trainer_source)},
         ),
-        _check("candidate-readiness supports model-native seq513", CONTRACT_MODE in candidate_readiness_text and str(EXPECTED_SIGNAL_DIM) in candidate_readiness_text, _artifact_meta(candidate_readiness_script)),
+        _check(
+            "candidate-readiness supports model-native seq513",
+            bool(candidate_readiness_contract_review["ok"]),
+            {
+                **_artifact_meta(candidate_readiness_script),
+                "contract_binding": candidate_readiness_contract_review,
+            },
+        ),
         _check(
             "candidate train wrapper exposes the model-native seq513 lane",
             CONTRACT_MODE in candidate_wrapper_text
@@ -1071,9 +1143,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             bool(candidate_wrapper_tail_direction_review["ok"]),
             candidate_wrapper_tail_direction_review,
         ),
-        _check("selective-edge supports model-native seq513", CONTRACT_MODE in selective_edge_text and str(EXPECTED_SIGNAL_DIM) in selective_edge_text, _artifact_meta(selective_edge_script)),
-        _check("replay evidence supports model-native seq513", CONTRACT_MODE in replay_evidence_text and str(EXPECTED_SIGNAL_DIM) in replay_evidence_text, _artifact_meta(replay_evidence_script)),
-        _check("replay-readiness supports model-native seq513", CONTRACT_MODE in replay_readiness_text and str(EXPECTED_SIGNAL_DIM) in replay_readiness_text, _artifact_meta(replay_readiness_script)),
+        _check(
+            "selective-edge supports model-native seq513",
+            bool(selective_edge_contract_review["ok"]),
+            {
+                **_artifact_meta(selective_edge_script),
+                "contract_binding": selective_edge_contract_review,
+            },
+        ),
+        _check(
+            "replay evidence supports model-native seq513",
+            bool(replay_evidence_contract_review["ok"]),
+            {
+                **_artifact_meta(replay_evidence_script),
+                "contract_binding": replay_evidence_contract_review,
+            },
+        ),
+        _check(
+            "replay-readiness supports model-native seq513",
+            bool(replay_readiness_contract_review["ok"]),
+            {
+                **_artifact_meta(replay_readiness_script),
+                "contract_binding": replay_readiness_contract_review,
+            },
+        ),
         _check("side effects remain closed", all(value is False for value in SIDE_EFFECTS_CLOSED.values()), SIDE_EFFECTS_CLOSED),
     ]
     failures = [row for row in checks if not row["ok"]]
