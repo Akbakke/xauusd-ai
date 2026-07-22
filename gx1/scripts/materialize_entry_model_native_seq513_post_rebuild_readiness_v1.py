@@ -34,6 +34,7 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_signal_contract,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.xau_tape_provenance_v1 import (
@@ -143,6 +144,11 @@ def _manifest_contract(
         if isinstance(manifest.get("feature_contract"), dict)
         else {}
     )
+    signal_contract = (
+        extra.get("model_native_signal_contract")
+        if isinstance(extra.get("model_native_signal_contract"), dict)
+        else {}
+    )
     failures: list[str] = []
     if manifest.get("schema_version") != SPLIT_MANIFEST_SCHEMA:
         failures.append(f"{split}: split manifest schema mismatch")
@@ -152,8 +158,21 @@ def _manifest_contract(
         failures.append(f"{split}: parquet self-path mismatch")
     if manifest.get("expected_seq_snap_width") != MODEL_NATIVE_SIGNAL_DIM:
         failures.append(f"{split}: expected signal width mismatch")
-    if feature.get("signal_dim") != MODEL_NATIVE_SIGNAL_DIM:
+    signal_fields = feature.get("signal_bridge_fields")
+    if (
+        not isinstance(signal_fields, list)
+        or len(signal_fields) != MODEL_NATIVE_SIGNAL_DIM
+    ):
         failures.append(f"{split}: signal dimension mismatch")
+    try:
+        require_model_native_signal_contract(
+            signal_contract,
+            context=f"post-rebuild {split} split manifest",
+        )
+    except Exception as exc:
+        failures.append(f"{split}: model-native signal contract invalid: {exc}")
+    if signal_fields != signal_contract.get("fields"):
+        failures.append(f"{split}: feature/signal field order mismatch")
     if feature.get("ctx_cont_dim") != EXPECTED_FIELD_COUNTS["ctx_cont"]:
         failures.append(f"{split}: continuous context dimension mismatch")
     if feature.get("ctx_cat_dim") != EXPECTED_FIELD_COUNTS["ctx_cat"]:
@@ -272,9 +291,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         expected_contract_mode=MODEL_NATIVE_CONTRACT_MODE,
         expected_manifest_bindings={
             split: {
-                "manifest_path": split_artifacts[split]["manifest_path"],
-                "manifest_sha256": split_artifacts[split]["manifest_sha256"],
-                "parquet_sha256": split_artifacts[split]["parquet_sha256"],
+                "path": split_artifacts[split]["manifest_path"],
+                "sha256": split_artifacts[split]["manifest_sha256"],
             }
             for split in SPLITS
         },

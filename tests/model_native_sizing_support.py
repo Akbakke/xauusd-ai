@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +48,7 @@ from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
     fit_train_val_sizing_calibration,
     materialize_test_sizing_oos_source,
 )
+from gx1.scripts import finalize_entry_model_native_sizing_v1 as sizing_finalizer
 from tests.model_native_serve_gate_support import (
     passing_serve_parity_liveness_sections,
 )
@@ -696,6 +697,18 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
 
 
 def write_passing_runtime_sizing_parity(root: Path) -> dict[str, Any]:
+    """Build deterministic fresh evidence despite host wall-clock corrections."""
+
+    original_now = sizing_finalizer._now
+    fixture_now = datetime.now(timezone.utc) - timedelta(minutes=5)
+    sizing_finalizer._now = lambda: fixture_now
+    try:
+        return _write_passing_runtime_sizing_parity(root)
+    finally:
+        sizing_finalizer._now = original_now
+
+
+def _write_passing_runtime_sizing_parity(root: Path) -> dict[str, Any]:
     """Extend the joint fixture through adoption and broker-live shadow parity."""
 
     evidence = write_passing_joint_exit_sizing_proof(root)

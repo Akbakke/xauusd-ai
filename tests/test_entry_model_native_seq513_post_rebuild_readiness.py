@@ -10,10 +10,14 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     REQUIRED_PROOF_CHECKS,
     SCHEMA_VERSION,
 )
-from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    model_native_signal_contract_metadata,
+)
 from gx1.scripts import (
     materialize_entry_model_native_seq513_post_rebuild_readiness_v1 as gate,
 )
+from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
 def _sha256(path: Path) -> str:
@@ -37,6 +41,11 @@ def _fixture(tmp_path: Path) -> tuple[argparse.Namespace, dict]:
         "entry_run_id": run_id,
         "tape_root": str(event_root / "tape"),
     }
+    signal_contract = model_native_signal_contract_metadata(
+        canonical_model_native_selected_fields(
+            remainder_prefix="session_regime.post_rebuild_fixture"
+        )
+    )
 
     split_values: dict[str, str] = {}
     for index, split in enumerate(gate.SPLITS, start=1):
@@ -51,7 +60,7 @@ def _fixture(tmp_path: Path) -> tuple[argparse.Namespace, dict]:
                 "output_data_path": str(parquet),
                 "expected_seq_snap_width": 513,
                 "feature_contract": {
-                    "signal_dim": 513,
+                    "signal_bridge_fields": signal_contract["fields"],
                     "ctx_cont_dim": 142,
                     "ctx_cat_dim": 5,
                 },
@@ -59,6 +68,7 @@ def _fixture(tmp_path: Path) -> tuple[argparse.Namespace, dict]:
                     "rows": index,
                     "entry_run_id": run_id,
                     "xau_tape_provenance": xau,
+                    "model_native_signal_contract": signal_contract,
                 },
             },
         )
@@ -141,10 +151,15 @@ def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
         "_git_identity",
         lambda repo: {"repo_dir": str(repo), "head": "a" * 40, "status_short": []},
     )
-    monkeypatch.setattr(
-        gate,
-        "validate_full_input_liveness_artifact",
-        lambda *a, **k: {
+    def _liveness(*_args, **kwargs):
+        assert kwargs["expected_manifest_bindings"] == {
+            split: {
+                "path": split_values[f"{split}_manifest_json"],
+                "sha256": split_values[f"{split}_manifest_sha256"],
+            }
+            for split in gate.SPLITS
+        }
+        return {
             "ok": True,
             "schema_version": gate.LIVENESS_SCHEMA_VERSION,
             "decision": "PASS",
@@ -152,8 +167,14 @@ def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
             "field_order_sha256": {"signal": "a", "ctx_cont": "b", "ctx_cat": "c"},
             "atr_ood_status": "SHIFT_OBSERVED",
             "failures": [],
-        },
-    )
+        }
+
+    split_values = {
+        key: getattr(args, key)
+        for split in gate.SPLITS
+        for key in (f"{split}_manifest_json", f"{split}_manifest_sha256")
+    }
+    monkeypatch.setattr(gate, "validate_full_input_liveness_artifact", _liveness)
 
     report = gate.run(args)
 

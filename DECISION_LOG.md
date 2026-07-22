@@ -609,6 +609,15 @@ The launch validator, trainer, smoke-bundle audit and adoption-readiness now
 all require the same canonical `entry_model_native_seq513_split_manifest_v2`;
 the unproducible smoke-only split schema is removed end to end.
 
+The first real V19 post-rebuild attempt then published an immutable BLOCK. It
+proved all six artifact content hashes but exposed two adapter mistakes: the
+producer read nonexistent `feature_contract.signal_dim` instead of validating
+the canonical ordered `signal_bridge_fields`, and passed six-artifact key names
+to the liveness validator where its API requires `{path, sha256}` manifest
+bindings. The producer now validates the complete model-native signal contract,
+exact 513-field order and the validator's native binding shape. No V19 bytes or
+admission policy were changed; the BLOCK event remains diagnostic evidence.
+
 ## 2026-07-22 — unavailable HTF evidence is not a neutral zero
 
 V19 source logs disclosed 12 leading M5 rows before completed H1/H4 evidence.
