@@ -7,7 +7,9 @@ Hard-fails on NaN/Inf in truth mode to prevent garbage-in-garbage-out.
 Usage:
     from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
     
-    sanitizer = XGBInputSanitizer.from_config("gx1/xgb/contracts/xgb_input_sanitizer_base28_v1.json")
+    sanitizer = XGBInputSanitizer.from_config(
+        "/absolute/selected_bundle/xgb_input_sanitizer.json"
+    )
     X_clean, stats = sanitizer.sanitize(df, feature_list)
 """
 

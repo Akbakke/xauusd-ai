@@ -17,7 +17,8 @@ Sources used (all timestamp-pinned, no glob/latest):
     (exit_prob), distance_from_peak_mfe_bps, time_since_mfe_bars,
     giveback_ratio, session_current.
   - BASE34 prebuilt M5 features: atr_bps, session_id, _v1_atr_regime_id (vol
-    regime), _v1_close_ema_slope_3 (trend slope proxy), _v1_cost_bps_dyn (spread).
+    regime), _v1_close_ema_slope_3 (trend slope proxy), and
+    _v1_session_volatility_pressure (session-conditioned volatility state).
   - TRADE_OUTCOMES: side, entry_bid/ask, entry_spread_bps, session at trade
     open (used for ENTRY_CONTEXT_SNAPSHOT subset).
 
@@ -37,7 +38,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable
 
 import pandas as pd
 
@@ -206,10 +207,10 @@ PROPOSED_STATE_FEATURES: list[dict[str, Any]] = [
         "normalization_v1": "ZSCORE_TRAIN_ONLY",
     },
     {
-        "field_name_v1": "spread_bps_dyn_v1",
+        "field_name_v1": "session_volatility_pressure_v1",
         "category_v1": "MARKET_STATE_AT_BAR",
         "source_v1": "BASE34_M5",
-        "source_field_v1": "_v1_cost_bps_dyn",
+        "source_field_v1": "_v1_session_volatility_pressure",
         "lineage_v1": "AS_OF_AT_BAR_T",
         "availability_v1": "HAVE",
         "normalization_v1": "ZSCORE_TRAIN_ONLY",

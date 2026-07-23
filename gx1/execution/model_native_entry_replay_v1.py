@@ -82,8 +82,16 @@ def label_horizon_exit_policy_contract() -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class SourceTape:
-    """Chronological bid/ask tape used only for exact offline path evaluation."""
+    """Immutable chronological bid/ask tape for exact offline replay.
 
+    The same object can feed the live Exit policy through its explicit
+    ``get_closed_m1_bar`` seam. That keeps historical replay on the production
+    policy path while binding every returned bar to one exact source file.
+    """
+
+    source_path: Path
+    source_sha256: str
+    source_size_bytes: int
     times: np.ndarray
     index: pd.Index
     bid_open: np.ndarray
@@ -97,6 +105,13 @@ class SourceTape:
 
     @classmethod
     def load(cls, path: Path) -> "SourceTape":
+        requested_path = Path(path).expanduser()
+        if requested_path.is_symlink() or not requested_path.is_file():
+            raise RuntimeError(
+                f"source tape must be a regular non-symlinked file: {requested_path}"
+            )
+        source_path = requested_path.resolve(strict=True)
+        stat_before = source_path.stat()
         columns = [
             "time",
             "bid_open",
@@ -108,9 +123,30 @@ class SourceTape:
             "ask_high",
             "ask_low",
         ]
-        source = pd.read_parquet(path, columns=columns)
+        source = pd.read_parquet(source_path, columns=columns)
+        digest = hashlib.sha256()
+        with source_path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        stat_after = source_path.stat()
+        before_identity = (
+            stat_before.st_dev,
+            stat_before.st_ino,
+            stat_before.st_size,
+            stat_before.st_mtime_ns,
+            stat_before.st_ctime_ns,
+        )
+        after_identity = (
+            stat_after.st_dev,
+            stat_after.st_ino,
+            stat_after.st_size,
+            stat_after.st_mtime_ns,
+            stat_after.st_ctime_ns,
+        )
+        if before_identity != after_identity:
+            raise RuntimeError(f"source tape changed while loading: {source_path}")
         if source.empty:
-            raise RuntimeError(f"source tape is empty: {path}")
+            raise RuntimeError(f"source tape is empty: {source_path}")
         source["time"] = pd.to_datetime(source["time"], utc=True, errors="coerce")
         if source["time"].isna().any():
             raise RuntimeError(f"source tape contains invalid time rows: {path}")
@@ -118,6 +154,9 @@ class SourceTape:
         if source["time"].duplicated().any():
             raise RuntimeError(f"source tape contains duplicate time rows: {path}")
         tape = cls(
+            source_path=source_path,
+            source_sha256=digest.hexdigest(),
+            source_size_bytes=int(stat_after.st_size),
             times=source["time"].to_numpy(),
             index=pd.Index(source["time"]),
             bid_open=source["bid_open"].to_numpy(np.float64),
@@ -131,6 +170,16 @@ class SourceTape:
         )
         tape._require_shape_contract()
         return tape
+
+    @property
+    def source_binding(self) -> dict[str, Any]:
+        """Exact source identity for replay manifests and proof producers."""
+
+        return {
+            "path": str(self.source_path),
+            "sha256": self.source_sha256,
+            "size_bytes": self.source_size_bytes,
+        }
 
     def _require_shape_contract(self) -> None:
         expected = len(self.times)
@@ -165,6 +214,33 @@ class SourceTape:
                 f"{int((indices < 0).sum())} replay fill times are missing from source tape"
             )
         return indices.astype(np.int64, copy=False)
+
+    def get_closed_m1_bar(
+        self,
+        expected_m1: pd.Timestamp,
+    ) -> dict[str, Any]:
+        """Return the unique exact M1 bar required by ``V12Pipeline``."""
+
+        self._require_shape_contract()
+        expected = pd.Timestamp(expected_m1)
+        if expected.tzinfo is None:
+            expected = expected.tz_localize("UTC")
+        else:
+            expected = expected.tz_convert("UTC")
+        position = int(self.index.get_indexer([expected])[0])
+        if position < 0:
+            raise RuntimeError(
+                f"source tape lacks exact closed M1 bar: {expected}"
+            )
+        return {
+            "time": expected,
+            "bid_high": float(self.bid_high[position]),
+            "bid_low": float(self.bid_low[position]),
+            "ask_high": float(self.ask_high[position]),
+            "ask_low": float(self.ask_low[position]),
+            "ask_close": float(self.ask_close[position]),
+            "bid_close": float(self.bid_close[position]),
+        }
 
     def simulate_trade(
         self,

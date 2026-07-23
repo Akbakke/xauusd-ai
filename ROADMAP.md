@@ -120,18 +120,20 @@ or edge result exists.
    cap fail-close, broker/local trade reconciliation, runtime lease and
    execution fail-close, exact T+5/closed-M5 Exit timing, full V3 window
    coverage, transactional TradeState and production-only Exit loading.
-3. Finish the still-open producer contracts: complete canonical-v2
-   incremental/full-history parity, atomic canonical/BASE generation
-   identity, one canonical-M5 owner plus closure policy, one observable
-   per-bar slippage source and reproducible V3 lineage. ATR/ROC/VWAP,
-   dependent normalized VWAP, SMC ATR and H1/H4 alignment already use their
-   shared source owners and must not be forked again.
+3. Preserve the closed source contracts: canonical-v2 recomputes over complete
+   verified native-M5 history; canonical-v3/BASE28 shares one atomic immutable
+   generation identity; native-M5 has one closure/schema/hash owner; V3
+   lineage binds the exact XGB bridge; and non-observable slippage-derived
+   decision fields stay removed. ATR/ROC/VWAP, dependent normalized VWAP, SMC
+   ATR and H1/H4 alignment use shared source owners and must not be forked.
 4. Rebuild the per-bar Exit substrate at exact T+5, rescore V3 on exact row
    overlays and retrain Exit with checkpoint-bound features and one explicit
    serving fold. The retained research-only/non-production bundle is not an
    incumbent.
-5. Build one canonical full-TEST producer around the existing exact
-   `V12Pipeline.make_exit_decision` primitive. It must preserve the complete
+5. Extend the existing dataset/replay owners with the exact model-native V3
+   training-dataset writer and one canonical full-TEST producer around the
+   existing exact `V12Pipeline.make_exit_decision` primitive. It must preserve
+   the complete
    Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind all
    canonical/BASE28/MTF inputs and active Exit bytes, and emit its own complete
    per-M1 actions/states/prices with zero fallback or horizon-cap pass.

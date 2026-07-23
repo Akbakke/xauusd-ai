@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""V12 XGB v7 (base80) live inference wrapper.
+"""Fail-closed Exit-XGB live inference wrapper.
 
-Loads the xgb_v7_base80 bundle (80 feats, isotonic-calibrated), runs
-predict_proba per-session on augmented canonical_v3 rows, and emits the 7-dim
-signal_bridge vector that V10/V3 consume downstream.
+Loads one selected bundle with bundle-owned ordered feature and sanitizer
+contracts, runs predict_proba per-session on augmented canonical_v3 rows, and
+emits the seven-dimensional signal bridge consumed by V10/V3 downstream.
 
 Inputs at inference time:
     - Augmented canonical_v3 DataFrame from
       gx1.execution.v12_ctx_augment_live.augment_canonical_v3()
-      (must contain all 80 features listed in
-       gx1/xgb/contracts/xgb_input_features_base80_v1.json)
+      (must contain every feature in the selected bundle's exact contract)
     - The bar's session (ASIA / EU / OVERLAP / US) — taken from session_id
       column if not specified.
 
@@ -17,7 +16,7 @@ Outputs per bar:
     p_long, p_short, p_flat   ∈ [0,1], sum ≈ 1
     signal_bridge_v1          7-dim numpy array (consumed by V10 SEQ matrix)
 
-The XGB v5 bundle has 4 session-specific heads — they were trained on
+The bundle has four session-specific heads trained on
 ASIA/EU/OVERLAP/US slices separately. Each prediction routes to the
 correct head based on the bar's session_id.
 
@@ -41,13 +40,17 @@ import pandas as pd
 from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel, proba_to_signal_bridge_v1
 from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
 from gx1.time.session_detector import get_session_vectorized
+from gx1.exits.training.thin_record_dataset import (
+    V3_XGB_FEATURE_CONTRACT_FILENAME,
+    V3_XGB_SANITIZER_CONFIG_FILENAME,
+    build_v3_xgb_bridge_source_identity,
+)
 
 LOG = logging.getLogger("v12_xgb_live")
 
-# base80 is the ONE active XGB stack (80 feats incl. hour/dow), calibrated
-# (isotonic, bundle-driven at load). The superseded 76-feat / 92-feat bundles
-# were DELETED 2026-05-26 (cleanup) — base80 is the only XGB bundle on disk.
-# predict() is fail-closed on missing feature / NaN.
+# Artifact selection names the only candidate. Admission then requires its
+# recursive byte identity and exact model/contract/sanitizer feature order.
+# predict() is fail-closed on missing features and NaN.
 def _resolve_default_xgb_bundle() -> Path:
     # FG-1 fix (2026-06-06, rule 8): resolve the ACTIVE xgb bundle via the ONE selection
     # contract — NEVER a hardcoded literal (else live keeps serving the OLD xgb after a cement
@@ -57,15 +60,45 @@ def _resolve_default_xgb_bundle() -> Path:
     return Path(load_decision_artifact("xgb"))
 
 
-DEFAULT_BUNDLE_DIR = _resolve_default_xgb_bundle()
-DEFAULT_SANITIZER_CONFIG = Path(
-    "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json"
-)
-DEFAULT_FEATURE_CONTRACT = Path(
-    "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_features_base80_v1.json"
-)
+BUNDLE_SANITIZER_FILENAME = V3_XGB_SANITIZER_CONFIG_FILENAME
+BUNDLE_FEATURE_CONTRACT_FILENAME = V3_XGB_FEATURE_CONTRACT_FILENAME
 
 SESSION_ID_TO_NAME = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
+
+
+def _require_ordered_xgb_feature_identity(
+    *,
+    model_feature_names: object,
+    contract_features: list[str],
+    sanitizer_features: list[str],
+) -> None:
+    if not isinstance(model_feature_names, list) or not model_feature_names:
+        raise RuntimeError(
+            "[XGB_CONTRACT_MISMATCH] bundle metadata lacks exact ordered "
+            "feature names"
+        )
+    if model_feature_names != contract_features:
+        mismatch = next(
+            (
+                index
+                for index, (model_name, contract_name) in enumerate(
+                    zip(model_feature_names, contract_features)
+                )
+                if model_name != contract_name
+            ),
+            min(len(model_feature_names), len(contract_features)),
+        )
+        raise RuntimeError(
+            "[XGB_CONTRACT_MISMATCH] loaded model feature order differs "
+            f"from contract at index={mismatch}; "
+            f"model_count={len(model_feature_names)} "
+            f"contract_count={len(contract_features)}"
+        )
+    if sanitizer_features != contract_features:
+        raise RuntimeError(
+            "[XGB_CONTRACT_MISMATCH] sanitizer feature order differs "
+            "from the exact model contract"
+        )
 
 
 @dataclass
@@ -76,15 +109,37 @@ class XGBLiveInference:
     _model: XGBMultiheadModel | None = field(default=None)
     _sanitizer: XGBInputSanitizer | None = field(default=None)
     _features: list[str] = field(default_factory=list)
+    _runtime_identity: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def load(
         cls,
-        bundle_dir: Path = DEFAULT_BUNDLE_DIR,
-        sanitizer_config: Path = DEFAULT_SANITIZER_CONFIG,
-        feature_contract: Path = DEFAULT_FEATURE_CONTRACT,
+        bundle_dir: Path,
     ) -> "XGBLiveInference":
-        bundle_dir = Path(bundle_dir)
+        bundle_dir = Path(bundle_dir).expanduser()
+        sanitizer_config = bundle_dir / BUNDLE_SANITIZER_FILENAME
+        feature_contract = bundle_dir / BUNDLE_FEATURE_CONTRACT_FILENAME
+        for label, path, kind in (
+            ("bundle", bundle_dir, "directory"),
+            ("sanitizer", sanitizer_config, "file"),
+            ("feature contract", feature_contract, "file"),
+        ):
+            if not path.is_absolute() or path.is_symlink():
+                raise RuntimeError(
+                    f"XGB {label} path must be absolute and non-symlinked: {path}"
+                )
+            if (kind == "directory" and not path.is_dir()) or (
+                kind == "file" and not path.is_file()
+            ):
+                raise RuntimeError(f"XGB {label} is missing: {path}")
+        bundle_dir = bundle_dir.resolve()
+        sanitizer_config = sanitizer_config.resolve()
+        feature_contract = feature_contract.resolve()
+        runtime_identity = build_v3_xgb_bridge_source_identity(
+            bundle_dir=bundle_dir,
+            feature_contract_path=feature_contract,
+            sanitizer_config_path=sanitizer_config,
+        )
         # Locate the joblib inside the bundle
         joblib_path = bundle_dir / "xgb_universal_multihead_v2.joblib"
         if not joblib_path.exists():
@@ -93,7 +148,7 @@ class XGBLiveInference:
         if not meta_path.exists():
             raise FileNotFoundError(f"XGB bundle meta not found: {meta_path}")
 
-        LOG.info(f"loading XGB v7 base80 bundle: {bundle_dir.name}")
+        LOG.info("loading exact Exit-XGB bundle: %s", bundle_dir.name)
         model = XGBMultiheadModel.load(str(joblib_path))
         sanitizer = XGBInputSanitizer.from_config(str(sanitizer_config))
         contract = json.loads(feature_contract.read_text())
@@ -101,8 +156,8 @@ class XGBLiveInference:
 
         # 2026-06-02 fix (audit MEDIUM-#2): cross-check loaded model's trained
         # feature list against the contract. Without this, swapping bundle dir
-        # (e.g. older 76-feat bundle vs 80-feat contract) silently NaN-pads the
-        # missing columns → 0-fill at inference → bad predictions.
+        # A mismatched bundle could otherwise silently NaN-pad or truncate
+        # inputs before inference.
         meta = json.loads(meta_path.read_text())
         model_feature_names = (
             meta.get("feature_names")
@@ -113,25 +168,26 @@ class XGBLiveInference:
             # leaving predict-time X[:, :expected] free to silently truncate a mismatched bundle.
             or meta.get("feature_names_ordered")
         )
-        if model_feature_names:
-            model_set = set(model_feature_names)
-            contract_set = set(features)
-            missing_in_model = contract_set - model_set
-            extra_in_model = model_set - contract_set
-            if missing_in_model or extra_in_model:
-                raise RuntimeError(
-                    f"[XGB_CONTRACT_MISMATCH] loaded model ({len(model_feature_names)} feats) "
-                    f"vs contract ({len(features)} feats) disagree. "
-                    f"missing_in_model={sorted(missing_in_model)[:5]} "
-                    f"extra_in_model={sorted(extra_in_model)[:5]}. "
-                    f"Refusing to silent-pad. Check bundle_dir + feature_contract paths."
-                )
-            LOG.info(f"  XGB cross-check OK — model + contract agree on {len(features)} features")
-        else:
-            LOG.warning(
-                f"  XGB meta has no feature_names — cannot cross-check loaded model vs contract. "
-                f"Continuing with contract-driven feature list of {len(features)} feats."
+        _require_ordered_xgb_feature_identity(
+            model_feature_names=model_feature_names,
+            contract_features=features,
+            sanitizer_features=sanitizer.feature_list,
+        )
+        admitted_identity = build_v3_xgb_bridge_source_identity(
+            bundle_dir=bundle_dir,
+            feature_contract_path=feature_contract,
+            sanitizer_config_path=sanitizer_config,
+        )
+        if admitted_identity != runtime_identity:
+            raise RuntimeError(
+                "[XGB_BUNDLE_CHANGED_DURING_LOAD] exact model or contract "
+                "bytes changed between identity admission and deserialization"
             )
+        LOG.info(
+            "  XGB cross-check OK — model, sanitizer and contract agree on %d "
+            "ordered features",
+            len(features),
+        )
         LOG.info(f"  features: {len(features)}  sessions: {list(model.sessions) if hasattr(model, 'sessions') else 'auto'}")
 
         return cls(
@@ -141,17 +197,18 @@ class XGBLiveInference:
             _model=model,
             _sanitizer=sanitizer,
             _features=features,
+            _runtime_identity=runtime_identity,
         )
 
     @classmethod
     def load_default(cls) -> "XGBLiveInference":
-        return cls.load()
+        return cls.load(_resolve_default_xgb_bundle())
 
     # ── prediction ────────────────────────────────────────────────────
 
     def predict(self, augmented_cv3_row: pd.DataFrame,
                 session: str | None = None) -> dict[str, Any]:
-        """Run XGB v5 on a single-row (or multi-row) augmented canonical_v3
+        """Run Exit-XGB on a single-row (or multi-row) augmented canonical_v3
         DataFrame. If `session` is None, infer it from the bar's session_id
         column (or from the timestamp index if no session_id present).
 
@@ -199,7 +256,7 @@ class XGBLiveInference:
         )
         df_san = pd.DataFrame(x, columns=self._features, index=df_feat.index)
 
-        # Per-session predict_proba (XGB v5 has 4 session-specific heads)
+        # Per-session predict_proba across the four exact session heads.
         n = len(df_san)
         p_long = np.zeros(n, dtype=np.float32)
         p_short = np.zeros(n, dtype=np.float32)

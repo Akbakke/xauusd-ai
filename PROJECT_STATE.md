@@ -44,17 +44,24 @@ about 80% of per-M1 rows, shifted V3 overlay and an older Entry distribution.
 The retained Exit-IQL summary also declares itself research-only and
 non-production, so startup now blocks it.
 
-Open source work remains: a canonical full-TEST producer that runs the exact
-byte-bound XGB→V3→Exit-IQL chain; one atomic canonical/BASE generation
-identity; full-history incremental state equivalence for all canonical-v2
-families; one canonical-M5 source and an explicit market-closure policy; and
-one observable per-bar slippage owner followed by fresh
-rebuild/rescore/retrain. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP,
-published SMC ATR and H1/H4 decision-time alignment now have shared owners;
-canonical construction intentionally fails with
-`BASIC_V1_SLIPPAGE_SOURCE_MISSING` instead of inventing a cost. The active V3
-lineage is not fully reproducible because its declared training input is
-absent. Canonical/live December-2024
+The current source checkpoint adds one immutable atomic canonical-v3/BASE28 pair
+generation, complete-history native-M5 recomputation, a strict native OANDA
+M5 owner/closure/hash/schema contract and reproducible V3 lineage including
+the exact XGB bridge bytes. Non-causal `_v1_slip_bps` and
+`_v1_cost_bps_est` are removed; realized slippage remains execution/evaluation
+evidence, while observed spread keeps its honest name. The saturated
+hand-written `_v1_cost_bps_dyn` fallback is replaced by a non-cost
+session/volatility-pressure feature. Runtime XGB now requires bundle-owned
+feature/sanitizer contracts with exact order, and V12 exposes a hash-bound
+historical M1 provider seam without duplicating Exit policy.
+
+Open source work remains: the canonical full-TEST producer that runs the exact
+byte-bound XGB→V3→Exit-IQL chain and the exact V3 training-dataset writer.
+Current M5 data do not satisfy the new native-source manifest and no atomic
+pair has been bootstrapped. A fresh 79-field Exit-XGB, V3 rescore/retrain and
+production Exit-IQL retrain are mandatory; no old role may be mixed in.
+PLUS5 ATR/ROC/VWAP, dependent normalized VWAP, published SMC ATR and H1/H4
+decision-time alignment have shared owners. Canonical/live December-2024
 tape parity also remains unresolved: canonical M5 and live-prebuilt share
 3,430 impossible-geometry rows; 2,799 are weekend rows. A separate full-loader
 check found 2,375 invalid prebuilt OHLC rows from
@@ -286,8 +293,8 @@ bundle or launch evidence.
 The current post-V7 source-repair tree completed repository-wide verification
 on 2026-07-23:
 
-- 1,821 tests collected;
-- 1,816 passed, five explicit skips and zero failures;
+- 1,845 tests collected;
+- 1,840 passed, five explicit skips and zero failures;
 - Python compilation for every changed Python source and test;
 - Ruff on every changed Python source and test, with only the repository's
   intentional import-bootstrap `E402` pattern excluded;

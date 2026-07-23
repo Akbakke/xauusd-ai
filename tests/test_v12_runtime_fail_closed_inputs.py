@@ -15,6 +15,7 @@ from gx1.execution.v12_pipeline import (
     V12Pipeline,
     _exact_closed_m5_row,
     _validated_v3_output,
+    require_xgb_v3_chain_identity,
 )
 from gx1.execution.v12_v3_live import (
     WINDOW_LEN as V3_WINDOW_LEN,
@@ -23,6 +24,7 @@ from gx1.execution.v12_v3_live import (
     _resolve_default_v3_bundle,
     required_closed_m5_keys_for_v3_window,
 )
+from gx1.execution.v12_xgb_live import _require_ordered_xgb_feature_identity
 
 
 def _collector_rows(*times: str) -> pd.DataFrame:
@@ -57,6 +59,55 @@ def test_v3_default_bundle_ignores_environment_path_override(
     )
 
     assert _resolve_default_v3_bundle() == Path("/registry/bound-v3")
+
+
+def test_xgb_v3_chain_requires_exact_training_identity() -> None:
+    identity = {"identity_sha256": "a" * 64}
+    assert (
+        require_xgb_v3_chain_identity(
+            SimpleNamespace(_runtime_identity=identity),
+            SimpleNamespace(
+                _training_lineage={"xgb_bridge_source": deepcopy(identity)}
+            ),
+        )
+        == identity
+    )
+
+    with pytest.raises(RuntimeError, match="CHAIN_IDENTITY_MISMATCH"):
+        require_xgb_v3_chain_identity(
+            SimpleNamespace(_runtime_identity=identity),
+            SimpleNamespace(
+                _training_lineage={
+                    "xgb_bridge_source": {"identity_sha256": "b" * 64}
+                }
+            ),
+        )
+
+
+def test_xgb_feature_identity_requires_metadata_order_and_sanitizer_parity() -> None:
+    _require_ordered_xgb_feature_identity(
+        model_feature_names=["a", "b"],
+        contract_features=["a", "b"],
+        sanitizer_features=["a", "b"],
+    )
+    with pytest.raises(RuntimeError, match="metadata lacks exact"):
+        _require_ordered_xgb_feature_identity(
+            model_feature_names=None,
+            contract_features=["a", "b"],
+            sanitizer_features=["a", "b"],
+        )
+    with pytest.raises(RuntimeError, match="order differs"):
+        _require_ordered_xgb_feature_identity(
+            model_feature_names=["b", "a"],
+            contract_features=["a", "b"],
+            sanitizer_features=["a", "b"],
+        )
+    with pytest.raises(RuntimeError, match="sanitizer feature order differs"):
+        _require_ordered_xgb_feature_identity(
+            model_feature_names=["a", "b"],
+            contract_features=["a", "b"],
+            sanitizer_features=["a"],
+        )
 
 
 def _pipeline(loader: object | None = None, **kwargs: object) -> V12Pipeline:
@@ -455,6 +506,57 @@ def test_closed_m1_midnight_uses_the_expected_bars_calendar_day(
 
     assert observed_paths == [expected_path]
     assert bar["time"] == pd.Timestamp("2026-07-15T23:59:00Z")
+
+
+def test_closed_m1_provider_is_exact_historical_replay_seam(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = pd.Timestamp("2026-07-16T12:09:00Z")
+
+    class _ExactProvider:
+        def __init__(self) -> None:
+            self.requested: list[pd.Timestamp] = []
+
+        def get_closed_m1_bar(
+            self,
+            expected_m1: pd.Timestamp,
+        ) -> dict[str, object]:
+            self.requested.append(expected_m1)
+            return _collector_rows(str(expected_m1)).iloc[0].to_dict()
+
+    provider = _ExactProvider()
+    pipe = _pipeline(closed_m1_provider=provider)
+    monkeypatch.setattr(
+        pipeline_module.pd,
+        "read_parquet",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("historical provider must not read live collector")
+        ),
+    )
+
+    bar = pipe._refresh_m1_bar(pd.Timestamp("2026-07-16T12:10:00Z"))
+
+    assert provider.requested == [expected]
+    assert bar["time"] == expected
+    assert bar["mid_close"] == pytest.approx(2400.1)
+
+
+def test_closed_m1_provider_rejects_nearby_bar_substitution() -> None:
+    class _WrongBarProvider:
+        def get_closed_m1_bar(
+            self,
+            _expected_m1: pd.Timestamp,
+        ) -> dict[str, object]:
+            return _collector_rows("2026-07-16T12:08:00Z").iloc[0].to_dict()
+
+    pipe = _pipeline(closed_m1_provider=_WrongBarProvider())
+
+    with pytest.raises(ExitDecisionUnavailable) as raised:
+        pipe._refresh_m1_bar(pd.Timestamp("2026-07-16T12:10:00Z"))
+
+    assert raised.value.reason == "closed_m1_provider_time_mismatch"
+    assert raised.value.evidence["expected_m1"] == "2026-07-16 12:09:00+00:00"
+    assert raised.value.evidence["observed_m1"] == "2026-07-16 12:08:00+00:00"
 
 
 def test_exact_closed_m5_rejects_latest_row_substitution() -> None:
@@ -1131,29 +1233,76 @@ def test_incremental_m1_union_rejects_canonical_live_price_conflict(
         incremental._load_m1_collector_for_window(timestamp, timestamp)
 
 
-def test_incremental_cycle_retries_base34_after_prior_partial_advance(
+def test_incremental_canonical_m5_uses_full_native_history_and_closed_cutoff(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from gx1.execution import v12_canonical_incremental as incremental
 
-    cutoff = pd.Timestamp("2026-07-16T12:00:00Z")
-    observed: list[pd.Timestamp] = []
+    root = tmp_path / "canonical_m5"
+    part = root / "year=2026" / "part-000.parquet"
+    part.parent.mkdir(parents=True)
+    times = pd.date_range("2026-07-16T12:00:00Z", periods=3, freq="5min")
+    rows = []
+    for offset, timestamp in enumerate(times):
+        bid = 2400.0 + offset
+        ask = bid + 0.2
+        rows.append(
+            {
+                "time": timestamp,
+                "open": (bid + ask) / 2,
+                "high": (bid + ask) / 2 + 0.5,
+                "low": (bid + ask) / 2 - 0.5,
+                "close": (bid + ask) / 2,
+                "bid_open": bid,
+                "bid_high": bid + 0.5,
+                "bid_low": bid - 0.5,
+                "bid_close": bid,
+                "ask_open": ask,
+                "ask_high": ask + 0.5,
+                "ask_low": ask - 0.5,
+                "ask_close": ask,
+                "volume": 10.0 + offset,
+            }
+        )
+    pd.DataFrame(rows).to_parquet(part, index=False)
+    monkeypatch.setattr(incremental, "CANONICAL_M5_DIR", root)
     monkeypatch.setattr(
         incremental,
-        "update_canonical_v3_incremental",
-        lambda: (0, cutoff),
-    )
-    monkeypatch.setattr(
-        incremental,
-        "update_base34_incremental",
-        lambda value: observed.append(value) or 0,
+        "canonical_xau_source_descriptor_v1",
+        lambda *_args, **_kwargs: {"source_granularity": "M5"},
     )
 
-    result = incremental.run_one_cycle()
+    loaded = incremental._load_full_canonical_m5(
+        pd.Timestamp("2026-07-16T12:10:00Z")
+    )
 
-    assert observed == [cutoff]
-    assert result["cv3_appended"] == 0
-    assert result["base34_appended"] == 0
+    assert list(loaded.index) == list(times[:2])
+    assert list(loaded.columns) == list(
+        incremental.CANONICAL_M5_REQUIRED_COLUMNS[1:]
+    )
+
+
+def test_incremental_rejects_prebuilt_from_different_m5_market_bytes() -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    index = pd.date_range("2026-07-16T12:00:00Z", periods=2, freq="5min")
+    source = pd.DataFrame(
+        {
+            "open": [2400.0, 2401.0],
+            "high": [2401.0, 2402.0],
+            "low": [2399.0, 2400.0],
+            "close": [2400.5, 2401.5],
+            "volume": [10.0, 11.0],
+        },
+        index=index,
+    )
+    incremental._require_existing_cv3_market_identity(source.copy(), source)
+    mismatched = source.copy()
+    mismatched.loc[index[-1], "close"] += 0.01
+
+    with pytest.raises(RuntimeError, match="market identity mismatch"):
+        incremental._require_existing_cv3_market_identity(mismatched, source)
 
 
 @pytest.mark.parametrize("value", [None, np.nan, np.inf, True])

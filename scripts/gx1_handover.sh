@@ -99,20 +99,17 @@ if (
     or repair.get("remaining_source_p0")
     != [
         "canonical_full_test_active_exit_replay_producer",
-        "active_exit_rebuild_rescore_retrain_on_exact_t_plus_5_causal_state",
-        "complete_canonical_v2_incremental_full_history_state_parity",
-        "atomic_canonical_base_generation_identity",
-        "canonical_m5_single_owner_and_market_closure_policy",
-        "observed_per_bar_slippage_source_contract",
-        "reproducible_v3_training_lineage",
+        "exact_model_native_v3_training_dataset_producer",
+        "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
+        "native_oanda_m5_materialization_and_atomic_pair_bootstrap",
     ]
 ):
     raise SystemExit("FATAL: malformed source-repair checkpoint")
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1821
-    or verification.get("tests_passed") != 1816
+    or verification.get("tests_collected") != 1845
+    or verification.get("tests_passed") != 1840
     or verification.get("tests_skipped") != 5
     or verification.get("tests_failed") != 0
     or verification.get("changed_python_compile") != "PASS"

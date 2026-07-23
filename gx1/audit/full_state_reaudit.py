@@ -13,7 +13,7 @@ holds RAM (AGENTS.md SMART+MAXED RAM-headroom rule — an OOM crashed the PC 202
 Usage:
   python -m gx1.audit.full_state_reaudit --sample-n 200000 \
     --exit-per-bar-dir <…/exit_per_bar_scored_clean> \
-    [--xgb-bundle <…> --xgb-contract <…>]
+    [--xgb-bundle <bundle-owned-contracts>]
 """
 import argparse
 import os
@@ -69,7 +69,9 @@ def _col_stat(s):
     a = a[np.isfinite(a)]
     if a.size == 0:
         return 0.0, 0.0, 0, True
-    std = float(np.std(a)); nz = float(np.mean(np.abs(a) > 1e-12)); nu = int(np.unique(np.round(a, 8)).size)
+    std = float(np.std(a))
+    nz = float(np.mean(np.abs(a) > 1e-12))
+    nu = int(np.unique(np.round(a, 8)).size)
     return std, nz, nu, (std < _DETAIL_DEAD_STD)
 
 
@@ -85,7 +87,8 @@ def _detail_block(df, title, pats):
         rx = re.compile(pat, re.I)
         cols = sorted([c for c in df.columns if rx.search(c)])
         if not cols:
-            print(f"  [{label}] (no matching cols)"); continue
+            print(f"  [{label}] (no matching cols)")
+            continue
         by_tf = {}
         for c in cols:
             by_tf.setdefault(_tf_of(c) or "(scalar)", []).append(c)
@@ -125,7 +128,6 @@ def main():
     ap.add_argument("--canonical-features", default=f"{_exit_wave_dir}/CANONICAL_FEATURES_V3_PLUS5/canonical_features_v3_plus5.parquet")
     ap.add_argument("--reports-root", default="/home/andre2/GX1_DATA/reports/truth_e2e_sanity")  # chunk0 (empty) — build default
     ap.add_argument("--xgb-bundle", default=None)
-    ap.add_argument("--xgb-contract", default=None)
     ap.add_argument("--detail", action="store_true",
                     help="also print per-TF EMA / M5-M15 market-state / MAE liveness detail on the loaded frames")
     args = ap.parse_args()
@@ -147,21 +149,24 @@ def main():
         if args.detail:
             _detail_block(dfe, "EXIT trade-state MAE/MFE + exit-MTF EMA", _EXIT_DETAIL_PATS)
     except Exception as e:
-        print(f"\n[EXIT-IQL audit FAILED: {e!r}]"); traceback.print_exc(); failures.append("EXIT-IQL")
+        print(f"\n[EXIT-IQL audit FAILED: {e!r}]")
+        traceback.print_exc()
+        failures.append("EXIT-IQL")
 
     # Optional XGB gain check.
-    if args.xgb_bundle and args.xgb_contract:
+    if args.xgb_bundle:
         try:
             from gx1.audit.feature_liveness import audit_xgb_gain
-            xdead = audit_xgb_gain(args.xgb_bundle, args.xgb_contract)
+            xdead = audit_xgb_gain(args.xgb_bundle)
             print(f"\n===== XGB: {len(xdead)} features 0-gain in ALL heads (un-allowlisted) =====")
             for d in xdead[:60]:
                 print(f"      {d}")
             total_dead += len(xdead)
         except Exception as e:
-            print(f"\n[XGB audit FAILED: {e!r}]"); failures.append("XGB")
+            print(f"\n[XGB audit FAILED: {e!r}]")
+            failures.append("XGB")
     else:
-        print("\n[XGB audit skipped — pass --xgb-bundle + --xgb-contract]")
+        print("\n[XGB audit skipped — pass --xgb-bundle]")
 
     # Verdict: PASS only if every attempted arm RAN and found no un-allowlisted dead. A thrown arm = FAIL
     # (so a broken audit can NEVER read as PASS — the false-pass bug found 2026-06-10).

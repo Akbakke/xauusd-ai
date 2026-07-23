@@ -37,9 +37,10 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 import pandas as pd
@@ -111,6 +112,42 @@ class ExitDecisionUnavailable(RuntimeError):
         self.reason = str(reason)
         self.evidence = dict(evidence)
         super().__init__(f"{self.reason}: {self.evidence}")
+
+
+class ClosedM1StateProvider(Protocol):
+    """Exact closed-M1 source seam for hash-bound historical Exit replay.
+
+    Live construction deliberately leaves this unset and uses the collector
+    owner below. Historical replay must inject an immutable-tape provider; it
+    may not monkeypatch the live collector lookup or duplicate Exit policy.
+    """
+
+    def get_closed_m1_bar(
+        self,
+        expected_m1: pd.Timestamp,
+    ) -> Mapping[str, Any]:
+        """Return exactly one bar for ``expected_m1`` or raise."""
+
+
+def require_xgb_v3_chain_identity(
+    exit_xgb: ExitXGBLiveInference,
+    v3: V3LiveInference,
+) -> dict[str, Any]:
+    """Require V3 training to name the exact XGB bytes loaded for its bridge."""
+
+    xgb_identity = getattr(exit_xgb, "_runtime_identity", None)
+    v3_lineage = getattr(v3, "_training_lineage", None)
+    if not isinstance(xgb_identity, dict) or not xgb_identity:
+        raise RuntimeError("EXIT_XGB_RUNTIME_IDENTITY_MISSING")
+    if not isinstance(v3_lineage, dict):
+        raise RuntimeError("EXIT_V3_TRAINING_LINEAGE_MISSING")
+    trained_xgb = v3_lineage.get("xgb_bridge_source")
+    if trained_xgb != xgb_identity:
+        raise RuntimeError(
+            "EXIT_XGB_V3_CHAIN_IDENTITY_MISMATCH: the loaded XGB bytes or "
+            "ordered feature semantics differ from V3 training"
+        )
+    return xgb_identity
 
 
 REQUIRED_V3_DECISION_FIELDS = (
@@ -244,6 +281,9 @@ class V12Pipeline:
     exit_xgb: ExitXGBLiveInference
     exit_iql: "ExitIQLLiveInference | None" = None
     v3: V3LiveInference | None = None     # V3 v8 — used for exit decisions
+    # Offline full-TEST replay injects one immutable exact-M1 provider here.
+    # ``load_default`` never sets it, so live keeps the collector as sole owner.
+    closed_m1_provider: ClosedM1StateProvider | None = None
     # SMART entry adapter. It loads only when the artifact selector and newest
     # XAU direction launch contract admit the exact hashed bundle.
     smart_entry: "object | None" = None
@@ -281,6 +321,7 @@ class V12Pipeline:
         smart_entry = SmartEntryLiveInference.load()
         exit_iql = ExitIQLLiveInference.load_default()
         v3 = V3LiveInference.load_default()   # V3 v8 exit transformer
+        require_xgb_v3_chain_identity(exit_xgb, v3)
         # exit-side multi-TF tables (V3) — loader-owned, refreshed by its async cycle
         if getattr(v3, "_enable_multi_tf", False):
             LOG.info("V12.2: building multi-TF features on PrebuiltStateLoader (one-time)")
@@ -320,13 +361,6 @@ class V12Pipeline:
             exact_cached_bar = self._last_m1_bar
             return exact_cached_bar
 
-        path = COLLECTOR_DIR / f"xauusd_m1_{expected.strftime('%Y%m%d')}.parquet"
-        if not path.is_file():
-            raise ExitDecisionUnavailable(
-                "closed_m1_file_missing",
-                expected_m1=str(expected),
-                path=str(path),
-            )
         columns = (
             "time",
             "bid_high",
@@ -336,29 +370,88 @@ class V12Pipeline:
             "ask_close",
             "bid_close",
         )
-        try:
-            df = pd.read_parquet(path, columns=list(columns))
-            observed_times = pd.to_datetime(df["time"], utc=True, errors="coerce")
-        except Exception as exc:  # noqa: BLE001 - convert I/O/schema failure to evidence
-            raise ExitDecisionUnavailable(
-                "closed_m1_read_failed",
-                expected_m1=str(expected),
-                path=str(path),
-                error_type=type(exc).__name__,
-            ) from exc
-
-        positions = np.flatnonzero(observed_times == expected)
-        if len(positions) != 1:
-            valid = observed_times[~pd.isna(observed_times)]
-            raise ExitDecisionUnavailable(
-                "closed_m1_exact_bar_missing" if len(positions) == 0 else "closed_m1_exact_bar_duplicate",
-                expected_m1=str(expected),
-                matches=int(len(positions)),
-                latest_observed_m1=str(valid.max()) if len(valid) else "",
-                path=str(path),
+        source_evidence: dict[str, Any]
+        if self.closed_m1_provider is not None:
+            try:
+                provided = self.closed_m1_provider.get_closed_m1_bar(expected)
+            except ExitDecisionUnavailable:
+                raise
+            except Exception as exc:  # noqa: BLE001 - normalize provider failure
+                raise ExitDecisionUnavailable(
+                    "closed_m1_provider_failed",
+                    expected_m1=str(expected),
+                    provider_type=type(self.closed_m1_provider).__name__,
+                    error_type=type(exc).__name__,
+                ) from exc
+            if not isinstance(provided, Mapping):
+                raise ExitDecisionUnavailable(
+                    "closed_m1_provider_row_invalid",
+                    expected_m1=str(expected),
+                    provider_type=type(self.closed_m1_provider).__name__,
+                )
+            row = pd.Series(dict(provided))
+            observed_time = pd.to_datetime(
+                row.get("time"),
+                utc=True,
+                errors="coerce",
             )
+            if pd.isna(observed_time) or observed_time != expected:
+                raise ExitDecisionUnavailable(
+                    "closed_m1_provider_time_mismatch",
+                    expected_m1=str(expected),
+                    observed_m1=(
+                        "" if pd.isna(observed_time) else str(observed_time)
+                    ),
+                    provider_type=type(self.closed_m1_provider).__name__,
+                )
+            source_evidence = {
+                "provider_type": type(self.closed_m1_provider).__name__,
+            }
+        else:
+            path = (
+                COLLECTOR_DIR
+                / f"xauusd_m1_{expected.strftime('%Y%m%d')}.parquet"
+            )
+            if not path.is_file():
+                raise ExitDecisionUnavailable(
+                    "closed_m1_file_missing",
+                    expected_m1=str(expected),
+                    path=str(path),
+                )
+            try:
+                df = pd.read_parquet(path, columns=list(columns))
+                observed_times = pd.to_datetime(
+                    df["time"],
+                    utc=True,
+                    errors="coerce",
+                )
+            except Exception as exc:  # noqa: BLE001 - normalize I/O/schema failure
+                raise ExitDecisionUnavailable(
+                    "closed_m1_read_failed",
+                    expected_m1=str(expected),
+                    path=str(path),
+                    error_type=type(exc).__name__,
+                ) from exc
 
-        row = df.iloc[int(positions[0])]
+            positions = np.flatnonzero(observed_times == expected)
+            if len(positions) != 1:
+                valid = observed_times[~pd.isna(observed_times)]
+                raise ExitDecisionUnavailable(
+                    (
+                        "closed_m1_exact_bar_missing"
+                        if len(positions) == 0
+                        else "closed_m1_exact_bar_duplicate"
+                    ),
+                    expected_m1=str(expected),
+                    matches=int(len(positions)),
+                    latest_observed_m1=(
+                        str(valid.max()) if len(valid) else ""
+                    ),
+                    path=str(path),
+                )
+            row = df.iloc[int(positions[0])]
+            source_evidence = {"path": str(path)}
+
         price_names = columns[1:]
         prices: dict[str, float] = {}
         invalid_fields: list[str] = []
@@ -377,7 +470,7 @@ class V12Pipeline:
                 "closed_m1_prices_invalid",
                 expected_m1=str(expected),
                 invalid_fields=invalid_fields,
-                path=str(path),
+                **source_evidence,
             )
 
         range_invalid = (
@@ -392,7 +485,7 @@ class V12Pipeline:
                 "closed_m1_ohlc_invalid",
                 expected_m1=str(expected),
                 prices=prices,
-                path=str(path),
+                **source_evidence,
             )
 
         mid_close = (prices["ask_close"] + prices["bid_close"]) / 2.0
@@ -402,7 +495,7 @@ class V12Pipeline:
                 "closed_m1_atr_invalid",
                 expected_m1=str(expected),
                 atr_bps=float(atr_bps),
-                path=str(path),
+                **source_evidence,
             )
 
         bar: dict[str, Any] = {

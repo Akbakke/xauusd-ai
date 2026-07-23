@@ -543,11 +543,17 @@ Current facts:
   first-wave faults and records the later Exit/incremental re-audit. Several
   first-wave faults are source-repaired. ATR/ROC/VWAP, dependent normalized
   VWAP, published SMC ATR and H1/H4 decision-time alignment now have shared
-  owners; missing spread/slippage evidence has no sentinel path. Full-history
-  incremental equivalence, atomic canonical/BASE generation identity,
-  canonical-M5 ownership, an observed per-bar slippage owner and a canonical
-  active-Exit replay producer remain open; V24/V7 and the old Exit artifacts
-  remain rejected;
+  owners. Canonical-v3 and BASE28 publish through one immutable, content-bound,
+  atomic generation pointer; the updater recomputes canonical-v2 over the
+  complete verified native-M5 history instead of resetting bounded state.
+  Native-M5 ownership verifies closure, per-year SHA, row count and exact
+  Arrow schema. Realized slippage is removed from the causal feature contract
+  because no pre-decision observable owner exists; replay stress remains an
+  explicit evaluation input. XGB and V3 require bundle-owned exact feature
+  contracts and one recursive, reproducible cross-role lineage identity. The
+  canonical active-Exit full-TEST producer, exact V3 training-dataset producer
+  and fresh artifacts remain open; V24/V7 and the old Exit artifacts remain
+  rejected;
 - rejected V21/V22/V23 large split parquets are deleted; their terminal,
   manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
@@ -758,12 +764,15 @@ launch approval, per-entry runtime lease recheck and missing-trade-ID close
 behavior are source-repaired. The transactional candidate→promotion→launch
 producer, identity-bound vedtak and exact target transaction/recovery are
 source-repaired too. A hard launch/runtime barrier gives caller-supplied Exit
-replay diagnostics zero authority. The later Exit/incremental audit reopens
-causal Exit rebuild/rescore/retrain, incremental/full-history state, atomic
-generation, canonical-M5/closure, observed-slippage and V3-lineage P0s beside
-the canonical full-TEST producer. Formula and HTF decision-alignment ownership
-is repaired. Empirical dataset/model/edge proof and canonical/live
-December-2024 tape parity also remain absent.
+replay diagnostics zero authority. The later Exit/incremental audit led to
+source closure for atomic canonical-v3/BASE28 generations, complete-history
+canonical-v2 recomputation, strict native-M5 closure/schema/hash ownership,
+removal of non-observable slippage features, reproducible XGB-bound V3 lineage
+and a hash-bound historical closed-M1 provider for Exit. Formula and HTF
+decision-alignment ownership is also repaired. Still open are the exact V3
+training-dataset writer, canonical active-Exit full-TEST producer, fresh
+XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap, empirical
+dataset/model/edge proof and canonical/live December-2024 tape parity.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

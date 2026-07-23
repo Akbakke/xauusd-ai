@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T18:30:30Z",
+  "updated_utc": "2026-07-23T19:30:57Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
   "latest_terminal_event_decision": "GREEN",
@@ -63,16 +63,21 @@
       "shared_published_atr_for_smc",
       "causal_nan_warmup_without_numeric_sentinels",
       "manifest_bound_prebuilt_path_sha_rows_and_schema_admission",
-      "latched_fail_closed_prebuilt_refresh_identity"
+      "latched_fail_closed_prebuilt_refresh_identity",
+      "atomic_canonical_v3_base28_pair_generation",
+      "complete_native_m5_full_history_canonical_v2_recompute",
+      "canonical_m5_native_owner_closure_hash_schema_contract",
+      "noncausal_slippage_feature_removal",
+      "honest_session_volatility_pressure_semantics",
+      "bundle_owned_exact_order_xgb_contract",
+      "xgb_bound_reproducible_v3_training_lineage",
+      "hash_bound_historical_m1_exit_provider"
     ],
     "remaining_source_p0": [
       "canonical_full_test_active_exit_replay_producer",
-      "active_exit_rebuild_rescore_retrain_on_exact_t_plus_5_causal_state",
-      "complete_canonical_v2_incremental_full_history_state_parity",
-      "atomic_canonical_base_generation_identity",
-      "canonical_m5_single_owner_and_market_closure_policy",
-      "observed_per_bar_slippage_source_contract",
-      "reproducible_v3_training_lineage"
+      "exact_model_native_v3_training_dataset_producer",
+      "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
+      "native_oanda_m5_materialization_and_atomic_pair_bootstrap"
     ],
     "remaining_source_data_parity": [
       "canonical_and_live_december_2024_m5_tape_parity"
@@ -89,9 +94,9 @@
       "canonical_or_live_data_modified": false
     },
     "repository_verification": {
-      "verified_utc": "2026-07-23T18:30:30Z",
-      "tests_collected": 1821,
-      "tests_passed": 1816,
+      "verified_utc": "2026-07-23T19:30:57Z",
+      "tests_collected": 1845,
+      "tests_passed": 1840,
       "tests_skipped": 5,
       "tests_failed": 0,
       "changed_python_compile": "PASS",
@@ -425,8 +430,8 @@
     "The post-V7 target/objective, sampler, conditional-metric, full-head/group-influence, normalization, context-routing, MTF, bundle/event-publication, Exit-byte, launch approval/vedtak, transactional finalizer/recovery, single-exposure, broker/local trade-ID, runtime-lease and missing-trade-ID faults are source-repaired only. V24/V7 predate them and no fresh artifacts prove the repairs empirically.",
     "The canonical transactional candidate/promotion/launch finalizer exists and fails closed, but the joint Exit finalizer only validates caller-supplied replay/trace parquets and never executes the active XGB/V3/Exit-IQL stack. Launch/runtime explicitly rejects that evidence. A canonical full-TEST active-Exit replay producer remains source P0.",
     "The retained Exit artifacts are invalid as a live incumbent. Their per-bar state predates exact T+5 fill, about 80% of old M1 rows join a still-forming M5 row, V3 overlay is shifted one M1 row, and the retained Exit-IQL summary is research-only/non-production with no checkpoint-bound feature order or explicit serving fold. Source now blocks them; rebuild, V3 rescore and Exit retraining are mandatory.",
-    "Incremental/full rebuild parity remains incomplete: canonical-v2 still has bounded-history state, canonical and BASE are not one atomic generation, canonical M5 has no single update owner/closure policy, and ATR/ROC/VWAP families retain semantic forks pending one formula contract and retraining.",
-    "The retained V3 training lineage is not fully reproducible because its declared training dataset is absent.",
+    "Source now recomputes canonical-v2 over complete verified native-M5 history and publishes canonical-v3/BASE28 through one immutable atomic pair generation. Native-M5 closure/schema/hash ownership and shared ATR/ROC/VWAP semantics are code-proven, but current canonical M5 data fail the new native-source contract and no compliant pair has been bootstrapped.",
+    "The retained V3 artifact is rejected because its declared training dataset is absent and it predates the exact XGB bridge lineage. New V3 lineage is reproducible and XGB-bound in source, but the exact model-native V3 dataset writer and fresh 79-field XGB/V3/Exit artifact chain remain unbuilt.",
     "Canonical and live December-2024 M5 tape parity remains unproved. Read-only inspection found the same 3,430 impossible-geometry rows in both copies, including 2,799 weekend rows; clean M1 supports 5,757 rebuilt December buckets and leaves 3,459 canonical rows unbacked. Only the rejected event-local repair exists and no canonical/live data were modified.",
     "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for one final untouched evaluation.",
     "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration and cost gates.",

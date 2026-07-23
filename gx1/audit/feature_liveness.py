@@ -17,7 +17,6 @@ Run manually:  python -m gx1.audit.feature_liveness --v10-bundle <dir> --test-pa
 """
 from __future__ import annotations
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
@@ -30,6 +29,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     ordered_model_native_signal_fields,
     require_model_native_signal_contract,
+)
+from gx1.execution.v12_state_from_prebuilt import (
+    PREBUILT_PAIR_MANIFEST_PATH,
+    PREBUILT_PAIR_ROOT,
+    read_prebuilt_pair_manifest,
+    verify_prebuilt_pair,
 )
 
 DEAD_STD = 1e-4   # std below this over a real batch = constant = "ignored input"
@@ -334,22 +339,10 @@ def audit_iql_state_liveness(X, names, *, role: str = "iql-state", raise_on_fail
     return rep
 
 
-LIVE_TAIL_ALLOWED_CONST: Dict[str, str] = {
-    # Structural — XAU OHLC has no bid/ask spread on the M5-derived path:
-    "spread_bps": "XAU OHLC no spread (structural).",
-    "spread_bucket": "bucketization of the const spread (structural).",
-    # REGIME-SATURATED capped formula, NOT an append freeze (verified 2026-06-11, the live-tail
-    # check's first real catch): cost = 12*sess*(0.5+0.5*clip(0.6*atr_pct*1e4+0.4*rng_z, 0, 3))
-    # saturates at 24.0 whenever atr_bps >= ~5 — permanently true in the 2026 high-vol regime
-    # (16,914/17k values = 24.0 over the last 60d; basic_v1.py:1635-1644). train==serve consistent
-    # (batch saturates identically). FIX CANDIDATE at the next feature wave: raise/log-scale the cap
-    # so the cost proxy regains information in high-vol regimes.
-    "_v1_cost_bps_dyn": "scale_term cap 3.0 saturates in the 2026 high-vol regime → const 24.0. Uncap at next feature wave.",
-}
+LIVE_TAIL_ALLOWED_CONST: Dict[str, str] = {}
 LIVE_TAIL_REF_MIN_NUNIQUE = 4   # was-varying threshold: ref-window nunique >= this => freeze when tail==1
-LIVE_BASE34_MANIFEST = "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
-LIVE_CV3_PREBUILT = ("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
-                     "xauusd_m5_CANONICAL_V3_2020_2026.parquet")
+LIVE_PAIR_MANIFEST = str(PREBUILT_PAIR_MANIFEST_PATH)
+LIVE_PAIR_GENERATION_ROOT = str(PREBUILT_PAIR_ROOT)
 
 
 US_MARKET_HOLIDAYS = {  # XAU/CME stengt eller early-close (utvid årlig)
@@ -374,8 +367,13 @@ KNOWN_DATA_GAPS = {  # aksepterte historiske hull (dato → grunn). Repareres vi
 }
 
 
-def check_live_continuity(tail_days: int = 10, fresh_fail_hours: int = 48,
-                          raise_on_fail: bool = False) -> dict:
+def check_live_continuity(
+    tail_days: int = 10,
+    fresh_fail_hours: int = 48,
+    pair_manifest: str = LIVE_PAIR_MANIFEST,
+    generation_root: str = LIVE_PAIR_GENERATION_ROOT,
+    raise_on_fail: bool = False,
+) -> dict:
     """Rule-9 CONTINUITY check (user-direktiv 2026-06-12: «ALLTID oppdatert, INGEN hull, nøyaktig på
     hver M1 (exit) og M5 (entry)»). Skanner cv3 (M5) + BASE34 (M1) for grid-hull, klassifisert mot
     helg / daglig 21-22Z-pause / US-helligdager / tick-tomme minutter (<=10 min) / KNOWN_DATA_GAPS.
@@ -384,11 +382,15 @@ def check_live_continuity(tail_days: int = 10, fresh_fail_hours: int = 48,
     import pandas as pd
     out: dict = {"ok": True, "fresh_gaps": [], "stale_gaps": [], "freshness_min": {}}
     now = pd.Timestamp.now(tz="UTC")
-    man = json.loads(Path(LIVE_BASE34_MANIFEST).read_text())
+    pair = read_prebuilt_pair_manifest(
+        Path(pair_manifest),
+        generation_root=Path(generation_root),
+    )
+    verify_prebuilt_pair(pair)
     frames = []
-    cv3 = pd.read_parquet(LIVE_CV3_PREBUILT, columns=["time"])
+    cv3 = pd.read_parquet(pair.canonical_v3.parquet_path, columns=["time"])
     frames.append(("CV3-M5", pd.DatetimeIndex(pd.to_datetime(cv3["time"], utc=True)).sort_values(), 5))
-    b34 = pd.read_parquet(man["parquet_path"], columns=[])
+    b34 = pd.read_parquet(pair.base28.parquet_path, columns=[])
     frames.append(("BASE34-M1", pd.DatetimeIndex(pd.to_datetime(b34.index, utc=True)).sort_values(), 1))
     for name, idx, step in frames:
         out["freshness_min"][name] = round(float((now - idx.max()).total_seconds() / 60), 1)
@@ -427,10 +429,13 @@ def check_live_continuity(tail_days: int = 10, fresh_fail_hours: int = 48,
     return out
 
 
-def check_live_prebuilt_tail(tail_days: int = 5, ref_days: int = 30,
-                             base34_manifest: str = LIVE_BASE34_MANIFEST,
-                             cv3_path: str = LIVE_CV3_PREBUILT,
-                             raise_on_fail: bool = False) -> dict:
+def check_live_prebuilt_tail(
+    tail_days: int = 5,
+    ref_days: int = 30,
+    pair_manifest: str = LIVE_PAIR_MANIFEST,
+    generation_root: str = LIVE_PAIR_GENERATION_ROOT,
+    raise_on_fail: bool = False,
+) -> dict:
     """Rule-9 LIVE-TAIL check (user vedtak 2026-06-11): detect the FREEZE SIGNATURE on the LIVE
     prebuilts — a column constant over the recent tail that USED to vary in the reference window.
 
@@ -445,11 +450,15 @@ def check_live_prebuilt_tail(tail_days: int = 5, ref_days: int = 30,
     import pandas as pd
     out: dict = {"ok": True, "frozen": [], "structural_const": [], "checked": {}, "stale_minutes": {}}
     frames: list[tuple[str, "pd.DataFrame"]] = []
-    man = json.loads(Path(base34_manifest).read_text())
-    b34 = pd.read_parquet(man["parquet_path"])
+    pair = read_prebuilt_pair_manifest(
+        Path(pair_manifest),
+        generation_root=Path(generation_root),
+    )
+    verify_prebuilt_pair(pair)
+    b34 = pd.read_parquet(pair.base28.parquet_path)
     b34.index = pd.to_datetime(b34.index, utc=True)
     frames.append(("BASE34", b34))
-    cv3 = pd.read_parquet(cv3_path)
+    cv3 = pd.read_parquet(pair.canonical_v3.parquet_path)
     if "time" in cv3.columns:
         cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
         cv3 = cv3.set_index("time")
@@ -487,11 +496,15 @@ def check_live_prebuilt_tail(tail_days: int = 5, ref_days: int = 30,
     return out
 
 
-def audit_xgb_gain(bundle_dir: str, contract_path: str) -> List[str]:
-    """Return base80 features with 0 gain in ALL session heads, excluding the allowlist."""
-    from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
-    feats = json.loads(Path(contract_path).read_text())["features"]
-    m = XGBMultiheadModel.load(str(Path(bundle_dir) / "xgb_universal_multihead_v2.joblib"))
+def audit_xgb_gain(bundle_dir: str) -> List[str]:
+    """Return exact bundle features with zero gain in every session head."""
+    from gx1.execution.v12_xgb_live import XGBLiveInference
+
+    admitted = XGBLiveInference.load(Path(bundle_dir))
+    feats = admitted._features
+    m = admitted._model
+    if m is None:
+        raise FeatureLivenessError("XGB bundle admitted without a loaded model")
     used = set()
     for _, head in m.heads.items():
         b = head.get_booster() if hasattr(head, "get_booster") else head
@@ -508,7 +521,6 @@ def _main() -> int:
     ap.add_argument("--test-parquet", type=str, default=None)
     ap.add_argument("--m5-prebuilt", type=str, default=None)
     ap.add_argument("--xgb-bundle", type=str, default=None)
-    ap.add_argument("--xgb-contract", type=str, default="gx1/xgb/contracts/xgb_input_features_base80_v1.json")
     ap.add_argument("--strict", action="store_true", help="exit nonzero if any NEW dead feature")
     ap.add_argument("--live-tail", action="store_true",
                     help="rule-9 LIVE-TAIL check: freeze-signature scan of the live cv3+BASE34 prebuilt tails")
@@ -527,7 +539,7 @@ def _main() -> int:
         print(f"[CONTINUITY] {'OK ✓ — ingen ferske ukjente hull' if crep['ok'] else 'FERSKE HULL: ' + repr(crep['fresh_gaps'])}")
         failed |= not crep["ok"]
     if a.xgb_bundle:
-        dead = audit_xgb_gain(a.xgb_bundle, a.xgb_contract)
+        dead = audit_xgb_gain(a.xgb_bundle)
         print(f"[XGB] new-dead (0 gain, off allowlist): {dead or 'NONE ✓'}")
         failed |= bool(dead)
     if a.v10_bundle and a.test_parquet and a.m5_prebuilt:

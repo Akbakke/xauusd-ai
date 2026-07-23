@@ -80,6 +80,20 @@ INSTRUMENT = "XAU_USD"
 GRANULARITY = "M5"
 MAX_CANDLES_PER_REQUEST = 5000
 DEFAULT_CHUNK_DAYS = {"M1": 3, "M5": 15}
+PROTECTED_CANONICAL_M5_ROOT = Path(
+    "/home/andre2/GX1_DATA/data/oanda/canonical/"
+    "xauusd_m5_bid_ask__CANONICAL"
+)
+
+
+def _reject_canonical_root_output(path: Path) -> None:
+    resolved = path.expanduser().resolve()
+    protected = PROTECTED_CANONICAL_M5_ROOT.resolve()
+    if resolved == protected or protected in resolved.parents:
+        raise RuntimeError(
+            "CANONICAL_M5_SINGLE_OWNER_VIOLATION: bounded backfill cannot write "
+            f"the protected canonical M5 root: {resolved}"
+        )
 
 
 def fetch_candles_chunk(
@@ -766,6 +780,7 @@ def main() -> int:
     
     # Save output
     output_path = Path(args.out)
+    _reject_canonical_root_output(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     log.info(f"Writing {len(df):,} candles to {output_path}...")

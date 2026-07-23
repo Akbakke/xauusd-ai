@@ -1204,10 +1204,14 @@ Decision:
   summary↔checkpoint feature SHA before Exit load;
 - rebuild/rescore/retrain Exit after data/source repair; old outputs have zero
   launch authority;
-- retain as open P0s: canonical active-Exit full-TEST producer, complete
-  canonical-v2 incremental state parity, atomic canonical/BASE generation
-  identity, canonical-M5/market-closure ownership, an observed per-bar
-  slippage source and reproducible V3 lineage;
+- close in source: complete-history canonical-v2 recomputation, atomic
+  immutable canonical-v3/BASE28 generation identity, native-M5
+  market-closure/schema/hash ownership, removal of non-observable
+  slippage-derived decision fields and reproducible V3 lineage bound to the
+  exact XGB bridge;
+- retain as open P0s: the exact model-native V3 training-dataset writer,
+  canonical active-Exit full-TEST producer, native-M5 materialization/pair
+  bootstrap and fresh XGB/V3/Exit artifact rebuild/rescore/retrain;
 - close the formula/alignment P0 in source: PLUS5 ATR/ROC/VWAP and dependent
   normalized VWAP have one shared owner, SMC consumes the published ATR, and
   H1/H4 selects the state available at M5 decision time without an extra lag;

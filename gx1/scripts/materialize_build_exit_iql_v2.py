@@ -186,8 +186,8 @@ NUMERIC_STATE_COLS_CANONICAL = [
     for c in [
         # 2026-05-21: pruned canon_v1 features (constant/duplicated per
         # feature-importance analysis): _v1_atr_regime_id,
-        # _v1_bb_bandwidth_delta_10, _v1_lower_tr, _v1_spread_p, _v1_slip_bps,
-        # _v1_spread_z, _v1_cost_bps_est, _v1_comp3_ratio.
+        # _v1_bb_bandwidth_delta_10, _v1_lower_tr, _v1_spread_p,
+        # _v1_spread_z, _v1_comp3_ratio. Realized slippage is not a feature.
         "_v1_r3", "_v1_r5", "_v1_r8", "_v1_r12", "_v1_r24", "_v1_r1", "_v1_r48_z",
         "_v1_atr14", "_v1_pk_sigma20", "_v1_ema_diff",
         "_v1_vwap_drift48", "_v1_rsi14_z", "_v1_rsi2", "_v1_rsi14",
@@ -196,7 +196,8 @@ NUMERIC_STATE_COLS_CANONICAL = [
         "_v1_wick_imbalance", "_v1_range_comp_20_100", "_v1_range_adr",
         "_v1_clv", "_v1_range_z",
         "_v1_kurt_r", "_v1_int_r5_atr", "_v1_int_vwap_h1", "_v1_int_slope_h4_atr",
-        "_v1_int_clv_atr", "_v1_cost_bps_dyn", "_v1_tod_sin", "_v1_tod_cos",
+        "_v1_int_clv_atr", "_v1_session_volatility_pressure",
+        "_v1_tod_sin", "_v1_tod_cos",
         "_v1_r1_q90_48", "_v1_r1_q10_48", "_v1_atr_z_10_100", "_v1_tema_slope_20",
         "_v1_bb_squeeze_20_2", "_v1_kama_slope_30", "_v1_ret_ema_ratio_5_34",
         "_v1_body_share_1", "_v1_tr_1_over_atr_14",

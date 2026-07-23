@@ -22,11 +22,9 @@ _basic_v1_call_lock = threading.Lock()
 _basic_v1_call_count = 0
 M5_DECISION_DELAY_SECONDS = 5 * 60
 
-BASIC_V1_EXECUTION_COST_FEATURES = (
+BASIC_V1_OBSERVED_SPREAD_FEATURES = (
     "_v1_spread_p",
-    "_v1_slip_bps",
     "_v1_spread_z",
-    "_v1_cost_bps_est",
 )
 PLUS5_FEATURES = (
     "atr",
@@ -122,13 +120,8 @@ def compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _require_observed_execution_cost_inputs(df: pd.DataFrame) -> None:
-    """Materialize exact cost sources or fail before cost features are built.
-
-    Spread may be supplied directly or derived from an observed quote. There is
-    no canonical per-bar slippage producer, so callers must provide one instead
-    of relying on the retired 10 bps sentinel.
-    """
+def _require_observed_spread_input(df: pd.DataFrame) -> None:
+    """Materialize the only causal transaction-cost input: observed spread."""
     if "spread_pct" in df.columns:
         spread_pct = pd.to_numeric(df["spread_pct"], errors="coerce").to_numpy(
             dtype=np.float64
@@ -141,23 +134,6 @@ def _require_observed_execution_cost_inputs(df: pd.DataFrame) -> None:
     else:
         spread_pct = derive_observed_spread_bps(df) / 1e4
     df["spread_pct"] = spread_pct
-
-    if "slippage_bps" not in df.columns:
-        raise RuntimeError(
-            "[BASIC_V1_SLIPPAGE_SOURCE_MISSING] active execution-cost features "
-            f"{BASIC_V1_EXECUTION_COST_FEATURES!r} require observed per-bar "
-            "slippage_bps; canonical OHLCV/quote input has no slippage owner and "
-            "the retired 10 bps fallback is forbidden"
-        )
-    slippage_bps = pd.to_numeric(
-        df["slippage_bps"], errors="coerce"
-    ).to_numpy(dtype=np.float64)
-    if not np.isfinite(slippage_bps).all() or np.any(slippage_bps < 0.0):
-        raise RuntimeError(
-            "[BASIC_V1_SLIPPAGE_SOURCE_INVALID] slippage_bps must be finite and "
-            "non-negative on every row"
-        )
-    df["slippage_bps"] = slippage_bps
 
 
 def _validate_causal_feature_column(values: np.ndarray, *, name: str) -> np.ndarray:
@@ -657,8 +633,9 @@ def add_session_features(df, tz_offset_minutes=0):
 
 def build_basic_v1(df):
     """
-    Forventer kolonner: ts, open, high, low, close og observerbar slippage_bps.
+    Forventer kolonner: ts, open, high, low, close.
     Spread krever spread_pct, spread_bps, bid_close+ask_close eller spread+close.
+    Realisert slippage er et execution/evalueringsutfall, ikke en kausal feature.
     Bruker kun fortid: shift(1) og ruller bakover.
     Returnerer df med nye _v1_* features; originalkolonner beholdes.
     
@@ -744,7 +721,7 @@ def build_basic_v1(df):
             # Ensure float64 (not float32) for consistency
             df[c] = df[c].astype(np.float64)
 
-    _require_observed_execution_cost_inputs(df)
+    _require_observed_spread_input(df)
     plus5 = compute_plus5_features(df)
 
     # --- Momentum (laggede avkastninger) ---
@@ -1084,10 +1061,6 @@ def build_basic_v1(df):
     spread_bps_shifted = np.roll(spread_bps, 1)
     spread_bps_shifted[0] = np.nan
     df["_v1_spread_p"] = spread_bps_shifted
-    slip_bps_arr = df["slippage_bps"].to_numpy(dtype=np.float64)
-    slip_bps_shifted = np.roll(slip_bps_arr, 1)
-    slip_bps_shifted[0] = np.nan
-    df["_v1_slip_bps"] = slip_bps_shifted
 
     # --- Session ---
     if "ts" in df:
@@ -1403,15 +1376,6 @@ def build_basic_v1(df):
         spread_z_shifted[0] = np.nan
         df["_v1_spread_z"] = spread_z_shifted
 
-    # Kost-estimat (observerbar spread + observerbar slippage).
-    spread_bps = sp_arr * 1e4
-    spread_bps_shifted = np.roll(spread_bps, 1)
-    spread_bps_shifted[0] = np.nan
-    slip_bps_arr = df["slippage_bps"].to_numpy(dtype=np.float64)
-    slip_bps_shifted = np.roll(slip_bps_arr, 1)
-    slip_bps_shifted[0] = np.nan
-    df["_v1_cost_bps_est"] = spread_bps_shifted + slip_bps_shifted
-    
     # Kurtosis av returer (vol-form)
     # Del: Time misc_roll block (includes quantiles, rolling operations)
     t_misc_roll_start = time.perf_counter()
@@ -1539,57 +1503,51 @@ def build_basic_v1(df):
     t_misc_interactions_end = time.perf_counter()
     perf_add("feat.basic_v1.misc_roll.interactions", t_misc_interactions_end - t_misc_interactions_start)
     
-    # Dynamisk kost-proxy (varierende kost når spread/slippage mangler/konstante)
+    # Causal session/volatility pressure. This is deliberately not named or
+    # interpreted as spread/slippage/cost; those semantics require observations.
     t_misc_cost_proxy_start = time.perf_counter()
-    from gx1.features.array_utils import safe_clip, safe_div
-    
-    if "close" in df.columns and "_v1_atr14" in df.columns:
-        # Array-first: fetch inputs once
-        atr14_arr = df["_v1_atr14"].to_numpy(dtype=np.float64, na_value=0.0)
-        close_arr = df["close"].to_numpy(dtype=np.float64, na_value=1.0)  # Avoid div by zero
-        high_arr = df["high"].to_numpy(dtype=np.float64, na_value=0.0)
-        low_arr = df["low"].to_numpy(dtype=np.float64, na_value=0.0)
-        
-        # atr_pct = atr14 / close
-        atr_pct_arr = safe_div(atr14_arr, close_arr)
-        
-        # rng = high - low
-        rng_arr = high_arr - low_arr
-        
-        # rng_z = _zscore(rng, 48) - but _zscore returns Series, so we need to handle this
-        # Convert to Series temporarily for _zscore, then back to array
-        rng_series = pd.Series(rng_arr, index=df.index)
-        rng_z_series = _zscore(rng_series, 48)
-        rng_z_arr = rng_z_series.to_numpy(dtype=np.float64, na_value=0.0)
-        
-        # Session factor
-        if "_v1_is_US" in df.columns:
-            is_us_arr = df["_v1_is_US"].to_numpy(dtype=np.float64, na_value=0.0)
-            sess_factor_arr = 1.15 * is_us_arr + 1.0 * (1.0 - is_us_arr)
-        else:
-            n = len(df)
-            sess_factor_arr = np.ones(n, dtype=np.float64)
-        
-        base_bps = 12.0
-        # rng_z_pos = clip(rng_z, lower=0.0)
-        rng_z_pos_arr = np.clip(rng_z_arr, 0.0, np.inf)
-        
-        # scale_term = clip(0.6 * atr_pct * 1e4 + 0.4 * rng_z_pos, 0.0, 3.0)
-        scale_term_arr = safe_clip(0.6 * atr_pct_arr * 1e4 + 0.4 * rng_z_pos_arr, lo=0.0, hi=3.0)
-        
-        # cost_bps_dyn = base_bps * sess_factor * (0.50 + 0.50 * scale_term)
-        cost_bps_arr = base_bps * sess_factor_arr * (0.50 + 0.50 * scale_term_arr)
-        
-        # Shift(1) and fillna(base_bps) - do in array
-        cost_bps_shifted = np.roll(cost_bps_arr, 1)
-        cost_bps_shifted[0] = base_bps  # First element gets base_bps
-        
-        df["_v1_cost_bps_dyn"] = cost_bps_shifted
-    else:
-        n = len(df)
-        df["_v1_cost_bps_dyn"] = np.full(n, 12.0, dtype=np.float64)  # fallback
+    pressure_required = ("close", "high", "low", "_v1_atr14", "_v1_is_US")
+    pressure_missing = [
+        column for column in pressure_required if column not in df.columns
+    ]
+    if pressure_missing:
+        raise RuntimeError(
+            "[BASIC_V1_SESSION_VOLATILITY_PRESSURE_SOURCE_MISSING] "
+            f"{pressure_missing}"
+        )
+    atr14_arr = df["_v1_atr14"].to_numpy(dtype=np.float64)
+    close_arr = df["close"].to_numpy(dtype=np.float64)
+    high_arr = df["high"].to_numpy(dtype=np.float64)
+    low_arr = df["low"].to_numpy(dtype=np.float64)
+    is_us_arr = df["_v1_is_US"].to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(close_arr).all()
+        or not np.isfinite(high_arr).all()
+        or not np.isfinite(low_arr).all()
+        or not np.isfinite(is_us_arr).all()
+        or np.any(close_arr <= 0.0)
+    ):
+        raise RuntimeError(
+            "[BASIC_V1_SESSION_VOLATILITY_PRESSURE_SOURCE_INVALID]"
+        )
+    atr_bps_arr = atr14_arr / close_arr * 1e4
+    rng_z_arr = _zscore(
+        pd.Series(high_arr - low_arr, index=df.index),
+        48,
+    ).to_numpy(dtype=np.float64)
+    session_scale = 1.0 + 0.15 * is_us_arr
+    pressure = session_scale * (
+        np.log1p(np.maximum(atr_bps_arr, 0.0))
+        + 0.25 * np.tanh(rng_z_arr)
+    )
+    pressure_shifted = np.roll(pressure, 1)
+    pressure_shifted[0] = np.nan
+    df["_v1_session_volatility_pressure"] = pressure_shifted
     t_misc_cost_proxy_end = time.perf_counter()
-    perf_add("feat.basic_v1.misc_roll.cost_proxy", t_misc_cost_proxy_end - t_misc_cost_proxy_start)
+    perf_add(
+        "feat.basic_v1.misc_roll.session_volatility_pressure",
+        t_misc_cost_proxy_end - t_misc_cost_proxy_start,
+    )
     
     # Time-of-day encoding (sin/cos) og rolling quantil-momenter
     t_misc_time_of_day_start = time.perf_counter()

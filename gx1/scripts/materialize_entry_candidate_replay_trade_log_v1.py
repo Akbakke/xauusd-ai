@@ -1085,9 +1085,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-parquet", required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--model-name", default="candidate")
-    parser.add_argument("--cost-stress-bps", type=float, default=0.0)
+    parser.add_argument("--cost-stress-bps", type=float, required=True)
     parser.add_argument("--policy-id", default="candidate_replay")
-    parser.add_argument("--slippage-bps", type=float, default=0.0)
+    parser.add_argument("--slippage-bps", type=float, required=True)
     parser.add_argument("--quiet", action="store_true")
     return parser
 

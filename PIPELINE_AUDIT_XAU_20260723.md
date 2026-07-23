@@ -142,16 +142,21 @@ The data/feature producer audit also found hidden sentinels, overlapping
 feature owners, HTF availability errors, bounded-history state resets and
 non-transactional lineage. Exact schema and BASE ownership, full-history
 BASE augmentation and M5 decision-time HTF alignment are repaired in source.
-Still open are complete canonical-v2 incremental state equivalence, one atomic
-canonical/BASE generation pointer, a single canonical-M5 owner with explicit
-market-closure semantics, an observable per-bar slippage owner and
-reproducible V3 lineage. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and
-published SMC ATR now use one formula path; H1/H4 aligns to M5
-decision-availability without the old extra lag. Full-loader execution is
+The post-audit source checkpoint closes complete-history canonical-v2
+recomputation, one atomic immutable canonical-v3/BASE28 generation pointer,
+strict native-M5 market-closure/schema/hash ownership and reproducible V3
+lineage bound to the exact XGB bridge identity. Because no causal
+pre-decision slippage observation exists in the canonical tape, the
+slippage-derived decision fields were removed; explicit replay stress remains
+evaluation-only. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and published
+SMC ATR use one formula path; H1/H4 aligns to M5 decision-availability without
+the old extra lag. Still open are an exact model-native V3 dataset writer, the
+canonical active-Exit full-TEST producer, fresh artifact rebuilds and
+materialization/bootstrap on a valid native-M5 root. Full-loader execution is
 independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
 00:40Z and 2024-12-31 23:55Z.
 
-The final merged source tree collected 1,821 tests: 1,816 passed, five were
+The final merged source tree collected 1,845 tests: 1,840 passed, five were
 explicitly skipped and zero failed. The manifest-bound loader also correctly
 rejects the current live canonical parquet: the legacy updater changed its
 bytes without advancing the canonical manifest SHA. This is fail-closed

@@ -530,6 +530,26 @@ def test_label_horizon_source_tape_fails_closed_on_incomplete_path(
     assert trade["held_bars"] == 2
     assert trade["exit_reason"] == LABEL_HORIZON_EXIT_MODE
 
+
+def test_source_tape_exposes_exact_hash_bound_closed_m1_provider(
+    tmp_path: Path,
+) -> None:
+    times = list(pd.date_range("2026-01-01T00:00:00Z", periods=3, freq="min"))
+    source_path = tmp_path / "source.parquet"
+    _source_frame(times).to_parquet(source_path, index=False)
+
+    tape = SourceTape.load(source_path)
+    bar = tape.get_closed_m1_bar(pd.Timestamp(times[1]))
+
+    assert tape.source_binding["path"] == str(source_path.resolve())
+    assert len(tape.source_binding["sha256"]) == 64
+    assert tape.source_binding["size_bytes"] == source_path.stat().st_size
+    assert bar["time"] == pd.Timestamp(times[1])
+    assert bar["bid_close"] == pytest.approx(tape.bid_close[1])
+
+    with pytest.raises(RuntimeError, match="lacks exact closed M1 bar"):
+        tape.get_closed_m1_bar(pd.Timestamp("2026-01-01T00:10:00Z"))
+
     with pytest.raises(RuntimeError, match="full label horizon"):
         tape.simulate_trade(start_idx=1, horizon_bars=2, side=0)
 

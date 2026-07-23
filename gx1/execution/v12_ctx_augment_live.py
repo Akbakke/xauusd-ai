@@ -248,10 +248,10 @@ def _add_session_interactions(cv3: pd.DataFrame) -> None:
         cv3["_v1_int_slope_h1_us"] = (
             cv3["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us
         )
-    # XGB base80-contract aliases: canonical_v3 renamed 4 features but the XGB
-    # base80 contract still expects the legacy names. They are EXACT duplicates
-    # (see materialize_canonical_v3_augment.py duplicate-pair list) — alias them
-    # so the serving augmenter feeds XGB the same inputs as training. One truth:
+    # Exit-XGB compatibility aliases: canonical_v3 renamed four features still
+    # present in the exact training surface. They are EXACT duplicates (see
+    # materialize_canonical_v3_augment.py duplicate-pair list) — alias them so
+    # the serving augmenter feeds XGB the same inputs as training. One truth:
     # raw canonical_v3 (e.g. CANONICAL_V3_FULL) lacks these; FULL_PLUS_CTX baked
     # them in. Guarded so pre-baked frames are untouched.
     for _dst, _src in (

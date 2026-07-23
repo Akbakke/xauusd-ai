@@ -3,9 +3,9 @@ import pandas as pd
 import pytest
 
 from gx1.features.basic_v1 import (
-    _require_observed_execution_cost_inputs,
+    BASIC_V1_OBSERVED_SPREAD_FEATURES,
+    _require_observed_spread_input,
     _validate_causal_feature_column,
-    build_basic_v1,
 )
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 from gx1.features.smc_v1 import compute_smc_features
@@ -146,7 +146,7 @@ def test_live_ctx_rejects_missing_atr_source_before_producing_features() -> None
     assert "spread_bps" not in df.columns
 
 
-def test_basic_v1_execution_cost_owner_rejects_missing_slippage() -> None:
+def test_basic_v1_spread_owner_does_not_require_slippage() -> None:
     df = pd.DataFrame(
         {
             "open": [100.0, 100.1],
@@ -159,13 +159,17 @@ def test_basic_v1_execution_cost_owner_rejects_missing_slippage() -> None:
         index=pd.date_range("2026-07-20", periods=2, freq="5min", tz="UTC"),
     )
 
-    with pytest.raises(RuntimeError, match="BASIC_V1_SLIPPAGE_SOURCE_MISSING"):
-        build_basic_v1(df)
+    _require_observed_spread_input(df)
 
-    assert not any(column.startswith("_v1") for column in df.columns)
+    assert BASIC_V1_OBSERVED_SPREAD_FEATURES == (
+        "_v1_spread_p",
+        "_v1_spread_z",
+    )
+    assert "_v1_slip_bps" not in df.columns
+    assert "_v1_cost_bps_est" not in df.columns
 
 
-def test_basic_v1_execution_cost_owner_uses_exact_observed_inputs() -> None:
+def test_basic_v1_ignores_post_order_slippage_as_a_feature_source() -> None:
     df = pd.DataFrame(
         {
             "close": [100.0, 100.1],
@@ -175,10 +179,11 @@ def test_basic_v1_execution_cost_owner_uses_exact_observed_inputs() -> None:
         }
     )
 
-    _require_observed_execution_cost_inputs(df)
+    _require_observed_spread_input(df)
 
-    np.testing.assert_allclose(df["spread_pct"], [0.001, 0.002])
-    np.testing.assert_allclose(df["slippage_bps"], [0.5, 0.75])
+    assert "spread_pct" in df.columns
+    assert "_v1_slip_bps" not in df.columns
+    assert "_v1_cost_bps_est" not in df.columns
 
 
 def test_basic_v1_final_pack_preserves_only_causal_nan_prefix() -> None:

@@ -44,8 +44,11 @@ identity, bundle/event publication, active-Exit byte identity, the
 identity-bound transactional launch finalizer and runtime launch fail-close
 are source-repaired only. The second audit additionally repairs exact
 T+5/closed-M5 Exit timing, V3 window coverage, transactional TradeState and
-production-only Exit loading, but it reopens incremental state/generation,
-formula convergence, V3 lineage and Exit rebuild/rescore/retrain P0s. The
+production-only Exit loading. The current repair adds full-history native-M5
+state, atomic canonical/BASE generations, strict source/closure ownership,
+causal spread-only semantics and XGB-bound V3 lineage. Current data have not
+been migrated or pair-bootstrapped, and the exact V3 dataset writer plus Exit
+rebuild/rescore/retrain remain P0s. The
 public launch route owns canonical repository
 registry/state targets and canonical
 `/home/andre2/GX1_DATA/reports/entry_model_native_launch_authority` evidence

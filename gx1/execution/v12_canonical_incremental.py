@@ -1,30 +1,25 @@
 #!/usr/bin/env python3
-"""V12 incremental canonical/BASE34 updater — keeps prebuilts within ~5 min of real-time.
-
-Replaces the 25-min full-rebuild cycle with a 5-15 sec incremental
-update. Cutoff drift drops from ~50 min to ~5 min (one M5 bar — must
-wait for the bar to close before features can be finalized).
+"""V12 canonical/BASE28 pair updater with full-history feature equivalence.
 
 Strategy
 --------
-For each new M5 bar that has closed since the last update:
-  1. Slice canonical M5 tape to a 30-day warmup window ending at the
-     new bar's close.
-  2. Run build_canonical_v2 on the slice — produces features for all
-     warmup bars, but we only KEEP the new ones.
+For each new native, completed canonical M5 bar:
+  1. Verify the one-owner canonical M5 manifest and every partition hash.
+  2. Run build_canonical_v2 on the complete causal M5 history. Bounded
+     warmup is forbidden because EWM, RSI, regime-age and structure state do
+     not have proven finite-window equivalence.
+  3. Keep only rows later than the admitted pair cutoff.
   3. Apply canonical_v3 augment to the new rows (drops 12 + adds 6).
   4. Apply add_ctx_cont logic to compute the 32 BASE34-style features
      for the new rows, using the existing BASE34 prebuilt's distribution
      for percentile-based features (vol_regime_id, atr_bucket, etc.).
-  5. Atomic append:
-        canonical_v3 prebuilt: read full + concat new rows + write atomic
-        BASE34 prebuilt: same (M1 cadence — expand each M5 bar to 5 M1 rows)
-  6. Update CURRENT_MANIFEST.json to reflect new cutoff.
+  5. Write both complete candidates into an unpublished staging directory.
+  6. Publish one immutable pair generation and atomically replace the single
+     canonical-v3/BASE28 pair pointer. No individual artifact is ever activated.
 
-Per-cycle cost
---------------
-~3-10 sec on a 30-day warmup slice (~8000 M5 bars). Per-bar incremental
-cost ~1ms. Atomic disk write is the dominant time (~1-2 sec for 200 MB).
+This correctness-first implementation is intentionally not claimed to be
+cheap. A future recursive-state accelerator must prove bit-equivalence against
+this complete-history owner before it can replace the computation.
 
 To run continuously:
     nohup python3 -u gx1/execution/v12_canonical_incremental.py --loop > log 2>&1 &
@@ -32,12 +27,15 @@ To run continuously:
 from __future__ import annotations
 
 import argparse
-import hashlib
+import fcntl
 import json
 import logging
 import os
+import re
+import shutil
 import sys
 import time as _time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -48,7 +46,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5  # noqa: E402
+from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
+    CANONICAL_M5_REQUIRED_COLUMNS,
+    canonical_xau_source_descriptor_v1,
+)
+from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
+    PREBUILT_PAIR_MANIFEST_PATH,
+    PREBUILT_PAIR_ROOT,
+    PREBUILT_PAIR_SCHEMA_VERSION,
+    inspect_prebuilt_artifact,
+    pair_generation_id_for_artifacts,
+    read_prebuilt_pair_manifest,
+    verify_prebuilt_pair,
+)
 from gx1.features.htf_features import (  # noqa: E402
     REGIME_V4_V2_MTF_PER_TF,
     REGIME_V4_V2_MTF_SKIP,
@@ -77,14 +87,10 @@ LOG = logging.getLogger("v12_incr")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
 CANONICAL_M5_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL")
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
-CANONICAL_V3_PREBUILT = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
-    "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
-)
-BASE34_MANIFEST = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
-)
-WARMUP_DAYS = 30   # enough for ATR14, EMA200, RSI, etc. to stabilize
+PAIR_CANONICAL_FILENAME = "canonical_v3.parquet"
+PAIR_BASE28_FILENAME = "base28.parquet"
+PAIR_PUBLISH_LOCK_FILENAME = ".canonical_v3_base28_pair_publish.lock"
+_PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
 # PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
 # was trained on real values.  This function is the retained computation source.
@@ -233,11 +239,366 @@ def _compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
     return compute_plus5_features(df)
 
 
-def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
-    """Write parquet atomically via .tmp + os.replace (no torn writes)."""
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    df.to_parquet(tmp, index=("time" not in df.columns))
-    os.replace(tmp, path)
+def _fsync_file(path: Path) -> None:
+    with Path(path).open("rb") as handle:
+        os.fsync(handle.fileno())
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(Path(path), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _candidate_staging_path(generation_root: Path) -> Path:
+    """Reserve a unique unpublished path without creating an empty cycle artifact."""
+    generation_root = Path(generation_root)
+    generation_root.mkdir(parents=True, exist_ok=True)
+    if generation_root.is_symlink() or not generation_root.is_dir():
+        raise RuntimeError(f"pair generation root is invalid: {generation_root}")
+    generation_root = generation_root.resolve(strict=True)
+    return generation_root / f".staging-{uuid.uuid4().hex}"
+
+
+def _discard_pair_staging_dir(staging_dir: Path, *, generation_root: Path) -> None:
+    """Delete only this process's exact unpublished staging directory."""
+    generation_root = Path(generation_root).resolve(strict=True)
+    staging_dir = Path(staging_dir)
+    candidate = staging_dir.absolute()
+    if (
+        candidate.parent != generation_root
+        or _PAIR_STAGING_NAME.fullmatch(candidate.name) is None
+    ):
+        raise RuntimeError(f"refusing unsafe pair staging cleanup: {staging_dir}")
+    if not candidate.exists():
+        if candidate.is_symlink():
+            raise RuntimeError(f"refusing symlink pair staging cleanup: {candidate}")
+        return
+    if candidate.is_symlink() or not candidate.is_dir():
+        raise RuntimeError(f"refusing non-directory pair staging cleanup: {candidate}")
+    allowed = {PAIR_CANONICAL_FILENAME, PAIR_BASE28_FILENAME}
+    entries = list(candidate.iterdir())
+    if any(
+        item.name not in allowed or item.is_symlink() or not item.is_file()
+        for item in entries
+    ):
+        raise RuntimeError(
+            f"refusing pair staging cleanup with unexpected contents: {candidate}"
+        )
+    shutil.rmtree(candidate)
+    _fsync_directory(generation_root)
+
+
+def _discard_unpublished_generation_dir(
+    generation_dir: Path,
+    *,
+    generation_root: Path,
+    pair_manifest_path: Path,
+    pair_generation_id: str,
+) -> None:
+    """Delete only a generation created by this failed, pre-pointer publication."""
+    generation_root = Path(generation_root).resolve(strict=True)
+    generation_dir = Path(generation_dir).absolute()
+    if (
+        generation_dir.parent != generation_root
+        or generation_dir.name != pair_generation_id
+        or len(pair_generation_id) != 64
+        or any(char not in "0123456789abcdef" for char in pair_generation_id)
+    ):
+        raise RuntimeError(
+            f"refusing unsafe unpublished generation cleanup: {generation_dir}"
+        )
+    if generation_dir.is_symlink() or not generation_dir.is_dir():
+        raise RuntimeError(
+            f"refusing invalid unpublished generation cleanup: {generation_dir}"
+        )
+    if set(item.name for item in generation_dir.iterdir()) != {
+        PAIR_CANONICAL_FILENAME,
+        PAIR_BASE28_FILENAME,
+    }:
+        raise RuntimeError(
+            f"refusing unpublished generation cleanup with unexpected contents: "
+            f"{generation_dir}"
+        )
+    artifacts = {
+        "canonical_v3": inspect_prebuilt_artifact(
+            generation_dir / PAIR_CANONICAL_FILENAME,
+            label="canonical_v3",
+        ),
+        "base28": inspect_prebuilt_artifact(
+            generation_dir / PAIR_BASE28_FILENAME,
+            label="base28",
+        ),
+    }
+    if pair_generation_id_for_artifacts(artifacts) != pair_generation_id:
+        raise RuntimeError(
+            f"refusing unpublished generation cleanup after identity mismatch: "
+            f"{generation_dir}"
+        )
+    pair_manifest_path = Path(pair_manifest_path)
+    if pair_manifest_path.exists() or pair_manifest_path.is_symlink():
+        current = read_prebuilt_pair_manifest(
+            pair_manifest_path,
+            generation_root=generation_root,
+        )
+        if current.pair_generation_id == pair_generation_id:
+            raise RuntimeError(
+                f"refusing cleanup of published pair generation: {generation_dir}"
+            )
+    shutil.rmtree(generation_dir)
+    _fsync_directory(generation_root)
+
+
+def _write_candidate_parquet(
+    frame: pd.DataFrame,
+    path: Path,
+    *,
+    index: bool,
+) -> None:
+    """Write one unpublished candidate; partial staging is never served."""
+    path = Path(path)
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"refusing to overwrite pair candidate: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_parquet(path, index=index)
+    _fsync_file(path)
+    _fsync_directory(path.parent)
+
+
+def _copy_candidate_parquet(source: Path, path: Path) -> None:
+    """Copy an unchanged pair member into staging without rewriting its schema."""
+    source = Path(source)
+    path = Path(path)
+    if source.is_symlink() or not source.is_file():
+        raise RuntimeError(f"pair source is not an exact regular file: {source}")
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"refusing to overwrite pair candidate: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, path)
+    _fsync_file(path)
+    _fsync_directory(path.parent)
+
+
+def _publish_prebuilt_pair_generation(
+    staging_dir: Path,
+    *,
+    pair_manifest_path: Path,
+    generation_root: Path,
+    expected_pair_generation_id: str | None,
+    expected_manifest_sha256: str | None,
+    created_utc: str | None = None,
+) -> str:
+    """Publish a complete immutable pair through one atomic pointer replacement.
+
+    Artifact computation is complete before this function begins. Under the
+    publisher lock it verifies the previously admitted pointer, renames the
+    complete staging directory to its content-derived generation id, fsyncs it,
+    and only then replaces the one serving pointer. A failure before the pointer
+    replacement leaves the previous generation active.
+    """
+    staging_dir = Path(staging_dir)
+    pair_manifest_path = Path(pair_manifest_path)
+    generation_root = Path(generation_root)
+    if generation_root.is_symlink() or not generation_root.is_dir():
+        raise RuntimeError(f"pair generation root is invalid: {generation_root}")
+    generation_root = generation_root.resolve(strict=True)
+    try:
+        staging_resolved = staging_dir.resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError(f"pair staging directory is missing: {staging_dir}") from exc
+    if (
+        staging_dir.is_symlink()
+        or not staging_resolved.is_dir()
+        or staging_resolved.parent != generation_root
+        or _PAIR_STAGING_NAME.fullmatch(staging_resolved.name) is None
+    ):
+        raise RuntimeError(f"pair staging directory is not exact: {staging_dir}")
+
+    canonical_candidate = staging_resolved / PAIR_CANONICAL_FILENAME
+    base28_candidate = staging_resolved / PAIR_BASE28_FILENAME
+    if set(item.name for item in staging_resolved.iterdir()) != {
+        PAIR_CANONICAL_FILENAME,
+        PAIR_BASE28_FILENAME,
+    }:
+        raise RuntimeError("pair staging directory must contain exactly two artifacts")
+    artifacts = {
+        "canonical_v3": inspect_prebuilt_artifact(
+            canonical_candidate,
+            label="canonical_v3",
+        ),
+        "base28": inspect_prebuilt_artifact(base28_candidate, label="base28"),
+    }
+    pair_generation_id = pair_generation_id_for_artifacts(artifacts)
+    final_dir = generation_root / pair_generation_id
+
+    pair_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_parent = pair_manifest_path.parent.resolve(strict=True)
+    if pair_manifest_path.is_symlink() or manifest_parent != pair_manifest_path.parent:
+        raise RuntimeError(f"pair manifest path is not exact: {pair_manifest_path}")
+    lock_path = manifest_parent / PAIR_PUBLISH_LOCK_FILENAME
+    if lock_path.is_symlink():
+        raise RuntimeError(f"pair publish lock path is not exact: {lock_path}")
+    with lock_path.open("a+b") as lock_handle:
+        if lock_path.is_symlink() or not lock_path.is_file():
+            raise RuntimeError(f"pair publish lock path is not exact: {lock_path}")
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        if expected_pair_generation_id is None or expected_manifest_sha256 is None:
+            if pair_manifest_path.exists() or pair_manifest_path.is_symlink():
+                raise RuntimeError(
+                    "pair bootstrap refused because an active pointer already exists"
+                )
+        else:
+            current = read_prebuilt_pair_manifest(
+                pair_manifest_path,
+                generation_root=generation_root,
+            )
+            if (
+                current.pair_generation_id != expected_pair_generation_id
+                or current.manifest_sha256 != expected_manifest_sha256
+            ):
+                raise RuntimeError(
+                    "active pair changed during candidate computation; "
+                    "refusing stale publication"
+                )
+
+        created_final_dir = False
+        if final_dir.exists() or final_dir.is_symlink():
+            if final_dir.is_symlink() or not final_dir.is_dir():
+                raise RuntimeError(
+                    f"immutable pair generation path is invalid: {final_dir}"
+                )
+            if set(item.name for item in final_dir.iterdir()) != {
+                PAIR_CANONICAL_FILENAME,
+                PAIR_BASE28_FILENAME,
+            }:
+                raise RuntimeError(
+                    f"immutable pair generation contents are invalid: {final_dir}"
+                )
+            existing_artifacts = {
+                "canonical_v3": inspect_prebuilt_artifact(
+                    final_dir / PAIR_CANONICAL_FILENAME,
+                    label="canonical_v3",
+                ),
+                "base28": inspect_prebuilt_artifact(
+                    final_dir / PAIR_BASE28_FILENAME,
+                    label="base28",
+                ),
+            }
+            if pair_generation_id_for_artifacts(existing_artifacts) != pair_generation_id:
+                raise RuntimeError(
+                    f"immutable pair generation identity collision: {final_dir}"
+                )
+            _discard_pair_staging_dir(
+                staging_resolved,
+                generation_root=generation_root,
+            )
+        else:
+            os.rename(staging_resolved, final_dir)
+            created_final_dir = True
+            _fsync_directory(generation_root)
+
+        pointer_replaced = False
+        try:
+            published_artifacts: dict[str, dict[str, object]] = {}
+            for label, filename in (
+                ("canonical_v3", PAIR_CANONICAL_FILENAME),
+                ("base28", PAIR_BASE28_FILENAME),
+            ):
+                contract = dict(artifacts[label])
+                contract["parquet_path"] = str(
+                    (final_dir / filename).resolve(strict=True)
+                )
+                published_artifacts[label] = contract
+            manifest = {
+                "schema_version": PREBUILT_PAIR_SCHEMA_VERSION,
+                "pair_generation_id": pair_generation_id,
+                "created_utc": created_utc
+                or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "artifacts": published_artifacts,
+            }
+            pointer_tmp = manifest_parent / (
+                f".{pair_manifest_path.name}.{uuid.uuid4().hex}.tmp"
+            )
+            encoded = (
+                json.dumps(manifest, sort_keys=True, indent=2) + "\n"
+            ).encode("utf-8")
+            try:
+                with pointer_tmp.open("xb") as handle:
+                    handle.write(encoded)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(pointer_tmp, pair_manifest_path)
+                pointer_replaced = True
+            finally:
+                if pointer_tmp.exists():
+                    if pointer_tmp.is_symlink() or not pointer_tmp.is_file():
+                        raise RuntimeError(
+                            "refusing unsafe pair pointer temp cleanup: "
+                            f"{pointer_tmp}"
+                        )
+                    pointer_tmp.unlink()
+                    _fsync_directory(manifest_parent)
+            _fsync_directory(manifest_parent)
+
+            admitted = read_prebuilt_pair_manifest(
+                pair_manifest_path,
+                generation_root=generation_root,
+            )
+            if admitted.pair_generation_id != pair_generation_id:
+                raise RuntimeError(
+                    "published pair pointer failed identity re-admission"
+                )
+            verify_prebuilt_pair(admitted)
+        except Exception:
+            if created_final_dir and not pointer_replaced:
+                _discard_unpublished_generation_dir(
+                    final_dir,
+                    generation_root=generation_root,
+                    pair_manifest_path=pair_manifest_path,
+                    pair_generation_id=pair_generation_id,
+                )
+            raise
+    return pair_generation_id
+
+
+def bootstrap_prebuilt_pair(
+    *,
+    canonical_v3_path: Path,
+    base28_path: Path,
+    pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH,
+    generation_root: Path = PREBUILT_PAIR_ROOT,
+) -> str:
+    """Create the first pair pointer from two explicit artifacts.
+
+    This is the sole bootstrap control route and is never called implicitly by
+    ``run_one_cycle``. It succeeds only while no pair pointer exists; once a
+    pointer exists every producer advance must use its exact generation id and
+    manifest hash as the compare-before-publish contract.
+    """
+    staging_dir = _candidate_staging_path(generation_root)
+    try:
+        _copy_candidate_parquet(
+            canonical_v3_path,
+            staging_dir / PAIR_CANONICAL_FILENAME,
+        )
+        _copy_candidate_parquet(
+            base28_path,
+            staging_dir / PAIR_BASE28_FILENAME,
+        )
+        return _publish_prebuilt_pair_generation(
+            staging_dir,
+            pair_manifest_path=pair_manifest_path,
+            generation_root=generation_root,
+            expected_pair_generation_id=None,
+            expected_manifest_sha256=None,
+        )
+    finally:
+        _discard_pair_staging_dir(
+            staging_dir,
+            generation_root=generation_root,
+        )
 
 
 def _coerce_time_col(df: pd.DataFrame) -> pd.DataFrame | None:
@@ -325,6 +686,87 @@ def _load_m1_collector_for_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) 
     )
 
 
+def _load_full_canonical_m5(end_ts: pd.Timestamp) -> pd.DataFrame:
+    """Load only hash-bound native M5 rows known complete by ``end_ts``."""
+
+    canonical_xau_source_descriptor_v1(CANONICAL_M5_DIR, timeframe="M5")
+    parts = sorted(CANONICAL_M5_DIR.glob("year=*/part-000.parquet"))
+    if not parts:
+        raise RuntimeError("canonical native M5 source has no year partitions")
+    frames: list[pd.DataFrame] = []
+    required = list(CANONICAL_M5_REQUIRED_COLUMNS)
+    for path in parts:
+        try:
+            frame = pd.read_parquet(path, columns=required)
+        except Exception as exc:
+            raise RuntimeError(
+                f"canonical native M5 partition is unreadable: {path}"
+            ) from exc
+        frames.append(frame)
+    m5 = pd.concat(frames, ignore_index=True)
+    m5["time"] = pd.to_datetime(m5["time"], utc=True, errors="coerce")
+    if m5["time"].isna().any():
+        raise RuntimeError("canonical native M5 contains invalid timestamps")
+    if m5["time"].duplicated().any():
+        duplicate = m5.loc[m5["time"].duplicated(keep=False), "time"].iloc[0]
+        raise RuntimeError(
+            f"canonical native M5 contains duplicate timestamp: {duplicate}"
+        )
+    m5 = m5.sort_values("time", kind="mergesort").set_index("time")
+    end = pd.Timestamp(end_ts)
+    if end.tzinfo is None:
+        end = end.tz_localize("UTC")
+    else:
+        end = end.tz_convert("UTC")
+    latest_complete_start = end.floor("5min") - pd.Timedelta(minutes=5)
+    m5 = m5.loc[m5.index <= latest_complete_start]
+    if m5.empty:
+        raise RuntimeError(
+            "canonical native M5 has no completed rows at decision time"
+        )
+    numeric_columns = required[1:]
+    numeric = m5[numeric_columns].apply(pd.to_numeric, errors="coerce")
+    if not np.isfinite(numeric.to_numpy(dtype=np.float64)).all():
+        raise RuntimeError("canonical native M5 contains non-finite market data")
+    return numeric
+
+
+def _require_existing_cv3_market_identity(
+    cv3: pd.DataFrame,
+    m5: pd.DataFrame,
+) -> None:
+    """Reject append onto a pair built from different historical market bytes."""
+
+    identity_columns = ("open", "high", "low", "close", "volume")
+    missing_cv3 = [name for name in identity_columns if name not in cv3.columns]
+    missing_m5 = [name for name in identity_columns if name not in m5.columns]
+    if missing_cv3 or missing_m5:
+        raise RuntimeError(
+            "canonical-v3/native-M5 identity columns missing: "
+            f"cv3={missing_cv3} m5={missing_m5}"
+        )
+    common = cv3.index.intersection(m5.index)
+    if common.empty or len(common) != len(cv3.index):
+        raise RuntimeError(
+            "canonical-v3 history is not completely covered by native M5: "
+            f"cv3_rows={len(cv3)} common_rows={len(common)}"
+        )
+    cv3_values = cv3.loc[common, list(identity_columns)].to_numpy(
+        dtype=np.float64
+    )
+    m5_values = m5.loc[common, list(identity_columns)].to_numpy(
+        dtype=np.float64
+    )
+    equal = np.isclose(cv3_values, m5_values, rtol=0.0, atol=0.0)
+    if not bool(equal.all()):
+        row_index, column_index = np.argwhere(~equal)[0]
+        raise RuntimeError(
+            "canonical-v3/native-M5 market identity mismatch: "
+            f"time={common[int(row_index)]} "
+            f"column={identity_columns[int(column_index)]}"
+        )
+
+
 def _apply_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
     v3 = v2.copy()
     if "time" in v3.columns and not isinstance(v3.index, pd.DatetimeIndex):
@@ -338,35 +780,33 @@ def _apply_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
     return v3
 
 
-def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
-    """Extend canonical_v3 prebuilt with any new M5 bars that have closed.
+def update_canonical_v3_incremental(
+    *,
+    source_path: Path,
+    output_path: Path,
+) -> tuple[int, pd.Timestamp | None]:
+    """Compute an extended canonical-v3 candidate at an unpublished path.
 
     Returns (n_appended, new_cutoff_ts). n_appended=0 means nothing new.
     """
-    # Load existing prebuilt (full file — ~200 MB, ~1 sec)
-    if not CANONICAL_V3_PREBUILT.exists():
-        raise RuntimeError(
-            f"canonical_v3 prebuilt missing: {CANONICAL_V3_PREBUILT}"
-        )
+    source_path = Path(source_path)
+    output_path = Path(output_path)
+    if source_path.is_symlink() or not source_path.is_file():
+        raise RuntimeError(f"canonical_v3 pair source missing: {source_path}")
+    if output_path.resolve(strict=False) == source_path.resolve(strict=True):
+        raise RuntimeError("canonical_v3 candidate cannot overwrite its source")
+    # Load existing prebuilt (full file — ~200 MB, ~1 sec).
     t0 = _time.perf_counter()
-    cv3 = pd.read_parquet(CANONICAL_V3_PREBUILT)
+    cv3 = pd.read_parquet(source_path)
     if "time" in cv3.columns:
         cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
         cv3 = cv3.set_index("time")
     cv3 = cv3.sort_index()
     last_in_prebuilt = cv3.index[-1]
 
-    # Load M1 data covering [last_in_prebuilt - WARMUP_DAYS, now]
     now_ts = pd.Timestamp.now(tz="UTC").floor("min")
-    warmup_start = last_in_prebuilt - pd.Timedelta(days=WARMUP_DAYS)
-    m1 = _load_m1_collector_for_window(warmup_start, now_ts)
-    if m1.empty:
-        raise RuntimeError("canonical/live M1 union is empty for the append window")
-
-    # Aggregate to M5
-    m5 = m1_to_m5(m1)
-    m5["time"] = pd.to_datetime(m5["time"], utc=True)
-    m5 = m5.set_index("time").sort_index()
+    m5 = _load_full_canonical_m5(now_ts)
+    _require_existing_cv3_market_identity(cv3, m5)
 
     # Identify NEW M5 bars (post-prebuilt-cutoff)
     new_m5 = m5[m5.index > last_in_prebuilt]
@@ -375,71 +815,15 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
 
     LOG.info(f"new M5 bars to append: {len(new_m5)}  (range {new_m5.index[0]} → {new_m5.index[-1]})")
 
-    # Run canonical_v2 on warmup + new bars together
-    # We need OHLC + 'time' column for build_canonical_v2
-    warmup_m5 = m5[(m5.index <= last_in_prebuilt) & (m5.index >= warmup_start)]
-    full_slice = pd.concat([warmup_m5, new_m5]).reset_index()
-    if "time" not in full_slice.columns:
-        full_slice = full_slice.rename_axis("time").reset_index()
-
-    v2 = build_canonical_v2(full_slice)
+    # Recompute from complete native M5 history. No finite warmup window is
+    # assumed equivalent to training for recursive/age-dependent families.
+    v2 = build_canonical_v2(m5.rename_axis("time").reset_index())
     # Apply v3 augment
     v3_new = _apply_canonical_v3_augment(v2)
-    # PLUS5: compute the 5 features on the full warmup slice (needs OHLCV history)
-    # and merge into v3_new by index. Uses m5 which has OHLCV pre-augment.
+    # PLUS5 uses the same complete native M5 history.
     plus5_df = _compute_plus5_features(m5[["open", "high", "low", "close", "volume"]])
     for c in PLUS5_FEATURES:
         v3_new[c] = plus5_df[c].reindex(v3_new.index).astype(np.float32)
-    # Phase 0a/C3 (2026-06-04): recompute the 5 HTF cols FRESH via the ONE-TRUTH
-    # build_htf_tape (same math as the offline ctx builder) instead of letting the
-    # BASE34 append forward-fill a FROZEN value (the H4-sign freeze: stale '2 bull' vs
-    # true '0 bear', stuck since the last full build). Compute over the FULL tape
-    # (existing cv3 OHLC + new bars) so the D1 270-bar percentile warmup is satisfied,
-    # then assign to v3_new by index. These 5 cols PERSIST only once cv3's schema carries
-    # them (one-shot backfill); pre-backfill the column-alignment below silently drops
-    # them (safe no-op). A compute hiccup must NOT break the live append (that would
-    # stale the whole pipeline) is forbidden: stale HTF state must stop the
-    # append so runtime freshness fails closed.
-    try:
-        from gx1.features.htf_features import build_htf_tape, HTF_TAPE_COLUMNS
-        _ohlc = ["open", "high", "low", "close"]
-        if all(c in cv3.columns for c in _ohlc):
-            _full_ohlc = pd.concat([cv3[_ohlc], new_m5[_ohlc]]).sort_index()
-            _full_ohlc = _full_ohlc[~_full_ohlc.index.duplicated(keep="last")]
-            _htf = build_htf_tape(_full_ohlc)
-            for c in HTF_TAPE_COLUMNS:
-                v3_new[c] = _htf[c].reindex(v3_new.index)
-        else:
-            raise RuntimeError("[C3_HTF] cv3 lacks exact OHLC")
-    except Exception as _htf_err:
-        raise RuntimeError("[C3_HTF] exact HTF recompute failed") from _htf_err
-    # D1-EWM CONVERGENCE (2026-06-13, LANE B): build_canonical_v2 above ran on a WARMUP_DAYS-day
-    # slice, so its D1 EWM features (d1_rsi14/d1_ema_slope_20 — both in the live XGB v3 contract,
-    # consumed every M5 bar) seed UN-converged (up to ~15 RSI pts off at the tail; train uses
-    # full-history). Recompute the D1 features over the FULL cv3 OHLC + new bars (cheap — ~1500 D1
-    # bars) via the ONE-TRUTH compute_d1_features + merge_asof_features (the SAME functions
-    # build_canonical_v2 uses) and OVERWRITE, so the live cv3 tail == training. Mirrors the HTF
-    # full-tape recompute above. Fail-loud-but-non-fatal (a hiccup must never stale the live append).
-    try:
-        from gx1.scripts.materialize_build_canonical_features_v2 import (
-            compute_d1_features, merge_asof_features)
-        _ohlc = ["open", "high", "low", "close"]
-        if all(c in cv3.columns for c in _ohlc):
-            _full = pd.concat([cv3[_ohlc], new_m5[_ohlc]]).sort_index()
-            _full = _full[~_full.index.duplicated(keep="last")].rename_axis("time").reset_index()
-            _d1_full = compute_d1_features(_full)
-            _d1_cols = [c for c in _d1_full.columns if c not in ("time", "_time_ns")]
-            _base = pd.DataFrame({"time": v3_new.index})
-            _merged = merge_asof_features(_base, _d1_full, base_time_col="time")
-            for _c in _d1_cols:
-                if _c in v3_new.columns:
-                    v3_new[_c] = _merged[_c].to_numpy()
-        else:
-            raise RuntimeError("[D1_CONVERGE] cv3 lacks exact OHLC")
-    except Exception as _d1err:
-        raise RuntimeError(
-            "[D1_CONVERGE] full-history D1 recompute failed"
-        ) from _d1err
     # Take only the new bars
     v3_new = v3_new[v3_new.index > last_in_prebuilt]
     if v3_new.empty:
@@ -463,13 +847,14 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
             f"{invalid_columns}"
         )
 
-    # Concat + atomic write
+    # Concat + write into unpublished pair staging. Publication is a separate
+    # operation and is the only place active serving identity can change.
     cv3_extended = pd.concat([cv3, v3_new])
-    cv3_extended.reset_index().to_parquet(
-        CANONICAL_V3_PREBUILT.with_suffix(".parquet.tmp"),
+    _write_candidate_parquet(
+        cv3_extended.reset_index(),
+        output_path,
         index=False,
     )
-    os.replace(CANONICAL_V3_PREBUILT.with_suffix(".parquet.tmp"), CANONICAL_V3_PREBUILT)
 
     new_cutoff = v3_new.index[-1]
     elapsed = _time.perf_counter() - t0
@@ -478,17 +863,31 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     return len(v3_new), new_cutoff
 
 
-def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
-    """Extend BASE34 prebuilt (M1 cadence) with new bars up to new_cutoff."""
-    if not BASE34_MANIFEST.exists():
-        raise RuntimeError(f"BASE34 manifest missing: {BASE34_MANIFEST}")
-    manifest = json.loads(BASE34_MANIFEST.read_text())
-    base34_path = Path(manifest["parquet_path"])
-    if not base34_path.exists():
-        raise RuntimeError(f"BASE34 file missing: {base34_path}")
+def update_base34_incremental(
+    new_cutoff: pd.Timestamp,
+    *,
+    source_base28_path: Path,
+    canonical_v3_path: Path,
+    output_path: Path,
+) -> int:
+    """Compute a BASE28/BASE34 candidate from the matching canonical candidate."""
+    source_base28_path = Path(source_base28_path)
+    canonical_v3_path = Path(canonical_v3_path)
+    output_path = Path(output_path)
+    for label, source in (
+        ("BASE28", source_base28_path),
+        ("canonical_v3", canonical_v3_path),
+    ):
+        if source.is_symlink() or not source.is_file():
+            raise RuntimeError(f"{label} pair source missing: {source}")
+    if output_path.resolve(strict=False) in {
+        source_base28_path.resolve(strict=True),
+        canonical_v3_path.resolve(strict=True),
+    }:
+        raise RuntimeError("BASE28 candidate cannot overwrite a pair source")
 
     t0 = _time.perf_counter()
-    base34 = pd.read_parquet(base34_path)
+    base34 = pd.read_parquet(source_base28_path)
     if not isinstance(base34.index, pd.DatetimeIndex):
         if "time" in base34.columns:
             base34["time"] = pd.to_datetime(base34["time"], utc=True)
@@ -497,6 +896,7 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     last_in_base34 = base34.index[-1]
 
     if new_cutoff <= last_in_base34:
+        _copy_candidate_parquet(source_base28_path, output_path)
         return 0
 
     # Load M1 bars from [last_in_base34 + 1min, new_cutoff + 5min]
@@ -515,7 +915,7 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     # Use the LATEST M5-aligned feature values from canonical_v3 as the
     # ffill-source for each new M1 bar (no lookahead — uses just-closed
     # M5 bar's features for the next 5 M1 bars).
-    cv3 = pd.read_parquet(CANONICAL_V3_PREBUILT)
+    cv3 = pd.read_parquet(canonical_v3_path)
     if "time" in cv3.columns:
         cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
         cv3 = cv3.set_index("time")
@@ -577,20 +977,7 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
                             index=pd.DatetimeIndex([t for t, _ in new_m1_rows], name="time"))
     extended = pd.concat([base34, new_df])
 
-    # Atomic write
-    tmp = base34_path.with_suffix(".parquet.tmp")
-    extended.to_parquet(tmp, index=True)
-    os.replace(tmp, base34_path)
-
-    # Update manifest with new SHA
-    sha = hashlib.sha256(base34_path.read_bytes()).hexdigest()
-    manifest["parquet_sha256"] = sha
-    manifest["rows"] = len(extended)
-    manifest["created_utc"] = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    manifest["note"] = f"incremental update: +{len(new_df)} M1 bars"
-    manifest_tmp = BASE34_MANIFEST.with_suffix(".json.tmp")
-    manifest_tmp.write_text(json.dumps(manifest, indent=2) + "\n")
-    os.replace(manifest_tmp, BASE34_MANIFEST)
+    _write_candidate_parquet(extended, output_path, index=True)
 
     elapsed = _time.perf_counter() - t0
     LOG.info(f"BASE34 extended +{len(new_df)} M1 rows in {elapsed*1000:.0f} ms  "
@@ -598,32 +985,85 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     return len(new_df)
 
 
-def run_one_cycle() -> dict:
-    """Run one incremental update cycle. Returns stats dict."""
+def run_one_cycle(
+    *,
+    pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH,
+    generation_root: Path = PREBUILT_PAIR_ROOT,
+) -> dict:
+    """Compute from one admitted pair and publish the next pair atomically."""
     t0 = _time.perf_counter()
-    n_cv3, new_cv3_cutoff = update_canonical_v3_incremental()
-    n_base34 = 0
-    if new_cv3_cutoff is not None:
-        n_base34 = update_base34_incremental(new_cv3_cutoff)
-    elapsed = _time.perf_counter() - t0
-    return {
-        "cv3_appended": n_cv3,
-        "base34_appended": n_base34,
-        "new_cutoff": str(new_cv3_cutoff) if new_cv3_cutoff is not None else None,
-        "elapsed_sec": round(elapsed, 2),
-    }
+    current = read_prebuilt_pair_manifest(
+        pair_manifest_path,
+        generation_root=generation_root,
+    )
+    verify_prebuilt_pair(current)
+    staging_dir = _candidate_staging_path(generation_root)
+    canonical_candidate = staging_dir / PAIR_CANONICAL_FILENAME
+    base28_candidate = staging_dir / PAIR_BASE28_FILENAME
+    try:
+        n_cv3, new_cv3_cutoff = update_canonical_v3_incremental(
+            source_path=current.canonical_v3.parquet_path,
+            output_path=canonical_candidate,
+        )
+        n_base34 = 0
+        published_generation_id = current.pair_generation_id
+        if n_cv3 > 0:
+            if new_cv3_cutoff is None or not canonical_candidate.is_file():
+                raise RuntimeError(
+                    "canonical updater reported progress without a complete candidate"
+                )
+            n_base34 = update_base34_incremental(
+                new_cv3_cutoff,
+                source_base28_path=current.base28.parquet_path,
+                canonical_v3_path=canonical_candidate,
+                output_path=base28_candidate,
+            )
+            if not base28_candidate.is_file():
+                raise RuntimeError(
+                    "BASE28 updater returned without a complete pair candidate"
+                )
+            published_generation_id = _publish_prebuilt_pair_generation(
+                staging_dir,
+                pair_manifest_path=pair_manifest_path,
+                generation_root=generation_root,
+                expected_pair_generation_id=current.pair_generation_id,
+                expected_manifest_sha256=current.manifest_sha256,
+            )
+        elapsed = _time.perf_counter() - t0
+        return {
+            "cv3_appended": n_cv3,
+            "base34_appended": n_base34,
+            "new_cutoff": (
+                str(new_cv3_cutoff) if new_cv3_cutoff is not None else None
+            ),
+            "pair_published": n_cv3 > 0,
+            "pair_generation_id": published_generation_id,
+            "elapsed_sec": round(elapsed, 2),
+        }
+    finally:
+        _discard_pair_staging_dir(
+            staging_dir,
+            generation_root=generation_root,
+        )
 
 
-def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
+def backfill_base34_ctx(
+    since_ts: pd.Timestamp,
+    *,
+    pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH,
+    generation_root: Path = PREBUILT_PAIR_ROOT,
+) -> dict:
     """One-shot repair of the 2026-05-25 FREEZE: recompute the 37 BASE34-only ctx columns for all
-    rows after `since_ts` via the same ONE-TRUTH augmenter the (fixed) incremental path uses.
-    Run with the gx1-canonical-incremental daemon STOPPED (this rewrites the same parquet)."""
+    rows after `since_ts` via the same ONE-TRUTH augmenter the incremental path uses."""
     from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
-    manifest = json.loads(BASE34_MANIFEST.read_text())
-    base34_path = Path(manifest["parquet_path"])
-    base34 = pd.read_parquet(base34_path)
+    current = read_prebuilt_pair_manifest(
+        pair_manifest_path,
+        generation_root=generation_root,
+    )
+    verify_prebuilt_pair(current)
+    base34 = pd.read_parquet(current.base28.parquet_path)
     base34.index = pd.to_datetime(base34.index, utc=True)
-    cv3 = pd.read_parquet(CANONICAL_V3_PREBUILT)
+    cv3 = pd.read_parquet(current.canonical_v3.parquet_path)
     if "time" in cv3.columns:
         cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
         cv3 = cv3.set_index("time")
@@ -640,6 +1080,15 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
               and c in cv3_aug.columns]
     mask = base34.index > since_ts
     n_rows = int(mask.sum())
+    if n_rows == 0:
+        return {
+            "rows_backfilled": 0,
+            "cols": len(target),
+            "nunique_before_sample": {},
+            "nunique_after_sample": {},
+            "pair_published": False,
+            "pair_generation_id": current.pair_generation_id,
+        }
     # map each M1 row to its last CLOSED M5 bar (same semantics as the append path);
     # int64-ns on both sides (tz-aware vs naive .values would raise in searchsorted)
     closed_ns = (base34.index[mask].floor("5min") - pd.Timedelta(minutes=5)).asi8
@@ -669,20 +1118,33 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
     if "is_model_bar" in base34.columns:
         base34.loc[mask, "is_model_bar"] = base34.index[mask].isin(cv3.index)
     after = {c: int(base34.loc[mask, c].nunique()) for c in target[:6]}
-    tmp = base34_path.with_suffix(".parquet.tmp")
-    base34.to_parquet(tmp, index=True)
-    os.replace(tmp, base34_path)
-    manifest["parquet_sha256"] = hashlib.sha256(base34_path.read_bytes()).hexdigest()
-    manifest["rows"] = len(base34)
-    manifest["created_utc"] = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    manifest["note"] = (manifest.get("note", "") +
-                        f" | BACKFILL {datetime.now(timezone.utc):%Y-%m-%dT%H:%MZ}: recomputed "
-                        f"{len(target)} frozen ctx cols for {n_rows} rows since {since_ts} (freeze fix).")
-    manifest_tmp = BASE34_MANIFEST.with_suffix(".json.tmp")
-    manifest_tmp.write_text(json.dumps(manifest, indent=2) + "\n")
-    os.replace(manifest_tmp, BASE34_MANIFEST)
-    return {"rows_backfilled": n_rows, "cols": len(target),
-            "nunique_before_sample": before, "nunique_after_sample": after}
+    staging_dir = _candidate_staging_path(generation_root)
+    try:
+        _copy_candidate_parquet(
+            current.canonical_v3.parquet_path,
+            staging_dir / PAIR_CANONICAL_FILENAME,
+        )
+        _write_candidate_parquet(
+            base34,
+            staging_dir / PAIR_BASE28_FILENAME,
+            index=True,
+        )
+        published_generation_id = _publish_prebuilt_pair_generation(
+            staging_dir,
+            pair_manifest_path=pair_manifest_path,
+            generation_root=generation_root,
+            expected_pair_generation_id=current.pair_generation_id,
+            expected_manifest_sha256=current.manifest_sha256,
+        )
+        return {"rows_backfilled": n_rows, "cols": len(target),
+                "nunique_before_sample": before, "nunique_after_sample": after,
+                "pair_published": True,
+                "pair_generation_id": published_generation_id}
+    finally:
+        _discard_pair_staging_dir(
+            staging_dir,
+            generation_root=generation_root,
+        )
 
 
 def main() -> int:
@@ -691,7 +1153,7 @@ def main() -> int:
     p.add_argument("--interval", type=int, default=60, help="Loop interval in seconds (default 60)")
     p.add_argument("--backfill-base34-since", type=str, default=None,
                    help="One-shot: recompute the frozen BASE34 ctx cols for rows after this UTC ts "
-                        "(freeze fix repair). Stop the daemon first.")
+                        "and publish a complete atomic pair generation.")
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO,

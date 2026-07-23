@@ -31,6 +31,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import sys
 import time
 from datetime import datetime, timezone
@@ -45,7 +46,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.exits.training.thin_record_dataset import ThinRecordDataset
+from gx1.exits.training.thin_record_dataset import (
+    V3_TRAINING_DATASET_PRODUCER_CONTRACT,
+    V3_TRAINING_LINEAGE_SCHEMA_VERSION,
+    V3_TRAINING_SOURCE_CODE_FILES,
+    ThinRecordDataset,
+    require_authoritative_v3_training_dataset,
+    require_reproducible_v3_training_lineage,
+    v3_regular_file_binding,
+)
 from gx1.exits.training.disk_labeled_dataset import (
     DiskMultiTaskThinDataset,
     compute_side_weights_from_offsets,
@@ -56,9 +65,6 @@ from gx1.exits.training.disk_labeled_dataset import (
 )
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 from gx1.exits.contracts.registry import get_exit_io_contract
-# V12.2 multi-TF feature contract (imported unconditionally — used in
-# both v8 and v9 config-save paths, value is 19).
-from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT
 
 # Reuse the existing v6 components (same training math, same loss / EMA / scheduler).
 from gx1.scripts.train_exit_v6_thin_records import (
@@ -77,6 +83,52 @@ DEFAULT_OUT_DIR = Path("/home/andre2/GX1_DATA/models/exit_transformer_v0")
 
 def _utc_stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _canonical_sha256(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _uid_sequence_sha256(uid_to_offsets: Dict[str, List]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            list(uid_to_offsets),
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _snapshot_v3_training_source(bundle_dir: Path) -> list[dict[str, Any]]:
+    inventory: list[dict[str, Any]] = []
+    for relative in sorted(V3_TRAINING_SOURCE_CODE_FILES):
+        source = REPO_ROOT / relative
+        if not source.is_file() or source.is_symlink():
+            raise RuntimeError(
+                f"[{ACTION}] training source missing or symlinked: {source}"
+            )
+        target = bundle_dir / "training_source_v1" / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        inventory.append(
+            {
+                "relative_path": relative,
+                **v3_regular_file_binding(
+                    target.resolve(),
+                    context=f"{ACTION}.training_source[{relative}]",
+                ),
+            }
+        )
+    return inventory
 
 
 def _label_split(
@@ -231,15 +283,56 @@ def main() -> None:
     device = torch.device(args.device)
     print(f"[{ACTION}] device={device} dataset={args.dataset_dir}", flush=True)
 
+    training_source_hashes_at_start = {
+        relative: v3_regular_file_binding(
+            (REPO_ROOT / relative).resolve(),
+            context=f"{ACTION}.source_at_start[{relative}]",
+        )["sha256"]
+        for relative in sorted(V3_TRAINING_SOURCE_CODE_FILES)
+    }
+    dataset_root = Path(args.dataset_dir).expanduser()
+    if not dataset_root.is_absolute():
+        raise RuntimeError(
+            f"[{ACTION}] --dataset-dir must be an explicit absolute path"
+        )
+    dataset_manifest, dataset_inventory = require_authoritative_v3_training_dataset(
+        dataset_root
+    )
+    m5_prebuilt_path = Path(args.m5_prebuilt_path).expanduser()
+    if not m5_prebuilt_path.is_absolute():
+        raise RuntimeError(
+            f"[{ACTION}] --m5-prebuilt-path must be an explicit absolute path"
+        )
+    m5_prebuilt_binding = v3_regular_file_binding(
+        m5_prebuilt_path,
+        context=f"{ACTION}.m5_prebuilt",
+    )
+
     # Stage 1: build ThinRecordDataset WITHOUT loading records into memory.
     base = ThinRecordDataset(
-        args.dataset_dir,
+        dataset_root,
         load_records_eagerly=False,
         build_offset_index=False,
     )
     records_path = base.records_path
     if records_path is None:
         raise RuntimeError(f"[{ACTION}] base.records_path is None — dataset corrupted")
+    requested_contract = get_exit_io_contract(args.exit_io_version)
+    if (
+        dataset_manifest.get("io_version") != requested_contract["io_version"]
+        or type(dataset_manifest.get("input_dim")) is not int
+        or dataset_manifest["input_dim"] != requested_contract["feature_count"]
+        or type(dataset_manifest.get("window_len")) is not int
+        or dataset_manifest["window_len"] != requested_contract["default_window_len"]
+        or dataset_manifest.get("feature_names_hash")
+        != requested_contract["feature_hash"]
+        or int(base.input_dim) != requested_contract["feature_count"]
+        or int(base.window_len) != requested_contract["default_window_len"]
+    ):
+        raise RuntimeError(
+            f"[{ACTION}] dataset feature/window identity differs from "
+            f"{requested_contract['io_version']}"
+        )
     print(
         f"[{ACTION}] base loaded (mmap only)  matrix={base.matrix.shape}  "
         f"input_dim={base.input_dim} window_len={base.window_len}",
@@ -350,13 +443,13 @@ def main() -> None:
             MULTI_TF_SHIFT, MULTI_TF_FEATURE_COUNT, MULTI_TF_FEATURE_COUNT_V2,
         )
         import pandas as _pd
-        print(f"[{ACTION}] V12.2: pre-building multi-TF features from {args.m5_prebuilt_path} (v2={v3_v2_mode})", flush=True)
+        print(f"[{ACTION}] V12.2: pre-building multi-TF features from {m5_prebuilt_path} (v2={v3_v2_mode})", flush=True)
         load_cols = ["time", "open", "high", "low", "close"]
         if v3_v2_mode:
             import pyarrow.parquet as _pq
-            if "volume" in _pq.ParquetFile(args.m5_prebuilt_path).schema_arrow.names:
+            if "volume" in _pq.ParquetFile(m5_prebuilt_path).schema_arrow.names:
                 load_cols.append("volume")
-        m5 = _pd.read_parquet(args.m5_prebuilt_path, columns=load_cols)
+        m5 = _pd.read_parquet(m5_prebuilt_path, columns=load_cols)
         m5["time"] = _pd.to_datetime(m5["time"], utc=True)
         m5 = m5.set_index("time").sort_index()
         for c in ("open", "high", "low", "close"):
@@ -369,7 +462,9 @@ def main() -> None:
             mtf_feats = build_multi_tf_per_bar_features(m5)
         mtf_shift = MULTI_TF_SHIFT
         del m5
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         _mtf_feature_count_actual = int(MULTI_TF_FEATURE_COUNT_V2 if v3_v2_mode else MULTI_TF_FEATURE_COUNT)
         for tf, df in mtf_feats.items():
             print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
@@ -468,8 +563,14 @@ def main() -> None:
     # contract (rule-8 resolver, NO glob/mtime) > --from-scratch (deliberate cold). A silent
     # cold-start is now IMPOSSIBLE, not "remember to warm-start".
     _warmstart_src = None
+    _warmstart_source_binding = None
     if args.init_from_state_dict:
-        _warmstart_src = Path(args.init_from_state_dict)
+        _warmstart_src = Path(args.init_from_state_dict).expanduser()
+        if not _warmstart_src.is_absolute() or _warmstart_src.is_symlink():
+            raise RuntimeError(
+                "[INIT_STATE_DICT_INVALID] warm-start path must be absolute "
+                "and non-symlinked"
+            )
         if not _warmstart_src.is_file():
             raise FileNotFoundError(f"[INIT_STATE_DICT_MISSING] {_warmstart_src}")
         print(f"[{ACTION}] [WARM_START] source = explicit --init-from-state-dict", flush=True)
@@ -483,16 +584,40 @@ def main() -> None:
                 _warmstart_src = _cand
                 print(f"[{ACTION}] [WARM_START] AUTO source = active v3_exit bundle (contract): {_cand}", flush=True)
         except Exception as _e:
-            print(f"[{ACTION}] [WARM_START] auto-resolve failed ({_e!r}) — falling back to cold start.", flush=True)
+            raise RuntimeError(
+                f"[{ACTION}] automatic warm-start resolution failed; pass "
+                "--from-scratch for a deliberate cold start"
+            ) from _e
         if _warmstart_src is None:
-            print(
-                f"\n{'='*78}\n[{ACTION}] ⚠ FROM-SCRATCH (cold) start — no warm-start source resolved.\n"
-                f"  Pass --init-from-state-dict <cemented exit_transformer_v0.pt> to warm-start,\n"
-                f"  or --from-scratch to acknowledge a deliberate cold start.\n{'='*78}\n",
-                flush=True,
+            raise RuntimeError(
+                f"[{ACTION}] no ACTIVE warm-start checkpoint resolved; pass "
+                "--from-scratch to acknowledge a deliberate cold start"
             )
 
     if _warmstart_src is not None:
+        _warmstart_src = _warmstart_src.resolve()
+        warmstart_config_path = _warmstart_src.parent / "transformer_config.json"
+        if not warmstart_config_path.is_file():
+            raise RuntimeError(
+                f"[{ACTION}] warm-start config missing: {warmstart_config_path}"
+            )
+        try:
+            warmstart_config = json.loads(
+                warmstart_config_path.read_text(encoding="utf-8")
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"[{ACTION}] warm-start config unreadable"
+            ) from exc
+        require_reproducible_v3_training_lineage(
+            bundle_dir=_warmstart_src.parent,
+            config=warmstart_config,
+            state_path=_warmstart_src,
+        )
+        _warmstart_source_binding = v3_regular_file_binding(
+            _warmstart_src,
+            context=f"{ACTION}.warm_start_source",
+        )
         print(f"[{ACTION}] [WARM_START] loading: {_warmstart_src}", flush=True)
         _isd = torch.load(_warmstart_src, map_location="cpu", weights_only=True)
         _isd = {k.removeprefix("_orig_mod."): v for k, v in _isd.items()}
@@ -506,12 +631,10 @@ def main() -> None:
         # Mismatch guard: large miss/unexpected => arch/contract drift => warm-start barely
         # transferred. Warn LOUDLY so a contract bump isn't silently warm-started from a stale arch.
         if _miss + _unexp > max(4, int(0.05 * _n_model)):
-            print(
-                f"\n{'='*78}\n[{ACTION}] ⚠ WARM_START POOR MATCH: missing={_miss} unexpected={_unexp} "
-                f"(model has {_n_model} keys).\n  Likely an ARCH/CONTRACT change vs the cemented bundle "
-                f"— warm-start barely transferred.\n  Use --from-scratch for a clean cold start if this "
-                f"is a real contract bump.\n{'='*78}\n",
-                flush=True,
+            raise RuntimeError(
+                f"[{ACTION}] WARM_START_POOR_MATCH: missing={_miss} "
+                f"unexpected={_unexp} model_keys={_n_model}; use "
+                "--from-scratch for a deliberate cold start"
             )
 
     # torch.compile via either --torch-compile flag OR GX1_FAST_TRAIN env.
@@ -567,8 +690,13 @@ def main() -> None:
     #    old code held best_state only in RAM and saved at natural end, so any
     #    kill/reboot mid-training lost the whole run (burned 7 BASE76 runs). ──
     bundle_name = args.bundle_name or f"EXIT_V6_DISK__BIDIR_2026Q2_{_utc_stamp()}"
-    bundle_dir = Path(args.out_dir) / bundle_name
-    bundle_dir.mkdir(parents=True, exist_ok=True)
+    output_root = Path(args.out_dir).expanduser()
+    if not output_root.is_absolute() or output_root.is_symlink():
+        raise RuntimeError(
+            f"[{ACTION}] --out-dir must be absolute and non-symlinked"
+        )
+    bundle_dir = output_root.resolve() / bundle_name
+    bundle_dir.mkdir(parents=True, exist_ok=False)
     state_path = bundle_dir / "exit_transformer_v0.pt"
     contract = get_exit_io_contract(args.exit_io_version)
     _bundle_mtf_dim = int(_mtf_feature_count_actual) if args.enable_multi_tf else 0
@@ -691,27 +819,152 @@ def main() -> None:
         best_state = {k: v.detach().cpu().clone() for k, v in _final.state_dict().items()}
         state_sha = _persist_best(best_state)
 
+    effective_label_workers = int(
+        os.environ.get(
+            "EXIT_LABEL_WORKERS",
+            str(max(1, (os.cpu_count() or 8) - 2)),
+        )
+    )
+    initialization_mode = "warm_start" if _warmstart_src is not None else "cold"
+    initialization_binding = None
+    if _warmstart_src is not None:
+        current_warmstart_binding = v3_regular_file_binding(
+            _warmstart_src,
+            context=f"{ACTION}.warm_start_source_final",
+        )
+        if current_warmstart_binding != _warmstart_source_binding:
+            raise RuntimeError(
+                f"[{ACTION}] warm-start source changed during training"
+            )
+        initialization_copy = (
+            bundle_dir
+            / "training_source_v1"
+            / "initialization"
+            / "source_state_dict.pt"
+        )
+        initialization_copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(_warmstart_src, initialization_copy)
+        initialization_binding = v3_regular_file_binding(
+            initialization_copy.resolve(),
+            context=f"{ACTION}.initialization",
+        )
+        if initialization_binding["sha256"] != _warmstart_source_binding["sha256"]:
+            raise RuntimeError(
+                f"[{ACTION}] warm-start snapshot differs from loaded bytes"
+            )
+    training_recipe = {
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "num_workers": args.num_workers,
+        "lr": args.lr,
+        "weight_decay": args.weight_decay,
+        "d_model": args.d_model,
+        "n_layers": args.n_layers,
+        "n_heads": args.n_heads,
+        "dropout": args.dropout,
+        "seed": args.seed,
+        "device": str(device),
+        "train_cutoff": args.train_cutoff,
+        "val_cutoff": args.val_cutoff,
+        "exit_io_version": args.exit_io_version,
+        "early_stop_patience": args.early_stop_patience,
+        "focal_gamma": args.focal_gamma,
+        "label_smoothing": args.label_smoothing,
+        "warmup_frac": args.warmup_frac,
+        "ema_decay": args.ema_decay if ema is not None else None,
+        "mixed_precision": use_amp,
+        "torch_compile": bool(args.torch_compile or _compile_from_env),
+        "loss_weights": loss_weights,
+        "side_balance_weight": args.side_balance_weight,
+        "side_weights_long": (side_weights or {}).get("long"),
+        "side_weights_short": (side_weights or {}).get("short"),
+        "label_workers": effective_label_workers,
+        "label_chunksize": args.label_chunksize,
+        "smoke_trades_per_split": args.smoke_trades_per_split,
+        "multi_tf_seq_len": args.multi_tf_seq_len,
+        "multi_tf_scale": args.multi_tf_scale,
+        "enable_pos_enc": args.enable_pos_enc,
+        "enable_dip_head": args.enable_dip_head,
+        "enable_timing_head": args.enable_timing_head,
+        "enable_tail_risk_head": args.enable_tail_risk_head,
+        "enable_vol_forecast_head": args.enable_vol_forecast_head,
+        "enable_forecast_head": args.enable_forecast_head,
+        "initialization_mode": initialization_mode,
+        "fast_train_env_v1": os.environ.get("GX1_FAST_TRAIN"),
+        "python_version": sys.version,
+        "torch_version": torch.__version__,
+        "cuda_version": torch.version.cuda,
+        "cudnn_version": (
+            torch.backends.cudnn.version()
+            if torch.backends.cudnn.is_available()
+            else None
+        ),
+        "numpy_version": np.__version__,
+        "vedtak": args.vedtak,
+    }
+    _, final_dataset_inventory = require_authoritative_v3_training_dataset(
+        dataset_root
+    )
+    if final_dataset_inventory != dataset_inventory:
+        raise RuntimeError(
+            f"[{ACTION}] authoritative dataset bytes changed during training"
+        )
+    if (
+        v3_regular_file_binding(
+            m5_prebuilt_path,
+            context=f"{ACTION}.m5_prebuilt_final",
+        )
+        != m5_prebuilt_binding
+    ):
+        raise RuntimeError(f"[{ACTION}] M5 prebuilt bytes changed during training")
+    source_code_inventory = _snapshot_v3_training_source(bundle_dir)
+    source_code_hashes_at_end = {
+        item["relative_path"]: item["sha256"]
+        for item in source_code_inventory
+    }
+    if source_code_hashes_at_end != training_source_hashes_at_start:
+        raise RuntimeError(
+            f"[{ACTION}] consumed source code changed during training"
+        )
+    training_lineage = {
+        "schema_version": V3_TRAINING_LINEAGE_SCHEMA_VERSION,
+        "production_allowed_v1": args.smoke_trades_per_split is None,
+        "dataset_producer_contract_v1": (
+            V3_TRAINING_DATASET_PRODUCER_CONTRACT
+        ),
+        "dataset_root": str(dataset_root.resolve()),
+        "dataset_files": dataset_inventory,
+        "dataset_inventory_sha256": _canonical_sha256(dataset_inventory),
+        "m5_prebuilt": m5_prebuilt_binding,
+        "xgb_bridge_source": dataset_manifest["xgb_bridge_source_v1"],
+        "source_code_files": source_code_inventory,
+        "source_code_inventory_sha256": _canonical_sha256(
+            source_code_inventory
+        ),
+        "split_uid_sha256": {
+            "train": _uid_sequence_sha256(train_uids),
+            "val": _uid_sequence_sha256(val_uids),
+            "test": _uid_sequence_sha256(test_uids),
+        },
+        "training_recipe_sha256": _canonical_sha256(training_recipe),
+        "transformer_config_sha256": v3_regular_file_binding(
+            (bundle_dir / "transformer_config.json").resolve(),
+            context=f"{ACTION}.transformer_config",
+        )["sha256"],
+        "initialization": {
+            "mode": initialization_mode,
+            "source_state_dict": initialization_binding,
+        },
+    }
     manifest = {
         "action_v1": ACTION,
         "bundle_name": bundle_name,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "dataset_dir": str(args.dataset_dir),
+        "dataset_dir": str(dataset_root.resolve()),
         "label_spill_dir": str(spill_dir),
         "exit_io_version": str(contract["io_version"]),
-        "training": {
-            "epochs": args.epochs, "batch_size": args.batch_size, "lr": args.lr,
-            "weight_decay": args.weight_decay, "d_model": args.d_model, "n_layers": args.n_layers,
-            "n_heads": args.n_heads, "dropout": args.dropout, "seed": args.seed,
-            "focal_gamma": args.focal_gamma, "label_smoothing": args.label_smoothing,
-            "warmup_frac": args.warmup_frac, "ema_decay": args.ema_decay if ema is not None else None,
-            "mixed_precision": use_amp, "torch_compile": args.torch_compile,
-            "loss_weights": loss_weights, "side_balance_weight": args.side_balance_weight,
-            "side_weights_long": (side_weights or {}).get("long"),
-            "side_weights_short": (side_weights or {}).get("short"),
-            "label_workers": int(os.environ.get("EXIT_LABEL_WORKERS", str(max(1, (os.cpu_count() or 8) - 2)))),
-            "label_chunksize": args.label_chunksize,
-            "train_cutoff": args.train_cutoff, "val_cutoff": args.val_cutoff,
-        },
+        "training": training_recipe,
+        "training_lineage_v1": training_lineage,
         "best_val_loss": float(best_val_loss),
         "test_metrics": test_stats,
         "n_train": len(train_ds), "n_val": len(val_ds), "n_test": len(test_ds),
@@ -723,6 +976,12 @@ def main() -> None:
         "history": history,
     }
     (bundle_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, default=float))
+    if args.smoke_trades_per_split is None:
+        require_reproducible_v3_training_lineage(
+            bundle_dir=bundle_dir,
+            config=config,
+            state_path=state_path,
+        )
     print(f"[{ACTION}] bundle saved at {bundle_dir}", flush=True)
 
     # Stage 10: spill-dir cleanup.

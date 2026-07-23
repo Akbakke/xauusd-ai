@@ -12,39 +12,37 @@ so XGB / V10 / Entry-IQL / Exit-IQL inference reproduces Phase 6 backtest
 output exactly.
 
 Architecture:
-    Daily cron (gx1/execution/v12_canonical_rebuild.sh) extends:
-        - canonical_v3 prebuilt   ← extended with new M5 bars
-        - BASE34_CTX16CAT6 prebuilt ← extended with new ctx features
+    The updater computes both candidate artifacts without touching active state,
+    then publishes one immutable generation by atomically replacing:
+        CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json
 
     Live (every M1 tick):
         - Look up the latest closed M5 bar in canonical_v3 prebuilt
         - Join with BASE28 augmented features at the same timestamp
         - Result: 92-feature XGB input identical to training distribution
 
-The two prebuilts:
+The two artifacts in every admitted pair generation:
 
   canonical_v3 prebuilt (M5 cadence, 112 cols):
-    Path: GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/
-            xauusd_m5_CANONICAL_V3_2020_2026.parquet
+    Path: CANONICAL_V3_BASE28_GENERATIONS/<pair_generation_id>/
+            canonical_v3.parquet
     Contains: M5 OHLC + 84 canonical_v2 features + 4 cyclic + smc_premium_state
               + m5h1_momentum  (108 features + time + open/high/low/close/volume)
     Built by: materialize_build_canonical_features_v2.py
               + materialize_canonical_v3_augment.py
 
-  BASE28 / BASE34 manifest target (M5 cadence, 57 cols including 32 augmented):
-    Path: GX1_DATA/data/data/prebuilt/MONDAY_WEEK_EXTENSION_CANDIDATES/
-            monday_week_prebuilt_extension_20260430_123100/
-            xauusd_m1_EXPANDED_BASE34_CTX16CAT6_20201109_20260420_RAW_INDEX.parquet
+  BASE28 / BASE34 artifact (M1 cadence, including augmented context):
+    Path: CANONICAL_V3_BASE28_GENERATIONS/<pair_generation_id>/
+            base28.parquet
     Contains: 32 augmented features (atr_bps, session_id, regime/bucket,
               HTF, micro_momentum, swing, _v1_is_EU/US, _v1_int_*_us, etc.)
     Built by: add_ctx_cont_columns_to_prebuilt.py
 
 Together they provide all 92 features the cemented XGB v5 needs.
 
-Staleness: BASE28 covers up to 2026-04-20; canonical_v3 covers up to
-2026-05-08. For live trading post these dates, the daily rebuild cron
-must extend both. Until then, paper-runner can only decide on bars
-that exist in both prebuilts (i.e. before the staleness cutoff).
+The pair pointer, artifact hashes, row counts and physical Arrow schemas are
+one fail-closed serving contract. Individual legacy manifests and direct
+mutable parquet paths are not admissible fallbacks.
 """
 from __future__ import annotations
 
@@ -53,6 +51,7 @@ import json
 import logging
 import threading
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -111,36 +110,38 @@ def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
         raise RuntimeError(f"parallel group-A worker output missing: {missing}")
     return augmented[expected].copy()
 
-CANONICAL_V3_PREBUILT = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
-    "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
+PREBUILT_PAIR_SCHEMA_VERSION = "gx1_canonical_v3_base28_pair_generation_v1"
+PREBUILT_PAIR_ROOT = Path(
+    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_GENERATIONS"
 )
-# NOTE: a "JOINED_PREBUILT" single-file fast-path (canonical_v3 + BASE28 ctx_cont/cat
-# pre-merged) was REMOVED 2026-06-05 — it took an unguarded `.exists()` precedence over
-# the manifest-resolved canonical_v3 + BASE28 split with NO freshness check, so a stale
-# leftover reappearing on disk would silently poison serve/retrain (audit MISS-3 / R10
-# coupling). The split path below is the ONE truth (BASE28 resolved fresh from the manifest).
-BASE28_MANIFEST_PATH = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
-)
-CANONICAL_V3_MANIFEST_PATH = (
-    CANONICAL_V3_PREBUILT.parent / "CURRENT_MANIFEST.json"
+PREBUILT_PAIR_MANIFEST_PATH = Path(
+    "/home/andre2/GX1_DATA/data/data/prebuilt/"
+    "CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json"
 )
 
 
 class PrebuiltIdentityError(RuntimeError):
-    """A CURRENT_MANIFEST or its exact parquet identity is invalid."""
+    """The atomic pair pointer or either exact parquet identity is invalid."""
 
 
 @dataclass(frozen=True)
 class _PrebuiltManifestBinding:
     label: str
-    manifest_path: Path
-    manifest_sha256: str
+    pair_generation_id: str
     parquet_path: Path
     parquet_sha256: str
     rows: int
     cols_total: int
+    arrow_schema: tuple[tuple[str, str, bool], ...]
+
+
+@dataclass(frozen=True)
+class _PrebuiltPairBinding:
+    manifest_path: Path
+    manifest_sha256: str
+    pair_generation_id: str
+    canonical_v3: _PrebuiltManifestBinding
+    base28: _PrebuiltManifestBinding
 
 
 @dataclass(frozen=True)
@@ -186,90 +187,293 @@ def _strict_positive_int(value: object, *, field_name: str, label: str) -> int:
     return parsed
 
 
-def _read_prebuilt_manifest(
-    manifest_path: Path,
+def _sha256_json(payload: object) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _artifact_generation_identity(
+    artifacts: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    return {
+        "schema_version": PREBUILT_PAIR_SCHEMA_VERSION,
+        "artifacts": {
+            label: {
+                "parquet_sha256": artifacts[label]["parquet_sha256"],
+                "rows": artifacts[label]["rows"],
+                "cols_total": artifacts[label]["cols_total"],
+                "arrow_schema": artifacts[label]["arrow_schema"],
+            }
+            for label in ("canonical_v3", "base28")
+        },
+    }
+
+
+def pair_generation_id_for_artifacts(
+    artifacts: dict[str, dict[str, object]],
+) -> str:
+    """Return the only pair generation id.
+
+    It is SHA-256 over canonical JSON containing the schema version and, in
+    fixed canonical-v3/BASE28 order, each artifact's SHA-256, row count,
+    feature-column count and full Arrow schema. Paths and wall-clock time are
+    excluded, so identity means content contract rather than publication site.
+    """
+    return _sha256_json(_artifact_generation_identity(artifacts))
+
+
+def inspect_prebuilt_artifact(path: Path, *, label: str) -> dict[str, object]:
+    """Return the exact manifest contract for one stable parquet candidate."""
+    path = Path(path).resolve(strict=True)
+    before = _file_stamp(path, label=label.upper())
+    parquet_sha256 = _sha256_file(path)
+    try:
+        parquet = pq.ParquetFile(path)
+        rows = int(parquet.metadata.num_rows)
+        schema = tuple(
+            {
+                "name": str(item.name),
+                "type": str(item.type),
+                "nullable": bool(item.nullable),
+            }
+            for item in parquet.schema_arrow
+        )
+    except Exception as exc:  # noqa: BLE001 - normalize format/schema failure
+        raise PrebuiltIdentityError(f"{label.upper()}_PARQUET_METADATA_INVALID") from exc
+    if rows <= 0 or len(schema) <= 1:
+        raise PrebuiltIdentityError(f"{label.upper()}_PARQUET_SHAPE_INVALID")
+    names = [str(item["name"]) for item in schema]
+    if len(names) != len(set(names)):
+        raise PrebuiltIdentityError(
+            f"{label.upper()}_PARQUET_SCHEMA_DUPLICATE_COLUMNS"
+        )
+    after = _file_stamp(path, label=label.upper())
+    if before != after:
+        raise PrebuiltIdentityError(
+            f"{label.upper()}_PARQUET_CHANGED_DURING_INSPECTION"
+        )
+    return {
+        "parquet_path": str(path),
+        "parquet_sha256": parquet_sha256,
+        "rows": rows,
+        "cols_total": len(schema) - 1,
+        "arrow_schema": list(schema),
+    }
+
+
+def _parse_pair_artifact(
+    raw: object,
     *,
     label: str,
-    expected_path: Path | None = None,
+    pair_generation_id: str,
+    generation_root: Path,
 ) -> _PrebuiltManifestBinding:
-    """Read one stable CURRENT_MANIFEST with no path or field fallback."""
-    manifest_path = Path(manifest_path)
-    if manifest_path.is_symlink() or not manifest_path.is_file():
+    if not isinstance(raw, dict):
+        raise PrebuiltIdentityError(f"{label.upper()}_PAIR_ARTIFACT_INVALID")
+    required = (
+        "parquet_path",
+        "parquet_sha256",
+        "rows",
+        "cols_total",
+        "arrow_schema",
+    )
+    if set(raw) != set(required):
         raise PrebuiltIdentityError(
-            f"{label}_CURRENT_MANIFEST_NOT_REGULAR_FILE: {manifest_path}"
-        )
-    before = _file_stamp(manifest_path, label=f"{label}_MANIFEST")
-    raw = manifest_path.read_bytes()
-    after = _file_stamp(manifest_path, label=f"{label}_MANIFEST")
-    if before != after:
-        raise PrebuiltIdentityError(f"{label}_CURRENT_MANIFEST_CHANGED_DURING_READ")
-    try:
-        manifest = json.loads(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise PrebuiltIdentityError(
-            f"{label}_CURRENT_MANIFEST_JSON_INVALID"
-        ) from exc
-    if not isinstance(manifest, dict):
-        raise PrebuiltIdentityError(f"{label}_CURRENT_MANIFEST_ROOT_INVALID")
-
-    required = ("parquet_path", "parquet_sha256", "rows", "cols_total")
-    missing = [name for name in required if name not in manifest]
-    if missing:
-        raise PrebuiltIdentityError(
-            f"{label}_CURRENT_MANIFEST_FIELDS_MISSING: {missing}"
+            f"{label.upper()}_PAIR_ARTIFACT_FIELDS_INVALID"
         )
 
-    raw_path = manifest["parquet_path"]
+    raw_path = raw["parquet_path"]
     if not isinstance(raw_path, str) or not raw_path or raw_path.strip() != raw_path:
-        raise PrebuiltIdentityError(f"{label}_MANIFEST_PARQUET_PATH_INVALID")
+        raise PrebuiltIdentityError(f"{label.upper()}_PAIR_PARQUET_PATH_INVALID")
     declared_path = Path(raw_path)
     if not declared_path.is_absolute():
-        raise PrebuiltIdentityError(f"{label}_MANIFEST_PARQUET_PATH_NOT_ABSOLUTE")
+        raise PrebuiltIdentityError(
+            f"{label.upper()}_PAIR_PARQUET_PATH_NOT_ABSOLUTE"
+        )
     try:
         resolved_path = declared_path.resolve(strict=True)
     except OSError as exc:
         raise PrebuiltIdentityError(
-            f"{label}_MANIFEST_PARQUET_PATH_MISSING: {declared_path}"
+            f"{label.upper()}_PAIR_PARQUET_PATH_MISSING: {declared_path}"
         ) from exc
-    if declared_path != resolved_path or declared_path.is_symlink():
+    expected_parent = (
+        Path(generation_root).resolve(strict=True) / pair_generation_id
+    )
+    expected_name = (
+        "canonical_v3.parquet" if label == "canonical_v3" else "base28.parquet"
+    )
+    if (
+        declared_path != resolved_path
+        or declared_path.is_symlink()
+        or resolved_path.parent != expected_parent
+        or resolved_path.name != expected_name
+    ):
         raise PrebuiltIdentityError(
-            f"{label}_MANIFEST_PARQUET_PATH_NOT_EXACT: "
-            f"declared={declared_path} resolved={resolved_path}"
+            f"{label.upper()}_PAIR_PARQUET_PATH_NOT_GENERATION_EXACT: "
+            f"path={resolved_path} expected={expected_parent / expected_name}"
         )
-    if expected_path is not None:
-        try:
-            expected_resolved = Path(expected_path).resolve(strict=True)
-        except OSError as exc:
-            raise PrebuiltIdentityError(
-                f"{label}_EXPECTED_PARQUET_PATH_MISSING: {expected_path}"
-            ) from exc
-        if expected_resolved != resolved_path:
-            raise PrebuiltIdentityError(
-                f"{label}_MANIFEST_PARQUET_PATH_MISMATCH: "
-                f"manifest={resolved_path} expected={expected_resolved}"
-            )
 
-    parquet_sha256 = manifest["parquet_sha256"]
+    parquet_sha256 = raw["parquet_sha256"]
     if (
         not isinstance(parquet_sha256, str)
         or len(parquet_sha256) != 64
         or parquet_sha256.lower() != parquet_sha256
         or any(char not in "0123456789abcdef" for char in parquet_sha256)
     ):
-        raise PrebuiltIdentityError(f"{label}_MANIFEST_PARQUET_SHA256_INVALID")
-
+        raise PrebuiltIdentityError(
+            f"{label.upper()}_PAIR_PARQUET_SHA256_INVALID"
+        )
+    raw_schema = raw["arrow_schema"]
+    if not isinstance(raw_schema, list) or len(raw_schema) <= 1:
+        raise PrebuiltIdentityError(f"{label.upper()}_PAIR_ARROW_SCHEMA_INVALID")
+    parsed_schema: list[tuple[str, str, bool]] = []
+    for item in raw_schema:
+        if not isinstance(item, dict) or set(item) != {"name", "type", "nullable"}:
+            raise PrebuiltIdentityError(
+                f"{label.upper()}_PAIR_ARROW_SCHEMA_INVALID"
+            )
+        name = item["name"]
+        dtype = item["type"]
+        nullable = item["nullable"]
+        if (
+            not isinstance(name, str)
+            or not name
+            or not isinstance(dtype, str)
+            or not dtype
+            or not isinstance(nullable, bool)
+        ):
+            raise PrebuiltIdentityError(
+                f"{label.upper()}_PAIR_ARROW_SCHEMA_INVALID"
+            )
+        parsed_schema.append((name, dtype, nullable))
+    if len({item[0] for item in parsed_schema}) != len(parsed_schema):
+        raise PrebuiltIdentityError(
+            f"{label.upper()}_PAIR_ARROW_SCHEMA_DUPLICATE_COLUMNS"
+        )
+    cols_total = _strict_positive_int(
+        raw["cols_total"],
+        field_name="cols_total",
+        label=label.upper(),
+    )
+    if len(parsed_schema) != cols_total + 1:
+        raise PrebuiltIdentityError(
+            f"{label.upper()}_PAIR_ARROW_SCHEMA_COUNT_MISMATCH"
+        )
     return _PrebuiltManifestBinding(
-        label=label,
-        manifest_path=manifest_path.resolve(strict=True),
-        manifest_sha256=hashlib.sha256(raw).hexdigest(),
+        label=label.upper(),
+        pair_generation_id=pair_generation_id,
         parquet_path=resolved_path,
         parquet_sha256=parquet_sha256,
-        rows=_strict_positive_int(manifest["rows"], field_name="rows", label=label),
-        cols_total=_strict_positive_int(
-            manifest["cols_total"],
-            field_name="cols_total",
-            label=label,
+        rows=_strict_positive_int(
+            raw["rows"],
+            field_name="rows",
+            label=label.upper(),
         ),
+        cols_total=cols_total,
+        arrow_schema=tuple(parsed_schema),
+    )
+
+
+def read_prebuilt_pair_manifest(
+    manifest_path: Path,
+    *,
+    generation_root: Path,
+) -> _PrebuiltPairBinding:
+    """Read one stable atomic pair pointer; individual manifests are inadmissible."""
+    manifest_path = Path(manifest_path)
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise PrebuiltIdentityError(
+            f"PREBUILT_PAIR_MANIFEST_NOT_REGULAR_FILE: {manifest_path}"
+        )
+    before = _file_stamp(manifest_path, label="PREBUILT_PAIR_MANIFEST")
+    raw = manifest_path.read_bytes()
+    after = _file_stamp(manifest_path, label="PREBUILT_PAIR_MANIFEST")
+    if before != after:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_CHANGED_DURING_READ")
+    try:
+        manifest = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_JSON_INVALID") from exc
+    if not isinstance(manifest, dict):
+        raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_ROOT_INVALID")
+    if set(manifest) != {
+        "schema_version",
+        "pair_generation_id",
+        "created_utc",
+        "artifacts",
+    }:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_FIELDS_INVALID")
+    if manifest["schema_version"] != PREBUILT_PAIR_SCHEMA_VERSION:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_SCHEMA_VERSION_INVALID")
+    created_utc = manifest["created_utc"]
+    if (
+        not isinstance(created_utc, str)
+        or not created_utc
+        or created_utc.strip() != created_utc
+    ):
+        raise PrebuiltIdentityError("PREBUILT_PAIR_CREATED_UTC_INVALID")
+    try:
+        parsed_created_utc = datetime.strptime(
+            created_utc,
+            "%Y-%m-%dT%H:%M:%SZ",
+        )
+    except ValueError as exc:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_CREATED_UTC_INVALID") from exc
+    if parsed_created_utc.strftime("%Y-%m-%dT%H:%M:%SZ") != created_utc:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_CREATED_UTC_INVALID")
+    generation_root = Path(generation_root)
+    if generation_root.is_symlink() or not generation_root.is_dir():
+        raise PrebuiltIdentityError(
+            f"PREBUILT_PAIR_GENERATION_ROOT_INVALID: {generation_root}"
+        )
+    generation_root = generation_root.resolve(strict=True)
+    pair_generation_id = manifest["pair_generation_id"]
+    if (
+        not isinstance(pair_generation_id, str)
+        or len(pair_generation_id) != 64
+        or pair_generation_id.lower() != pair_generation_id
+        or any(char not in "0123456789abcdef" for char in pair_generation_id)
+    ):
+        raise PrebuiltIdentityError("PREBUILT_PAIR_GENERATION_ID_INVALID")
+    artifacts = manifest["artifacts"]
+    if not isinstance(artifacts, dict) or set(artifacts) != {
+        "canonical_v3",
+        "base28",
+    }:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_ARTIFACT_SET_INVALID")
+    try:
+        observed_generation_id = pair_generation_id_for_artifacts(artifacts)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_ARTIFACT_IDENTITY_INVALID"
+        ) from exc
+    if observed_generation_id != pair_generation_id:
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_GENERATION_ID_CONTENT_MISMATCH"
+        )
+    canonical = _parse_pair_artifact(
+        artifacts["canonical_v3"],
+        label="canonical_v3",
+        pair_generation_id=pair_generation_id,
+        generation_root=generation_root,
+    )
+    base28 = _parse_pair_artifact(
+        artifacts["base28"],
+        label="base28",
+        pair_generation_id=pair_generation_id,
+        generation_root=generation_root,
+    )
+    return _PrebuiltPairBinding(
+        manifest_path=manifest_path.resolve(strict=True),
+        manifest_sha256=hashlib.sha256(raw).hexdigest(),
+        pair_generation_id=pair_generation_id,
+        canonical_v3=canonical,
+        base28=base28,
     )
 
 
@@ -316,6 +520,10 @@ def _verify_prebuilt(
             f"{binding.label}_PARQUET_ROWS_MISMATCH: "
             f"observed={observed_rows} expected={binding.rows}"
         )
+    if arrow_schema != binding.arrow_schema:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_SCHEMA_MANIFEST_MISMATCH"
+        )
     if expected_schema is not None and arrow_schema != expected_schema:
         raise PrebuiltIdentityError(
             f"{binding.label}_PARQUET_SCHEMA_IDENTITY_MISMATCH"
@@ -330,6 +538,24 @@ def _verify_prebuilt(
         file_stamp=after,
         arrow_schema=arrow_schema,
     )
+
+
+def verify_prebuilt_pair(
+    binding: _PrebuiltPairBinding,
+    *,
+    expected_canonical_schema: tuple[tuple[str, str, bool], ...] | None = None,
+    expected_base28_schema: tuple[tuple[str, str, bool], ...] | None = None,
+) -> tuple[_VerifiedPrebuilt, _VerifiedPrebuilt]:
+    """Verify both immutable artifacts before a pair is computed from or served."""
+    canonical = _verify_prebuilt(
+        binding.canonical_v3,
+        expected_schema=expected_canonical_schema,
+    )
+    base28 = _verify_prebuilt(
+        binding.base28,
+        expected_schema=expected_base28_schema,
+    )
+    return canonical, base28
 
 
 def _load_verified_prebuilt(
@@ -378,15 +604,14 @@ def _load_verified_prebuilt(
 
 @dataclass
 class PrebuiltStateLoader:
-    canonical_v3_manifest_path: Path = CANONICAL_V3_MANIFEST_PATH
-    base28_manifest_path: Path = BASE28_MANIFEST_PATH
-    # Optional caller pins are assertions against CURRENT_MANIFEST, never
-    # alternate paths. On success both fields become the exact manifest paths.
-    canonical_v3_path: Path | None = None
-    base28_path: Path | None = None
+    pair_manifest_path: Path = PREBUILT_PAIR_MANIFEST_PATH
+    generation_root: Path = PREBUILT_PAIR_ROOT
+    canonical_v3_path: Path | None = field(default=None, init=False)
+    base28_path: Path | None = field(default=None, init=False)
     _cv3: pd.DataFrame | None = field(default=None, init=False)
     _base28: pd.DataFrame | None = field(default=None, init=False)
     _last_ts: pd.Timestamp | None = field(default=None, init=False)
+    _pair_binding: _PrebuiltPairBinding | None = field(default=None, init=False)
     _cv3_binding: _PrebuiltManifestBinding | None = field(default=None, init=False)
     _base28_binding: _PrebuiltManifestBinding | None = field(default=None, init=False)
     _cv3_source_schema: tuple[tuple[str, str, bool], ...] | None = field(
@@ -428,43 +653,52 @@ class PrebuiltStateLoader:
 
     def _admit_current_refresh_pair(
         self,
-    ) -> tuple[_VerifiedPrebuilt, _VerifiedPrebuilt, bool, bool] | None:
-        cv3_binding = _read_prebuilt_manifest(
-            self.canonical_v3_manifest_path,
-            label="CANONICAL_V3",
+    ) -> tuple[
+        _PrebuiltPairBinding,
+        _VerifiedPrebuilt,
+        _VerifiedPrebuilt,
+        bool,
+        bool,
+    ] | None:
+        pair_binding = read_prebuilt_pair_manifest(
+            self.pair_manifest_path,
+            generation_root=self.generation_root,
         )
-        base28_binding = _read_prebuilt_manifest(
-            self.base28_manifest_path,
-            label="BASE28",
-        )
+        cv3_binding = pair_binding.canonical_v3
+        base28_binding = pair_binding.base28
         cv3_stamp = _file_stamp(cv3_binding.parquet_path, label="CANONICAL_V3")
         base28_stamp = _file_stamp(base28_binding.parquet_path, label="BASE28")
         cv3_advanced = (
-            cv3_binding != self._cv3_binding
+            pair_binding != self._pair_binding
+            or cv3_binding != self._cv3_binding
             or cv3_stamp != self._cv3_file_stamp
         )
         b28_advanced = (
-            base28_binding != self._base28_binding
+            pair_binding != self._pair_binding
+            or base28_binding != self._base28_binding
             or base28_stamp != self._base28_file_stamp
         )
         if not (cv3_advanced or b28_advanced):
             return None
 
         # Validate the complete pair before starting expensive asynchronous
-        # augmentation. This catches a parquet replacement whose CURRENT_MANIFEST
-        # was not atomically advanced, including the historical cv3 updater bug.
-        cv3_verified = _verify_prebuilt(
-            cv3_binding,
-            expected_schema=self._cv3_source_schema,
+        # augmentation. Serving identity is the pair, never two independently
+        # moving files or individual legacy manifests.
+        cv3_verified, base28_verified = verify_prebuilt_pair(
+            pair_binding,
+            expected_canonical_schema=self._cv3_source_schema,
+            expected_base28_schema=self._base28_source_schema,
         )
-        base28_verified = _verify_prebuilt(
-            base28_binding,
-            expected_schema=self._base28_source_schema,
+        return (
+            pair_binding,
+            cv3_verified,
+            base28_verified,
+            cv3_advanced,
+            b28_advanced,
         )
-        return cv3_verified, base28_verified, cv3_advanced, b28_advanced
 
     def refresh_if_changed(self) -> bool:
-        """Verify CURRENT_MANIFEST identity and schedule an exact joint refresh.
+        """Verify the atomic pair identity and schedule an exact joint refresh.
 
         A missing/invalid manifest, path, hash, row count, or schema raises
         synchronously. Background failures are latched and invalidate reads;
@@ -492,7 +726,13 @@ class PrebuiltStateLoader:
             raise
         if admission is None:
             return False
-        cv3_verified, base28_verified, cv3_advanced, b28_advanced = admission
+        (
+            pair_binding,
+            cv3_verified,
+            base28_verified,
+            cv3_advanced,
+            b28_advanced,
+        ) = admission
 
         # Schedule background refresh.
         t = threading.Thread(
@@ -500,6 +740,7 @@ class PrebuiltStateLoader:
             args=(
                 cv3_verified,
                 base28_verified,
+                pair_binding,
                 cv3_advanced,
                 b28_advanced,
             ),
@@ -514,6 +755,7 @@ class PrebuiltStateLoader:
         self,
         cv3_verified: _VerifiedPrebuilt,
         base28_verified: _VerifiedPrebuilt,
+        pair_binding: _PrebuiltPairBinding,
         cv3_advanced: bool,
         b28_advanced: bool,
     ) -> None:
@@ -620,34 +862,32 @@ class PrebuiltStateLoader:
                         "multi-TF refresh failed; aborting cv3 swap to avoid new-cv3/stale-mtf split-brain"
                     ) from exc
 
-            # CURRENT_MANIFEST and both parquet files must still be the exact
+            # The pair pointer and both parquet files must still be the exact
             # pair admitted before the thread began. A producer advance during
             # augmentation cannot be combined with this older local snapshot.
-            final_cv3_binding = _read_prebuilt_manifest(
-                self.canonical_v3_manifest_path,
-                label="CANONICAL_V3",
+            final_pair_binding = read_prebuilt_pair_manifest(
+                self.pair_manifest_path,
+                generation_root=self.generation_root,
             )
-            final_base28_binding = _read_prebuilt_manifest(
-                self.base28_manifest_path,
-                label="BASE28",
-            )
-            if final_cv3_binding != cv3_verified.binding:
+            if final_pair_binding != pair_binding:
                 raise PrebuiltIdentityError(
-                    "CANONICAL_V3_CURRENT_MANIFEST_CHANGED_DURING_REFRESH"
-                )
-            if final_base28_binding != base28_verified.binding:
-                raise PrebuiltIdentityError(
-                    "BASE28_CURRENT_MANIFEST_CHANGED_DURING_REFRESH"
+                    "PREBUILT_PAIR_MANIFEST_CHANGED_DURING_REFRESH"
                 )
             if (
-                _file_stamp(final_cv3_binding.parquet_path, label="CANONICAL_V3")
+                _file_stamp(
+                    final_pair_binding.canonical_v3.parquet_path,
+                    label="CANONICAL_V3",
+                )
                 != cv3_verified.file_stamp
             ):
                 raise PrebuiltIdentityError(
                     "CANONICAL_V3_PARQUET_CHANGED_DURING_REFRESH"
                 )
             if (
-                _file_stamp(final_base28_binding.parquet_path, label="BASE28")
+                _file_stamp(
+                    final_pair_binding.base28.parquet_path,
+                    label="BASE28",
+                )
                 != base28_verified.file_stamp
             ):
                 raise PrebuiltIdentityError(
@@ -662,6 +902,7 @@ class PrebuiltStateLoader:
             self.base28_path = base28_verified.binding.parquet_path
             self._cv3_binding = cv3_verified.binding
             self._base28_binding = base28_verified.binding
+            self._pair_binding = pair_binding
             self._cv3_file_stamp = cv3_verified.file_stamp
             self._base28_file_stamp = base28_verified.file_stamp
             self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
@@ -685,33 +926,21 @@ class PrebuiltStateLoader:
             LOG.exception("async prebuilt refresh failed closed; old state invalidated")
 
     def load(self) -> None:
-        """Load the exact CURRENT_MANIFEST-bound canonical-v3 + BASE28 pair."""
-        cv3_binding = _read_prebuilt_manifest(
-            self.canonical_v3_manifest_path,
-            label="CANONICAL_V3",
-            expected_path=self.canonical_v3_path,
+        """Load the one exact atomic canonical-v3 + BASE28 pair generation."""
+        pair_binding = read_prebuilt_pair_manifest(
+            self.pair_manifest_path,
+            generation_root=self.generation_root,
         )
-        base28_binding = _read_prebuilt_manifest(
-            self.base28_manifest_path,
-            label="BASE28",
-            expected_path=self.base28_path,
-        )
+        cv3_binding = pair_binding.canonical_v3
+        base28_binding = pair_binding.base28
         cv3, cv3_verified = _load_verified_prebuilt(cv3_binding)
         base28, base28_verified = _load_verified_prebuilt(base28_binding)
-        if (
-            _read_prebuilt_manifest(
-                self.canonical_v3_manifest_path,
-                label="CANONICAL_V3",
-            )
-            != cv3_binding
-            or _read_prebuilt_manifest(
-                self.base28_manifest_path,
-                label="BASE28",
-            )
-            != base28_binding
-        ):
+        if read_prebuilt_pair_manifest(
+            self.pair_manifest_path,
+            generation_root=self.generation_root,
+        ) != pair_binding:
             raise PrebuiltIdentityError(
-                "PREBUILT_CURRENT_MANIFEST_CHANGED_DURING_INITIAL_LOAD"
+                "PREBUILT_PAIR_MANIFEST_CHANGED_DURING_INITIAL_LOAD"
             )
         if (
             _file_stamp(cv3_binding.parquet_path, label="CANONICAL_V3")
@@ -727,6 +956,7 @@ class PrebuiltStateLoader:
         self._cv3 = cv3
         self.canonical_v3_path = cv3_binding.parquet_path
         self._cv3_binding = cv3_binding
+        self._pair_binding = pair_binding
         self._cv3_source_schema = cv3_verified.arrow_schema
         self._cv3_file_stamp = cv3_verified.file_stamp
         self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
@@ -752,8 +982,8 @@ class PrebuiltStateLoader:
         self._augment_cv3_with_regime_v4()  # after v2_mtf sources; immutable active transform
         self._refresh_error = None
 
-    # ── V2 multi-TF scalar augmentation (XGB v7 base80) ───────────────
-    # XGB v7 expects 31 V2-suffixed columns per row (M15/H1/H4/D1 × 7-8 each).
+    # ── Exit-XGB V2 multi-TF scalar augmentation ──────────────────────
+    # The exact bundle contract consumes 31 V2-suffixed columns per row.
     # ONE TRUTH (2026-06-13): the per-TF V2 mtf projection now lives in
     # gx1.features.htf_features.REGIME_V4_V2_MTF_* and is imported at module top, so the serve,
     # the canonical_incremental daemon (BASE34 ctx recompute), and the build all use the IDENTICAL
@@ -976,6 +1206,14 @@ class PrebuiltStateLoader:
         if self._last_ts is None:
             raise RuntimeError("loader not initialized — call .load() first")
         return self._last_ts
+
+    @property
+    def pair_generation_id(self) -> str:
+        """Content identity shared by the two currently loaded artifacts."""
+        self._raise_refresh_error()
+        if self._pair_binding is None:
+            raise RuntimeError("loader not initialized — call .load() first")
+        return self._pair_binding.pair_generation_id
 
     def get_window(self, end_ts: pd.Timestamp, n_bars: int = 96) -> pd.DataFrame:
         """Return the last `n_bars` M5 bars up to and including `end_ts`,

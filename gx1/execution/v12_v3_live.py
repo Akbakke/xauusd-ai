@@ -59,6 +59,10 @@ from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
     EXIT_IO_V8_REGIME_M1L512_IO_VERSION as V8_IO_VERSION,
 )
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
+from gx1.exits.contracts.registry import get_exit_io_contract
+from gx1.exits.training.thin_record_dataset import (
+    require_reproducible_v3_training_lineage,
+)
 
 LOG = logging.getLogger("v12_v3_live")
 
@@ -201,6 +205,7 @@ class V3LiveInference:
     # broke V3 inference for the entire COSTFIX live era when V7 was loaded).
     _features: list = field(default_factory=list)
     _feature_count: int = 0
+    _training_lineage: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def load(
@@ -231,12 +236,26 @@ class V3LiveInference:
                 f"{sorted(SUPPORTED_V3_CONTRACTS)}"
             )
         _expected_features, _expected_count = SUPPORTED_V3_CONTRACTS[io_version]
+        registry_contract = get_exit_io_contract(io_version)
         if int(cfg["input_dim"]) != _expected_count:
             raise RuntimeError(
                 f"V3 input_dim={cfg['input_dim']} != contract {io_version}={_expected_count}"
             )
+        if (
+            type(cfg.get("feature_count")) is not int
+            or cfg["feature_count"] != _expected_count
+            or cfg.get("feature_names_hash") != registry_contract["feature_hash"]
+        ):
+            raise RuntimeError(
+                "V3 config feature identity differs from the selected IO contract"
+            )
         if int(cfg["window_len"]) != WINDOW_LEN:
             raise RuntimeError(f"V3 window_len={cfg['window_len']} != {WINDOW_LEN}")
+        training_lineage = require_reproducible_v3_training_lineage(
+            bundle_dir=bundle_dir,
+            config=cfg,
+            state_path=state_path,
+        )
         LOG.info(f"V3 contract={io_version} input_dim={_expected_count}")
 
         # V12.2: detect multi-TF mode from config (v8 bundles default enabled=False).
@@ -305,6 +324,7 @@ class V3LiveInference:
                             for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
             _features=list(_expected_features),
             _feature_count=int(_expected_count),
+            _training_lineage=training_lineage,
         )
 
     @classmethod

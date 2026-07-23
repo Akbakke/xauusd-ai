@@ -55,13 +55,17 @@ P0/P1 findings are now source-repaired and regression-tested for:
 - fail-closed missing broker trade identity; no opposite market-order close.
 
 No rebuild, training, calibration, replay or launch was run. V24/V7 predate
-all repairs and remain rejected. The later audit also rejects the retained
-Exit artifacts and reopens incremental/full-history, atomic-generation,
-canonical-M5/closure, observed-slippage and V3-lineage P0s beside the
-canonical full-TEST producer. Formula and HTF alignment ownership is repaired
-in source. Caller-supplied replay diagnostics are blocked from launch.
-Canonical/live December-2024 tape parity and every empirical dataset/model/
-edge gate are also still open.
+all repairs and remain rejected. The post-audit source checkpoint closes
+bounded-history canonical state, atomic canonical-v3/BASE28 generation
+identity, native-M5 closure/schema/hash ownership, the non-observable
+slippage-feature leak and reproducible XGB-bound V3 lineage. Historical Exit
+now consumes hash-bound closed-M1 rows through the same pipeline seam used by
+live collection. Formula and HTF alignment ownership is also repaired.
+Caller-supplied replay diagnostics remain blocked from launch. The exact V3
+training-dataset writer, canonical active-Exit full-TEST producer, fresh
+XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap,
+canonical/live December-2024 tape parity and every empirical dataset/model/
+edge gate are still open.
 
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
@@ -567,8 +571,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The settled post-V7 source-repair tree collected 1,821 tests on 2026-07-23:
-1,816 passed, five were explicitly skipped and zero failed. Changed Python
+The settled post-V7 source-repair tree collected 1,845 tests on 2026-07-23:
+1,840 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -728,12 +732,15 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    feature order and has no explicit serving fold. Runtime now blocks it.
    Rebuild the per-bar dataset, rescore V3 and retrain Exit on the future
    accepted seq513 Entry distribution.
-4. Source still needs complete canonical-v2 incremental/full-history parity,
-   one atomic canonical/BASE generation identity, one canonical-M5 owner with
-   explicit closure semantics, an observable per-bar slippage owner,
-   reproducible V3 lineage and the canonical active-Exit full-TEST producer.
-   ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment now
-   use shared code owners; unavailable execution cost fails closed.
+4. Source now recomputes canonical-v2 over the complete verified native-M5
+   history, publishes canonical-v3/BASE28 as one atomic immutable generation,
+   enforces one native-M5 closure/schema/hash owner and binds V3 lineage to the
+   exact XGB bridge identity. No causal observed-slippage source exists, so
+   slippage-derived decision fields were removed instead of synthesized.
+   Remaining producer work is the exact V3 training dataset and canonical
+   active-Exit full-TEST path, followed by fresh XGB/V3/Exit artifacts.
+   ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment use
+   shared code owners; unavailable required inputs fail closed.
 5. Recent-regime handling is not yet empirical. Compare full-history baseline
    with an immutable TRAIN-only recent-regime fine-tune/calibration challenger;
    June VAL selects, July TEST stays untouched until the declared final gate.

@@ -162,7 +162,9 @@ def test_model_native_parity_requires_explicit_event_inputs() -> None:
     assert not hasattr(serve_parity, "DEFAULT_OUT_DIR")
     source = Path(serve_parity.__file__).read_text(encoding="utf-8")
     assert 'ap.add_argument("--dataset-dir", type=Path, required=True)' in source
-    assert 'ap.add_argument("--canonical-v3-path", type=Path, required=True)' in source
+    assert 'ap.add_argument("--pair-manifest-path", type=Path, required=True)' in source
+    assert 'ap.add_argument("--pair-generation-root", type=Path, required=True)' in source
+    assert "PrebuiltStateLoader(canonical_v3_path=" not in source
     assert '"--out-dir",' in source
     for retired_option in (
         '"--split"',

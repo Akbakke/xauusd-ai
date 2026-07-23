@@ -40,7 +40,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -266,8 +265,11 @@ def label_uids_to_disk(
         initargs=(str(dataset_dir),),
     ) as pool:
         byte_off = 0
+        # Preserve the exact input UID sequence in the spill bytes. Completion-
+        # order output made the training-record order depend on worker timing,
+        # so the same dataset/seed/recipe could not reproduce the same batches.
         for ti, (uid, labeled) in enumerate(
-            pool.imap_unordered(_spawn_label_one_trade, jobs, chunksize=chunksize)
+            pool.imap(_spawn_label_one_trade, jobs, chunksize=chunksize)
         ):
             ranges: List[Tuple[int, int]] = []
             for rec in labeled:

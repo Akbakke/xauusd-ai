@@ -57,12 +57,15 @@ one accepted bundle commit, exact canonical registry/state targets and the
 active-Exit projection; partial failure restores both targets and terminalizes
 red. It cannot accept caller-supplied Exit replay diagnostics. The second
 audit invalidates the retained Exit artifacts on timing, feature-order,
-serving-fold and production-admission grounds. Remaining source P0s cover the
-canonical full-TEST producer, causal Exit rebuild/rescore/retrain,
-incremental/full-history and atomic-generation parity, canonical-M5 closure
-ownership, unified ATR/ROC/VWAP semantics and reproducible V3 lineage. These
-code proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity
-and every empirical model/edge gate remain open.
+serving-fold and production-admission grounds. The subsequent repair adds
+atomic canonical/BASE generations, full-history native-M5 recomputation,
+strict M5 source/closure ownership, removal of non-causal slippage features,
+bundle-owned XGB contracts, XGB-bound V3 lineage and an exact historical M1
+provider seam. Current data/artifacts predate these contracts. Remaining
+source P0s are the exact V3 dataset writer and canonical full-TEST active-Exit
+producer, followed by a fresh 79-field XGB→V3→Exit-IQL chain. These code
+proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity and
+every empirical model/edge gate remain open.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive

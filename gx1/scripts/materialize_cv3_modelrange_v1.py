@@ -2,7 +2,7 @@
 
 The active Entry source cascade needs the causal ``atr`` normalization source
 that canonical-v3 omits from its model feature surface. Ten retired duplicate/
-XGB-only columns are not restored, and five constant legacy cost/regime fields
+XGB-only columns are not restored, and three constant legacy spread/regime fields
 are removed from the Entry projection. This producer joins the one required
 column from exact row-aligned canonical-v2 bytes, trims the declared causal
 history window, and binds every input/output byte plus the Entry run lineage in
@@ -27,10 +27,10 @@ import pandas as pd
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SCHEMA_VERSION = "cv3_modelrange_provenance_v5"
+SCHEMA_VERSION = "cv3_modelrange_provenance_v6"
 PRODUCER = "gx1.scripts.materialize_cv3_modelrange_v1"
-PRODUCER_VERSION = "v4"
-EXPECTED_CV3_COLUMN_COUNT = 113
+PRODUCER_VERSION = "v5"
+EXPECTED_CV3_COLUMN_COUNT = 111
 EXPECTED_OUTPUT_COLUMN_COUNT = 109
 DEFAULT_START_UTC = "2020-11-13T00:00:00Z"
 EXTRA_COLUMNS_FROM_CANONICAL_V2 = (
@@ -39,9 +39,7 @@ EXTRA_COLUMNS_FROM_CANONICAL_V2 = (
 ENTRY_DEAD_CONSTANT_COLUMNS = (
     "_v1_atr_regime_id",
     "_v1_spread_p",
-    "_v1_slip_bps",
     "_v1_spread_z",
-    "_v1_cost_bps_est",
 )
 
 

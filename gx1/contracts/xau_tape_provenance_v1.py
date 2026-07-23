@@ -13,12 +13,37 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pyarrow.parquet as pq
+
 
 XAU_INSTRUMENT = "XAU_USD"
 BASE_REPAIR_SCHEMA = "m5_tape_dec2024_repair_manifest_v2"
 CURRENT_SNAPSHOT_SCHEMA = "m5_tape_current_snapshot_v2"
 BASE_REPAIR_METHOD = "recompute_window_from_canonical_m1_drop_unbacked_bars"
 CURRENT_SNAPSHOT_METHOD = "immutable_live_collector_snapshot_exact_m5_overlap"
+CANONICAL_M5_SOURCE_SCHEMA = "xau_canonical_m5_source_v1"
+CANONICAL_M5_PRODUCER_OWNER = (
+    "gx1.scripts.backfill_xauusd_m5_from_oanda.fetch_candles_bid_ask"
+)
+CANONICAL_M5_CLOSURE_CONTRACT = (
+    "oanda_complete_true_source_absence_no_synthesis_v1"
+)
+CANONICAL_M5_REQUIRED_COLUMNS = (
+    "time",
+    "open",
+    "high",
+    "low",
+    "close",
+    "bid_open",
+    "bid_high",
+    "bid_low",
+    "bid_close",
+    "ask_open",
+    "ask_high",
+    "ask_low",
+    "ask_close",
+    "volume",
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -80,6 +105,97 @@ def _normalized_instrument(raw: Any) -> str:
     return XAU_INSTRUMENT
 
 
+def _validate_canonical_m5_source_contract(
+    root: Path,
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Require one hash-bound native-M5 owner and source-defined closure."""
+
+    exact = {
+        "schema_version": CANONICAL_M5_SOURCE_SCHEMA,
+        "producer_owner": CANONICAL_M5_PRODUCER_OWNER,
+        "source_kind": "oanda_native_mba_candles",
+        "source_granularity": "M5",
+        "prices": "MBA",
+        "timestamp_semantics": "bar_start_utc",
+        "bar_duration_seconds": 300,
+        "decision_available_offset_seconds": 300,
+        "completion_field": "complete",
+        "completion_value": True,
+        "market_closure_contract": CANONICAL_M5_CLOSURE_CONTRACT,
+    }
+    for key, expected in exact.items():
+        if manifest.get(key) != expected:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_SOURCE_POLICY_MISMATCH: "
+                f"field={key!r} expected={expected!r} "
+                f"observed={manifest.get(key)!r}"
+            )
+    if manifest.get("schema_required_cols") != list(
+        CANONICAL_M5_REQUIRED_COLUMNS
+    ):
+        raise RuntimeError("XAU_CANONICAL_M5_SCHEMA_CONTRACT_MISMATCH")
+    if manifest.get("schema_optional_cols") != []:
+        raise RuntimeError("XAU_CANONICAL_M5_OPTIONAL_SCHEMA_FORBIDDEN")
+    if "slippage_bps" in manifest.get("schema_required_cols", []):
+        raise RuntimeError("XAU_CANONICAL_M5_SLIPPAGE_NOT_SOURCE_OBSERVED")
+
+    year_hashes = manifest.get("year_sha256")
+    if not isinstance(year_hashes, dict) or not year_hashes:
+        raise RuntimeError("XAU_CANONICAL_M5_YEAR_HASHES_MISSING")
+    year_rows = manifest.get("year_rows")
+    if not isinstance(year_rows, dict) or set(year_rows) != set(year_hashes):
+        raise RuntimeError("XAU_CANONICAL_M5_YEAR_ROWS_MISSING")
+    actual_parts = sorted(root.glob("year=*/part-000.parquet"))
+    actual_keys = [part.parent.name for part in actual_parts]
+    if actual_keys != sorted(year_hashes):
+        raise RuntimeError(
+            "XAU_CANONICAL_M5_YEAR_SET_MISMATCH: "
+            f"manifest={sorted(year_hashes)} filesystem={actual_keys}"
+        )
+    for part in actual_parts:
+        expected_hash = year_hashes.get(part.parent.name)
+        observed_hash = sha256_file(part)
+        if expected_hash != observed_hash:
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_YEAR_HASH_MISMATCH: "
+                f"year={part.parent.name} expected={expected_hash!r} "
+                f"observed={observed_hash!r}"
+            )
+        try:
+            metadata = pq.ParquetFile(part)
+            observed_columns = metadata.schema_arrow.names
+            observed_rows = int(metadata.metadata.num_rows)
+        except Exception as exc:
+            raise RuntimeError(
+                f"XAU_CANONICAL_M5_PARQUET_INVALID: {part}"
+            ) from exc
+        if observed_columns != list(CANONICAL_M5_REQUIRED_COLUMNS):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_PARQUET_SCHEMA_MISMATCH: "
+                f"year={part.parent.name} observed={observed_columns}"
+            )
+        expected_rows = year_rows.get(part.parent.name)
+        if (
+            isinstance(expected_rows, bool)
+            or not isinstance(expected_rows, int)
+            or expected_rows <= 0
+            or expected_rows != observed_rows
+        ):
+            raise RuntimeError(
+                "XAU_CANONICAL_M5_YEAR_ROWS_MISMATCH: "
+                f"year={part.parent.name} expected={expected_rows!r} "
+                f"observed={observed_rows}"
+            )
+    return {
+        **exact,
+        "schema_required_cols": list(CANONICAL_M5_REQUIRED_COLUMNS),
+        "schema_optional_cols": [],
+        "year_sha256": dict(sorted(year_hashes.items())),
+        "year_rows": dict(sorted(year_rows.items())),
+    }
+
+
 def canonical_xau_source_descriptor_v1(
     root: Path | str,
     *,
@@ -113,7 +229,7 @@ def canonical_xau_source_descriptor_v1(
             "XAU_CANONICAL_DECLARED_ROOT_MISMATCH: "
             f"manifest={declared_root} input={canonical_root}"
         )
-    return {
+    descriptor = {
         "root": str(canonical_root),
         "manifest_path": str(manifest_path),
         "manifest_sha256": sha256_file(manifest_path),
@@ -121,6 +237,11 @@ def canonical_xau_source_descriptor_v1(
         "instrument_observed": str(manifest.get("instrument")),
         "timeframe": expected_timeframe,
     }
+    if expected_timeframe == "M5":
+        descriptor.update(
+            _validate_canonical_m5_source_contract(canonical_root, manifest)
+        )
+    return descriptor
 
 
 def _validate_source_descriptor(
@@ -134,14 +255,35 @@ def _validate_source_descriptor(
         raw.get("root"),
         timeframe=timeframe,
     )
-    for key in (
+    keys = [
         "root",
         "manifest_path",
         "manifest_sha256",
         "instrument",
         "instrument_observed",
         "timeframe",
-    ):
+    ]
+    if timeframe == "M5":
+        keys.extend(
+            [
+                "schema_version",
+                "producer_owner",
+                "source_kind",
+                "source_granularity",
+                "prices",
+                "timestamp_semantics",
+                "bar_duration_seconds",
+                "decision_available_offset_seconds",
+                "completion_field",
+                "completion_value",
+                "market_closure_contract",
+                "schema_required_cols",
+                "schema_optional_cols",
+                "year_sha256",
+                "year_rows",
+            ]
+        )
+    for key in keys:
         if raw.get(key) != observed[key]:
             raise RuntimeError(
                 f"XAU_TAPE_CANONICAL_{timeframe}_{key.upper()}_MISMATCH: "

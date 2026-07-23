@@ -31,7 +31,8 @@ Run under the capped runner (heavy: full prebuilt load + augmenters ~7 min):
   scripts/gx1_capped_run.sh --mem 34G .venv/bin/python -m \
       gx1.scripts.verify_model_native_serve_parity_v1 \
       --dataset-dir /absolute/model_native_dataset \
-      --canonical-v3-path /absolute/xauusd_m5_CANONICAL_V3.parquet \
+      --pair-manifest-path /absolute/CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json \
+      --pair-generation-root /absolute/CANONICAL_V3_BASE28_GENERATIONS \
       --pinned-predictions /absolute/selective_edge_predictions_<microstamp>.parquet \
       --prediction-report-json /absolute/ENTRY_CANDIDATE_SELECTIVE_EDGE_<microstamp>.json \
       --out-dir /absolute/immutable/parity/events
@@ -1680,7 +1681,8 @@ def main() -> int:
     _apply_exact_env_pins()
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dataset-dir", type=Path, required=True)
-    ap.add_argument("--canonical-v3-path", type=Path, required=True)
+    ap.add_argument("--pair-manifest-path", type=Path, required=True)
+    ap.add_argument("--pair-generation-root", type=Path, required=True)
     ap.add_argument(
         "--pinned-predictions",
         type=Path,
@@ -1790,14 +1792,20 @@ def main() -> int:
 
     # ── live prebuilts (frozen snapshot — deterministic) ─────────────────────
     from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
-    canonical_v3_path = args.canonical_v3_path.expanduser().resolve()
-    if not canonical_v3_path.is_file():
-        raise RuntimeError(f"canonical-v3 path is missing: {canonical_v3_path}")
-    loader = PrebuiltStateLoader(canonical_v3_path=canonical_v3_path)
+    pair_manifest_path = args.pair_manifest_path.expanduser().resolve()
+    pair_generation_root = args.pair_generation_root.expanduser().resolve()
+    loader = PrebuiltStateLoader(
+        pair_manifest_path=pair_manifest_path,
+        generation_root=pair_generation_root,
+    )
     loader.load()
     loader._refresh_enabled = False
     cutoff = loader.cutoff_ts
-    report["canonical_v3_path"] = str(canonical_v3_path)
+    report["pair_manifest_path"] = str(pair_manifest_path)
+    report["pair_generation_root"] = str(pair_generation_root)
+    report["pair_generation_id"] = loader.pair_generation_id
+    report["canonical_v3_path"] = str(loader.canonical_v3_path)
+    report["base28_path"] = str(loader.base28_path)
     report["live_prebuilt_cutoff"] = str(cutoff)
     print(f"[parity] live prebuilts loaded (cutoff={cutoff}, {time.time()-t0:.0f}s)", flush=True)
 

@@ -139,7 +139,7 @@ V1_CONTINUOUS_FROM_AUGMENTED: list[str] = [
     "distance_from_peak_mfe_bps_v1",
     "atr_bps_now_v1",
     "trend_slope_ema3_v1",
-    "spread_bps_dyn_v1",
+    "session_volatility_pressure_v1",
     "minutes_since_session_open_v1",
     "entry_spread_bps_v1",
 ]
