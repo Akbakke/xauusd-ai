@@ -139,10 +139,11 @@ full-TEST producer loop/event. No empirical artifact was created.
    overlays and retrain Exit with checkpoint-bound features and one explicit
    serving fold. The retained research-only/non-production bundle is not an
    incumbent.
-5. Extend the existing V3 dataset owner with the exact end-to-end
-   training-dataset writer/event. It must derive all 173-field market rows,
-   overlays and records from the bound sources; passing the strict
-   reader/materializer is not producer authority.
+5. Preserve the completed V3 producer in the existing dataset owner. Its
+   explicit control route must keep deriving all 173-field market rows,
+   overlays and records from bound prediction/tape/frozen-pair/XGB sources,
+   publish one immutable event atomically and admit no caller-built dataset
+   members. No fresh artifact has yet exercised it on production data.
 6. Extend the existing sizing/replay owner with one canonical full-TEST
    producer around the existing exact `V12Pipeline.make_exit_decision`
    primitive and Exit-only frozen-pair factory. It must preserve the complete

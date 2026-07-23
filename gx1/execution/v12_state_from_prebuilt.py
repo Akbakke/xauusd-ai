@@ -992,10 +992,46 @@ class PrebuiltStateLoader:
 
         self._refresh_enabled = False
         self.load()
-        binding = self._pair_binding
-        if binding is None or self._refresh_enabled is not False:
-            raise PrebuiltIdentityError("PREBUILT_FROZEN_PAIR_NOT_ADMITTED")
-        return {
+        _canonical, _base, identity = self.frozen_pair_frames()
+        return identity
+
+    def frozen_pair_frames(
+        self,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, object]]:
+        """Return the exact loaded canonical/base frames and rechecked identity.
+
+        Dataset and replay producers may consume the same frozen pair as live
+        inference without reaching through private attributes.  This method
+        never reloads, sorts, refreshes or substitutes either frame.
+        """
+
+        if (
+            self._refresh_enabled is not False
+            or self._pair_binding is None
+            or self._cv3 is None
+            or self._base28 is None
+            or self._cv3_file_stamp is None
+            or self._base28_file_stamp is None
+        ):
+            raise PrebuiltIdentityError("PREBUILT_FROZEN_PAIR_NOT_LOADED")
+        binding = read_prebuilt_pair_manifest(
+            self.pair_manifest_path,
+            generation_root=self.generation_root,
+        )
+        if binding != self._pair_binding:
+            raise PrebuiltIdentityError(
+                "PREBUILT_FROZEN_PAIR_MANIFEST_CHANGED"
+            )
+        if (
+            _file_stamp(binding.canonical_v3.parquet_path, label="CANONICAL_V3")
+            != self._cv3_file_stamp
+            or _file_stamp(binding.base28.parquet_path, label="BASE28")
+            != self._base28_file_stamp
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_FROZEN_PAIR_FILES_CHANGED"
+            )
+        identity = {
             "manifest_path": str(binding.manifest_path),
             "manifest_sha256": binding.manifest_sha256,
             "pair_generation_id": binding.pair_generation_id,
@@ -1013,6 +1049,7 @@ class PrebuiltStateLoader:
             },
             "refresh_enabled": False,
         }
+        return self._cv3, self._base28, identity
 
     # ── Exit-XGB V2 multi-TF scalar augmentation ──────────────────────
     # The exact bundle contract consumes 31 V2-suffixed columns per row.

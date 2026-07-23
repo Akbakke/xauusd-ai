@@ -566,9 +566,14 @@ Current facts:
   because no pre-decision observable owner exists; replay stress remains an
   explicit evaluation input. XGB and V3 require bundle-owned exact feature
   contracts and one recursive, reproducible cross-role lineage identity. The
-  canonical active-Exit full-TEST producer, exact V3 training-dataset producer
-  and fresh artifacts remain open; V24/V7 and the old Exit artifacts remain
-  rejected;
+  existing V3 dataset owner now loads only exact runtime-head prediction
+  evidence, strict chronological SourceTape, one frozen canonical-v3/BASE28
+  pair and one exact XGB identity. It derives the 173-field matrix through the
+  shared serving builder, creates exact T+5 overlays/records, writes a
+  byte-bound PASS event and publishes by atomic no-replace rename. Callers
+  cannot supply matrix, overlay or record members. The canonical active-Exit
+  full-TEST producer and fresh artifacts remain open; V24/V7 and the old Exit
+  artifacts remain rejected;
 - rejected V21/V22/V23 large split parquets are deleted; their terminal,
   manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
@@ -782,12 +787,14 @@ source-repaired too. A hard launch/runtime barrier gives caller-supplied Exit
 replay diagnostics zero authority. The later Exit/incremental audit led to
 source closure for atomic canonical-v3/BASE28 generations, complete-history
 canonical-v2 recomputation, strict native-M5 closure/schema/hash ownership,
-removal of non-observable slippage features, reproducible XGB-bound V3 lineage
-and a hash-bound historical closed-M1 provider for Exit. Formula and HTF
-decision-alignment ownership is also repaired. Still open are the exact V3
-training-dataset writer/event, canonical active-Exit full-TEST loop/event, fresh
-XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap, empirical
-dataset/model/edge proof and canonical/live December-2024 tape parity.
+removal of non-observable slippage features, reproducible XGB-bound V3 lineage,
+a hash-bound historical closed-M1 provider for Exit and the exact V3
+training-dataset writer/event in the existing owner. Formula and HTF
+decision-alignment ownership is also repaired. Still open are a fresh V3
+dataset on compliant inputs, the canonical active-Exit full-TEST loop/event,
+fresh XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap,
+empirical dataset/model/edge proof and canonical/live December-2024 tape
+parity.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

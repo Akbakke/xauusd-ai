@@ -216,6 +216,18 @@ def test_frozen_pair_load_disables_refresh_and_returns_exact_identity(
     assert identity["refresh_enabled"] is False
     assert loader._refresh_enabled is False
     assert loader.refresh_if_changed() is False
+    canonical, base, frame_identity = loader.frozen_pair_frames()
+    assert canonical is loader._cv3
+    assert base is loader._base28
+    assert frame_identity == identity
+
+    base_path = Path(paths["base28"])
+    base_path.write_bytes(base_path.read_bytes() + b"tamper")
+    with pytest.raises(
+        PrebuiltIdentityError,
+        match="PREBUILT_FROZEN_PAIR_FILES_CHANGED",
+    ):
+        loader.frozen_pair_frames()
 
 
 def test_initial_load_rejects_artifact_hash_mismatch(

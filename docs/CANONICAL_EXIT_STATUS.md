@@ -38,9 +38,11 @@ label-horizon outcomes separate from model decision bars and following fresh
 fills.
 
 Still required are a compliant native OANDA M5 materialization, pair bootstrap,
-the exact model-native V3 dataset writer/event, a fresh 79-field Exit-XGB, V3
-rescore/retrain, production Exit-IQL retrain, and the canonical full-TEST
-active-chain loop/event. Exact SourceTape lookup, frozen-pair loading and an
-Exit-only pipeline factory now exist, but cannot replace either producer.
+a fresh model-native V3 dataset produced by the now code-proven exact
+writer/event, a fresh 79-field Exit-XGB, V3 rescore/retrain, production
+Exit-IQL retrain, and the canonical full-TEST active-chain loop/event. Exact
+SourceTape lookup, frozen-pair loading, V3 dataset production and an Exit-only
+pipeline factory now exist in source; no fresh production artifact was
+created.
 Until their immutable OOS and live-like gates pass, Exit cannot authorize
 paper, demo or live operation.

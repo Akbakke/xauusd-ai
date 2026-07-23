@@ -46,9 +46,10 @@ are source-repaired only. The second audit additionally repairs exact
 T+5/closed-M5 Exit timing, V3 window coverage, transactional TradeState and
 production-only Exit loading. The current repair adds full-history native-M5
 state, atomic canonical/BASE generations, strict source/closure ownership,
-causal spread-only semantics and XGB-bound V3 lineage. Current data have not
-been migrated or pair-bootstrapped, and the exact V3 dataset writer plus Exit
-rebuild/rescore/retrain remain P0s. The
+causal spread-only semantics, XGB-bound V3 lineage and the exact V3 dataset
+writer/event in the existing owner. Current data have not been migrated or
+pair-bootstrapped; a fresh V3 dataset and the Exit rebuild/rescore/retrain
+remain artifact gates. The
 public launch route owns canonical repository
 registry/state targets and canonical
 `/home/andre2/GX1_DATA/reports/entry_model_native_launch_authority` evidence

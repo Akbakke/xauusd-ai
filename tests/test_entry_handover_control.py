@@ -48,6 +48,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-replay-trade-log",
     "model-native-replay-evidence",
     "model-native-replay-readiness",
+    "model-native-v3-exit-dataset",
     "model-native-finalize-launch",
     "model-native-rebuild",
     "model-native-smoke-train",
@@ -128,7 +129,6 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert repair["empirical_direction_edge_proven"] is False
     assert repair["remaining_source_p0"] == [
         "canonical_full_test_active_exit_replay_producer",
-        "exact_model_native_v3_training_dataset_producer",
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
         "native_oanda_m5_materialization_and_atomic_pair_bootstrap",
     ]
@@ -390,6 +390,31 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     ):
         assert flag in audit
     assert "audit_entry_foundation_smoke_bundle_v1" in audit
+
+
+def test_v3_dataset_route_extends_existing_owner_with_explicit_inputs() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    route = source.split("  model-native-v3-exit-dataset)", 1)[1].split(
+        "    ;;", 1
+    )[0]
+
+    for flag in (
+        "--run-id",
+        "--prediction-parquet",
+        "--prediction-report-json",
+        "--entry-bundle-dir",
+        "--entry-dataset-dir",
+        "--source-tape-parquet",
+        "--xgb-bundle-dir",
+        "--prebuilt-pair-manifest",
+        "--prebuilt-generation-root",
+        "--expected-model",
+        "--expected-splits",
+        "--out-dir",
+    ):
+        assert flag in route
+    assert "gx1_capped_run.sh" in route
+    assert "-m gx1.exits.training.thin_record_dataset materialize" in route
 
 
 def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> None:

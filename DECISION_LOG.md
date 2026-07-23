@@ -1220,3 +1220,33 @@ Decision:
   produced a canonical parquet whose bytes no longer match its manifest;
 - treat the 2,375 invalid prebuilt OHLC rows in late 2024 as a separate data
   rebuild/quarantine blocker. No canonical/live data were modified.
+
+## 2026-07-23 — exact V3 training-dataset producer is source-complete
+
+The strict V3 reader/materializer previously proved storage semantics but did
+not own construction or publication of a complete dataset. That left a false
+authority boundary: an external caller could assemble the matrix, overlays and
+records and then ask only for validation.
+
+Decision:
+
+- extend `gx1/exits/training/thin_record_dataset.py`, the existing V3 dataset
+  owner; do not add a versioned builder script;
+- expose the operation through the existing
+  `scripts/entry_next_edge_control.sh` route
+  `model-native-v3-exit-dataset`;
+- accept only explicit immutable prediction evidence, Entry bundle/dataset,
+  chronological SourceTape, XGB bundle and frozen canonical-v3/BASE28 pair
+  identities;
+- derive every 173-field base row through the shared serving builder and every
+  T+5/240-bar overlay/record through the shared model-native materializer;
+- bind all input bytes, producer source bytes, XGB identity, runtime-head
+  trade identities, direction support and dataset members into one exact PASS
+  event and manifest;
+- publish by fsynced atomic no-replace rename, then re-open and validate the
+  final bytes;
+- reject unsorted source rows instead of silently reordering them, and recheck
+  the frozen pair manifest/files before exposing its frames;
+- keep launch `BLOCK`: this source proof creates no production dataset,
+  artifact, OOS edge or live authority. The remaining source P0 is the
+  canonical full-TEST active-Exit producer.

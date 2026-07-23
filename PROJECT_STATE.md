@@ -66,11 +66,13 @@ closed decision bar to its following fresh quote and final active-Exit fill.
 SourceTape exact-open lookup, atomic frozen-pair loading and an Exit-only
 `V12Pipeline` factory are code-proven.
 
-Open source work remains: the canonical full-TEST producer that runs the exact
-byte-bound XGB→V3→Exit-IQL chain and the exact V3 training-dataset writer.
-The first must own the full TEST iteration and immutable event publication;
-the second must derive and publish the complete dataset rather than merely
-pass the now-strict reader/materializer contract.
+The V3 training owner now derives and atomically publishes the complete
+173-field matrix, exact T+5 overlays/records and immutable producer event from
+the bound prediction evidence, chronological SourceTape, frozen
+canonical-v3/BASE28 pair and XGB bundle. It accepts no caller matrix, overlay
+or record input and revalidates all published bytes. Open source work is now
+the canonical full-TEST producer that runs the exact byte-bound
+XGB→V3→Exit-IQL chain and owns the complete iteration/event.
 Current M5 data do not satisfy the new native-source manifest and no atomic
 pair has been bootstrapped. A fresh 79-field Exit-XGB, V3 rescore/retrain and
 production Exit-IQL retrain are mandatory; no old role may be mixed in.
@@ -307,8 +309,8 @@ bundle or launch evidence.
 The current post-V7 source-repair tree completed repository-wide verification
 on 2026-07-23:
 
-- 1,879 tests collected;
-- 1,874 passed, five explicit skips and zero failures;
+- 1,883 tests collected;
+- 1,878 passed, five explicit skips and zero failures;
 - Python compilation for every changed Python source and test;
 - Ruff on every changed Python source and test, with only the repository's
   intentional import-bootstrap `E402` pattern excluded;

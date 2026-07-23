@@ -1,11 +1,12 @@
-"""ThinRecordDataset — reader and authority checks for exact V3 thin records.
+"""ThinRecordDataset and exact producer for model-native V3 thin records.
 
-The original producer is retired: it used non-model-native Entry side fallback
-and lacked the required user-vedtak write gate. This module preserves exact
-layout/reconstruction provenance and owns the exact per-trade materializer, but
-it is not authority to create a fresh dataset. Fresh V3 rebuilding remains
-fail-closed until an end-to-end, model-native, vedtak-gated producer binds every
-input listed by ``V3_TRAINING_PRODUCER_INPUT_NAMES``.
+The retired producer used a non-model-native Entry-side fallback and is not
+reachable. This owner now admits only exact runtime-head prediction evidence,
+one chronological bid/ask SourceTape, one frozen canonical-v3/BASE28 pair and
+one byte-bound XGB bundle. It derives the 173-field matrix through the shared
+serving builder, derives exact T+5 overlays/records here, emits a complete
+producer event and publishes the verified directory atomically. Callers never
+supply matrix, overlay or record members.
 
 Background
 ----------
@@ -50,13 +51,18 @@ training-ready (x, y) pairs — see `_attach_labels_to_thin_records` below.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
+import re
+import shutil
 import stat
+import tempfile
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -78,7 +84,10 @@ from gx1.features.trade_overlay import (
 
 V3_TRAINING_LINEAGE_SCHEMA_VERSION = "exit_v3_training_lineage_v1"
 V3_TRAINING_DATASET_PRODUCER_CONTRACT = (
-    "model_native_exit_v3_exact_t5_frozen_entry_state_v2"
+    "model_native_exit_v3_exact_t5_frozen_entry_state_v3"
+)
+V3_TRAINING_DATASET_EVENT_SCHEMA_VERSION = (
+    "model_native_exit_v3_training_dataset_event_v1"
 )
 V3_THIN_RECORD_SCHEMA_VERSION = "model_native_exit_v3_thin_record_v2"
 V3_TRAINING_TEACHER_HORIZON_BARS = 240
@@ -93,7 +102,6 @@ V3_TRAINING_PRODUCER_INPUT_NAMES = frozenset(
         "canonical_v3",
         "base_m1",
         "prebuilt_pair_manifest",
-        "materializer_event",
     }
 )
 V3_XGB_BRIDGE_SOURCE_SCHEMA_VERSION = "exit_xgb_bridge_source_identity_v1"
@@ -107,18 +115,39 @@ V3_TRAINING_DATASET_REQUIRED_FILES = frozenset(
         "trade_state_overlays",
         "overlay_index",
         "records",
+        "producer_event",
     }
 )
 V3_TRAINING_SOURCE_CODE_FILES = frozenset(
     {
+        "gx1/contracts/entry_model_native_adaptation_drift_v1.py",
+        "gx1/contracts/entry_model_native_adaptation_lifecycle_v1.py",
+        "gx1/contracts/entry_model_native_adaptation_shadow_v1.py",
+        "gx1/contracts/entry_model_native_aux_targets_v3.py",
+        "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+        "gx1/contracts/entry_model_native_direction_evidence_fusion_v1.py",
+        "gx1/contracts/entry_model_native_launch_approval_v1.py",
+        "gx1/contracts/entry_model_native_launch_transaction_v1.py",
+        "gx1/contracts/entry_model_native_offline_rl_v1.py",
+        "gx1/contracts/entry_model_native_readiness_v1.py",
+        "gx1/contracts/entry_model_native_sizing_authority_v1.py",
+        "gx1/contracts/entry_model_native_sizing_calibration_v1.py",
+        "gx1/contracts/entry_model_native_sizing_execution_v1.py",
         "gx1/contracts/entry_model_native_signal_v1.py",
         "gx1/contracts/entry_model_native_runtime_evidence_v1.py",
+        "gx1/contracts/entry_pretrain_polarity_signal_v1.py",
+        "gx1/contracts/entry_run_lineage_v1.py",
+        "gx1/contracts/entry_structural_aux_label_signal_v1.py",
+        "gx1/contracts/immutable_event_authority_v1.py",
+        "gx1/contracts/model_native_serve_gate_v1.py",
         "gx1/contracts/signal_bridge_v1.py",
         "gx1/contracts/signal_bridge_v3.py",
+        "gx1/execution/feature_build_tripwires.py",
         "gx1/execution/model_native_entry_replay_v1.py",
         "gx1/execution/v12_canonical_incremental.py",
         "gx1/execution/v12_ctx_augment_live.py",
         "gx1/execution/v12_m1_to_m5_downsample.py",
+        "gx1/execution/v12_state_from_prebuilt.py",
         "gx1/execution/v12_trade_state.py",
         "gx1/execution/v12_v3_live.py",
         "gx1/execution/v12_xgb_live.py",
@@ -133,19 +162,54 @@ V3_TRAINING_SOURCE_CODE_FILES = frozenset(
         "gx1/exits/contracts/registry.py",
         "gx1/exits/training/disk_labeled_dataset.py",
         "gx1/exits/training/thin_record_dataset.py",
+        "gx1/features/array_utils.py",
+        "gx1/features/basic_v1.py",
+        "gx1/features/entry_candlestick_patterns_v1.py",
+        "gx1/features/entry_chart_geometry_v1.py",
+        "gx1/features/entry_foundation_structure_v1.py",
+        "gx1/features/entry_model_native_feature_layers_v1.py",
+        "gx1/features/entry_momentum_flow_v1.py",
+        "gx1/features/entry_mtf_confluence_v1.py",
+        "gx1/features/entry_session_regime_interactions_v1.py",
+        "gx1/features/entry_smart_context.py",
+        "gx1/features/entry_smc_liquidity_quality_v1.py",
+        "gx1/features/entry_specialist_feature_groups_v1.py",
+        "gx1/features/entry_structure_swing_derivations_v1.py",
+        "gx1/features/entry_support_resistance_memory_v1.py",
+        "gx1/features/entry_trend_ema_v1.py",
+        "gx1/features/entry_vol_compression_v1.py",
+        "gx1/features/entry_volatility_semantics_v1.py",
+        "gx1/features/feature_state.py",
+        "gx1/features/group_a_features.py",
+        "gx1/features/htf_aggregator.py",
         "gx1/features/htf_features.py",
+        "gx1/features/micro_structure_v1.py",
+        "gx1/features/model_native_market_context_v1.py",
         "gx1/features/regime_v4_features.py",
+        "gx1/features/rolling_np.py",
+        "gx1/features/rolling_state_numba.py",
+        "gx1/features/rolling_timer.py",
         "gx1/features/smc_v1.py",
+        "gx1/features/swing_structure_v1.py",
         "gx1/features/trade_overlay.py",
         "gx1/features/volume_features.py",
+        "gx1/models/entry_v10/direction_decision_contract.py",
         "gx1/policy/exit_transformer_v0.py",
+        "gx1/scripts/augment_forward_outcome_v2.py",
         "gx1/scripts/train_exit_v5_thin_records.py",
         "gx1/scripts/train_exit_v6_disk_thin.py",
         "gx1/scripts/train_exit_v6_thin_records.py",
         "gx1/scripts/entry_candidate_prediction_evidence_v1.py",
+        "gx1/time/session_detector.py",
+        "gx1/utils/feature_context.py",
         "gx1/utils/fast_train.py",
+        "gx1/utils/perf_timer.py",
+        "gx1/xgb/calibration/isotonic_scaler.py",
+        "gx1/xgb/calibration/platt_scaler.py",
         "gx1/xgb/multihead/xgb_multihead_model_v1.py",
         "gx1/xgb/preprocess/xgb_input_sanitizer.py",
+        "gx1_guards/__init__.py",
+        "gx1_guards/artifacts.py",
     }
 )
 _V3_LINEAGE_KEYS = frozenset(
@@ -172,7 +236,10 @@ _V3_DATASET_SEMANTIC_FIELDS = {
     "model_native_entry_snapshot_v1": True,
     "exact_t5_fill_v1": True,
     "frozen_entry_snapshot_complete_v1": True,
-    "canonical_m1_base_mtf_state_complete_v1": True,
+    "canonical_m1_base_state_complete_v1": True,
+    "multi_tf_training_state_owner_v1": (
+        "trainer_recomputes_from_exact_bound_canonical_v3"
+    ),
     "record_schema_version_v1": V3_THIN_RECORD_SCHEMA_VERSION,
     "teacher_horizon_bars_v1": V3_TRAINING_TEACHER_HORIZON_BARS,
     "emit_stride_bars_v1": V3_TRAINING_RECORD_EMIT_STRIDE_BARS,
@@ -188,6 +255,29 @@ _V3_DATASET_SEMANTIC_FIELDS = {
         for name in OVERLAY_COL_NAMES
     ],
 }
+_V3_DATASET_MANIFEST_KEYS = frozenset(
+    {
+        *_V3_DATASET_SEMANTIC_FIELDS,
+        "run_id_v1",
+        "producer_event_schema_version_v1",
+        "producer_inputs_v1",
+        "producer_inputs_inventory_sha256_v1",
+        "producer_source_files_v1",
+        "producer_source_inventory_sha256_v1",
+        "xgb_bridge_source_v1",
+        "prediction_model_v1",
+        "prediction_splits_v1",
+        "prediction_rows_v1",
+        "direction_counts_v1",
+        "trade_count_v1",
+        "record_count_v1",
+        "first_decision_ts_v1",
+        "last_decision_ts_v1",
+        "first_m1_ts_v1",
+        "last_m1_ts_v1",
+        "files",
+    }
+)
 _V3_THIN_RECORD_KEYS = frozenset(
     {
         "schema_version",
@@ -223,6 +313,7 @@ _V3_THIN_SCALAR_NAMES = (
     "rolling_slope_since_entry",
 )
 _V3_THIN_SCALAR_KEYS = frozenset(_V3_THIN_SCALAR_NAMES)
+_V3_RUN_ID_RE = re.compile(r"^[A-Z0-9][A-Z0-9_.-]{7,127}$")
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -537,6 +628,423 @@ def _require_v3_producer_inputs(
     return inputs
 
 
+def build_v3_producer_source_inventory(
+    repo_root: Path,
+) -> list[dict[str, Any]]:
+    """Bind every repository source file that can influence materialization."""
+
+    root = Path(repo_root).expanduser()
+    if (
+        not root.is_absolute()
+        or root.is_symlink()
+        or not root.is_dir()
+        or root.resolve() != root
+    ):
+        raise RuntimeError("V3_TRAINING_PRODUCER_REPO_ROOT_INVALID")
+    inventory: list[dict[str, Any]] = []
+    for relative in sorted(V3_TRAINING_SOURCE_CODE_FILES):
+        path = root / relative
+        binding = v3_regular_file_binding(
+            path,
+            context=f"V3_TRAINING_PRODUCER_SOURCE[{relative}]",
+        )
+        inventory.append({"relative_path": relative, **binding})
+    return inventory
+
+
+def _require_v3_producer_source_inventory(
+    manifest: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    raw = manifest.get("producer_source_files_v1")
+    if not isinstance(raw, list):
+        raise RuntimeError("V3_TRAINING_PRODUCER_SOURCE_INVENTORY_INVALID")
+    observed_names = [
+        str(item.get("relative_path") or "")
+        for item in raw
+        if isinstance(item, Mapping)
+    ]
+    if (
+        len(observed_names) != len(raw)
+        or observed_names != sorted(V3_TRAINING_SOURCE_CODE_FILES)
+    ):
+        raise RuntimeError("V3_TRAINING_PRODUCER_SOURCE_SET_INVALID")
+    canonical: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, Mapping) or set(item) != {
+            "relative_path",
+            "path",
+            "sha256",
+            "size_bytes",
+        }:
+            raise RuntimeError("V3_TRAINING_PRODUCER_SOURCE_BINDING_INVALID")
+        relative = str(item["relative_path"])
+        binding = _require_v3_regular_file_binding(
+            {
+                "path": item["path"],
+                "sha256": item["sha256"],
+                "size_bytes": item["size_bytes"],
+            },
+            context=f"V3_TRAINING_PRODUCER_SOURCE[{relative}]",
+        )
+        source_path = Path(binding["path"])
+        if not source_path.as_posix().endswith(f"/{relative}"):
+            raise RuntimeError("V3_TRAINING_PRODUCER_SOURCE_PATH_INVALID")
+        canonical.append({"relative_path": relative, **binding})
+    if canonical != raw:
+        raise RuntimeError("V3_TRAINING_PRODUCER_SOURCE_ORDER_INVALID")
+    if (
+        manifest.get("producer_source_inventory_sha256_v1")
+        != _canonical_sha256(canonical)
+    ):
+        raise RuntimeError("V3_TRAINING_PRODUCER_SOURCE_HASH_MISMATCH")
+    return canonical
+
+
+def _strict_utc_minute(value: Any, *, context: str) -> pd.Timestamp:
+    if not isinstance(value, str) or not value:
+        raise RuntimeError(f"{context}_INVALID")
+    parsed = pd.to_datetime(value, utc=True, errors="coerce")
+    if (
+        pd.isna(parsed)
+        or pd.Timestamp(parsed).second != 0
+        or pd.Timestamp(parsed).microsecond != 0
+        or value != pd.Timestamp(parsed).isoformat()
+    ):
+        raise RuntimeError(f"{context}_INVALID")
+    return pd.Timestamp(parsed)
+
+
+def _strict_nonnegative_int(value: Any, *, context: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise RuntimeError(f"{context}_INVALID")
+    return value
+
+
+def _prediction_input_summary(
+    inputs: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Reopen the bound prediction/report/bundle bytes and prove their join."""
+
+    from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+        decode_model_native_runtime_head_evidence,
+    )
+    from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    )
+
+    prediction_path = Path(str(inputs["prediction_parquet"]["path"]))
+    report_path = Path(str(inputs["prediction_report"]["path"]))
+    metadata_path = Path(str(inputs["entry_bundle_metadata"]["path"]))
+    state_path = Path(str(inputs["entry_model_state"]["path"]))
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError("V3_TRAINING_PREDICTION_INPUT_JSON_INVALID") from exc
+    if not isinstance(report, Mapping) or not isinstance(metadata, Mapping):
+        raise RuntimeError("V3_TRAINING_PREDICTION_INPUT_JSON_INVALID")
+    evidence = report.get("prediction_evidence")
+    if (
+        report.get("schema_version") != "entry_candidate_selective_edge_v1"
+        or report.get("decision") != "PASS"
+        or report.get("failures") != []
+        or Path(str(report.get("json_path") or "")).expanduser().resolve()
+        != report_path
+        or Path(str(report.get("predictions_path") or "")).expanduser().resolve()
+        != prediction_path
+        or not isinstance(evidence, Mapping)
+        or evidence.get("schema_version")
+        != RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+        or evidence.get("authoritative") is not True
+        or evidence.get("runtime_head_evidence_authoritative") is not True
+        or Path(str(evidence.get("path") or "")).expanduser().resolve()
+        != prediction_path
+        or evidence.get("sha256") != inputs["prediction_parquet"]["sha256"]
+        or Path(
+            str(evidence.get("bundle_metadata_path") or "")
+        ).expanduser().resolve()
+        != metadata_path
+        or evidence.get("bundle_metadata_sha256")
+        != inputs["entry_bundle_metadata"]["sha256"]
+        or evidence.get("model_state_dict_sha256")
+        != inputs["entry_model_state"]["sha256"]
+        or report.get("bundle_metadata_sha256")
+        != inputs["entry_bundle_metadata"]["sha256"]
+        or report.get("model_state_dict_sha256")
+        != inputs["entry_model_state"]["sha256"]
+        or metadata.get("state_dict_sha256")
+        != inputs["entry_model_state"]["sha256"]
+        or state_path.name != "model_state_dict.pt"
+        or metadata_path.name != "bundle_metadata.json"
+        or state_path.parent != metadata_path.parent
+    ):
+        raise RuntimeError("V3_TRAINING_PREDICTION_LINEAGE_MISMATCH")
+    required_columns = {
+        "split",
+        "model",
+        "time",
+        "pred_direction",
+        "runtime_head_evidence_json",
+        "runtime_head_evidence_sha256",
+    }
+    frame = pd.read_parquet(
+        prediction_path,
+        columns=sorted(required_columns),
+    )
+    if frame.empty or set(frame.columns) != required_columns:
+        raise RuntimeError("V3_TRAINING_PREDICTION_FRAME_INVALID")
+    times = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+    if (
+        times.isna().any()
+        or not times.is_monotonic_increasing
+        or times.duplicated().any()
+        or np.any(times.dt.second.to_numpy() != 0)
+        or np.any(times.dt.microsecond.to_numpy() != 0)
+    ):
+        raise RuntimeError("V3_TRAINING_PREDICTION_TIME_ORDER_INVALID")
+    raw_directions = pd.to_numeric(
+        frame["pred_direction"],
+        errors="coerce",
+    ).to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(raw_directions).all()
+        or not np.equal(raw_directions, np.floor(raw_directions)).all()
+        or not set(raw_directions.astype(np.int64).tolist()).issubset({0, 1, 2})
+    ):
+        raise RuntimeError("V3_TRAINING_PREDICTION_DIRECTION_INVALID")
+    directions = raw_directions.astype(np.int64)
+    models = sorted({str(value) for value in frame["model"].to_numpy()})
+    splits = sorted({str(value) for value in frame["split"].to_numpy()})
+    if (
+        len(models) != 1
+        or not models[0]
+        or not splits
+        or list(evidence.get("models") or []) != models
+        or list(evidence.get("splits") or []) != splits
+        or sorted(str(value) for value in report.get("models") or []) != models
+        or sorted(str(value) for value in report.get("splits") or []) != splits
+        or int(evidence.get("rows") or -1) != len(frame)
+    ):
+        raise RuntimeError("V3_TRAINING_PREDICTION_ROLE_MISMATCH")
+    for row_index, row in frame.iterrows():
+        head = decode_model_native_runtime_head_evidence(
+            row["runtime_head_evidence_json"],
+            row["runtime_head_evidence_sha256"],
+            context=f"V3_TRAINING_PREDICTION_HEAD[{row_index}]",
+        )
+        if (
+            pd.Timestamp(head["decision_ts"]) != pd.Timestamp(row["time"])
+            or int(head["model_direction_index"]) != int(row["pred_direction"])
+        ):
+            raise RuntimeError("V3_TRAINING_PREDICTION_HEAD_MISMATCH")
+    counts = {
+        "LONG": int(np.count_nonzero(directions == 0)),
+        "SHORT": int(np.count_nonzero(directions == 1)),
+        "FLAT": int(np.count_nonzero(directions == 2)),
+    }
+    trade_identities = [
+        {
+            "decision_ts": pd.Timestamp(row.time).isoformat(),
+            "runtime_head_evidence_sha256": str(
+                row.runtime_head_evidence_sha256
+            ),
+            "side": "long" if int(row.pred_direction) == 0 else "short",
+        }
+        for row in frame.itertuples(index=False)
+        if int(row.pred_direction) in (0, 1)
+    ]
+    return {
+        "frame": frame,
+        "model": models[0],
+        "splits": splits,
+        "rows": len(frame),
+        "direction_counts": counts,
+        "trade_identities": trade_identities,
+        "first_decision_ts": pd.Timestamp(times.iloc[0]).isoformat(),
+        "last_decision_ts": pd.Timestamp(times.iloc[-1]).isoformat(),
+    }
+
+
+def _v3_dataset_member_inventory(
+    root: Path,
+    files: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    inventory: list[dict[str, Any]] = []
+    for name in sorted(
+        V3_TRAINING_DATASET_REQUIRED_FILES - {"producer_event"}
+    ):
+        relative = str(files[name])
+        binding = v3_regular_file_binding(
+            root / relative,
+            context=f"V3_TRAINING_DATASET_MEMBER[{name}]",
+        )
+        inventory.append(
+            {
+                "name": name,
+                "relative_path": relative,
+                "sha256": binding["sha256"],
+                "size_bytes": binding["size_bytes"],
+            }
+        )
+    return inventory
+
+
+def _require_v3_dataset_producer_event(
+    root: Path,
+    manifest: Mapping[str, Any],
+    *,
+    producer_inputs: Mapping[str, Mapping[str, Any]],
+    producer_sources: Sequence[Mapping[str, Any]],
+    prediction_summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    event_path = root / str(manifest["files"]["producer_event"])
+    payload, _ = _read_regular_file_exact(
+        event_path,
+        context="V3_TRAINING_DATASET_PRODUCER_EVENT",
+    )
+    try:
+        event = json.loads(payload)
+    except Exception as exc:
+        raise RuntimeError("V3_TRAINING_DATASET_PRODUCER_EVENT_INVALID") from exc
+    expected_keys = {
+        "schema_version",
+        "producer_contract_v1",
+        "decision",
+        "failures",
+        "created_utc",
+        "run_id",
+        "production_allowed_v1",
+        "io_version",
+        "input_dim",
+        "window_len",
+        "feature_names_hash",
+        "dataset_members_v1",
+        "dataset_members_inventory_sha256_v1",
+        "producer_inputs_v1",
+        "producer_inputs_inventory_sha256_v1",
+        "producer_source_files_v1",
+        "producer_source_inventory_sha256_v1",
+        "xgb_bridge_source_v1",
+        "prediction_model_v1",
+        "prediction_splits_v1",
+        "prediction_rows_v1",
+        "direction_counts_v1",
+        "trade_count_v1",
+        "record_count_v1",
+        "first_decision_ts_v1",
+        "last_decision_ts_v1",
+        "first_m1_ts_v1",
+        "last_m1_ts_v1",
+    }
+    if not isinstance(event, dict) or set(event) != expected_keys:
+        raise RuntimeError("V3_TRAINING_DATASET_PRODUCER_EVENT_INVALID")
+    try:
+        created = datetime.fromisoformat(
+            str(event["created_utc"]).replace("Z", "+00:00")
+        )
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            "V3_TRAINING_DATASET_PRODUCER_EVENT_TIME_INVALID"
+        ) from exc
+    if (
+        created.utcoffset() is None
+        or created.utcoffset().total_seconds() != 0
+        or event["schema_version"]
+        != V3_TRAINING_DATASET_EVENT_SCHEMA_VERSION
+        or event["producer_contract_v1"]
+        != V3_TRAINING_DATASET_PRODUCER_CONTRACT
+        or event["decision"] != "PASS"
+        or event["failures"] != []
+        or event["production_allowed_v1"] is not True
+        or not isinstance(event["run_id"], str)
+        or _V3_RUN_ID_RE.fullmatch(event["run_id"]) is None
+    ):
+        raise RuntimeError("V3_TRAINING_DATASET_PRODUCER_EVENT_NOT_PASS")
+    members = _v3_dataset_member_inventory(root, manifest["files"])
+    if (
+        event["dataset_members_v1"] != members
+        or event["dataset_members_inventory_sha256_v1"]
+        != _canonical_sha256(members)
+        or event["producer_inputs_v1"] != producer_inputs
+        or event["producer_inputs_inventory_sha256_v1"]
+        != _canonical_sha256(producer_inputs)
+        or event["producer_source_files_v1"] != list(producer_sources)
+        or event["producer_source_inventory_sha256_v1"]
+        != _canonical_sha256(producer_sources)
+        or event["xgb_bridge_source_v1"]
+        != manifest["xgb_bridge_source_v1"]
+    ):
+        raise RuntimeError("V3_TRAINING_DATASET_PRODUCER_EVENT_LINEAGE_MISMATCH")
+    for name in (
+        "run_id",
+        "io_version",
+        "input_dim",
+        "window_len",
+        "feature_names_hash",
+        "prediction_model_v1",
+        "prediction_splits_v1",
+        "prediction_rows_v1",
+        "direction_counts_v1",
+        "trade_count_v1",
+        "record_count_v1",
+        "first_decision_ts_v1",
+        "last_decision_ts_v1",
+        "first_m1_ts_v1",
+        "last_m1_ts_v1",
+    ):
+        manifest_name = "run_id_v1" if name == "run_id" else name
+        if event[name] != manifest.get(manifest_name):
+            raise RuntimeError(
+                "V3_TRAINING_DATASET_PRODUCER_EVENT_MANIFEST_MISMATCH"
+            )
+    if (
+        event["prediction_model_v1"] != prediction_summary["model"]
+        or event["prediction_splits_v1"] != prediction_summary["splits"]
+        or event["prediction_rows_v1"] != prediction_summary["rows"]
+        or event["direction_counts_v1"]
+        != prediction_summary["direction_counts"]
+        or event["first_decision_ts_v1"]
+        != prediction_summary["first_decision_ts"]
+        or event["last_decision_ts_v1"]
+        != prediction_summary["last_decision_ts"]
+    ):
+        raise RuntimeError("V3_TRAINING_DATASET_PREDICTION_SUMMARY_MISMATCH")
+    for name in (
+        "prediction_rows_v1",
+        "trade_count_v1",
+        "record_count_v1",
+    ):
+        _strict_nonnegative_int(event[name], context=f"V3_TRAINING_{name}")
+    if (
+        not isinstance(event["direction_counts_v1"], Mapping)
+        or set(event["direction_counts_v1"]) != {"LONG", "SHORT", "FLAT"}
+        or any(
+            _strict_nonnegative_int(
+                value,
+                context=f"V3_TRAINING_DIRECTION_COUNT_{name}",
+            )
+            < 0
+            for name, value in event["direction_counts_v1"].items()
+        )
+        or event["trade_count_v1"]
+        != event["direction_counts_v1"]["LONG"]
+        + event["direction_counts_v1"]["SHORT"]
+        or event["record_count_v1"]
+        != event["trade_count_v1"] * V3_TRAINING_TEACHER_HORIZON_BARS
+        or event["direction_counts_v1"]["LONG"] <= 0
+        or event["direction_counts_v1"]["SHORT"] <= 0
+    ):
+        raise RuntimeError("V3_TRAINING_DATASET_DIRECTION_SUPPORT_INVALID")
+    for name in (
+        "first_decision_ts_v1",
+        "last_decision_ts_v1",
+        "first_m1_ts_v1",
+        "last_m1_ts_v1",
+    ):
+        _strict_utc_minute(event[name], context=f"V3_TRAINING_{name}")
+    return event
+
+
 def _require_finite_array_chunks(
     values: np.ndarray,
     *,
@@ -551,7 +1059,7 @@ def _require_finite_array_chunks(
 def _require_v3_dataset_storage(
     root: Path,
     manifest: Mapping[str, Any],
-) -> None:
+) -> dict[str, Any]:
     """Validate matrix/time/overlay/record identity, not just file presence."""
 
     files = manifest["files"]
@@ -730,6 +1238,8 @@ def _require_v3_dataset_storage(
         tuple[int, pd.Timestamp, int, tuple[Any, ...]],
     ] = {}
     records_per_trade: dict[str, int] = {}
+    trade_side_by_uid: dict[str, str] = {}
+    trade_identity_by_uid: dict[str, dict[str, str]] = {}
     scalar_positions = {
         name: OVERLAY_COL_NAMES.index(name) for name in _V3_THIN_SCALAR_NAMES
     }
@@ -809,6 +1319,34 @@ def _require_v3_dataset_storage(
                 record["teacher_final_mae_bps"],
                 record["teacher_duration_bars"],
             )
+            expected_trade_id = _canonical_sha256(
+                {
+                    "run_id": record["run_id"],
+                    "decision_ts": record["decision_ts"],
+                    "runtime_head_evidence_sha256": record[
+                        "runtime_head_evidence_sha256"
+                    ],
+                }
+            )
+            if record["trade_id"] != expected_trade_id:
+                raise RuntimeError(
+                    f"V3_TRAINING_RECORD_TRADE_ID_INVALID: {line_number}"
+                )
+            identity = {
+                "decision_ts": str(record["decision_ts"]),
+                "runtime_head_evidence_sha256": str(
+                    record["runtime_head_evidence_sha256"]
+                ),
+                "side": str(record["side"]),
+            }
+            prior_identity = trade_identity_by_uid.setdefault(
+                trade_uid,
+                identity,
+            )
+            if prior_identity != identity:
+                raise RuntimeError(
+                    f"V3_TRAINING_RECORD_IDENTITY_CHANGED: {line_number}"
+                )
             previous = previous_by_trade.get(trade_uid)
             if previous is None:
                 if (
@@ -865,6 +1403,14 @@ def _require_v3_dataset_storage(
             records_per_trade[trade_uid] = (
                 records_per_trade.get(trade_uid, 0) + 1
             )
+            prior_side = trade_side_by_uid.setdefault(
+                trade_uid,
+                str(record["side"]),
+            )
+            if prior_side != record["side"]:
+                raise RuntimeError(
+                    f"V3_TRAINING_RECORD_SIDE_CHANGED: {line_number}"
+                )
             record_count += 1
     if (
         record_count == 0
@@ -978,6 +1524,20 @@ def _require_v3_dataset_storage(
             raise RuntimeError(
                 f"V3_TRAINING_TEACHER_OVERLAY_MISMATCH: {trade_uid}"
             )
+    return {
+        "record_count": record_count,
+        "trade_count": len(trade_side_by_uid),
+        "side_trade_counts": {
+            "LONG": sum(side == "long" for side in trade_side_by_uid.values()),
+            "SHORT": sum(side == "short" for side in trade_side_by_uid.values()),
+        },
+        "trade_identities": sorted(
+            trade_identity_by_uid.values(),
+            key=lambda item: item["decision_ts"],
+        ),
+        "first_m1_ts": pd.Timestamp(int(times[0]), tz="UTC").isoformat(),
+        "last_m1_ts": pd.Timestamp(int(times[-1]), tz="UTC").isoformat(),
+    }
 
 
 def require_authoritative_v3_training_dataset(
@@ -1006,6 +1566,8 @@ def require_authoritative_v3_training_dataset(
         raise RuntimeError("V3_TRAINING_DATASET_MANIFEST_INVALID") from exc
     if not isinstance(manifest, dict):
         raise RuntimeError("V3_TRAINING_DATASET_MANIFEST_INVALID")
+    if set(manifest) != set(_V3_DATASET_MANIFEST_KEYS):
+        raise RuntimeError("V3_TRAINING_DATASET_MANIFEST_FIELDS_INVALID")
     semantic_failures = [
         name
         for name, expected in _V3_DATASET_SEMANTIC_FIELDS.items()
@@ -1024,13 +1586,24 @@ def require_authoritative_v3_training_dataset(
             "V3_TRAINING_DATASET_AUTHORITY_MISSING: "
             f"{semantic_failures}"
         )
-    _require_v3_producer_inputs(manifest)
+    if (
+        not isinstance(manifest.get("run_id_v1"), str)
+        or _V3_RUN_ID_RE.fullmatch(manifest["run_id_v1"]) is None
+        or manifest.get("producer_event_schema_version_v1")
+        != V3_TRAINING_DATASET_EVENT_SCHEMA_VERSION
+    ):
+        raise RuntimeError("V3_TRAINING_DATASET_PRODUCER_IDENTITY_INVALID")
+    producer_inputs = _require_v3_producer_inputs(manifest)
+    producer_sources = _require_v3_producer_source_inventory(manifest)
+    prediction_summary = _prediction_input_summary(producer_inputs)
     files = manifest.get("files")
     if not isinstance(files, Mapping):
         raise RuntimeError("V3_TRAINING_DATASET_FILES_INVALID")
-    require_v3_xgb_bridge_source_identity(
+    xgb_identity = require_v3_xgb_bridge_source_identity(
         manifest.get("xgb_bridge_source_v1")
     )
+    if xgb_identity["bundle_root"] == "":
+        raise RuntimeError("V3_TRAINING_XGB_BRIDGE_SOURCE_INVALID")
     missing = sorted(V3_TRAINING_DATASET_REQUIRED_FILES - set(files))
     if missing:
         raise RuntimeError(
@@ -1078,7 +1651,37 @@ def require_authoritative_v3_training_dataset(
         return inventory
 
     inventory = dataset_inventory()
-    _require_v3_dataset_storage(root, manifest)
+    storage_summary = _require_v3_dataset_storage(root, manifest)
+    _require_v3_dataset_producer_event(
+        root,
+        manifest,
+        producer_inputs=producer_inputs,
+        producer_sources=producer_sources,
+        prediction_summary=prediction_summary,
+    )
+    direction_counts = manifest.get("direction_counts_v1")
+    if (
+        manifest.get("prediction_model_v1") != prediction_summary["model"]
+        or manifest.get("prediction_splits_v1") != prediction_summary["splits"]
+        or manifest.get("prediction_rows_v1") != prediction_summary["rows"]
+        or direction_counts != prediction_summary["direction_counts"]
+        or manifest.get("trade_count_v1") != storage_summary["trade_count"]
+        or manifest.get("record_count_v1") != storage_summary["record_count"]
+        or not isinstance(direction_counts, Mapping)
+        or direction_counts.get("LONG")
+        != storage_summary["side_trade_counts"]["LONG"]
+        or direction_counts.get("SHORT")
+        != storage_summary["side_trade_counts"]["SHORT"]
+        or prediction_summary["trade_identities"]
+        != storage_summary["trade_identities"]
+        or manifest.get("first_decision_ts_v1")
+        != prediction_summary["first_decision_ts"]
+        or manifest.get("last_decision_ts_v1")
+        != prediction_summary["last_decision_ts"]
+        or manifest.get("first_m1_ts_v1") != storage_summary["first_m1_ts"]
+        or manifest.get("last_m1_ts_v1") != storage_summary["last_m1_ts"]
+    ):
+        raise RuntimeError("V3_TRAINING_DATASET_SUMMARY_MISMATCH")
     if dataset_inventory() != inventory:
         raise RuntimeError("V3_TRAINING_DATASET_CHANGED_DURING_VALIDATION")
     return manifest, inventory
@@ -1574,6 +2177,461 @@ def materialize_model_native_v3_trade_records(
     }
 
 
+def _write_bytes_fsync(path: Path, payload: bytes) -> None:
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"V3_TRAINING_IMMUTABLE_FILE_EXISTS: {path}")
+    with path.open("xb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _fsync_file(path: Path) -> None:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"V3_TRAINING_FSYNC_FILE_INVALID: {path}")
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _fsync_directory(path: Path) -> None:
+    if path.is_symlink() or not path.is_dir():
+        raise RuntimeError(f"V3_TRAINING_FSYNC_DIRECTORY_INVALID: {path}")
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _producer_input_bindings(
+    *,
+    prediction_parquet: Path,
+    prediction_report: Path,
+    entry_bundle_dir: Path,
+    source_tape_binding: Mapping[str, Any],
+    prebuilt_identity: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    canonical = prebuilt_identity.get("canonical_v3")
+    base = prebuilt_identity.get("base28")
+    if not isinstance(canonical, Mapping) or not isinstance(base, Mapping):
+        raise RuntimeError("V3_TRAINING_PREBUILT_IDENTITY_INVALID")
+    paths = {
+        "prediction_parquet": prediction_parquet,
+        "prediction_report": prediction_report,
+        "entry_bundle_metadata": entry_bundle_dir / "bundle_metadata.json",
+        "entry_model_state": entry_bundle_dir / "model_state_dict.pt",
+        "source_tape": Path(str(source_tape_binding.get("path") or "")),
+        "canonical_v3": Path(str(canonical.get("path") or "")),
+        "base_m1": Path(str(base.get("path") or "")),
+        "prebuilt_pair_manifest": Path(
+            str(prebuilt_identity.get("manifest_path") or "")
+        ),
+    }
+    if set(paths) != set(V3_TRAINING_PRODUCER_INPUT_NAMES):
+        raise RuntimeError("V3_TRAINING_PRODUCER_INPUT_SET_INTERNAL_ERROR")
+    bindings = {
+        name: v3_regular_file_binding(
+            Path(path).expanduser(),
+            context=f"V3_TRAINING_PRODUCER_INPUT[{name}]",
+        )
+        for name, path in sorted(paths.items())
+    }
+    for role, identity_role in (
+        ("canonical_v3", canonical),
+        ("base_m1", base),
+    ):
+        if (
+            bindings[role]["sha256"] != identity_role.get("sha256")
+            or bindings[role]["path"] != identity_role.get("path")
+        ):
+            raise RuntimeError("V3_TRAINING_PREBUILT_INPUT_IDENTITY_MISMATCH")
+    if (
+        bindings["prebuilt_pair_manifest"]["sha256"]
+        != prebuilt_identity.get("manifest_sha256")
+    ):
+        raise RuntimeError("V3_TRAINING_PREBUILT_MANIFEST_IDENTITY_MISMATCH")
+    if bindings["source_tape"] != dict(source_tape_binding):
+        raise RuntimeError("V3_TRAINING_SOURCE_TAPE_IDENTITY_MISMATCH")
+    return bindings
+
+
+def materialize_authoritative_v3_training_dataset(
+    *,
+    output_dir: Path,
+    run_id: str,
+    prediction_parquet: Path,
+    prediction_report: Path,
+    entry_bundle_dir: Path,
+    entry_dataset_dir: Path,
+    source_tape_path: Path,
+    xgb_bundle_dir: Path,
+    prebuilt_pair_manifest_path: Path,
+    prebuilt_generation_root: Path,
+    expected_model: str,
+    expected_splits: Sequence[str],
+    chunk_rows: int = 50_000,
+) -> tuple[Path, dict[str, Any], list[dict[str, Any]]]:
+    """Build and atomically publish the canonical model-native V3 dataset.
+
+    Market features are derived only through the serving-owned frozen prebuilt
+    loader, Exit-XGB bridge and ``build_v3_base_feature_rows``.  The caller
+    supplies artifact identities, never a feature matrix, overlay or record.
+    """
+
+    from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+        publish_bundle_directory_noreplace,
+    )
+    from gx1.execution.model_native_entry_replay_v1 import SourceTape
+    from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
+    from gx1.execution.v12_v3_live import build_v3_base_feature_rows
+    from gx1.execution.v12_xgb_live import XGBLiveInference
+    from gx1.features.volume_features import VOLUME_FEATURE_PREFIX_ROWS
+    from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+        resolve_and_validate_prediction_evidence,
+    )
+
+    destination = Path(output_dir).expanduser()
+    if (
+        not destination.is_absolute()
+        or destination.is_symlink()
+        or destination.exists()
+        or destination.name in {"", ".", ".."}
+    ):
+        raise RuntimeError("V3_TRAINING_OUTPUT_DIRECTORY_INVALID")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if (
+        destination.parent.is_symlink()
+        or destination.parent.resolve() != destination.parent
+        or destination.resolve(strict=False) != destination
+    ):
+        raise RuntimeError("V3_TRAINING_OUTPUT_PARENT_INVALID")
+    if not isinstance(run_id, str) or _V3_RUN_ID_RE.fullmatch(run_id) is None:
+        raise RuntimeError("V3_TRAINING_RUN_ID_INVALID")
+    if (
+        isinstance(chunk_rows, bool)
+        or not isinstance(chunk_rows, int)
+        or chunk_rows < 512
+    ):
+        raise RuntimeError("V3_TRAINING_CHUNK_ROWS_INVALID")
+    model_name = str(expected_model)
+    split_names = sorted({str(value) for value in expected_splits})
+    if (
+        not model_name
+        or not split_names
+        or len(split_names) != len(expected_splits)
+        or not set(split_names).issubset({"train", "val", "test"})
+    ):
+        raise RuntimeError("V3_TRAINING_EXPECTED_PREDICTION_ROLES_INVALID")
+
+    prediction_path, _report, evidence = (
+        resolve_and_validate_prediction_evidence(
+            Path(prediction_parquet),
+            prediction_report_path=Path(prediction_report),
+            bundle_dir=Path(entry_bundle_dir),
+            dataset_dir=Path(entry_dataset_dir),
+            expected_model=model_name,
+            require_runtime_head_evidence=True,
+        )
+    )
+    if (
+        list(evidence.get("models") or []) != [model_name]
+        or list(evidence.get("splits") or []) != split_names
+    ):
+        raise RuntimeError("V3_TRAINING_PREDICTION_ROLE_MISMATCH")
+
+    tape = SourceTape.load(Path(source_tape_path))
+    loader = PrebuiltStateLoader(
+        pair_manifest_path=Path(prebuilt_pair_manifest_path),
+        generation_root=Path(prebuilt_generation_root),
+    )
+    loader.load_frozen_pair()
+    canonical_v3, base_m1, prebuilt_identity = loader.frozen_pair_frames()
+    xgb = XGBLiveInference.load(Path(xgb_bundle_dir))
+    xgb_identity = require_v3_xgb_bridge_source_identity(
+        getattr(xgb, "_runtime_identity", None)
+    )
+    producer_inputs = _producer_input_bindings(
+        prediction_parquet=prediction_path,
+        prediction_report=Path(prediction_report).expanduser().resolve(),
+        entry_bundle_dir=Path(entry_bundle_dir).expanduser().resolve(),
+        source_tape_binding=tape.source_binding,
+        prebuilt_identity=prebuilt_identity,
+    )
+    prediction_summary = _prediction_input_summary(producer_inputs)
+    if (
+        prediction_summary["model"] != model_name
+        or prediction_summary["splits"] != split_names
+    ):
+        raise RuntimeError("V3_TRAINING_PREDICTION_SUMMARY_ROLE_MISMATCH")
+
+    base_index = pd.DatetimeIndex(
+        pd.to_datetime(base_m1.index, utc=True, errors="coerce")
+    )
+    canonical_index = pd.DatetimeIndex(
+        pd.to_datetime(canonical_v3.index, utc=True, errors="coerce")
+    )
+    if (
+        base_index.hasnans
+        or not base_index.is_monotonic_increasing
+        or not base_index.is_unique
+        or canonical_index.hasnans
+        or not canonical_index.is_monotonic_increasing
+        or not canonical_index.is_unique
+    ):
+        raise RuntimeError("V3_TRAINING_FROZEN_FRAME_INDEX_INVALID")
+    from gx1.execution.v12_m1_to_m5_downsample import (
+        closed_m5_start_for_m1_bar_labels,
+    )
+
+    candidate_start = VOLUME_FEATURE_PREFIX_ROWS
+    candidate_index = base_index[candidate_start:]
+    closed_keys = closed_m5_start_for_m1_bar_labels(candidate_index)
+    covered = np.asarray(closed_keys.isin(canonical_index), dtype=bool)
+    valid_positions = np.flatnonzero(covered)
+    if len(valid_positions) == 0:
+        raise RuntimeError("V3_TRAINING_COMMON_HISTORY_EMPTY")
+    first_valid = int(valid_positions[0])
+    if not covered[first_valid:].all():
+        missing = closed_keys[first_valid:][~covered[first_valid:]]
+        raise RuntimeError(
+            "V3_TRAINING_CANONICAL_COVERAGE_GAP: "
+            f"count={len(missing)} first={missing[0]}"
+        )
+    matrix_start = candidate_start + first_valid
+    target_m1 = base_m1.iloc[matrix_start:].copy(deep=False)
+    target_m1.index = base_index[matrix_start:]
+    if len(target_m1) < 512:
+        raise RuntimeError("V3_TRAINING_COMMON_HISTORY_TOO_SHORT")
+
+    repo_root = Path(__file__).resolve().parents[3]
+    producer_sources = build_v3_producer_source_inventory(repo_root)
+    created_utc = datetime.now(timezone.utc).isoformat()
+    files = {
+        "m1_feature_matrix": "m1_feature_matrix.npy",
+        "m1_time_ns": "m1_time_ns.npy",
+        "trade_state_overlays": "trade_state_overlays.f32",
+        "trade_state_overlays_cols": N_OVERLAY_COLS,
+        "overlay_index": "overlay_index.parquet",
+        "records": "records.jsonl",
+        "producer_event": "producer_event.json",
+    }
+    staging = Path(
+        tempfile.mkdtemp(
+            prefix=f".{destination.name}.staging.",
+            dir=str(destination.parent),
+        )
+    ).resolve()
+    published = False
+    try:
+        matrix_path = staging / files["m1_feature_matrix"]
+        matrix = np.lib.format.open_memmap(
+            matrix_path,
+            mode="w+",
+            dtype=np.float32,
+            shape=(
+                len(target_m1),
+                EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT,
+            ),
+        )
+        for start in range(0, len(target_m1), chunk_rows):
+            end = min(start + chunk_rows, len(target_m1))
+            global_start = matrix_start + start
+            global_end = matrix_start + end
+            volume_start = global_start - VOLUME_FEATURE_PREFIX_ROWS
+            matrix[start:end] = build_v3_base_feature_rows(
+                target_m1=base_m1.iloc[global_start:global_end],
+                volume_history_m1=base_m1.iloc[volume_start:global_end],
+                canonical_v3=canonical_v3,
+                xgb_inferer=xgb,
+                feature_names=list(
+                    EXIT_IO_V8_REGIME_M1L512_FEATURES
+                ),
+            )
+        matrix.flush()
+        del matrix
+        _fsync_file(matrix_path)
+        time_path = staging / files["m1_time_ns"]
+        with time_path.open("xb") as handle:
+            np.save(
+                handle,
+                target_m1.index.asi8.astype(np.int64),
+                allow_pickle=False,
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        overlay_path = staging / files["trade_state_overlays"]
+        records_path = staging / files["records"]
+        overlay_index_rows: list[dict[str, Any]] = []
+        overlay_offset = 0
+        record_count = 0
+        trade_count = 0
+        with (
+            overlay_path.open("xb") as overlay_handle,
+            records_path.open("x", encoding="utf-8") as records_handle,
+        ):
+            for row in prediction_summary["frame"].to_dict(orient="records"):
+                materialized = materialize_model_native_v3_trade_records(
+                    prediction_row=row,
+                    source_tape=tape,
+                    base_m1_time_ns=target_m1.index.asi8,
+                    run_id=run_id,
+                )
+                if materialized["status"] == "FLAT_NO_ORDER":
+                    continue
+                overlay = np.asarray(
+                    materialized["overlay"],
+                    dtype=np.float32,
+                )
+                if overlay.shape != (
+                    V3_TRAINING_TEACHER_HORIZON_BARS,
+                    N_OVERLAY_COLS,
+                ):
+                    raise RuntimeError("V3_TRAINING_OVERLAY_SHAPE_INVALID")
+                overlay.tofile(overlay_handle)
+                overlay_index_rows.append(
+                    {
+                        "trade_uid": materialized["trade_uid"],
+                        "overlay_offset": overlay_offset,
+                        "overlay_length": len(overlay),
+                    }
+                )
+                overlay_offset += len(overlay)
+                trade_count += 1
+                for record in materialized["records"]:
+                    records_handle.write(
+                        json.dumps(
+                            record,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            ensure_ascii=True,
+                            allow_nan=False,
+                        )
+                        + "\n"
+                    )
+                    record_count += 1
+            overlay_handle.flush()
+            os.fsync(overlay_handle.fileno())
+            records_handle.flush()
+            os.fsync(records_handle.fileno())
+        direction_counts = prediction_summary["direction_counts"]
+        if (
+            direction_counts["LONG"] <= 0
+            or direction_counts["SHORT"] <= 0
+            or trade_count
+            != direction_counts["LONG"] + direction_counts["SHORT"]
+            or record_count
+            != trade_count * V3_TRAINING_TEACHER_HORIZON_BARS
+        ):
+            raise RuntimeError("V3_TRAINING_DIRECTION_SUPPORT_INVALID")
+        overlay_index_path = staging / files["overlay_index"]
+        pd.DataFrame(
+            overlay_index_rows,
+            columns=("trade_uid", "overlay_offset", "overlay_length"),
+        ).to_parquet(overlay_index_path, index=False)
+        _fsync_file(overlay_index_path)
+
+        common = {
+            "run_id_v1": run_id,
+            "producer_event_schema_version_v1": (
+                V3_TRAINING_DATASET_EVENT_SCHEMA_VERSION
+            ),
+            "producer_inputs_v1": producer_inputs,
+            "producer_inputs_inventory_sha256_v1": _canonical_sha256(
+                producer_inputs
+            ),
+            "producer_source_files_v1": producer_sources,
+            "producer_source_inventory_sha256_v1": _canonical_sha256(
+                producer_sources
+            ),
+            "xgb_bridge_source_v1": xgb_identity,
+            "prediction_model_v1": model_name,
+            "prediction_splits_v1": split_names,
+            "prediction_rows_v1": prediction_summary["rows"],
+            "direction_counts_v1": direction_counts,
+            "trade_count_v1": trade_count,
+            "record_count_v1": record_count,
+            "first_decision_ts_v1": prediction_summary[
+                "first_decision_ts"
+            ],
+            "last_decision_ts_v1": prediction_summary["last_decision_ts"],
+            "first_m1_ts_v1": target_m1.index[0].isoformat(),
+            "last_m1_ts_v1": target_m1.index[-1].isoformat(),
+        }
+        members = _v3_dataset_member_inventory(staging, files)
+        event = {
+            "schema_version": V3_TRAINING_DATASET_EVENT_SCHEMA_VERSION,
+            "producer_contract_v1": V3_TRAINING_DATASET_PRODUCER_CONTRACT,
+            "decision": "PASS",
+            "failures": [],
+            "created_utc": created_utc,
+            "run_id": run_id,
+            "production_allowed_v1": True,
+            "io_version": EXIT_IO_V8_REGIME_M1L512_IO_VERSION,
+            "input_dim": EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT,
+            "window_len": 512,
+            "feature_names_hash": (
+                EXIT_IO_V8_REGIME_M1L512_FEATURE_NAMES_HASH
+            ),
+            "dataset_members_v1": members,
+            "dataset_members_inventory_sha256_v1": _canonical_sha256(
+                members
+            ),
+            **{
+                key: value
+                for key, value in common.items()
+                if key != "producer_event_schema_version_v1"
+            },
+        }
+        event["run_id"] = event.pop("run_id_v1")
+        _write_bytes_fsync(
+            staging / files["producer_event"],
+            (
+                json.dumps(
+                    event,
+                    sort_keys=True,
+                    indent=2,
+                    ensure_ascii=True,
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8"),
+        )
+        manifest = {
+            **_V3_DATASET_SEMANTIC_FIELDS,
+            **common,
+            "files": files,
+        }
+        _write_bytes_fsync(
+            staging / "manifest.json",
+            (
+                json.dumps(
+                    manifest,
+                    sort_keys=True,
+                    indent=2,
+                    ensure_ascii=True,
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8"),
+        )
+        _fsync_directory(staging)
+        require_authoritative_v3_training_dataset(staging)
+        publish_bundle_directory_noreplace(staging, destination)
+        published = True
+        final_manifest, final_inventory = (
+            require_authoritative_v3_training_dataset(destination)
+        )
+        return destination, final_manifest, final_inventory
+    except Exception:
+        if not published:
+            shutil.rmtree(staging, ignore_errors=True)
+        raise
+
+
 class ThinRecordDataset(Dataset):
     """Memory-efficient PyTorch dataset over the V8 thin-record layout."""
 
@@ -1830,14 +2888,87 @@ def attach_labels_to_thin_records(
     derive_should_exit_fn(records)
 
 
+def _build_materializer_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Atomically materialize the exact model-native Exit V3 training "
+            "dataset from bound runtime sources."
+        )
+    )
+    parser.add_argument("command", choices=("materialize",))
+    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--prediction-parquet", required=True)
+    parser.add_argument("--prediction-report-json", required=True)
+    parser.add_argument("--entry-bundle-dir", required=True)
+    parser.add_argument("--entry-dataset-dir", required=True)
+    parser.add_argument("--source-tape-parquet", required=True)
+    parser.add_argument("--xgb-bundle-dir", required=True)
+    parser.add_argument("--prebuilt-pair-manifest", required=True)
+    parser.add_argument("--prebuilt-generation-root", required=True)
+    parser.add_argument("--expected-model", required=True)
+    parser.add_argument("--expected-splits", required=True)
+    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--chunk-rows", type=int, default=50_000)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _build_materializer_parser().parse_args(argv)
+    expected_splits = [
+        value.strip()
+        for value in str(args.expected_splits).split(",")
+        if value.strip()
+    ]
+    output, _manifest, inventory = (
+        materialize_authoritative_v3_training_dataset(
+            output_dir=Path(args.out_dir),
+            run_id=str(args.run_id),
+            prediction_parquet=Path(args.prediction_parquet),
+            prediction_report=Path(args.prediction_report_json),
+            entry_bundle_dir=Path(args.entry_bundle_dir),
+            entry_dataset_dir=Path(args.entry_dataset_dir),
+            source_tape_path=Path(args.source_tape_parquet),
+            xgb_bundle_dir=Path(args.xgb_bundle_dir),
+            prebuilt_pair_manifest_path=Path(
+                args.prebuilt_pair_manifest
+            ),
+            prebuilt_generation_root=Path(
+                args.prebuilt_generation_root
+            ),
+            expected_model=str(args.expected_model),
+            expected_splits=expected_splits,
+            chunk_rows=int(args.chunk_rows),
+        )
+    )
+    print(
+        json.dumps(
+            {
+                "decision": "PASS",
+                "dataset_dir": str(output),
+                "dataset_files": inventory,
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
+    return 0
+
+
 __all__ = [
     "ThinRecordDataset",
+    "V3_TRAINING_DATASET_EVENT_SCHEMA_VERSION",
     "V3_THIN_RECORD_SCHEMA_VERSION",
     "V3_TRAINING_DATASET_PRODUCER_CONTRACT",
     "V3_TRAINING_TEACHER_HORIZON_BARS",
     "V3_TRAINING_RECORD_EMIT_STRIDE_BARS",
     "attach_labels_to_thin_records",
+    "build_v3_producer_source_inventory",
+    "materialize_authoritative_v3_training_dataset",
     "materialize_model_native_v3_trade_records",
     "require_authoritative_v3_training_dataset",
     "require_exact_v3_thin_record",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

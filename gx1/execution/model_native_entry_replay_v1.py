@@ -150,7 +150,11 @@ class SourceTape:
         source["time"] = pd.to_datetime(source["time"], utc=True, errors="coerce")
         if source["time"].isna().any():
             raise RuntimeError(f"source tape contains invalid time rows: {path}")
-        source = source.sort_values("time", kind="mergesort").reset_index(drop=True)
+        if not source["time"].is_monotonic_increasing:
+            raise RuntimeError(
+                f"source tape rows are not strictly chronological: {path}"
+            )
+        source = source.reset_index(drop=True)
         if source["time"].duplicated().any():
             raise RuntimeError(f"source tape contains duplicate time rows: {path}")
         tape = cls(

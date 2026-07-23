@@ -34,6 +34,7 @@ Model-native seq513 evidence:
   model-native-replay-trade-log
   model-native-replay-evidence
   model-native-replay-readiness
+  model-native-v3-exit-dataset --run-id <id> --prediction-parquet <file> --prediction-report-json <event> --entry-bundle-dir <dir> --entry-dataset-dir <dir> --source-tape-parquet <file> --xgb-bundle-dir <dir> --prebuilt-pair-manifest <file> --prebuilt-generation-root <dir> --expected-model <name> --expected-splits <train,val,test> --out-dir <new-dir>
   model-native-finalize-launch --accepted-bundle-dir <dir> --sizing-adoption-json <event> --joint-exit-proof-json <event> --sizing-runtime-parity-json <event> --serve-parity-json <event> --direction-pocket-json <event> --adaptation-lifecycle-json <event> --launch-vedtak-json <canonical-immutable-event> --transaction-id <id> --max-trades <n>
 
 Immutable run-lineage execution (evidence gates remain authoritative):
@@ -529,6 +530,27 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
+    ;;
+
+  model-native-v3-exit-dataset)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --run-id \
+      --prediction-parquet \
+      --prediction-report-json \
+      --entry-bundle-dir \
+      --entry-dataset-dir \
+      --source-tape-parquet \
+      --xgb-bundle-dir \
+      --prebuilt-pair-manifest \
+      --prebuilt-generation-root \
+      --expected-model \
+      --expected-splits \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+      "$PY" -m gx1.exits.training.thin_record_dataset materialize "$@"
     ;;
 
   model-native-finalize-launch)

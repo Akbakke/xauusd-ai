@@ -99,7 +99,6 @@ if (
     or repair.get("remaining_source_p0")
     != [
         "canonical_full_test_active_exit_replay_producer",
-        "exact_model_native_v3_training_dataset_producer",
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
         "native_oanda_m5_materialization_and_atomic_pair_bootstrap",
     ]
@@ -108,8 +107,8 @@ if (
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1879
-    or verification.get("tests_passed") != 1874
+    or verification.get("tests_collected") != 1883
+    or verification.get("tests_passed") != 1878
     or verification.get("tests_skipped") != 5
     or verification.get("tests_failed") != 0
     or verification.get("changed_python_compile") != "PASS"

@@ -62,8 +62,11 @@ slippage-feature leak and reproducible XGB-bound V3 lineage. Historical Exit
 now consumes hash-bound closed-M1 rows through the same pipeline seam used by
 live collection. Formula and HTF alignment ownership is also repaired.
 Caller-supplied replay diagnostics remain blocked from launch. The exact V3
-training-dataset writer, canonical active-Exit full-TEST producer, fresh
-XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap,
+training-dataset writer/event is now code-proven in the existing owner; it
+accepts no caller-built matrix, overlay or record members and publishes
+atomically. A fresh dataset on compliant inputs, the canonical active-Exit
+full-TEST producer, fresh XGB/V3/Exit artifacts, native-M5
+materialization/pair bootstrap,
 canonical/live December-2024 tape parity and every empirical dataset/model/
 edge gate are still open.
 
@@ -78,11 +81,13 @@ separate from closed-bar decisions and following fresh-quote fills.
 
 The existing runtime path now has exact SourceTape open-quote lookup, one
 atomic frozen-pair loader and an Exit-only `V12Pipeline` factory that cannot
-load SmartEntry. This narrows, but does not remove, the two producer gaps:
-extend the existing V3 owner to publish the full authoritative training
-dataset/event, and extend the existing sizing/replay owner to run full TEST
-through `make_exit_decision` and publish its own rows/traces/event. Validators,
-fixtures or caller-written parquet are not producer authority.
+load SmartEntry. The existing V3 owner now also publishes the full
+authoritative training dataset/event from the shared serving builder and
+exact T+5 materializer, with byte-bound input/source inventories and atomic
+no-replace publication. The remaining producer gap is the existing
+sizing/replay owner running full TEST through `make_exit_decision` and
+publishing its own rows/traces/event. Validators, fixtures or caller-written
+parquet are not producer authority.
 
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
@@ -588,8 +593,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The settled post-V7 source-repair tree collected 1,879 tests on 2026-07-23:
-1,874 passed, five were explicitly skipped and zero failed. Changed Python
+The settled post-V7 source-repair tree collected 1,883 tests on 2026-07-23:
+1,878 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -754,8 +759,9 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    enforces one native-M5 closure/schema/hash owner and binds V3 lineage to the
    exact XGB bridge identity. No causal observed-slippage source exists, so
    slippage-derived decision fields were removed instead of synthesized.
-   Remaining producer work is the exact V3 training dataset and canonical
-   active-Exit full-TEST path, followed by fresh XGB/V3/Exit artifacts.
+   The exact V3 training-dataset producer/event is now implemented in the
+   existing owner. Remaining producer work is the canonical active-Exit
+   full-TEST path, followed by fresh XGB/V3/Exit artifacts.
    ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment use
    shared code owners; unavailable required inputs fail closed.
 5. Recent-regime handling is not yet empirical. Compare full-history baseline
@@ -776,10 +782,10 @@ Ordered steps (each gate fail-closed; stop at first red):
    single-exposure enforcement, broker/local XAU trade-ID reconciliation,
    runtime lease and missing-trade-ID fail-close. The alias set is dynamic;
    V24's count of 82 is fixture evidence only.
-3. Extend the existing V3 dataset owner with the canonical end-to-end writer
-   and immutable event. It must derive every 173-field row and trade overlay
-   from the bound frozen sources; the strict reader/materializer is not by
-   itself producer proof.
+3. Preserve the now-proven V3 dataset owner and its existing
+   `model-native-v3-exit-dataset` control route. It must continue to derive
+   every 173-field row and T+5 trade overlay/record from the bound prediction,
+   tape, frozen-pair and XGB sources and publish only immutable verified bytes.
 4. Extend the existing sizing/replay owner with the canonical full-TEST
    active-Exit producer. It must preserve the
    complete Entry snapshot, bind SourceTape and canonical/BASE28/MTF state,

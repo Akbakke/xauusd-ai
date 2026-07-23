@@ -97,10 +97,12 @@ Exit-IQL bundle declares research-only/non-production with no bound feature
 order or serving fold. Source now has one atomic canonical/BASE generation,
 full-history native-M5 recomputation, one M5 ownership/closure contract,
 causal spread-only features, reproducible V3 lineage including XGB identity,
-and a hash-bound historical M1 provider seam. Current data do not satisfy the
-new M5 contract and no pair has been bootstrapped. Open P0s are the exact V3
-dataset writer, fresh 79-field XGB→V3→Exit-IQL rebuild/rescore/retrain and the
-canonical full-TEST producer. V24/V7 remain immutable failure evidence.
+and a hash-bound historical M1 provider seam. The existing V3 owner now
+derives and atomically publishes its exact 173-field dataset/event from bound
+source bytes without caller-supplied members. Current data do not satisfy the
+new M5 contract and no pair has been bootstrapped. Open gates are a fresh
+79-field XGB→V3→Exit-IQL rebuild/rescore/retrain and the canonical full-TEST
+producer. V24/V7 remain immutable failure evidence.
 Canonical/live December-2024 M5 parity and every fresh empirical
 dataset/model/edge gate also remain open.
 

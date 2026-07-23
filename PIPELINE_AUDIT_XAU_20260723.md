@@ -150,13 +150,15 @@ pre-decision slippage observation exists in the canonical tape, the
 slippage-derived decision fields were removed; explicit replay stress remains
 evaluation-only. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and published
 SMC ATR use one formula path; H1/H4 aligns to M5 decision-availability without
-the old extra lag. Still open are an exact model-native V3 dataset writer, the
-canonical active-Exit full-TEST producer, fresh artifact rebuilds and
+the old extra lag. The existing V3 owner now contains the exact model-native
+dataset writer/event and proves it with an end-to-end atomic-publication test.
+Still open are a fresh V3 dataset on compliant inputs, the canonical
+active-Exit full-TEST producer, fresh artifact rebuilds and
 materialization/bootstrap on a valid native-M5 root. Full-loader execution is
 independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
 00:40Z and 2024-12-31 23:55Z.
 
-The final merged source tree collected 1,879 tests: 1,874 passed, five were
+The final merged source tree collected 1,883 tests: 1,878 passed, five were
 explicitly skipped and zero failed. The manifest-bound loader also correctly
 rejects the current live canonical parquet: the legacy updater changed its
 bytes without advancing the canonical manifest SHA. This is fail-closed
@@ -514,10 +516,13 @@ transaction tests; production rejects it.
    semantics, normalization, context routing, MTF binding, all-head influence,
    atomic bundle/event publication, Exit-byte binding, transactional launch
    finalization and runtime fail-close.
-3. Build and prove the canonical full-TEST active-Exit replay producer. It
+3. Preserve the exact V3 dataset producer in its existing owner and public
+   control route. It must keep owning all 173-field rows, T+5 overlays/records,
+   bound inputs/source inventory, immutable event and atomic publication.
+4. Build and prove the canonical full-TEST active-Exit replay producer. It
    must own the rows/traces rather than validate caller-created parquets.
-4. Repair and prove canonical/live December-2024 tape parity.
-5. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
+5. Repair and prove canonical/live December-2024 tape parity.
+6. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
    readiness and trainability audit.
-6. Only then bind a new smoke recipe. Preserve the final TEST window for one
+7. Only then bind a new smoke recipe. Preserve the final TEST window for one
    declared untouched decision.

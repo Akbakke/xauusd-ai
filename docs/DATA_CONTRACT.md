@@ -176,8 +176,13 @@ Exit V3 training storage is `N x 173` float32 market state plus exact UTC M1
 times and separate float32 trade overlays. Admission recomputes the Exit-XGB
 bridge, requires zero trade-state slots in the base matrix, reconstructs every
 overlay/record boundary and verifies exact 240-row teacher paths. Bound source
-hashes without those semantic checks are not dataset evidence, and the strict
-reader/materializer does not substitute for the missing end-to-end writer.
+hashes without those semantic checks are not dataset evidence. The existing
+owner's `materialize` operation is the only admitted end-to-end writer: it
+derives the matrix through the shared serving builder, derives T+5
+overlays/records from runtime-head predictions plus strict chronological
+SourceTape, binds the frozen canonical-v3/BASE28 pair and XGB identity, writes
+an immutable producer event and publishes atomically. It accepts no
+caller-supplied dataset members.
 
 ## Liveness and identity
 

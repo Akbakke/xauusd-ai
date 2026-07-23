@@ -61,9 +61,12 @@ serving-fold and production-admission grounds. The subsequent repair adds
 atomic canonical/BASE generations, full-history native-M5 recomputation,
 strict M5 source/closure ownership, removal of non-causal slippage features,
 bundle-owned XGB contracts, XGB-bound V3 lineage and an exact historical M1
-provider seam. Current data/artifacts predate these contracts. Remaining
-source P0s are the exact V3 dataset writer and canonical full-TEST active-Exit
-producer, followed by a fresh 79-field XGB→V3→Exit-IQL chain. These code
+provider seam. The existing V3 dataset owner now also derives the complete
+173-field matrix, exact T+5 overlays/records and immutable producer event from
+bound prediction, tape, frozen-pair and XGB bytes, then publishes atomically.
+Current data/artifacts predate these contracts. The remaining source P0 is the
+canonical full-TEST active-Exit producer, followed by a fresh 79-field
+XGB→V3→Exit-IQL chain. These code
 proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity and
 every empirical model/edge gate remain open.
 

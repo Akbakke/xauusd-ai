@@ -560,6 +560,18 @@ def test_source_tape_exposes_exact_hash_bound_closed_m1_provider(
         tape.simulate_trade(start_idx=1, horizon_bars=2, side=0)
 
 
+def test_source_tape_rejects_unsorted_source_rows_instead_of_reordering(
+    tmp_path: Path,
+) -> None:
+    times = list(pd.date_range("2026-01-01T00:00:00Z", periods=3, freq="min"))
+    source = _source_frame(times).iloc[[1, 0, 2]].reset_index(drop=True)
+    source_path = tmp_path / "unsorted_source.parquet"
+    source.to_parquet(source_path, index=False)
+
+    with pytest.raises(RuntimeError, match="not strictly chronological"):
+        SourceTape.load(source_path)
+
+
 def test_replay_sources_expose_no_retired_exit_or_filter_cli() -> None:
     root = Path(__file__).resolve().parents[1]
     trade_log_source = (
