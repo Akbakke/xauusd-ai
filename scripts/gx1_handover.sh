@@ -54,6 +54,7 @@ import sys
 from pathlib import Path
 
 from gx1.contracts.entry_model_native_train_launch_v1 import (
+    RECIPE_AUDIT_SCHEMA,
     artifact_binding,
     canonical_json_sha256,
     recipe_source_binding_paths,
@@ -147,13 +148,15 @@ recipe_bytes = recipe_path.read_bytes()
 if hashlib.sha256(recipe_bytes).hexdigest() != recipe_binding.get("sha256"):
     raise SystemExit("FATAL: smoke recipe SHA-256 mismatch")
 recipe = json.loads(recipe_bytes)
-for key in ("decision", "profile", "run_id", "source_commit"):
+for key in ("decision", "profile", "run_id", "dataset_run_id", "source_commit"):
     if recipe.get(key) != recipe_binding.get(key):
         raise SystemExit(f"FATAL: smoke recipe binding mismatch: {key}")
+if recipe.get("dataset_run_id") != dataset_event_id:
+    raise SystemExit("FATAL: smoke recipe dataset lineage mismatch")
 env_contract = recipe.get("trainer_env_contract")
 trainer_env = recipe.get("trainer_env")
 if (
-    recipe.get("schema_version") != "entry_model_native_seq513_train_recipe_audit_v1"
+    recipe.get("schema_version") != RECIPE_AUDIT_SCHEMA
     or not isinstance(env_contract, dict)
     or not isinstance(trainer_env, dict)
     or len(trainer_env) != recipe_binding.get("trainer_env_count")
@@ -235,6 +238,7 @@ import sys
 from pathlib import Path
 
 from gx1.contracts.entry_model_native_train_launch_v1 import (
+    RECIPE_AUDIT_SCHEMA,
     artifact_binding,
     canonical_json_sha256,
     recipe_source_binding_paths,
@@ -334,13 +338,15 @@ observed_recipe_sha256 = hashlib.sha256(recipe_bytes).hexdigest()
 if observed_recipe_sha256 != recipe_binding.get("sha256"):
     raise SystemExit("FATAL: smoke recipe SHA-256 mismatch")
 recipe = json.loads(recipe_bytes)
-for key in ("decision", "profile", "run_id", "source_commit"):
+for key in ("decision", "profile", "run_id", "dataset_run_id", "source_commit"):
     if recipe.get(key) != recipe_binding.get(key):
         raise SystemExit(f"FATAL: smoke recipe binding mismatch: {key}")
+if recipe.get("dataset_run_id") != dataset_event_id:
+    raise SystemExit("FATAL: smoke recipe dataset lineage mismatch")
 env_contract = recipe.get("trainer_env_contract")
 trainer_env = recipe.get("trainer_env")
 if (
-    recipe.get("schema_version") != "entry_model_native_seq513_train_recipe_audit_v1"
+    recipe.get("schema_version") != RECIPE_AUDIT_SCHEMA
     or not isinstance(env_contract, dict)
     or not isinstance(trainer_env, dict)
     or len(trainer_env) != recipe_binding.get("trainer_env_count")

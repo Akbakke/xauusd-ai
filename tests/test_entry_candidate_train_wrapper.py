@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from tests.entry_model_native_train_wrapper_support import (
+    DATASET_RUN_ID,
     RUN_ID,
     build_wrapper_contract,
 )
@@ -61,6 +62,7 @@ def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Pat
     assert "Validated model-native seq513 candidate contract" in result.stdout
     assert "Capped candidate train command:" in result.stdout
     assert "gx1_capped_run.sh" in result.stdout
+    assert f"--dataset-run-id {DATASET_RUN_ID}" in result.stdout
     assert "--multi-tf-seq-len 96" in result.stdout
     assert "--specialist-audit-json" in result.stdout
     assert "--mtf-dir-scale-init" not in result.stdout

@@ -51,6 +51,7 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
 )
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -215,6 +216,7 @@ def _require_exact_model_native_bundle_metadata(
         "model_native_training_objective",
         "model_native_direction_evidence_fusion",
         "model_native_learned_component_movement",
+        "run_lineage",
     )
     missing_meta = [key for key in shared_exact if key not in meta]
     missing_lock = [key for key in shared_exact if key not in lock]
@@ -418,6 +420,26 @@ def _require_exact_model_native_bundle_metadata(
     state_contract = _require_mapping_field(meta, "model_native_state_contract", context="meta")
     if not state_contract:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_CONTRACT_MISSING]")
+    run_lineage = _require_mapping_field(meta, "run_lineage", context="meta")
+    if set(run_lineage) != {
+        "schema_version",
+        "training_run_id",
+        "dataset_run_id",
+    }:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_FIELDS_INVALID]")
+    if run_lineage.get("schema_version") != "entry_model_native_training_run_lineage_v1":
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_SCHEMA_INVALID]")
+    try:
+        training_run_id = require_entry_run_id(run_lineage.get("training_run_id"))
+        dataset_run_id = require_entry_run_id(run_lineage.get("dataset_run_id"))
+    except Exception as exc:
+        raise RuntimeError(
+            f"[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_INVALID] {exc}"
+        ) from exc
+    if training_run_id == dataset_run_id:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_ROLES_COLLAPSED]")
+    if state_contract.get("entry_run_id") != dataset_run_id:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DATASET_RUN_LINEAGE_MISMATCH]")
     specialist = _require_mapping_field(meta, "specialist_fusion", context="meta")
     if specialist.get("enabled") is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_FUSION_REQUIRED]")

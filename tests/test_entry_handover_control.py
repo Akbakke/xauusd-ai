@@ -129,7 +129,7 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     recipe_bytes = recipe_path.read_bytes()
     assert hashlib.sha256(recipe_bytes).hexdigest() == recipe_binding["sha256"]
     recipe = json.loads(recipe_bytes)
-    assert recipe["schema_version"] == "entry_model_native_seq513_train_recipe_audit_v1"
+    assert recipe["schema_version"] == "entry_model_native_seq513_train_recipe_audit_v2"
     assert recipe["decision"] == recipe_binding["decision"] == "PASS"
     assert recipe["profile"] == recipe_binding["profile"] == "smoke"
     assert recipe["run_id"] == recipe_binding["run_id"]

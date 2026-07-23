@@ -60,6 +60,7 @@ from tests.model_native_offline_rl_support import (
 
 REPO = Path(__file__).resolve().parents[1]
 RUN_ID = "MODEL_NATIVE_SEQ513_PYTEST_V1"
+DATASET_RUN_ID = "MODEL_NATIVE_SEQ513_DATASET_PYTEST_V1"
 STAMP = "20260716T010203123456Z"
 
 
@@ -110,11 +111,13 @@ def _split_manifest(
                     "complete_rows_emitted": 4,
                 },
                 "model_native_state_contract": {
+                    "entry_run_id": DATASET_RUN_ID,
                     "rank_reference_source_parquet": str(m5_prebuilt.resolve()),
                     "rank_reference_source_parquet_sha256": artifact_binding(
                         m5_prebuilt
                     )["sha256"],
                 },
+                "entry_run_id": DATASET_RUN_ID,
             },
         },
     )
@@ -303,7 +306,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     tape_provenance = {
         "schema_version": "xau_tape_current_snapshot_v1",
         "instrument": "XAU_USD",
-        "entry_run_id": RUN_ID,
+        "entry_run_id": DATASET_RUN_ID,
     }
     pretrain_splits = []
     for split in ("train", "val", "test"):
@@ -359,6 +362,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v1",
             "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW",
             "failures": [],
+            "entry_run_id": DATASET_RUN_ID,
             "dataset_dir": str(dataset_dir),
             "smoke_dataset_dir": str(dataset_dir),
             "report_only": True,
@@ -625,6 +629,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "live": False,
             },
             "run_id": RUN_ID,
+            "dataset_run_id": DATASET_RUN_ID,
             "dataset_dir": str(dataset_dir),
             "out_bundle_dir": str(out_bundle),
             "source_commit": subprocess.check_output(

@@ -21,6 +21,7 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 
 RUN_ID = "MODEL_NATIVE_TRAIN_ARTIFACT_PYTEST_V1"
+DATASET_RUN_ID = "MODEL_NATIVE_TRAIN_DATASET_PYTEST_V1"
 
 
 def _sha(path: Path) -> str:
@@ -50,7 +51,7 @@ def _artifacts(
     signal_contract = model_native_signal_contract_metadata(selected)
     state_contract = {
         "schema_version": "entry_model_native_state_contract_v2",
-        "entry_run_id": RUN_ID,
+        "entry_run_id": DATASET_RUN_ID,
         "rank_fit_start_utc": "2021-03-16T00:00:00Z",
         "rank_fit_end_utc": "2026-03-31T23:59:59Z",
     }
@@ -77,6 +78,7 @@ def _artifacts(
                             "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                         },
                         "aux_head_target_contract": _aux_target_contract(split),
+                        "entry_run_id": DATASET_RUN_ID,
                         "model_native_state_contract": state_contract,
                     },
                 },
@@ -93,6 +95,7 @@ def _artifacts(
         monkeypatch.setenv(
             trainer._TRAIN_ARTIFACT_HASH_ENV[f"{split}_parquet"], _sha(parquet)
         )
+    monkeypatch.setenv(trainer._TRAIN_DATASET_RUN_ID_ENV, DATASET_RUN_ID)
     return manifests, parquets
 
 
@@ -107,7 +110,7 @@ def _resolve(
         train_parquet=parquets["train"],
         val_parquet=parquets["val"],
         test_parquet=parquets["test"],
-        run_id=RUN_ID,
+        dataset_run_id=DATASET_RUN_ID,
         profile="candidate",
     )
 
@@ -121,6 +124,20 @@ def test_exact_six_artifact_identity_passes(
 
     assert observed_manifests == manifests
     assert observed_parquets == parquets
+
+
+def test_dataset_run_id_must_match_launch_owned_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    monkeypatch.setenv(
+        trainer._TRAIN_DATASET_RUN_ID_ENV,
+        "DIFFERENT_DATASET_RUN_ID",
+    )
+
+    with pytest.raises(RuntimeError, match="DATASET_RUN_ID_ENV_MISMATCH"):
+        _resolve(manifests, parquets)
 
 
 @pytest.mark.parametrize("mode", ("missing", "mismatch"))
@@ -154,7 +171,7 @@ def test_relative_symlink_and_latest_paths_fail_closed(
             train_parquet=parquets["train"],
             val_parquet=parquets["val"],
             test_parquet=parquets["test"],
-            run_id=RUN_ID,
+            dataset_run_id=DATASET_RUN_ID,
             profile="candidate",
         )
 

@@ -2092,7 +2092,7 @@ def test_model_native_train_wrappers_require_exact_audited_positive_recipe() -> 
 
     assert set(REQUIRED_POSITIVE_LOSS_WEIGHTS).issubset(MODEL_NATIVE_RECIPE_ENV_KEYS)
     assert "ENTRY_HIER_LEGACY_CE_MULT" not in MODEL_NATIVE_RECIPE_ENV_KEYS
-    assert RECIPE_AUDIT_SCHEMA == "entry_model_native_seq513_train_recipe_audit_v1"
+    assert RECIPE_AUDIT_SCHEMA == "entry_model_native_seq513_train_recipe_audit_v2"
 
 
 def test_entry_v10_standalone_eval_matches_training_objective() -> None:

@@ -18,7 +18,10 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
 from gx1.scripts import (
     materialize_entry_model_native_seq513_train_recipe_audit_v1 as producer,
 )
-from tests.entry_model_native_train_wrapper_support import build_wrapper_contract
+from tests.entry_model_native_train_wrapper_support import (
+    DATASET_RUN_ID,
+    build_wrapper_contract,
+)
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -109,6 +112,7 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
     assert event_path.is_file()
     assert event["json_path"] == str(event_path)
     assert event["trainer_env"] == MODEL_NATIVE_RECIPE_ENV
+    assert event["dataset_run_id"] == DATASET_RUN_ID
     assert event["trainer_env_contract"] == model_native_recipe_env_contract_metadata()
     assert event["activation_authority"] is False
     assert event["report_only"] is True
@@ -208,4 +212,43 @@ def test_launch_rejects_non_exact_split_aux_target_emission_proof(
             path=manifest_path,
             parquet=paths["train_parquet"],
             m5_prebuilt=paths["m5_prebuilt_path"],
+        )
+
+
+def test_launch_derives_dataset_run_id_from_post_rebuild_and_all_splits(
+    tmp_path: Path,
+) -> None:
+    _, paths = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    payloads = {
+        f"{split}_manifest_json": json.loads(
+            paths[f"{split}_manifest_json"].read_text(encoding="utf-8")
+        )
+        for split in ("train", "val", "test")
+    }
+    post_rebuild = json.loads(
+        paths["post_rebuild_readiness_json"].read_text(encoding="utf-8")
+    )
+
+    assert (
+        launch._dataset_run_id_from_launch_evidence(
+            post_rebuild=post_rebuild,
+            payloads=payloads,
+        )
+        == DATASET_RUN_ID
+    )
+
+    payloads["val_manifest_json"]["extra"]["entry_run_id"] = (
+        "DIFFERENT_DATASET_RUN_ID"
+    )
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="val split dataset run lineage mismatch",
+    ):
+        launch._dataset_run_id_from_launch_evidence(
+            post_rebuild=post_rebuild,
+            payloads=payloads,
         )

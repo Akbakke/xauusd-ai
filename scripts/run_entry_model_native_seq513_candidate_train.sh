@@ -170,6 +170,17 @@ if ! RECIPE_ENV_TEXT=$(cd "$REPO" && "$PY" -m gx1.contracts.entry_model_native_t
 fi
 mapfile -t RECIPE_ENV <<<"$RECIPE_ENV_TEXT"
 [[ ${#RECIPE_ENV[@]} -gt 0 ]] || die "recipe validator emitted no environment"
+DATASET_RUN_ID=
+for row in "${RECIPE_ENV[@]}"; do
+  case "$row" in
+    GX1_ENTRY_DATASET_RUN_ID=*)
+      [[ -z "$DATASET_RUN_ID" ]] || die "recipe validator emitted duplicate dataset run ID"
+      DATASET_RUN_ID=${row#GX1_ENTRY_DATASET_RUN_ID=}
+      ;;
+  esac
+done
+[[ "$DATASET_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]] \
+  || die "recipe validator emitted invalid dataset run ID"
 
 ENV_COMMAND=(env)
 while IFS= read -r variable; do
@@ -182,7 +193,8 @@ ENV_COMMAND+=("${RECIPE_ENV[@]}")
 TRAIN_CMD=(
   "${ENV_COMMAND[@]}"
   "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
-  --train --profile "$PROFILE" --run-id "$RUN_ID" --seed "$SEED" --device "$DEVICE"
+  --train --profile "$PROFILE" --run-id "$RUN_ID" --dataset-run-id "$DATASET_RUN_ID"
+  --seed "$SEED" --device "$DEVICE"
   --train-manifest-json "$TRAIN_MANIFEST_JSON"
   --val-manifest-json "$VAL_MANIFEST_JSON"
   --test-manifest-json "$TEST_MANIFEST_JSON"

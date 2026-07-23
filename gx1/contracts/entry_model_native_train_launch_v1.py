@@ -69,8 +69,8 @@ from gx1.features.entry_chart_geometry_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v2"
-RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v1"
+SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v3"
+RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v2"
 PRETRAIN_AUDIT_SCHEMA = "xau_direction_repair_pretrain_audit_v2"
 TRAINER_RELATIVE_PATH = "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
 CAPPED_RUNNER_RELATIVE_PATH = "scripts/gx1_capped_run.sh"
@@ -158,6 +158,7 @@ TRAINER_ARTIFACT_HASH_ENV = {
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
 }
+TRAINER_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 
 
 class LaunchContractError(RuntimeError):
@@ -551,6 +552,44 @@ def _validate_post_rebuild_readiness(
     return large_hashes
 
 
+def _dataset_run_id_from_launch_evidence(
+    *,
+    post_rebuild: Mapping[str, Any],
+    payloads: Mapping[str, Mapping[str, Any]],
+) -> str:
+    """Resolve one immutable dataset-build lineage, distinct from training."""
+
+    try:
+        dataset_run_id = require_entry_run_id(post_rebuild.get("entry_run_id"))
+    except Exception as exc:
+        raise LaunchContractError(
+            f"post-rebuild readiness dataset entry_run_id invalid: {exc}"
+        ) from exc
+
+    for split in ("train", "val", "test"):
+        manifest = payloads[f"{split}_manifest_json"]
+        extra = manifest.get("extra")
+        _require(
+            isinstance(extra, Mapping),
+            f"{split} split manifest extra contract missing",
+        )
+        manifest_run_id = extra.get("entry_run_id")
+        state_contract = extra.get("model_native_state_contract")
+        _require(
+            isinstance(state_contract, Mapping),
+            f"{split} split manifest model-native state contract missing",
+        )
+        state_run_id = state_contract.get("entry_run_id")
+        _require(
+            manifest_run_id == dataset_run_id
+            and state_run_id == dataset_run_id,
+            f"{split} split dataset run lineage mismatch: "
+            f"post_rebuild={dataset_run_id!r} manifest={manifest_run_id!r} "
+            f"state={state_run_id!r}",
+        )
+    return dataset_run_id
+
+
 def _m5_source_hash_from_manifests(
     payloads: Mapping[str, Mapping[str, Any]],
 ) -> str:
@@ -936,6 +975,10 @@ def build_recipe_audit_payload(
         artifacts=artifacts,
         dataset_dir=dataset_dir,
     )
+    dataset_run_id = _dataset_run_id_from_launch_evidence(
+        post_rebuild=payloads["post_rebuild_readiness_json"],
+        payloads=payloads,
+    )
     expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
         payloads
     )
@@ -973,6 +1016,7 @@ def build_recipe_audit_payload(
             "live": False,
         },
         "run_id": run_id,
+        "dataset_run_id": dataset_run_id,
         "dataset_dir": str(dataset_dir),
         "out_bundle_dir": str(out_bundle_dir),
         "source_commit": subprocess.check_output(
@@ -1037,6 +1081,10 @@ def validate_launch(
         artifacts=artifacts,
         dataset_dir=dataset_dir,
     )
+    dataset_run_id = _dataset_run_id_from_launch_evidence(
+        post_rebuild=payloads["post_rebuild_readiness_json"],
+        payloads=payloads,
+    )
     expected_large_hashes["m5_prebuilt_path"] = _m5_source_hash_from_manifests(
         payloads
     )
@@ -1091,6 +1139,10 @@ def validate_launch(
         "recipe audit created_utc missing",
     )
     _require(recipe.get("run_id") == run_id, "recipe audit run_id mismatch")
+    _require(
+        recipe.get("dataset_run_id") == dataset_run_id,
+        "recipe audit dataset_run_id mismatch",
+    )
     _require(Path(str(recipe.get("dataset_dir") or "")).resolve() == dataset_dir, "recipe audit dataset mismatch")
     _require(Path(str(recipe.get("out_bundle_dir") or "")).resolve() == out_bundle_dir, "recipe audit output mismatch")
     _validate_source_revision(recipe, repo=repo)
@@ -1121,6 +1173,7 @@ def validate_launch(
         f"{env_name}={recipe_bindings[key]['sha256']}"
         for key, env_name in TRAINER_ARTIFACT_HASH_ENV.items()
     )
+    env_rows.append(f"{TRAINER_DATASET_RUN_ID_ENV}={dataset_run_id}")
     return env_rows
 
 

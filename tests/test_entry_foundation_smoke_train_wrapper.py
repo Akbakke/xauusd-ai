@@ -12,6 +12,7 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     _validate_feature_audit_signal_partition,
 )
 from tests.entry_model_native_train_wrapper_support import (
+    DATASET_RUN_ID,
     RUN_ID,
     build_wrapper_contract,
 )
@@ -76,6 +77,7 @@ def test_smoke_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -
     assert "Validated model-native seq513 smoke contract" in result.stdout
     assert "Capped smoke train command:" in result.stdout
     assert "gx1_capped_run.sh" in result.stdout
+    assert f"--dataset-run-id {DATASET_RUN_ID}" in result.stdout
     assert "--specialist-audit-json" in result.stdout
     assert "--mtf-dir-scale-init" not in result.stdout
     assert "--enable-" not in result.stdout

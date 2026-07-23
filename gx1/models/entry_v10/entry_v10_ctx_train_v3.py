@@ -1512,6 +1512,7 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
 }
+_TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
     if not raw.is_absolute():
@@ -1542,13 +1543,21 @@ def _resolve_explicit_train_split_artifacts(
     train_parquet: Path,
     val_parquet: Path,
     test_parquet: Path,
-    run_id: str,
+    dataset_run_id: str,
     profile: str,
 ) -> Tuple[Dict[str, Path], Dict[str, Path]]:
     """Verify the six launch-bound dataset artifacts without discovery/inference."""
 
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+    expected_dataset_run_id = str(
+        os.environ.get(_TRAIN_DATASET_RUN_ID_ENV) or ""
+    ).strip()
+    if not expected_dataset_run_id or expected_dataset_run_id != dataset_run_id:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_DATASET_RUN_ID_ENV_MISMATCH] "
+            f"cli={dataset_run_id!r} env={expected_dataset_run_id!r}"
+        )
 
     manifests = {
         "train": _explicit_regular_artifact(train_manifest, label="train_manifest"),
@@ -1620,7 +1629,16 @@ def _resolve_explicit_train_split_artifacts(
             if isinstance(extra.get("model_native_state_contract"), dict)
             else None
         )
-        if state_contract is None or state_contract.get("entry_run_id") != run_id:
+        manifest_dataset_run_id = extra.get("entry_run_id")
+        state_dataset_run_id = (
+            state_contract.get("entry_run_id")
+            if state_contract is not None
+            else None
+        )
+        if (
+            manifest_dataset_run_id != dataset_run_id
+            or state_dataset_run_id != dataset_run_id
+        ):
             raise RuntimeError(f"[ENTRY_TRAIN_SPLIT_RUN_ID_LINEAGE_MISMATCH] {split}")
         if reference_state_contract is None:
             reference_state_contract = state_contract
@@ -6877,6 +6895,7 @@ def run_train(
     tf_input_scale_init_h4: float = 0.5,
     tf_input_scale_init_d1: float = 0.3,
     run_id: str = "",
+    dataset_run_id: str = "",
 ) -> None:
     _guard_no_rl()
 
@@ -9029,9 +9048,20 @@ def run_train(
             "[XAU_DIRECTION_REPAIR_STATE_CONTRACT_FAIL] "
             + " | ".join(state_contract_failures)
         )
+    if trained_model_native_state_contract.get("entry_run_id") != dataset_run_id:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_EXPORT_DATASET_RUN_ID_LINEAGE_MISMATCH] "
+            f"cli={dataset_run_id!r} "
+            f"state={trained_model_native_state_contract.get('entry_run_id')!r}"
+        )
 
     direction_decision_contract = model_direction_decision_contract_metadata()
     model_native_direction_evidence_fusion = direction_evidence_fusion_metadata()
+    run_lineage = {
+        "schema_version": "entry_model_native_training_run_lineage_v1",
+        "training_run_id": str(run_id),
+        "dataset_run_id": str(dataset_run_id),
+    }
     lock = {
         "version": "entry_v10_ctx_lock_v1",
         "created_at_utc": _utc_now(),
@@ -9043,6 +9073,7 @@ def run_train(
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "model_native_signal_contract": trained_model_native_signal_contract,
+        "run_lineage": run_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "model_native_training_objective": model_native_training_objective,
         "ctx_tag": f"CTX{ctx_cont_dim}CAT{ctx_cat_dim}",
@@ -9172,6 +9203,7 @@ def run_train(
         "direction_logit_mode": direction_logit_mode,
         "direction_decision_contract": direction_decision_contract,
         "model_native_signal_contract": trained_model_native_signal_contract,
+        "run_lineage": run_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "neutral_xgb_bridge": False,
         "xgb_bridge_source": None,
@@ -9836,6 +9868,7 @@ def main() -> None:
     parser.add_argument("--train", action="store_true", required=True)
     parser.add_argument("--profile", choices=("smoke", "candidate"), required=True)
     parser.add_argument("--run-id", type=str, required=True)
+    parser.add_argument("--dataset-run-id", type=str, required=True)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--device", type=str, default="auto", choices=["cpu", "cuda", "auto"])
     parser.add_argument("--batch_size", type=int, default=256)
@@ -9886,6 +9919,7 @@ def main() -> None:
 
     try:
         require_entry_run_id(args.run_id)
+        require_entry_run_id(args.dataset_run_id)
     except EntryRunLineageError as exc:
         parser.error(str(exc))
 
@@ -9911,7 +9945,7 @@ def main() -> None:
         train_parquet=args.train_parquet,
         val_parquet=args.val_parquet,
         test_parquet=args.test_parquet,
-        run_id=args.run_id,
+        dataset_run_id=args.dataset_run_id,
         profile=args.profile,
     )
     train_parquet = parquets["train"]
@@ -9951,6 +9985,7 @@ def main() -> None:
         tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
         tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
         run_id=str(args.run_id),
+        dataset_run_id=str(args.dataset_run_id),
     )
 
 

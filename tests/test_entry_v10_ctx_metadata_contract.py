@@ -151,6 +151,11 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         ),
         "model_native_learned_component_movement": movement,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
+        "run_lineage": {
+            "schema_version": "entry_model_native_training_run_lineage_v1",
+            "training_run_id": "MODEL_NATIVE_TRAINING_PYTEST_V1",
+            "dataset_run_id": "MODEL_NATIVE_DATASET_PYTEST_V1",
+        },
     }
     lock = {
         **copy.deepcopy(shared),
@@ -207,7 +212,10 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
             "hand_written_direction_pressure": False,
             "direction_mapping": "direct_learned_evidence_fusion",
         },
-        "model_native_state_contract": {"fixture": True},
+        "model_native_state_contract": {
+            "fixture": True,
+            "entry_run_id": "MODEL_NATIVE_DATASET_PYTEST_V1",
+        },
         "specialist_fusion": {
             "enabled": True,
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
@@ -225,6 +233,17 @@ def test_model_native_bundle_metadata_contract_is_exact_and_complete() -> None:
     meta, lock = _exact_model_native_metadata()
 
     _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_rejects_collapsed_training_and_dataset_lineage() -> None:
+    meta, lock = _exact_model_native_metadata()
+    for payload in (meta, lock):
+        payload["run_lineage"]["training_run_id"] = payload["run_lineage"][
+            "dataset_run_id"
+        ]
+
+    with pytest.raises(RuntimeError, match="RUN_LINEAGE_ROLES_COLLAPSED"):
+        _require_exact_model_native_bundle_metadata(meta, lock)
 
 
 @pytest.mark.parametrize(
