@@ -29,6 +29,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     RECIPE_AUDIT_SCHEMA,
+    REQUIRED_RAIL_FEATURES,
     REQUIRED_SPECIALISTS,
     artifact_binding,
     canonical_json_sha256,
@@ -289,20 +290,57 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             ("train_parquet", "val_parquet", "test_parquet", "m5_prebuilt_path")
         )
     }
+    tape_provenance = {
+        "schema_version": "xau_tape_current_snapshot_v1",
+        "instrument": "XAU_USD",
+        "entry_run_id": RUN_ID,
+    }
+    pretrain_splits = []
+    for split in ("train", "val", "test"):
+        manifest = json.loads(
+            artifacts[f"{split}_manifest_json"].read_text(encoding="utf-8")
+        )
+        signal_contract = manifest["extra"]["model_native_signal_contract"]
+        pretrain_splits.append(
+            {
+                "split": split,
+                "manifest_path": str(artifacts[f"{split}_manifest_json"]),
+                "parquet_path": str(artifacts[f"{split}_parquet"]),
+                "feature_count": MODEL_NATIVE_SIGNAL_DIM,
+                "core_target_policy": "future_path_and_utility_outcomes_only",
+                "seq_structure_extension_mode": (
+                    "mandatory_inline_common_causal_history_v1"
+                ),
+                "missing_polarity_features": [],
+                "missing_target_columns": [],
+                "provenance": {
+                    "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+                    "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+                    "neutral_xgb_bridge": False,
+                    "xgb_bridge_source": "",
+                    "xau_tape_provenance": tape_provenance,
+                    "fields": signal_contract["fields"],
+                    "model_native_signal_contract": signal_contract,
+                },
+            }
+        )
     artifacts["pretrain_audit_json"] = _write_json(
         evidence_dir / f"XAU_PRETRAIN_AUDIT_{STAMP}.json",
         {
             "schema_version": "xau_direction_repair_pretrain_audit_v2",
             "decision": "PASS",
             "failures": [],
-            "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
-            "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
-            "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
             "dataset_dir": str(dataset_dir),
             "data_splits": ["train", "val", "test"],
             "require_rail_features": True,
             "require_inline_seq_structure": True,
             "require_xau_provenance": True,
+            "required_rail_features": list(REQUIRED_RAIL_FEATURES),
+            "missing_rail_features": [],
+            "tape_provenance": {
+                split: tape_provenance for split in ("train", "val", "test")
+            },
+            "splits": pretrain_splits,
         },
     )
     artifacts["post_rebuild_readiness_json"] = _write_json(

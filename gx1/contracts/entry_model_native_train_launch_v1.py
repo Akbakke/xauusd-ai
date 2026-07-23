@@ -63,6 +63,9 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.features.entry_chart_geometry_v1 import (
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
+)
 
 
 SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v2"
@@ -90,6 +93,11 @@ REQUIRED_SPECIALISTS = (
     "session_regime_encoder",
     "chart_geometry_encoder",
     "price_action_candle_encoder",
+)
+REQUIRED_RAIL_FEATURES = tuple(
+    name
+    for name in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+    if "_rail_" in name
 )
 
 _MISSING_REQUIRED_OBJECTIVE_WEIGHTS = sorted(
@@ -524,6 +532,112 @@ def _m5_source_hash_from_manifests(
     return next(iter(source_hashes))
 
 
+def _validate_pretrain_audit(
+    pretrain: Mapping[str, Any],
+    *,
+    artifacts: Mapping[str, Path],
+    dataset_dir: Path,
+) -> None:
+    """Validate the real split-native producer schema without invented fields."""
+
+    _zero_failure(
+        pretrain,
+        label="pretrain audit",
+        schema=PRETRAIN_AUDIT_SCHEMA,
+        decision="PASS",
+    )
+    _require(
+        Path(str(pretrain.get("dataset_dir") or "")).resolve() == dataset_dir,
+        "pretrain audit dataset mismatch",
+    )
+    _require(
+        pretrain.get("data_splits") == ["train", "val", "test"],
+        "pretrain audit split contract mismatch",
+    )
+    _require(
+        pretrain.get("require_rail_features") is True
+        and pretrain.get("require_inline_seq_structure") is True
+        and pretrain.get("require_xau_provenance") is True,
+        "pretrain audit required proof toggles are not exact",
+    )
+    _require(
+        tuple(pretrain.get("required_rail_features") or ())
+        == REQUIRED_RAIL_FEATURES
+        and pretrain.get("missing_rail_features") == [],
+        "pretrain audit rail feature proof mismatch",
+    )
+    split_rows = pretrain.get("splits")
+    _require(
+        isinstance(split_rows, list) and len(split_rows) == 3,
+        "pretrain audit must contain exactly three split reports",
+    )
+    reports = {
+        str(row.get("split") or ""): row
+        for row in split_rows
+        if isinstance(row, dict)
+    }
+    _require(
+        set(reports) == {"train", "val", "test"},
+        "pretrain audit split report set is not exact",
+    )
+    tape_provenance = pretrain.get("tape_provenance")
+    _require(
+        isinstance(tape_provenance, dict)
+        and set(tape_provenance) == {"train", "val", "test"}
+        and tape_provenance["train"]
+        == tape_provenance["val"]
+        == tape_provenance["test"],
+        "pretrain audit XAU tape provenance differs across splits",
+    )
+    for split in ("train", "val", "test"):
+        row = reports[split]
+        provenance = row.get("provenance")
+        _require(
+            row.get("manifest_path") == str(artifacts[f"{split}_manifest_json"])
+            and row.get("parquet_path") == str(artifacts[f"{split}_parquet"]),
+            f"pretrain audit {split} artifact paths mismatch",
+        )
+        _require(
+            int(row.get("feature_count") or 0) == MODEL_NATIVE_SIGNAL_DIM
+            and row.get("core_target_policy")
+            == "future_path_and_utility_outcomes_only"
+            and row.get("seq_structure_extension_mode")
+            == "mandatory_inline_common_causal_history_v1"
+            and row.get("missing_polarity_features") == []
+            and row.get("missing_target_columns") == [],
+            f"pretrain audit {split} feature/target proof mismatch",
+        )
+        _require(
+            isinstance(provenance, dict)
+            and provenance.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE
+            and provenance.get("direction_logit_mode")
+            == MODEL_NATIVE_DIRECTION_LOGIT_MODE
+            and provenance.get("neutral_xgb_bridge") is False
+            and provenance.get("xgb_bridge_source") == ""
+            and provenance.get("xau_tape_provenance")
+            == tape_provenance[split],
+            f"pretrain audit {split} provenance mismatch",
+        )
+        signal_contract = provenance.get("model_native_signal_contract")
+        _require(
+            isinstance(signal_contract, dict),
+            f"pretrain audit {split} signal contract missing",
+        )
+        try:
+            require_model_native_signal_contract(
+                signal_contract,
+                context=f"TRAIN_LAUNCH_PRETRAIN_{split.upper()}",
+            )
+        except Exception as exc:
+            raise LaunchContractError(
+                f"pretrain audit {split} signal contract invalid: {exc}"
+            ) from exc
+        _require(
+            provenance.get("fields") == signal_contract.get("fields"),
+            f"pretrain audit {split} ordered signal fields mismatch",
+        )
+
+
 def _validate_audits(
     artifacts: Mapping[str, Path],
     payloads: Mapping[str, Mapping[str, Any]],
@@ -887,16 +1001,11 @@ def validate_launch(
     )
     _validate_audits(artifacts, payloads, dataset_dir=dataset_dir, profile=profile)
 
-    pretrain = payloads["pretrain_audit_json"]
-    _zero_failure(pretrain, label="pretrain audit", schema=PRETRAIN_AUDIT_SCHEMA, decision="PASS")
-    _require(pretrain.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "pretrain audit mode mismatch")
-    _require(int(pretrain.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "pretrain audit signal width mismatch")
-    _require(int(pretrain.get("expected_selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "pretrain audit selected width mismatch")
-    _require(Path(str(pretrain.get("dataset_dir") or "")).resolve() == dataset_dir, "pretrain audit dataset mismatch")
-    _require(pretrain.get("data_splits") == ["train", "val", "test"], "pretrain audit split contract mismatch")
-    _require(pretrain.get("require_rail_features") is True, "pretrain audit did not require rail features")
-    _require(pretrain.get("require_inline_seq_structure") is True, "pretrain audit did not require inline structure")
-    _require(pretrain.get("require_xau_provenance") is True, "pretrain audit did not require XAU provenance")
+    _validate_pretrain_audit(
+        payloads["pretrain_audit_json"],
+        artifacts=artifacts,
+        dataset_dir=dataset_dir,
+    )
     # recipe_audit_json is intentionally outside artifact_keys because a recipe
     # cannot bind its own bytes. The producer validates its in-memory payload
     # through this same path before immutable publication.
@@ -958,7 +1067,7 @@ def validate_launch(
     )
     _require(
         recipe.get("large_artifact_sha256") == expected_large_hashes,
-        "recipe audit large-artifact hashes do not match the pretrain audit",
+        "recipe audit large-artifact hashes do not match post-rebuild readiness",
     )
     _validate_source_bindings(
         recipe,

@@ -36,15 +36,17 @@ from gx1.contracts.entry_pretrain_polarity_signal_v1 import (
     SUPPORT_MINUS_RESISTANCE_FEATURE,
     SUPPORT_STACK_FEATURE,
 )
+from gx1.features.entry_chart_geometry_v1 import (
+    CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
+)
 
 
 DEFAULT_STEM = "v10_6yr_dataset__HOLD_03B"
 REQUIRED_POLARITY_FEATURES = PRETRAIN_POLARITY_SIGNAL_REQUIRED_FIELDS
-REQUIRED_RAIL_FEATURES = (
-    "chart.geometry_rising_support_rail_long_pressure",
-    "chart.geometry_rising_support_rail_short_trap_pressure",
-    "chart.geometry_falling_resistance_rail_short_pressure",
-    "chart.geometry_falling_resistance_rail_long_trap_pressure",
+REQUIRED_RAIL_FEATURES = tuple(
+    name
+    for name in CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES
+    if "_rail_" in name
 )
 REQUIRED_XAU_TARGET_COLUMNS = (
     "y_direction",
