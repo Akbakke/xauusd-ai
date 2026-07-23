@@ -16,11 +16,12 @@ signals, zero exact duplicate signal groups and zero unmapped signal/context
 fields. This proves data/routing contracts, not direction edge.
 
 No smoke model, bundle, calibration or learned prediction evidence exists, so
-no Entry launch is authorized. Smoke execution remains source-blocked until a
-canonical immutable recipe-audit producer and the post-smoke bundle-audit
-control route exist; manually composing those artifacts is forbidden. The old
-Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
-be used for training, replay, paper trading, live trading or promotion.
+no Entry launch is authorized. The canonical producer now emits and validates
+one immutable recipe containing all 162 exact trainer settings, and the
+post-smoke bundle audit has one public control route. The exact capped wrapper
+dry-run passes; no training side effect or bundle was created. The old Smart520
+evidence and rejected V1-V23 lineages are historical only and cannot be used
+for training, replay, paper trading, live trading or promotion.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive

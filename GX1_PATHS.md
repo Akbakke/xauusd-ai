@@ -15,6 +15,10 @@
   `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/dataset`
 - current dataset terminal evidence:
   `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/CHAIN_TERMINAL_20260722T130501752412Z_GREEN.json`
+- current immutable smoke recipe evidence:
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T095000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T092611395428Z.json`
+- declared smoke output (currently absent; never infer existence/authority):
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v10_entry_model_native_seq513_smoke_20260723T092000Z`
 - rejected-split cleanup evidence:
   `/home/andre2/GX1_DATA/cleanup_events/XAU_FAILED_SPLIT_CLEANUP_20260722_V4`
 
@@ -29,8 +33,8 @@ hash-bound and accepted by the relevant contract.
 Environment variables may configure non-authoritative tooling, but they may
 not override immutable Entry artifact identity or introduce a fallback bundle.
 
-The V24 paths above identify data admitted only to the next smoke
-implementation review. They are not bundle, model, direction or launch
+The V24 data and recipe paths above are admitted only to exact capped smoke
+execution. The recipe/dry-run is not a bundle, model, direction or launch
 authority; `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
 Never delete or move `GX1_DATA` content merely to reduce repository search

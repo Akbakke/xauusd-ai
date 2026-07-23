@@ -1,8 +1,8 @@
 {
   "schema_version": "gx1_artifact_selection_v2",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-22T13:44:26Z",
-  "note": "Only decision-active artifacts live under active. Entry is blocked because no v10_entry is active and PROJECT_STATE_xau_direction_launch.json is BLOCK. V24 is an audited dataset admitted only to the next evidence review, not an active model artifact. Rejected Smart520 and retired Entry-IQL records live under retired/history and cannot authorize decisioning. Exit selections remain separate.",
+  "updated_utc": "2026-07-23T09:29:10Z",
+  "note": "Only decision-active artifacts live under active. Entry is blocked because no v10_entry is active and PROJECT_STATE_xau_direction_launch.json is BLOCK. V24 data plus its immutable 162-setting recipe/dry-run evidence are admitted only to capped smoke execution, not recorded as an active model artifact. Rejected Smart520 and retired Entry-IQL records live under retired/history and cannot authorize decisioning. Exit selections remain separate.",
   "active": {
     "xgb": {
       "path": "/home/andre2/GX1_DATA/models/xgb_v7_base80_20260526_cpu_PROMOTED_20260708",

@@ -6,6 +6,25 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — exact smoke recipe is executable, edge remains unproved
+
+Commits `f08cd904`, `b5a61e21` and `bf5c61a0` establish one canonical
+model-native training recipe. The producer owns all 162 decision-affecting
+trainer environment values, validates the real split-native pretrain schema,
+and binds the exact control, contract, producer, wrapper, trainer and capped
+runner bytes. A later documentation commit is permitted because the recorded
+source commit must be an existing ancestor, while any executable-source byte
+change still invalidates the recipe.
+
+Fresh V24 smoke-readiness and trainability events are READY. Recipe SHA-256
+`fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040`
+is PASS for run `XAU_SEQ513_SMOKE_20260723_V1`, and the exact public wrapper
+dry-run passes with one epoch, 10,000 rows and 30G/2G memory/swap caps. The
+declared bundle directory remains absent. This removes the source blocker but
+does not create a model, prediction evidence, edge proof or launch authority.
+The next gate is capped execution followed immediately by the exact public
+smoke-bundle audit.
+
 ## 2026-07-22 — V24 is the current audited dataset, not model authority
 
 V24 rebuilt the complete XAU source cascade through the last complete M5 bar
@@ -47,10 +66,11 @@ text matching with AST proof that both exact constants are imported from the
 owner and used. A hard-coded literal without the import now fails. The
 corrected immutable trainability review is READY.
 
-Smoke training is still not executable: the required immutable recipe-audit
-has no canonical producer, and the existing exact post-smoke bundle audit is
-not exposed in the single control surface. Hand-authored evidence and direct
-route bypasses are forbidden. This is the next source boundary.
+At that boundary smoke training was not executable because the immutable
+recipe-audit had no canonical producer and the exact post-smoke bundle audit
+was not exposed in the single control surface. The 2026-07-23 decision above
+supersedes that source status; hand-authored evidence and direct route bypasses
+remain forbidden.
 
 ## 2026-07-22 — rejected V21/V22/V23 large splits are removed
 

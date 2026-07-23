@@ -36,11 +36,14 @@ commit `0f2b9468` replaced literal duplication with AST-proven import/use and
 the immutable trainability review now passes.
 
 This is a data and contract breakthrough, not a model or trading-edge
-breakthrough. No smoke model has been trained. The smoke package still lacks a
-canonical recipe-audit producer and an exposed immutable post-smoke bundle
-audit route; do not synthesize either artifact by hand. Launch remains `BLOCK`
-until smoke, candidate, untouched OOS, replay, serve parity, sizing and shadow
-gates all pass.
+breakthrough. Commits `f08cd904`, `b5a61e21` and `bf5c61a0` close the
+source-level smoke-launch gap: one canonical producer now owns all 162 exact
+trainer settings, validates the real split-native pretrain schema and binds the
+executable source bytes; the exact post-smoke bundle audit is exposed through
+the single control surface. The immutable V24 smoke recipe is PASS and its
+public wrapper dry-run passes. No smoke model has been trained and no bundle or
+prediction evidence exists. Launch remains `BLOCK` until smoke, candidate,
+untouched OOS, replay, serve parity, sizing and shadow gates all pass.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

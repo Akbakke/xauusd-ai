@@ -45,3 +45,8 @@ documentation and code together.
 13. Source-wiring audits must prove import and executable use of the exact
     contract owner. Repeating the expected mode, dimension or field literal in
     a consumer is not ownership proof and must never be required as one.
+14. Model-native training may receive decision-affecting environment values
+    only from the canonical exact recipe owner. The immutable recipe must bind
+    all 162 keys, split artifacts, prerequisite audits and executable source
+    bytes; ambient values, wrapper defaults and hand-authored recipe evidence
+    are forbidden.

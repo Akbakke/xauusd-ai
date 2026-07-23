@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-22.
+Updated 2026-07-23.
 
 ## Entry direction
 
@@ -83,14 +83,28 @@ The first V24 trainability audit caught one more source mismatch: it searched
 downstream source text for duplicated contract literals even though all four
 consumers correctly imported the exact mode and width from the signal-contract
 owner. Commit `0f2b9468f396bdfd7d850749fd045294662a9bd4` replaces that check
-with AST-proven import and use. The corrected trainability review is READY,
-SHA-256 `bf1487b68ffa5caf30b3c6408bb1282617c68054ee0df04537c8e824b4a494f7`.
+with AST-proven import and use.
 
-No smoke training has started. A canonical immutable recipe-audit producer is
-absent, and the exact post-smoke bundle audit is not exposed through the one
-control surface. Those are real source blockers; a hand-authored JSON or direct
-script bypass is forbidden. V21/V22/V23 large rejected split parquets have
-been deleted, while their small terminal/manifest/audit evidence remains.
+Commits `f08cd90474336b5632c19aa8cd734f6e9bf65f9a`,
+`b5a61e21118693491edf4975edec793fbc47d794` and
+`bf5c61a00500aa50890f118b6eb41ab5e91bb0c6` then close the exact
+source-level smoke-launch gap. One canonical recipe owner and producer now
+construct all 162 decision-affecting trainer settings without ambient
+pass-through/default values, validate the real split-native pretrain audit and
+bind every executable source file by SHA-256. The single control surface now
+exposes both recipe production and the existing exact post-smoke bundle audit.
+
+Fresh V24 smoke readiness is READY with SHA-256
+`d8c09f0d20e3928b55d38a33d0a4b8fb1d0db5bf29b5a0939db7fc2213f12c9e`;
+trainability is READY with SHA-256
+`29d03b3fd45b31f5f7c9df64dd985c9f6892ed0c4d5f758ee712e2dfb260508e`.
+The immutable smoke recipe is PASS with SHA-256
+`fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040`,
+source commit `bf5c61a0`, run ID `XAU_SEQ513_SMOKE_20260723_V1`, one
+epoch, 10,000-row cap and 30G/2G memory/swap caps. Its exact public wrapper
+dry-run passes. No smoke training has started and the declared output bundle
+does not exist. V21/V22/V23 large rejected split parquets have been deleted,
+while their small terminal/manifest/audit evidence remains.
 
 ## Evidence and runtime boundary
 
@@ -120,7 +134,8 @@ FLAT.
 
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable launch
 decision. It is `BLOCK`, identifies V24 as the current audited dataset
-lineage, and has no accepted bundle or launch evidence.
+lineage, binds the non-activating recipe/dry-run evidence and has no accepted
+bundle or launch evidence.
 
 ## Verification state
 
@@ -130,8 +145,8 @@ The active v4 source and V24 data contracts pass:
 - Python compilation for `gx1` and `tests`;
 - `git diff --check`;
 - exact contract/count/routing assertions;
-- V24 post-rebuild, foundation feature/target/specialist, smoke-readiness and
-  trainability reviews;
+- V24 post-rebuild, foundation feature/target/specialist, smoke-readiness,
+  trainability, immutable 162-setting recipe and exact wrapper dry-run;
 - repository and active-hook forbidden-instrument zero-scan.
 
 These are source and contract proofs. They do not prove market edge,
@@ -150,11 +165,11 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Implement the missing canonical recipe-audit producer and expose the exact
-post-smoke bundle audit through `scripts/entry_next_edge_control.sh`. Re-run
-readiness/trainability against V24 after those changes, then perform the exact
-smoke wrapper dry-run and capped execution. Stop at the first red gate; do not
-hand-author an authority artifact or bypass the control surface.
+Run the exact capped one-epoch/10,000-row V24 smoke recipe through the public
+wrapper, then immediately audit the produced bundle through
+`model-native-smoke-bundle-audit`. Stop at the first red gate; do not
+hand-author an authority artifact or bypass the control surface. Zero FLAT
+predictions or missing/passive required evidence is an automatic hard red.
 
 Only after smoke passes may a candidate be calibrated and evaluated. Compare a
 declared full-history baseline with a TRAIN-only recent-regime challenger,

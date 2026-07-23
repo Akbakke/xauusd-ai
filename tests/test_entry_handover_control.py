@@ -83,9 +83,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "decision: BLOCK" in result.stdout
     assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
     assert "dataset_event_id: XAU_SEQ513_REBUILD_20260722_V24" in result.stdout
-    assert "dataset_admission_stage: READY_FOR_SMOKE_IMPLEMENTATION_REVIEW" in result.stdout
+    assert "dataset_admission_stage: READY_FOR_CAPPED_SMOKE_EXECUTION" in result.stdout
     assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
     assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
+    assert "smoke_recipe_evidence: VERIFIED decision=PASS env_count=162" in result.stdout
+    assert "source_commit=bf5c61a00500aa50890f118b6eb41ab5e91bb0c6" in result.stdout
+    assert "smoke_recipe_dry_run: PASS" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert "active_seq513_chain" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
@@ -100,7 +103,7 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
     assert state["latest_terminal_event_decision"] == "GREEN"
     assert state["dataset_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
-    assert state["dataset_admission_stage"] == "READY_FOR_SMOKE_IMPLEMENTATION_REVIEW"
+    assert state["dataset_admission_stage"] == "READY_FOR_CAPPED_SMOKE_EXECUTION"
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
 
@@ -121,14 +124,50 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
         audit = json.loads(audit_bytes)
         assert audit["decision"] == binding["decision"]
 
+    recipe_binding = state["current_smoke_launch_evidence"]["train_recipe_audit"]
+    recipe_path = Path(recipe_binding["path"])
+    recipe_bytes = recipe_path.read_bytes()
+    assert hashlib.sha256(recipe_bytes).hexdigest() == recipe_binding["sha256"]
+    recipe = json.loads(recipe_bytes)
+    assert recipe["schema_version"] == "entry_model_native_seq513_train_recipe_audit_v1"
+    assert recipe["decision"] == recipe_binding["decision"] == "PASS"
+    assert recipe["profile"] == recipe_binding["profile"] == "smoke"
+    assert recipe["run_id"] == recipe_binding["run_id"]
+    assert recipe["source_commit"] == recipe_binding["source_commit"]
+    assert len(recipe["trainer_env"]) == recipe_binding["trainer_env_count"] == 162
+    assert (
+        recipe["trainer_env_contract"]["sha256"]
+        == recipe_binding["trainer_env_contract_sha256"]
+    )
+    assert (
+        recipe["source_bindings_sha256"]
+        == recipe_binding["source_bindings_sha256"]
+    )
+    assert recipe_binding["dry_run_decision"] == "PASS"
+    assert recipe_binding["execution_started"] is False
+    assert recipe_binding["out_bundle_present"] is False
+    assert not Path(recipe_binding["out_bundle_dir"]).exists()
+    assert subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            recipe_binding["source_commit"],
+            "HEAD",
+        ],
+        cwd=REPO,
+        check=False,
+    ).returncode == 0
+
     rejected = state["latest_rejected_downstream_evidence"]
     rejected_path = Path(rejected["path"])
     assert hashlib.sha256(rejected_path.read_bytes()).hexdigest() == rejected["sha256"]
 
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
-    assert "recipe_audit_v1 producer" in blockers
-    assert "post-smoke bundle audit" in blockers
+    assert "capped smoke execution" in blockers
+    assert "post-smoke bundle audit have not run" in blockers
+    assert "no canonical immutable" not in blockers
 
 
 def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> None:

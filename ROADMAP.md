@@ -1,6 +1,6 @@
 # GX1 XAUUSD model-native roadmap
 
-Updated 2026-07-22. This is the execution roadmap, not launch authority.
+Updated 2026-07-23. This is the execution roadmap, not launch authority.
 PROJECT_STATE_xau_direction_launch.json remains BLOCK until every immutable
 empirical gate below passes for one exact bundle.
 
@@ -42,33 +42,33 @@ literal-source scan; commit `0f2b9468` now proves downstream consumers import
 and use both exact signal-contract constants. The corrected immutable
 trainability review is READY.
 
-No model has been trained on V24. The current source blocker is the smoke
-implementation package: there is no canonical producer for the required
-immutable recipe-audit JSON and the post-smoke exact bundle-audit route is not
-exposed through the control surface. Hand-creating either artifact is
-forbidden. V21/V22/V23 large rejected split parquets have been removed while
-their small terminal and audit evidence remains. No bundle, candidate,
-untouched OOS edge or launch evidence exists.
+No model has been trained on V24. The former smoke source blocker is closed:
+commits `f08cd904`, `b5a61e21` and `bf5c61a0` provide one canonical
+162-setting recipe owner/producer, validate the real pretrain schema, bind
+executable source bytes and expose the exact post-smoke audit through the
+single control surface. Fresh readiness and trainability are READY; immutable
+recipe SHA-256 `fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040`
+is PASS and its exact public dry-run passes without creating a bundle. V21/V22/
+V23 large rejected split parquets have been removed while their small terminal
+and audit evidence remains. No bundle, candidate, untouched OOS edge or launch
+evidence exists.
 
 ## Ordered gates
 
-1. Implement one canonical immutable recipe-audit producer and expose the
-   existing exact smoke-bundle audit through the single control surface. Bind
-   both to V24, the wrapper/trainer/capped-runner bytes and one smoke run ID.
-2. Re-run smoke readiness/trainability after those source changes, then execute
-   the wrapper dry-run. Any copied dataset, stale schema, hash drift, dirty
-   source or different source/smoke identity stops the path.
-3. Run capped smoke training, calibration and bundle audit with the exact
+1. Preserve the PASS recipe and exact V24 readiness/trainability bindings. Any
+   copied dataset, stale schema, executable-source hash drift, dirty source or
+   different source/smoke identity stops the path.
+2. Run capped smoke training, calibration and bundle audit with the exact
    produced recipe. Zero FLAT prediction support or passive head/specialist
    evidence is hard red.
    Compare full-history training against a declared recent-regime adaptation
    phase; the trainer currently has no generic recency weighting, so no
    freshness claim is allowed until that candidate is implemented and wins on
    validation and then untouched OOS evidence.
-4. Train/evaluate a candidate only if smoke evidence is green; require OOS
+3. Train/evaluate a candidate only if smoke evidence is green; require OOS
    calibration, support, costs, TOP/BOTTOM timing, Q/V/Advantage, specialist,
    context and timeframe influence evidence.
-5. Require candidate replay, exact serve parity, learned-sizing adoption with
+4. Require candidate replay, exact serve parity, learned-sizing adoption with
    the active Exit stack, zero-order runtime parity, then the immutable
    adaptation/shadow lifecycle. Any missing or newer-red event remains BLOCK.
 

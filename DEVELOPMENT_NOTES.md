@@ -31,6 +31,12 @@ Entry rebuild/training require their immutable prerequisites and one shared
 `--run-id`; it is lineage rather than manual approval. Live launch and
 destructive data work keep their separate authorization contracts.
 
+The current model-native smoke path additionally requires the immutable
+162-key recipe event through `model-native-smoke-train`; direct trainer calls
+and ambient decision-setting overrides are invalid. `--dry-run` is the
+non-writing contract test. `--execute` is a real capped training job and its
+output must immediately enter `model-native-smoke-bundle-audit`.
+
 Every heavy GX1 job must use the capped runner, explicit RAM/swap limits and
 the one host-wide heavy-job lock. Never start another heavy job merely to test
 a wrapper. Destructive `GX1_DATA` work must use the sole evidence-retention

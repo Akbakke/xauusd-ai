@@ -250,11 +250,22 @@ source hash and exact requested TRAIN start/end. A ranking produced for a
 different split cannot authorize a build even when its schema and 378+101
 shape are otherwise valid.
 
-`gx1/contracts/entry_model_native_train_launch_v1.py` binds explicit immutable
+`gx1/contracts/entry_model_native_train_recipe_v1.py` owns the exact 162-key
+decision-affecting trainer environment. It covers every active trainer setting
+plus checkpoint monitor; ambient values, pass-throughs and wrapper defaults
+cannot supply direction behavior.
+
+`gx1/scripts/materialize_entry_model_native_seq513_train_recipe_audit_v1.py`
+constructs one immutable recipe event. It delegates validation to
+`gx1/contracts/entry_model_native_train_launch_v1.py`, which binds explicit
 train/val/test manifests, data files, source tape, liveness, feature, target,
-specialist, pretrain and readiness audits. It emits only an allowlisted recipe
-to the smoke or candidate wrapper. Mutable `latest`, symlinks, missing hashes,
-unlisted environment overrides and pre-existing output directories fail.
+specialist, real split-native pretrain and readiness audits. The launch
+contract also binds the exact bytes of the recipe owner, producer, control
+surface, wrapper, trainer and capped runner. The recorded source commit must be
+an existing ancestor; current execution is admitted only while every bound
+executable source hash still matches. Mutable `latest`, symlinks, missing
+hashes, unlisted environment overrides and pre-existing output directories
+fail.
 
 Both wrappers pass the exact TRAIN/VAL/TEST manifest and parquet paths to the
 trainer, together with recipe-bound hashes. The trainer revalidates all six;
@@ -455,9 +466,10 @@ Current facts:
 - trainability source wiring validates that downstream owners import and use
   `MODEL_NATIVE_CONTRACT_MODE` and `MODEL_NATIVE_SIGNAL_DIM` from the exact
   signal contract. Resolved-literal grep is not contract proof;
-- no model training is running. Smoke execution is source-blocked because no
-  canonical immutable recipe-audit producer exists and the exact post-smoke
-  bundle audit is not exposed in the control surface;
+- no model training is running. The canonical 162-setting recipe producer and
+  exact post-smoke audit route now exist; the final V24 recipe and public
+  wrapper dry-run pass, but no smoke output bundle or learned prediction
+  evidence exists;
 - rejected V21/V22/V23 large split parquets are deleted; their terminal,
   manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
@@ -472,7 +484,8 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-22 etter V24s komplette dataset- og auditkjede. Alle 19
+Oppdatert 2026-07-23 etter V24s komplette dataset-/auditkjede og den eksakte
+162-felts smoke-recipe-kontrakten. Alle 19
 strukturelle krav og alle fire polaritetskrav er obligatoriske; V24 har bevist
 378+101-flaten, separat likviditets-/S/R-semantikk, sparse-event-livlighet og
 den komplette seksnøklers preflightkontrakten.
@@ -537,12 +550,13 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review, men pilen videre til
-`model-native-smoke-train` er foreløpig ikke kjørbar: den obligatoriske
-`entry_model_native_seq513_train_recipe_audit_v1` har ingen aktiv produsent,
-og den eksisterende eksakte smoke-bundle-auditen mangler kontrollrute. Begge
-må få én kanonisk eier og bytebinding; håndskrevet JSON eller direkte scriptkall
-er ikke en tillatt erstatning.
+V24 har nådd og bestått `trainability`-review. Den obligatoriske
+`entry_model_native_seq513_train_recipe_audit_v1` produseres nå av én kanonisk
+eier med 162 eksakte treningsverdier og bytebinding til hele kjørebanen.
+`model-native-smoke-bundle-audit` er eksponert i samme kontrollflate, og det
+eksakte offentlige dry-runet passerer. Neste pil er derfor capped smoke
+`--execute` etterfulgt umiddelbart av bundle-audit. Håndskrevet JSON eller
+direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
 

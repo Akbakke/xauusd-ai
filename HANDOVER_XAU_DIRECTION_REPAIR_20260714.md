@@ -1,6 +1,6 @@
 # XAUUSD model-native direction handover
 
-Updated 2026-07-22. This is the only GX1 handover document. Run
+Updated 2026-07-23. This is the only GX1 handover document. Run
 `bash scripts/gx1_handover.sh` once for the compact repository/launch/process
 snapshot, `--check` on continuations, and `--verbose` only when the full
 document must be printed again.
@@ -60,17 +60,25 @@ truthful short-window regime observation, not a TRAIN duplicate or waiver.
 The first trainability attempt also found a brittle source-wiring audit: it
 searched for duplicated resolved literals in four downstream consumers even
 though they imported the exact contract constants. Commit `0f2b9468` now
-AST-validates import and use of both SSOT constants. The corrected immutable
-trainability review is READY, SHA-256
-`bf1487b68ffa5caf30b3c6408bb1282617c68054ee0df04537c8e824b4a494f7`.
+AST-validates import and use of both SSOT constants.
 
-No model has been trained. The exact next blocker is source-owned: the required
-immutable recipe-audit JSON has no canonical producer, and the existing exact
-post-smoke bundle audit has no route in `entry_next_edge_control.sh`. Do not
-hand-author the recipe, invoke the audit out of band or treat review readiness
-as training permission. V21/V22/V23 large split parquets have been deleted;
-small terminal/manifest/audit evidence remains. V21 cleanup removed exactly
-75,648,062,117 bytes under terminal `DELETE_COMPLETE`.
+Commits `f08cd904`, `b5a61e21` and `bf5c61a0` close the former smoke source
+blocker. One canonical producer owns all 162 exact trainer values, validates
+the real split-native pretrain audit and binds every executable source owner;
+the exact post-smoke audit now has one control route. Fresh smoke-readiness SHA
+is `d8c09f0d20e3928b55d38a33d0a4b8fb1d0db5bf29b5a0939db7fc2213f12c9e`
+and trainability SHA is
+`29d03b3fd45b31f5f7c9df64dd985c9f6892ed0c4d5f758ee712e2dfb260508e`.
+The final immutable recipe is
+`train_recipe_20260723T095000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T092611395428Z.json`,
+SHA-256 `fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040`,
+and its exact public dry-run passes.
+
+No model has been trained and the declared output bundle does not exist. Do not
+hand-author recipe/audit evidence, invoke owners out of band or treat dry-run
+readiness as model/edge proof. V21/V22/V23 large split parquets have been
+deleted; small terminal/manifest/audit evidence remains. V21 cleanup removed
+exactly 75,648,062,117 bytes under terminal `DELETE_COMPLETE`.
 
 ### 2026-07-21/22 former-v1 rebuild and foundation-contract rejection
 
@@ -593,13 +601,12 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 ### Open decisions / next work
 
 1. V24 satisfies the active dataset, post-rebuild, feature, target, specialist,
-   smoke-readiness and trainability-review contracts. Implement the missing
-   immutable recipe-audit producer and expose the exact post-smoke bundle audit
-   through the one control surface. Only then re-run readiness/trainability and
-   invoke the exact smoke wrapper dry-run/execute path. Zero FLAT predictions
-   remains hard-red by definition. After an accepted candidate exists,
-   adaptation still requires fresh TEST evidence, settled zero-order broker
-   shadow rows and paired incumbent/challenger lifecycle proof.
+   smoke-readiness, trainability, immutable recipe and public wrapper dry-run
+   contracts. The next exact gate is capped one-epoch/10,000-row smoke execute
+   under 30G/2G followed immediately by the public smoke-bundle audit. Zero
+   FLAT predictions remains hard-red by definition. After an accepted candidate
+   exists, adaptation still requires fresh TEST evidence, settled zero-order
+   broker shadow rows and paired incumbent/challenger lifecycle proof.
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
    the event copy is repaired) — separate decision; live Exit serves on it.
 3. Exit env-softeners (3 audit MEDIUMs), CI replacement, gx1/scripts sorting
@@ -614,24 +621,17 @@ Ordered steps (each gate fail-closed; stop at first red):
 
 1. Do **not** reuse V1-V23. Keep every V24 input explicit and hash-bound; never
    discover through glob, mtime, symlink or mutable `latest` selection.
-2. Add one recipe-audit producer that constructs and validates the exact
-   profile/run/dataset/output/source/CLI/env/artifact binding required by
-   `entry_model_native_train_launch_v1`. It must write one immutable event and
-   cannot bind its own bytes.
-3. Expose `audit_entry_foundation_smoke_bundle_v1` through the single control
-   surface with exact immutable arguments. Do not create a second audit owner.
-4. Commit and verify those source changes, re-run smoke readiness and
-   trainability against the same V24 split bytes, then run the smoke wrapper
-   with `--dry-run`.
-5. Run capped `--execute` only if the dry-run and every upstream gate are
+2. Recipe producer, exact post-smoke control route, source commit, refreshed
+   readiness/trainability and public `--dry-run` are complete and hash-bound.
+3. Run capped `--execute` only while the recipe and every upstream gate remain
    green; immediately audit the produced smoke bundle through the new route.
-6. Compare a declared full-history baseline and TRAIN-only recent-regime
+4. Compare a declared full-history baseline and TRAIN-only recent-regime
    challenger. Use June validation for selection/calibration and preserve July
    TEST for the final untouched evaluation.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.
-7. Candidate chain only after smoke PASS: trainability-readiness ->
+5. Candidate chain only after smoke PASS: trainability-readiness ->
    candidate-train -> calibration -> immutable prediction evidence ->
    unit-normalized replay -> the nine-item evidence list above.
 

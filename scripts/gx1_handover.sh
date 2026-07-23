@@ -49,6 +49,7 @@ if [[ "$mode" == "check" ]]; then
   "$PY" - "${sources[@]}" <<'PY'
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -120,6 +121,54 @@ if dataset_event_id is not None:
         if audit.get("decision") != binding.get("decision"):
             raise SystemExit(f"FATAL: dataset audit decision mismatch: {name}")
 
+smoke_launch = state.get("current_smoke_launch_evidence")
+recipe_binding = (
+    smoke_launch.get("train_recipe_audit")
+    if isinstance(smoke_launch, dict)
+    else None
+)
+if not isinstance(recipe_binding, dict):
+    raise SystemExit("FATAL: launch authority has no smoke recipe binding")
+recipe_path = Path(str(recipe_binding.get("path", "")))
+if (
+    not recipe_path.is_absolute()
+    or recipe_path.resolve() != recipe_path
+    or not recipe_path.is_file()
+    or recipe_path.is_symlink()
+):
+    raise SystemExit("FATAL: smoke recipe path is not an exact regular file")
+recipe_bytes = recipe_path.read_bytes()
+if hashlib.sha256(recipe_bytes).hexdigest() != recipe_binding.get("sha256"):
+    raise SystemExit("FATAL: smoke recipe SHA-256 mismatch")
+recipe = json.loads(recipe_bytes)
+for key in ("decision", "profile", "run_id", "source_commit"):
+    if recipe.get(key) != recipe_binding.get(key):
+        raise SystemExit(f"FATAL: smoke recipe binding mismatch: {key}")
+env_contract = recipe.get("trainer_env_contract")
+trainer_env = recipe.get("trainer_env")
+if (
+    recipe.get("schema_version") != "entry_model_native_seq513_train_recipe_audit_v1"
+    or not isinstance(env_contract, dict)
+    or not isinstance(trainer_env, dict)
+    or len(trainer_env) != recipe_binding.get("trainer_env_count")
+    or env_contract.get("count") != recipe_binding.get("trainer_env_count")
+    or env_contract.get("sha256") != recipe_binding.get("trainer_env_contract_sha256")
+    or recipe.get("source_bindings_sha256") != recipe_binding.get("source_bindings_sha256")
+):
+    raise SystemExit("FATAL: smoke recipe contract mismatch")
+if (
+    recipe_binding.get("dry_run_decision") != "PASS"
+    or recipe_binding.get("execution_started") is not False
+    or recipe_binding.get("out_bundle_present") is not False
+    or Path(str(recipe_binding.get("out_bundle_dir", ""))).exists()
+):
+    raise SystemExit("FATAL: smoke recipe execution-state mismatch")
+if subprocess.run(
+    ["git", "merge-base", "--is-ancestor", recipe["source_commit"], "HEAD"],
+    check=False,
+).returncode != 0:
+    raise SystemExit("FATAL: smoke recipe source commit is not an ancestor")
+
 print("mode: check")
 print(f"authority_fingerprint: {digest.hexdigest()}")
 print(f"decision: {state['decision']}")
@@ -150,6 +199,7 @@ echo "## Launch authority"
 "$PY" - "$LAUNCH_STATE" <<'PY'
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -225,6 +275,62 @@ else:
         if audit.get("decision") != binding.get("decision"):
             raise SystemExit(f"FATAL: dataset audit decision mismatch: {name}")
     print(f"dataset_audit_evidence: VERIFIED count={len(audits)}")
+
+smoke_launch = state.get("current_smoke_launch_evidence")
+recipe_binding = (
+    smoke_launch.get("train_recipe_audit")
+    if isinstance(smoke_launch, dict)
+    else None
+)
+if not isinstance(recipe_binding, dict):
+    raise SystemExit("FATAL: launch authority has no smoke recipe binding")
+recipe_path = Path(str(recipe_binding.get("path", "")))
+if (
+    not recipe_path.is_absolute()
+    or recipe_path.resolve() != recipe_path
+    or not recipe_path.is_file()
+    or recipe_path.is_symlink()
+):
+    raise SystemExit("FATAL: smoke recipe path is not an exact regular file")
+recipe_bytes = recipe_path.read_bytes()
+observed_recipe_sha256 = hashlib.sha256(recipe_bytes).hexdigest()
+if observed_recipe_sha256 != recipe_binding.get("sha256"):
+    raise SystemExit("FATAL: smoke recipe SHA-256 mismatch")
+recipe = json.loads(recipe_bytes)
+for key in ("decision", "profile", "run_id", "source_commit"):
+    if recipe.get(key) != recipe_binding.get(key):
+        raise SystemExit(f"FATAL: smoke recipe binding mismatch: {key}")
+env_contract = recipe.get("trainer_env_contract")
+trainer_env = recipe.get("trainer_env")
+if (
+    recipe.get("schema_version") != "entry_model_native_seq513_train_recipe_audit_v1"
+    or not isinstance(env_contract, dict)
+    or not isinstance(trainer_env, dict)
+    or len(trainer_env) != recipe_binding.get("trainer_env_count")
+    or env_contract.get("count") != recipe_binding.get("trainer_env_count")
+    or env_contract.get("sha256") != recipe_binding.get("trainer_env_contract_sha256")
+    or recipe.get("source_bindings_sha256") != recipe_binding.get("source_bindings_sha256")
+):
+    raise SystemExit("FATAL: smoke recipe contract mismatch")
+if (
+    recipe_binding.get("dry_run_decision") != "PASS"
+    or recipe_binding.get("execution_started") is not False
+    or recipe_binding.get("out_bundle_present") is not False
+    or Path(str(recipe_binding.get("out_bundle_dir", ""))).exists()
+):
+    raise SystemExit("FATAL: smoke recipe execution-state mismatch")
+if subprocess.run(
+    ["git", "merge-base", "--is-ancestor", recipe["source_commit"], "HEAD"],
+    check=False,
+).returncode != 0:
+    raise SystemExit("FATAL: smoke recipe source commit is not an ancestor")
+print(
+    "smoke_recipe_evidence: VERIFIED "
+    f"decision={recipe['decision']} env_count={len(trainer_env)} "
+    f"source_commit={recipe['source_commit']} sha256={observed_recipe_sha256}"
+)
+print(f"smoke_recipe_dry_run: {recipe_binding['dry_run_decision']}")
+print(f"smoke_recipe_path: {recipe_path}")
 print(
     "dimensions: "
     + " ".join(
