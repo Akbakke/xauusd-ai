@@ -27,8 +27,15 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _aux_target_contract() -> dict[str, object]:
-    return model_native_aux_target_contract_metadata()
+def _aux_target_contract(split: str) -> dict[str, object]:
+    candidates = {"train": 100, "val": 101, "test": 102}[split]
+    return {
+        **model_native_aux_target_contract_metadata(),
+        "incomplete_tail_rows_total": 96,
+        "candidate_rows_before_completeness": candidates,
+        "incomplete_candidate_rows_excluded": 96,
+        "complete_rows_emitted": candidates - 96,
+    }
 
 
 def _artifacts(
@@ -69,7 +76,7 @@ def _artifacts(
                             "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                             "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                         },
-                        "aux_head_target_contract": _aux_target_contract(),
+                        "aux_head_target_contract": _aux_target_contract(split),
                         "model_native_state_contract": state_contract,
                     },
                 },

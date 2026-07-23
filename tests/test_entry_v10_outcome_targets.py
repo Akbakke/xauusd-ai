@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    require_model_native_aux_target_contract,
+    require_model_native_aux_target_emission_contract,
+)
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
     MODEL_NATIVE_AUX_TARGET_COLUMNS,
@@ -71,6 +75,61 @@ def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     assert timing["layout"][0]["market_turn"] == "BOTTOM"
     assert timing["layout"][6]["market_turn"] == "TOP"
     assert timing["live_direction_rule_authority"] is False
+
+
+def _emission_contract(*, candidates: int = 100) -> dict:
+    return {
+        **model_native_aux_target_contract_metadata(),
+        "incomplete_tail_rows_total": 96,
+        "candidate_rows_before_completeness": candidates,
+        "incomplete_candidate_rows_excluded": 96,
+        "complete_rows_emitted": candidates - 96,
+    }
+
+
+def test_aux_target_emission_contract_requires_and_normalizes_exact_row_proof() -> None:
+    expected = model_native_aux_target_contract_metadata()
+
+    assert require_model_native_aux_target_emission_contract(
+        _emission_contract(),
+        context="TEST",
+    ) == expected
+    with pytest.raises(RuntimeError, match="AUX_TARGET_CONTRACT_INVALID"):
+        require_model_native_aux_target_contract(
+            _emission_contract(),
+            context="TEST_STATIC",
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("missing", "extra", "bool", "tail", "excluded", "equation", "empty"),
+)
+def test_aux_target_emission_contract_rejects_non_exact_row_proof(
+    mutation: str,
+) -> None:
+    candidate = _emission_contract()
+    if mutation == "missing":
+        candidate.pop("complete_rows_emitted")
+    elif mutation == "extra":
+        candidate["allow_incomplete"] = False
+    elif mutation == "bool":
+        candidate["complete_rows_emitted"] = True
+    elif mutation == "tail":
+        candidate["incomplete_tail_rows_total"] = 95
+    elif mutation == "excluded":
+        candidate["incomplete_candidate_rows_excluded"] = 95
+    elif mutation == "equation":
+        candidate["candidate_rows_before_completeness"] = 101
+    else:
+        candidate["complete_rows_emitted"] = 0
+        candidate["candidate_rows_before_completeness"] = 96
+
+    with pytest.raises(RuntimeError, match="AUX_TARGET_EMISSION_CONTRACT_INVALID"):
+        require_model_native_aux_target_emission_contract(
+            candidate,
+            context="TEST",
+        )
 
 
 def test_model_native_group_a_recompute_is_memory_capped_and_explicit() -> None:

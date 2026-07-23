@@ -20,7 +20,13 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
 def aux_head_target_contract() -> dict:
     """Exact aux-head target contract block for dataset manifests."""
-    return model_native_aux_target_contract_metadata()
+    return {
+        **model_native_aux_target_contract_metadata(),
+        "incomplete_tail_rows_total": 96,
+        "candidate_rows_before_completeness": 100,
+        "incomplete_candidate_rows_excluded": 96,
+        "complete_rows_emitted": 4,
+    }
 
 
 def install_multi_tf_stub(

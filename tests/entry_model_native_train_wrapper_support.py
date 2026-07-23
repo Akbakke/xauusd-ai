@@ -21,6 +21,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     model_native_signal_contract_metadata,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    model_native_aux_target_contract_metadata,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
@@ -98,6 +101,13 @@ def _split_manifest(
                     "fields": contract["fields"],
                     "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
                     "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
+                },
+                "aux_head_target_contract": {
+                    **model_native_aux_target_contract_metadata(),
+                    "incomplete_tail_rows_total": 96,
+                    "candidate_rows_before_completeness": 100,
+                    "incomplete_candidate_rows_excluded": 96,
+                    "complete_rows_emitted": 4,
                 },
                 "model_native_state_contract": {
                     "rank_reference_source_parquet": str(m5_prebuilt.resolve()),

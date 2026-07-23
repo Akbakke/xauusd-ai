@@ -26,6 +26,7 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS,
     require_model_native_aux_target_contract,
+    require_model_native_aux_target_emission_contract,
 )
 from gx1.contracts.entry_model_native_offline_rl_v1 import (
     require_offline_rl_contract_metadata,
@@ -82,6 +83,9 @@ RECIPE_CONTRACT_RELATIVE_PATH = (
 )
 RECIPE_PRODUCER_RELATIVE_PATH = (
     "gx1/scripts/materialize_entry_model_native_seq513_train_recipe_audit_v1.py"
+)
+AUX_TARGET_CONTRACT_RELATIVE_PATH = (
+    "gx1/contracts/entry_model_native_aux_targets_v3.py"
 )
 
 REQUIRED_SPECIALISTS = (
@@ -277,6 +281,9 @@ def _validate_binding_map(
 
 def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, Path]:
     return {
+        "aux_target_contract": (
+            repo / AUX_TARGET_CONTRACT_RELATIVE_PATH
+        ).resolve(strict=True),
         "control_surface": (repo / CONTROL_SURFACE_RELATIVE_PATH).resolve(strict=True),
         "launch_contract": (repo / LAUNCH_CONTRACT_RELATIVE_PATH).resolve(strict=True),
         "recipe_contract": (repo / RECIPE_CONTRACT_RELATIVE_PATH).resolve(strict=True),
@@ -366,6 +373,15 @@ def _validate_split_manifest(
     _require(int(signal_bridge.get("seq_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, f"split manifest seq width mismatch: {path}")
     _require(int(signal_bridge.get("snap_input_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, f"split manifest snap width mismatch: {path}")
     _require(signal_bridge.get("fields") == signal_contract.get("fields"), f"split manifest ordered fields mismatch: {path}")
+    try:
+        require_model_native_aux_target_emission_contract(
+            extra.get("aux_head_target_contract"),
+            context=str(path),
+        )
+    except Exception as exc:
+        raise LaunchContractError(
+            f"split manifest aux-target emission contract invalid: {path}: {exc}"
+        ) from exc
     inputs = manifest.get("inputs")
     _require(isinstance(inputs, dict), f"split manifest inputs missing: {path}")
     _require(

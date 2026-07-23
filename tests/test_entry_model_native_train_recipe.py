@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import ast
+import json
 import subprocess
 from pathlib import Path
 
 import pytest
 
+from gx1.contracts import entry_model_native_train_launch_v1 as launch
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
@@ -112,6 +114,7 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
     assert event["report_only"] is True
     assert not any(event["side_effects_started"].values())
     assert set(event["source_bindings"]) == {
+        "aux_target_contract",
         "control_surface",
         "launch_contract",
         "recipe_contract",
@@ -174,3 +177,35 @@ def test_recipe_producer_fails_before_publication_when_source_is_dirty(
     with pytest.raises(RuntimeError, match="TRAIN_RECIPE_SOURCE_WORKTREE_DIRTY"):
         producer.run(producer.build_parser().parse_args(producer_argv))
     assert not out_dir.exists()
+
+
+@pytest.mark.parametrize("mutation", ("missing", "wrong_equation", "unknown"))
+def test_launch_rejects_non_exact_split_aux_target_emission_proof(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    _, paths = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    manifest_path = paths["train_manifest_json"]
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    emission = payload["extra"]["aux_head_target_contract"]
+    if mutation == "missing":
+        emission.pop("complete_rows_emitted")
+    elif mutation == "wrong_equation":
+        emission["candidate_rows_before_completeness"] += 1
+    else:
+        emission["allow_incomplete_rows"] = False
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="split manifest aux-target emission contract invalid",
+    ):
+        launch._validate_split_manifest(
+            payload,
+            path=manifest_path,
+            parquet=paths["train_parquet"],
+            m5_prebuilt=paths["m5_prebuilt_path"],
+        )

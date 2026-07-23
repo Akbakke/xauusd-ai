@@ -83,7 +83,7 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
-    require_model_native_aux_target_contract as _require_model_native_aux_target_contract,
+    require_model_native_aux_target_emission_contract as _require_model_native_aux_target_emission_contract,
 )
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     COMPONENT_PARAMETERS as _EVIDENCE_FUSION_MOVEMENT_COMPONENTS,
@@ -1675,7 +1675,7 @@ def _signal_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
         )
     if fields != list(model_native_signal_contract["fields"]):
         raise RuntimeError("[ENTRY_DATASET_MODEL_NATIVE_SIGNAL_ORDER_MISMATCH]")
-    aux_head_target_contract = _require_model_native_aux_target_contract(
+    aux_head_target_contract = _require_model_native_aux_target_emission_contract(
         extra.get("aux_head_target_contract"),
         context="ENTRY_DATASET",
     )

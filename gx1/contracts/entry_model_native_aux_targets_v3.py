@@ -95,6 +95,12 @@ MODEL_NATIVE_AUX_TARGET_COLUMNS = tuple(MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUM
 MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS = max(
     MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.values()
 )
+MODEL_NATIVE_AUX_EMISSION_PROOF_KEYS = (
+    "incomplete_tail_rows_total",
+    "candidate_rows_before_completeness",
+    "incomplete_candidate_rows_excluded",
+    "complete_rows_emitted",
+)
 
 
 def model_native_aux_target_contract_metadata() -> dict[str, Any]:
@@ -148,4 +154,54 @@ def require_model_native_aux_target_contract(
     expected = model_native_aux_target_contract_metadata()
     if not isinstance(value, Mapping) or dict(value) != expected:
         raise RuntimeError(f"[{context}_AUX_TARGET_CONTRACT_INVALID]")
+    return expected
+
+
+def require_model_native_aux_target_emission_contract(
+    value: Mapping[str, Any] | Any,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Validate one emitted split contract and return its shared static core."""
+
+    expected = model_native_aux_target_contract_metadata()
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] not_mapping")
+    observed = dict(value)
+    expected_keys = set(expected).union(MODEL_NATIVE_AUX_EMISSION_PROOF_KEYS)
+    if set(observed) != expected_keys:
+        missing = sorted(expected_keys - set(observed))
+        extra = sorted(set(observed) - expected_keys)
+        raise RuntimeError(
+            f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] "
+            f"missing={missing} extra={extra}"
+        )
+    static_observed = {key: observed[key] for key in expected}
+    if static_observed != expected:
+        raise RuntimeError(
+            f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] static_contract"
+        )
+    proof: dict[str, int] = {}
+    for key in MODEL_NATIVE_AUX_EMISSION_PROOF_KEYS:
+        raw = observed[key]
+        if type(raw) is not int or raw < 0:
+            raise RuntimeError(
+                f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] "
+                f"{key}={raw!r}"
+            )
+        proof[key] = raw
+    expected_incomplete = int(MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS)
+    if (
+        proof["candidate_rows_before_completeness"] <= 0
+        or proof["complete_rows_emitted"] <= 0
+        or proof["incomplete_tail_rows_total"] != expected_incomplete
+        or proof["incomplete_candidate_rows_excluded"] != expected_incomplete
+        or proof["candidate_rows_before_completeness"]
+        != proof["complete_rows_emitted"]
+        + proof["incomplete_candidate_rows_excluded"]
+    ):
+        raise RuntimeError(
+            f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] "
+            f"proof={proof} expected_incomplete={expected_incomplete}"
+        )
     return expected
