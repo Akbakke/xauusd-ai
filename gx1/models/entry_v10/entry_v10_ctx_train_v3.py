@@ -128,6 +128,10 @@ _DIP_FORECAST_TARGET_COLS = (
     + _TAIL_RISK_TARGET_COLS
     + _VOL_FORECAST_TARGET_COLS
 )
+# The immutable parquet column is `y_direction`; the Dataset converts it once
+# to the canonical class-index batch tensor `y`.  Active heads must consume
+# that exact tensor rather than requiring a second alias in every batch.
+_DIRECTION_BATCH_TARGET_NAMES = ("y",)
 
 def _require_active_aux_head_prediction(
     out: dict,
@@ -5426,7 +5430,7 @@ def train_epoch(
             out,
             batch,
             output_name="mtf_dir_logits",
-            target_names=("y_direction",),
+            target_names=_DIRECTION_BATCH_TARGET_NAMES,
         )
         mtf_dir_loss = _direction_aux_ce_loss(
             mtf_dir_logits,
@@ -6608,7 +6612,7 @@ def validate(
                 out,
                 batch,
                 output_name="mtf_dir_logits",
-                target_names=("y_direction",),
+                target_names=_DIRECTION_BATCH_TARGET_NAMES,
             )
             mtf_dir_loss = _direction_aux_ce_loss(
                 mtf_dir_logits,

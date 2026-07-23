@@ -104,6 +104,24 @@ def test_aux_path_regression_preserves_signed_forward_outcome_targets() -> None:
     torch.testing.assert_close(scaled, torch.tensor([-0.5, 1.0]))
 
 
+def test_mtf_direction_head_requires_the_canonical_loader_target_key() -> None:
+    prediction = torch.zeros(2, 3)
+    batch = {"y": torch.tensor([0, 2], dtype=torch.long)}
+
+    actual = trainer._require_active_aux_head_prediction(
+        {"mtf_dir_logits": prediction},
+        batch,
+        output_name="mtf_dir_logits",
+        target_names=trainer._DIRECTION_BATCH_TARGET_NAMES,
+    )
+
+    assert actual is prediction
+    assert trainer._DIRECTION_BATCH_TARGET_NAMES == ("y",)
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    assert source.count("target_names=_DIRECTION_BATCH_TARGET_NAMES") == 2
+    assert 'target_names=("y_direction",)' not in source
+
+
 def test_model_native_architecture_has_no_head_enable_config_surface() -> None:
     import inspect
 
