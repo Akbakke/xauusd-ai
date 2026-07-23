@@ -65,14 +65,18 @@ AST-validates import and use of both SSOT constants.
 Commits `f08cd904`, `b5a61e21` and `bf5c61a0` close the former smoke source
 blocker. One canonical producer owns all 162 exact trainer values, validates
 the real split-native pretrain audit and binds every executable source owner;
-the exact post-smoke audit now has one control route. Fresh smoke-readiness SHA
-is `d8c09f0d20e3928b55d38a33d0a4b8fb1d0db5bf29b5a0939db7fc2213f12c9e`
+the exact post-smoke audit now has one control route. V1 and V2 then failed
+closed before training and without bundle output, on aux-target emission proof
+and collapsed dataset/training lineage respectively. Commits `9459babe` and
+`b986c8db` repair those exact boundaries. Fresh smoke-readiness SHA is
+`849615a753ac86ece4843dfdf5cc139e6a118d1cfa9a7deb6c050802fcffb0b5`
 and trainability SHA is
-`29d03b3fd45b31f5f7c9df64dd985c9f6892ed0c4d5f758ee712e2dfb260508e`.
-The final immutable recipe is
-`train_recipe_20260723T095000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T092611395428Z.json`,
-SHA-256 `fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040`,
-and its exact public dry-run passes.
+`0f90efa225c5a8f8911f35c327d485661c17eee833b9351b6227cc7853898fc9`.
+The current immutable recipe is
+`train_recipe_20260723T101600Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T101541020294Z.json`,
+SHA-256 `0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`,
+and its exact public dry-run passes. It binds training V3 separately from
+dataset V24.
 
 No model has been trained and the declared output bundle does not exist. Do not
 hand-author recipe/audit evidence, invoke owners out of band or treat dry-run
@@ -601,10 +605,17 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 ### Open decisions / next work
 
 1. V24 satisfies the active dataset, post-rebuild, feature, target, specialist,
-   smoke-readiness, trainability, immutable recipe and public wrapper dry-run
-   contracts. The next exact gate is capped one-epoch/10,000-row smoke execute
-   under 30G/2G followed immediately by the public smoke-bundle audit. Zero
-   FLAT predictions remains hard-red by definition. After an accepted candidate
+   smoke-readiness, trainability, immutable recipe-v2 and public wrapper
+   dry-run contracts. V1 and V2 both failed before training and wrote no
+   bundle: V1 on aux-target emitted-contract validation, V2 on incorrectly
+   collapsed dataset-build/training-output IDs. Commits `9459babe` and
+   `b986c8db` repair those exact walls. V3 binds
+   `run_id=XAU_SEQ513_SMOKE_20260723_V3` separately from launch-derived
+   `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24`; recipe SHA-256 is
+   `0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`.
+   The next exact gate is V3 capped one-epoch/10,000-row smoke execute under
+   30G/2G followed immediately by the public smoke-bundle audit. Zero FLAT
+   predictions remains hard-red by definition. After an accepted candidate
    exists, adaptation still requires fresh TEST evidence, settled zero-order
    broker shadow rows and paired incumbent/challenger lifecycle proof.
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
@@ -621,10 +632,14 @@ Ordered steps (each gate fail-closed; stop at first red):
 
 1. Do **not** reuse V1-V23. Keep every V24 input explicit and hash-bound; never
    discover through glob, mtime, symlink or mutable `latest` selection.
-2. Recipe producer, exact post-smoke control route, source commit, refreshed
-   readiness/trainability and public `--dry-run` are complete and hash-bound.
-3. Run capped `--execute` only while the recipe and every upstream gate remain
-   green; immediately audit the produced smoke bundle through the new route.
+2. Recipe producer, exact post-smoke control route, source commit
+   `b986c8db`, refreshed readiness/trainability and V3 public `--dry-run` are
+   complete and hash-bound. Dataset identity is never a caller argument:
+   launch derives it from V24 post-rebuild plus TRAIN/VAL/TEST and the trainer
+   requires exact CLI/environment/manifest/state equality.
+3. Run V3 capped `--execute` only while the recipe and every upstream gate
+   remain green; immediately audit any produced smoke bundle through the new
+   route.
 4. Compare a declared full-history baseline and TRAIN-only recent-regime
    challenger. Use June validation for selection/calibration and preserve July
    TEST for the final untouched evaluation.
@@ -636,7 +651,9 @@ Ordered steps (each gate fail-closed; stop at first red):
    unit-normalized replay -> the nine-item evidence list above.
 
 Nothing in this runbook grants run authority by itself; exact evidence gates
-remain authoritative and `--run-id` only prevents mixed artifact lineages.
+remain authoritative. Dataset-build `entry_run_id`, training/output `run_id`
+and launch-derived `dataset_run_id` have distinct roles and may never be
+collapsed or manually substituted.
 
 ## Required evidence before Entry can open
 

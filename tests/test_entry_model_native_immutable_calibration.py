@@ -142,6 +142,11 @@ def _source_bundle(tmp_path: Path) -> Path:
         ),
         "model_native_learned_component_movement": movement,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
+        "run_lineage": {
+            "schema_version": "entry_model_native_training_run_lineage_v1",
+            "training_run_id": "MODEL_NATIVE_CALIBRATION_TRAIN_PYTEST_V1",
+            "dataset_run_id": "MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
+        },
     }
     direction_contract = model_direction_decision_contract_metadata()
     lock = {
@@ -200,7 +205,10 @@ def _source_bundle(tmp_path: Path) -> Path:
             "hand_written_direction_pressure": False,
             "direction_mapping": "direct_learned_evidence_fusion",
         },
-        "model_native_state_contract": {"decision": "PASS"},
+        "model_native_state_contract": {
+            "decision": "PASS",
+            "entry_run_id": "MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
+        },
         "specialist_fusion": {
             "enabled": True,
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,

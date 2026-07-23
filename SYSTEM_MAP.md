@@ -239,6 +239,17 @@ artifact hashes.
 Missing or unequal IDs invalidate the chain. The ID is immutable provenance,
 not an approval or direction authority.
 
+Training owns a separate output lineage. Public train wrappers accept only the
+new training `--run-id`; `entry_model_native_seq513_train_launch_contract_v3`
+derives `dataset_run_id` from the exact post-rebuild event and independently
+requires `extra.entry_run_id` plus
+`model_native_state_contract.entry_run_id` in TRAIN/VAL/TEST to equal it.
+Recipe audit v2 records both roles. The launch validator emits the dataset ID,
+the wrapper forwards it explicitly, the trainer compares CLI/environment/all
+manifests, and exported metadata plus lock bind one exact
+`entry_model_native_training_run_lineage_v1`. A missing, operator-supplied,
+collapsed or split-brain lineage fails closed before usable bundle authority.
+
 All retained OANDA backfill writers also validate an explicit `--vedtak`
 before creating or modifying files. A missing or invalid decision fails before
 side effects; backfill output never supplies Entry direction authority.
@@ -284,8 +295,9 @@ The only model-native train wrappers are:
 - `scripts/run_entry_model_native_seq513_smoke_train.sh`;
 - `scripts/run_entry_model_native_seq513_candidate_train.sh`.
 
-They do not grant authority by themselves. One valid `--run-id` and all bound
-prerequisite evidence are required; evidence gates, not the ID, admit execution.
+They do not grant authority by themselves. One valid training `--run-id`, one
+launch-derived immutable `dataset_run_id` and all bound prerequisite evidence
+are required; evidence gates, not either ID, admit execution.
 
 ## Bundle, calibration and evidence ownership
 
@@ -550,13 +562,15 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review. Den obligatoriske
-`entry_model_native_seq513_train_recipe_audit_v1` produseres nå av én kanonisk
-eier med 162 eksakte treningsverdier og bytebinding til hele kjørebanen.
-`model-native-smoke-bundle-audit` er eksponert i samme kontrollflate, og det
-eksakte offentlige dry-runet passerer. Neste pil er derfor capped smoke
-`--execute` etterfulgt umiddelbart av bundle-audit. Håndskrevet JSON eller
-direkte scriptkall er fortsatt ikke tillatt.
+V24 har nådd og bestått `trainability`-review. V1 og V2 feilet begge før første
+treningsbatch og uten bundle: først på emitted aux-target proof, deretter fordi
+trainer feilaktig sammenlignet smoke-run-ID med dataset-build-ID.
+`entry_model_native_seq513_train_recipe_audit_v2` produseres nå av én kanonisk
+eier med 162 eksakte treningsverdier, separat training/dataset-lineage og
+bytebinding til hele kjørebanen. V3-recipe og offentlig dry-run passerer.
+`model-native-smoke-bundle-audit` er eksponert i samme kontrollflate. Neste pil
+er derfor V3 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
+Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
 

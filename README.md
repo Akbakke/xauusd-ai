@@ -18,8 +18,11 @@ fields. This proves data/routing contracts, not direction edge.
 No smoke model, bundle, calibration or learned prediction evidence exists, so
 no Entry launch is authorized. The canonical producer now emits and validates
 one immutable recipe containing all 162 exact trainer settings, and the
-post-smoke bundle audit has one public control route. The exact capped wrapper
-dry-run passes; no training side effect or bundle was created. The old Smart520
+post-smoke bundle audit has one public control route. Smoke V1 and V2 both
+failed closed before training and created no bundle: V1 found an aux-target
+emission-contract mismatch; V2 found a dataset-build/training-run lineage
+collision. Recipe schema v2 and the exact V3 dry-run now bind a distinct
+training `run_id` plus launch-derived V24 `dataset_run_id`. The old Smart520
 evidence and rejected V1-V23 lineages are historical only and cannot be used
 for training, replay, paper trading, live trading or promotion.
 
@@ -114,9 +117,11 @@ scripts/entry_next_edge_control.sh --help
 
 Read `AGENTS.md`, `SYSTEM_MAP.md` and
 `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md` before changing the pipeline.
-Training or rebuild commands require their exact immutable prerequisites and
-one `--run-id` shared by every artifact. The ID is provenance, not approval;
-documentation never overrides the evidence gates.
+Rebuild commands require one `--run-id` shared by the complete dataset-build
+lineage. Training commands use their own output `--run-id`; the launch contract
+derives a separate immutable `dataset_run_id` from post-rebuild and all three
+split manifests and does not accept an operator override. Both IDs are
+provenance, not approval; documentation never overrides the evidence gates.
 
 Code lives in this repository. Large datasets, bundles and run evidence live
 under `/home/andre2/GX1_DATA` and must not be deleted without an explicit,

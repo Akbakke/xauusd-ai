@@ -27,9 +27,11 @@ literals is not a valid wiring check and can reject correctly centralized
 consumers.
 
 Do not run a dataset rebuild, trainer, large replay or live launcher as a test.
-Entry rebuild/training require their immutable prerequisites and one shared
-`--run-id`; it is lineage rather than manual approval. Live launch and
-destructive data work keep their separate authorization contracts.
+Entry rebuild/training require immutable prerequisites. Rebuild shares one
+dataset-build `--run-id`; training uses a new output `--run-id` and a separate
+launch-derived `dataset_run_id` from the exact input evidence. These are
+lineage rather than manual approval. Live launch and destructive data work keep
+their separate authorization contracts.
 
 The current model-native smoke path additionally requires the immutable
 162-key recipe event through `model-native-smoke-train`; direct trainer calls

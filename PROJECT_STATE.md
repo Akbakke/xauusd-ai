@@ -95,16 +95,29 @@ bind every executable source file by SHA-256. The single control surface now
 exposes both recipe production and the existing exact post-smoke bundle audit.
 
 Fresh V24 smoke readiness is READY with SHA-256
-`d8c09f0d20e3928b55d38a33d0a4b8fb1d0db5bf29b5a0939db7fc2213f12c9e`;
+`849615a753ac86ece4843dfdf5cc139e6a118d1cfa9a7deb6c050802fcffb0b5`;
 trainability is READY with SHA-256
-`29d03b3fd45b31f5f7c9df64dd985c9f6892ed0c4d5f758ee712e2dfb260508e`.
-The immutable smoke recipe is PASS with SHA-256
-`fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040`,
-source commit `bf5c61a0`, run ID `XAU_SEQ513_SMOKE_20260723_V1`, one
-epoch, 10,000-row cap and 30G/2G memory/swap caps. Its exact public wrapper
-dry-run passes. No smoke training has started and the declared output bundle
-does not exist. V21/V22/V23 large rejected split parquets have been deleted,
-while their small terminal/manifest/audit evidence remains.
+`0f90efa225c5a8f8911f35c327d485661c17eee833b9351b6227cc7853898fc9`.
+
+Two real capped executions have provided fail-closed pre-training evidence.
+V1 rejected the stronger emitted aux-target contract because the trainer
+compared it with only the static 46-target subset. Commit `9459babe` added the
+exact four-counter emission validator. V2 then reached the next wall and
+rejected V24's correct dataset-build ID because the trainer compared it with
+the new smoke output ID. Neither attempt started a training batch or created an
+output directory.
+
+Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
+lineages without weakening identity. Recipe schema v2 derives
+`dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24` from post-rebuild plus all
+three split manifests, while `run_id=XAU_SEQ513_SMOKE_20260723_V3` owns the
+training/output lineage. Wrapper, trainer, bundle metadata/lock and handover
+all revalidate the roles. The immutable V3 recipe is PASS with SHA-256
+`0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`,
+one epoch, 10,000-row cap and 30G/2G memory/swap caps. Its exact public dry-run
+passes. No smoke training batch has started and the V3 output bundle does not
+exist. V21/V22/V23 large rejected split parquets have been deleted, while
+their small terminal/manifest/audit evidence remains.
 
 ## Evidence and runtime boundary
 
@@ -165,8 +178,8 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Run the exact capped one-epoch/10,000-row V24 smoke recipe through the public
-wrapper, then immediately audit the produced bundle through
+Run the exact capped one-epoch/10,000-row V3/V24 smoke recipe through the
+public wrapper, then immediately audit any produced bundle through
 `model-native-smoke-bundle-audit`. Stop at the first red gate; do not
 hand-author an authority artifact or bypass the control surface. Zero FLAT
 predictions or missing/passive required evidence is an automatic hard red.

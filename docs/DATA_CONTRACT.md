@@ -178,4 +178,7 @@ without matching content hashes is not evidence.
 
 No dataset build is authorized merely by this document. Rebuild requires the
 exact model-native preflight contract and one validated `--run-id` shared by
-the complete immutable artifact lineage.
+the complete immutable dataset-build artifact lineage. A later training run
+has its own output `run_id`; its input `dataset_run_id` is derived by the
+launch contract from post-rebuild and all three split manifests, never supplied
+or rewritten by the operator.

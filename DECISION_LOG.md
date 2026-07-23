@@ -6,6 +6,39 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — dataset-build and training-output lineage are distinct
+
+The first two real V24 smoke executions both failed closed before training and
+created no bundle. V1 found that the trainer rejected the producer's stronger
+aux-target emission proof because it demanded equality with the static
+46-target subset. Commit `9459babe` introduced one exact static-plus-four-row-
+counter validator shared by launch and trainer.
+
+V2 crossed that wall and found a second mismatch:
+`ENTRY_TRAIN_SPLIT_RUN_ID_LINEAGE_MISMATCH`. V24's three manifests correctly
+carry `XAU_SEQ513_REBUILD_20260722_V24`; the smoke output correctly requested
+`XAU_SEQ513_SMOKE_20260723_V2`. Treating those two lifecycle roles as one ID
+would either reject every reused immutable dataset or erase provenance by
+renaming its build lineage.
+
+Commit `b986c8db` establishes the fail-closed separation. The recipe keeps
+`run_id` as training/output lineage and adds `dataset_run_id`, derived only
+from the bound post-rebuild evidence and all three split manifests. The launch
+validator emits it, both public wrappers forward it, the trainer requires exact
+CLI/environment/manifest/state agreement, and successful metadata plus lock
+must carry one exact `entry_model_native_training_run_lineage_v1`. Collapsed
+roles, missing values and meta/lock split-brain are invalid.
+
+Fresh smoke-readiness SHA-256
+`849615a753ac86ece4843dfdf5cc139e6a118d1cfa9a7deb6c050802fcffb0b5`
+and trainability SHA-256
+`0f90efa225c5a8f8911f35c327d485661c17eee833b9351b6227cc7853898fc9`
+are READY. Recipe-audit v2 SHA-256
+`0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`
+is PASS for V3, binds dataset V24 and source commit `b986c8db`, and the public
+dry-run passes. This proves launch consistency only; no training batch, bundle,
+prediction or direction edge exists yet.
+
 ## 2026-07-23 — exact smoke recipe is executable, edge remains unproved
 
 Commits `f08cd904`, `b5a61e21` and `bf5c61a0` establish one canonical

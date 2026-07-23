@@ -29,10 +29,11 @@ documentation and code together.
    only those exact bytes to the next evidence gate; it does not admit a model,
    direction, bundle or launch. Keep that distinction explicit in both
    Markdown and `PROJECT_STATE_xau_direction_launch.json`.
-8. Every Entry train/rebuild needs one immutable `--run-id`, immutable inputs
-   and a clean, resource-safe execution plan. The ID is lineage, not manual
-   approval; evidence contracts alone admit execution. Never auto-promote an
-   artifact.
+8. Every Entry rebuild needs one immutable dataset-build `--run-id`. Every
+   train has a distinct output `--run-id` plus a launch-derived
+   `dataset_run_id` that must match post-rebuild and all split manifests; it is
+   not a caller override. IDs are lineage, not manual approval; evidence
+   contracts alone admit execution. Never auto-promote an artifact.
 9. Do not delete anything under `/home/andre2/GX1_DATA` or active run paths
    without an explicit verified cleanup decision. Preserve active collectors,
    canonical builders, dashboards and their files.
@@ -50,3 +51,6 @@ documentation and code together.
     all 162 keys, split artifacts, prerequisite audits and executable source
     bytes; ambient values, wrapper defaults and hand-authored recipe evidence
     are forbidden.
+15. Dataset-build and training-output identities are separate roles. Recipe,
+    wrapper, trainer, bundle metadata/lock and handover must bind both; missing,
+    collapsed or split-brain lineage fails closed.
