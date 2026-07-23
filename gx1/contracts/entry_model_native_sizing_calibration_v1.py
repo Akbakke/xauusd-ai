@@ -740,6 +740,7 @@ def require_sizing_prediction_provenance(
     *,
     predictions_binding: Mapping[str, Any],
     expected_splits: tuple[str, ...],
+    require_runtime_head_evidence: bool,
     context: str,
     verify_files: bool,
 ) -> dict[str, Any]:
@@ -819,6 +820,7 @@ def require_sizing_prediction_provenance(
             bundle_dir=bundle_dir,
             dataset_dir=dataset_dir,
             expected_model="candidate",
+            require_runtime_head_evidence=require_runtime_head_evidence,
         )
     except Exception as exc:
         _fail(context, f"canonical prediction evidence validation failed: {exc}")
@@ -1147,6 +1149,7 @@ def require_sizing_calibration_artifact(
         observed["fit_prediction_provenance"],
         predictions_binding=fit_binding,
         expected_splits=MODEL_NATIVE_SIZING_FIT_SPLITS,
+        require_runtime_head_evidence=True,
         context=f"{context}.fit_prediction_provenance",
         verify_files=verify_lineage_files,
     )
@@ -1556,6 +1559,7 @@ def derive_canonical_sizing_oos_rows(
         test_prediction_provenance,
         predictions_binding=prediction_binding,
         expected_splits=("test",),
+        require_runtime_head_evidence=True,
         context=f"{context}.prediction_provenance",
         verify_files=True,
     )
@@ -1803,6 +1807,7 @@ def load_bound_sizing_oos_source(
         payload["test_prediction_provenance"],
         predictions_binding=prediction_binding,
         expected_splits=("test",),
+        require_runtime_head_evidence=True,
         context=f"{context}.test_prediction_provenance",
         verify_files=verify_source_files,
     )
@@ -2117,9 +2122,15 @@ def recompute_sizing_oos_evidence(
     context: str,
     fact_provenance_mode: str = "canonical_oos_reference",
     extra_row_columns: frozenset[str] = frozenset(),
+    outcome_price_mode: str = "label_horizon",
 ) -> dict[str, Any]:
     """Recompute every admission metric from immutable row-level sources."""
 
+    if outcome_price_mode not in {"label_horizon", "active_exit_fill"}:
+        _fail(
+            context,
+            f"unsupported outcome_price_mode={outcome_price_mode!r}",
+        )
     bindings = _exact_keys(
         source_bindings, frozenset(_SOURCE_BINDING_NAMES), context=f"{context}.bindings"
     )
@@ -2270,6 +2281,31 @@ def recompute_sizing_oos_evidence(
         _fail(context, "outcomes entry_bid must be <= entry_ask")
     if np.any(outcome_numeric["exit_bid"] > outcome_numeric["exit_ask"]):
         _fail(context, "outcomes exit_bid must be <= exit_ask")
+    realized_exit_bid = outcome_numeric["exit_bid"]
+    realized_exit_ask = outcome_numeric["exit_ask"]
+    if outcome_price_mode == "active_exit_fill":
+        realized_exit_bid = pd.to_numeric(
+            combined["active_exit_fill_bid"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        realized_exit_ask = pd.to_numeric(
+            combined["active_exit_fill_ask"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        trade_mask = np.isin(directions, [0, 1])
+        flat_mask = directions == 2
+        if (
+            not np.isfinite(realized_exit_bid[trade_mask]).all()
+            or not np.isfinite(realized_exit_ask[trade_mask]).all()
+            or np.any(realized_exit_bid[trade_mask] <= 0.0)
+            or np.any(
+                realized_exit_ask[trade_mask]
+                < realized_exit_bid[trade_mask]
+            )
+            or not np.isnan(realized_exit_bid[flat_mask]).all()
+            or not np.isnan(realized_exit_ask[flat_mask]).all()
+        ):
+            _fail(context, "active Exit fill outcome prices are invalid")
     instrument = calibration["instrument_constraints"]
     if int(instrument["unit_step"]) != 1 or int(instrument["minimum_order_units"]) != 1:
         _fail(context, "historical control requires exact executable XAU 1-unit sizing")
@@ -2337,13 +2373,13 @@ def recompute_sizing_oos_evidence(
         direction = transformed["model_direction_index"]
         if direction == 0:
             per_unit_pnl = (
-                outcome_numeric["exit_bid"][index]
+                realized_exit_bid[index]
                 - outcome_numeric["entry_ask"][index]
             )
         elif direction == 1:
             per_unit_pnl = (
                 outcome_numeric["entry_bid"][index]
-                - outcome_numeric["exit_ask"][index]
+                - realized_exit_ask[index]
             )
         else:
             per_unit_pnl = 0.0

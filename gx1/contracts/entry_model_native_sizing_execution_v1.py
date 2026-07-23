@@ -37,13 +37,13 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v4"
+    "entry_model_native_joint_exit_sizing_proof_v6"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_active_exit_chain_to_exit_now_v4"
+    "full_candidate_test_exact_active_exit_chain_to_exit_now_v6"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE = (
     "canonical_oos_reference"
@@ -204,7 +204,10 @@ MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS = frozenset(
     {
         "entry_fill_time",
         "exit_replay_status",
-        "exit_time",
+        "active_exit_decision_bar_time",
+        "active_exit_fill_time",
+        "active_exit_fill_bid",
+        "active_exit_fill_ask",
         "exit_reason",
         "exit_steps",
         "exit_trace_sha256",
@@ -218,14 +221,18 @@ MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS = frozenset(
 MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS = frozenset(
     {
         "reference_row_id",
-        "entry_time",
+        "entry_fill_time",
         "step",
-        "bar_time",
+        "fresh_quote_time",
+        "closed_bar_time",
+        "bar_committed",
         "action_id",
         "decision_source",
-        "current_pnl_bps",
-        "bid",
-        "ask",
+        "state_bid",
+        "state_ask",
+        "state_pnl_bps",
+        "fresh_quote_bid",
+        "fresh_quote_ask",
         "active_exit_authority_sha256",
     }
 )
@@ -565,13 +572,25 @@ def joint_exit_trace_sha256(frame: pd.DataFrame, *, context: str) -> str:
                 "active_exit_authority_sha256": str(
                     row["active_exit_authority_sha256"]
                 ).lower(),
-                "ask": float(row["ask"]),
-                "bar_time": pd.Timestamp(row["bar_time"]).isoformat(),
-                "bid": float(row["bid"]),
-                "current_pnl_bps": float(row["current_pnl_bps"]),
+                "bar_committed": bool(row["bar_committed"]),
+                "closed_bar_time": (
+                    None
+                    if pd.isna(row["closed_bar_time"])
+                    else pd.Timestamp(row["closed_bar_time"]).isoformat()
+                ),
                 "decision_source": str(row["decision_source"]),
-                "entry_time": pd.Timestamp(row["entry_time"]).isoformat(),
+                "entry_fill_time": pd.Timestamp(
+                    row["entry_fill_time"]
+                ).isoformat(),
+                "fresh_quote_ask": float(row["fresh_quote_ask"]),
+                "fresh_quote_bid": float(row["fresh_quote_bid"]),
+                "fresh_quote_time": pd.Timestamp(
+                    row["fresh_quote_time"]
+                ).isoformat(),
                 "reference_row_id": str(row["reference_row_id"]),
+                "state_ask": float(row["state_ask"]),
+                "state_bid": float(row["state_bid"]),
+                "state_pnl_bps": float(row["state_pnl_bps"]),
                 "step": int(row["step"]),
             }
         )
@@ -628,13 +647,50 @@ def recompute_joint_exit_replay_coverage(
         or np.any(steps[flat_mask] != 0)
     ):
         _fail(context, "exit_steps must be positive for trades and zero for FLAT")
-    exit_times = pd.to_datetime(frame["exit_time"], utc=True, errors="coerce")
-    if exit_times[trade_mask].isna().any() or np.any(
-        exit_times[trade_mask].to_numpy() <= times[trade_mask].to_numpy()
+    entry_fill_times = pd.to_datetime(
+        frame["entry_fill_time"],
+        utc=True,
+        errors="coerce",
+    )
+    if entry_fill_times.isna().any() or not bool(
+        (
+            entry_fill_times
+            == times + pd.Timedelta(minutes=5)
+        ).all()
     ):
-        _fail(context, "trade exit_time must be finite UTC after Entry time")
-    if exit_times[flat_mask].notna().any():
-        _fail(context, "FLAT rows cannot claim an exit_time")
+        _fail(
+            context,
+            "entry_fill_time must be exactly decision time + 5m",
+        )
+    active_fill_times = pd.to_datetime(
+        frame["active_exit_fill_time"],
+        utc=True,
+        errors="coerce",
+    )
+    if active_fill_times[trade_mask].isna().any() or np.any(
+        active_fill_times[trade_mask].to_numpy()
+        <= entry_fill_times[trade_mask].to_numpy()
+    ):
+        _fail(
+            context,
+            "trade active_exit_fill_time must be finite UTC after Entry fill",
+        )
+    decision_bar_times = pd.to_datetime(
+        frame["active_exit_decision_bar_time"],
+        utc=True,
+        errors="coerce",
+    )
+    claimed_decision_bars = trade_mask & decision_bar_times.notna().to_numpy()
+    if np.any(
+        decision_bar_times[claimed_decision_bars].to_numpy()
+        >= active_fill_times[claimed_decision_bars].to_numpy()
+    ):
+        _fail(context, "trade active Exit decision-bar time is invalid")
+    if (
+        active_fill_times[flat_mask].notna().any()
+        or decision_bar_times[flat_mask].notna().any()
+    ):
+        _fail(context, "FLAT rows cannot claim active Exit times")
     if frame.loc[trade_mask, "exit_reason"].isna().any() or not frame.loc[
         trade_mask, "exit_reason"
     ].astype(str).str.strip().all():
@@ -696,18 +752,60 @@ def recompute_joint_exit_replay_coverage(
                 context,
                 "joint Exit entry_fill_time must be exactly decision time + 5m",
             )
-        trace_entry_times = pd.to_datetime(trace["entry_time"], utc=True, errors="coerce")
-        bar_times = pd.to_datetime(trace["bar_time"], utc=True, errors="coerce")
+        trace_entry_times = pd.to_datetime(
+            trace["entry_fill_time"],
+            utc=True,
+            errors="coerce",
+        )
+        fresh_quote_times = pd.to_datetime(
+            trace["fresh_quote_time"],
+            utc=True,
+            errors="coerce",
+        )
+        closed_bar_times = pd.to_datetime(
+            trace["closed_bar_time"],
+            utc=True,
+            errors="coerce",
+        )
+        expected_fresh_quote_times = pd.date_range(
+            start=entry_time + pd.Timedelta(minutes=1),
+            periods=len(trace),
+            freq="min",
+        )
+        committed = trace["bar_committed"].map(
+            lambda value: value
+            if isinstance(value, (bool, np.bool_))
+            else None
+        )
         if (
             trace_entry_times.isna().any()
             or set(trace_entry_times) != {entry_time}
-            or bar_times.isna().any()
-            or not bar_times.is_monotonic_increasing
-            or bar_times.duplicated().any()
-            or (bar_times <= entry_time).any()
-            or bar_times.iloc[-1] != pd.Timestamp(replay_row["exit_time"])
+            or fresh_quote_times.isna().any()
+            or not fresh_quote_times.is_monotonic_increasing
+            or fresh_quote_times.duplicated().any()
+            or not np.array_equal(
+                fresh_quote_times.astype("int64").to_numpy(),
+                expected_fresh_quote_times.astype("int64").to_numpy(),
+            )
+            or committed.isna().any()
         ):
             _fail(context, f"{reference_row_id} Exit trace time binding is invalid")
+        committed_mask = committed.to_numpy(dtype=bool)
+        if (
+            closed_bar_times[committed_mask].isna().any()
+            or not (
+                closed_bar_times[committed_mask].to_numpy()
+                == (
+                    fresh_quote_times[committed_mask]
+                    - pd.Timedelta(minutes=1)
+                ).to_numpy()
+            ).all()
+            or closed_bar_times[~committed_mask].notna().any()
+        ):
+            _fail(
+                context,
+                f"{reference_row_id} closed-bar commitment is invalid",
+            )
         actions = pd.to_numeric(trace["action_id"], errors="coerce").to_numpy(
             dtype=np.float64
         )
@@ -723,47 +821,95 @@ def recompute_joint_exit_replay_coverage(
             != str(replay_row["exit_reason"])
         ):
             _fail(context, f"{reference_row_id} Exit reason differs from trace")
-        bid = pd.to_numeric(trace["bid"], errors="coerce").to_numpy(dtype=np.float64)
-        ask = pd.to_numeric(trace["ask"], errors="coerce").to_numpy(dtype=np.float64)
-        pnl = pd.to_numeric(trace["current_pnl_bps"], errors="coerce").to_numpy(
-            dtype=np.float64
-        )
+        state_bid = pd.to_numeric(
+            trace["state_bid"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        state_ask = pd.to_numeric(
+            trace["state_ask"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        fresh_bid = pd.to_numeric(
+            trace["fresh_quote_bid"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        fresh_ask = pd.to_numeric(
+            trace["fresh_quote_ask"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        state_pnl = pd.to_numeric(
+            trace["state_pnl_bps"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
         if (
-            not np.isfinite(bid).all()
-            or not np.isfinite(ask).all()
-            or not np.isfinite(pnl).all()
-            or np.any(bid <= 0.0)
-            or np.any(ask < bid)
-            or float(bid[-1]) != float(replay_row["exit_bid"])
-            or float(ask[-1]) != float(replay_row["exit_ask"])
+            not np.isfinite(state_bid).all()
+            or not np.isfinite(state_ask).all()
+            or not np.isfinite(fresh_bid).all()
+            or not np.isfinite(fresh_ask).all()
+            or not np.isfinite(state_pnl).all()
+            or np.any(state_bid <= 0.0)
+            or np.any(state_ask < state_bid)
+            or np.any(fresh_bid <= 0.0)
+            or np.any(fresh_ask < fresh_bid)
+            or not np.array_equal(
+                state_bid[~committed_mask],
+                fresh_bid[~committed_mask],
+            )
+            or not np.array_equal(
+                state_ask[~committed_mask],
+                fresh_ask[~committed_mask],
+            )
         ):
             _fail(context, f"{reference_row_id} Exit trace prices are invalid")
         direction = int(replay_row["model_direction_index"])
-        expected_trace_pnl = (
-            (bid - float(replay_row["entry_ask"]))
+        expected_state_pnl = (
+            (state_bid - float(replay_row["entry_ask"]))
             / float(replay_row["entry_ask"])
             * 10_000.0
             if direction == 0
-            else (float(replay_row["entry_bid"]) - ask)
+            else (float(replay_row["entry_bid"]) - state_ask)
             / float(replay_row["entry_bid"])
             * 10_000.0
         )
-        if not np.allclose(pnl, expected_trace_pnl, rtol=0.0, atol=1e-9):
+        if not np.allclose(
+            state_pnl,
+            expected_state_pnl,
+            rtol=0.0,
+            atol=1e-9,
+        ):
             _fail(
                 context,
-                f"{reference_row_id} trace PnL differs from per-step bid/ask",
+                f"{reference_row_id} state PnL differs from closed state prices",
             )
-        expected_final_pnl = (
-            (float(bid[-1]) - float(replay_row["entry_ask"]))
-            / float(replay_row["entry_ask"])
-            * 10_000.0
-            if direction == 0
-            else (float(replay_row["entry_bid"]) - float(ask[-1]))
-            / float(replay_row["entry_bid"])
-            * 10_000.0
+        final_committed = bool(committed_mask[-1])
+        expected_decision_bar_time = (
+            closed_bar_times.iloc[-1] if final_committed else pd.NaT
         )
-        if not np.isclose(float(pnl[-1]), expected_final_pnl, rtol=0.0, atol=1e-10):
-            _fail(context, f"{reference_row_id} final Exit PnL differs from bid/ask")
+        replay_decision_bar_time = pd.to_datetime(
+            replay_row["active_exit_decision_bar_time"],
+            utc=True,
+            errors="coerce",
+        )
+        if (
+            fresh_quote_times.iloc[-1]
+            != pd.Timestamp(replay_row["active_exit_fill_time"])
+            or float(fresh_bid[-1])
+            != float(replay_row["active_exit_fill_bid"])
+            or float(fresh_ask[-1])
+            != float(replay_row["active_exit_fill_ask"])
+            or (
+                final_committed
+                and replay_decision_bar_time != expected_decision_bar_time
+            )
+            or (
+                not final_committed
+                and not pd.isna(replay_decision_bar_time)
+            )
+        ):
+            _fail(
+                context,
+                f"{reference_row_id} active Exit fill/decision binding is invalid",
+            )
         if joint_exit_trace_sha256(
             trace, context=f"{context}.{reference_row_id}.trace_hash"
         ) != str(replay_row["exit_trace_sha256"]).lower():
@@ -773,18 +919,17 @@ def recompute_joint_exit_replay_coverage(
         flat_trace_sha
     }:
         _fail(context, "FLAT rows require the exact no-order trace hash")
-    if not np.allclose(
-        pd.to_numeric(frame.loc[flat_mask, "exit_bid"], errors="coerce"),
-        pd.to_numeric(frame.loc[flat_mask, "entry_bid"], errors="coerce"),
-        rtol=0.0,
-        atol=0.0,
-    ) or not np.allclose(
-        pd.to_numeric(frame.loc[flat_mask, "exit_ask"], errors="coerce"),
-        pd.to_numeric(frame.loc[flat_mask, "entry_ask"], errors="coerce"),
-        rtol=0.0,
-        atol=0.0,
+    if (
+        pd.to_numeric(
+            frame.loc[flat_mask, "active_exit_fill_bid"],
+            errors="coerce",
+        ).notna().any()
+        or pd.to_numeric(
+            frame.loc[flat_mask, "active_exit_fill_ask"],
+            errors="coerce",
+        ).notna().any()
     ):
-        _fail(context, "FLAT rows must have exact zero-path entry/exit prices")
+        _fail(context, "FLAT rows cannot claim active Exit fill prices")
     utc_ns = times.astype("int64").to_numpy(dtype=np.int64)
     trace_sequence_sha = hashlib.sha256(
         json.dumps(trace_hashes, separators=(",", ":")).encode("utf-8")
@@ -873,7 +1018,11 @@ def require_joint_exit_portfolio_capacity(
         or not bool((times == decisions + pd.Timedelta(minutes=5)).all())
     ):
         _fail(context, "portfolio replay entry_fill_time is not exact T+5")
-    exits = pd.to_datetime(frame["exit_time"], utc=True, errors="coerce")
+    exits = pd.to_datetime(
+        frame["active_exit_fill_time"],
+        utc=True,
+        errors="coerce",
+    )
     directions = _strict_directions(frame, context=f"{context}.directions")
     authorized = frame["authorized_order"].to_numpy(dtype=bool)
     active_exits: list[pd.Timestamp] = []
@@ -911,12 +1060,14 @@ def require_joint_exit_portfolio_capacity(
     entry_ask = pd.to_numeric(selected["entry_ask"], errors="coerce").to_numpy(
         dtype=np.float64
     )
-    exit_bid = pd.to_numeric(selected["exit_bid"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
-    exit_ask = pd.to_numeric(selected["exit_ask"], errors="coerce").to_numpy(
-        dtype=np.float64
-    )
+    exit_bid = pd.to_numeric(
+        selected["active_exit_fill_bid"],
+        errors="coerce",
+    ).to_numpy(dtype=np.float64)
+    exit_ask = pd.to_numeric(
+        selected["active_exit_fill_ask"],
+        errors="coerce",
+    ).to_numpy(dtype=np.float64)
     pnl = np.where(
         selected_directions == 0,
         (exit_bid - entry_ask) / entry_ask * 10_000.0,
@@ -1114,6 +1265,7 @@ def load_bound_joint_exit_sizing_proof(
             context=f"{context}.sizing_recompute",
             fact_provenance_mode=MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
             extra_row_columns=MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS,
+            outcome_price_mode="active_exit_fill",
         )
         mismatched = [
             name for name in _RECOMPUTED_SECTION_NAMES

@@ -197,6 +197,27 @@ def test_initial_load_is_bound_to_one_atomic_pair_generation(
     assert loader._base28 is not None and loader._base28.shape == (3, 1)
 
 
+def test_frozen_pair_load_disables_refresh_and_returns_exact_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = _prebuilt_fixture(tmp_path)
+    _disable_augmenters(monkeypatch)
+    loader = _loader(paths)
+
+    identity = loader.load_frozen_pair()
+
+    assert identity["pair_generation_id"] == paths["generation_id"]
+    assert identity["manifest_sha256"] == _sha256(
+        Path(paths["pair_manifest"])
+    )
+    assert identity["canonical_v3"]["sha256"] == _sha256(Path(paths["cv3"]))
+    assert identity["base28"]["sha256"] == _sha256(Path(paths["base28"]))
+    assert identity["refresh_enabled"] is False
+    assert loader._refresh_enabled is False
+    assert loader.refresh_if_changed() is False
+
+
 def test_initial_load_rejects_artifact_hash_mismatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

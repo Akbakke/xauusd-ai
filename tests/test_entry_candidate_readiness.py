@@ -265,8 +265,9 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         },
         "splits": passing_smoke_audit_splits(),
         "prediction_evidence": {
-            "schema_version": "entry_candidate_model_direction_prediction_evidence_v2",
+            "schema_version": "entry_candidate_model_direction_prediction_evidence_v3",
             "authoritative": True,
+            "runtime_head_evidence_authoritative": True,
             "path": str(evidence / "selective_edge_predictions_20260716T120002123456Z.parquet"),
         },
         "prediction_report_json": str(prediction_report),

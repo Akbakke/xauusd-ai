@@ -11,6 +11,48 @@ from __future__ import annotations
 import pandas as pd
 
 
+M1_BAR_DURATION = pd.Timedelta(minutes=1)
+M5_BAR_DURATION = pd.Timedelta(minutes=5)
+
+
+def latest_closed_m5_start_at(
+    availability_time: pd.Timestamp,
+) -> pd.Timestamp:
+    """Return the latest M5 bar start closed at ``availability_time``.
+
+    Bar timestamps are start labels.  At exactly 12:05, the M5 bar labelled
+    12:00 is closed and available, so the answer is 12:00.
+    """
+
+    timestamp = pd.Timestamp(availability_time)
+    timestamp = (
+        timestamp.tz_localize("UTC")
+        if timestamp.tzinfo is None
+        else timestamp.tz_convert("UTC")
+    )
+    return timestamp.floor("5min") - M5_BAR_DURATION
+
+
+def closed_m5_start_for_m1_bar_labels(
+    m1_bar_labels: pd.DatetimeIndex,
+) -> pd.DatetimeIndex:
+    """Map closed M1 start labels to their newest available closed M5 bar.
+
+    An M1 bar labelled ``T`` is not available until ``T + 1 minute``.  The
+    phase-4 bar (for example 12:04) therefore sees the M5 bar labelled 12:00,
+    while phases 0..3 still see 11:55.  This is the shared train/serve mapping;
+    callers must not replace it with ``floor(T, 5m) - 5m``.
+    """
+
+    labels = pd.to_datetime(m1_bar_labels, utc=True, errors="coerce")
+    labels = pd.DatetimeIndex(labels)
+    if labels.hasnans:
+        raise ValueError("M1_BAR_LABELS_INVALID")
+    return pd.DatetimeIndex(
+        (labels + M1_BAR_DURATION).floor("5min") - M5_BAR_DURATION
+    )
+
+
 def m1_to_m5(m1: pd.DataFrame, tape_end: pd.Timestamp | None = None) -> pd.DataFrame:
     """Aggregate M1 OHLC into 5-min buckets; emit every PROVABLY COMPLETE bucket.
 

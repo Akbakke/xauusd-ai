@@ -156,11 +156,56 @@ materialization/bootstrap on a valid native-M5 root. Full-loader execution is
 independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
 00:40Z and 2024-12-31 23:55Z.
 
-The final merged source tree collected 1,845 tests: 1,840 passed, five were
+The final merged source tree collected 1,879 tests: 1,874 passed, five were
 explicitly skipped and zero failed. The manifest-bound loader also correctly
 rejects the current live canonical parquet: the legacy updater changed its
 bytes without advancing the canonical manifest SHA. This is fail-closed
 evidence, not live readiness.
+
+## Third audit correction — dataset, training and replay seams
+
+Three fresh read-only agent passes re-audited the data/feature path, model/
+training path and inference/launch path against the post-repair tree. Their
+findings were corrected in the existing owners; no replacement launcher,
+dataset builder or versioned compatibility script was added.
+
+The repaired source now:
+
+- maps every M1 phase to one shared last-closed-M5 key. An M1 row ending
+  `xx:04` can no longer join the still-forming M5 bucket;
+- requires the complete 95-row volume prefix and rejects incomplete history;
+- validates exact XGB session domains, ordered bridge features, finite
+  probabilities and the probability simplex before V3 consumes them;
+- defines Exit IO V8 as a 173-field per-M1 historical context. The 78 market
+  context fields are reconstructed at each historical M1 row rather than
+  broadcast from the terminal row;
+- validates the V3 training substrate itself: `N x 173` float32 market
+  matrix, strict UTC minute order, zero base trade-state slots, exact
+  seven-field XGB bridge recomputation, contiguous float32 overlays, exact
+  overlay/record geometry, T+5 identity, 240-row teacher paths and terminal
+  teacher equality. Producer-input and dataset-member bytes are rehashed and
+  re-inventoried to detect substitution and time-of-check/time-of-use drift;
+- fits path calibration only on declared tradable support and bad-path
+  calibration only on the exact selector mask. The evaluator persists both
+  LONG and SHORT selector masks, and off-support values cannot alter the fit;
+- promotes prediction evidence to runtime V3 only when all active runtime
+  heads are present, duplicated parquet/head values agree and the declaration
+  explicitly carries runtime-head authority. Smoke, serve and launch
+  consumers reject the older V2 declaration;
+- separates canonical label-horizon bid/ask facts from active-Exit decisions
+  and fills in replay schema v6. Each step binds the committed closed bar,
+  following fresh quote, state price/PnL and model action; active fill is the
+  final fresh quote and cannot overwrite the immutable label outcome;
+- provides exact SourceTape open-quote lookup, an atomic frozen prebuilt-pair
+  load and an Exit-only `V12Pipeline` factory that cannot load SmartEntry.
+
+These closures do not create either missing producer. The model-native V3
+materializer can validate and materialize one trade, but no canonical
+end-to-end dataset event yet derives and publishes every matrix, overlay and
+record from the bound sources. The Exit-only factory can load the frozen
+runtime chain, but no canonical full-TEST loop/event yet owns every
+`make_exit_decision` call and publishes its replay rows/traces. Launch and
+training therefore remain fail-closed.
 
 ## V7 terminal result
 

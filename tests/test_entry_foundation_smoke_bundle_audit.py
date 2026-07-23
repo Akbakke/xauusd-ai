@@ -614,8 +614,9 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         lambda **_: (bundle_contract, metadata, direction, object()),
     )
     evidence = {
-        "schema_version": "entry_candidate_model_direction_prediction_evidence_v2",
+        "schema_version": "entry_candidate_model_direction_prediction_evidence_v3",
         "authoritative": True,
+        "runtime_head_evidence_authoritative": True,
         "path": str(predictions.resolve()),
         "sha256": audit._sha256_file(predictions),
         "rows": len(frame),

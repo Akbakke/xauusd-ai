@@ -57,6 +57,8 @@ import pandas as pd
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS,
     require_model_native_entry_time,
+    require_model_native_exit_replay_entry_time,
+    require_model_native_runtime_head_evidence,
     require_model_native_runtime_evidence,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
@@ -211,6 +213,24 @@ def require_model_native_entry_snapshot(snapshot: dict[str, Any]) -> dict[str, A
     return validated
 
 
+def _require_trade_entry_snapshot(
+    snapshot: dict[str, Any],
+    *,
+    sizing_execution_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    """Admit a pre-sizing envelope only for non-executable Exit research."""
+
+    if (
+        sizing_execution_evidence.get("mode") == "unit_normalized_research_only"
+        and "runtime_head_evidence_schema_version" in snapshot
+    ):
+        return require_model_native_runtime_head_evidence(
+            snapshot,
+            context="TRADE_STATE_EXIT_RESEARCH",
+        )
+    return require_model_native_entry_snapshot(snapshot)
+
+
 def _finite_persisted_number(
     payload: dict[str, Any],
     field_name: str,
@@ -338,12 +358,25 @@ def _validate_persisted_trade_state_payload(
     snapshot_raw = payload["v10_snapshot"]
     if not isinstance(snapshot_raw, dict) or not snapshot_raw:
         raise ValueError("persisted trade state v10_snapshot must be a JSON object")
-    snapshot = require_model_native_entry_snapshot(dict(snapshot_raw))
-    require_model_native_entry_time(
-        snapshot,
-        entry_ts,
-        context="TRADE_STATE_PERSISTED",
+    sizing_evidence_raw = payload["sizing_execution_evidence"]
+    if not isinstance(sizing_evidence_raw, dict):
+        raise ValueError("persisted trade sizing execution evidence must be an object")
+    snapshot = _require_trade_entry_snapshot(
+        dict(snapshot_raw),
+        sizing_execution_evidence=sizing_evidence_raw,
     )
+    if "runtime_head_evidence_schema_version" in snapshot:
+        require_model_native_exit_replay_entry_time(
+            snapshot,
+            entry_ts,
+            context="TRADE_STATE_PERSISTED_EXIT_RESEARCH",
+        )
+    else:
+        require_model_native_entry_time(
+            snapshot,
+            entry_ts,
+            context="TRADE_STATE_PERSISTED",
+        )
     expected_side = {"LONG": SIDE_LONG, "SHORT": SIDE_SHORT}.get(
         snapshot["model_direction"]
     )
@@ -609,6 +642,14 @@ class TradeState:
         default_factory=lambda: deque(maxlen=TRAJECTORY_HISTORY_MAXLEN)
     )
 
+    def require_entry_snapshot(self) -> dict[str, Any]:
+        """Validate this trade's snapshot under its exact execution mode."""
+
+        return _require_trade_entry_snapshot(
+            self.v10_snapshot,
+            sizing_execution_evidence=self.sizing_execution_evidence,
+        )
+
     @classmethod
     def open(
         cls,
@@ -705,13 +746,24 @@ class TradeState:
             raise ValueError(f"side must be {SIDES}, got {side!r}")
         if entry_bid <= 0 or entry_ask <= 0 or entry_ask <= entry_bid:
             raise ValueError(f"invalid prices: bid={entry_bid} ask={entry_ask}")
-        snapshot = require_model_native_entry_snapshot(dict(v10_snapshot or {}))
-        parsed_entry_ts = pd.Timestamp(entry_ts)
-        require_model_native_entry_time(
-            snapshot,
-            parsed_entry_ts,
-            context="TRADE_STATE_OPEN",
+        raw_snapshot = dict(v10_snapshot or {})
+        snapshot = _require_trade_entry_snapshot(
+            raw_snapshot,
+            sizing_execution_evidence=sizing_execution_evidence,
         )
+        parsed_entry_ts = pd.Timestamp(entry_ts)
+        if "runtime_head_evidence_schema_version" in snapshot:
+            require_model_native_exit_replay_entry_time(
+                snapshot,
+                parsed_entry_ts,
+                context="TRADE_STATE_OPEN_EXIT_RESEARCH",
+            )
+        else:
+            require_model_native_entry_time(
+                snapshot,
+                parsed_entry_ts,
+                context="TRADE_STATE_OPEN",
+            )
         validated_sizing_evidence = _require_sizing_execution_evidence(
             sizing_execution_evidence,
             snapshot=snapshot,
@@ -1010,7 +1062,10 @@ class TradeState:
 
     def build_v10_entry_snapshot_features(self) -> dict[str, float]:
         """V10 outputs frozen at trade entry, exposed as exit-IQL features."""
-        s = require_model_native_entry_snapshot(self.v10_snapshot)
+        s = _require_trade_entry_snapshot(
+            self.v10_snapshot,
+            sizing_execution_evidence=self.sizing_execution_evidence,
+        )
         dp = s["direction_probs"]
         p_long_e = float(dp[0])
         p_short_e = float(dp[1])
@@ -1113,7 +1168,10 @@ class TradeState:
         # Entry-snapshot (V10 direction softmax @entry, frozen). margin = top1-top2
         # gap of the model-native 3-class probabilities. This is deliberately
         # NOT abs(p_long-p_short).
-        s = require_model_native_entry_snapshot(self.v10_snapshot)
+        s = _require_trade_entry_snapshot(
+            self.v10_snapshot,
+            sizing_execution_evidence=self.sizing_execution_evidence,
+        )
         dp = s["direction_probs"]
         p_long_e = float(dp[0])
         p_short_e = float(dp[1])

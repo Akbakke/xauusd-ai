@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""V12 V3 v8 (exit transformer) live inference wrapper.
+"""V12 V3 model-native exit-transformer live inference wrapper.
 
-V3 is the per-M1 exit-signal transformer served under an admitted V6, V7, or
-V8 feature contract (91, 155, or 173 features × 512 observed M1 bars). For
+V3 is the per-M1 exit-signal transformer served only under the exact V8
+semantic-V2 contract (173 features × 512 observed M1 bars). For
 each M1 bar during an open trade it produces 4 outputs that the Exit-IQL V12.1
 state vector expects:
 
@@ -43,16 +43,10 @@ import torch
 
 from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES as V6_FEATURES,
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT as V6_FEATURE_COUNT,
 )
-# V7 contract (extension of V6; first 91 features identical).
-from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES as V7_FEATURES,
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT as V7_FEATURE_COUNT,
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION as V7_IO_VERSION,
-)
-# V8 contract (extension of V7; first 155 features identical → prefix-init from V7).
-# 2026-06-03 regime-everywhere wave: adds the 16 REGIME_V4 features to the exit transformer.
+# V8 semantic V2 makes cadence part of the IO identity: M1-native volume and
+# historical per-M1 latest-closed-M5 context. Legacy V6/V7/V8-broadcast
+# artifacts are audit-only and are never admitted by this live owner.
 from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
     EXIT_IO_V8_REGIME_M1L512_FEATURES as V8_FEATURES,
     EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT as V8_FEATURE_COUNT,
@@ -62,6 +56,9 @@ from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 from gx1.exits.contracts.registry import get_exit_io_contract
 from gx1.exits.training.thin_record_dataset import (
     require_reproducible_v3_training_lineage,
+)
+from gx1.execution.v12_m1_to_m5_downsample import (
+    closed_m5_start_for_m1_bar_labels,
 )
 
 LOG = logging.getLogger("v12_v3_live")
@@ -73,12 +70,8 @@ def _resolve_default_v3_bundle() -> Path:
 
     return Path(load_decision_artifact("v3_exit"))
 
-# One-truth: io_version → (features, count) so V6 and V7 bundles are both accepted.
-# V7 prefix is V6-identical so trade-state indices are stable across both.
+# One-truth live admission: only the exact cadence-bound V8 semantic contract.
 SUPPORTED_V3_CONTRACTS: dict = {
-    "EXIT_IO_V6_CTX_V3CANONICAL_M1L512": (list(V6_FEATURES), V6_FEATURE_COUNT),
-    V7_IO_VERSION: (list(V7_FEATURES), V7_FEATURE_COUNT),
-    # V8 prefix is V7-identical (first 155) so trade-state indices stay stable across all three.
     V8_IO_VERSION: (list(V8_FEATURES), V8_FEATURE_COUNT),
 }
 WINDOW_LEN = 512   # 512 observed M1 bars (market gaps mean this is not always 8.5 wall-clock hours)
@@ -160,9 +153,7 @@ def _v3_m1_window(
 
 def _closed_m5_key_per_m1(m1_index: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Map M1 bar-start labels to the newest M5 row closed at M1 availability."""
-    return (
-        pd.DatetimeIndex(m1_index) + pd.Timedelta(minutes=1)
-    ).floor("5min") - pd.Timedelta(minutes=5)
+    return closed_m5_start_for_m1_bar_labels(pd.DatetimeIndex(m1_index))
 
 
 def required_closed_m5_keys_for_v3_window(
@@ -187,6 +178,202 @@ def required_closed_m5_keys_for_v3_window(
     ):
         raise RuntimeError("V3_REQUIRED_CLOSED_M5_KEYS_INVALID")
     return required
+
+
+def build_v3_base_feature_rows(
+    *,
+    target_m1: pd.DataFrame,
+    volume_history_m1: pd.DataFrame,
+    canonical_v3: pd.DataFrame,
+    xgb_inferer: Any,
+    feature_names: list[str],
+) -> np.ndarray:
+    """Build exact pre-trade V3 rows for both dataset materialization and live.
+
+    ``target_m1`` owns the output cadence. ``volume_history_m1`` may include the
+    causal prefix required by rolling volume features. All other inputs map
+    directly to target rows or to their latest fully closed M5 key. The 19
+    trade-state columns are explicitly zero by the pre-trade contract and are
+    overlaid later by the shared trade-state owner.
+    """
+
+    if not isinstance(target_m1, pd.DataFrame) or target_m1.empty:
+        raise RuntimeError("V3_BASE_TARGET_M1_EMPTY")
+    if not isinstance(volume_history_m1, pd.DataFrame) or volume_history_m1.empty:
+        raise RuntimeError("V3_BASE_VOLUME_HISTORY_EMPTY")
+    if not isinstance(canonical_v3, pd.DataFrame) or canonical_v3.empty:
+        raise RuntimeError("V3_CANONICAL_WINDOW_EMPTY")
+    if (
+        not feature_names
+        or len(feature_names) != len(set(feature_names))
+        or list(feature_names[:7]) != list(XGB_BRIDGE_NAMES)
+    ):
+        raise RuntimeError("V3_FEATURE_CONTRACT_INVALID")
+
+    def normalized_index(frame: pd.DataFrame, name: str) -> pd.DatetimeIndex:
+        try:
+            index = pd.to_datetime(frame.index, utc=True, errors="coerce")
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(f"{name}_INDEX_INVALID") from exc
+        if index.hasnans or not index.is_monotonic_increasing or not index.is_unique:
+            raise RuntimeError(f"{name}_INDEX_INVALID")
+        return pd.DatetimeIndex(index)
+
+    target = target_m1.copy(deep=False)
+    target.index = normalized_index(target, "V3_BASE_TARGET_M1")
+    volume_history = volume_history_m1.copy(deep=False)
+    volume_history.index = normalized_index(
+        volume_history,
+        "V3_BASE_VOLUME_HISTORY",
+    )
+    canonical = canonical_v3.copy(deep=False)
+    canonical.index = normalized_index(canonical, "V3_CANONICAL")
+    positions = volume_history.index.get_indexer(target.index)
+    if np.any(positions < 0) or not np.array_equal(
+        positions,
+        np.arange(positions[0], positions[0] + len(target), dtype=np.int64),
+    ):
+        raise RuntimeError("V3_BASE_TARGET_NOT_CONTIGUOUS_IN_VOLUME_HISTORY")
+
+    n_rows = len(target)
+    per_m1_closed_m5 = _closed_m5_key_per_m1(target.index)
+    required_m5 = pd.DatetimeIndex(per_m1_closed_m5.unique())
+    missing_m5 = required_m5.difference(canonical.index)
+    if len(missing_m5):
+        raise RuntimeError(
+            "V3_CANONICAL_CLOSED_M5_COVERAGE_MISSING: "
+            f"missing={len(missing_m5)} required={len(required_m5)} "
+            f"first_missing={missing_m5[0]}"
+        )
+
+    from gx1.features.volume_features import (
+        VOLUME_FEATURE_NAMES,
+        compute_volume_features,
+    )
+
+    matrix = np.empty((n_rows, len(feature_names)), dtype=np.float32)
+    filled = np.zeros(len(feature_names), dtype=bool)
+    trade_feature_names = set(TRADE_STATE_FEATURE_NAMES)
+    volume_feature_names = set(VOLUME_FEATURE_NAMES)
+
+    matrix[:, :7] = 0.0
+    filled[:7] = True
+    for column_index, feature_name in enumerate(feature_names[7:], start=7):
+        if feature_name in trade_feature_names:
+            matrix[:, column_index] = 0.0
+            filled[column_index] = True
+            continue
+        if feature_name in volume_feature_names:
+            continue
+        if feature_name in target.columns:
+            if list(target.columns).count(feature_name) != 1:
+                raise RuntimeError(f"V3_M1_FEATURE_DUPLICATE: {feature_name}")
+            raw = target[feature_name]
+            source_name = "M1"
+        elif feature_name in canonical.columns:
+            if list(canonical.columns).count(feature_name) != 1:
+                raise RuntimeError(
+                    f"V3_CANONICAL_FEATURE_DUPLICATE: {feature_name}"
+                )
+            raw = canonical.loc[per_m1_closed_m5, feature_name]
+            source_name = "closed-M5"
+        else:
+            raise RuntimeError(f"V3_ACTIVE_FEATURE_MISSING: {feature_name}")
+        try:
+            values = pd.to_numeric(raw, errors="raise").to_numpy(
+                dtype=np.float64
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise RuntimeError(
+                f"V3_ACTIVE_FEATURE_NOT_NUMERIC: {feature_name} "
+                f"source={source_name}"
+            ) from exc
+        if values.shape != (n_rows,) or not np.isfinite(values).all():
+            raise RuntimeError(
+                f"V3_ACTIVE_FEATURE_INVALID: {feature_name} "
+                f"source={source_name} shape={values.shape}"
+            )
+        matrix[:, column_index] = values.astype(np.float32)
+        filled[column_index] = True
+
+    active_volume_features = [
+        name for name in VOLUME_FEATURE_NAMES if name in feature_names
+    ]
+    if active_volume_features:
+        from gx1.features.volume_features import VOLUME_FEATURE_PREFIX_ROWS
+
+        if int(positions[0]) < VOLUME_FEATURE_PREFIX_ROWS:
+            raise RuntimeError(
+                "V3_VOLUME_HISTORY_PREFIX_MISSING: "
+                f"observed={int(positions[0])} "
+                f"required={VOLUME_FEATURE_PREFIX_ROWS}"
+            )
+        if (
+            "volume" not in volume_history.columns
+            or list(volume_history.columns).count("volume") != 1
+        ):
+            raise RuntimeError("V3_VOLUME_SOURCE_MISSING_OR_DUPLICATE: volume")
+        close_name = (
+            "close" if "close" in volume_history.columns else "bid_close"
+        )
+        if (
+            close_name not in volume_history.columns
+            or list(volume_history.columns).count(close_name) != 1
+        ):
+            raise RuntimeError(
+                "V3_VOLUME_SOURCE_MISSING_OR_DUPLICATE: close|bid_close"
+            )
+        volume_values = compute_volume_features(
+            pd.DataFrame(
+                {
+                    "volume": volume_history["volume"].to_numpy(),
+                    "close": volume_history[close_name].to_numpy(),
+                }
+            )
+        )
+        for feature_name in active_volume_features:
+            column_index = feature_names.index(feature_name)
+            values = np.asarray(
+                volume_values[feature_name],
+                dtype=np.float32,
+            )[positions]
+            if values.shape != (n_rows,) or not np.isfinite(values).all():
+                raise RuntimeError(
+                    f"V3_VOLUME_FEATURE_INVALID: {feature_name}"
+                )
+            matrix[:, column_index] = values
+            filled[column_index] = True
+
+    m5_input = canonical.loc[required_m5]
+    xgb_output = xgb_inferer.predict(m5_input)
+    if not isinstance(xgb_output, dict) or "signal_bridge_v1" not in xgb_output:
+        raise RuntimeError("V3_XGB_BRIDGE_OUTPUT_MISSING")
+    try:
+        bridge = np.asarray(
+            xgb_output["signal_bridge_v1"],
+            dtype=np.float64,
+        )
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError("V3_XGB_BRIDGE_OUTPUT_NOT_NUMERIC") from exc
+    if bridge.shape != (len(required_m5), 7) or not np.isfinite(bridge).all():
+        raise RuntimeError(
+            "V3_XGB_BRIDGE_OUTPUT_INVALID: "
+            f"shape={bridge.shape} expected=({len(required_m5)}, 7)"
+        )
+    bridge_positions = required_m5.get_indexer(per_m1_closed_m5)
+    if np.any(bridge_positions < 0):
+        raise RuntimeError("V3_XGB_BRIDGE_MAPPING_INCOMPLETE")
+    matrix[:, :7] = bridge[bridge_positions].astype(np.float32)
+
+    if not filled.all():
+        missing = [
+            feature_names[index]
+            for index in np.flatnonzero(~filled)
+        ]
+        raise RuntimeError(f"V3_BASE_FEATURES_UNFILLED: {missing}")
+    if not np.isfinite(matrix).all():
+        raise RuntimeError("V3_INPUT_MATRIX_NONFINITE")
+    return matrix
 
 
 @dataclass
@@ -226,9 +413,8 @@ class V3LiveInference:
             raise FileNotFoundError(f"V3 v8 weights missing: {state_path}")
 
         cfg = json.loads(cfg_path.read_text())
-        # 2026-05-29: accept both V6 (91-feat) and V7 (155-feat) bundles via
-        # the io_version → (features, count) lookup. V7 prefix is V6, so the
-        # 19-feature trade-state overlay indices are identical.
+        # Cadence semantics are versioned with the feature layout. An old
+        # broadcast-context artifact must fail before weights are loaded.
         io_version = cfg.get("exit_ml_io_version")
         if io_version not in SUPPORTED_V3_CONTRACTS:
             raise RuntimeError(
@@ -374,128 +560,38 @@ class V3LiveInference:
         if list(_feat_list[:7]) != list(XGB_BRIDGE_NAMES):
             raise RuntimeError("V3_XGB_BRIDGE_PREFIX_INVALID")
 
-        if canonical_v3_window is None or not isinstance(canonical_v3_window, pd.DataFrame):
-            raise RuntimeError("V3_CANONICAL_WINDOW_REQUIRED")
-        if canonical_v3_window.empty:
-            raise RuntimeError("V3_CANONICAL_WINDOW_EMPTY")
-        try:
-            canonical_index = pd.to_datetime(
-                canonical_v3_window.index,
-                utc=True,
-                errors="coerce",
-            )
-        except Exception as exc:  # noqa: BLE001 - schema failure is contract evidence
-            raise RuntimeError("V3_CANONICAL_INDEX_INVALID") from exc
-        if (
-            canonical_index.hasnans
-            or not canonical_index.is_monotonic_increasing
-            or not canonical_index.is_unique
+        if canonical_v3_window is None or not isinstance(
+            canonical_v3_window,
+            pd.DataFrame,
         ):
-            raise RuntimeError(
-                "V3_CANONICAL_INDEX_INVALID: "
-                f"has_nat={canonical_index.hasnans} "
-                f"monotonic={canonical_index.is_monotonic_increasing} "
-                f"unique={canonical_index.is_unique}"
-            )
-        canonical = canonical_v3_window.copy(deep=False)
-        canonical.index = canonical_index
-
-        per_m1_closed_m5 = _closed_m5_key_per_m1(pd.DatetimeIndex(win.index))
-        required_m5 = pd.DatetimeIndex(per_m1_closed_m5.unique())
-        missing_m5 = required_m5.difference(canonical.index)
-        if len(missing_m5):
-            raise RuntimeError(
-                "V3_CANONICAL_CLOSED_M5_COVERAGE_MISSING: "
-                f"missing={len(missing_m5)} required={len(required_m5)} "
-                f"first_missing={missing_m5[0]}"
-            )
-
-        mat = np.zeros((WINDOW_LEN, _feat_count), dtype=np.float32)
-
+            raise RuntimeError("V3_CANONICAL_WINDOW_REQUIRED")
         from gx1.features.volume_features import (
             VOLUME_FEATURE_NAMES,
-            compute_volume_features,
+            VOLUME_FEATURE_PREFIX_ROWS,
         )
 
-        trade_feature_names = set(TRADE_STATE_FEATURE_NAMES)
-        volume_feature_names = set(VOLUME_FEATURE_NAMES)
-
-        # Fill every active non-XGB feature from its exact M1 or closed-M5
-        # source. Trade-state slots and M1-native volume features have dedicated
-        # owners below. There is no missing-column or non-finite zero fill.
-        for j, fname in enumerate(_feat_list):
-            if j < 7:
-                continue  # XGB-bridge, filled below
-            if fname in trade_feature_names or fname in volume_feature_names:
-                continue
-            if fname in win.columns:
-                if list(win.columns).count(fname) != 1:
-                    raise RuntimeError(f"V3_M1_FEATURE_DUPLICATE: {fname}")
-                raw = win[fname]
-                source_name = "M1"
-            elif fname in canonical.columns:
-                if list(canonical.columns).count(fname) != 1:
-                    raise RuntimeError(f"V3_CANONICAL_FEATURE_DUPLICATE: {fname}")
-                raw = canonical.loc[per_m1_closed_m5, fname]
-                source_name = "closed-M5"
-            else:
-                raise RuntimeError(f"V3_ACTIVE_FEATURE_MISSING: {fname}")
-            try:
-                values = pd.to_numeric(raw, errors="raise").to_numpy(dtype=np.float64)
-            except (TypeError, ValueError, OverflowError) as exc:
-                raise RuntimeError(
-                    f"V3_ACTIVE_FEATURE_NOT_NUMERIC: {fname} source={source_name}"
-                ) from exc
-            if values.shape != (WINDOW_LEN,) or not np.isfinite(values).all():
-                raise RuntimeError(
-                    f"V3_ACTIVE_FEATURE_INVALID: {fname} source={source_name} "
-                    f"shape={values.shape}"
-                )
-            mat[:, j] = values.astype(np.float32)
-
-        # V3 (2026-06-04 train==serve parity): compute the 4 volume features M1-NATIVE on the window's
-        # raw M1 volume+close (constitution: exit is ALWAYS M1, never coarsen). The old serve path left
-        # idx 91-94 to the M5-ffill branch above (M5-window z/pct, constant per 5-M1 epoch) which the
-        # canonical M1-native feature definition cannot match. Activates once
-        # the base34 prebuilt carries raw `volume`+`close` (added by the canonical daemon; materializes at
-        # the prebuilt rebuild). Missing raw inputs are handled by the explicit
-        # V3 input contract below; they are not evidence that a deleted builder exists.
-        active_volume_features = [name for name in VOLUME_FEATURE_NAMES if name in _feat_list]
+        source = base34_prebuilt.copy(deep=False)
+        source.index = pd.to_datetime(source.index, utc=True, errors="coerce")
+        volume_source = source.loc[:win.index[-1]].tail(
+            WINDOW_LEN + VOLUME_FEATURE_PREFIX_ROWS
+        )
+        active_volume_features = set(_feat_list).intersection(VOLUME_FEATURE_NAMES)
         if active_volume_features:
-            if "volume" not in win.columns:
-                raise RuntimeError("V3_VOLUME_SOURCE_MISSING: volume")
-            close_name = "close" if "close" in win.columns else "bid_close"
-            if close_name not in win.columns:
-                raise RuntimeError("V3_VOLUME_SOURCE_MISSING: close|bid_close")
-            if list(win.columns).count("volume") != 1 or list(win.columns).count(close_name) != 1:
-                raise RuntimeError("V3_VOLUME_SOURCE_DUPLICATE")
-            _vw = pd.DataFrame({
-                "volume": win["volume"].to_numpy(),
-                "close": win[close_name].to_numpy(),
-            })
-            _vf = compute_volume_features(_vw)
-            for _vn in active_volume_features:
-                mat[:, _feat_list.index(_vn)] = np.asarray(_vf[_vn], dtype=np.float32)
-
-        # Run XGB on every exact closed-M5 key, in required order, then expand
-        # its bridge back to all 512 M1 rows. Partial output is never zero-filled.
-        m5_input = canonical.loc[required_m5]
-        xgb_out = xgb_inferer.predict(m5_input)
-        if not isinstance(xgb_out, dict) or "signal_bridge_v1" not in xgb_out:
-            raise RuntimeError("V3_XGB_BRIDGE_OUTPUT_MISSING")
-        try:
-            bridge = np.asarray(xgb_out["signal_bridge_v1"], dtype=np.float64)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise RuntimeError("V3_XGB_BRIDGE_OUTPUT_NOT_NUMERIC") from exc
-        if bridge.shape != (len(required_m5), 7) or not np.isfinite(bridge).all():
-            raise RuntimeError(
-                "V3_XGB_BRIDGE_OUTPUT_INVALID: "
-                f"shape={bridge.shape} expected=({len(required_m5)}, 7)"
-            )
-        bridge_positions = required_m5.get_indexer(per_m1_closed_m5)
-        if np.any(bridge_positions < 0):
-            raise RuntimeError("V3_XGB_BRIDGE_MAPPING_INCOMPLETE")
-        mat[:, 0:7] = bridge[bridge_positions].astype(np.float32)
+            expected_volume_rows = WINDOW_LEN + VOLUME_FEATURE_PREFIX_ROWS
+            if len(volume_source) != expected_volume_rows:
+                raise RuntimeError(
+                    "V3_VOLUME_HISTORY_MISMATCH: "
+                    f"observed={len(volume_source)} required={expected_volume_rows}"
+                )
+        else:
+            volume_source = win
+        mat = build_v3_base_feature_rows(
+            target_m1=win,
+            volume_history_m1=volume_source,
+            canonical_v3=canonical_v3_window,
+            xgb_inferer=xgb_inferer,
+            feature_names=_feat_list,
+        )
 
         # Apply the complete contract-owned trade overlay if provided.
         active_trade_features = [

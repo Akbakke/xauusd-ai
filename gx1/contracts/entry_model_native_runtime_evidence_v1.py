@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import math
 import operator
+import hashlib
+import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, NoReturn
@@ -33,6 +35,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 
 MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION = (
     "entry_model_native_runtime_evidence_v3"
+)
+MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
+    "entry_model_native_runtime_head_evidence_v1"
 )
 MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v2"
 MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC = 300.0
@@ -154,6 +159,23 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS = frozenset(
         "context_age_m5_bars",
     }
 )
+MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS = frozenset(
+    {
+        "runtime_head_evidence_schema_version",
+        *(
+            MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
+            - {"sizing_authority_contract"}
+        ),
+    }
+)
+MODEL_NATIVE_PATH_CALIBRATION_INFERENCE_FIELDS = (
+    "enabled",
+    "version",
+    "path_quality_scale",
+    "path_quality_shift",
+    "bad_path_temperature",
+    "bad_path_bias",
+)
 
 
 class ModelNativeRuntimeEvidenceError(RuntimeError):
@@ -193,6 +215,63 @@ def _finite_scalar(
     if not math.isfinite(parsed):
         _fail(context, key, f"non-finite value {value!r}")
     return parsed
+
+
+def project_model_native_path_calibration(
+    calibration: Mapping[str, Any],
+    *,
+    context: str = "ENTRY_MODEL_NATIVE_PATH_CALIBRATION",
+) -> dict[str, Any]:
+    """Return the exact inference projection from bundle calibration metadata.
+
+    Immutable bundle metadata also contains provenance such as fit split,
+    source hashes and timestamps. Runtime evidence carries only the six fields
+    that participate in inference equations; provenance remains bound by the
+    bundle/event rather than being duplicated into every row envelope.
+    """
+
+    if not isinstance(calibration, Mapping):
+        _fail(context, "path_calibration", "must be an object")
+    missing = sorted(
+        set(MODEL_NATIVE_PATH_CALIBRATION_INFERENCE_FIELDS) - set(calibration)
+    )
+    if missing:
+        _fail(context, "path_calibration", f"missing={missing}")
+    if calibration.get("enabled") is not True:
+        _fail(context, "path_calibration.enabled", "must be true")
+    version = calibration.get("version")
+    if not isinstance(version, str) or not version.strip():
+        _fail(context, "path_calibration.version", "missing")
+    projected = {
+        "enabled": True,
+        "version": version,
+        "path_quality_scale": _finite_scalar(
+            calibration,
+            "path_quality_scale",
+            context=context,
+        ),
+        "path_quality_shift": _finite_scalar(
+            calibration,
+            "path_quality_shift",
+            context=context,
+        ),
+        "bad_path_temperature": _finite_scalar(
+            calibration,
+            "bad_path_temperature",
+            context=context,
+        ),
+        "bad_path_bias": _finite_scalar(
+            calibration,
+            "bad_path_bias",
+            context=context,
+        ),
+    }
+    if (
+        projected["path_quality_scale"] <= 0.0
+        or projected["bad_path_temperature"] <= 0.0
+    ):
+        _fail(context, "path_calibration", "scales must be positive")
+    return projected
 
 
 def _finite_vector(
@@ -303,15 +382,18 @@ def _exact_integer(
     return int(parsed)
 
 
-def require_model_native_runtime_evidence(
+def _require_model_native_evidence(
     evidence: Mapping[str, Any],
-    context: str = "ENTRY_MODEL_NATIVE_RUNTIME",
+    *,
+    context: str,
+    head_evidence: bool,
 ) -> dict[str, Any]:
-    """Validate and return an exact model-native runtime evidence snapshot.
+    """Validate the shared model-head surface for prediction or live use.
 
-    No field is filled, clipped, inferred from a retired surface, or silently
-    converted into a direction rule. The returned mapping is a shallow copy so
-    downstream persistence cannot mutate the caller's dictionary by accident.
+    ``head_evidence`` changes only the exact outer schema: calibrated prediction
+    evidence has a head-envelope version and no post-proof sizing/timing fields.
+    Every learned value, equation, argmax, specialist, and calibration check is
+    otherwise identical to the complete live runtime contract.
     """
 
     if not isinstance(evidence, Mapping) or not evidence:
@@ -328,11 +410,19 @@ def require_model_native_runtime_evidence(
     )
     if retired:
         _fail(context, "evidence", f"retired fields={retired}")
-    missing = sorted(MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS - set(validated))
+    required_fields = (
+        MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS
+        if head_evidence
+        else MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
+    )
+    optional_fields = (
+        frozenset()
+        if head_evidence
+        else MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS
+    )
+    missing = sorted(required_fields - set(validated))
     unexpected = sorted(
-        set(validated)
-        - MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
-        - MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS
+        set(validated) - required_fields - optional_fields
     )
     if missing or unexpected:
         _fail(
@@ -356,6 +446,16 @@ def require_model_native_runtime_evidence(
             "runtime_evidence_schema_version",
             f"{validated.get('runtime_evidence_schema_version')!r} != "
             f"{MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION!r}",
+        )
+    if head_evidence and (
+        validated.get("runtime_head_evidence_schema_version")
+        != MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+    ):
+        _fail(
+            context,
+            "runtime_head_evidence_schema_version",
+            f"{validated.get('runtime_head_evidence_schema_version')!r} != "
+            f"{MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION!r}",
         )
     session_id = _exact_integer(validated, "session_id", context=context)
     if session_id not in range(len(MODEL_NATIVE_SESSION_NAMES)):
@@ -601,29 +701,15 @@ def require_model_native_runtime_evidence(
         "position_size_pred",
         context=context,
     )
-    try:
-        require_model_native_sizing_authority_contract(
-            validated["sizing_authority_contract"],
-            context=f"{context} runtime evidence",
-            required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
-        )
-    except RuntimeError as exc:
-        _fail(context, "sizing_authority_contract", str(exc))
-    try:
-        expected_path_std = math.exp(
-            0.5 * float(validated["path_quality_log_var"])
-        )
-    except OverflowError:
-        _fail(context, "path_quality_std", "derived value overflowed")
-    if not math.isfinite(expected_path_std):
-        _fail(context, "path_quality_std", "derived value is non-finite")
-    _require_close(
-        (float(validated["path_quality_std"]),),
-        (expected_path_std,),
-        "path_quality_std",
-        context=context,
-    )
-
+    if not head_evidence:
+        try:
+            require_model_native_sizing_authority_contract(
+                validated["sizing_authority_contract"],
+                context=f"{context} runtime evidence",
+                required_mode=MODEL_NATIVE_SIZING_MODE_LEARNED,
+            )
+        except RuntimeError as exc:
+            _fail(context, "sizing_authority_contract", str(exc))
     side_logits = _finite_vector(validated, "side_logits", 2, context=context)
     side_probs = _finite_vector(validated, "side_probs", 2, context=context)
     _require_close(side_probs, _softmax(side_logits), "side_probs", context=context)
@@ -783,14 +869,7 @@ def require_model_native_runtime_evidence(
     path_calibration = validated.get("path_calibration")
     if not isinstance(path_calibration, Mapping) or path_calibration.get("enabled") is not True:
         _fail(context, "path_calibration", "missing or disabled")
-    path_calibration_keys = {
-        "enabled",
-        "version",
-        "path_quality_scale",
-        "path_quality_shift",
-        "bad_path_temperature",
-        "bad_path_bias",
-    }
+    path_calibration_keys = set(MODEL_NATIVE_PATH_CALIBRATION_INFERENCE_FIELDS)
     if set(path_calibration) != path_calibration_keys:
         _fail(
             context,
@@ -799,31 +878,34 @@ def require_model_native_runtime_evidence(
             f"missing={sorted(path_calibration_keys - set(path_calibration))} "
             f"unexpected={sorted(set(path_calibration) - path_calibration_keys)}",
         )
-    path_calibration_version = path_calibration.get("version")
-    if not isinstance(path_calibration_version, str) or not path_calibration_version.strip():
-        _fail(context, "path_calibration.version", "missing")
-    path_quality_scale = _finite_scalar(
+    projected_path_calibration = project_model_native_path_calibration(
         path_calibration,
-        "path_quality_scale",
         context=f"{context}_PATH_CALIBRATION",
     )
-    path_quality_shift = _finite_scalar(
-        path_calibration,
-        "path_quality_shift",
-        context=f"{context}_PATH_CALIBRATION",
+    path_quality_scale = float(
+        projected_path_calibration["path_quality_scale"]
     )
-    bad_path_temperature = _finite_scalar(
-        path_calibration,
-        "bad_path_temperature",
-        context=f"{context}_PATH_CALIBRATION",
+    path_quality_shift = float(
+        projected_path_calibration["path_quality_shift"]
     )
-    bad_path_bias = _finite_scalar(
-        path_calibration,
-        "bad_path_bias",
-        context=f"{context}_PATH_CALIBRATION",
+    bad_path_temperature = float(
+        projected_path_calibration["bad_path_temperature"]
     )
-    if path_quality_scale <= 0.0 or bad_path_temperature <= 0.0:
-        _fail(context, "path_calibration", "scales must be positive")
+    bad_path_bias = float(projected_path_calibration["bad_path_bias"])
+    try:
+        expected_path_std = path_quality_scale * math.exp(
+            0.5 * float(validated["path_quality_log_var"])
+        )
+    except OverflowError:
+        _fail(context, "path_quality_std", "derived value overflowed")
+    if not math.isfinite(expected_path_std):
+        _fail(context, "path_quality_std", "derived value is non-finite")
+    _require_close(
+        (float(validated["path_quality_std"]),),
+        (expected_path_std,),
+        "path_quality_std",
+        context=context,
+    )
     _require_close(
         (float(validated["path_quality"]),),
         (
@@ -903,6 +985,119 @@ def require_model_native_runtime_evidence(
     return validated
 
 
+def require_model_native_runtime_evidence(
+    evidence: Mapping[str, Any],
+    context: str = "ENTRY_MODEL_NATIVE_RUNTIME",
+) -> dict[str, Any]:
+    """Validate and return an exact executable runtime evidence snapshot.
+
+    No field is filled, clipped, inferred from a retired surface, or silently
+    converted into a direction rule. The returned mapping is a shallow copy so
+    downstream persistence cannot mutate the caller's dictionary by accident.
+    """
+
+    return _require_model_native_evidence(
+        evidence,
+        context=context,
+        head_evidence=False,
+    )
+
+
+def require_model_native_runtime_head_evidence(
+    evidence: Mapping[str, Any],
+    context: str = "ENTRY_MODEL_NATIVE_RUNTIME_HEAD",
+) -> dict[str, Any]:
+    """Validate the exact frozen pre-sizing Entry evidence envelope.
+
+    Sizing calibration is fitted on VAL after candidate prediction evidence is
+    produced.  The immutable prediction event therefore owns every live
+    snapshot field except ``sizing_authority_contract`` and executable timing.
+    No value is inferred here; the complete runtime validator is invoked only
+    after the separately adopted sizing authority is joined.
+    """
+
+    return _require_model_native_evidence(
+        evidence,
+        context=context,
+        head_evidence=True,
+    )
+
+
+def finalize_model_native_runtime_head_evidence(
+    head_evidence: Mapping[str, Any],
+    *,
+    sizing_authority_contract: Mapping[str, Any],
+    timing_evidence: Mapping[str, Any] | None = None,
+    context: str = "ENTRY_MODEL_NATIVE_RUNTIME_HEAD",
+) -> dict[str, Any]:
+    """Join frozen heads with adopted sizing/timing and prove the live schema."""
+
+    head = require_model_native_runtime_head_evidence(
+        head_evidence,
+        context=context,
+    )
+    snapshot = {
+        key: value
+        for key, value in head.items()
+        if key != "runtime_head_evidence_schema_version"
+    }
+    snapshot["sizing_authority_contract"] = dict(sizing_authority_contract)
+    if timing_evidence is not None:
+        if not isinstance(timing_evidence, Mapping):
+            _fail(context, "timing_evidence", "must be a mapping")
+        snapshot.update(dict(timing_evidence))
+    return require_model_native_runtime_evidence(snapshot, context=context)
+
+
+def encode_model_native_runtime_head_evidence(
+    evidence: Mapping[str, Any],
+    *,
+    context: str = "ENTRY_MODEL_NATIVE_RUNTIME_HEAD",
+) -> tuple[str, str]:
+    """Return canonical JSON plus SHA-256 for one exact head envelope."""
+
+    validated = require_model_native_runtime_head_evidence(
+        evidence,
+        context=context,
+    )
+    payload = json.dumps(
+        validated,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    )
+    return payload, hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def decode_model_native_runtime_head_evidence(
+    payload: Any,
+    sha256: Any,
+    *,
+    context: str = "ENTRY_MODEL_NATIVE_RUNTIME_HEAD",
+) -> dict[str, Any]:
+    """Re-hash, decode and validate one persisted head envelope."""
+
+    if not isinstance(payload, str) or not payload:
+        _fail(context, "runtime_head_evidence_json", "missing")
+    expected_sha = str(sha256 or "").strip().lower()
+    observed_sha = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    if expected_sha != observed_sha:
+        _fail(
+            context,
+            "runtime_head_evidence_sha256",
+            f"{expected_sha!r} != {observed_sha!r}",
+        )
+    try:
+        decoded = json.loads(payload)
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ModelNativeRuntimeEvidenceError(
+            f"[{_context_name(context)}_MODEL_NATIVE_RUNTIME_EVIDENCE_INVALID] "
+            "runtime_head_evidence_json: invalid JSON"
+        ) from exc
+    return require_model_native_runtime_head_evidence(decoded, context=context)
+
+
 def require_model_native_entry_time(
     evidence: Mapping[str, Any],
     entry_time: Any,
@@ -953,8 +1148,62 @@ def require_model_native_entry_time(
     return observed
 
 
+def require_model_native_exit_replay_entry_time(
+    head_evidence: Mapping[str, Any],
+    entry_time: Any,
+    *,
+    context: str = "ENTRY_MODEL_NATIVE_EXIT_REPLAY",
+) -> datetime:
+    """Bind non-executable active-Exit replay to the exact T+5 M1 fill.
+
+    Joint active-Exit proof necessarily runs before learned-sizing adoption.
+    It therefore consumes the fully validated pre-sizing head envelope and may
+    not manufacture a live sizing authority. The research fill is the opening
+    tick of the M1 bar immediately after the decision M5 bar has closed.
+    """
+
+    validated = require_model_native_runtime_head_evidence(
+        head_evidence,
+        context=context,
+    )
+    if isinstance(entry_time, bool) or entry_time is None:
+        _fail(context, "entry_time", "missing or invalid")
+    try:
+        observed = datetime.fromisoformat(
+            str(entry_time).replace("Z", "+00:00")
+        )
+    except ValueError as exc:
+        raise ModelNativeRuntimeEvidenceError(
+            f"[{_context_name(context)}_MODEL_NATIVE_RUNTIME_EVIDENCE_INVALID] "
+            "entry_time: invalid ISO timestamp"
+        ) from exc
+    if (
+        observed.tzinfo is None
+        or observed.utcoffset() != timezone.utc.utcoffset(observed)
+        or observed.second != 0
+        or observed.microsecond != 0
+    ):
+        _fail(context, "entry_time", "must be an exact timezone-aware UTC minute")
+    decision = _require_utc_timestamp(
+        validated,
+        "decision_ts",
+        context=context,
+    )
+    expected = decision + timedelta(
+        seconds=MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC
+    )
+    if observed != expected:
+        _fail(
+            context,
+            "entry_time",
+            f"{observed.isoformat()} != exact T+5 replay fill {expected.isoformat()}",
+        )
+    return observed
+
+
 __all__ = [
     "MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION",
+    "MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION",
     "MODEL_NATIVE_RUNTIME_POLICY",
     "MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC",
     "MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC",
@@ -963,8 +1212,16 @@ __all__ = [
     "MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES",
     "MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS",
     "MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS",
+    "MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS",
+    "MODEL_NATIVE_PATH_CALIBRATION_INFERENCE_FIELDS",
     "RETIRED_RUNTIME_EVIDENCE_FRAGMENTS",
     "ModelNativeRuntimeEvidenceError",
+    "project_model_native_path_calibration",
     "require_model_native_entry_time",
+    "require_model_native_exit_replay_entry_time",
+    "require_model_native_runtime_head_evidence",
+    "finalize_model_native_runtime_head_evidence",
+    "encode_model_native_runtime_head_evidence",
+    "decode_model_native_runtime_head_evidence",
     "require_model_native_runtime_evidence",
 ]

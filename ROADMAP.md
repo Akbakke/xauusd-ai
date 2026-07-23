@@ -108,6 +108,15 @@ reject that evidence outright, but a canonical full-TEST active-Exit producer
 remains source P0. V24/V7 predate every one of these changes. No fresh artifact
 or edge result exists.
 
+The latest three-way audit also closes shared last-closed-M5 mapping, full
+volume-prefix admission, XGB session/probability bridge validation, Exit V8's
+173-field per-M1 cadence, V3 matrix/time/overlay/record storage semantics,
+exact path-calibration supports and runtime-head prediction evidence V3.
+Replay v6 separates canonical label outcomes from closed-bar decisions and
+fresh active fills. Exact SourceTape open lookup, atomic frozen-pair loading
+and an Exit-only pipeline factory now exist; the missing authority is the
+full-TEST producer loop/event. No empirical artifact was created.
+
 ## Ordered gates
 
 1. Preserve V24/V7 as immutable failure evidence. Do not rerun, patch data in
@@ -130,25 +139,28 @@ or edge result exists.
    overlays and retrain Exit with checkpoint-bound features and one explicit
    serving fold. The retained research-only/non-production bundle is not an
    incumbent.
-5. Extend the existing dataset/replay owners with the exact model-native V3
-   training-dataset writer and one canonical full-TEST producer around the
-   existing exact `V12Pipeline.make_exit_decision` primitive. It must preserve
-   the complete
+5. Extend the existing V3 dataset owner with the exact end-to-end
+   training-dataset writer/event. It must derive all 173-field market rows,
+   overlays and records from the bound sources; passing the strict
+   reader/materializer is not producer authority.
+6. Extend the existing sizing/replay owner with one canonical full-TEST
+   producer around the existing exact `V12Pipeline.make_exit_decision`
+   primitive and Exit-only frozen-pair factory. It must preserve the complete
    Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind all
    canonical/BASE28/MTF inputs and active Exit bytes, and emit its own complete
    per-M1 actions/states/prices with zero fallback or horizon-cap pass.
-6. Repair and prove canonical/live December-2024 M5 parity. The read-only
+7. Repair and prove canonical/live December-2024 M5 parity. The read-only
    audit found 3,430 impossible-geometry rows in both canonical M5 and
    live-prebuilt, including 2,799 weekend rows; the clean M1 supports 5,757
    rebuilt December buckets and leaves 3,459 canonical rows unbacked. The
    full loader also blocks on 2,375 invalid late-2024 prebuilt OHLC rows.
-7. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
+8. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.
-8. Train/evaluate a candidate only if smoke evidence is green; require OOS
+9. Train/evaluate a candidate only if smoke evidence is green; require OOS
    calibration, support, costs, TOP/BOTTOM timing, Q/V/Advantage, specialist,
    context and timeframe influence evidence.
-9. Require candidate replay, exact serve parity, learned-sizing adoption with
+10. Require candidate replay, exact serve parity, learned-sizing adoption with
    the active Exit stack, zero-order runtime parity, then the immutable
    adaptation/shadow lifecycle. Any missing or newer-red event remains BLOCK.
 

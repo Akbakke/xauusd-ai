@@ -76,10 +76,7 @@ from gx1.runtime.exit_decider_v12_adapter import (
     ExitDeciderV12Adapter,
     ExitDeciderV12Recommendation,
 )
-from gx1.execution.v12_trade_state import (
-    TradeState,
-    require_model_native_entry_snapshot,
-)
+from gx1.execution.v12_trade_state import TradeState
 
 
 REQUIRED_V3_STATE_FEATURES = (
@@ -536,7 +533,7 @@ class ExitIQLLiveInference:
         # 12 unsuffixed candidate-context features (NUMERIC_STATE_COLS_CANDIDATE
         # in materialize_build_exit_iql_v2.py:122-134). These were silent 0-fills
         # in live before 2026-05-19.
-        s = require_model_native_entry_snapshot(trade.v10_snapshot)
+        s = trade.require_entry_snapshot()
         dp = s["direction_probs"]
         p_long_e = float(dp[0])
         p_short_e = float(dp[1])

@@ -11,6 +11,7 @@ from tests.model_native_sizing_support import unverified_learned_sizing_authorit
 from tests.model_native_offline_rl_support import offline_rl_evidence
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
 )
 from gx1.execution.v12_trade_state import (
@@ -160,6 +161,24 @@ def _open(snapshot: dict | None = None) -> TradeState:
     )
 
 
+def _head_snapshot() -> dict:
+    snapshot = _snapshot()
+    snapshot.pop("sizing_authority_contract")
+    for name in (
+        "decision_available_ts",
+        "entry_signal_latency_sec",
+        "context_cutoff_ts",
+        "context_age_m5_bars",
+    ):
+        snapshot.pop(name)
+    return {
+        "runtime_head_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        ),
+        **snapshot,
+    }
+
+
 def _valid_closed_m1_bar(
     timestamp: str = "2026-07-16T12:00:00Z",
 ) -> dict[str, object]:
@@ -210,6 +229,43 @@ def test_trade_state_rejects_entry_time_not_derived_from_snapshot_timing() -> No
             entry_ask=3300.2,
             v10_snapshot=_snapshot(),
             normalization_contract="unit_normalized_direction_exit_research_v1",
+        )
+
+
+def test_exit_research_accepts_exact_head_envelope_without_fake_sizing_adoption() -> None:
+    trade = _open(_head_snapshot())
+
+    assert trade.require_entry_snapshot() == _head_snapshot()
+    assert trade.build_v10_entry_snapshot_features()[
+        "v10_position_size_at_entry_v1"
+    ] == pytest.approx(_snapshot()["position_size_pred"])
+    restored = TradeState.from_dict(json.loads(json.dumps(trade.to_dict())))
+    assert restored.v10_snapshot == _head_snapshot()
+    assert restored.sizing_execution_evidence["executable_order_authority"] is False
+
+
+def test_exit_research_head_requires_exact_t5_fill_and_cannot_open_learned_trade() -> None:
+    with pytest.raises(RuntimeError, match="exact T\\+5 replay fill"):
+        TradeState.open_unit_normalized_research(
+            entry_ts=pd.Timestamp("2026-07-16T12:01:00Z"),
+            side="long",
+            entry_bid=3300.0,
+            entry_ask=3300.2,
+            v10_snapshot=_head_snapshot(),
+            normalization_contract="unit_normalized_direction_exit_research_v1",
+        )
+
+    with pytest.raises(RuntimeError, match="exact schema mismatch"):
+        TradeState.open(
+            entry_ts=pd.Timestamp("2026-07-16T12:00:00Z"),
+            side="long",
+            entry_bid=3300.0,
+            entry_ask=3300.2,
+            v10_snapshot=_head_snapshot(),
+            units=1,
+            sizing_application={},
+            fill_transaction_id="virtual:test",
+            execution_mode="learned_virtual_dry_run",
         )
 
 

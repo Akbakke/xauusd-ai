@@ -28,8 +28,19 @@ The source boundary now provides:
 - deterministic V3 record order and full dataset/config/code/checkpoint/XGB
   lineage checks.
 
+The post-audit implementation further requires a 173-field float32 market
+matrix with per-M1 historical closed-M5 context, exact UTC-minute/time
+identity, zero base trade-state slots, recomputed XGB bridge values,
+contiguous overlays, exact 240-row records and terminal teacher equality.
+The common M1→closed-M5 mapping, complete volume prefix and XGB
+session/probability domains fail closed. Replay schema v6 keeps canonical
+label-horizon outcomes separate from model decision bars and following fresh
+fills.
+
 Still required are a compliant native OANDA M5 materialization, pair bootstrap,
-the exact model-native V3 dataset producer, a fresh 79-field Exit-XGB, V3
+the exact model-native V3 dataset writer/event, a fresh 79-field Exit-XGB, V3
 rescore/retrain, production Exit-IQL retrain, and the canonical full-TEST
-active-chain replay producer. Until their immutable OOS and live-like gates
-pass, Exit cannot authorize paper, demo or live operation.
+active-chain loop/event. Exact SourceTape lookup, frozen-pair loading and an
+Exit-only pipeline factory now exist, but cannot replace either producer.
+Until their immutable OOS and live-like gates pass, Exit cannot authorize
+paper, demo or live operation.

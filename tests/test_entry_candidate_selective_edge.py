@@ -225,13 +225,14 @@ def test_derived_serve_parity_outputs_are_exact_and_fail_closed() -> None:
         {
             "path_quality_log_var": path_log_var,
             "mtf_dir_logits": mtf_logits,
-        }
+        },
+        path_quality_scale=3.0,
     )
 
     assert set(observed) == {"path_quality_std", "mtf_dir_probs"}
     assert observed["path_quality_std"].shape == (2,)
     assert observed["path_quality_std"].dtype == np.float32
-    assert np.allclose(observed["path_quality_std"], [1.0, 2.0])
+    assert np.allclose(observed["path_quality_std"], [3.0, 6.0])
     assert observed["mtf_dir_probs"].shape == (2, 3)
     assert observed["mtf_dir_probs"].dtype == np.float32
     assert np.allclose(
@@ -247,14 +248,16 @@ def test_derived_serve_parity_outputs_are_exact_and_fail_closed() -> None:
             {
                 "path_quality_log_var": torch.tensor([[float("nan")]]),
                 "mtf_dir_logits": torch.zeros((1, 3)),
-            }
+            },
+            path_quality_scale=3.0,
         )
     with pytest.raises(RuntimeError, match="mtf_dir_logits invalid"):
         _derived_serve_parity_outputs(
             {
                 "path_quality_log_var": torch.zeros((1, 1)),
                 "mtf_dir_logits": torch.tensor([[0.0, float("inf"), 0.0]]),
-            }
+            },
+            path_quality_scale=3.0,
         )
 
 
@@ -359,7 +362,8 @@ def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flag
     ]
     args = parser.parse_args(required)
     assert not hasattr(args, "contract_mode")
-    assert not hasattr(args, "splits")
+    assert args.splits == "val,test"
+    assert args.evidence_stage == "runtime_authoritative"
     assert not hasattr(args, "top_fracs")
     assert not hasattr(args, "model_name")
     assert not hasattr(args, "selection_score_mode")
@@ -369,6 +373,23 @@ def test_parser_requires_explicit_native_artifact_paths_and_rejects_retired_flag
         )
     with pytest.raises(SystemExit):
         parser.parse_args([*required, "--smart-seq520"])
+
+    fit_args = parser.parse_args(
+        [
+            *required,
+            "--splits",
+            "train,val",
+            "--train-manifest-json",
+            "/tmp/dataset/native_train.manifest.json",
+            "--train-manifest-sha256",
+            "e" * 64,
+            "--train-parquet",
+            "/tmp/dataset/native_train.parquet",
+            "--train-parquet-sha256",
+            "f" * 64,
+        ]
+    )
+    assert fit_args.splits == "train,val"
 
 
 def test_selective_edge_source_has_no_split_glob_or_imported_split_selector() -> None:

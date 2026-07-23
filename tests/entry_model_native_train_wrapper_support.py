@@ -537,9 +537,10 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                 "splits": passing_smoke_audit_splits(),
                 "prediction_evidence": {
                     "schema_version": (
-                        "entry_candidate_model_direction_prediction_evidence_v2"
+                        "entry_candidate_model_direction_prediction_evidence_v3"
                     ),
                     "authoritative": True,
+                    "runtime_head_evidence_authoritative": True,
                     "path": str(evidence_dir / f"predictions_{STAMP}.parquet"),
                 },
                 "prediction_report_json": str(prediction_report),

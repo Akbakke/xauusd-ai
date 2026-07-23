@@ -40,6 +40,12 @@ from gx1.models.entry_v10.direction_decision_contract import (
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
     "entry_candidate_model_direction_prediction_evidence_v2"
 )
+RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION = (
+    "entry_candidate_model_direction_prediction_evidence_v3"
+)
+RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION = (
+    "entry_model_native_runtime_head_evidence_v1"
+)
 AUTHORITATIVE_PREDICTIONS_PREFIX = "selective_edge_predictions_"
 REPORT_PREFIX = "ENTRY_CANDIDATE_SELECTIVE_EDGE_"
 _EVENT_STAMP_RE = re.compile(r"\d{8}T\d{12}Z")
@@ -66,6 +72,11 @@ REQUIRED_MODEL_DIRECTION_COLUMNS = (
     "expectile_value",
     "action_advantage",
     *ACTION_VALUE_TARGET_COLUMNS,
+)
+RUNTIME_HEAD_PREDICTION_COLUMNS = (
+    "runtime_head_evidence_schema_version",
+    "runtime_head_evidence_json",
+    "runtime_head_evidence_sha256",
 )
 
 
@@ -105,7 +116,11 @@ def _unique_strings(path: Path, column: str) -> list[str]:
     return sorted({str(value) for value in values if value is not None})
 
 
-def validate_model_direction_parquet_semantics(path: Path) -> None:
+def validate_model_direction_parquet_semantics(
+    path: Path,
+    *,
+    bundle_metadata: Mapping[str, Any] | None = None,
+) -> None:
     """Prove that persisted classes/public pair equal the final model logits."""
 
     frame = pd.read_parquet(path, columns=list(REQUIRED_MODEL_DIRECTION_COLUMNS))
@@ -211,6 +226,141 @@ def validate_model_direction_parquet_semantics(path: Path) -> None:
             f"observed={modes} required={[MODEL_DIRECTION_SELECTION_MODE]}"
         )
 
+def validate_runtime_head_parquet_semantics(
+    path: Path,
+    *,
+    bundle_metadata: Mapping[str, Any],
+) -> None:
+    # Local import avoids the sizing-calibration -> prediction-evidence ->
+    # runtime-evidence module cycle during contract initialization.
+    from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+        MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS,
+        MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
+        decode_model_native_runtime_head_evidence,
+        project_model_native_path_calibration,
+    )
+
+    if (
+        MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        != RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+    ):
+        raise RuntimeError("prediction/runtime head schema constants diverged")
+    parquet_columns = set(pq.ParquetFile(path).schema_arrow.names)
+    duplicated_head_columns = sorted(
+        parquet_columns.intersection(
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS
+        )
+        - {"runtime_head_evidence_schema_version"}
+    )
+    frame = pd.read_parquet(
+        path,
+        columns=list(
+            dict.fromkeys(
+                [
+                    "time",
+                    "pred_direction",
+                    "direction_logits",
+                        *RUNTIME_HEAD_PREDICTION_COLUMNS,
+                        *duplicated_head_columns,
+                    ]
+            )
+        ),
+    )
+    runtime_schema = sorted(
+        {
+            str(value)
+            for value in frame["runtime_head_evidence_schema_version"].to_numpy()
+        }
+    )
+    if runtime_schema != [RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION]:
+        raise RuntimeError(
+            "prediction runtime-head schema mismatch: "
+            f"observed={runtime_schema}"
+        )
+    direction_calibration = bundle_metadata.get("direction_calibration")
+    path_calibration = bundle_metadata.get("path_calibration")
+    if (
+        not isinstance(direction_calibration, Mapping)
+        or direction_calibration.get("enabled") is not True
+        or not isinstance(path_calibration, Mapping)
+        or path_calibration.get("enabled") is not True
+    ):
+        raise RuntimeError(
+            "prediction bundle lacks enabled direction/path calibration "
+            "for runtime-head evidence"
+        )
+    path_calibration_inference = project_model_native_path_calibration(
+        path_calibration,
+        context="PREDICTION_BUNDLE_PATH_CALIBRATION",
+    )
+
+    def exact_python(value: Any) -> Any:
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, np.ndarray):
+            return [exact_python(item) for item in value.tolist()]
+        if isinstance(value, (list, tuple)):
+            return [exact_python(item) for item in value]
+        if isinstance(value, Mapping):
+            return {
+                str(key): exact_python(item)
+                for key, item in value.items()
+            }
+        return value
+
+    for index, row in frame.iterrows():
+        head = decode_model_native_runtime_head_evidence(
+            row["runtime_head_evidence_json"],
+            row["runtime_head_evidence_sha256"],
+            context=f"PREDICTION_RUNTIME_HEAD_ROW_{index}",
+        )
+        head_time = pd.Timestamp(head["decision_ts"])
+        row_time = pd.Timestamp(row["time"])
+        if head_time.tzinfo is None:
+            head_time = head_time.tz_localize("UTC")
+        else:
+            head_time = head_time.tz_convert("UTC")
+        if row_time.tzinfo is None:
+            row_time = row_time.tz_localize("UTC")
+        else:
+            row_time = row_time.tz_convert("UTC")
+        if head_time != row_time:
+            raise RuntimeError(
+                f"prediction runtime-head decision_ts mismatch at row {index}"
+            )
+        if int(head["model_direction_index"]) != int(row["pred_direction"]):
+            raise RuntimeError(
+                f"prediction runtime-head direction mismatch at row {index}"
+            )
+        if not np.allclose(
+            np.asarray(head["direction_logits"], dtype=np.float64),
+            np.asarray(row["direction_logits"], dtype=np.float64),
+            rtol=0.0,
+            atol=0.0,
+        ):
+            raise RuntimeError(
+                f"prediction runtime-head logits mismatch at row {index}"
+            )
+        for field in duplicated_head_columns:
+            if exact_python(row[field]) != exact_python(head[field]):
+                raise RuntimeError(
+                    "prediction runtime-head duplicated field mismatch at "
+                    f"row {index}: {field}"
+                )
+        if (
+            head["calibration_version"]
+            != direction_calibration.get("version")
+            or head["direction_calibration_enabled"] is not True
+            or float(head["direction_calibration_temperature"])
+            != float(direction_calibration.get("temperature"))
+            or list(head["direction_calibration_bias"])
+            != list(direction_calibration.get("bias") or ())
+            or head["path_calibration"] != path_calibration_inference
+        ):
+            raise RuntimeError(
+                f"prediction runtime-head calibration mismatch at row {index}"
+            )
+
 
 def atomic_write_parquet_immutable(frame: pd.DataFrame, path: Path) -> None:
     """Publish a new parquet atomically without ever replacing an old event."""
@@ -283,7 +433,20 @@ def build_prediction_evidence_declaration(
         raise RuntimeError(f"prediction evidence missing required columns: {missing}")
     if "selection_score_threshold" in columns:
         raise RuntimeError("prediction evidence contains forbidden selection_score_threshold")
+    runtime_columns = set(RUNTIME_HEAD_PREDICTION_COLUMNS)
+    observed_runtime_columns = runtime_columns.intersection(columns)
+    if observed_runtime_columns and observed_runtime_columns != runtime_columns:
+        raise RuntimeError(
+            "prediction evidence contains a partial runtime-head envelope: "
+            f"missing={sorted(runtime_columns - observed_runtime_columns)}"
+        )
+    runtime_authoritative = observed_runtime_columns == runtime_columns
     validate_model_direction_parquet_semantics(path)
+    if runtime_authoritative:
+        validate_runtime_head_parquet_semantics(
+            path,
+            bundle_metadata=bundle_metadata,
+        )
     splits = _unique_strings(path, "split")
     expected_splits = sorted({str(value) for value in requested_splits})
     if splits != expected_splits:
@@ -298,15 +461,23 @@ def build_prediction_evidence_declaration(
         )
     descriptor = parquet_schema_descriptor(path)
     return {
-        "schema_version": PREDICTION_EVIDENCE_SCHEMA_VERSION,
+        "schema_version": (
+            RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+            if runtime_authoritative
+            else PREDICTION_EVIDENCE_SCHEMA_VERSION
+        ),
         "authoritative": True,
+        "runtime_head_evidence_authoritative": runtime_authoritative,
         "path": str(path),
         "sha256": sha256_file(path),
         "rows": int(parquet.metadata.num_rows),
         "splits": splits,
         "models": _unique_strings(path, "model"),
         "columns": columns,
-        "required_columns": list(REQUIRED_MODEL_DIRECTION_COLUMNS),
+        "required_columns": [
+            *REQUIRED_MODEL_DIRECTION_COLUMNS,
+            *(RUNTIME_HEAD_PREDICTION_COLUMNS if runtime_authoritative else ()),
+        ],
         "parquet_schema": descriptor,
         "parquet_schema_sha256": parquet_schema_sha256(descriptor),
         "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
@@ -348,6 +519,7 @@ def resolve_and_validate_prediction_evidence(
     dataset_dir: Path,
     expected_split: str | None = None,
     expected_model: str | None = None,
+    require_runtime_head_evidence: bool = False,
 ) -> tuple[Path, dict[str, Any], dict[str, Any]]:
     """Re-hash one explicitly named, newest immutable prediction event.
 
@@ -386,8 +558,25 @@ def resolve_and_validate_prediction_evidence(
     evidence = report.get("prediction_evidence")
     if not isinstance(evidence, dict):
         raise RuntimeError("timestamped prediction report lacks prediction_evidence")
-    if evidence.get("schema_version") != PREDICTION_EVIDENCE_SCHEMA_VERSION:
+    evidence_schema = evidence.get("schema_version")
+    if evidence_schema not in {
+        PREDICTION_EVIDENCE_SCHEMA_VERSION,
+        RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    }:
         raise RuntimeError("prediction evidence schema_version mismatch")
+    runtime_authoritative = (
+        evidence_schema == RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+    )
+    if bool(evidence.get("runtime_head_evidence_authoritative")) != (
+        runtime_authoritative
+    ):
+        raise RuntimeError(
+            "prediction runtime-head authority declaration mismatch"
+        )
+    if require_runtime_head_evidence and not runtime_authoritative:
+        raise RuntimeError(
+            "prediction evidence lacks the required exact runtime-head envelope"
+        )
     if evidence.get("authoritative") is not True:
         raise RuntimeError("prediction evidence is not declared authoritative")
     if Path(str(evidence.get("path") or "")).expanduser().resolve() != authoritative:
@@ -455,13 +644,22 @@ def resolve_and_validate_prediction_evidence(
     if list(evidence.get("columns") or []) != observed_columns:
         raise RuntimeError("prediction evidence column schema mismatch")
     required = list(evidence.get("required_columns") or [])
-    if required != list(REQUIRED_MODEL_DIRECTION_COLUMNS):
+    expected_required = [
+        *REQUIRED_MODEL_DIRECTION_COLUMNS,
+        *(RUNTIME_HEAD_PREDICTION_COLUMNS if runtime_authoritative else ()),
+    ]
+    if required != expected_required:
         raise RuntimeError("prediction evidence required-column contract mismatch")
     if not set(required).issubset(observed_columns):
         raise RuntimeError("prediction evidence required columns are absent")
     if "selection_score_threshold" in observed_columns:
         raise RuntimeError("prediction evidence contains forbidden selection_score_threshold")
     validate_model_direction_parquet_semantics(authoritative)
+    if runtime_authoritative:
+        validate_runtime_head_parquet_semantics(
+            authoritative,
+            bundle_metadata=metadata,
+        )
     descriptor = parquet_schema_descriptor(authoritative)
     if list(evidence.get("parquet_schema") or []) != descriptor:
         raise RuntimeError("prediction evidence physical parquet schema mismatch")

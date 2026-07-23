@@ -982,6 +982,38 @@ class PrebuiltStateLoader:
         self._augment_cv3_with_regime_v4()  # after v2_mtf sources; immutable active transform
         self._refresh_error = None
 
+    def load_frozen_pair(self) -> dict[str, object]:
+        """Load one exact pair generation and disable mutable refresh.
+
+        Historical active-Exit replay must observe one immutable canonical-v3
+        and BASE28 generation for its entire lifetime.  The owner returns the
+        exact admitted identity so a producer can bind it in replay evidence.
+        """
+
+        self._refresh_enabled = False
+        self.load()
+        binding = self._pair_binding
+        if binding is None or self._refresh_enabled is not False:
+            raise PrebuiltIdentityError("PREBUILT_FROZEN_PAIR_NOT_ADMITTED")
+        return {
+            "manifest_path": str(binding.manifest_path),
+            "manifest_sha256": binding.manifest_sha256,
+            "pair_generation_id": binding.pair_generation_id,
+            "canonical_v3": {
+                "path": str(binding.canonical_v3.parquet_path),
+                "sha256": binding.canonical_v3.parquet_sha256,
+                "rows": binding.canonical_v3.rows,
+                "cols_total": binding.canonical_v3.cols_total,
+            },
+            "base28": {
+                "path": str(binding.base28.parquet_path),
+                "sha256": binding.base28.parquet_sha256,
+                "rows": binding.base28.rows,
+                "cols_total": binding.base28.cols_total,
+            },
+            "refresh_enabled": False,
+        }
+
     # ── Exit-XGB V2 multi-TF scalar augmentation ──────────────────────
     # The exact bundle contract consumes 31 V2-suffixed columns per row.
     # ONE TRUTH (2026-06-13): the per-TF V2 mtf projection now lives in

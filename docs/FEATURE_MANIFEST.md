@@ -26,6 +26,14 @@ evidence. All 479 specialist fields must
 then satisfy the exact eight-encoder routing contract in
 `gx1/features/entry_specialist_feature_groups_v1.py`.
 
+No family is an isolated vote or live rule. The eight specialist tokens,
+five timeframe branches and 22 supervised heads cooperate inside the learned
+model. Their exact 26 evidence groups produce 96 values for one
+`96 -> 128 -> 3` LONG/SHORT/FLAT fusion. Admission requires non-degenerate
+use and class-margin influence from every specialist, timeframe,
+family×timeframe path and evidence group; merely emitting a feature does not
+prove that the decision path uses it.
+
 ## Admission rules
 
 Every signal and each of the 142+5 context fields must be finite, live and

@@ -67,6 +67,23 @@ XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap,
 canonical/live December-2024 tape parity and every empirical dataset/model/
 edge gate are still open.
 
+The latest data/training/inference re-audit is also source-closed for the
+shared last-closed-M5 key, complete 95-row volume history, exact XGB sessions
+and probability bridge, and Exit V8's 173-field per-M1 historical cadence.
+V3 dataset admission now proves real matrix/time/overlay/record semantics and
+rehashes every bound member/input; path calibration fits only its declared
+tradable/selector support. Prediction evidence V3 proves every active runtime
+head through smoke, serve and launch. Replay v6 keeps label-horizon outcomes
+separate from closed-bar decisions and following fresh-quote fills.
+
+The existing runtime path now has exact SourceTape open-quote lookup, one
+atomic frozen-pair loader and an Exit-only `V12Pipeline` factory that cannot
+load SmartEntry. This narrows, but does not remove, the two producer gaps:
+extend the existing V3 owner to publish the full authoritative training
+dataset/event, and extend the existing sizing/replay owner to run full TEST
+through `make_exit_decision` and publish its own rows/traces/event. Validators,
+fixtures or caller-written parquet are not producer authority.
+
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
 V22 rebuilt successfully to the smoke gate but failed the specialist audit.
@@ -571,8 +588,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The settled post-V7 source-repair tree collected 1,845 tests on 2026-07-23:
-1,840 passed, five were explicitly skipped and zero failed. Changed Python
+The settled post-V7 source-repair tree collected 1,879 tests on 2026-07-23:
+1,874 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -759,22 +776,27 @@ Ordered steps (each gate fail-closed; stop at first red):
    single-exposure enforcement, broker/local XAU trade-ID reconciliation,
    runtime lease and missing-trade-ID fail-close. The alias set is dynamic;
    V24's count of 82 is fixture evidence only.
-3. Build the canonical full-TEST active-Exit producer. It must preserve the
+3. Extend the existing V3 dataset owner with the canonical end-to-end writer
+   and immutable event. It must derive every 173-field row and trade overlay
+   from the bound frozen sources; the strict reader/materializer is not by
+   itself producer proof.
+4. Extend the existing sizing/replay owner with the canonical full-TEST
+   active-Exit producer. It must preserve the
    complete Entry snapshot, bind SourceTape and canonical/BASE28/MTF state,
    reuse the exact live per-bar primitive and emit its own rows/traces without
    fallback or horizon-cap acceptance.
-4. Repair and prove canonical/live December-2024 M5 parity before a fresh
+5. Repair and prove canonical/live December-2024 M5 parity before a fresh
    rebuild.
-5. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
+6. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
    readiness/trainability audit, then materialize a new recipe only from those
    new immutable bytes.
-6. Compare a declared full-history baseline and TRAIN-only recent-regime
+7. Compare a declared full-history baseline and TRAIN-only recent-regime
    challenger. Use June validation for selection/calibration and preserve July
    TEST for the final untouched evaluation.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.
-7. Candidate chain only after smoke PASS: trainability-readiness ->
+8. Candidate chain only after smoke PASS: trainability-readiness ->
    candidate-train -> calibration -> immutable prediction evidence ->
    unit-normalized replay -> the nine-item evidence list above.
 

@@ -27,6 +27,9 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     ORDERED_INPUT_LAYOUT as DIRECTION_EVIDENCE_FUSION_ORDERED_INPUT_LAYOUT,
     direction_evidence_fusion_metadata,
 )
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
+)
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
     "xau_model_native_exact_test_full_stack_serve_gate_v5"
@@ -1278,9 +1281,13 @@ def serve_gate_event_contract_failures(
     else:
         if (
             prediction.get("schema_version")
-            != "entry_candidate_model_direction_prediction_evidence_v2"
+            != RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
         ):
             failures.append(f"{evidence_name} prediction evidence schema mismatch")
+        if prediction.get("runtime_head_evidence_authoritative") is not True:
+            failures.append(
+                f"{evidence_name} runtime-head prediction evidence is not authoritative"
+            )
         if prediction.get("authoritative") is not True:
             failures.append(f"{evidence_name} prediction evidence is not authoritative")
         prediction_path = prediction.get("path")

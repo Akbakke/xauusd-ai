@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T19:30:57Z",
+  "updated_utc": "2026-07-23T21:22:43Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
   "latest_terminal_event_decision": "GREEN",
@@ -71,7 +71,19 @@
       "honest_session_volatility_pressure_semantics",
       "bundle_owned_exact_order_xgb_contract",
       "xgb_bound_reproducible_v3_training_lineage",
-      "hash_bound_historical_m1_exit_provider"
+      "hash_bound_historical_m1_exit_provider",
+      "shared_last_closed_m5_key_for_every_m1_phase",
+      "complete_95_row_volume_prefix_admission",
+      "exit_xgb_session_probability_bridge_validation",
+      "exit_v8_173_field_per_m1_historical_context",
+      "v3_matrix_time_overlay_record_semantic_authority",
+      "v3_producer_input_and_member_byte_revalidation",
+      "exact_tradable_and_selector_path_calibration_support",
+      "runtime_head_prediction_evidence_v3_authority",
+      "active_exit_replay_v6_closed_bar_and_fresh_fill_separation",
+      "source_tape_exact_open_quote_lookup",
+      "atomic_frozen_prebuilt_pair_replay_load",
+      "exit_only_active_replay_pipeline_factory"
     ],
     "remaining_source_p0": [
       "canonical_full_test_active_exit_replay_producer",
@@ -94,9 +106,9 @@
       "canonical_or_live_data_modified": false
     },
     "repository_verification": {
-      "verified_utc": "2026-07-23T19:30:57Z",
-      "tests_collected": 1845,
-      "tests_passed": 1840,
+      "verified_utc": "2026-07-23T21:22:43Z",
+      "tests_collected": 1879,
+      "tests_passed": 1874,
       "tests_skipped": 5,
       "tests_failed": 0,
       "changed_python_compile": "PASS",

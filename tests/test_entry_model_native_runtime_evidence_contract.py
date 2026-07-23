@@ -10,8 +10,12 @@ import pandas as pd
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
     ModelNativeRuntimeEvidenceError,
+    decode_model_native_runtime_head_evidence,
+    encode_model_native_runtime_head_evidence,
+    finalize_model_native_runtime_head_evidence,
     require_model_native_entry_time,
     require_model_native_runtime_evidence,
 )
@@ -172,6 +176,39 @@ def _valid_executable_evidence() -> dict:
     return evidence
 
 
+def test_path_calibration_projection_separates_inference_from_provenance() -> None:
+    from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+        project_model_native_path_calibration,
+    )
+
+    bundle_calibration = {
+        **_valid_evidence()["path_calibration"],
+        "fitted_at_utc": "2026-07-23T10:00:00+00:00",
+        "fitted_on_split": "val",
+        "predictions_sha256": "a" * 64,
+    }
+
+    projected = project_model_native_path_calibration(bundle_calibration)
+
+    assert projected == _valid_evidence()["path_calibration"]
+
+
+def test_path_quality_std_uses_calibrated_bps_scale() -> None:
+    evidence = _valid_evidence()
+    evidence["path_calibration"]["path_quality_scale"] = 4.0
+    evidence["path_quality"] = evidence["path_quality_raw"] * 4.0
+    evidence["path_quality_pred"] = evidence["path_quality"]
+    evidence["path_quality_std"] = 4.0 * math.exp(
+        0.5 * evidence["path_quality_log_var"]
+    )
+
+    observed = require_model_native_runtime_evidence(evidence)
+
+    assert observed["path_quality_std"] == pytest.approx(
+        evidence["path_quality_std"]
+    )
+
+
 def _valid_executable_decision() -> dict:
     snapshot = _valid_executable_evidence()
     probabilities = snapshot["direction_probs"]
@@ -219,6 +256,70 @@ def test_runtime_evidence_contract_returns_copy_and_preserves_values() -> None:
     assert validated == evidence
     assert validated is not evidence
     assert validated["position_size_pred"] == pytest.approx(_sigmoid(-0.2))
+
+
+def test_runtime_head_envelope_round_trips_and_finalizes_exact_snapshot() -> None:
+    expected = _valid_evidence()
+    sizing = expected.pop("sizing_authority_contract")
+    head = {
+        "runtime_head_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        ),
+        **expected,
+    }
+
+    payload, payload_sha = encode_model_native_runtime_head_evidence(head)
+    decoded = decode_model_native_runtime_head_evidence(payload, payload_sha)
+    finalized = finalize_model_native_runtime_head_evidence(
+        decoded,
+        sizing_authority_contract=sizing,
+    )
+
+    assert decoded == head
+    assert finalized == {**expected, "sizing_authority_contract": sizing}
+
+
+def test_runtime_head_envelope_rejects_hash_and_schema_tamper() -> None:
+    evidence = _valid_evidence()
+    evidence.pop("sizing_authority_contract")
+    head = {
+        "runtime_head_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        ),
+        **evidence,
+    }
+    payload, payload_sha = encode_model_native_runtime_head_evidence(head)
+
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="runtime_head_evidence_sha256",
+    ):
+        decode_model_native_runtime_head_evidence(payload + " ", payload_sha)
+
+    head["unexpected"] = 1
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="exact schema mismatch",
+    ):
+        encode_model_native_runtime_head_evidence(head)
+
+
+def test_runtime_head_envelope_rejects_model_value_parity_tamper() -> None:
+    evidence = _valid_evidence()
+    evidence.pop("sizing_authority_contract")
+    head = {
+        "runtime_head_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        ),
+        **evidence,
+    }
+    head["mtf_dir_probs"] = [0.3, 0.3, 0.4]
+
+    with pytest.raises(
+        ModelNativeRuntimeEvidenceError,
+        match="mtf_dir_probs: parity mismatch",
+    ):
+        encode_model_native_runtime_head_evidence(head)
 
 
 def test_runtime_evidence_rejects_dynamic_sizing_authority_tamper() -> None:

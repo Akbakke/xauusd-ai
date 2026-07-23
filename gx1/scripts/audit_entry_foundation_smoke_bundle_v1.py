@@ -96,7 +96,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
-    PREDICTION_EVIDENCE_SCHEMA_VERSION,
+    RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION,
     atomic_write_text,
     resolve_and_validate_prediction_evidence,
 )
@@ -1953,9 +1953,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 prediction_report_path=prediction_report_path,
                 bundle_dir=bundle_dir,
                 dataset_dir=dataset_dir,
+                require_runtime_head_evidence=True,
             )
         )
-        if prediction_evidence.get("schema_version") != PREDICTION_EVIDENCE_SCHEMA_VERSION:
+        if (
+            prediction_evidence.get("schema_version")
+            != RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+        ):
             raise RuntimeError("prediction evidence schema mismatch")
         if tuple(sorted(prediction_evidence.get("splits") or ())) != tuple(sorted(DATA_SPLITS)):
             raise RuntimeError("prediction evidence must contain exactly val,test")

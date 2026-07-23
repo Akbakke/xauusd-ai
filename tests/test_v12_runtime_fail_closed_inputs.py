@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,9 +23,84 @@ from gx1.execution.v12_v3_live import (
     XGB_BRIDGE_NAMES,
     V3LiveInference,
     _resolve_default_v3_bundle,
+    build_v3_base_feature_rows,
     required_closed_m5_keys_for_v3_window,
 )
 from gx1.execution.v12_xgb_live import _require_ordered_xgb_feature_identity
+
+
+def test_active_exit_replay_factory_has_no_smart_entry_or_mutable_provider() -> None:
+    source = inspect.getsource(V12Pipeline.load_active_exit_replay)
+
+    assert "SmartEntry" not in source
+    assert "load_default" not in source
+    assert "load_frozen_pair" in source
+    with pytest.raises(
+        RuntimeError,
+        match="REQUIRES_EXACT_SOURCE_TAPE",
+    ):
+        V12Pipeline.load_active_exit_replay(
+            artifact_registry_path=Path("/missing/registry.json"),
+            prebuilt_pair_manifest_path=Path("/missing/pair.json"),
+            prebuilt_generation_root=Path("/missing/generations"),
+            closed_m1_provider=SimpleNamespace(),
+        )
+
+
+class _PassThroughSanitizer:
+    def sanitize(
+        self,
+        frame: pd.DataFrame,
+        *,
+        feature_list: list[str],
+        allow_nan_fill: bool,
+        nan_fill_value: float,
+    ) -> tuple[np.ndarray, dict[str, object]]:
+        assert allow_nan_fill is False
+        assert nan_fill_value == 0.0
+        return frame.loc[:, feature_list].to_numpy(dtype=np.float64), {}
+
+
+class _SessionProbabilityModel:
+    def __init__(
+        self,
+        probabilities: tuple[float, float, float] = (0.6, 0.3, 0.1),
+    ) -> None:
+        self.probabilities = probabilities
+        self.observed_sessions: list[str] = []
+
+    def predict_proba(
+        self,
+        frame: pd.DataFrame,
+        *,
+        session: str,
+        feature_list: list[str],
+    ) -> SimpleNamespace:
+        assert feature_list == ["feature"]
+        self.observed_sessions.append(session)
+        count = len(frame)
+        return SimpleNamespace(
+            p_long=np.full(count, self.probabilities[0]),
+            p_short=np.full(count, self.probabilities[1]),
+            p_flat=np.full(count, self.probabilities[2]),
+        )
+
+
+def _stub_xgb(
+    probabilities: tuple[float, float, float] = (0.6, 0.3, 0.1),
+):
+    from gx1.execution.v12_xgb_live import XGBLiveInference
+
+    model = _SessionProbabilityModel(probabilities)
+    inference = XGBLiveInference(
+        bundle_dir=Path("."),
+        sanitizer_config=Path("sanitizer.json"),
+        feature_contract=Path("features.json"),
+        _model=model,
+        _sanitizer=_PassThroughSanitizer(),
+        _features=["feature"],
+    )
+    return inference, model
 
 
 def _collector_rows(*times: str) -> pd.DataFrame:
@@ -82,6 +158,66 @@ def test_xgb_v3_chain_requires_exact_training_identity() -> None:
                 }
             ),
         )
+
+
+@pytest.mark.parametrize("session_id", [-1.0, 4.0, 1.5, np.nan, np.inf])
+def test_xgb_rejects_invalid_explicit_session_id(session_id: float) -> None:
+    inference, model = _stub_xgb()
+    frame = pd.DataFrame(
+        {"feature": [1.0], "session_id": [session_id]},
+        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
+    )
+
+    with pytest.raises(RuntimeError, match="XGB_SESSION_ID_INVALID"):
+        inference.predict(frame)
+
+    assert model.observed_sessions == []
+
+
+@pytest.mark.parametrize("session", ["", "asia", "INVALID"])
+def test_xgb_rejects_invalid_explicit_session_name(session: str) -> None:
+    inference, model = _stub_xgb()
+    frame = pd.DataFrame(
+        {"feature": [1.0]},
+        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
+    )
+
+    with pytest.raises(RuntimeError, match="XGB_SESSION_INVALID"):
+        inference.predict(frame, session=session)
+
+    assert model.observed_sessions == []
+
+
+def test_xgb_routes_each_row_once_and_emits_exact_bridge() -> None:
+    inference, model = _stub_xgb()
+    frame = pd.DataFrame(
+        {
+            "feature": [1.0, 2.0, 3.0, 4.0],
+            "session_id": [0.0, 1.0, 2.0, 3.0],
+        },
+        index=pd.date_range("2026-07-16T06:00:00Z", periods=4, freq="h"),
+    )
+
+    result = inference.predict(frame)
+
+    assert model.observed_sessions == ["ASIA", "EU", "OVERLAP", "US"]
+    assert result["session"].tolist() == ["ASIA", "EU", "OVERLAP", "US"]
+    np.testing.assert_array_equal(
+        result["signal_bridge_v1"][:, :3],
+        np.asarray([[0.6, 0.3, 0.1]] * 4, dtype=np.float32),
+    )
+    assert np.isfinite(result["signal_bridge_v1"]).all()
+
+
+def test_xgb_rejects_non_simplex_head_output() -> None:
+    inference, _model = _stub_xgb((0.6, 0.6, 0.1))
+    frame = pd.DataFrame(
+        {"feature": [1.0], "session_id": [0.0]},
+        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T06:00:00Z")]),
+    )
+
+    with pytest.raises(RuntimeError, match="XGB_PROBABILITY_SIMPLEX_INVALID"):
+        inference.predict(frame)
 
 
 def test_xgb_feature_identity_requires_metadata_order_and_sanitizer_parity() -> None:
@@ -258,6 +394,158 @@ def test_v3_maps_each_m1_row_to_its_exact_latest_closed_m5() -> None:
     np.testing.assert_array_equal(matrix[:, :7], expected_bridge)
     np.testing.assert_array_equal(matrix[:, 7], expected_atr.astype(np.float32))
     assert np.isfinite(matrix).all()
+
+
+def test_closed_m5_mapping_is_exact_for_all_five_m1_phases() -> None:
+    from gx1.execution.v12_m1_to_m5_downsample import (
+        closed_m5_start_for_m1_bar_labels,
+    )
+
+    labels = pd.date_range("2026-07-16T12:00:00Z", periods=5, freq="min")
+    observed = closed_m5_start_for_m1_bar_labels(labels)
+    expected = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2026-07-16T11:55:00Z"),
+            pd.Timestamp("2026-07-16T11:55:00Z"),
+            pd.Timestamp("2026-07-16T11:55:00Z"),
+            pd.Timestamp("2026-07-16T11:55:00Z"),
+            pd.Timestamp("2026-07-16T12:00:00Z"),
+        ]
+    )
+
+    assert observed.equals(expected)
+
+
+def test_shared_v3_builder_requires_volume_prefix_and_is_chunk_invariant() -> None:
+    from gx1.features.volume_features import (
+        VOLUME_FEATURE_NAMES,
+        VOLUME_FEATURE_PREFIX_ROWS,
+    )
+
+    source_rows = 700
+    target_rows = 64
+    index = pd.date_range(
+        end=pd.Timestamp("2026-07-16T12:06:00Z"),
+        periods=source_rows,
+        freq="min",
+    )
+    full_history = pd.DataFrame(
+        {
+            "volume": 100.0 + np.square(np.sin(np.arange(source_rows) / 13.0)),
+            "close": 2000.0 + np.cos(np.arange(source_rows) / 17.0),
+        },
+        index=index,
+    )
+    target = full_history.tail(target_rows)
+    closed_m5 = (
+        target.index + pd.Timedelta(minutes=1)
+    ).floor("5min") - pd.Timedelta(minutes=5)
+    canonical = pd.DataFrame(
+        {"coverage": 1.0},
+        index=pd.DatetimeIndex(closed_m5.unique()),
+    )
+    features = [*XGB_BRIDGE_NAMES, *VOLUME_FEATURE_NAMES]
+
+    complete = build_v3_base_feature_rows(
+        target_m1=target,
+        volume_history_m1=full_history,
+        canonical_v3=canonical,
+        xgb_inferer=_ExactBridge(),
+        feature_names=features,
+    )
+    bounded_history = full_history.tail(
+        target_rows + VOLUME_FEATURE_PREFIX_ROWS
+    )
+    bounded = build_v3_base_feature_rows(
+        target_m1=target,
+        volume_history_m1=bounded_history,
+        canonical_v3=canonical,
+        xgb_inferer=_ExactBridge(),
+        feature_names=features,
+    )
+    np.testing.assert_array_equal(complete, bounded)
+
+    with pytest.raises(RuntimeError, match="V3_VOLUME_HISTORY_PREFIX_MISSING"):
+        build_v3_base_feature_rows(
+            target_m1=target,
+            volume_history_m1=full_history.tail(
+                target_rows + VOLUME_FEATURE_PREFIX_ROWS - 1
+            ),
+            canonical_v3=canonical,
+            xgb_inferer=_ExactBridge(),
+            feature_names=features,
+        )
+
+
+def test_v3_volume_features_use_required_prefix_not_model_window_start() -> None:
+    from gx1.features.volume_features import (
+        VOLUME_FEATURE_NAMES,
+        VOLUME_FEATURE_PREFIX_ROWS,
+        compute_volume_features,
+    )
+
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    source_rows = V3_WINDOW_LEN + VOLUME_FEATURE_PREFIX_ROWS
+    index = pd.date_range(end=end_m1, periods=source_rows, freq="min")
+    base_m1 = pd.DataFrame(
+        {
+            "volume": np.arange(1, source_rows + 1, dtype=np.float64),
+            "close": 2000.0 + np.sin(np.arange(source_rows) / 11.0),
+        },
+        index=index,
+    )
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame({"coverage": 1.0}, index=required_m5)
+    features = [*XGB_BRIDGE_NAMES, *VOLUME_FEATURE_NAMES]
+    v3 = V3LiveInference(
+        bundle_dir=Path("."),
+        _features=features,
+        _feature_count=len(features),
+    )
+
+    matrix = v3.build_window(
+        end_m1,
+        base_m1,
+        _ExactBridge(),
+        canonical_v3_window=canonical,
+    )
+    expected = compute_volume_features(base_m1)
+
+    for offset, name in enumerate(VOLUME_FEATURE_NAMES, start=7):
+        np.testing.assert_array_equal(
+            matrix[:, offset],
+            expected[name][-V3_WINDOW_LEN:],
+        )
+
+
+def test_v3_volume_features_fail_without_required_prefix() -> None:
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    index = pd.date_range(end=end_m1, periods=V3_WINDOW_LEN, freq="min")
+    base_m1 = pd.DataFrame(
+        {
+            "volume": np.arange(1, V3_WINDOW_LEN + 1, dtype=np.float64),
+            "close": np.linspace(2000.0, 2001.0, V3_WINDOW_LEN),
+        },
+        index=index,
+    )
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame({"coverage": 1.0}, index=required_m5)
+    features = [*XGB_BRIDGE_NAMES, *VOLUME_FEATURE_NAMES]
+    v3 = V3LiveInference(
+        bundle_dir=Path("."),
+        _features=features,
+        _feature_count=len(features),
+    )
+
+    with pytest.raises(RuntimeError, match="V3_VOLUME_HISTORY_MISMATCH"):
+        v3.build_window(
+            end_m1,
+            base_m1,
+            _ExactBridge(),
+            canonical_v3_window=canonical,
+        )
 
 
 def test_v3_rejects_one_missing_required_closed_m5_key_before_xgb() -> None:

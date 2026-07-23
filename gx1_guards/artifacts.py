@@ -86,8 +86,8 @@ SERVE_GATE_PREDICTION_PATH_FIELDS = {
     "model_native_serve_parity": "pinned_predictions",
     "model_native_direction_pocket_audit": "predictions_parquet",
 }
-PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v2"
+RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION = (
+    "entry_candidate_model_direction_prediction_evidence_v3"
 )
 REQUIRED_XAU_CTX_CONT_DIM = 142
 REQUIRED_XAU_CTX_CAT_DIM = 5
@@ -275,13 +275,21 @@ def _validate_gate_prediction_lineage(
         raise ArtifactGuardError(
             f"XAU direction launch {evidence_name} lacks prediction_evidence"
         )
-    if prediction.get("schema_version") != PREDICTION_EVIDENCE_SCHEMA_VERSION:
+    if (
+        prediction.get("schema_version")
+        != RUNTIME_PREDICTION_EVIDENCE_SCHEMA_VERSION
+    ):
         raise ArtifactGuardError(
             f"XAU direction launch {evidence_name} prediction evidence schema mismatch"
         )
     if prediction.get("authoritative") is not True:
         raise ArtifactGuardError(
             f"XAU direction launch {evidence_name} prediction evidence is not authoritative"
+        )
+    if prediction.get("runtime_head_evidence_authoritative") is not True:
+        raise ArtifactGuardError(
+            f"XAU direction launch {evidence_name} runtime-head evidence "
+            "is not authoritative"
         )
     prediction_path = _absolute_bound_file(
         prediction.get("path"),

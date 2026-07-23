@@ -362,7 +362,10 @@ price-path outcome. It is an offline direction diagnostic with
 `position_size_applied=false`, not an order or capital simulation. Executable
 learned sizing must be proven separately against its OOS controls, the exact
 adopted active Exit replay and post-adoption runtime parity. The diagnostic
-contracts now require a file-bound contiguous per-M1 Exit trace,
+contracts now require replay schema v6: immutable label-horizon bid/ask facts
+remain separate from active-Exit decisions and fills, while every action binds
+one committed closed bar to the following exact fresh quote. They also require
+a file-bound contiguous per-M1 Exit trace,
 row-recomputed bid/ask results, exact canonical OOS row identity, exact
 registry identity, a recursive path/size/SHA inventory of every regular file
 under all three active Exit artifacts, adopted bundle hashes and fresh
@@ -416,8 +419,12 @@ transaction gap but creates no artifact or launch authority by itself.
 consumption or target mutation because the present joint Exit rows are
 caller-supplied. The remaining producer must reuse
 `V12Pipeline.make_exit_decision` over full TEST with the complete frozen Entry
-snapshot and hash-bound M1/canonical/BASE28/MTF state. Current launch remains
-`BLOCK`.
+snapshot and hash-bound M1/canonical/BASE28/MTF state. The existing
+`load_active_exit_replay` factory already loads one atomic frozen prebuilt pair,
+explicit XGB/V3/Exit-IQL artifacts, pinned environment and exact SourceTape
+without loading SmartEntry. The missing boundary is the canonical full-TEST
+iteration and immutable producer event, not another loader. Current launch
+remains `BLOCK`.
 
 ## Evidence retention and cleanup ownership
 
@@ -490,6 +497,14 @@ rejects duplicate/gapped cadence and preserves Strategy-F deferral. The five
 M1 microfeatures share one log-return/RMS-volatility owner between train and
 serve. No partial state, zero-filled model input, implicit fold or
 environment-selected V3 artifact is admissible.
+
+Exit IO V8 is 173 fields with a per-M1 historical closed-M5 cadence. Its 78
+market-context fields are never copied from the terminal row across the full
+window. The shared M1→closed-M5 mapping, 95-row volume prefix, XGB session/
+probability bridge and exact SourceTape open quote are single owners. The V3
+training reader revalidates the `N x 173` float32 matrix, UTC minute index,
+zero base trade-state slots, XGB bridge values, overlays, exact 240-row trade
+records and teacher equality; byte bindings alone are insufficient.
 
 The retained V3 XGB bridge is an Exit-only owner of real ordered 7/41-field
 validation for two active Exit consumers. Its import and order checks fail
@@ -770,7 +785,7 @@ canonical-v2 recomputation, strict native-M5 closure/schema/hash ownership,
 removal of non-observable slippage features, reproducible XGB-bound V3 lineage
 and a hash-bound historical closed-M1 provider for Exit. Formula and HTF
 decision-alignment ownership is also repaired. Still open are the exact V3
-training-dataset writer, canonical active-Exit full-TEST producer, fresh
+training-dataset writer/event, canonical active-Exit full-TEST loop/event, fresh
 XGB/V3/Exit artifacts, native-M5 materialization/pair bootstrap, empirical
 dataset/model/edge proof and canonical/live December-2024 tape parity.
 

@@ -58,7 +58,11 @@ from tests.model_native_serve_gate_support import (
     passing_serve_parity_liveness_sections,
 )
 from tests.model_native_turning_point_support import turning_point_prediction_row
-from tests.model_native_offline_rl_support import offline_rl_prediction_row
+from tests.model_native_offline_rl_support import (
+    add_test_runtime_calibration_metadata,
+    offline_rl_prediction_row,
+    runtime_head_prediction_columns,
+)
 
 
 def _sha(path: Path) -> str:
@@ -184,6 +188,7 @@ def _prediction_row(
         "position_size_pred": float(1.0 / (1.0 + np.exp(-logit))),
         "y_position_size_target": float(target),
         "session": session,
+        "session_id": ("ASIA", "EU", "OVERLAP", "US").index(session),
         "vol_regime": regime,
         **turning_point_prediction_row(0),
         **offline_rl_prediction_row(0),
@@ -225,8 +230,14 @@ def _write_prediction_event(
 ) -> tuple[Path, Path, dict[str, Any]]:
     root.mkdir(parents=True, exist_ok=True)
     predictions = root / f"selective_edge_predictions_{stamp}.parquet"
-    frame.to_parquet(predictions, index=False)
     metadata = json.loads((bundle_dir / "bundle_metadata.json").read_text())
+    frame = frame.copy()
+    for name, values in runtime_head_prediction_columns(
+        frame,
+        metadata,
+    ).items():
+        frame[name] = values
+    frame.to_parquet(predictions, index=False)
     splits = sorted(frame["split"].astype(str).unique())
     evidence = build_prediction_evidence_declaration(
         predictions_path=predictions,
@@ -388,14 +399,13 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
         "training_run_id": "UNIT_INITIAL_ADAPTATION_ADMISSION",
         "dataset_run_id": "UNIT_DATASET_RUN_20260717",
     }
-    _write_json(
-        source_bundle / "bundle_metadata.json",
-        {
-            "state_dict_sha256": state_sha,
-            "direction_decision_contract": direction_contract,
-            "run_lineage": run_lineage,
-        },
-    )
+    source_metadata: dict[str, Any] = {
+        "state_dict_sha256": state_sha,
+        "direction_decision_contract": direction_contract,
+        "run_lineage": run_lineage,
+    }
+    add_test_runtime_calibration_metadata(source_metadata)
+    _write_json(source_bundle / "bundle_metadata.json", source_metadata)
     _write_json(
         source_bundle / "MASTER_TRANSFORMER_LOCK.json",
         {
@@ -457,10 +467,10 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             "time": ts + pd.Timedelta(minutes=10),
             "bid_close": exit_bid,
             "ask_close": exit_ask,
-            "bid_high": max(exit_bid, exit_ask),
-            "bid_low": min(exit_bid, exit_ask),
-            "ask_high": max(exit_bid, exit_ask),
-            "ask_low": min(exit_bid, exit_ask),
+            "bid_high": max(decision["bid_open"], exit_bid),
+            "bid_low": min(decision["bid_open"], exit_bid),
+            "ask_high": max(decision["ask_open"], exit_ask),
+            "ask_low": min(decision["ask_open"], exit_ask),
         }
         tape_rows.extend((decision, fill, exit_row))
     tape = root / "canonical_source_tape.parquet"
@@ -628,56 +638,82 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
     rows["exit_replay_status"] = np.where(
         directions.isin([0, 1]), "EXIT_NOW", "FLAT_NO_ORDER"
     )
-    rows["exit_time"] = [
+    rows["active_exit_fill_time"] = [
         (timestamp + pd.Timedelta(minutes=15)).isoformat()
         if direction in (0, 1)
         else None
         for timestamp, direction in zip(times, directions, strict=True)
     ]
+    rows["active_exit_decision_bar_time"] = [
+        (timestamp + pd.Timedelta(minutes=14)).isoformat()
+        if direction in (0, 1)
+        else None
+        for timestamp, direction in zip(times, directions, strict=True)
+    ]
+    active_exit_shift = np.where(
+        directions == 0,
+        0.02,
+        np.where(directions == 1, -0.02, np.nan),
+    )
+    rows["active_exit_fill_bid"] = rows["exit_bid"] + active_exit_shift
+    rows["active_exit_fill_ask"] = rows["exit_ask"] + active_exit_shift
     rows["exit_reason"] = np.where(
         directions.isin([0, 1]), "EXIT_IQL_ARGMAX", "MODEL_FLAT"
     )
     rows["exit_steps"] = np.where(directions.isin([0, 1]), 10, 0)
     rows["active_exit_authority_sha256"] = exit_authority_sha
     flat_mask = directions == 2
-    rows.loc[flat_mask, "exit_bid"] = rows.loc[flat_mask, "entry_bid"]
-    rows.loc[flat_mask, "exit_ask"] = rows.loc[flat_mask, "entry_ask"]
     trace_records: list[dict[str, Any]] = []
     for row_index, row in rows.loc[~flat_mask].iterrows():
         direction = int(row["model_direction_index"])
         entry_time = pd.Timestamp(row["entry_fill_time"])
         for step in range(1, int(row["exit_steps"]) + 1):
-            fraction = step / float(row["exit_steps"])
-            bid = float(row["entry_bid"]) + fraction * (
-                float(row["exit_bid"]) - float(row["entry_bid"])
+            state_fraction = step / float(row["exit_steps"] + 1)
+            fresh_fraction = step / float(row["exit_steps"])
+            state_bid = float(row["entry_bid"]) + state_fraction * (
+                float(row["active_exit_fill_bid"]) - float(row["entry_bid"])
             )
-            ask = float(row["entry_ask"]) + fraction * (
-                float(row["exit_ask"]) - float(row["entry_ask"])
+            state_ask = float(row["entry_ask"]) + state_fraction * (
+                float(row["active_exit_fill_ask"]) - float(row["entry_ask"])
             )
-            current_pnl_bps = (
-                (bid - float(row["entry_ask"]))
+            fresh_bid = float(row["entry_bid"]) + fresh_fraction * (
+                float(row["active_exit_fill_bid"]) - float(row["entry_bid"])
+            )
+            fresh_ask = float(row["entry_ask"]) + fresh_fraction * (
+                float(row["active_exit_fill_ask"]) - float(row["entry_ask"])
+            )
+            state_pnl_bps = (
+                (state_bid - float(row["entry_ask"]))
                 / float(row["entry_ask"])
                 * 10_000.0
                 if direction == 0
-                else (float(row["entry_bid"]) - ask)
+                else (float(row["entry_bid"]) - state_ask)
                 / float(row["entry_bid"])
                 * 10_000.0
             )
             trace_records.append(
                 {
                     "reference_row_id": str(row["reference_row_id"]),
-                    "entry_time": entry_time,
+                    "entry_fill_time": entry_time,
                     "step": step,
-                    "bar_time": entry_time + pd.Timedelta(minutes=step),
+                    "fresh_quote_time": (
+                        entry_time + pd.Timedelta(minutes=step)
+                    ),
+                    "closed_bar_time": (
+                        entry_time + pd.Timedelta(minutes=step - 1)
+                    ),
+                    "bar_committed": True,
                     "action_id": 1 if step == int(row["exit_steps"]) else 0,
                     "decision_source": (
                         str(row["exit_reason"])
                         if step == int(row["exit_steps"])
                         else "HOLD"
                     ),
-                    "current_pnl_bps": current_pnl_bps,
-                    "bid": bid,
-                    "ask": ask,
+                    "state_pnl_bps": state_pnl_bps,
+                    "state_bid": state_bid,
+                    "state_ask": state_ask,
+                    "fresh_quote_bid": fresh_bid,
+                    "fresh_quote_ask": fresh_ask,
                     "active_exit_authority_sha256": exit_authority_sha,
                 }
             )

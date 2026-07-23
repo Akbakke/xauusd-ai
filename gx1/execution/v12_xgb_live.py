@@ -64,6 +64,7 @@ BUNDLE_SANITIZER_FILENAME = V3_XGB_SANITIZER_CONFIG_FILENAME
 BUNDLE_FEATURE_CONTRACT_FILENAME = V3_XGB_FEATURE_CONTRACT_FILENAME
 
 SESSION_ID_TO_NAME = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
+SESSION_NAMES = tuple(SESSION_ID_TO_NAME.values())
 
 
 def _require_ordered_xgb_feature_identity(
@@ -219,6 +220,8 @@ class XGBLiveInference:
         """
         if self._model is None or self._sanitizer is None:
             raise RuntimeError("XGBLiveInference not loaded — call .load() first")
+        if not isinstance(augmented_cv3_row, pd.DataFrame) or augmented_cv3_row.empty:
+            raise RuntimeError("XGB input must be a non-empty DataFrame")
 
         # Check feature coverage
         missing = [c for c in self._features if c not in augmented_cv3_row.columns]
@@ -227,24 +230,54 @@ class XGBLiveInference:
 
         # Per-bar session resolution
         if session is not None:
-            sessions = np.array([session] * len(augmented_cv3_row), dtype=object)
-        elif "session_id" in augmented_cv3_row.columns and augmented_cv3_row["session_id"].notna().all():
-            sid = augmented_cv3_row["session_id"].astype(int).to_numpy()
-            sessions = np.array([SESSION_ID_TO_NAME.get(int(s), "ASIA") for s in sid], dtype=object)
+            if not isinstance(session, str) or session not in SESSION_NAMES:
+                raise RuntimeError(f"XGB_SESSION_INVALID: {session!r}")
+            sessions = np.full(len(augmented_cv3_row), session, dtype=object)
+        elif "session_id" in augmented_cv3_row.columns:
+            raw_session_ids = pd.to_numeric(
+                augmented_cv3_row["session_id"],
+                errors="coerce",
+            ).to_numpy(dtype=np.float64)
+            if (
+                raw_session_ids.shape != (len(augmented_cv3_row),)
+                or not np.isfinite(raw_session_ids).all()
+                or not np.equal(raw_session_ids, np.floor(raw_session_ids)).all()
+            ):
+                raise RuntimeError("XGB_SESSION_ID_INVALID")
+            session_ids = raw_session_ids.astype(np.int64)
+            invalid = sorted(set(session_ids.tolist()).difference(SESSION_ID_TO_NAME))
+            if invalid:
+                raise RuntimeError(f"XGB_SESSION_ID_INVALID: {invalid}")
+            sessions = np.asarray(
+                [SESSION_ID_TO_NAME[int(value)] for value in session_ids],
+                dtype=object,
+            )
         else:
-            # session_id ABSENT or NaN -> derive the session from the bar timestamp (the
-            # canonical, always-available source). 2026-06-15 LIVE-BLOCKER fix: at the
-            # weekend market-open get_window() joins base28 (M1) cols onto the cv3 (M5)
-            # window with reindex(method=None); when cv3 is momentarily ahead of base28
-            # (the two prebuilts async-refresh independently), session_id is NaN on the
-            # un-joined tail bar(s) and ``.astype(int)`` raised IntCastingNaNError on
-            # EVERY poll -> ALL live entries blocked (crash-loop, no journal). Parity
-            # verified 1.00000 over a full week: get_session_vectorized(ts) is bit-
-            # identical to SESSION_ID_TO_NAME[session_id] (session is a pure function of
-            # UTC time), so this fallback is train==serve-exact, never a degraded input.
-            ts = augmented_cv3_row.index if isinstance(augmented_cv3_row.index, pd.DatetimeIndex) \
-                 else pd.to_datetime(augmented_cv3_row["time"], utc=True)
-            sessions = get_session_vectorized(ts).to_numpy(dtype=object)
+            # An absent session_id has one deterministic owner: exact UTC bar
+            # timestamps. A present-but-invalid session_id is rejected above and
+            # may not silently route to a different head.
+            if isinstance(augmented_cv3_row.index, pd.DatetimeIndex):
+                timestamps = pd.to_datetime(
+                    augmented_cv3_row.index,
+                    utc=True,
+                    errors="coerce",
+                )
+            elif "time" in augmented_cv3_row.columns:
+                timestamps = pd.to_datetime(
+                    augmented_cv3_row["time"],
+                    utc=True,
+                    errors="coerce",
+                )
+            else:
+                raise RuntimeError("XGB_SESSION_TIMESTAMP_MISSING")
+            if pd.DatetimeIndex(timestamps).hasnans:
+                raise RuntimeError("XGB_SESSION_TIMESTAMP_INVALID")
+            sessions = get_session_vectorized(timestamps).to_numpy(dtype=object)
+            if (
+                sessions.shape != (len(augmented_cv3_row),)
+                or not set(sessions.tolist()).issubset(SESSION_NAMES)
+            ):
+                raise RuntimeError("XGB_DERIVED_SESSION_INVALID")
 
         # Sanitize feature matrix. LIVE is fail-closed: respect the sanitizer's
         # hard_fail_on_nan (no silent NaN→0 fill). A NaN feature means corrupt
@@ -258,12 +291,13 @@ class XGBLiveInference:
 
         # Per-session predict_proba across the four exact session heads.
         n = len(df_san)
-        p_long = np.zeros(n, dtype=np.float32)
-        p_short = np.zeros(n, dtype=np.float32)
-        p_flat = np.zeros(n, dtype=np.float32)
-        bridge = np.zeros((n, 7), dtype=np.float32)
+        p_long = np.full(n, np.nan, dtype=np.float32)
+        p_short = np.full(n, np.nan, dtype=np.float32)
+        p_flat = np.full(n, np.nan, dtype=np.float32)
+        bridge = np.full((n, 7), np.nan, dtype=np.float32)
+        assigned = np.zeros(n, dtype=np.int8)
 
-        for sess_name in ("ASIA", "EU", "OVERLAP", "US"):
+        for sess_name in SESSION_NAMES:
             idx = np.where(sessions == sess_name)[0]
             if idx.size == 0:
                 continue
@@ -278,10 +312,62 @@ class XGBLiveInference:
                 pl = np.asarray(probs["p_long"], dtype=np.float32)
                 ps = np.asarray(probs["p_short"], dtype=np.float32)
                 pf = np.asarray(probs["p_flat"], dtype=np.float32)
+            if (
+                pl.shape != (idx.size,)
+                or ps.shape != (idx.size,)
+                or pf.shape != (idx.size,)
+            ):
+                raise RuntimeError(
+                    "XGB_PROBABILITY_SHAPE_INVALID: "
+                    f"session={sess_name} expected={idx.size} "
+                    f"observed={(pl.shape, ps.shape, pf.shape)}"
+                )
+            probabilities = np.column_stack([pl, ps, pf])
+            if (
+                not np.isfinite(probabilities).all()
+                or np.any(probabilities < 0.0)
+                or np.any(probabilities > 1.0)
+                or not np.allclose(
+                    probabilities.sum(axis=1),
+                    1.0,
+                    rtol=0.0,
+                    atol=1e-6,
+                )
+            ):
+                raise RuntimeError(
+                    f"XGB_PROBABILITY_SIMPLEX_INVALID: session={sess_name}"
+                )
+            session_bridge = np.asarray(
+                proba_to_signal_bridge_v1(probabilities),
+                dtype=np.float32,
+            )
+            if (
+                session_bridge.shape != (idx.size, 7)
+                or not np.isfinite(session_bridge).all()
+            ):
+                raise RuntimeError(
+                    f"XGB_SIGNAL_BRIDGE_INVALID: session={sess_name}"
+                )
             p_long[idx] = pl
             p_short[idx] = ps
             p_flat[idx] = pf
-            bridge[idx] = proba_to_signal_bridge_v1(np.column_stack([pl, ps, pf])).astype(np.float32)
+            bridge[idx] = session_bridge
+            assigned[idx] += 1
+
+        if not np.equal(assigned, 1).all():
+            raise RuntimeError(
+                "XGB_SESSION_ROUTING_INCOMPLETE: "
+                f"unassigned={int(np.sum(assigned == 0))} "
+                f"duplicate={int(np.sum(assigned > 1))}"
+            )
+        expected_bridge = np.asarray(
+            proba_to_signal_bridge_v1(
+                np.column_stack([p_long, p_short, p_flat])
+            ),
+            dtype=np.float32,
+        )
+        if not np.array_equal(bridge, expected_bridge):
+            raise RuntimeError("XGB_SIGNAL_BRIDGE_IDENTITY_MISMATCH")
 
         return {
             "p_long": p_long,

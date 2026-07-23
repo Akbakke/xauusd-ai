@@ -53,6 +53,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
+from gx1.execution.v12_m1_to_m5_downsample import latest_closed_m5_start_at
 from gx1.execution.v12_xgb_live import XGBLiveInference as ExitXGBLiveInference
 from gx1.execution.v12_model_native_state_live import SEQ_LEN_MODEL_NATIVE as ENTRY_SEQ_LEN
 from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference, let_winners_run_hold
@@ -167,7 +168,7 @@ def _utc_ts(ts: pd.Timestamp | Any) -> pd.Timestamp:
 
 def _latest_closed_m5_start(now_minute: pd.Timestamp) -> pd.Timestamp:
     """Return the latest M5 bar-start whose OHLC is closed at this wall-clock minute."""
-    return _utc_ts(now_minute).floor("5min") - ENTRY_DECISION_AVAILABILITY_LAG
+    return latest_closed_m5_start_at(_utc_ts(now_minute))
 
 
 def _exact_closed_m5_row(
@@ -346,6 +347,95 @@ class V12Pipeline:
             exit_iql=exit_iql,
             v3=v3,
             smart_entry=smart_entry,
+        )
+
+    @classmethod
+    def load_active_exit_replay(
+        cls,
+        *,
+        artifact_registry_path: Path,
+        prebuilt_pair_manifest_path: Path,
+        prebuilt_generation_root: Path,
+        closed_m1_provider: ClosedM1StateProvider,
+        device: str = "cpu",
+    ) -> "V12Pipeline":
+        """Load the exact active Exit stack without loading Smart Entry.
+
+        This is the pre-adoption historical replay factory.  It pins one
+        immutable prebuilt pair, one SourceTape provider and the registry's
+        XGB/V3/Exit-IQL roles.  Mutable prebuilt refresh and Entry serving are
+        deliberately absent.
+        """
+
+        import json
+
+        from gx1.contracts.entry_model_native_sizing_execution_v1 import (
+            active_exit_registry_projection,
+        )
+        from gx1.execution.model_native_entry_replay_v1 import SourceTape
+        from gx1.execution.v12_exit_iql_live import (
+            assert_exit_env_matches_contract,
+        )
+
+        if not isinstance(closed_m1_provider, SourceTape):
+            raise RuntimeError(
+                "ACTIVE_EXIT_REPLAY_REQUIRES_EXACT_SOURCE_TAPE"
+            )
+        registry_path = Path(artifact_registry_path).expanduser()
+        if (
+            not registry_path.is_absolute()
+            or registry_path.is_symlink()
+            or not registry_path.is_file()
+        ):
+            raise RuntimeError("ACTIVE_EXIT_REPLAY_REGISTRY_INVALID")
+        registry_path = registry_path.resolve()
+        try:
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise RuntimeError(
+                "ACTIVE_EXIT_REPLAY_REGISTRY_JSON_INVALID"
+            ) from exc
+        projection = active_exit_registry_projection(
+            registry_path=registry_path,
+            registry=registry,
+            context="ACTIVE_EXIT_REPLAY_REGISTRY",
+        )
+        entries = projection["active_exit_entries"]
+
+        loader = PrebuiltStateLoader(
+            pair_manifest_path=Path(prebuilt_pair_manifest_path),
+            generation_root=Path(prebuilt_generation_root),
+        )
+        loader.load_frozen_pair()
+        exit_xgb = ExitXGBLiveInference.load(
+            Path(str(entries["xgb"]["path"]))
+        )
+        v3 = V3LiveInference.load(
+            Path(str(entries["v3_exit"]["path"])),
+            device=device,
+        )
+        exit_entry = dict(entries["exit_iql"])
+        assert_exit_env_matches_contract(
+            context="V12Pipeline.load_active_exit_replay",
+            contract_entry=exit_entry,
+        )
+        exit_iql = ExitIQLLiveInference.load(
+            bundle_dir=Path(str(exit_entry["path"])),
+            variant=str(exit_entry["active_variant"]),
+            fold_id=str(exit_entry["serving_fold"]),
+            aggregator=str(exit_entry["active_aggregator"]),
+            prefer_cuda=device.startswith("cuda"),
+        )
+        require_xgb_v3_chain_identity(exit_xgb, v3)
+        if getattr(v3, "_enable_multi_tf", False):
+            loader.build_multi_tf_features()
+        return cls(
+            prebuilt_loader=loader,
+            exit_xgb=exit_xgb,
+            exit_iql=exit_iql,
+            v3=v3,
+            closed_m1_provider=closed_m1_provider,
+            smart_entry=None,
         )
 
     def _refresh_m1_bar(self, now_minute: pd.Timestamp) -> dict[str, Any]:

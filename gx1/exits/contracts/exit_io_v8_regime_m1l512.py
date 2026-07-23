@@ -1,11 +1,9 @@
 """
 EXIT_IO_V8_REGIME_M1L512 contract.
 
-Extension of EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512 (155 features) for the 2026-06-03
-regime-everywhere wave — mirrors the V10 entry-side REGIME_V4 onto the exit transformer so the
-V3 exit model gets the SAME explicit multi-TF regime CONDITIONING + regime-CHANGE-DETECTION
-the entry side now has (previously the exit transformer saw regime ONLY via the multi-TF seq
-encoders, with no explicit regime ctx — the gap-register finding).
+Semantic V2 of the 173-field V8 layout.  The feature order remains the V7
+155-field prefix plus 18 REGIME_V4 fields, but cadence is now explicit and is
+part of the IO version so legacy broadcast artifacts cannot be served:
 
   Δ vs V7:
     + 18 REGIME_V4 features (SAME names + computation as the entry V10 ctx — one truth:
@@ -14,15 +12,22 @@ encoders, with no explicit regime ctx — the gap-register finding).
         regime_tf_agreement / regime_stack_sum / regime_divergence_flag — cross-TF state;
         d1_dist_roc_288 / d1_dist_to_boundary / d1_regime_changed_flag /
         bars_since_d1_regime_change / d1_trend_age_mature_flag — regime CHANGE-DETECTION.
-      Decision-context features broadcast across the 512-M1 window (one value per sample, like
-      V7 treats group-A / dip-struct) — NOT recomputed per M1 bar. For the exit, the
-      change-detection features answer "is the regime I entered now shifting → take profit
-      before the reversal."
+  Cadence:
+    - 4 volume fields are computed natively at M1 cadence for every historical
+      row, with the exact 95-row causal prefix.
+    - 24 group-A + 36 dip/structure + 18 regime fields are historical
+      decision-context at every M1 row.  An M1 bar labelled T maps to
+      floor(T+1 minute, 5 minutes)-5 minutes, the newest fully closed M5 row.
+    - No current-sample broadcast is allowed.  This lets the transformer see
+      how structure/regime/confluence changed along the 512-bar path without
+      lookahead.
 
 Total: 155 + 18 = 173 features per M1 bar, × 512 M1 window.
 
-Backward-compat:
-  - First 155 features identical to V7 — V8 transformer can prefix-init from V7.
+Weight initialization:
+  - First 155 feature positions remain identical to V7, so weights may be
+    prefix-initialized.  A V7/V8-legacy dataset or bundle is not IO-compatible
+    because its broadcast cadence had different meaning.
   - REGIME_V4 appended at the tail (indices 155..172).
 
 One-truth: the regime tail == gx1.features.regime_v4_features.REGIME_V4_FEATURE_NAMES
@@ -41,7 +46,12 @@ from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
 from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES
 
 
-EXIT_IO_V8_REGIME_M1L512_IO_VERSION = "EXIT_IO_V8_REGIME_M1L512"
+EXIT_IO_V8_REGIME_M1L512_IO_VERSION = (
+    "EXIT_IO_V8_REGIME_PER_M1_CLOSED_M5_V2"
+)
+EXIT_IO_V8_CONTEXT_CADENCE_CONTRACT = (
+    "m1_native_volume_95_prefix__historical_per_m1_latest_closed_m5_context_v1"
+)
 EXIT_IO_V8_REGIME_M1L512_DEFAULT_WINDOW_LEN = 512
 
 # Appended group (one-truth reference, not re-listed literally).
@@ -89,6 +99,7 @@ def assert_exit_io_v8_regime_m1l512_contract() -> None:
 
 __all__ = [
     "EXIT_IO_V8_REGIME_M1L512_IO_VERSION",
+    "EXIT_IO_V8_CONTEXT_CADENCE_CONTRACT",
     "EXIT_IO_V8_REGIME_M1L512_DEFAULT_WINDOW_LEN",
     "EXIT_IO_V8_REGIME_FEATURES",
     "EXIT_IO_V8_REGIME_M1L512_FEATURES",

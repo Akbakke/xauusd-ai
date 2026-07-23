@@ -59,6 +59,9 @@ from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
     read_prebuilt_pair_manifest,
     verify_prebuilt_pair,
 )
+from gx1.execution.v12_m1_to_m5_downsample import (  # noqa: E402
+    closed_m5_start_for_m1_bar_labels,
+)
 from gx1.features.htf_features import (  # noqa: E402
     REGIME_V4_V2_MTF_PER_TF,
     REGIME_V4_V2_MTF_SKIP,
@@ -946,10 +949,9 @@ def update_base34_incremental(
     base34_cols = list(base34.columns)
     output_columns = list(dict.fromkeys([*base34_cols, *BASE34_RAW_M1_OWNED_COLUMNS]))
     for ts in new_m1.index:
-        m5_floor = ts.floor("5min")
-        # The "last closed M5 bar" = the one strictly BEFORE this M1's bucket
-        # (because the bucket containing this M1 hasn't closed until the 5min mark)
-        closed_m5 = m5_floor - pd.Timedelta(minutes=5)
+        closed_m5 = closed_m5_start_for_m1_bar_labels(
+            pd.DatetimeIndex([ts])
+        )[0]
         if closed_m5 in cv3.index:
             cv3_row = cv3.loc[closed_m5]
         else:
@@ -1091,7 +1093,9 @@ def backfill_base34_ctx(
         }
     # map each M1 row to its last CLOSED M5 bar (same semantics as the append path);
     # int64-ns on both sides (tz-aware vs naive .values would raise in searchsorted)
-    closed_ns = (base34.index[mask].floor("5min") - pd.Timedelta(minutes=5)).asi8
+    closed_ns = closed_m5_start_for_m1_bar_labels(
+        pd.DatetimeIndex(base34.index[mask])
+    ).asi8
     aug_idx = np.searchsorted(cv3_aug.index.asi8, closed_ns, side="right") - 1
     valid = aug_idx >= 0
     if not bool(valid.all()):

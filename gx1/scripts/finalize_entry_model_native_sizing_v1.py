@@ -373,6 +373,7 @@ def _prediction_provenance(
     bundle_dir: Path,
     dataset_dir: Path,
     expected_splits: tuple[str, ...],
+    require_runtime_head_evidence: bool,
     context: str,
 ) -> tuple[Path, dict[str, Any]]:
     predictions_path = predictions_path.expanduser().resolve()
@@ -386,6 +387,7 @@ def _prediction_provenance(
             bundle_dir=bundle_dir,
             dataset_dir=dataset_dir,
             expected_model="candidate",
+            require_runtime_head_evidence=require_runtime_head_evidence,
         )
     except Exception as exc:
         raise SizingFinalizationError(
@@ -411,6 +413,7 @@ def _prediction_provenance(
         provenance,
         predictions_binding=_source_binding(authoritative),
         expected_splits=expected_splits,
+        require_runtime_head_evidence=require_runtime_head_evidence,
         context=context,
         verify_files=True,
     )
@@ -597,6 +600,7 @@ def fit_train_val_sizing_calibration(
         bundle_dir=bundle_dir,
         dataset_dir=dataset_dir,
         expected_splits=MODEL_NATIVE_SIZING_FIT_SPLITS,
+        require_runtime_head_evidence=True,
         context="SIZING_FINALIZER_FIT_PREDICTIONS",
     )
     frame = _read_table(predictions_path)
@@ -887,6 +891,7 @@ def materialize_test_sizing_oos_source(
         bundle_dir=bundle_dir,
         dataset_dir=dataset_dir,
         expected_splits=("test",),
+        require_runtime_head_evidence=True,
         context="SIZING_FINALIZER_OOS_PREDICTIONS",
     )
     prediction_binding = _source_binding(predictions_path)
@@ -1174,6 +1179,7 @@ def finalize_joint_exit_sizing_proof(
         context="SIZING_JOINT_EXIT_RECOMPUTE",
         fact_provenance_mode=MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
         extra_row_columns=MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS,
+        outcome_price_mode="active_exit_fill",
     )
     for name, section in recomputed.items():
         if name != "full_test_coverage" and (

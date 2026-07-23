@@ -5,6 +5,8 @@ import pandas as pd
 import pytest
 
 from gx1.features.volume_features import (
+    VOLUME_FEATURE_PREFIX_ROWS,
+    VOLUME_FEATURE_REQUIRED_HISTORY_ROWS,
     VOLUME_FEATURE_NAMES,
     add_volume_features,
     compute_volume_features,
@@ -39,6 +41,20 @@ def test_volume_features_are_finite_causal_and_ordered() -> None:
     mutated = compute_volume_features(changed)
     for name in VOLUME_FEATURE_NAMES:
         np.testing.assert_array_equal(mutated[name][:future_start], baseline[name][:future_start])
+
+
+def test_volume_feature_history_contract_matches_long_history_tail() -> None:
+    assert VOLUME_FEATURE_REQUIRED_HISTORY_ROWS == 96
+    assert VOLUME_FEATURE_PREFIX_ROWS == 95
+    full = _frame(800)
+    expected = compute_volume_features(full)
+    bounded = compute_volume_features(full.tail(512 + VOLUME_FEATURE_PREFIX_ROWS))
+
+    for name in VOLUME_FEATURE_NAMES:
+        np.testing.assert_array_equal(
+            bounded[name][-512:],
+            expected[name][-512:],
+        )
 
 
 def test_add_volume_features_matches_exact_owner_outputs() -> None:

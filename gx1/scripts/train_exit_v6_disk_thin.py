@@ -46,7 +46,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.exits.training.thin_record_dataset import (
+from gx1.exits.training.thin_record_dataset import (  # noqa: E402
     V3_TRAINING_DATASET_PRODUCER_CONTRACT,
     V3_TRAINING_LINEAGE_SCHEMA_VERSION,
     V3_TRAINING_SOURCE_CODE_FILES,
@@ -55,7 +55,7 @@ from gx1.exits.training.thin_record_dataset import (
     require_reproducible_v3_training_lineage,
     v3_regular_file_binding,
 )
-from gx1.exits.training.disk_labeled_dataset import (
+from gx1.exits.training.disk_labeled_dataset import (  # noqa: E402
     DiskMultiTaskThinDataset,
     compute_side_weights_from_offsets,
     flatten_uid_offsets,
@@ -63,11 +63,14 @@ from gx1.exits.training.disk_labeled_dataset import (
     scan_labeled_pos_rate,
     split_uids_by_time,
 )
-from gx1.policy.exit_transformer_v0 import ExitTransformerV0
-from gx1.exits.contracts.registry import get_exit_io_contract
+from gx1.policy.exit_transformer_v0 import ExitTransformerV0  # noqa: E402
+from gx1.exits.contracts.registry import get_exit_io_contract  # noqa: E402
+from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (  # noqa: E402
+    EXIT_IO_V8_REGIME_M1L512_IO_VERSION,
+)
 
 # Reuse the existing v6 components (same training math, same loss / EMA / scheduler).
-from gx1.scripts.train_exit_v6_thin_records import (
+from gx1.scripts.train_exit_v6_thin_records import (  # noqa: E402
     ModelEMA,
     evaluate_multitask,
     make_cosine_warmup_scheduler,
@@ -199,9 +202,15 @@ def main() -> None:
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--train-cutoff", type=str, default="2025-01-01T00:00:00+00:00")
     parser.add_argument("--val-cutoff", type=str, default="2025-09-01T00:00:00+00:00")
-    parser.add_argument("--exit-io-version", type=str, default="EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512",
-                        help="V7 contract (131 feats = 91 V6 + 4 volume + 36 dip/struct, 2026-05-26 parity "
-                             "wave). Default so a re-run trains on the full 131-feature matrix.")
+    parser.add_argument(
+        "--exit-io-version",
+        type=str,
+        default=EXIT_IO_V8_REGIME_M1L512_IO_VERSION,
+        help=(
+            "Exact 173-field V8 semantic-V2 contract: M1-native volume plus "
+            "historical per-M1 latest-closed-M5 context."
+        ),
+    )
     parser.add_argument("--early-stop-patience", type=int, default=2,
                         help="2026-06-09 audit: default 4→2. Warm-started runs converge in ~1-2 "
                              "epochs (best is usually epoch 1); patience 4 burned ~2 non-improving "
@@ -307,6 +316,14 @@ def main() -> None:
         m5_prebuilt_path,
         context=f"{ACTION}.m5_prebuilt",
     )
+    if (
+        m5_prebuilt_binding
+        != dataset_manifest["producer_inputs_v1"]["canonical_v3"]
+    ):
+        raise RuntimeError(
+            f"[{ACTION}] M5 prebuilt differs from the dataset's canonical-v3 "
+            "producer source"
+        )
 
     # Stage 1: build ThinRecordDataset WITHOUT loading records into memory.
     base = ThinRecordDataset(

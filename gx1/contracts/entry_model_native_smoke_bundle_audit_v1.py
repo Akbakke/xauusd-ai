@@ -44,7 +44,7 @@ SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v4"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
-    "entry_candidate_model_direction_prediction_evidence_v2"
+    "entry_candidate_model_direction_prediction_evidence_v3"
 )
 BUNDLE_ARTIFACT_KEYS = (
     "bundle_commit",
@@ -1111,7 +1111,8 @@ def require_smoke_bundle_audit_contract(
     _require(isinstance(prediction, Mapping), f"[{context}_PREDICTION_EVIDENCE_MISSING]")
     _require(
         prediction.get("schema_version") == PREDICTION_EVIDENCE_SCHEMA_VERSION
-        and prediction.get("authoritative") is True,
+        and prediction.get("authoritative") is True
+        and prediction.get("runtime_head_evidence_authoritative") is True,
         f"[{context}_PREDICTION_EVIDENCE_INVALID]",
     )
     prediction_report = Path(

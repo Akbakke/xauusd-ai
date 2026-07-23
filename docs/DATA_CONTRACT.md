@@ -164,6 +164,21 @@ post-adoption broker runtime-parity event. Until both exist and pass, capital
 adoption is blocked; fixed 1x is only a named historical benchmark and never a
 fallback.
 
+Active-Exit replay schema v6 preserves the canonical label-horizon outcome as
+an immutable fact and records model decisions/fills separately. Each step must
+bind one committed closed M1 bar to the following exact fresh quote; state PnL
+is recomputed from state prices and active fill is the final fresh quote.
+Caller-supplied trace parquet cannot authorize launch. The existing Exit-only
+pipeline factory and frozen-pair loader must be driven by the canonical
+full-TEST producer/event.
+
+Exit V3 training storage is `N x 173` float32 market state plus exact UTC M1
+times and separate float32 trade overlays. Admission recomputes the Exit-XGB
+bridge, requires zero trade-state slots in the base matrix, reconstructs every
+overlay/record boundary and verifies exact 240-row teacher paths. Bound source
+hashes without those semantic checks are not dataset evidence, and the strict
+reader/materializer does not substitute for the missing end-to-end writer.
+
 ## Liveness and identity
 
 Full-input liveness evaluates every 513+142+5 field on train, validation and

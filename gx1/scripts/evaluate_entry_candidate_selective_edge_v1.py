@@ -33,6 +33,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES,
     MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS,
+    MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION,
+    MODEL_NATIVE_RUNTIME_POLICY,
+    encode_model_native_runtime_head_evidence,
+    project_model_native_path_calibration,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_INPUTS,
@@ -67,7 +73,9 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 SIDE_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
 CONTRACT_SIGNAL_DIMS = {MODEL_NATIVE_CONTRACT_MODE: MODEL_NATIVE_SIGNAL_DIM}
-EVALUATION_SPLITS = ("val", "test")
+EVALUATION_SPLITS = ("train", "val", "test")
+DEFAULT_EVALUATION_SPLITS = ("val", "test")
+EVIDENCE_STAGES = ("pre_calibration", "runtime_authoritative")
 EVALUATION_TOP_FRACS = (0.05, 0.10)
 EVALUATION_MODEL_NAME = "candidate"
 SPECIALIST_MODEL_CONTRACT_FLAGS = (
@@ -749,9 +757,120 @@ _EXTRA_SIGMOID_HEADS = {
     "bad_path_logit": "bad_path_prob",
     "clean_edge_logit": "clean_edge_prob",
     "survival_logit": "survival_prob",
-    "tf_agreement_logit": "tf_agreement_prob",
+    "tf_agreement_logit": "tf_agreement_pred",
     "position_size_logit": "position_size_pred",
 }
+
+_RUNTIME_SNAPSHOT_FEATURE_SOURCES = {
+    "geometry_channel_edge_pressure": "chart.geometry_channel_edge_pressure",
+    "geometry_rising_support_rail_long_pressure": (
+        "chart.geometry_rising_support_rail_long_pressure"
+    ),
+    "geometry_rising_support_rail_short_trap_pressure": (
+        "chart.geometry_rising_support_rail_short_trap_pressure"
+    ),
+    "geometry_falling_resistance_rail_short_pressure": (
+        "chart.geometry_falling_resistance_rail_short_pressure"
+    ),
+    "geometry_falling_resistance_rail_long_trap_pressure": (
+        "chart.geometry_falling_resistance_rail_long_trap_pressure"
+    ),
+    "mtf_trend_evidence": "trend.mtf_confluence_trend_direction_score",
+}
+
+
+def _python_value(value: Any) -> Any:
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return [_python_value(item) for item in value.tolist()]
+    if isinstance(value, (list, tuple)):
+        return [_python_value(item) for item in value]
+    if isinstance(value, Mapping):
+        return {str(key): _python_value(item) for key, item in value.items()}
+    return value
+
+
+def _runtime_head_evidence_for_row(
+    row: Mapping[str, Any],
+    *,
+    bundle_metadata: Mapping[str, Any],
+) -> dict[str, Any]:
+    direction_index = int(row["model_direction_index"])
+    if direction_index not in SIDE_NAMES:
+        raise RuntimeError(
+            f"runtime head evidence has invalid direction index {direction_index}"
+        )
+    direction_calibration = bundle_metadata.get("direction_calibration")
+    path_calibration = bundle_metadata.get("path_calibration")
+    if (
+        not isinstance(direction_calibration, Mapping)
+        or direction_calibration.get("enabled") is not True
+    ):
+        raise RuntimeError(
+            "candidate bundle lacks enabled direction_calibration for runtime evidence"
+        )
+    if (
+        not isinstance(path_calibration, Mapping)
+        or path_calibration.get("enabled") is not True
+    ):
+        raise RuntimeError(
+            "candidate bundle lacks enabled path_calibration for runtime evidence"
+        )
+
+    evidence: dict[str, Any] = {
+        "runtime_head_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+        ),
+        "runtime_evidence_schema_version": (
+            MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION
+        ),
+        "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
+        "decision_ts": str(pd.Timestamp(row["time"])),
+        "session_id": int(row["session_id"]),
+        "session": str(row["session"]),
+        "entry_vol_regime_id": int(row["vol_regime_id"]),
+        "entry_vol_regime": str(row["vol_regime"]),
+        "entry_atr_bucket": int(row["atr_bucket"]),
+        "entry_spread_bucket": int(row["spread_bucket"]),
+        "entry_h4_trend_sign_cat": int(row["H4_trend_sign_cat"]),
+        "entry_trend_regime_id": int(row["trend_regime_id"]),
+        "entry_trend_regime": str(row["trend_regime"]),
+        "model_direction_index": direction_index,
+        "model_direction": str(row["model_direction"]),
+        "selected_side": direction_index if direction_index in (0, 1) else None,
+        "public_trade_flat_decision": str(
+            row["public_trade_flat_decision"]
+        ),
+        "specialist_names": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        "calibration_version": str(direction_calibration["version"]),
+        "direction_calibration_enabled": True,
+        "direction_calibration_temperature": float(
+            direction_calibration["temperature"]
+        ),
+        "direction_calibration_bias": _python_value(
+            direction_calibration["bias"]
+        ),
+        "path_calibration_enabled": True,
+        "path_calibration": project_model_native_path_calibration(
+            path_calibration,
+            context="SELECTIVE_EDGE_RUNTIME_PATH_CALIBRATION",
+        ),
+    }
+    same_name_fields = (
+        MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS
+        - {"sizing_authority_contract"}
+        - set(evidence)
+    )
+    missing = sorted(field for field in same_name_fields if field not in row)
+    if missing:
+        raise RuntimeError(
+            "prediction row cannot form exact runtime head evidence; "
+            f"missing={missing}"
+        )
+    for field in sorted(same_name_fields):
+        evidence[field] = _python_value(row[field])
+    return evidence
 _EXTRA_RAW_HEADS = {
     # forward-output key -> persisted raw-value column
     "mfe_first_n": "mfe_first_n_pred",
@@ -770,13 +889,19 @@ _EXTRA_VECTOR_HEADS = {
 
 def _derived_serve_parity_outputs(
     outputs: Mapping[str, torch.Tensor],
+    *,
+    path_quality_scale: float,
 ) -> dict[str, np.ndarray]:
     """Return exact derived tensors required by the live forward parity schema."""
 
+    if not np.isfinite(path_quality_scale) or path_quality_scale <= 0.0:
+        raise RuntimeError("path_quality_scale must be finite-positive")
     path_log_var = _tensor_np(
         outputs, "path_quality_log_var", width=1
     ).reshape(-1)
-    path_std = np.exp(0.5 * path_log_var).astype(np.float32)
+    path_std = (
+        float(path_quality_scale) * np.exp(0.5 * path_log_var)
+    ).astype(np.float32)
     if not np.isfinite(path_std).all():
         raise RuntimeError(
             "path_quality_log_var produced non-finite path_quality_std"
@@ -801,6 +926,7 @@ def _predict_bundle(
     device: torch.device,
     batch_size: int,
     m5_prebuilt_path: Path,
+    evidence_stage: str,
     stream_chunk_rows: int = 0,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
@@ -841,6 +967,55 @@ def _predict_bundle(
         if "side_mae_scale_bps" in hier_meta
         else None
     )
+    direction_calibration = meta.get("direction_calibration")
+    path_calibration = meta.get("path_calibration")
+    calibrated_runtime_bundle = bool(
+        isinstance(direction_calibration, Mapping)
+        and direction_calibration.get("enabled") is True
+        and isinstance(path_calibration, Mapping)
+        and path_calibration.get("enabled") is True
+    )
+    if evidence_stage not in EVIDENCE_STAGES:
+        raise RuntimeError(
+            f"unsupported prediction evidence stage: {evidence_stage!r}"
+        )
+    if evidence_stage == "runtime_authoritative" and not calibrated_runtime_bundle:
+        raise RuntimeError(
+            "runtime-authoritative prediction evidence requires enabled "
+            "direction and path calibration"
+        )
+    runtime_head_ready = evidence_stage == "runtime_authoritative"
+    path_inference_calibration = (
+        project_model_native_path_calibration(
+            path_calibration,
+            context="SELECTIVE_EDGE_BUNDLE_PATH_CALIBRATION",
+        )
+        if runtime_head_ready
+        else None
+    )
+    ordered_signal_names = tuple(
+        str(name) for name in meta.get("ordered_signal_names") or ()
+    )
+    signal_positions = {
+        name: index for index, name in enumerate(ordered_signal_names)
+    }
+    if runtime_head_ready:
+        if len(ordered_signal_names) != MODEL_NATIVE_SIGNAL_DIM or len(
+            set(ordered_signal_names)
+        ) != MODEL_NATIVE_SIGNAL_DIM:
+            raise RuntimeError(
+                "candidate bundle ordered_signal_names is not the exact unique "
+                f"{MODEL_NATIVE_SIGNAL_DIM}-signal contract"
+            )
+        missing_runtime_features = sorted(
+            set(_RUNTIME_SNAPSHOT_FEATURE_SOURCES.values())
+            - set(signal_positions)
+        )
+        if missing_runtime_features:
+            raise RuntimeError(
+                "candidate bundle lacks runtime snapshot signal features: "
+                f"{missing_runtime_features}"
+            )
     rows: list[pd.DataFrame] = []
 
     for split in splits:
@@ -897,6 +1072,29 @@ def _predict_bundle(
                                 f"outputs: {forbidden_outputs}"
                             )
                         decision = _canonical_live_decision_evidence(out)
+                        if runtime_head_ready:
+                            snap_values = (
+                                batch["snap_x"].detach().cpu().float().numpy()
+                            )
+                            if (
+                                snap_values.ndim != 2
+                                or snap_values.shape[1]
+                                != MODEL_NATIVE_SIGNAL_DIM
+                                or not np.isfinite(snap_values).all()
+                            ):
+                                raise RuntimeError(
+                                    "candidate snap_x is not the exact finite "
+                                    f"{MODEL_NATIVE_SIGNAL_DIM}-signal state"
+                                )
+                            for (
+                                evidence_name,
+                                signal_name,
+                            ) in _RUNTIME_SNAPSHOT_FEATURE_SOURCES.items():
+                                extra_chunks.setdefault(
+                                    evidence_name, []
+                                ).append(
+                                    snap_values[:, signal_positions[signal_name]]
+                                )
                         pred_direction = decision["model_direction_index"]
                         public_pair_decision = decision[
                             "public_trade_flat_decision_index"
@@ -958,6 +1156,10 @@ def _predict_bundle(
                             extra_chunks.setdefault(_col, []).append(
                                 _sigmoid_np(_raw.reshape(-1))
                             )
+                            if _out_key == "tf_agreement_logit":
+                                extra_chunks.setdefault(
+                                    "tf_agreement_prob", []
+                                ).append(_sigmoid_np(_raw.reshape(-1)))
                             if _out_key == "position_size_logit":
                                 extra_chunks.setdefault(
                                     "position_size_logit", []
@@ -966,7 +1168,18 @@ def _predict_bundle(
                             _raw = _tensor_np(out, _out_key, width=1).reshape(-1)
                             if _col != _out_key:
                                 extra_chunks.setdefault(_col, []).append(_raw)
-                        _derived_parity = _derived_serve_parity_outputs(out)
+                        _derived_parity = _derived_serve_parity_outputs(
+                            out,
+                            path_quality_scale=(
+                                float(
+                                    path_inference_calibration[
+                                        "path_quality_scale"
+                                    ]
+                                )
+                                if path_inference_calibration is not None
+                                else 1.0
+                            ),
+                        )
                         extra_chunks.setdefault("path_quality_std", []).append(
                             _derived_parity["path_quality_std"]
                         )
@@ -1131,6 +1344,7 @@ def _predict_bundle(
                         f"{model_name}/{split}: unknown session ids {unknown_sessions}"
                     )
                 frame["session"] = [SESSION_NAMES[int(x)] for x in session_ids]
+                frame["session_id"] = session_ids
                 vol_regime_ids = ctx_cat[:, 1].astype(np.int64)
                 h4_trend_ids = ctx_cat[:, 4].astype(np.int64)
                 if "trend_regime_id" not in frame.columns:
@@ -1194,6 +1408,44 @@ def _predict_bundle(
                     )
                 frame["side"] = [SIDE_NAMES[int(x)] for x in direction_ids]
                 frame["pnl_proxy_bps"] = _pnl_proxy_for_side(frame)
+                if runtime_head_ready:
+                    if "atr_bps" not in frame.columns:
+                        raise RuntimeError(
+                            f"{model_name}/{split}: exact runtime atr_bps is missing"
+                        )
+                    atr_values = pd.to_numeric(
+                        frame["atr_bps"],
+                        errors="coerce",
+                    ).to_numpy(dtype=np.float64)
+                    if not np.isfinite(atr_values).all() or np.any(
+                        atr_values <= 0.0
+                    ):
+                        raise RuntimeError(
+                            f"{model_name}/{split}: runtime atr_bps is not "
+                            "finite-positive"
+                        )
+                    head_payloads: list[str] = []
+                    head_hashes: list[str] = []
+                    for row_index, row in frame.iterrows():
+                        payload, payload_sha = (
+                            encode_model_native_runtime_head_evidence(
+                                _runtime_head_evidence_for_row(
+                                    row,
+                                    bundle_metadata=meta,
+                                ),
+                                context=(
+                                    f"SELECTIVE_EDGE_{model_name}_{split}_"
+                                    f"ROW_{row_index}"
+                                ),
+                            )
+                        )
+                        head_payloads.append(payload)
+                        head_hashes.append(payload_sha)
+                    frame["runtime_head_evidence_schema_version"] = (
+                        MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_SCHEMA_VERSION
+                    )
+                    frame["runtime_head_evidence_json"] = head_payloads
+                    frame["runtime_head_evidence_sha256"] = head_hashes
                 keep_cols = [
                     "split",
                     "model",
@@ -1203,6 +1455,7 @@ def _predict_bundle(
                     "trade_side",
                     "side",
                     "session",
+                    "session_id",
                     "vol_regime_id",
                     "vol_regime",
                     "atr_bucket",
@@ -1222,11 +1475,22 @@ def _predict_bundle(
                     "y_bad_path",
                     "pnl_proxy_bps",
                 ]
+                if runtime_head_ready:
+                    keep_cols.extend(
+                        [
+                            "runtime_head_evidence_schema_version",
+                            "runtime_head_evidence_json",
+                            "runtime_head_evidence_sha256",
+                            "atr_bps",
+                        ]
+                    )
                 # Immutable smoke audit targets.  These remain evidence only;
                 # none is allowed to rewrite the model's final direction.
                 for target_col in (
                     "mfe_first_n_bps",
                     "y_tradable",
+                    "y_selector_long_mask",
+                    "y_selector_short_mask",
                     "y_position_size_target",
                     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
                     *ACTION_VALUE_TARGET_COLUMNS,
@@ -1297,7 +1561,48 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         valid = path.is_dir() if expected_kind == "dir" else path.is_file()
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
-    splits = list(EVALUATION_SPLITS)
+    requested_splits = [
+        value.strip()
+        for value in str(
+            getattr(args, "splits", ",".join(DEFAULT_EVALUATION_SPLITS))
+        ).split(",")
+        if value.strip()
+    ]
+    if (
+        not requested_splits
+        or len(requested_splits) != len(set(requested_splits))
+        or not set(requested_splits).issubset(EVALUATION_SPLITS)
+    ):
+        raise RuntimeError(
+            "evaluation splits must be a unique non-empty subset of "
+            f"{EVALUATION_SPLITS}"
+        )
+    splits = [
+        split for split in EVALUATION_SPLITS if split in requested_splits
+    ]
+    evidence_stage = str(
+        getattr(args, "evidence_stage", "runtime_authoritative")
+    )
+    if evidence_stage not in EVIDENCE_STAGES:
+        raise RuntimeError(
+            f"evidence_stage must be one of {EVIDENCE_STAGES}"
+        )
+    missing_split_arguments = [
+        f"{split}_{suffix}"
+        for split in splits
+        for suffix in (
+            "manifest_json",
+            "manifest_sha256",
+            "parquet",
+            "parquet_sha256",
+        )
+        if not str(getattr(args, f"{split}_{suffix}", "") or "").strip()
+    ]
+    if missing_split_arguments:
+        raise RuntimeError(
+            "selected evaluation splits lack explicit artifact bindings: "
+            f"{missing_split_arguments}"
+        )
     split_bindings = {
         split: {
             "manifest_path": str(getattr(args, f"{split}_manifest_json")),
@@ -1354,6 +1659,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         device=device,
         batch_size=int(args.batch_size),
         m5_prebuilt_path=m5_prebuilt,
+        evidence_stage=evidence_stage,
         stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
     )
     all_predictions.append(candidate)
@@ -1408,6 +1714,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "created_utc": event_created_utc.isoformat(),
         "decision": "PASS" if ready else "FAIL",
         "contract_mode": contract_mode,
+        "evidence_stage": evidence_stage,
         "bundle_dir": str(bundle_dir),
         "feature_mask_ablation": feature_mask,
         "dataset_dir": str(dataset_dir),
@@ -1510,11 +1817,28 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--bundle-dir", required=True)
     ap.add_argument("--dataset-dir", required=True)
+    ap.add_argument(
+        "--splits",
+        default=",".join(DEFAULT_EVALUATION_SPLITS),
+        help=(
+            "Exact comma-separated artifact role: train,val for sizing fit; "
+            "test for OOS; val,test for evaluation."
+        ),
+    )
+    ap.add_argument(
+        "--evidence-stage",
+        choices=EVIDENCE_STAGES,
+        default="runtime_authoritative",
+        help=(
+            "runtime_authoritative requires calibrated runtime-head envelopes; "
+            "pre_calibration emits non-authorizing V2 evidence explicitly."
+        ),
+    )
     for split in EVALUATION_SPLITS:
-        ap.add_argument(f"--{split}-manifest-json", required=True)
-        ap.add_argument(f"--{split}-manifest-sha256", required=True)
-        ap.add_argument(f"--{split}-parquet", required=True)
-        ap.add_argument(f"--{split}-parquet-sha256", required=True)
+        ap.add_argument(f"--{split}-manifest-json")
+        ap.add_argument(f"--{split}-manifest-sha256")
+        ap.add_argument(f"--{split}-parquet")
+        ap.add_argument(f"--{split}-parquet-sha256")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument(

@@ -71,6 +71,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
     RETIRED_RUNTIME_EVIDENCE_FRAGMENTS,
+    project_model_native_path_calibration,
     require_model_native_runtime_evidence,
 )
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
@@ -726,7 +727,9 @@ def _validate_model_native_diagnostics(
     ):
         raise RuntimeError("[SMART_ENTRY] tf_agreement_pred does not match tf_agreement_logit")
     path_log_var = scalar("path_quality_log_var")
-    expected_std = float(np.exp(0.5 * path_log_var))
+    expected_std = float(path_cal_values[0]) * float(
+        np.exp(0.5 * path_log_var)
+    )
     if not np.isfinite(expected_std) or not np.isclose(
         scalar("path_quality_std"), expected_std, rtol=1e-6, atol=1e-7
     ):
@@ -1201,6 +1204,10 @@ class SmartEntryLiveInference:
                 "[SMART_ENTRY] bundle lacks enabled path_calibration — live/replay path heads "
                 "must be calibrated before serving"
             )
+        project_model_native_path_calibration(
+            path_calibration,
+            context="SMART_ENTRY_BUNDLE_PATH_CALIBRATION",
+        )
         mtf = meta["multi_tf"]
         if not isinstance(mtf, dict):
             raise RuntimeError("[SMART_ENTRY] bundle multi_tf contract must be an object")
@@ -1614,7 +1621,13 @@ class SmartEntryLiveInference:
                 position_size_pred = _sigmoid_float(float(position_size_logit[0]))
                 clean_edge_prob = _sigmoid_float(float(clean_edge_logit[0]))
                 survival_prob = _sigmoid_float(float(survival_logit[0]))
-                path_quality_std = float(np.exp(0.5 * float(path_quality_log_var[0])))
+                path_calibration = project_model_native_path_calibration(
+                    self._meta["path_calibration"],
+                    context="SMART_ENTRY_FORWARD_PATH_CALIBRATION",
+                )
+                path_quality_std = float(
+                    path_calibration["path_quality_scale"]
+                ) * float(np.exp(0.5 * float(path_quality_log_var[0])))
                 if not np.isfinite(path_quality_std):
                     raise RuntimeError(
                         f"[SMART_ENTRY] model forward at {ts} path_quality_std is non-finite"
@@ -1780,7 +1793,7 @@ class SmartEntryLiveInference:
                     "direction_calibration_temperature": self._meta["direction_calibration"]["temperature"],
                     "direction_calibration_bias": self._meta["direction_calibration"]["bias"],
                     "path_calibration_enabled": bool(self._meta["path_calibration"]["enabled"]),
-                    "path_calibration": self._meta["path_calibration"],
+                    "path_calibration": path_calibration,
                 }
                 results.append(res)
         return results

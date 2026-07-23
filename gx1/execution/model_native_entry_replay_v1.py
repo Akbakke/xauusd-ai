@@ -200,6 +200,44 @@ class SourceTape:
                     f"source tape column length mismatch: {name}={len(getattr(self, name))} "
                     f"expected={expected}"
                 )
+        price_arrays = {
+            name: np.asarray(getattr(self, name), dtype=np.float64)
+            for name in (
+                "bid_open",
+                "ask_open",
+                "bid_close",
+                "ask_close",
+                "bid_high",
+                "bid_low",
+                "ask_high",
+                "ask_low",
+            )
+        }
+        if any(
+            not np.isfinite(values).all() or np.any(values <= 0.0)
+            for values in price_arrays.values()
+        ):
+            raise RuntimeError("source tape contains non-finite/non-positive prices")
+        bid_open = price_arrays["bid_open"]
+        ask_open = price_arrays["ask_open"]
+        bid_close = price_arrays["bid_close"]
+        ask_close = price_arrays["ask_close"]
+        bid_high = price_arrays["bid_high"]
+        bid_low = price_arrays["bid_low"]
+        ask_high = price_arrays["ask_high"]
+        ask_low = price_arrays["ask_low"]
+        invalid_geometry = (
+            np.any(ask_open <= bid_open)
+            or np.any(ask_close <= bid_close)
+            or np.any(bid_low > np.minimum(bid_open, bid_close))
+            or np.any(bid_high < np.maximum(bid_open, bid_close))
+            or np.any(ask_low > np.minimum(ask_open, ask_close))
+            or np.any(ask_high < np.maximum(ask_open, ask_close))
+            or np.any(ask_low <= bid_low)
+            or np.any(ask_high <= bid_high)
+        )
+        if invalid_geometry:
+            raise RuntimeError("source tape contains invalid bid/ask OHLC geometry")
 
     def indices_for_times(self, sample_times: pd.Series) -> np.ndarray:
         self._require_shape_contract()
@@ -240,6 +278,29 @@ class SourceTape:
             "ask_low": float(self.ask_low[position]),
             "ask_close": float(self.ask_close[position]),
             "bid_close": float(self.bid_close[position]),
+        }
+
+    def get_open_quote(
+        self,
+        exact_minute: pd.Timestamp,
+    ) -> dict[str, Any]:
+        """Return the exact fresh bid/ask open quote for one replay step."""
+
+        self._require_shape_contract()
+        expected = pd.Timestamp(exact_minute)
+        if expected.tzinfo is None:
+            expected = expected.tz_localize("UTC")
+        else:
+            expected = expected.tz_convert("UTC")
+        position = int(self.index.get_indexer([expected])[0])
+        if position < 0:
+            raise RuntimeError(
+                f"source tape lacks exact open quote: {expected}"
+            )
+        return {
+            "time": expected,
+            "bid": float(self.bid_open[position]),
+            "ask": float(self.ask_open[position]),
         }
 
     def simulate_trade(

@@ -386,25 +386,110 @@ def _binary_bce(params: np.ndarray, logits: np.ndarray, labels: np.ndarray) -> f
     return float(value) if math.isfinite(float(value)) else float("inf")
 
 
-def _fit_path(frame: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
+def _exact_binary_mask(frame: pd.DataFrame, name: str) -> np.ndarray:
+    values = _numeric_column(frame, name)
+    if not np.array_equal(values, np.rint(values)) or not np.isin(
+        values,
+        [0.0, 1.0],
+    ).all():
+        raise RuntimeError(f"prediction column {name} must be exact binary")
+    return values.astype(np.int64).astype(bool)
+
+
+def _support_time_sha256(frame: pd.DataFrame, mask: np.ndarray) -> str:
+    times = pd.to_datetime(frame.loc[mask, "time"], utc=True, errors="coerce")
+    if times.isna().any() or times.duplicated().any():
+        raise RuntimeError("path calibration support times are invalid")
+    return hashlib.sha256(
+        times.astype("int64").to_numpy(dtype=np.int64).tobytes()
+    ).hexdigest()
+
+
+def _path_support_contract(source_metadata: Mapping[str, Any]) -> str:
+    recipe = source_metadata.get("train_recipe")
+    if not isinstance(recipe, Mapping):
+        raise RuntimeError("source bundle lacks the path support train_recipe")
+    if recipe.get("aux_regression_positive_only") is not True:
+        raise RuntimeError(
+            "path calibration requires aux_regression_positive_only=true"
+        )
+    if recipe.get("selector_masked_aux") is not True:
+        raise RuntimeError("path calibration requires selector_masked_aux=true")
+    symmetric = recipe.get("symmetric_negatives")
+    if type(symmetric) is not bool:
+        raise RuntimeError(
+            "path calibration requires exact symmetric_negatives boolean"
+        )
+    selector_mode = recipe.get("aux_selector_mode")
+    expected_mode = "long_short_union" if symmetric else "long_only"
+    if selector_mode != expected_mode:
+        raise RuntimeError(
+            "path calibration aux_selector_mode differs from training: "
+            f"observed={selector_mode!r} expected={expected_mode!r}"
+        )
+    return expected_mode
+
+
+def _fit_path(
+    frame: pd.DataFrame,
+    *,
+    min_fit_rows: int,
+    selector_mode: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     path_pred = _numeric_column(frame, "path_quality_pred")
     path_target = _numeric_column(frame, "path_quality_bps")
     bad_probability = _numeric_column(frame, "bad_path_prob")
     raw_bad_labels = _numeric_column(frame, "y_bad_path")
+    tradable_support = _exact_binary_mask(frame, "y_tradable")
+    selector_long = _exact_binary_mask(frame, "y_selector_long_mask")
+    selector_short = _exact_binary_mask(frame, "y_selector_short_mask")
+    if selector_mode == "long_short_union":
+        selector_support = selector_long | selector_short
+    elif selector_mode == "long_only":
+        selector_support = selector_long
+    else:
+        raise RuntimeError(
+            f"path calibration selector mode is invalid: {selector_mode!r}"
+        )
+    path_support_rows = int(np.count_nonzero(tradable_support))
+    bad_path_support_rows = int(np.count_nonzero(selector_support))
+    if path_support_rows < min_fit_rows:
+        raise RuntimeError(
+            "insufficient tradable support for path-quality calibration: "
+            f"observed={path_support_rows} required={min_fit_rows}"
+        )
+    if bad_path_support_rows < min_fit_rows:
+        raise RuntimeError(
+            "insufficient selector support for bad-path calibration: "
+            f"observed={bad_path_support_rows} required={min_fit_rows}"
+        )
     if np.any(bad_probability <= 0.0) or np.any(bad_probability >= 1.0):
         raise RuntimeError("bad-path probabilities must be strictly between zero and one")
     if not np.array_equal(raw_bad_labels, np.rint(raw_bad_labels)):
         raise RuntimeError("bad-path labels must be exact integers")
     bad_labels = raw_bad_labels.astype(np.int64)
-    observed_bad_classes = sorted(int(value) for value in np.unique(bad_labels))
+    if not np.isin(bad_labels, [0, 1]).all():
+        raise RuntimeError("bad-path labels must be exact binary integers")
+    observed_bad_classes = sorted(
+        int(value) for value in np.unique(bad_labels[selector_support])
+    )
     if observed_bad_classes != [0, 1]:
         raise RuntimeError(
-            f"path calibration is missing bad-path classes: observed={observed_bad_classes}"
+            "path calibration selector support is missing bad-path classes: "
+            f"observed={observed_bad_classes}"
         )
 
-    design = np.column_stack([path_pred, np.ones_like(path_pred)])
+    supported_path_pred = path_pred[tradable_support]
+    supported_path_target = path_target[tradable_support]
+    design = np.column_stack(
+        [supported_path_pred, np.ones_like(supported_path_pred)]
+    )
     try:
-        coefficients, _, rank, _ = np.linalg.lstsq(design, path_target, rcond=None)
+        coefficients, _, rank, _ = np.linalg.lstsq(
+            design,
+            supported_path_target,
+            rcond=None,
+        )
     except np.linalg.LinAlgError as exc:
         raise RuntimeError(f"path-quality affine fit failed: {exc}") from exc
     if rank != 2 or coefficients.shape != (2,) or not np.isfinite(coefficients).all():
@@ -412,24 +497,32 @@ def _fit_path(frame: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
     path_scale, path_shift = (float(value) for value in coefficients)
     if path_scale <= 0.0:
         raise RuntimeError(f"path-quality affine scale must be positive, got {path_scale}")
-    path_calibrated = path_scale * path_pred + path_shift
-    mse_before = float(np.mean(np.square(path_pred - path_target)))
-    mse_after = float(np.mean(np.square(path_calibrated - path_target)))
+    path_calibrated = path_scale * supported_path_pred + path_shift
+    mse_before = float(
+        np.mean(np.square(supported_path_pred - supported_path_target))
+    )
+    mse_after = float(
+        np.mean(np.square(path_calibrated - supported_path_target))
+    )
     if not (math.isfinite(mse_before) and math.isfinite(mse_after) and mse_after < mse_before):
         raise RuntimeError(
             f"path-quality calibration lacks strict MSE improvement: {mse_before} -> {mse_after}"
         )
-    corr = float(np.corrcoef(path_pred, path_target)[0, 1])
+    corr = float(np.corrcoef(supported_path_pred, supported_path_target)[0, 1])
     if not math.isfinite(corr) or corr <= 0.0:
         raise RuntimeError(f"path-quality raw correlation must be positive, got {corr}")
 
-    bad_logits = np.log(bad_probability) - np.log1p(-bad_probability)
+    supported_bad_probability = bad_probability[selector_support]
+    supported_bad_labels = bad_labels[selector_support]
+    bad_logits = np.log(supported_bad_probability) - np.log1p(
+        -supported_bad_probability
+    )
     initial = np.zeros(2, dtype=np.float64)
-    bce_before = _binary_bce(initial, bad_logits, bad_labels)
+    bce_before = _binary_bce(initial, bad_logits, supported_bad_labels)
     result = minimize(
         _binary_bce,
         initial,
-        args=(bad_logits, bad_labels),
+        args=(bad_logits, supported_bad_labels),
         method="L-BFGS-B",
         bounds=((-5.0, 5.0), (-10.0, 10.0)),
         options={"maxiter": 4000, "ftol": 1e-12, "gtol": 1e-8},
@@ -439,7 +532,7 @@ def _fit_path(frame: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
     fitted = np.asarray(result.x, dtype=np.float64)
     if fitted.shape != (2,) or not np.isfinite(fitted).all():
         raise RuntimeError("bad-path calibration optimizer returned malformed parameters")
-    bce_after = _binary_bce(fitted, bad_logits, bad_labels)
+    bce_after = _binary_bce(fitted, bad_logits, supported_bad_labels)
     if not (math.isfinite(bce_before) and math.isfinite(bce_after) and bce_after < bce_before):
         raise RuntimeError(
             f"bad-path calibration lacks strict BCE improvement: {bce_before} -> {bce_after}"
@@ -456,6 +549,21 @@ def _fit_path(frame: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
     }
     metrics = {
         "fitted_rows": int(len(frame)),
+        "scoped_rows": int(len(frame)),
+        "path_quality_support_definition": "y_tradable==1",
+        "path_quality_support_rows": path_support_rows,
+        "path_quality_support_rate": path_support_rows / float(len(frame)),
+        "path_quality_support_time_sha256": _support_time_sha256(
+            frame,
+            tradable_support,
+        ),
+        "bad_path_support_definition": selector_mode,
+        "bad_path_support_rows": bad_path_support_rows,
+        "bad_path_support_rate": bad_path_support_rows / float(len(frame)),
+        "bad_path_support_time_sha256": _support_time_sha256(
+            frame,
+            selector_support,
+        ),
         "observed_bad_path_classes": observed_bad_classes,
         "path_quality_mse_before": mse_before,
         "path_quality_mse_after": mse_after,
@@ -710,13 +818,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.heads == "direction":
         columns = ("split", "model", "y_direction", *CLASS_COLUMNS)
     else:
+        selector_mode = _path_support_contract(source_metadata)
         columns = (
             "split",
             "model",
+            "time",
             "path_quality_pred",
             "bad_path_prob",
             "path_quality_bps",
             "y_bad_path",
+            "y_tradable",
+            "y_selector_long_mask",
+            "y_selector_short_mask",
         )
     frame = _scoped_frame(
         predictions_path,
@@ -731,7 +844,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             odds_cap=float(args.direction_odds_cap),
         )
     else:
-        calibration, metrics = _fit_path(frame)
+        calibration, metrics = _fit_path(
+            frame,
+            min_fit_rows=int(args.min_fit_rows),
+            selector_mode=selector_mode,
+        )
 
     if sha256_file(predictions_path) != validated_prediction_sha:
         raise RuntimeError("prediction parquet changed while calibration was fitting")

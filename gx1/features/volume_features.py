@@ -39,6 +39,13 @@ _RATIO_SLOW = 20
 _PCT_WIN = 96
 _CLIP = 6.0  # clip z-scores to ±6σ so a single bad tick-print can't dominate
 
+# A selected row is independent of the caller's window start only when the
+# shared owner receives this many trailing source rows ending at that row.
+# Consumers selecting an N-row model window therefore need
+# ``N + VOLUME_FEATURE_PREFIX_ROWS`` source rows before computing and slicing.
+VOLUME_FEATURE_REQUIRED_HISTORY_ROWS = max(_Z_WIN, _RATIO_FAST, _RATIO_SLOW, _PCT_WIN)
+VOLUME_FEATURE_PREFIX_ROWS = VOLUME_FEATURE_REQUIRED_HISTORY_ROWS - 1
+
 
 def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
     """Compute the VOLUME_FEATURE_NAMES from `df['volume']` (+ `df['close']`).

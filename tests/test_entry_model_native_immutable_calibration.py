@@ -250,7 +250,13 @@ def _source_bundle(
         "anchor_source": None,
         "anchor_gate": {"enabled": False},
         "direction_decision_contract": direction_contract,
-        "train_recipe": {"active_heads": sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS)},
+        "train_recipe": {
+            "active_heads": sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS),
+            "aux_regression_positive_only": True,
+            "selector_masked_aux": True,
+            "symmetric_negatives": True,
+            "aux_selector_mode": "long_short_union",
+        },
         "enable_pos_enc": True,
         "enable_regime_film": True,
         "hierarchical_entry_heads": {"enabled": True},
@@ -298,6 +304,9 @@ def _prediction_frame(rows: int = 120) -> pd.DataFrame:
     public_probabilities = public_exp / public_exp.sum(axis=1, keepdims=True)
     path_pred = np.linspace(-2.0, 2.0, rows)
     bad_labels = np.arange(rows, dtype=np.int64) % 2
+    tradable = np.arange(rows) < 100
+    selector_long = np.arange(rows) < 100
+    selector_short = np.arange(rows) >= 100
     return pd.DataFrame(
         {
             "split": ["val"] * rows,
@@ -319,6 +328,9 @@ def _prediction_frame(rows: int = 120) -> pd.DataFrame:
             "path_quality_bps": 2.0 * path_pred + 3.0,
             "bad_path_prob": np.where(bad_labels == 1, 0.4, 0.2),
             "y_bad_path": bad_labels,
+            "y_tradable": tradable.astype(np.int64),
+            "y_selector_long_mask": selector_long.astype(np.int64),
+            "y_selector_short_mask": selector_short.astype(np.int64),
             **turning_point_prediction_columns(rows),
             **offline_rl_prediction_columns(rows),
         }
@@ -483,6 +495,37 @@ def test_path_execute_uses_the_same_immutable_contract(tmp_path: Path) -> None:
     assert evidence["metrics"]["bad_path_bce_after"] < evidence["metrics"][
         "bad_path_bce_before"
     ]
+    assert evidence["metrics"]["path_quality_support_definition"] == (
+        "y_tradable==1"
+    )
+    assert evidence["metrics"]["path_quality_support_rows"] == 100
+    assert evidence["metrics"]["bad_path_support_definition"] == (
+        "long_short_union"
+    )
+    assert evidence["metrics"]["bad_path_support_rows"] == 120
+
+
+def test_path_fit_is_invariant_to_rows_outside_training_support() -> None:
+    frame = _prediction_frame()
+    frame.loc[100:, "y_selector_short_mask"] = 0
+    baseline, _ = calibration._fit_path(
+        frame,
+        min_fit_rows=90,
+        selector_mode="long_short_union",
+    )
+
+    changed = frame.copy()
+    changed.loc[100:, "path_quality_pred"] = np.linspace(1000.0, 2000.0, 20)
+    changed.loc[100:, "path_quality_bps"] = np.linspace(-5000.0, 9000.0, 20)
+    changed.loc[100:, "bad_path_prob"] = np.linspace(0.01, 0.99, 20)
+    changed.loc[100:, "y_bad_path"] = 1 - changed.loc[100:, "y_bad_path"]
+    observed, _ = calibration._fit_path(
+        changed,
+        min_fit_rows=90,
+        selector_mode="long_short_union",
+    )
+
+    assert observed == baseline
 
 
 def test_output_collision_fails_without_mutating_either_bundle(
