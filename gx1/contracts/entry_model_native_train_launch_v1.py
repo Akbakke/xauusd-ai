@@ -315,6 +315,31 @@ def _validate_source_bindings(
     )
 
 
+def _validate_source_revision(
+    recipe: Mapping[str, Any],
+    *,
+    repo: Path,
+) -> None:
+    """Require committed lineage while byte bindings own runtime freshness."""
+
+    source_commit = str(recipe.get("source_commit") or "")
+    _require(
+        re.fullmatch(r"[0-9a-f]{40}", source_commit) is not None,
+        "recipe audit source_commit is not an exact Git commit",
+    )
+    ancestry = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", source_commit, "HEAD"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    _require(
+        ancestry.returncode == 0,
+        "recipe audit source_commit is not an ancestor of current HEAD",
+    )
+
+
 def _validate_split_manifest(
     manifest: Mapping[str, Any], *, path: Path, parquet: Path, m5_prebuilt: Path
 ) -> None:
@@ -1052,7 +1077,7 @@ def validate_launch(
     _require(recipe.get("run_id") == run_id, "recipe audit run_id mismatch")
     _require(Path(str(recipe.get("dataset_dir") or "")).resolve() == dataset_dir, "recipe audit dataset mismatch")
     _require(Path(str(recipe.get("out_bundle_dir") or "")).resolve() == out_bundle_dir, "recipe audit output mismatch")
-    _require(recipe.get("source_commit") == subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip(), "recipe audit source commit mismatch")
+    _validate_source_revision(recipe, repo=repo)
     _require(recipe.get("trainer_cli") == trainer_cli, "recipe audit trainer_cli mismatch")
     _require(recipe.get("trainer_cli_sha256") == canonical_json_sha256(trainer_cli), "recipe audit trainer_cli_sha256 mismatch")
     _require(

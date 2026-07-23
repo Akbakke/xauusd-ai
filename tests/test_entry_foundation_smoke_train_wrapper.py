@@ -134,6 +134,24 @@ def test_smoke_wrapper_rejects_incomplete_recipe_env(tmp_path: Path) -> None:
     assert "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT" in result.stderr
 
 
+def test_smoke_wrapper_rejects_recipe_from_unrelated_source_commit(
+    tmp_path: Path,
+) -> None:
+    args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
+    recipe_path = paths["recipe_audit_json"]
+    recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
+    recipe["source_commit"] = "a" * 40
+    recipe_path.write_text(
+        json.dumps(recipe, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = _run(*args, "--dry-run")
+
+    assert result.returncode == 2
+    assert "source_commit is not an ancestor" in result.stderr
+
+
 def test_smoke_wrapper_rejects_stale_target_audit_schema(tmp_path: Path) -> None:
     args, paths = build_wrapper_contract(tmp_path, profile="smoke", wrapper=WRAPPER)
     target_path = paths["target_audit_json"]
