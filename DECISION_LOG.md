@@ -1250,3 +1250,41 @@ Decision:
 - keep launch `BLOCK`: this source proof creates no production dataset,
   artifact, OOS edge or live authority. The remaining source P0 is the
   canonical full-TEST active-Exit producer.
+
+## 2026-07-23 — canonical full-TEST active-Exit producer is source-complete
+
+The retained joint finalizer remains a validator for caller-supplied diagnostic
+rows and therefore still has zero launch authority. The missing production
+boundary is now implemented by extending that same sizing/replay owner rather
+than adding another script.
+
+Decision:
+
+- add replay schema v7 with nested canonical producer evidence;
+- expose `produce-canonical-joint-exit-proof` through the existing
+  `entry_next_edge_control.sh` route
+  `model-native-canonical-active-exit-replay`;
+- derive the exact canonical OOS TEST row set and runtime-head direction
+  evidence internally; callers cannot supply actions, fills, trace rows,
+  horizon caps or matrices;
+- emit explicit `FLAT_NO_ORDER` for model FLAT and open an independent
+  unit-normalized research TradeState at exact T+5 for each LONG/SHORT row;
+- call `V12Pipeline.make_exit_decision` on each consecutive M1 step until
+  actual `EXIT_NOW`; missing cadence/state/inference or SourceTape exhaustion
+  is terminal red;
+- bind and revalidate prediction/report provenance, canonical OOS rows,
+  SourceTape, frozen canonical-v3/BASE28 generation, recursive active Exit
+  artifacts, transitive producer source and exact immutable replay/trace
+  outputs;
+- keep the public caller-parquet compatibility operation diagnostic-only and
+  require canonical producer evidence before vedtak consumption or launch
+  mutation;
+- cover LONG, SHORT and FLAT plus forged output/tape binding rejection in the
+  end-to-end contract test;
+- preserve the existing-owner rule: no new versioned script was created;
+- include replay-readiness and shadow-event timestamps when selecting the
+  lifecycle event floor, closing a separate 77 ms future-evidence race exposed
+  by the broader regression run;
+- keep launch `BLOCK`: no accepted fresh Entry or causal production Exit chain
+  exists, current native-M5/pair data are noncompliant and the canonical/live
+  December-2024 parity issue remains unresolved.

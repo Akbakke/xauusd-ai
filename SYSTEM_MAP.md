@@ -362,17 +362,20 @@ price-path outcome. It is an offline direction diagnostic with
 `position_size_applied=false`, not an order or capital simulation. Executable
 learned sizing must be proven separately against its OOS controls, the exact
 adopted active Exit replay and post-adoption runtime parity. The diagnostic
-contracts now require replay schema v6: immutable label-horizon bid/ask facts
+contracts now require replay schema v7: immutable label-horizon bid/ask facts
 remain separate from active-Exit decisions and fills, while every action binds
 one committed closed bar to the following exact fresh quote. They also require
 a file-bound contiguous per-M1 Exit trace,
 row-recomputed bid/ask results, exact canonical OOS row identity, exact
 registry identity, a recursive path/size/SHA inventory of every regular file
 under all three active Exit artifacts, adopted bundle hashes and fresh
-broker-shadow parity with zero orders. The current joint finalizer validates
-caller-supplied trace bytes instead of running the models, so the launch and
-runtime guards explicitly reject it. No current real chain has passed, so
-capital authority remains
+broker-shadow parity with zero orders. The compatibility joint finalizer still
+validates caller-supplied trace bytes and is explicitly rejected by launch and
+runtime. The canonical operation in the same existing owner instead iterates
+every TEST row through `V12Pipeline.make_exit_decision`, emits explicit FLAT
+no-order evidence, and cross-binds runtime heads, SourceTape, frozen pair,
+active Exit artifacts, source inventory and exact published replay/trace
+files. No current real chain has passed, so capital authority remains
 `BLOCK`; live/paper emits `NO_ORDER` whenever that sizing authority is missing
 or red.
 
@@ -415,16 +418,19 @@ both target replacements are post-validated, and any partial error restores
 both pre-transaction bytes before publishing terminal FAIL. A newer malformed
 or red event blocks older green evidence. This closes the audited source
 transaction gap but creates no artifact or launch authority by itself.
-`require_canonical_active_exit_replay_launch_authority` blocks before vedtak
-consumption or target mutation because the present joint Exit rows are
-caller-supplied. The remaining producer must reuse
+`require_canonical_active_exit_replay_launch_authority` blocks caller-supplied
+joint Exit rows before vedtak consumption or target mutation, but accepts a
+v7 proof only when its nested producer evidence revalidates every exact input,
+active Exit byte and output binding. The canonical producer reuses
 `V12Pipeline.make_exit_decision` over full TEST with the complete frozen Entry
 snapshot and hash-bound M1/canonical/BASE28/MTF state. The existing
 `load_active_exit_replay` factory already loads one atomic frozen prebuilt pair,
 explicit XGB/V3/Exit-IQL artifacts, pinned environment and exact SourceTape
-without loading SmartEntry. The missing boundary is the canonical full-TEST
-iteration and immutable producer event, not another loader. Current launch
-remains `BLOCK`.
+without loading SmartEntry. The producer is exposed through the existing
+`model-native-canonical-active-exit-replay` control route; missing cadence,
+state, inference or source exhaustion terminalizes red, never a synthetic HOLD
+or horizon pass. Current launch remains `BLOCK` because no compliant fresh
+chain has executed it.
 
 ## Evidence retention and cleanup ownership
 

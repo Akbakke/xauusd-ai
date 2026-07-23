@@ -35,6 +35,7 @@ Model-native seq513 evidence:
   model-native-replay-evidence
   model-native-replay-readiness
   model-native-v3-exit-dataset --run-id <id> --prediction-parquet <file> --prediction-report-json <event> --entry-bundle-dir <dir> --entry-dataset-dir <dir> --source-tape-parquet <file> --xgb-bundle-dir <dir> --prebuilt-pair-manifest <file> --prebuilt-generation-root <dir> --expected-model <name> --expected-splits <train,val,test> --out-dir <new-dir>
+  model-native-canonical-active-exit-replay --calibration <event> --proof <event> --artifact-registry <json> --source-tape <parquet> --prebuilt-pair-manifest <json> --prebuilt-generation-root <dir> --authority-root <dir> [--device cpu|cuda]
   model-native-finalize-launch --accepted-bundle-dir <dir> --sizing-adoption-json <event> --joint-exit-proof-json <event> --sizing-runtime-parity-json <event> --serve-parity-json <event> --direction-pocket-json <event> --adaptation-lifecycle-json <event> --launch-vedtak-json <canonical-immutable-event> --transaction-id <id> --max-trades <n>
 
 Immutable run-lineage execution (evidence gates remain authoritative):
@@ -551,6 +552,23 @@ case "$cmd" in
     done
     exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
       "$PY" -m gx1.exits.training.thin_record_dataset materialize "$@"
+    ;;
+
+  model-native-canonical-active-exit-replay)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --calibration \
+      --proof \
+      --artifact-registry \
+      --source-tape \
+      --prebuilt-pair-manifest \
+      --prebuilt-generation-root \
+      --authority-root; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+      "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
+      produce-canonical-joint-exit-proof "$@"
     ;;
 
   model-native-finalize-launch)

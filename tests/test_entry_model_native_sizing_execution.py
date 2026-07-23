@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -11,12 +12,14 @@ import pytest
 
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
+    canonical_active_exit_replay_source_code_files,
     joint_exit_trace_sha256,
     load_bound_joint_exit_sizing_proof,
     load_bound_runtime_sizing_parity,
     read_bound_parquet_exact,
     recompute_joint_exit_replay_coverage,
     recompute_runtime_sizing_parity_coverage,
+    require_canonical_active_exit_replay_launch_authority,
     require_joint_exit_portfolio_capacity,
     require_joint_replay_extends_canonical_oos_rows,
 )
@@ -25,9 +28,132 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     learned_sizing_authority_contract_metadata,
     prepare_model_native_sizing_authority,
 )
+from gx1.execution.v12_pipeline import V12Pipeline
+from gx1.execution.v12_state_from_prebuilt import read_prebuilt_pair_manifest
+from gx1.scripts.finalize_entry_model_native_sizing_v1 import (
+    produce_canonical_active_exit_joint_sizing_proof,
+)
 from tests.model_native_sizing_support import (
+    write_passing_joint_exit_sizing_proof,
     write_passing_runtime_sizing_parity,
 )
+from tests.test_v12_state_from_prebuilt_refresh import _prebuilt_fixture
+
+
+def _frozen_pair_identity(
+    pair_manifest_path: Path,
+    generation_root: Path,
+) -> dict[str, object]:
+    binding = read_prebuilt_pair_manifest(
+        pair_manifest_path,
+        generation_root=generation_root,
+    )
+    return {
+        "manifest_path": str(binding.manifest_path),
+        "manifest_sha256": binding.manifest_sha256,
+        "pair_generation_id": binding.pair_generation_id,
+        "canonical_v3": {
+            "path": str(binding.canonical_v3.parquet_path),
+            "sha256": binding.canonical_v3.parquet_sha256,
+            "rows": binding.canonical_v3.rows,
+            "cols_total": binding.canonical_v3.cols_total,
+        },
+        "base28": {
+            "path": str(binding.base28.parquet_path),
+            "sha256": binding.base28.parquet_sha256,
+            "rows": binding.base28.rows,
+            "cols_total": binding.base28.cols_total,
+        },
+        "refresh_enabled": False,
+    }
+
+
+class _FrozenPairStub:
+    def __init__(self, identity: dict[str, object]) -> None:
+        self._identity = identity
+
+    def frozen_pair_frames(
+        self,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, object]]:
+        return pd.DataFrame(), pd.DataFrame(), dict(self._identity)
+
+
+class _CanonicalActiveExitStub:
+    """Exercise the producer loop while isolating heavyweight model loading."""
+
+    def __init__(self, *, tape: object, identity: dict[str, object]) -> None:
+        self._tape = tape
+        self.prebuilt_loader = _FrozenPairStub(identity)
+
+    def make_exit_decision(
+        self,
+        trade: object,
+        now: pd.Timestamp,
+        bid: float,
+        ask: float,
+    ) -> dict[str, object]:
+        del bid, ask
+        closed = self._tape.get_closed_m1_bar(
+            pd.Timestamp(now) - pd.Timedelta(minutes=1)
+        )
+        trade.update_bar(
+            m1_bar_ts=closed["time"],
+            bid=closed["bid_close"],
+            ask=closed["ask_close"],
+            m1_close=(closed["bid_close"] + closed["ask_close"]) / 2.0,
+            bid_high=closed["bid_high"],
+            bid_low=closed["bid_low"],
+            ask_high=closed["ask_high"],
+            ask_low=closed["ask_low"],
+        )
+        terminal = trade.bars_in_trade == 5
+        return {
+            "action_id": 1 if terminal else 0,
+            "decision_source": (
+                "UNIT_ACTIVE_EXIT_NOW" if terminal else "UNIT_ACTIVE_EXIT_HOLD"
+            ),
+        }
+
+
+def test_canonical_active_exit_source_inventory_covers_local_import_closure() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    pending = [
+        "gx1/execution/v12_exit_iql_live.py",
+        "gx1/execution/v12_model_native_state_live.py",
+        "gx1/execution/v12_pipeline.py",
+        "gx1/execution/v12_trade_state.py",
+        "gx1/runtime/exit_decider_v12_adapter.py",
+        "gx1/runtime/exit_iql_v2_adapter.py",
+        "gx1/scripts/finalize_entry_model_native_sizing_v1.py",
+    ]
+    observed: set[str] = set()
+    while pending:
+        relative = pending.pop()
+        if relative in observed:
+            continue
+        source_path = repo_root / relative
+        if not source_path.is_file():
+            continue
+        observed.add(relative)
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        modules: list[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                modules.append(node.module)
+            elif isinstance(node, ast.Import):
+                modules.extend(alias.name for alias in node.names)
+        for module in modules:
+            if not module.startswith(("gx1", "gx1_guards")):
+                continue
+            module_path = Path(*module.split("."))
+            candidate = module_path.with_suffix(".py")
+            package_init = module_path / "__init__.py"
+            if (repo_root / candidate).is_file():
+                pending.append(candidate.as_posix())
+            elif (repo_root / package_init).is_file():
+                pending.append(package_init.as_posix())
+
+    assert observed.issubset(canonical_active_exit_replay_source_code_files())
 
 
 def test_bound_parquet_rejects_same_hash_path_identity_swap(
@@ -448,6 +574,128 @@ def test_joint_active_exit_sizing_proof_is_row_recomputed_and_exit_projection_bo
             context="UNIT_MUTATED_EXIT_REGISTRY",
             verify_source_files=True,
         )
+
+
+def test_canonical_active_exit_producer_owns_every_full_test_trace(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evidence = write_passing_joint_exit_sizing_proof(tmp_path)
+    diagnostic_proof, _ = load_bound_joint_exit_sizing_proof(
+        evidence["joint_exit_proof_artifact"],
+        context="UNIT_DIAGNOSTIC_ACTIVE_EXIT_PROOF",
+        verify_source_files=True,
+    )
+    with pytest.raises(
+        ModelNativeSizingExecutionContractError,
+        match="caller-supplied replay/trace rows have zero launch authority",
+    ):
+        require_canonical_active_exit_replay_launch_authority(
+            diagnostic_proof,
+            context="UNIT_DIAGNOSTIC_ACTIVE_EXIT_LAUNCH",
+        )
+
+    prebuilt = _prebuilt_fixture(tmp_path / "prebuilt")
+    pair_manifest = Path(prebuilt["pair_manifest"]).resolve()
+    generation_root = Path(prebuilt["generation_root"]).resolve()
+    identity = _frozen_pair_identity(pair_manifest, generation_root)
+
+    def load_stub(
+        cls: type[V12Pipeline],
+        *,
+        closed_m1_provider: object,
+        **_kwargs: object,
+    ) -> _CanonicalActiveExitStub:
+        del cls
+        return _CanonicalActiveExitStub(
+            tape=closed_m1_provider,
+            identity=identity,
+        )
+
+    monkeypatch.setattr(
+        V12Pipeline,
+        "load_active_exit_replay",
+        classmethod(load_stub),
+    )
+    proof_path, proof = produce_canonical_active_exit_joint_sizing_proof(
+        calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
+        proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
+        artifact_registry_path=Path(evidence["artifact_registry_path"]),
+        source_tape_path=Path(evidence["oos_source"]["source_tape"]["path"]),
+        prebuilt_pair_manifest_path=pair_manifest,
+        prebuilt_generation_root=generation_root,
+        authority_root=Path(evidence["authority_root"]),
+    )
+
+    assert proof_path.is_file()
+    assert proof["decision"] == "PASS"
+    producer = proof["canonical_active_exit_replay_producer"]
+    assert producer["decision"] == "PASS"
+    assert producer["rows"] == 360
+    assert producer["trade_rows"] == 300
+    assert producer["trace_rows"] == 1_500
+    assert proof["exit_replay_coverage"]["failed_rows"] == 0
+    replay_rows = pd.read_parquet(proof["replay_rows"]["path"])
+    replay_directions = pd.to_numeric(
+        replay_rows["model_direction_index"]
+    ).astype(int)
+    assert set(replay_directions) == {0, 1, 2}
+    assert set(
+        pd.to_numeric(
+            replay_rows.loc[replay_directions.isin([0, 1]), "exit_steps"]
+        ).astype(int)
+    ) == {5}
+    flat_rows = replay_rows.loc[replay_directions == 2]
+    assert set(flat_rows["exit_replay_status"].astype(str)) == {
+        "FLAT_NO_ORDER"
+    }
+    assert set(pd.to_numeric(flat_rows["exit_steps"]).astype(int)) == {0}
+    assert flat_rows["active_exit_fill_time"].isna().all()
+    require_canonical_active_exit_replay_launch_authority(
+        proof,
+        context="UNIT_CANONICAL_ACTIVE_EXIT_LAUNCH",
+    )
+    forged_output = dict(proof)
+    forged_output["canonical_active_exit_replay_producer"] = dict(producer)
+    forged_output["canonical_active_exit_replay_producer"]["replay_rows"] = (
+        proof["canonical_active_exit_replay_producer"]["canonical_oos_rows"]
+    )
+    with pytest.raises(
+        ModelNativeSizingExecutionContractError,
+        match="producer output bindings differ from joint proof",
+    ):
+        require_canonical_active_exit_replay_launch_authority(
+            forged_output,
+            context="UNIT_FORGED_CANONICAL_ACTIVE_EXIT_OUTPUT",
+        )
+    forged_tape = dict(proof)
+    forged_tape["canonical_active_exit_replay_producer"] = dict(producer)
+    forged_tape["canonical_active_exit_replay_producer"]["source_tape"] = (
+        producer["runtime_predictions"]
+    )
+    with pytest.raises(
+        ModelNativeSizingExecutionContractError,
+        match="SourceTape binding differs from canonical OOS source",
+    ):
+        require_canonical_active_exit_replay_launch_authority(
+            forged_tape,
+            context="UNIT_FORGED_CANONICAL_ACTIVE_EXIT_TAPE",
+        )
+
+    loaded, _ = load_bound_joint_exit_sizing_proof(
+        {
+            "json_path": str(proof_path.resolve()),
+            "sha256": hashlib.sha256(proof_path.read_bytes()).hexdigest(),
+        },
+        context="UNIT_CANONICAL_ACTIVE_EXIT_RELOAD",
+        verify_source_files=True,
+    )
+    assert (
+        loaded["canonical_active_exit_replay_producer"][
+            "producer_source_inventory_sha256"
+        ]
+        == producer["producer_source_inventory_sha256"]
+    )
 
 
 def test_cached_sizing_authority_rehashes_same_stat_bytes(tmp_path: Path) -> None:

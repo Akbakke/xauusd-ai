@@ -91,18 +91,22 @@ The adversarial re-audit proved that the existing joint Exit finalizer only
 validates caller-supplied replay/trace parquets; it does not run the active
 XGB→V3→Exit-IQL/Strategy-F chain. Those diagnostics have zero launch
 authority. Both the launch finalizer and runtime artifact guard reject them
-before activation. The later full feature/Exit audit also invalidates the
+before activation. The existing sizing/replay owner now contains the canonical
+full-TEST producer: it owns every row, calls
+`V12Pipeline.make_exit_decision` per exact M1, emits explicit FLAT no-order
+evidence, binds every active input/output byte and accepts neither missing
+state nor a horizon cap. The caller-parquet compatibility route remains
+diagnostic-only. The later full feature/Exit audit also invalidates the
 retained Exit artifacts: old fill/M5/overlay timing is causal-wrong and the
 Exit-IQL bundle declares research-only/non-production with no bound feature
 order or serving fold. Source now has one atomic canonical/BASE generation,
 full-history native-M5 recomputation, one M5 ownership/closure contract,
 causal spread-only features, reproducible V3 lineage including XGB identity,
-and a hash-bound historical M1 provider seam. The existing V3 owner now
-derives and atomically publishes its exact 173-field dataset/event from bound
-source bytes without caller-supplied members. Current data do not satisfy the
-new M5 contract and no pair has been bootstrapped. Open gates are a fresh
-79-field XGB→V3→Exit-IQL rebuild/rescore/retrain and the canonical full-TEST
-producer. V24/V7 remain immutable failure evidence.
+the exact 173-field V3 writer and the full-TEST Exit producer. Current data do
+not satisfy the new M5 contract and no pair has been bootstrapped. Open gates
+are native-M5/pair materialization, a fresh 79-field
+XGB→V3→Exit-IQL rebuild/rescore/retrain and execution of the producer on those
+fresh bytes. V24/V7 remain immutable failure evidence.
 Canonical/live December-2024 M5 parity and every fresh empirical
 dataset/model/edge gate also remain open.
 

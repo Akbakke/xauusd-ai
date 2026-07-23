@@ -196,6 +196,13 @@ def test_complete_drift_challenger_shadow_promotion_and_rollback_chain(
         output_dir=lifecycle_dir,
     )
     assert shadow_event["phase"] == PHASE_SHADOW_READY
+    shadow_created = pd.Timestamp(shadow_event["created_utc"])
+    assert shadow_created > pd.Timestamp(
+        paired_shadow["event"]["created_utc"]
+    )
+    assert shadow_created > pd.Timestamp(
+        challenger_replay["event"]["created_utc"]
+    )
 
     promotion_path, promotion = finalize_adaptation_lifecycle_transition(
         transition=TRANSITION_PROMOTE_CHALLENGER,

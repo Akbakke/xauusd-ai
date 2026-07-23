@@ -64,9 +64,14 @@ bundle-owned XGB contracts, XGB-bound V3 lineage and an exact historical M1
 provider seam. The existing V3 dataset owner now also derives the complete
 173-field matrix, exact T+5 overlays/records and immutable producer event from
 bound prediction, tape, frozen-pair and XGB bytes, then publishes atomically.
-Current data/artifacts predate these contracts. The remaining source P0 is the
-canonical full-TEST active-Exit producer, followed by a fresh 79-field
-XGB→V3→Exit-IQL chain. These code
+The existing sizing/replay owner now also runs every canonical TEST row through
+`V12Pipeline.make_exit_decision`, emits explicit FLAT no-order rows and complete
+LONG/SHORT per-M1 traces, and binds predictions, tape, frozen pair, active Exit
+bytes, producer source and published outputs in replay schema v7.
+Caller-supplied replay remains diagnostic-only. Current data/artifacts predate
+these contracts; the remaining gates are compliant native-M5/pair
+materialization, a fresh 79-field XGB→V3→Exit-IQL chain and execution of the
+producer on those fresh bytes. These code
 proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity and
 every empirical model/edge gate remain open.
 

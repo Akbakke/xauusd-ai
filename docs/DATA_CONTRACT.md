@@ -164,13 +164,16 @@ post-adoption broker runtime-parity event. Until both exist and pass, capital
 adoption is blocked; fixed 1x is only a named historical benchmark and never a
 fallback.
 
-Active-Exit replay schema v6 preserves the canonical label-horizon outcome as
+Active-Exit replay schema v7 preserves the canonical label-horizon outcome as
 an immutable fact and records model decisions/fills separately. Each step must
 bind one committed closed M1 bar to the following exact fresh quote; state PnL
 is recomputed from state prices and active fill is the final fresh quote.
-Caller-supplied trace parquet cannot authorize launch. The existing Exit-only
-pipeline factory and frozen-pair loader must be driven by the canonical
-full-TEST producer/event.
+Caller-supplied trace parquet cannot authorize launch. The canonical operation
+in the existing sizing/replay owner drives the Exit-only pipeline factory and
+frozen-pair loader over every TEST row, emits explicit FLAT no-order evidence
+and binds its runtime heads, SourceTape, active artifacts, source closure and
+exact replay/trace outputs. Missing state, cadence, inference or `EXIT_NOW`
+before source exhaustion is terminal red.
 
 Exit V3 training storage is `N x 173` float32 market state plus exact UTC M1
 times and separate float32 trade overlays. Admission recomputes the Exit-XGB

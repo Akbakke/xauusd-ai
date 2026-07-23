@@ -430,7 +430,12 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
     sessions = ("ASIA", "EU", "OVERLAP", "US")
     regimes = ("0", "1", "2")
     for index, ts in enumerate(test_times):
-        direction = (index // 2) % 2
+        direction_block = index // 2
+        direction = (
+            2
+            if direction_block % 12 in (10, 11)
+            else direction_block % 2
+        )
         winner = index % 2 == 0
         logit = 2.0 if winner else -2.0
         test_rows.append(
@@ -444,35 +449,31 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
                 regime=regimes[(index // 2) % len(regimes)],
             )
         )
-        decision = {
-            "time": ts,
-            "bid_open": 2499.9,
-            "ask_open": 2500.1,
-            "bid_close": 2499.9,
-            "ask_close": 2500.1,
-            "bid_high": 2500.0,
-            "bid_low": 2499.8,
-            "ask_high": 2500.2,
-            "ask_low": 2500.0,
-        }
-        fill = {**decision, "time": ts + pd.Timedelta(minutes=5)}
+        entry_bid = 2499.9
+        entry_ask = 2500.1
         if direction == 0:
             exit_bid = 2501.1 if winner else 2499.1
             exit_ask = exit_bid + 0.2
         else:
             exit_ask = 2498.9 if winner else 2500.9
             exit_bid = exit_ask - 0.2
-        exit_row = {
-            **decision,
-            "time": ts + pd.Timedelta(minutes=10),
-            "bid_close": exit_bid,
-            "ask_close": exit_ask,
-            "bid_high": max(decision["bid_open"], exit_bid),
-            "bid_low": min(decision["bid_open"], exit_bid),
-            "ask_high": max(decision["ask_open"], exit_ask),
-            "ask_low": min(decision["ask_open"], exit_ask),
-        }
-        tape_rows.extend((decision, fill, exit_row))
+        for minute in range(11):
+            progress = max(0.0, (minute - 5) / 5.0)
+            bid = entry_bid + progress * (exit_bid - entry_bid)
+            ask = entry_ask + progress * (exit_ask - entry_ask)
+            tape_rows.append(
+                {
+                    "time": ts + pd.Timedelta(minutes=minute),
+                    "bid_open": bid,
+                    "ask_open": ask,
+                    "bid_close": bid,
+                    "ask_close": ask,
+                    "bid_high": bid + 0.1,
+                    "bid_low": bid - 0.1,
+                    "ask_high": ask + 0.1,
+                    "ask_low": ask - 0.1,
+                }
+            )
     tape = root / "canonical_source_tape.parquet"
     pd.DataFrame(tape_rows).to_parquet(tape, index=False)
 
@@ -485,7 +486,11 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             {
                 "time": times,
                 "y_position_size_target": np.linspace(0.1, 0.9, len(times)),
-                "label_horizon_bars": np.ones(len(times), dtype=np.int64),
+                # The source tape is minute-contiguous so the canonical Exit
+                # producer can step the real per-M1 decision loop.  Five bars
+                # preserve the fixture's original T+10 outcome from its T+5
+                # fill instead of accidentally relabelling it at T+6.
+                "label_horizon_bars": np.full(len(times), 5, dtype=np.int64),
             }
         )
         if split == "test":

@@ -90,7 +90,9 @@ canonical full-TEST producer must reuse `V12Pipeline.make_exit_decision`,
 preserve the complete Entry snapshot, bind SourceTape plus
 canonical/BASE28/MTF state, and emit its own traces with zero fallback or
 horizon-cap pass. The later second-audit section below supersedes the
-single-P0 count.
+single-P0 count. A later source checkpoint closed this producer P0 in the
+existing sizing/replay owner and retained the caller-parquet route as
+diagnostic-only; no compliant real artifact chain has executed it.
 
 Also open before any rebuild/training: repair and exact parity proof for the
 canonical/live December-2024 M5 tape. Read-only inspection found 3,430
@@ -195,7 +197,7 @@ The repaired source now:
   explicitly carries runtime-head authority. Smoke, serve and launch
   consumers reject the older V2 declaration;
 - separates canonical label-horizon bid/ask facts from active-Exit decisions
-  and fills in replay schema v6. Each step binds the committed closed bar,
+  and fills in replay schema v7. Each step binds the committed closed bar,
   following fresh quote, state price/PnL and model action; active fill is the
   final fresh quote and cannot overwrite the immutable label outcome;
 - provides exact SourceTape open-quote lookup, an atomic frozen prebuilt-pair
@@ -438,7 +440,9 @@ identity; the trainer reuses only those verified bytes.
 The current control surface still rejects direct promote/pin/shadow/live. The
 canonical transactional finalizer updates launch authority plus artifact
 registry as one recoverable transaction only after every upstream authority
-passes. Its explicit active-Exit producer gate currently blocks.
+passes. Its explicit active-Exit producer gate now accepts only replay-v7
+producer-owned evidence and currently blocks because no compliant fresh chain
+has executed that producer.
 
 The former nonempty `GX1_SMART_LAUNCH_VEDTAK` pass-through is now removed from
 both shell launcher and runner. Artifact validation requires the newest exact
@@ -519,8 +523,10 @@ transaction tests; production rejects it.
 3. Preserve the exact V3 dataset producer in its existing owner and public
    control route. It must keep owning all 173-field rows, T+5 overlays/records,
    bound inputs/source inventory, immutable event and atomic publication.
-4. Build and prove the canonical full-TEST active-Exit replay producer. It
-   must own the rows/traces rather than validate caller-created parquets.
+4. Preserve the completed canonical full-TEST active-Exit replay producer in
+   the existing sizing/replay owner. It owns its rows/traces and cross-binds
+   all producer inputs, active artifacts, transitive source and outputs;
+   caller-created parquets remain diagnostic-only.
 5. Repair and prove canonical/live December-2024 tape parity.
 6. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
    readiness and trainability audit.

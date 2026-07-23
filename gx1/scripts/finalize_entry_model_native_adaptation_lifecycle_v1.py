@@ -155,6 +155,10 @@ def finalize_adaptation_lifecycle_transition(
         created = _created_after(
             output_dir,
             drift_evidence_path.expanduser().resolve(),
+            replay_readiness_path.expanduser().resolve(),
+            shadow_evidence_path.expanduser().resolve()
+            if shadow_evidence_path is not None
+            else None,
             predecessor_path.expanduser().resolve()
             if predecessor_path is not None
             else None,

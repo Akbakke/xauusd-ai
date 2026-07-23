@@ -69,13 +69,15 @@ existing `entry_next_edge_control.sh` surface; it requires a pre-existing
 identity-bound vedtak, serializes canonical targets, proves the bundle,
 operating point and active-Exit bytes, and rolls both targets back with durable
 failure evidence on any partial error. It intentionally refuses the current
-caller-supplied joint Exit replay/trace diagnostics. A launch-admissible proof
-still needs one canonical producer that itself executes the exact active
-XGB→V3→Exit-IQL/Strategy-F chain over full TEST from hash-bound state and emits
-complete per-M1 evidence. No rebuild or trainer run is admissible until that
-source P0 and canonical/live tape parity for the known December-2024 defect
-have exact proof. No finalizer execution is admissible until fresh empirical
-artifacts satisfy every prerequisite.
+caller-supplied joint Exit replay/trace diagnostics. The canonical operation in
+the same existing sizing/replay owner now executes the exact active
+XGB→V3→Exit-IQL/Strategy-F chain over full TEST, emits complete per-M1 evidence
+and cross-binds every input, active artifact and output byte. Missing cadence,
+state, model decisions or source exhaustion are terminal; there is no horizon
+substitution. No rebuild or trainer run is admissible until canonical/live
+tape parity for the known December-2024 defect and compliant native-M5/pair
+inputs have exact proof. No producer/finalizer execution is admissible until
+fresh empirical artifacts satisfy every prerequisite.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean

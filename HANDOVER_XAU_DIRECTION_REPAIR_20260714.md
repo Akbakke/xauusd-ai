@@ -64,11 +64,14 @@ live collection. Formula and HTF alignment ownership is also repaired.
 Caller-supplied replay diagnostics remain blocked from launch. The exact V3
 training-dataset writer/event is now code-proven in the existing owner; it
 accepts no caller-built matrix, overlay or record members and publishes
-atomically. A fresh dataset on compliant inputs, the canonical active-Exit
-full-TEST producer, fresh XGB/V3/Exit artifacts, native-M5
+atomically. The existing sizing/replay owner now also code-proves the
+canonical active-Exit full-TEST producer: it owns the TEST rows, exact T+5
+fills and per-M1 `make_exit_decision` traces, emits explicit FLAT no-order
+evidence and binds every input/artifact/source/output byte in replay v7.
+A fresh dataset on compliant inputs, fresh XGB/V3/Exit artifacts, native-M5
 materialization/pair bootstrap,
-canonical/live December-2024 tape parity and every empirical dataset/model/
-edge gate are still open.
+canonical/live December-2024 tape parity, execution of that producer on the
+fresh chain and every empirical dataset/model/edge gate are still open.
 
 The latest data/training/inference re-audit is also source-closed for the
 shared last-closed-M5 key, complete 95-row volume history, exact XGB sessions
@@ -76,7 +79,7 @@ and probability bridge, and Exit V8's 173-field per-M1 historical cadence.
 V3 dataset admission now proves real matrix/time/overlay/record semantics and
 rehashes every bound member/input; path calibration fits only its declared
 tradable/selector support. Prediction evidence V3 proves every active runtime
-head through smoke, serve and launch. Replay v6 keeps label-horizon outcomes
+head through smoke, serve and launch. Replay v7 keeps label-horizon outcomes
 separate from closed-bar decisions and following fresh-quote fills.
 
 The existing runtime path now has exact SourceTape open-quote lookup, one
@@ -84,10 +87,10 @@ atomic frozen-pair loader and an Exit-only `V12Pipeline` factory that cannot
 load SmartEntry. The existing V3 owner now also publishes the full
 authoritative training dataset/event from the shared serving builder and
 exact T+5 materializer, with byte-bound input/source inventories and atomic
-no-replace publication. The remaining producer gap is the existing
-sizing/replay owner running full TEST through `make_exit_decision` and
-publishing its own rows/traces/event. Validators, fixtures or caller-written
-parquet are not producer authority.
+no-replace publication. The existing sizing/replay owner now runs full TEST
+through `make_exit_decision` and publishes its own immutable rows/traces/proof
+under `model-native-canonical-active-exit-replay`. Validators, fixtures and the
+retained caller-parquet compatibility route are not producer authority.
 
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
@@ -760,8 +763,10 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    exact XGB bridge identity. No causal observed-slippage source exists, so
    slippage-derived decision fields were removed instead of synthesized.
    The exact V3 training-dataset producer/event is now implemented in the
-   existing owner. Remaining producer work is the canonical active-Exit
-   full-TEST path, followed by fresh XGB/V3/Exit artifacts.
+   existing owner. The canonical active-Exit full-TEST producer is now also
+   implemented in the existing sizing/replay owner. Remaining work is
+   compliant data/pair materialization, fresh XGB/V3/Exit artifacts and an
+   actual full-TEST producer run over those accepted bytes.
    ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment use
    shared code owners; unavailable required inputs fail closed.
 5. Recent-regime handling is not yet empirical. Compare full-history baseline
@@ -786,11 +791,12 @@ Ordered steps (each gate fail-closed; stop at first red):
    `model-native-v3-exit-dataset` control route. It must continue to derive
    every 173-field row and T+5 trade overlay/record from the bound prediction,
    tape, frozen-pair and XGB sources and publish only immutable verified bytes.
-4. Extend the existing sizing/replay owner with the canonical full-TEST
-   active-Exit producer. It must preserve the
-   complete Entry snapshot, bind SourceTape and canonical/BASE28/MTF state,
-   reuse the exact live per-bar primitive and emit its own rows/traces without
-   fallback or horizon-cap acceptance.
+4. Preserve the canonical full-TEST active-Exit producer in the existing
+   sizing/replay owner and its
+   `model-native-canonical-active-exit-replay` route. It must keep the complete
+   Entry snapshot, bind SourceTape, canonical/BASE28/MTF state, active Exit and
+   producer/output bytes, reuse the exact live per-bar primitive, emit FLAT as
+   no order and reject fallback or horizon-cap acceptance.
 5. Repair and prove canonical/live December-2024 M5 parity before a fresh
    rebuild.
 6. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
@@ -804,7 +810,8 @@ Ordered steps (each gate fail-closed; stop at first red):
    2026-07-16) before any slice metric is even considered.
 8. Candidate chain only after smoke PASS: trainability-readiness ->
    candidate-train -> calibration -> immutable prediction evidence ->
-   unit-normalized replay -> the nine-item evidence list above.
+   unit-normalized replay -> fresh Exit rebuild -> canonical full-TEST
+   active-Exit producer -> the nine-item evidence list above.
 
 Nothing in this runbook grants run authority by itself; exact evidence gates
 remain authoritative. Dataset-build `entry_run_id`, training/output `run_id`
@@ -826,8 +833,9 @@ Metadata and label counts never satisfy that empirical gate.
 5. Honest calibration and untouched validation/test direction, class, slice,
    pocket, context, path-quality and utility metrics with adequate support.
 6. Immutable candidate prediction evidence and live-like replay including costs.
-7. Learned-size calibration plus untouched TEST utility/exposure/drawdown and
-   exact train/replay/serve sizing proof.
+7. Learned-size calibration plus untouched TEST utility/exposure/drawdown,
+   canonical producer-owned full-TEST active-Exit replay and exact
+   train/replay/serve sizing proof.
 8. Train==serve parity on identical bars, including journal fields, both raw
    and calibrated influence for context, all five timeframes, all eight
    specialists and all 26 fusion groups.

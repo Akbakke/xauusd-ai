@@ -21,6 +21,8 @@ AUTHORITY_PATHS = (
     REPO / "PROJECT_STATE.md",
     REPO / "DECISION_LOG.md",
     REPO / "PIPELINE_AUDIT_XAU_20260723.md",
+    REPO / "docs/CANONICAL_EXIT_STATUS.md",
+    REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md",
     REPO / "docs/FEATURE_MANIFEST.md",
     REPO / "PROJECT_STATE_artifacts.json",
@@ -49,6 +51,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-replay-evidence",
     "model-native-replay-readiness",
     "model-native-v3-exit-dataset",
+    "model-native-canonical-active-exit-replay",
     "model-native-finalize-launch",
     "model-native-rebuild",
     "model-native-smoke-train",
@@ -128,7 +131,6 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert repair["fresh_training_started"] is False
     assert repair["empirical_direction_edge_proven"] is False
     assert repair["remaining_source_p0"] == [
-        "canonical_full_test_active_exit_replay_producer",
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
         "native_oanda_m5_materialization_and_atomic_pair_bootstrap",
     ]
@@ -205,8 +207,9 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert "No smoke model" in blockers
     assert "V7 completed six full train/validation epochs" in blockers
     assert "source-repaired only" in blockers
-    assert "transactional candidate/promotion/launch finalizer" in blockers
-    assert "canonical full-TEST active-Exit replay producer" in blockers
+    assert "transactional finalizer/recovery" in blockers
+    assert "existing sizing/replay owner now has a canonical full-TEST producer" in blockers
+    assert "has not run on a compliant fresh artifact chain" in blockers
     assert "no canonical immutable" not in blockers
 
 

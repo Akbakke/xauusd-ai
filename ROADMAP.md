@@ -104,18 +104,23 @@ regression proof. The finalizer uses the existing control surface and
 canonical targets; it cannot create its own vedtak or accept alternate
 authority roots. The re-audit found that the joint Exit finalizer does not run
 the active models: it validates caller-supplied parquets. Launch/runtime now
-reject that evidence outright, but a canonical full-TEST active-Exit producer
-remains source P0. V24/V7 predate every one of these changes. No fresh artifact
-or edge result exists.
+reject that compatibility evidence outright. The same existing sizing/replay
+owner now has a canonical full-TEST operation that owns the rows, calls
+`V12Pipeline.make_exit_decision` on every exact M1 step and cross-binds the
+runtime heads, SourceTape, frozen pair, active Exit bytes, producer source and
+immutable outputs. V24/V7 and the retained Exit chain predate every one of
+these changes. No fresh artifact, executed producer proof or edge result
+exists.
 
 The latest three-way audit also closes shared last-closed-M5 mapping, full
 volume-prefix admission, XGB session/probability bridge validation, Exit V8's
 173-field per-M1 cadence, V3 matrix/time/overlay/record storage semantics,
 exact path-calibration supports and runtime-head prediction evidence V3.
-Replay v6 separates canonical label outcomes from closed-bar decisions and
+Replay v7 separates canonical label outcomes from closed-bar decisions and
 fresh active fills. Exact SourceTape open lookup, atomic frozen-pair loading
-and an Exit-only pipeline factory now exist; the missing authority is the
-full-TEST producer loop/event. No empirical artifact was created.
+and an Exit-only pipeline factory feed the canonical producer in the existing
+sizing owner. Caller-written rows remain diagnostic-only. No empirical
+artifact was created.
 
 ## Ordered gates
 
@@ -135,35 +140,39 @@ full-TEST producer loop/event. No empirical artifact was created.
    lineage binds the exact XGB bridge; and non-observable slippage-derived
    decision fields stay removed. ATR/ROC/VWAP, dependent normalized VWAP, SMC
    ATR and H1/H4 alignment use shared source owners and must not be forked.
-4. Rebuild the per-bar Exit substrate at exact T+5, rescore V3 on exact row
-   overlays and retrain Exit with checkpoint-bound features and one explicit
-   serving fold. The retained research-only/non-production bundle is not an
-   incumbent.
-5. Preserve the completed V3 producer in the existing dataset owner. Its
+4. Preserve the completed V3 producer in the existing dataset owner. Its
    explicit control route must keep deriving all 173-field market rows,
    overlays and records from bound prediction/tape/frozen-pair/XGB sources,
    publish one immutable event atomically and admit no caller-built dataset
    members. No fresh artifact has yet exercised it on production data.
-6. Extend the existing sizing/replay owner with one canonical full-TEST
-   producer around the existing exact `V12Pipeline.make_exit_decision`
-   primitive and Exit-only frozen-pair factory. It must preserve the complete
-   Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind all
-   canonical/BASE28/MTF inputs and active Exit bytes, and emit its own complete
-   per-M1 actions/states/prices with zero fallback or horizon-cap pass.
-7. Repair and prove canonical/live December-2024 M5 parity. The read-only
+5. Preserve the completed canonical full-TEST producer in the existing
+   sizing/replay owner and its
+   `model-native-canonical-active-exit-replay` control route. It must keep
+   calling the exact `V12Pipeline.make_exit_decision` primitive, preserve the
+   complete Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind
+   canonical/BASE28/MTF state, active Exit/source/output bytes, emit explicit
+   FLAT no-order rows and reject fallback or horizon-cap completion.
+6. Repair and prove canonical/live December-2024 M5 parity. The read-only
    audit found 3,430 impossible-geometry rows in both canonical M5 and
    live-prebuilt, including 2,799 weekend rows; the clean M1 supports 5,757
    rebuilt December buckets and leaves 3,459 canonical rows unbacked. The
    full loader also blocks on 2,375 invalid late-2024 prebuilt OHLC rows.
-8. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
+7. Materialize compliant native-M5 state and bootstrap one atomic frozen
+   canonical-v3/BASE28 pair from the repaired source.
+8. Rebuild fresh XAU-only Entry splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.
 9. Train/evaluate a candidate only if smoke evidence is green; require OOS
    calibration, support, costs, TOP/BOTTOM timing, Q/V/Advantage, specialist,
    context and timeframe influence evidence.
-10. Require candidate replay, exact serve parity, learned-sizing adoption with
-   the active Exit stack, zero-order runtime parity, then the immutable
-   adaptation/shadow lifecycle. Any missing or newer-red event remains BLOCK.
+10. Rebuild the per-bar Exit substrate at exact T+5 from the future accepted
+    Entry distribution, produce the 173-field V3 dataset, rescore V3 and
+    retrain Exit with checkpoint-bound features and one explicit serving fold.
+    The retained research-only bundle is not an incumbent.
+11. Run the canonical full-TEST active-Exit producer on the fresh accepted
+    chain, then require candidate replay, exact serve parity, learned-sizing
+    adoption, zero-order runtime parity and the immutable adaptation/shadow
+    lifecycle. Any missing or newer-red event remains BLOCK.
 
 ## Takeover
 

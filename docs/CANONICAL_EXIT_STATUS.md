@@ -33,16 +33,18 @@ matrix with per-M1 historical closed-M5 context, exact UTC-minute/time
 identity, zero base trade-state slots, recomputed XGB bridge values,
 contiguous overlays, exact 240-row records and terminal teacher equality.
 The common M1→closed-M5 mapping, complete volume prefix and XGB
-session/probability domains fail closed. Replay schema v6 keeps canonical
+session/probability domains fail closed. Replay schema v7 keeps canonical
 label-horizon outcomes separate from model decision bars and following fresh
-fills.
+fills. Its canonical operation owns every TEST row, explicit FLAT no-order
+result and LONG/SHORT per-M1 decision trace, while binding the exact runtime
+heads, SourceTape, frozen pair, active artifacts, source closure and outputs.
 
 Still required are a compliant native OANDA M5 materialization, pair bootstrap,
 a fresh model-native V3 dataset produced by the now code-proven exact
 writer/event, a fresh 79-field Exit-XGB, V3 rescore/retrain, production
-Exit-IQL retrain, and the canonical full-TEST active-chain loop/event. Exact
-SourceTape lookup, frozen-pair loading, V3 dataset production and an Exit-only
-pipeline factory now exist in source; no fresh production artifact was
-created.
+Exit-IQL retrain, and execution of the code-proven canonical full-TEST
+active-chain producer on that fresh chain. Exact SourceTape lookup, frozen-pair
+loading, V3 dataset production, the Exit-only pipeline factory and full-TEST
+producer now exist in source; no fresh production artifact was created.
 Until their immutable OOS and live-like gates pass, Exit cannot authorize
 paper, demo or live operation.

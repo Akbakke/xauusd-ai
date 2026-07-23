@@ -61,7 +61,7 @@ bridge checks and the 173-field per-M1 Exit V8 cadence. V3 training authority
 now revalidates real matrix/time/overlay/record geometry and every bound byte;
 path calibration uses exact tradable/selector support; prediction evidence V3
 must prove all active runtime heads through smoke, serve and launch. Replay
-schema v6 keeps label-horizon outcomes immutable and separately binds each
+schema v7 keeps label-horizon outcomes immutable and separately binds each
 closed decision bar to its following fresh quote and final active-Exit fill.
 SourceTape exact-open lookup, atomic frozen-pair loading and an Exit-only
 `V12Pipeline` factory are code-proven.
@@ -70,12 +70,18 @@ The V3 training owner now derives and atomically publishes the complete
 173-field matrix, exact T+5 overlays/records and immutable producer event from
 the bound prediction evidence, chronological SourceTape, frozen
 canonical-v3/BASE28 pair and XGB bundle. It accepts no caller matrix, overlay
-or record input and revalidates all published bytes. Open source work is now
-the canonical full-TEST producer that runs the exact byte-bound
-XGB→V3→Exit-IQL chain and owns the complete iteration/event.
+or record input and revalidates all published bytes. The existing
+sizing/replay owner now also owns canonical full-TEST production: every row is
+derived from canonical OOS/runtime-head evidence, FLAT emits no order, and
+every LONG/SHORT trade calls `V12Pipeline.make_exit_decision` over exact
+contiguous M1 state until real `EXIT_NOW`. Replay schema v7 binds SourceTape,
+the frozen pair, active Exit artifacts, transitive producer source and the
+exact immutable replay/trace files. The caller-parquet route remains
+diagnostic-only and cannot authorize launch.
 Current M5 data do not satisfy the new native-source manifest and no atomic
 pair has been bootstrapped. A fresh 79-field Exit-XGB, V3 rescore/retrain and
-production Exit-IQL retrain are mandatory; no old role may be mixed in.
+production Exit-IQL retrain are mandatory before the producer can create real
+authority; no old role may be mixed in.
 PLUS5 ATR/ROC/VWAP, dependent normalized VWAP, published SMC ATR and H1/H4
 decision-time alignment have shared owners. Canonical/live December-2024
 tape parity also remains unresolved: canonical M5 and live-prebuilt share
@@ -350,11 +356,11 @@ Do not rerun V7 or reuse V24. Preserve the completed target/objective,
 sampling, conditional-metric, normalization, context-routing, MTF,
 all-head/group-influence, atomic-publication, Exit-byte, transactional launch
 and runtime fail-close repairs, including the exact V3 storage, calibration
-support, runtime-head V3 and replay-v6 contracts. Extend the existing V3
-dataset and sizing/replay owners with the two missing canonical producers,
-then repair and prove canonical/live December-2024 tape parity. Only then
-rebuild fresh XAU-only splits and rerun every dataset/readiness audit before
-binding a new smoke recipe.
+support, runtime-head V3 and replay-v7 contracts. Preserve both completed
+canonical producers in the existing V3 dataset and sizing/replay owners, then
+repair and prove canonical/live December-2024 tape parity and bootstrap
+compliant native-M5/frozen-pair state. Only then rebuild fresh XAU-only splits
+and rerun every dataset/readiness audit before binding a new smoke recipe.
 
 After a new smoke passes, compare a declared full-history baseline with a
 TRAIN-only recent-regime challenger, select/calibrate without touching the

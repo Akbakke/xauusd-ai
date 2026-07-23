@@ -56,8 +56,11 @@ registry/state targets and canonical
 roots; callers may not substitute alternate roots. No new data/model or launch
 artifacts were written. Caller-supplied joint Exit replay/trace parquets have
 zero launch authority; the retained Exit bundle is research-only and
-non-production. A canonical full-TEST producer, causal Exit rebuild and
-canonical/live December-2024 tape parity remain open.
+non-production. The canonical full-TEST producer is code-complete in the
+existing sizing owner and is routed through
+`model-native-canonical-active-exit-replay`, but it has not run on an accepted
+fresh chain. Causal Exit rebuild, native-M5/pair bootstrap and canonical/live
+December-2024 tape parity remain open.
 `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
 Never delete or move `GX1_DATA` content merely to reduce repository search

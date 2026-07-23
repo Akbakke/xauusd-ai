@@ -37,13 +37,19 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v6"
+    "entry_model_native_joint_exit_sizing_proof_v7"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_active_exit_chain_to_exit_now_v6"
+    "full_candidate_test_exact_active_exit_chain_to_exit_now_v7"
+)
+CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_SCHEMA_VERSION = (
+    "canonical_active_exit_full_test_replay_producer_v1"
+)
+CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_CONTRACT = (
+    "v12_pipeline_make_exit_decision_full_test_owned_rows_v1"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE = (
     "canonical_oos_reference"
@@ -67,6 +73,61 @@ _ACTIVE_EXIT_REGISTRY_PROJECTION_KEYS = frozenset(
         "project",
         "active_exit_entries",
         "projection_sha256",
+    }
+)
+_CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS = frozenset(
+    {
+        "schema_version",
+        "producer_contract",
+        "decision",
+        "failures",
+        "source_tape",
+        "prebuilt_pair",
+        "runtime_predictions",
+        "prediction_report_artifact",
+        "prediction_provenance",
+        "canonical_oos_rows",
+        "active_exit_registry_projection",
+        "active_exit_artifact_manifests",
+        "replay_rows",
+        "exit_trace_rows",
+        "producer_source_files",
+        "producer_source_inventory_sha256",
+        "rows",
+        "trade_rows",
+        "trace_rows",
+        "first_utc",
+        "last_utc",
+    }
+)
+_CANONICAL_ACTIVE_EXIT_REPLAY_ADDITIONAL_SOURCE_FILES = frozenset(
+    {
+        "gx1/contracts/entry_model_native_input_normalization_v1.py",
+        "gx1/contracts/entry_model_native_learned_component_movement_v1.py",
+        "gx1/contracts/entry_model_native_sizing_authority_v1.py",
+        "gx1/contracts/entry_model_native_sizing_calibration_v1.py",
+        "gx1/contracts/entry_model_native_sizing_execution_v1.py",
+        "gx1/contracts/entry_model_native_state_v2.py",
+        "gx1/contracts/entry_model_native_tf_input_scale_v1.py",
+        "gx1/contracts/entry_model_native_training_objective_v1.py",
+        "gx1/contracts/xau_tape_provenance_v1.py",
+        "gx1/execution/oanda_client.py",
+        "gx1/execution/v12_exit_iql_live.py",
+        "gx1/execution/v12_model_native_state_live.py",
+        "gx1/execution/v12_pipeline.py",
+        "gx1/execution/v12_smart_entry_live.py",
+        "gx1/execution/v12_trade_state.py",
+        "gx1/features/tf_agreement_score.py",
+        "gx1/models/entry_v10/entry_v10_bundle.py",
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "gx1/runtime/exit_decider_v12_adapter.py",
+        "gx1/runtime/exit_iql_v2_adapter.py",
+        "gx1/scripts/__init__.py",
+        "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py",
+        "gx1/scripts/finalize_entry_model_native_sizing_v1.py",
+        "gx1/scripts/materialize_entry_model_native_seq513_signal_manifest_v1.py",
+        "gx1/utils/env_loader.py",
+        "gx1/utils/granularity.py",
     }
 )
 
@@ -333,6 +394,7 @@ _PROOF_KEYS = frozenset(
         "test_prediction_provenance",
         "active_exit_registry_projection",
         "active_exit_artifact_manifests",
+        "canonical_active_exit_replay_producer",
         "replay_rows",
         "exit_trace_rows",
         "exit_replay_coverage",
@@ -1101,24 +1163,368 @@ def require_joint_exit_portfolio_capacity(
     }
 
 
+def canonical_active_exit_replay_source_code_files() -> frozenset[str]:
+    """Return every local source byte reachable by the canonical producer."""
+
+    from gx1.exits.training.thin_record_dataset import (
+        V3_TRAINING_SOURCE_CODE_FILES,
+    )
+
+    return frozenset(
+        set(V3_TRAINING_SOURCE_CODE_FILES)
+        | set(_CANONICAL_ACTIVE_EXIT_REPLAY_ADDITIONAL_SOURCE_FILES)
+    )
+
+
+def build_canonical_active_exit_replay_source_inventory(
+    repo_root: Path,
+) -> list[dict[str, str]]:
+    root = Path(repo_root).expanduser()
+    if (
+        not root.is_absolute()
+        or root.is_symlink()
+        or not root.is_dir()
+        or root.resolve() != root
+    ):
+        _fail("CANONICAL_ACTIVE_EXIT_SOURCE", "repository root is invalid")
+    inventory: list[dict[str, str]] = []
+    for relative in sorted(canonical_active_exit_replay_source_code_files()):
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            _fail(
+                "CANONICAL_ACTIVE_EXIT_SOURCE",
+                f"source file is missing/noncanonical: {relative}",
+            )
+        before = os.lstat(path)
+        if not stat.S_ISREG(before.st_mode):
+            _fail(
+                "CANONICAL_ACTIVE_EXIT_SOURCE",
+                f"source path is not a regular file: {relative}",
+            )
+        digest = sha256_file(path)
+        after = os.lstat(path)
+        if (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+            before.st_ctime_ns,
+        ) != (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+        ):
+            _fail(
+                "CANONICAL_ACTIVE_EXIT_SOURCE",
+                f"source file changed while hashing: {relative}",
+            )
+        inventory.append(
+            {
+                "relative_path": relative,
+                "path": str(path.resolve()),
+                "sha256": digest,
+            }
+        )
+    return inventory
+
+
+def _require_canonical_frozen_pair(
+    value: object,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    envelope = _exact_keys(
+        value,
+        frozenset({"generation_root", "identity"}),
+        context=context,
+    )
+    generation_root = Path(str(envelope["generation_root"] or "")).expanduser()
+    if (
+        not generation_root.is_absolute()
+        or generation_root.is_symlink()
+        or not generation_root.is_dir()
+    ):
+        _fail(context, "prebuilt generation root is invalid")
+    identity = _exact_keys(
+        envelope["identity"],
+        frozenset(
+            {
+                "manifest_path",
+                "manifest_sha256",
+                "pair_generation_id",
+                "canonical_v3",
+                "base28",
+                "refresh_enabled",
+            }
+        ),
+        context=f"{context}.identity",
+    )
+    if identity["refresh_enabled"] is not False:
+        _fail(context, "prebuilt pair must have refresh disabled")
+    from gx1.execution.v12_state_from_prebuilt import (
+        read_prebuilt_pair_manifest,
+        verify_prebuilt_pair,
+    )
+
+    binding = read_prebuilt_pair_manifest(
+        Path(str(identity["manifest_path"] or "")),
+        generation_root=generation_root,
+    )
+    verify_prebuilt_pair(binding)
+    expected = {
+        "manifest_path": str(binding.manifest_path),
+        "manifest_sha256": binding.manifest_sha256,
+        "pair_generation_id": binding.pair_generation_id,
+        "canonical_v3": {
+            "path": str(binding.canonical_v3.parquet_path),
+            "sha256": binding.canonical_v3.parquet_sha256,
+            "rows": binding.canonical_v3.rows,
+            "cols_total": binding.canonical_v3.cols_total,
+        },
+        "base28": {
+            "path": str(binding.base28.parquet_path),
+            "sha256": binding.base28.parquet_sha256,
+            "rows": binding.base28.rows,
+            "cols_total": binding.base28.cols_total,
+        },
+        "refresh_enabled": False,
+    }
+    if identity != expected:
+        _fail(context, "frozen prebuilt pair identity changed")
+    return {
+        "generation_root": str(generation_root.resolve()),
+        "identity": expected,
+    }
+
+
+def require_canonical_active_exit_replay_producer_evidence(
+    value: object,
+    *,
+    proof: Mapping[str, Any],
+    context: str,
+    verify_source_files: bool,
+) -> dict[str, Any]:
+    """Revalidate the producer-owned inputs behind one full-TEST replay."""
+
+    evidence = _exact_keys(
+        value,
+        _CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS,
+        context=context,
+    )
+    if (
+        evidence["schema_version"]
+        != CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_SCHEMA_VERSION
+        or evidence["producer_contract"]
+        != CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_CONTRACT
+        or evidence["decision"] != "PASS"
+        or evidence["failures"] != []
+    ):
+        _fail(context, "canonical producer evidence is not exact PASS")
+    canonical_oos = _source_binding(
+        evidence["canonical_oos_rows"],
+        context=f"{context}.canonical_oos_rows",
+        verify_file=verify_source_files,
+    )
+    oos_proof_binding = require_immutable_json_binding(
+        proof["oos_proof_artifact"],
+        event_prefix="ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF",
+        context=f"{context}.oos_proof_binding",
+        verify_file=True,
+    )
+    oos_proof = _read_bound_json_exact(
+        oos_proof_binding,
+        context=f"{context}.oos_proof",
+    )
+    expected_oos = _source_binding(
+        oos_proof["source_bindings"]["oos_rows"],
+        context=f"{context}.proof_oos_rows",
+        verify_file=verify_source_files,
+    )
+    if canonical_oos != expected_oos:
+        _fail(context, "canonical OOS binding differs from proof")
+    if (
+        evidence["active_exit_registry_projection"]
+        != proof["active_exit_registry_projection"]
+        or evidence["active_exit_artifact_manifests"]
+        != proof["active_exit_artifact_manifests"]
+    ):
+        _fail(context, "active Exit authority differs from producer evidence")
+    producer_replay = _source_binding(
+        evidence["replay_rows"],
+        context=f"{context}.replay_rows",
+        verify_file=verify_source_files,
+    )
+    proof_replay = _source_binding(
+        proof["replay_rows"],
+        context=f"{context}.proof_replay_rows",
+        verify_file=verify_source_files,
+    )
+    producer_trace = _source_binding(
+        evidence["exit_trace_rows"],
+        context=f"{context}.exit_trace_rows",
+        verify_file=verify_source_files,
+    )
+    proof_trace = _source_binding(
+        proof["exit_trace_rows"],
+        context=f"{context}.proof_exit_trace_rows",
+        verify_file=verify_source_files,
+    )
+    if producer_replay != proof_replay or producer_trace != proof_trace:
+        _fail(context, "producer output bindings differ from joint proof")
+    source_tape = _source_binding(
+        evidence["source_tape"],
+        context=f"{context}.source_tape",
+        verify_file=verify_source_files,
+    )
+    oos_source_binding = require_immutable_json_binding(
+        oos_proof["oos_source_artifact"],
+        event_prefix="ENTRY_MODEL_NATIVE_SIZING_OOS_SOURCE",
+        context=f"{context}.oos_source_binding",
+        verify_file=True,
+    )
+    oos_source = _read_bound_json_exact(
+        oos_source_binding,
+        context=f"{context}.oos_source",
+    )
+    expected_tape = _source_binding(
+        {
+            "path": oos_source["source_tape"]["path"],
+            "sha256": oos_source["source_tape"]["sha256"],
+        },
+        context=f"{context}.proof_source_tape",
+        verify_file=verify_source_files,
+    )
+    if source_tape != expected_tape:
+        _fail(context, "SourceTape binding differs from canonical OOS source")
+    runtime_predictions = _source_binding(
+        evidence["runtime_predictions"],
+        context=f"{context}.runtime_predictions",
+        verify_file=verify_source_files,
+    )
+    report_binding = require_immutable_json_binding(
+        evidence["prediction_report_artifact"],
+        event_prefix="ENTRY_CANDIDATE_SELECTIVE_EDGE",
+        context=f"{context}.prediction_report",
+        verify_file=verify_source_files,
+    )
+    provenance = proof["test_prediction_provenance"]
+    if (
+        evidence["prediction_provenance"] != provenance
+        or report_binding != provenance["prediction_report_artifact"]
+    ):
+        _fail(context, "prediction provenance differs from OOS proof")
+    if verify_source_files:
+        from gx1.execution.model_native_entry_replay_v1 import SourceTape
+        from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+            resolve_and_validate_prediction_evidence,
+        )
+
+        tape = SourceTape.load(Path(source_tape["path"]))
+        if tape.source_sha256 != source_tape["sha256"]:
+            _fail(context, "SourceTape bytes differ from producer evidence")
+        report = _read_bound_json_exact(
+            report_binding,
+            context=f"{context}.prediction_report_payload",
+        )
+        authoritative, _report, declaration = (
+            resolve_and_validate_prediction_evidence(
+                Path(runtime_predictions["path"]),
+                prediction_report_path=Path(report_binding["json_path"]),
+                bundle_dir=Path(str(provenance["bundle_dir"])),
+                dataset_dir=Path(str(provenance["dataset_dir"])),
+                expected_model="candidate",
+                require_runtime_head_evidence=True,
+            )
+        )
+        if (
+            str(authoritative.resolve()) != runtime_predictions["path"]
+            or sha256_file(authoritative) != runtime_predictions["sha256"]
+            or report.get("prediction_evidence") != declaration
+            or list(declaration.get("models") or []) != ["candidate"]
+            or list(declaration.get("splits") or []) != ["test"]
+        ):
+            _fail(context, "runtime prediction evidence changed")
+    frozen_pair = _require_canonical_frozen_pair(
+        evidence["prebuilt_pair"],
+        context=f"{context}.prebuilt_pair",
+    )
+    if evidence["prebuilt_pair"] != frozen_pair:
+        _fail(context, "prebuilt pair evidence is noncanonical")
+    raw_sources = evidence["producer_source_files"]
+    if not isinstance(raw_sources, list):
+        _fail(context, "producer source inventory is invalid")
+    expected_sources = build_canonical_active_exit_replay_source_inventory(
+        Path(__file__).resolve().parents[2]
+    )
+    if (
+        raw_sources != expected_sources
+        or evidence["producer_source_inventory_sha256"]
+        != _canonical_sha256(expected_sources)
+    ):
+        _fail(context, "producer source bytes differ")
+    coverage = proof["exit_replay_coverage"]
+    for key in ("rows", "trade_rows"):
+        value_for_key = evidence[key]
+        if (
+            isinstance(value_for_key, bool)
+            or not isinstance(value_for_key, int)
+            or value_for_key != int(coverage[key])
+        ):
+            _fail(context, f"{key} differs from proof coverage")
+    trace_rows = evidence["trace_rows"]
+    if (
+        isinstance(trace_rows, bool)
+        or not isinstance(trace_rows, int)
+        or trace_rows < int(coverage["trade_rows"])
+        or evidence["first_utc"] != coverage["first_utc"]
+        or evidence["last_utc"] != coverage["last_utc"]
+    ):
+        _fail(context, "producer row/time summary differs from proof")
+    if verify_source_files:
+        replay_frame = read_bound_parquet_exact(
+            producer_replay,
+            context=f"{context}.producer_replay_exact",
+        )
+        trace_frame = read_bound_parquet_exact(
+            producer_trace,
+            context=f"{context}.producer_trace_exact",
+        )
+        if "model_direction_index" not in replay_frame.columns:
+            _fail(context, "producer replay lacks model direction column")
+        directions = _strict_directions(
+            replay_frame,
+            context=f"{context}.producer_replay_directions",
+        )
+        if (
+            len(replay_frame) != evidence["rows"]
+            or int(np.count_nonzero(directions != 2)) != evidence["trade_rows"]
+            or len(trace_frame) != trace_rows
+        ):
+            _fail(context, "producer output row summary differs from bound files")
+    return dict(evidence)
+
+
 def require_canonical_active_exit_replay_launch_authority(
     proof: Mapping[str, Any],
     *,
     context: str,
 ) -> None:
-    """Fail closed until one producer runs the exact active Exit stack.
+    """Require producer-owned full-TEST rows from the exact active Exit stack."""
 
-    The current joint-proof finalizer validates caller-supplied replay and
-    trace parquets. It does not itself run XGB -> V3 -> Exit-IQL/Strategy-F
-    against hash-bound M1/prebuilt state, so those rows have diagnostic value
-    only and can never authorize launch.
-    """
-
-    del proof
-    _fail(
-        context,
-        "canonical active Exit replay producer is absent; caller-supplied "
-        "replay/trace rows have zero launch authority",
+    evidence = proof.get("canonical_active_exit_replay_producer")
+    if evidence is None:
+        _fail(
+            context,
+            "canonical active Exit replay producer is absent; caller-supplied "
+            "replay/trace rows have zero launch authority",
+        )
+    require_canonical_active_exit_replay_producer_evidence(
+        evidence,
+        proof=proof,
+        context=f"{context}.canonical_producer",
+        verify_source_files=True,
     )
 
 
@@ -1277,6 +1683,16 @@ def load_bound_joint_exit_sizing_proof(
             section = observed[name]
             if not isinstance(section, Mapping) or section.get("decision") != "PASS":
                 _fail(context, f"{name} must be row-recomputed PASS")
+        producer_evidence = observed[
+            "canonical_active_exit_replay_producer"
+        ]
+        if producer_evidence is not None:
+            require_canonical_active_exit_replay_producer_evidence(
+                producer_evidence,
+                proof=observed,
+                context=f"{context}.canonical_producer",
+                verify_source_files=verify_source_files,
+            )
         return observed, canonical_binding
     except ModelNativeSizingContractError as exc:
         raise ModelNativeSizingExecutionContractError(str(exc)) from exc
@@ -1535,6 +1951,8 @@ def load_bound_runtime_sizing_parity(
 
 
 __all__ = [
+    "CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_CONTRACT",
+    "CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_SCHEMA_VERSION",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS",
@@ -1555,11 +1973,14 @@ __all__ = [
     "ModelNativeSizingExecutionContractError",
     "active_exit_artifact_manifests",
     "active_exit_registry_projection",
+    "build_canonical_active_exit_replay_source_inventory",
+    "canonical_active_exit_replay_source_code_files",
     "joint_exit_trace_sha256",
     "load_bound_joint_exit_sizing_proof",
     "load_bound_runtime_sizing_parity",
     "recompute_joint_exit_replay_coverage",
     "require_canonical_active_exit_replay_launch_authority",
+    "require_canonical_active_exit_replay_producer_evidence",
     "require_joint_exit_portfolio_capacity",
     "require_joint_replay_extends_canonical_oos_rows",
     "recompute_runtime_sizing_parity_coverage",
