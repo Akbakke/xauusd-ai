@@ -10,6 +10,7 @@ from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS_SHA256,
     ORDERED_INPUT_LAYOUT,
     OUTPUT_DIM,
+    PREDICTION_UNIT_CONTRACT,
     direction_evidence_fusion_metadata,
     require_direction_evidence_fusion_metadata,
 )
@@ -22,7 +23,7 @@ def test_direction_evidence_fusion_layout_is_exact_and_hash_bound() -> None:
     assert OUTPUT_DIM == 3
     assert FUSION_MODE == "sole_learned_acyclic_96x128x3"
     assert INPUTS_SHA256 == (
-        "6444c0339c0b0a8a0b8e503993adad945934ef1e57b5e2ef9d4c968d32fe5e9f"
+        "7e65d83b4b1cb2868ffc2353cbaa8cda8488d0fe24eb2f902fbf87e6f16d1d9b"
     )
     assert ORDERED_INPUT_LAYOUT[0] == {
         "name": "model_native_logits",
@@ -31,6 +32,14 @@ def test_direction_evidence_fusion_layout_is_exact_and_hash_bound() -> None:
         "stop": 3,
     }
     assert ORDERED_INPUT_LAYOUT[-1]["stop"] == 96
+    assert PREDICTION_UNIT_CONTRACT["train_target_bps_scale"] == 20.0
+    assert PREDICTION_UNIT_CONTRACT["raw_bps_outputs_forbidden"] is True
+    assert PREDICTION_UNIT_CONTRACT["bps_scaled_outputs"] == [
+        "dip_pred",
+        "forecast_pred",
+        "tail_risk_pred",
+        "vol_forecast_pred",
+    ]
 
 
 def test_direction_evidence_fusion_metadata_has_no_soft_compatibility() -> None:

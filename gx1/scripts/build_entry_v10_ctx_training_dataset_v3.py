@@ -91,6 +91,10 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_TARGET_COLUMNS,
     MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN,
     MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
+    MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
+    MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS,
+    MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
+    MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
     model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
@@ -292,6 +296,23 @@ def _validate_model_native_aux_head_targets(
             )
         if not np.isnan(values[~expected_finite]).all():
             raise RuntimeError(f"MODEL_NATIVE_AUX_TARGET_TAIL_MUST_BE_NAN: {name}")
+        complete_values = values[expected_finite]
+        if name in MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS:
+            if np.any(
+                complete_values > float(MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS)
+            ):
+                raise RuntimeError(
+                    "MODEL_NATIVE_AUX_TARGET_DOMAIN_INVALID: "
+                    f"{name} exceeds signed MFE upper safety cap"
+                )
+        elif name in MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS:
+            if np.any(complete_values < 0.0) or np.any(
+                complete_values > float(MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS)
+            ):
+                raise RuntimeError(
+                    "MODEL_NATIVE_AUX_TARGET_DOMAIN_INVALID: "
+                    f"{name} must remain a non-negative MAE magnitude"
+                )
         complete &= observed_finite
 
     expected_complete = row_index < max(
@@ -366,10 +387,10 @@ def _build_model_native_aux_head_targets(
                 f"MODEL_NATIVE_AUX_TARGET_PREFIX_INVALID: {name} got={values.shape} expected={(valid_rows,)}"
             )
         full = np.full(n_rows, np.nan, dtype=np.float32)
-        if lower is not None and upper is not None:
-            values = np.clip(values, lower, upper)
-        elif lower is not None or upper is not None:
-            raise RuntimeError(f"MODEL_NATIVE_AUX_TARGET_CLIP_CONTRACT_INVALID: {name}")
+        if lower is not None:
+            values = np.maximum(values, lower)
+        if upper is not None:
+            values = np.minimum(values, upper)
         full[:valid_rows] = values.astype(np.float32)
         computed[name] = full
 
@@ -481,13 +502,13 @@ def _build_model_native_aux_head_targets(
                 f"y_dip_mae_{side}_K{horizon}",
                 mae_before_spread,
                 lower=0.0,
-                upper=1000.0,
+                upper=MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS,
             )
             _store_prefix(
                 f"y_dip_mfe_{side}_K{horizon}",
                 mfe_spread,
-                lower=0.0,
-                upper=1000.0,
+                lower=None,
+                upper=MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
             )
             _store_prefix(
                 f"y_dip_bottom_frac_{side}_K{horizon}",

@@ -59,6 +59,10 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     active_loss_weight_failures as _model_native_active_loss_weight_failures,
     training_objective_contract_metadata,
 )
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV_KEYS,
+    require_model_native_recipe_env,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
@@ -158,8 +162,19 @@ def dip_forecast_loss(
     out: dict,
     batch: dict,
     device,
+    *,
+    bps_scale: float,
 ) -> "torch.Tensor":
     """Loss for the exact dip/forecast/timing/tail/vol target surface."""
+    normalized_bps_scale = float(bps_scale)
+    if (
+        not np.isfinite(normalized_bps_scale)
+        or normalized_bps_scale <= 0.0
+    ):
+        raise RuntimeError(
+            "[ENTRY_FORWARD_AUX_BPS_SCALE_INVALID] "
+            f"observed={normalized_bps_scale!r}"
+        )
     total = torch.zeros((), device=device)
     dip_pred = _require_active_aux_head_prediction(
         out,
@@ -177,7 +192,10 @@ def dip_forecast_loss(
                 else:  # dip_p50 / dip_p90
                     tgts.append(batch[f"y_dip_mae_{d}_K{K}"])
                     qs.append(0.9 if "p90" in tgt else 0.5)
-    tgt = torch.stack(tgts, dim=1).to(device).float()          # (B, 18)
+    tgt = (
+        torch.stack(tgts, dim=1).to(device).float()
+        / normalized_bps_scale
+    )  # (B, 18), model-unit scale
     q = torch.tensor(qs, device=device, dtype=tgt.dtype).view(1, -1)
     err = tgt - dip_pred.float()
     total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
@@ -187,7 +205,13 @@ def dip_forecast_loss(
         output_name="forecast_pred",
         target_names=_FORECAST_TARGET_COLS,
     )
-    fc_tgt = torch.stack([batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS], dim=1).to(device).float()
+    fc_tgt = (
+        torch.stack(
+            [batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS],
+            dim=1,
+        ).to(device).float()
+        / normalized_bps_scale
+    )
     total = total + torch.nn.functional.smooth_l1_loss(fc_pred.float(), fc_tgt)
     # ── dip-timing head (12, smooth_l1) — WHEN the dip bottoms / favorable peak ─
     timing_pred = _require_active_aux_head_prediction(
@@ -212,7 +236,10 @@ def dip_forecast_loss(
     )
     tail_tgts = [batch[f"y_tail_mae_{d}_K{K}"]
                  for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
-    tail_tgt = torch.stack(tail_tgts, dim=1).to(device).float()    # (B, 6)
+    tail_tgt = (
+        torch.stack(tail_tgts, dim=1).to(device).float()
+        / normalized_bps_scale
+    )  # (B, 6), model-unit scale
     q = float(TAIL_RISK_QUANTILE)
     err = tail_tgt - tail_pred.float()
     total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
@@ -223,7 +250,13 @@ def dip_forecast_loss(
         output_name="vol_forecast_pred",
         target_names=_VOL_FORECAST_TARGET_COLS,
     )
-    vol_tgt = torch.stack([batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS], dim=1).to(device).float()
+    vol_tgt = (
+        torch.stack(
+            [batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS],
+            dim=1,
+        ).to(device).float()
+        / normalized_bps_scale
+    )
     total = total + torch.nn.functional.smooth_l1_loss(vol_pred.float(), vol_tgt)
     return total
 
@@ -947,173 +980,8 @@ def _current_model_native_active_loss_weights() -> Dict[str, float]:
         "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": float(ENTRY_TRENDLINE_RAIL_AUX_WEIGHT),
     }
 
-_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
-    "ENTRY_DIRECTION_CLASS_WEIGHT_CAP": "8.0",
-    "ENTRY_FLAT_CLASS_WEIGHT_FLOOR": "1.0",
-    "ENTRY_COST_SENSITIVE_LOSS": "1",
-    "ENTRY_COST_SENSITIVE_SCALE": "0.25",
-    "ENTRY_COST_LONG_TO_SHORT": "2.00",
-    "ENTRY_COST_LONG_TO_FLAT": "0.45",
-    "ENTRY_COST_SHORT_TO_LONG": "2.00",  # 2026-05-26: symmetrized (was 3.00, anti-long)
-    "ENTRY_COST_SHORT_TO_FLAT": "0.45",
-    "ENTRY_COST_FLAT_TO_LONG": "1.60",   # 2026-05-26: symmetrized (was 2.75, anti-long)
-    "ENTRY_COST_FLAT_TO_SHORT": "1.60",
-    "ENTRY_PRED_BALANCE_ALPHA": "0.0",
-    "ENTRY_PRED_BALANCE_TARGET": "label",
-    "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,1.0",
-    "ENTRY_DIRECTION_CE_SCALE": "4.00",
-    "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.35",
-    "ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE": "0.70",
-    "ENTRY_TAIL_DIRECTION_MIN_BATCH": "8",
-    "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.0",
-    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.0",
-    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.0",
-    "ENTRY_CKPT_DIRECTION_SLICE_GUARD": "0",
-    "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.0",
-    "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.0",
-    "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE": "1.0",
-    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
-    "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION": "0.0",
-    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR": "0.0",
-    "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES": "0,1,2,3,4",
-    "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
-    "ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_BALANCED_CE_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_BALANCED_CE_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN": "0.10",
-    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_TRUE_MARGIN_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MARGIN": "0.02",
-    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_CONFUSION_PAIR_MARGIN": "0.02",
-    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_ACCURACY_EDGE_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_TOLERANCE": "0.02",
-    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_SLICE_PRIOR_MATCH_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
-    "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER": "0",
-    "ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_PATIENCE": "0",
-    "ENTRY_DIRECTION_SLICE_HARD_RED_STOP_MIN_EPOCHS": "6",
-    "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
-    "ENTRY_DIRECTION_UTILITY_MARGIN_WEIGHT": "4.00",
-    "ENTRY_DIRECTION_UTILITY_MIN_GAP_BPS": "15.0",
-    "ENTRY_DIRECTION_UTILITY_LOGIT_MARGIN": "0.10",
-    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT": "6.00",
-    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_MIN_GAP_BPS": "15.0",
-    "ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_LOGIT_MARGIN": "0.10",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT": "8.00",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_GAP_BPS": "15.0",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MIN_UTILITY_BPS": "0.0",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_MAX_BAD_PATH": "0.50",
-    "ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_LOGIT_MARGIN": "0.10",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT": "8.00",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_GAP_BPS": "15.0",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MIN_UTILITY_BPS": "0.0",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_MAX_BAD_PATH": "0.50",
-    "ENTRY_DIRECTION_UTILITY_TRIAD_CE_CLASS_WEIGHT_CAP": "4.0",
-    "ENTRY_DIRECTION_FLAT_STARVATION_WEIGHT": "0.0",
-    "ENTRY_DIRECTION_FLAT_STARVATION_MIN_LABEL_RATE": "0.10",
-    "ENTRY_DIRECTION_FLAT_STARVATION_MIN_ROWS": "8",
-    "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FRACTION": "0.50",
-    "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR": "0.10",
-    "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN": "0.10",
-    "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.05",
-    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.50",
-    "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
-    "ENTRY_MTF_DIR_AUX_WEIGHT": "0.30",
-    "ENTRY_OFFLINE_RL_Q_WEIGHT": "0.50",
-    "ENTRY_OFFLINE_RL_V_WEIGHT": "0.20",
-    "ENTRY_OFFLINE_RL_RANK_WEIGHT": "0.05",
-    "ENTRY_AUX_PATH_WEIGHT": "0.90",
-    "ENTRY_AUX_MFE_WEIGHT": "0.25",
-    "ENTRY_AUX_TRADABLE_WEIGHT": "1.15",
-    "ENTRY_AUX_BAD_PATH_WEIGHT": "1.25",
-    "ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP": "20.0",
-    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "2.00",
-    "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN": "0.20",
-    "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE": "0.25",
-    "ENTRY_PATH_QUALITY_RANK_WEIGHT": "2.00",
-    "ENTRY_PATH_QUALITY_RANK_MARGIN": "0.20",
-    "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
-    "ENTRY_AUX_PATH_SCALE_BPS": "50.0",
-    "ENTRY_AUX_MFE_SCALE_BPS": "20.0",
-    "ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP": "12.0",
-    "ENTRY_HARD_NEG_LONG_CE_MULTIPLIER": "1.35",
-    "ENTRY_HARD_NEG_LONG_PROB_PENALTY": "0.20",
-    "ENTRY_DEAD_LONG_CE_MULTIPLIER": "1.80",
-    "ENTRY_DEAD_LONG_PROB_PENALTY": "0.40",
-    "ENTRY_TEASER_LONG_CE_MULTIPLIER": "1.35",
-    "ENTRY_TEASER_LONG_PROB_PENALTY": "0.16",
-    "ENTRY_SYMMETRIC_NEGATIVES": "1",
-    "ENTRY_BAD_PATH_CE_MULTIPLIER": "1.50",
-    "ENTRY_BAD_PATH_PROB_PENALTY": "0.24",
-    "ENTRY_AUX_CLEAN_EDGE_WEIGHT": "0.45",
-    "ENTRY_AUX_SURVIVAL_WEIGHT": "0.10",
-    "ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP": "16.0",
-    "ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP": "10.0",
-    "ENTRY_CLEAN_EDGE_RANKING_WEIGHT": "0.25",
-    "ENTRY_CLEAN_EDGE_RANKING_MARGIN": "0.12",
-    "ENTRY_HIER_TRADE_WEIGHT": "2.00",
-    "ENTRY_HIER_SIDE_WEIGHT": "1.75",
-    "ENTRY_HIER_UTILITY_WEIGHT": "1.00",
-    "ENTRY_HIER_BAD_PATH_WEIGHT": "1.25",
-    "ENTRY_HIER_MAE_WEIGHT": "0.35",
-    "ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP": "20.0",
-    "ENTRY_HIER_SIDE_VALIDITY_WEIGHT": "1.50",
-    "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS": "15.0",
-    "ENTRY_HIER_SIDE_VALIDITY_POS_WEIGHT_CAP": "8.0",
-    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT": "0.0",
-    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
-    "ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_TOLERANCE": "0.02",
-    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_TRADE_PRIOR_MATCH_MIN_ROWS": "8",
-    "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_TRADE_ACCURACY_EDGE_MARGIN": "0.02",
-    "ENTRY_HIER_FLAT_LOGIT_MARGIN_WEIGHT": "0.0",
-    "ENTRY_HIER_FLAT_LOGIT_MARGIN": "0.10",
-    "ENTRY_HIER_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN": "0.10",
-    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_FLAT_LOGIT_MARGIN_MIN_ROWS": "8",
-    "ENTRY_HIER_SLICE_SIDE_CE_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_SIDE_TRUE_MARGIN": "0.10",
-    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_SIDE_ACCURACY_EDGE_MARGIN": "0.02",
-    "ENTRY_HIER_SLICE_SIDE_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_SIDE_MIN_ROWS": "8",
-    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT": "0.0",
-    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_TOLERANCE": "0.02",
-    "ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_WEIGHT": "0.0",
-    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_TOLERANCE": "0.02",
-    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_LABEL_RATE": "0.10",
-    "ENTRY_HIER_SLICE_SIDE_PRIOR_MATCH_MIN_ROWS": "8",
-    "ENTRY_TRENDLINE_RAIL_AUX_WEIGHT": "1.00",
-    "GX1_CTX_CONTRACT": "V_NEXT",
-}
-
-
 def _enforce_canonical_train_env_contract() -> None:
-    """Reject historical escape hatches; recipe env is audit-bound upstream."""
+    """Require the exact recipe at the trainer boundary with no ambient controls."""
     forbidden = [
         name
         for name in (
@@ -1126,6 +994,34 @@ def _enforce_canonical_train_env_contract() -> None:
         raise RuntimeError(
             "[ENTRY_CANONICAL_TRAIN_ENV_BYPASS_FORBIDDEN] "
             + ", ".join(sorted(forbidden))
+        )
+    recipe_env = {
+        key: os.environ[key]
+        for key in MODEL_NATIVE_RECIPE_ENV_KEYS
+        if key in os.environ
+    }
+    try:
+        require_model_native_recipe_env(recipe_env)
+    except RuntimeError as exc:
+        raise RuntimeError(f"[ENTRY_TRAIN_RECIPE_ENV_INVALID] {exc}") from exc
+    allowed_runtime_env = {
+        *_TRAIN_ARTIFACT_HASH_ENV.values(),
+        _TRAIN_DATASET_RUN_ID_ENV,
+    }
+    extra_controls = sorted(
+        key
+        for key in os.environ
+        if (
+            key.startswith("ENTRY_")
+            or key.startswith("GX1_")
+        )
+        and key not in MODEL_NATIVE_RECIPE_ENV_KEYS
+        and key not in allowed_runtime_env
+    )
+    if extra_controls:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_AMBIENT_CONTROL_FORBIDDEN] "
+            + ", ".join(extra_controls)
         )
 
 # -----------------------------------------------------------------------------
@@ -1522,6 +1418,7 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "train_parquet": "GX1_ENTRY_TRAIN_PARQUET_SHA256",
     "val_parquet": "GX1_ENTRY_VAL_PARQUET_SHA256",
     "test_parquet": "GX1_ENTRY_TEST_PARQUET_SHA256",
+    "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
 }
 _TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
@@ -1554,10 +1451,11 @@ def _resolve_explicit_train_split_artifacts(
     train_parquet: Path,
     val_parquet: Path,
     test_parquet: Path,
+    m5_prebuilt_path: Path,
     dataset_run_id: str,
     profile: str,
 ) -> Tuple[Dict[str, Path], Dict[str, Path]]:
-    """Verify the six launch-bound dataset artifacts without discovery/inference."""
+    """Verify every launch-bound dataset artifact without discovery/inference."""
 
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
@@ -1580,6 +1478,17 @@ def _resolve_explicit_train_split_artifacts(
         "val": _explicit_regular_artifact(val_parquet, label="val_parquet"),
         "test": _explicit_regular_artifact(test_parquet, label="test_parquet"),
     }
+    m5_prebuilt = _explicit_regular_artifact(
+        m5_prebuilt_path,
+        label="m5_prebuilt_path",
+    )
+    expected_m5_sha256 = _expected_train_artifact_sha256("m5_prebuilt_path")
+    observed_m5_sha256 = _sha256_file(m5_prebuilt)
+    if observed_m5_sha256 != expected_m5_sha256:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_ARTIFACT_SHA256_MISMATCH] m5_prebuilt_path "
+            f"expected={expected_m5_sha256} observed={observed_m5_sha256}"
+        )
     all_paths = tuple(manifests.values()) + tuple(parquets.values())
     if len(set(all_paths)) != len(all_paths):
         raise RuntimeError("[ENTRY_TRAIN_SPLIT_ARTIFACT_PATHS_NOT_DISTINCT]")
@@ -1635,11 +1544,39 @@ def _resolve_explicit_train_split_artifacts(
         elif contract != reference_contract:
             raise RuntimeError("[ENTRY_TRAIN_SPLIT_SIGNAL_CONTRACT_MISMATCH]")
         extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+        inputs = payload.get("inputs") if isinstance(payload.get("inputs"), dict) else {}
+        declared_m5_raw = str(inputs.get("source_parquet") or "").strip()
+        declared_m5 = Path(declared_m5_raw).expanduser()
+        if not declared_m5.is_absolute() or declared_m5 != m5_prebuilt:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_SPLIT_M5_SOURCE_PATH_MISMATCH] {split}: "
+                f"declared={declared_m5_raw!r} expected={m5_prebuilt}"
+            )
         state_contract = (
             extra.get("model_native_state_contract")
             if isinstance(extra.get("model_native_state_contract"), dict)
             else None
         )
+        state_m5_raw = str(
+            state_contract.get("rank_reference_source_parquet")
+            if state_contract is not None
+            else ""
+        ).strip()
+        state_m5 = Path(state_m5_raw).expanduser()
+        state_m5_sha256 = str(
+            state_contract.get("rank_reference_source_parquet_sha256")
+            if state_contract is not None
+            else ""
+        ).strip().lower()
+        if (
+            not state_m5.is_absolute()
+            or state_m5 != m5_prebuilt
+            or state_m5_sha256 != expected_m5_sha256
+        ):
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_SPLIT_M5_STATE_BINDING_MISMATCH] {split}: "
+                f"path={state_m5_raw!r} sha256={state_m5_sha256!r}"
+            )
         manifest_dataset_run_id = extra.get("entry_run_id")
         state_dataset_run_id = (
             state_contract.get("entry_run_id")
@@ -2167,11 +2104,77 @@ def _log_label_distribution(parquet_path: Path, split: str) -> None:
 # -----------------------------------------------------------------------------
 # Dataset
 # -----------------------------------------------------------------------------
-# Module-level cache for multi-TF feature tables. Keyed by absolute m5
-# prebuilt path. Lets train_ds + val_ds share the ~3GB resampled DataFrames
-# instead of each building their own (memory-blow-up that caused OOM on
-# 15GB hosts during V12.2 development).
+# Module-level cache for the exact causal V2 multi-TF feature tables.  The
+# contract-qualified key is shared by the pre-train peak-memory build and every
+# dataset instance so one source path can produce only one in-process object.
 _MULTI_TF_CACHE: Dict[str, Dict[str, pd.DataFrame]] = {}
+_MULTI_TF_CACHE_CONTRACT = "V2_CAUSAL"
+
+
+def _multi_tf_cache_key(
+    m5_prebuilt_path: Path,
+    *,
+    contract_mode: str = _MULTI_TF_CACHE_CONTRACT,
+) -> str:
+    if contract_mode != _MULTI_TF_CACHE_CONTRACT:
+        raise RuntimeError(
+            "[MULTI_TF_CACHE_CONTRACT_MODE_INVALID] "
+            f"observed={contract_mode!r} expected={_MULTI_TF_CACHE_CONTRACT!r}"
+        )
+    return (
+        f"{Path(m5_prebuilt_path).expanduser().resolve()}"
+        f"|contract={_MULTI_TF_CACHE_CONTRACT}"
+    )
+
+
+def _prebuild_multi_tf_v2_features_once(
+    m5_prebuilt_path: Path,
+) -> Dict[str, pd.DataFrame]:
+    """Build the exact V2 causal tables once and return their shared identity."""
+
+    m5_path = Path(m5_prebuilt_path).expanduser().resolve()
+    if not m5_path.is_file():
+        raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
+    cache_key = _multi_tf_cache_key(m5_path)
+    cached = _MULTI_TF_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+
+    load_cols = ["time", "open", "high", "low", "close", "volume"]
+    import pyarrow.parquet as pq
+
+    source_columns = set(pq.ParquetFile(m5_path).schema_arrow.names)
+    missing = [name for name in load_cols if name not in source_columns]
+    if missing:
+        raise RuntimeError(
+            "[MULTI_TF_SOURCE_CONTRACT] exact canonical M5 OHLCV source missing: "
+            f"{missing}"
+        )
+    log.info(
+        "[MULTI_TF] pre-building exact V2 causal features once: %s",
+        m5_path.name,
+    )
+    m5 = pd.read_parquet(m5_path, columns=load_cols)
+    m5["time"] = pd.to_datetime(m5["time"], utc=True)
+    m5 = m5.set_index("time").sort_index()
+    for column in ("open", "high", "low", "close", "volume"):
+        m5[column] = m5[column].astype(np.float32)
+    feats = build_multi_tf_per_bar_features_v2(m5)
+    del m5
+    import gc
+
+    gc.collect()
+    _MULTI_TF_CACHE[cache_key] = feats
+    for tf_name, frame in feats.items():
+        log.info(
+            "[MULTI_TF] %s: %s bars × %s feats",
+            tf_name,
+            f"{len(frame):,}",
+            frame.shape[1],
+        )
+    return feats
 
 
 class EntryV10CtxDataset(Dataset):
@@ -2434,7 +2437,6 @@ class EntryV10CtxDataset(Dataset):
         # path + GX1_V10_MULTI_TF_V2 env-gate were removed 2026-05-26 — multi-TF×5
         # is the only supported mode (rule: multi_tf_always_mandatory).
         from gx1.features.htf_features import (
-            build_multi_tf_per_bar_features_v2,
             MULTI_TF_FEATURE_COUNT_V2,
             MULTI_TF_SHIFT,
         )
@@ -2446,7 +2448,7 @@ class EntryV10CtxDataset(Dataset):
         m5_path = Path(m5_prebuilt_path)
         if not m5_path.is_file():
             raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
-        cache_key = f"{m5_path.resolve()}|contract=V2_CAUSAL"
+        cache_key = _multi_tf_cache_key(m5_path)
         cached = _MULTI_TF_CACHE.get(cache_key)
         # Disk cache (V2 only): GX1_V10_MULTI_TF_V2_CACHE_DIR points at a pre-built
         # cache from gx1/scripts/prebuild_multi_tf_cache_v2.py. Saves ~84s per init.
@@ -2517,30 +2519,7 @@ class EntryV10CtxDataset(Dataset):
             self._multi_tf_feats = _loaded_cache
             _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
         else:
-            log.info(f"[MULTI_TF] loading M5 prebuilt for exact V2 resample: {m5_path.name}")
-            load_cols = ["time", "open", "high", "low", "close", "volume"]
-            import pyarrow.parquet as pq
-            _source_columns = set(pq.ParquetFile(m5_path).schema_arrow.names)
-            _missing_mtf_source = [name for name in load_cols if name not in _source_columns]
-            if _missing_mtf_source:
-                raise RuntimeError(
-                    "[MULTI_TF_SOURCE_CONTRACT] exact canonical M5 OHLCV source missing: "
-                    f"{_missing_mtf_source}"
-                )
-            m5 = pd.read_parquet(m5_path, columns=load_cols)
-            m5["time"] = pd.to_datetime(m5["time"], utc=True)
-            m5 = m5.set_index("time").sort_index()
-            for c in ("open", "high", "low", "close"):
-                m5[c] = m5[c].astype(np.float32)
-            m5["volume"] = m5["volume"].astype(np.float32)
-            tf_label = "M5+M15+H1+H4+D1 (V2 25-feat causal)"
-            log.info(f"[MULTI_TF] M5 prebuilt: {len(m5):,} rows, building {tf_label}...")
-            self._multi_tf_feats = build_multi_tf_per_bar_features_v2(m5)
-            del m5
-            import gc
-
-            gc.collect()
-            _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
+            self._multi_tf_feats = _prebuild_multi_tf_v2_features_once(m5_path)
         self._multi_tf_shift = MULTI_TF_SHIFT
         self._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
         self._multi_tf_feature_count = int(MULTI_TF_FEATURE_COUNT_V2)
@@ -2797,7 +2776,7 @@ def _direction_slice_ctx_cat_indices(ctx_cat_dim: int) -> list[int]:
 
 
 class _DirectionSliceBalancedSampler(Sampler[int]):
-    """Orders training samples so slice-loss batches contain audited ctx_cat slices."""
+    """Orders every selected row once while concentrating audited slices in batches."""
 
     def __init__(
         self,
@@ -2852,8 +2831,7 @@ class _DirectionSliceBalancedSampler(Sampler[int]):
         self.min_rows = int(min_rows)
         self.seed = int(seed)
         self._iteration = 0
-        self.num_samples = int(np.ceil(labels_arr.shape[0] / self.batch_size) * self.batch_size)
-        self._all_positions = np.arange(labels_arr.shape[0], dtype=np.int64)
+        self.num_samples = int(labels_arr.shape[0])
         self._slice_rows: dict[tuple[int, int], np.ndarray] = {}
         self._slice_class_rows: dict[tuple[tuple[int, int], int], np.ndarray] = {}
         self._active_classes: dict[tuple[int, int], list[int]] = {}
@@ -2901,49 +2879,105 @@ class _DirectionSliceBalancedSampler(Sampler[int]):
     def __len__(self) -> int:
         return self.num_samples
 
-    def _sample_slice_rows(
+    def _sample_slice_rows_without_replacement(
         self,
         rng: np.random.Generator,
         key: tuple[int, int],
+        available: np.ndarray,
     ) -> list[int]:
         active_classes = list(self._active_classes[key])
         out: list[int] = []
         shuffled_classes = list(rng.permutation(active_classes).tolist())
         for cls in shuffled_classes:
             cls_rows = self._slice_class_rows[(key, int(cls))]
-            out.append(int(rng.choice(cls_rows)))
+            eligible = cls_rows[available[cls_rows]]
+            if eligible.size <= 0:
+                return []
+            out.append(int(rng.choice(eligible)))
         all_rows = self._slice_rows[key]
-        while len(out) < self.min_rows:
-            out.append(int(rng.choice(all_rows)))
+        remaining = all_rows[available[all_rows]]
+        if out:
+            remaining = remaining[~np.isin(remaining, np.asarray(out, dtype=np.int64))]
+        needed = self.min_rows - len(out)
+        if needed < 0 or int(remaining.size) < int(needed):
+            return []
+        if needed:
+            out.extend(
+                int(value)
+                for value in np.asarray(
+                    rng.choice(remaining, size=int(needed), replace=False),
+                    dtype=np.int64,
+                ).tolist()
+            )
         rng.shuffle(out)
-        return out[: self.min_rows]
+        if len(out) != self.min_rows or len(set(out)) != len(out):
+            raise RuntimeError(
+                "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_SLICE_SELECTION_INVALID] "
+                f"slice={key} selected={len(out)} unique={len(set(out))} expected={self.min_rows}"
+            )
+        return out
 
     def __iter__(self):
         rng = np.random.default_rng(self.seed + self._iteration)
         self._iteration += 1
-        batches = max(1, self.num_samples // self.batch_size)
+        batches = max(1, int(np.ceil(self.num_samples / self.batch_size)))
         slice_keys = [self._slice_keys[int(i)] for i in rng.permutation(len(self._slice_keys))]
         slice_pos = 0
+        available = np.ones(self.num_samples, dtype=bool)
         emitted = 0
         for _ in range(batches):
             batch: list[int] = []
-            while len(batch) + self.min_rows <= self.batch_size:
+            remaining_count = int(available.sum())
+            target_batch_size = min(self.batch_size, remaining_count)
+            if target_batch_size <= 0:
+                break
+            attempts = 0
+            while (
+                len(batch) + self.min_rows <= target_batch_size
+                and attempts < len(self._slice_keys)
+            ):
                 key = slice_keys[slice_pos]
                 slice_pos += 1
                 if slice_pos >= len(slice_keys):
                     slice_keys = [self._slice_keys[int(i)] for i in rng.permutation(len(self._slice_keys))]
                     slice_pos = 0
-                batch.extend(self._sample_slice_rows(rng, key))
-            while len(batch) < self.batch_size:
-                batch.append(int(rng.choice(self._all_positions)))
+                attempts += 1
+                selected = self._sample_slice_rows_without_replacement(
+                    rng,
+                    key,
+                    available,
+                )
+                if not selected:
+                    continue
+                selected_arr = np.asarray(selected, dtype=np.int64)
+                if not bool(available[selected_arr].all()):
+                    raise RuntimeError(
+                        "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_DUPLICATE_SELECTION]"
+                    )
+                available[selected_arr] = False
+                batch.extend(selected)
+            needed = target_batch_size - len(batch)
+            if needed > 0:
+                remaining = np.flatnonzero(available).astype(np.int64)
+                if int(remaining.size) < int(needed):
+                    raise RuntimeError(
+                        "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_REMAINDER_INVALID] "
+                        f"remaining={remaining.size} needed={needed}"
+                    )
+                selected_arr = np.asarray(
+                    rng.choice(remaining, size=int(needed), replace=False),
+                    dtype=np.int64,
+                )
+                available[selected_arr] = False
+                batch.extend(int(value) for value in selected_arr.tolist())
             rng.shuffle(batch)
             for sample_idx in batch:
                 emitted += 1
                 yield int(sample_idx)
-        if emitted != self.num_samples:
+        if emitted != self.num_samples or bool(available.any()):
             raise RuntimeError(
                 "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_EMIT_MISMATCH] "
-                f"emitted={emitted} expected={self.num_samples}"
+                f"emitted={emitted} expected={self.num_samples} remaining={int(available.sum())}"
             )
 
 
@@ -5027,18 +5061,154 @@ def _aux_selector_mask(
     return y_selector_long_mask.float() > 0.5
 
 
+def _active_aux_target(
+    y_target_long: torch.Tensor,
+    y_target_bidir: torch.Tensor,
+) -> torch.Tensor:
+    """Select the exact target semantics used by the active BCE objective."""
+    return (y_target_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_target_long).float()
+
+
 def _aux_clean_edge_target(
     y_clean_edge_long: torch.Tensor,
     y_clean_edge_bidir: torch.Tensor,
 ) -> torch.Tensor:
-    return (y_clean_edge_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_clean_edge_long).float()
+    return _active_aux_target(y_clean_edge_long, y_clean_edge_bidir)
 
 
 def _aux_survival_target(
     y_survival_long: torch.Tensor,
     y_survival_bidir: torch.Tensor,
 ) -> torch.Tensor:
-    return (y_survival_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_survival_long).float()
+    return _active_aux_target(y_survival_long, y_survival_bidir)
+
+
+def _active_aux_target_rate_from_frame(
+    frame: pd.DataFrame,
+    *,
+    split_name: str,
+    target_name: str,
+    long_column: str,
+    bidir_column: str,
+) -> float:
+    """Measure the same target, on the same selector mask, as the active BCE."""
+    required = (
+        long_column,
+        bidir_column,
+        "y_selector_long_mask",
+        "y_selector_short_mask",
+    )
+    missing = [column for column in required if column not in frame.columns]
+    if missing:
+        raise RuntimeError(
+            "[ENTRY_AUX_TARGET_RATE_COLUMNS_MISSING] "
+            f"split={split_name} target={target_name} missing={missing}"
+        )
+    target = _active_aux_target(
+        torch.as_tensor(frame[long_column].to_numpy(dtype=np.float32, copy=False)),
+        torch.as_tensor(frame[bidir_column].to_numpy(dtype=np.float32, copy=False)),
+    )
+    selector_mask = _aux_selector_mask(
+        torch.as_tensor(
+            frame["y_selector_long_mask"].to_numpy(dtype=np.float32, copy=False)
+        ),
+        torch.as_tensor(
+            frame["y_selector_short_mask"].to_numpy(dtype=np.float32, copy=False)
+        ),
+    )
+    if target.ndim != 1 or selector_mask.ndim != 1 or target.shape != selector_mask.shape:
+        raise RuntimeError(
+            "[ENTRY_AUX_TARGET_RATE_SHAPE_INVALID] "
+            f"split={split_name} target={target_name} "
+            f"target_shape={tuple(target.shape)} selector_shape={tuple(selector_mask.shape)}"
+        )
+    if not bool(selector_mask.any()):
+        raise RuntimeError(
+            "[ENTRY_AUX_TARGET_RATE_EMPTY_SELECTOR] "
+            f"split={split_name} target={target_name}"
+        )
+    active_target = target[selector_mask]
+    if not bool(torch.isfinite(active_target).all()):
+        raise RuntimeError(
+            "[ENTRY_AUX_TARGET_RATE_NONFINITE] "
+            f"split={split_name} target={target_name}"
+        )
+    if bool(((active_target != 0.0) & (active_target != 1.0)).any()):
+        raise RuntimeError(
+            "[ENTRY_AUX_TARGET_RATE_NOT_BINARY] "
+            f"split={split_name} target={target_name}"
+        )
+    return float(active_target.mean().item())
+
+
+def _positive_class_weight_from_rate(rate: float, cap: float) -> tuple[float, float]:
+    """Return the raw and capped BCE positive weight for an exact active rate."""
+    rate = float(rate)
+    cap = float(cap)
+    if not np.isfinite(rate) or not 0.0 <= rate <= 1.0:
+        raise RuntimeError(f"[ENTRY_AUX_TARGET_RATE_INVALID] rate={rate}")
+    if not np.isfinite(cap) or cap < 1.0:
+        raise RuntimeError(f"[ENTRY_AUX_POS_WEIGHT_CAP_INVALID] cap={cap}")
+    raw = ((1.0 - rate) / max(rate, 1e-9)) if rate > 0.0 else 1.0
+    return float(raw), float(min(cap, max(1.0, raw)))
+
+
+def _selected_side_bad_path_probability_penalty(
+    probs: torch.Tensor,
+    y_direction: torch.Tensor,
+    y_bad_path: torch.Tensor,
+    penalty_weight: float,
+) -> torch.Tensor:
+    """Penalize only the selected LONG/SHORT probability on bad-path rows."""
+    if probs.ndim != 2 or probs.shape[1] != 3:
+        raise RuntimeError(
+            "[ENTRY_SELECTED_SIDE_BAD_PATH_PROB_SHAPE_INVALID] "
+            f"probs_shape={tuple(probs.shape)}"
+        )
+    direction = y_direction.reshape(-1).long()
+    bad_path = y_bad_path.reshape(-1).float()
+    if direction.shape[0] != probs.shape[0] or bad_path.shape[0] != probs.shape[0]:
+        raise RuntimeError(
+            "[ENTRY_SELECTED_SIDE_BAD_PATH_TARGET_SHAPE_INVALID] "
+            f"probs_rows={probs.shape[0]} direction_rows={direction.shape[0]} "
+            f"bad_path_rows={bad_path.shape[0]}"
+        )
+    if not bool(torch.isfinite(bad_path).all()):
+        raise RuntimeError("[ENTRY_SELECTED_SIDE_BAD_PATH_TARGET_NONFINITE]")
+    weight = float(penalty_weight)
+    if not np.isfinite(weight) or weight < 0.0:
+        raise RuntimeError(
+            f"[ENTRY_SELECTED_SIDE_BAD_PATH_WEIGHT_INVALID] weight={weight}"
+        )
+
+    bad_mask = bad_path > 0.5
+    flat_bad_mask = bad_mask & (direction == 2)
+    if bool(flat_bad_mask.any()):
+        raise RuntimeError(
+            "[ENTRY_SELECTED_SIDE_BAD_PATH_FLAT_TARGET_INVALID] "
+            f"rows={int(flat_bad_mask.sum().item())}"
+        )
+    invalid_direction_mask = bad_mask & ((direction < 0) | (direction > 1))
+    if bool(invalid_direction_mask.any()):
+        invalid = sorted(
+            {
+                int(value)
+                for value in direction[invalid_direction_mask].detach().cpu().tolist()
+            }
+        )
+        raise RuntimeError(
+            "[ENTRY_SELECTED_SIDE_BAD_PATH_DIRECTION_INVALID] "
+            f"classes={invalid}"
+        )
+    if weight == 0.0 or not bool(bad_mask.any()):
+        return probs.sum() * 0.0
+
+    selected_side = direction[bad_mask]
+    selected_side_prob = probs[bad_mask].gather(
+        1,
+        selected_side.unsqueeze(1),
+    ).squeeze(1)
+    return weight * selected_side_prob.mean()
 
 
 def _signed_scaled_aux_regression_target(
@@ -5081,6 +5251,37 @@ def _clean_edge_rank_masks(
     return clean_pos, ranked_neg
 
 
+def _step_partial_gradient_accumulation(
+    *,
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    scheduler: Any,
+    configured_steps: int,
+    observed_steps: int,
+) -> bool:
+    """Apply a final partial accumulation with the same mean-gradient scale."""
+
+    configured = int(configured_steps)
+    observed = int(observed_steps)
+    if observed == 0:
+        return False
+    if configured < 1 or observed < 1 or observed >= configured:
+        raise RuntimeError(
+            "[ENTRY_GRAD_ACCUM_REMAINDER_INVALID] "
+            f"configured={configured} observed={observed}"
+        )
+    remainder_rescale = float(configured) / float(observed)
+    for parameter in model.parameters():
+        if parameter.grad is not None:
+            parameter.grad.mul_(remainder_rescale)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
+    optimizer.step()
+    optimizer.zero_grad(set_to_none=True)
+    if scheduler is not None:
+        scheduler.step()
+    return True
+
+
 def train_epoch(
     model,
     loader,
@@ -5099,14 +5300,14 @@ def train_epoch(
     hier_trade_pos_weight: float,
     hier_bad_path_pos_weight: Any,
     scheduler=None,  # GX1_FAST_TRAIN: cosine+warmup scheduler, stepped per opt.step()
+    grad_accum_steps: int = 1,
 ):
     model.train()
-    # V2 fast-train: gradient accumulation. Read from env so signature stays compatible.
-    try:
-        from gx1.utils.fast_train import grad_accum_steps_from_env
-        _accum_steps = grad_accum_steps_from_env()
-    except Exception:
-        _accum_steps = 1
+    _accum_steps = int(grad_accum_steps)
+    if _accum_steps < 1:
+        raise RuntimeError(
+            f"[ENTRY_GRAD_ACCUM_STEPS_INVALID] observed={_accum_steps} expected>=1"
+        )
     if _accum_steps > 1:
         log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
     _accum_count = 0
@@ -5144,7 +5345,8 @@ def train_epoch(
     clean_edge_loss_sum = 0.0
     survival_loss_sum = 0.0
     clean_edge_rank_loss_sum = 0.0
-    bad_path_loss_sum = 0.0
+    aux_bad_path_bce_loss_sum = 0.0
+    bad_path_prob_penalty_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
     tail_direction_rows = 0
     hier_trade_loss_sum = 0.0
@@ -5367,10 +5569,8 @@ def train_epoch(
         hard_neg_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_prob_loss = torch.tensor(0.0, device=device)
         teaser_neg_prob_loss = torch.tensor(0.0, device=device)
-        bad_path_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_mask = y_dead_negative_long.float() > 0.5
         teaser_neg_mask = y_teaser_negative_long.float() > 0.5
-        bad_path_neg_mask = y_bad_path.float() > 0.5
         hard_neg_mask = residual_hard_neg_long > 0.5
         if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_mask.any():
             dead_neg_prob_loss = float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_mask, 0].mean()
@@ -5378,9 +5578,13 @@ def train_epoch(
         if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_mask.any():
             teaser_neg_prob_loss = float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_mask, 0].mean()
             loss = loss + teaser_neg_prob_loss
-        if float(ENTRY_BAD_PATH_PROB_PENALTY) > 0.0 and bad_path_neg_mask.any():
-            bad_path_prob_loss = float(ENTRY_BAD_PATH_PROB_PENALTY) * probs[bad_path_neg_mask, 0].mean()
-            loss = loss + bad_path_prob_loss
+        bad_path_prob_penalty_loss = _selected_side_bad_path_probability_penalty(
+            probs,
+            y,
+            y_bad_path,
+            ENTRY_BAD_PATH_PROB_PENALTY,
+        )
+        loss = loss + bad_path_prob_penalty_loss
         if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
             hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
             loss = loss + hard_neg_prob_loss
@@ -5452,14 +5656,14 @@ def train_epoch(
                 tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
         if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0:
             if selector_mask.any():
-                bad_path_loss = nn.functional.binary_cross_entropy_with_logits(
+                bad_path_bce_loss = nn.functional.binary_cross_entropy_with_logits(
                     bad_path_logit.squeeze(1)[selector_mask],
                     y_bad_path.float()[selector_mask],
                     pos_weight=torch.tensor(float(bad_path_pos_weight), device=device, dtype=bad_path_logit.dtype),
                 )
-                bad_path_loss = float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_loss
-                loss = loss + bad_path_loss
-                bad_path_loss_sum += float(bad_path_loss.item()) * y.shape[0]
+                bad_path_bce_loss = float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_bce_loss
+                loss = loss + bad_path_bce_loss
+                aux_bad_path_bce_loss_sum += float(bad_path_bce_loss.item()) * y.shape[0]
         if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0:
             if selector_mask.any():
                 clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
@@ -5553,6 +5757,7 @@ def train_epoch(
             out,
             batch,
             device,
+            bps_scale=aux_mfe_scale_bps,
         )
         loss = loss + offline_rl_aux_loss(out, batch, device)
 
@@ -5606,7 +5811,9 @@ def train_epoch(
         bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
         path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
-        bad_path_loss_sum += float(bad_path_prob_loss) * bs
+        bad_path_prob_penalty_loss_sum += float(
+            bad_path_prob_penalty_loss.detach().cpu().item()
+        ) * bs
         hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
         hier_trade_global_prior_loss_sum += float(hier_stats.get("hier_trade_global_prior_loss", 0.0)) * bs
         hier_slice_trade_prior_loss_sum += float(hier_stats.get("hier_slice_trade_prior_loss", 0.0)) * bs
@@ -5647,6 +5854,15 @@ def train_epoch(
         trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
         n += bs
 
+    if _accum_count:
+        _step_partial_gradient_accumulation(
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            configured_steps=_accum_steps,
+            observed_steps=_accum_count,
+        )
+
     stats = {
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
@@ -5676,7 +5892,10 @@ def train_epoch(
         "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
-        "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
+        "aux_bad_path_bce_loss_mean": (aux_bad_path_bce_loss_sum / max(1, n)),
+        "bad_path_prob_penalty_loss_mean": (
+            bad_path_prob_penalty_loss_sum / max(1, n)
+        ),
         "short_pred_long_rate": (short_pred_long / short_total if short_total > 0 else 0.0),
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
@@ -5868,6 +6087,877 @@ def _aux_head_diagnostics(
                     f"head may be predicting volatility, not loss)"
                 )
     return metrics, warns
+
+
+_ACTIVE_HEAD_FUSION_INPUTS: Dict[str, Tuple[str, ...]] = {
+    "direction": ("model_native_logits",),
+    "tradable": ("tradable_logit",),
+    "path_quality": ("path_quality_raw",),
+    "mfe_first_n": ("mfe_first_n",),
+    "bad_path": ("bad_path_logit_raw",),
+    "clean_edge": ("clean_edge_logit",),
+    "survival": ("survival_logit",),
+    "tf_agreement": ("tf_agreement_logit",),
+    "path_quality_log_var": ("path_quality_log_var",),
+    "position_size": ("position_size_logit",),
+    "dip": ("dip_pred",),
+    "forecast": ("forecast_pred",),
+    "timing": ("timing_pred",),
+    "tail_risk": ("tail_risk_pred",),
+    "vol_forecast": ("vol_forecast_pred",),
+    "mtf_direction": ("mtf_dir_logits",),
+    "trade_side_hierarchy": (
+        "trade_logit",
+        "side_logits",
+        "side_utility",
+        "side_bad_path_logit",
+        "side_mae",
+    ),
+    "trendline_rail": ("trendline_rail_logits",),
+    "side_validity": ("side_validity_logit",),
+    "offline_rl_action_value": ("action_value", "action_advantage"),
+    "offline_rl_expectile_value": ("expectile_value", "action_advantage"),
+    "model_native_evidence_fusion": tuple(
+        name for name, _width in EXACT_EVIDENCE_FUSION_OUTPUTS
+    ),
+}
+_ACTIVE_HEAD_TARGET_COMPONENTS: Dict[str, Tuple[str, ...]] = {
+    "direction": ("model_native_logits",),
+    "tradable": ("tradable_logit",),
+    "path_quality": ("path_quality_raw",),
+    "mfe_first_n": ("mfe_first_n",),
+    "bad_path": ("bad_path_logit_raw",),
+    "clean_edge": ("clean_edge_logit",),
+    "survival": ("survival_logit",),
+    "tf_agreement": ("tf_agreement_logit",),
+    "path_quality_log_var": ("path_quality_log_var",),
+    "position_size": ("position_size_logit",),
+    "dip": ("dip_pred",),
+    "forecast": ("forecast_pred",),
+    "timing": ("timing_pred",),
+    "tail_risk": ("tail_risk_pred",),
+    "vol_forecast": ("vol_forecast_pred",),
+    "mtf_direction": ("mtf_dir_logits",),
+    "trade_side_hierarchy": (
+        "trade_logit",
+        "side_logits",
+        "side_utility",
+        "side_bad_path_logit",
+        "side_mae",
+    ),
+    "trendline_rail": ("trendline_rail_logits",),
+    "side_validity": ("side_validity_logit",),
+    "offline_rl_action_value": ("action_value", "action_advantage"),
+    "offline_rl_expectile_value": ("expectile_value",),
+    "model_native_evidence_fusion": ("raw_direction_logits",),
+}
+_ACTIVE_HEAD_COMPONENT_WIDTHS = {
+    **{name: int(width) for name, width in EXACT_EVIDENCE_FUSION_OUTPUTS},
+    "raw_direction_logits": 3,
+}
+# Advantage is a derived Q-V evidence surface rather than a separately
+# supervised target. One action can truthfully remain the best for an entire
+# horizon, making that action's target advantage identically zero. Require
+# liveness somewhere in the derived target vector while still requiring every
+# emitted advantage column and its fusion influence to be alive.
+_ACTIVE_HEAD_DERIVED_TARGET_COMPONENTS = frozenset({"action_advantage"})
+# FLAT's counterfactual reward is exactly zero by contract at every horizon.
+# Those three Q columns are supervised structural constants, not dead evidence;
+# LONG/SHORT Q and the head-level class-centred fusion intervention must remain
+# alive.
+_ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS = {
+    "action_value": frozenset(
+        range(
+            (OFFLINE_RL_ACTION_COUNT - 1) * OFFLINE_RL_HORIZON_COUNT,
+            OFFLINE_RL_ACTION_COUNT * OFFLINE_RL_HORIZON_COUNT,
+        )
+    )
+}
+_ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS = 16
+_ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS = 1e-8
+_ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_EPS = 1e-8
+
+
+def _active_head_contract_failures() -> List[str]:
+    expected = tuple(MODEL_NATIVE_ACTIVE_HEADS)
+    observed = tuple(_ACTIVE_HEAD_FUSION_INPUTS)
+    failures: List[str] = []
+    if observed != expected:
+        failures.append(
+            "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_CONTRACT_MISMATCH] "
+            f"expected={expected} observed={observed}"
+        )
+    target_observed = tuple(_ACTIVE_HEAD_TARGET_COMPONENTS)
+    if target_observed != expected:
+        failures.append(
+            "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_CONTRACT_MISMATCH] "
+            f"expected={expected} observed={target_observed}"
+        )
+    fusion_inputs = {name for name, _width in EXACT_EVIDENCE_FUSION_OUTPUTS}
+    for head_name, output_names in _ACTIVE_HEAD_FUSION_INPUTS.items():
+        missing = sorted(set(output_names) - fusion_inputs)
+        if missing:
+            failures.append(
+                "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_FUSION_INPUT_MISSING] "
+                f"head={head_name} outputs={missing}"
+            )
+    return failures
+
+
+def _active_head_batch_target(
+    batch: Dict[str, torch.Tensor],
+    name: str,
+    device: torch.device,
+) -> torch.Tensor:
+    value = batch.get(name)
+    if not isinstance(value, torch.Tensor):
+        raise RuntimeError(
+            f"[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_MISSING] target={name}"
+        )
+    return value.to(device=device, non_blocking=device.type == "cuda").float()
+
+
+def _active_head_target_surfaces(
+    out: Dict[str, torch.Tensor],
+    batch: Dict[str, torch.Tensor],
+    device: torch.device,
+    *,
+    path_scale_bps: float,
+    mfe_scale_bps: float,
+) -> Dict[str, Dict[str, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]]:
+    """Bind every active head to the exact target semantics used by its loss."""
+
+    contract_failures = _active_head_contract_failures()
+    if contract_failures:
+        raise RuntimeError("; ".join(contract_failures))
+
+    def _prediction(name: str) -> torch.Tensor:
+        value = out.get(name)
+        if not isinstance(value, torch.Tensor):
+            raise RuntimeError(
+                f"[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_OUTPUT_MISSING] output={name}"
+            )
+        return value.float()
+
+    y = batch.get("y")
+    if not isinstance(y, torch.Tensor):
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_MISSING] target=y")
+    y = y.to(device=device, non_blocking=device.type == "cuda").long().reshape(-1)
+    if bool(((y < 0) | (y > 2)).any()):
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_DIRECTION_TARGET_INVALID]")
+    batch_size = int(y.shape[0])
+    all_rows = torch.ones(batch_size, dtype=torch.bool, device=device)
+    direction_target = nn.functional.one_hot(y, num_classes=3).float()
+
+    y_tradable = _active_head_batch_target(batch, "y_tradable", device).reshape(-1)
+    positive_rows = y_tradable > 0.5
+    selector_rows = _aux_selector_mask(
+        _active_head_batch_target(batch, "y_selector_long_mask", device).reshape(-1),
+        _active_head_batch_target(batch, "y_selector_short_mask", device).reshape(-1),
+    )
+    clean_target = _aux_clean_edge_target(
+        _active_head_batch_target(batch, "y_clean_edge_long", device).reshape(-1),
+        _active_head_batch_target(batch, "y_clean_edge_bidir", device).reshape(-1),
+    ).unsqueeze(1)
+    survival_target = _aux_survival_target(
+        _active_head_batch_target(batch, "y_survival_long", device).reshape(-1),
+        _active_head_batch_target(batch, "y_survival_bidir", device).reshape(-1),
+    ).unsqueeze(1)
+
+    dip_targets: List[torch.Tensor] = []
+    for direction in DIP_DIRECTIONS:
+        for horizon in DIP_HORIZONS:
+            for target_name in DIP_TARGETS:
+                column = (
+                    f"y_dip_mfe_{direction}_K{horizon}"
+                    if target_name.startswith("recovery")
+                    else f"y_dip_mae_{direction}_K{horizon}"
+                )
+                dip_targets.append(_active_head_batch_target(batch, column, device))
+    forward_bps_scale = float(mfe_scale_bps)
+    if not np.isfinite(forward_bps_scale) or forward_bps_scale <= 0.0:
+        raise RuntimeError(
+            "[ENTRY_FORWARD_AUX_BPS_SCALE_INVALID] "
+            f"observed={forward_bps_scale!r}"
+        )
+    dip_target = torch.stack(dip_targets, dim=1) / forward_bps_scale
+    forecast_target = torch.stack(
+        [
+            _active_head_batch_target(batch, f"y_forecast_ret_K{horizon}", device)
+            for horizon in FORECAST_HORIZONS
+        ],
+        dim=1,
+    ) / forward_bps_scale
+    timing_target = torch.stack(
+        [
+            _active_head_batch_target(
+                batch,
+                f"y_{target_name}_{direction}_K{horizon}",
+                device,
+            )
+            for direction in TIMING_DIRECTIONS
+            for horizon in TIMING_HORIZONS
+            for target_name in TIMING_TARGETS
+        ],
+        dim=1,
+    )
+    tail_target = torch.stack(
+        [
+            _active_head_batch_target(
+                batch,
+                f"y_tail_mae_{direction}_K{horizon}",
+                device,
+            )
+            for direction in TAIL_RISK_DIRECTIONS
+            for horizon in TAIL_RISK_HORIZONS
+        ],
+        dim=1,
+    ) / forward_bps_scale
+    vol_target = torch.stack(
+        [
+            _active_head_batch_target(batch, f"y_vol_fwd_K{horizon}", device)
+            for horizon in VOL_FORECAST_HORIZONS
+        ],
+        dim=1,
+    ) / forward_bps_scale
+
+    y_trade = _active_head_batch_target(batch, "y_trade", device).reshape(-1, 1)
+    y_side = _active_head_batch_target(batch, "y_side", device).long().reshape(-1)
+    y_side_mask = (
+        _active_head_batch_target(batch, "y_side_mask", device).reshape(-1) > 0.5
+    )
+    side_target = nn.functional.one_hot(y_side.clamp(0, 1), num_classes=2).float()
+    y_long_utility = _active_head_batch_target(
+        batch, "y_long_path_utility_bps", device
+    ).reshape(-1)
+    y_short_utility = _active_head_batch_target(
+        batch, "y_short_path_utility_bps", device
+    ).reshape(-1)
+    side_utility_target = torch.stack(
+        [y_long_utility, y_short_utility],
+        dim=1,
+    ) / max(1.0, float(path_scale_bps))
+    y_long_bad = _active_head_batch_target(
+        batch, "y_long_bad_path", device
+    ).reshape(-1).clamp(0.0, 1.0)
+    y_short_bad = _active_head_batch_target(
+        batch, "y_short_bad_path", device
+    ).reshape(-1).clamp(0.0, 1.0)
+    side_bad_target = torch.stack([y_long_bad, y_short_bad], dim=1)
+    side_mae_target = torch.stack(
+        [
+            _active_head_batch_target(
+                batch, "y_long_expected_mae_bps", device
+            ).reshape(-1).clamp_min(0.0),
+            _active_head_batch_target(
+                batch, "y_short_expected_mae_bps", device
+            ).reshape(-1).clamp_min(0.0),
+        ],
+        dim=1,
+    ) / max(1.0, float(mfe_scale_bps))
+    side_validity_target = torch.stack(
+        [
+            (
+                (y_long_utility >= float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS))
+                & (y_long_bad < 0.5)
+            ).float(),
+            (
+                (y_short_utility >= float(ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS))
+                & (y_short_bad < 0.5)
+            ).float(),
+        ],
+        dim=1,
+    )
+    trendline_target = torch.stack(
+        [
+            _active_head_batch_target(
+                batch, "y_rising_channel_support_touch", device
+            ),
+            _active_head_batch_target(
+                batch, "y_falling_channel_resistance_touch", device
+            ),
+            _active_head_batch_target(batch, "y_countertrend_short_trap", device),
+            _active_head_batch_target(batch, "y_countertrend_long_trap", device),
+            _active_head_batch_target(
+                batch, "y_short_high_mae_low_mfe_early_failure", device
+            ),
+            _active_head_batch_target(
+                batch, "y_long_high_mae_low_mfe_early_failure", device
+            ),
+        ],
+        dim=1,
+    ).clamp(0.0, 1.0)
+
+    reward_target = (
+        torch.stack(
+            [
+                _active_head_batch_target(batch, name, device)
+                for name in _OFFLINE_RL_TARGET_COLS
+            ],
+            dim=1,
+        )
+        / float(OFFLINE_RL_REWARD_SCALE_BPS)
+    )
+    reward_cube = reward_target.reshape(
+        batch_size,
+        OFFLINE_RL_ACTION_COUNT,
+        OFFLINE_RL_HORIZON_COUNT,
+    )
+    value_target = reward_cube.max(dim=1).values
+    advantage_target = (reward_cube - value_target.unsqueeze(1)).reshape(
+        batch_size,
+        ACTION_VALUE_DIM,
+    )
+
+    surfaces: Dict[
+        str,
+        Dict[str, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+    ] = {
+        "direction": {
+            "model_native_logits": (
+                _prediction("model_native_logits"),
+                direction_target,
+                all_rows,
+            )
+        },
+        "tradable": {
+            "tradable_logit": (
+                _prediction("tradable_logit"),
+                y_tradable.unsqueeze(1),
+                selector_rows,
+            )
+        },
+        "path_quality": {
+            "path_quality_raw": (
+                _prediction("path_quality_raw"),
+                (
+                    _active_head_batch_target(
+                        batch, "path_quality_bps", device
+                    ).reshape(-1, 1)
+                    / max(1.0, float(path_scale_bps))
+                ),
+                positive_rows,
+            )
+        },
+        "mfe_first_n": {
+            "mfe_first_n": (
+                _prediction("mfe_first_n"),
+                (
+                    _active_head_batch_target(
+                        batch, "mfe_first_n_bps", device
+                    ).reshape(-1, 1)
+                    / max(1.0, float(mfe_scale_bps))
+                ),
+                positive_rows,
+            )
+        },
+        "bad_path": {
+            "bad_path_logit_raw": (
+                _prediction("bad_path_logit_raw"),
+                _active_head_batch_target(
+                    batch, "y_bad_path", device
+                ).reshape(-1, 1),
+                selector_rows,
+            )
+        },
+        "clean_edge": {
+            "clean_edge_logit": (
+                _prediction("clean_edge_logit"),
+                clean_target,
+                selector_rows,
+            )
+        },
+        "survival": {
+            "survival_logit": (
+                _prediction("survival_logit"),
+                survival_target,
+                selector_rows,
+            )
+        },
+        "tf_agreement": {
+            "tf_agreement_logit": (
+                _prediction("tf_agreement_logit"),
+                _active_head_batch_target(
+                    batch, "y_tf_agreement_score", device
+                ).reshape(-1, 1),
+                all_rows,
+            )
+        },
+        "path_quality_log_var": {
+            "path_quality_log_var": (
+                _prediction("path_quality_log_var"),
+                (
+                    _active_head_batch_target(
+                        batch, "path_quality_bps", device
+                    ).reshape(-1, 1)
+                    / max(1.0, float(path_scale_bps))
+                ),
+                positive_rows,
+            )
+        },
+        "position_size": {
+            "position_size_logit": (
+                _prediction("position_size_logit"),
+                _active_head_batch_target(
+                    batch, "y_position_size_target", device
+                ).reshape(-1, 1),
+                all_rows,
+            )
+        },
+        "dip": {"dip_pred": (_prediction("dip_pred"), dip_target, all_rows)},
+        "forecast": {
+            "forecast_pred": (
+                _prediction("forecast_pred"),
+                forecast_target,
+                all_rows,
+            )
+        },
+        "timing": {
+            "timing_pred": (_prediction("timing_pred"), timing_target, all_rows)
+        },
+        "tail_risk": {
+            "tail_risk_pred": (
+                _prediction("tail_risk_pred"),
+                tail_target,
+                all_rows,
+            )
+        },
+        "vol_forecast": {
+            "vol_forecast_pred": (
+                _prediction("vol_forecast_pred"),
+                vol_target,
+                all_rows,
+            )
+        },
+        "mtf_direction": {
+            "mtf_dir_logits": (
+                _prediction("mtf_dir_logits"),
+                direction_target,
+                all_rows,
+            )
+        },
+        "trade_side_hierarchy": {
+            "trade_logit": (_prediction("trade_logit"), y_trade, all_rows),
+            "side_logits": (
+                _prediction("side_logits"),
+                side_target,
+                y_side_mask,
+            ),
+            "side_utility": (
+                _prediction("side_utility"),
+                side_utility_target,
+                all_rows,
+            ),
+            "side_bad_path_logit": (
+                _prediction("side_bad_path_logit"),
+                side_bad_target,
+                all_rows,
+            ),
+            "side_mae": (
+                _prediction("side_mae"),
+                side_mae_target,
+                all_rows,
+            ),
+        },
+        "trendline_rail": {
+            "trendline_rail_logits": (
+                _prediction("trendline_rail_logits"),
+                trendline_target,
+                all_rows,
+            )
+        },
+        "side_validity": {
+            "side_validity_logit": (
+                _prediction("side_validity_logit"),
+                side_validity_target,
+                all_rows,
+            )
+        },
+        "offline_rl_action_value": {
+            "action_value": (
+                _prediction("action_value"),
+                reward_target,
+                all_rows,
+            ),
+            "action_advantage": (
+                _prediction("action_advantage"),
+                advantage_target,
+                all_rows,
+            ),
+        },
+        "offline_rl_expectile_value": {
+            "expectile_value": (
+                _prediction("expectile_value"),
+                value_target,
+                all_rows,
+            )
+        },
+        "model_native_evidence_fusion": {
+            "raw_direction_logits": (
+                _prediction("raw_direction_logits"),
+                direction_target,
+                all_rows,
+            )
+        },
+    }
+    if tuple(surfaces) != tuple(MODEL_NATIVE_ACTIVE_HEADS):
+        raise RuntimeError(
+            "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_SURFACE_MISMATCH] "
+            f"expected={tuple(MODEL_NATIVE_ACTIVE_HEADS)} observed={tuple(surfaces)}"
+        )
+    return surfaces
+
+
+def _active_head_ablated_fusion_inputs(
+    head_name: str,
+    pre_fusion_outputs: Dict[str, torch.Tensor],
+) -> Dict[str, torch.Tensor]:
+    """Apply one symmetric, model-native zero intervention to a head's evidence."""
+    if head_name not in _ACTIVE_HEAD_FUSION_INPUTS:
+        raise RuntimeError(
+            f"[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_UNKNOWN_HEAD] head={head_name}"
+        )
+    ablated = dict(pre_fusion_outputs)
+    if head_name == "offline_rl_action_value":
+        action_value = torch.zeros_like(pre_fusion_outputs["action_value"])
+        value = pre_fusion_outputs["expectile_value"]
+        ablated["action_value"] = action_value
+        ablated["action_advantage"] = (
+            action_value.reshape(
+                action_value.shape[0],
+                OFFLINE_RL_ACTION_COUNT,
+                OFFLINE_RL_HORIZON_COUNT,
+            )
+            - value.unsqueeze(1)
+        ).reshape(action_value.shape[0], ACTION_VALUE_DIM)
+        return ablated
+    if head_name == "offline_rl_expectile_value":
+        action_value = pre_fusion_outputs["action_value"]
+        value = torch.zeros_like(pre_fusion_outputs["expectile_value"])
+        ablated["expectile_value"] = value
+        ablated["action_advantage"] = (
+            action_value.reshape(
+                action_value.shape[0],
+                OFFLINE_RL_ACTION_COUNT,
+                OFFLINE_RL_HORIZON_COUNT,
+            )
+            - value.unsqueeze(1)
+        ).reshape(action_value.shape[0], ACTION_VALUE_DIM)
+        return ablated
+    for output_name in _ACTIVE_HEAD_FUSION_INPUTS[head_name]:
+        ablated[output_name] = torch.zeros_like(pre_fusion_outputs[output_name])
+    return ablated
+
+
+def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
+    return {
+        "heads": {
+            head_name: {"components": {}, "influence": []}
+            for head_name in MODEL_NATIVE_ACTIVE_HEADS
+        }
+    }
+
+
+def _accumulate_active_head_epoch(
+    accumulator: Dict[str, Any],
+    model: nn.Module,
+    out: Dict[str, torch.Tensor],
+    batch: Dict[str, torch.Tensor],
+    device: torch.device,
+    *,
+    path_scale_bps: float,
+    mfe_scale_bps: float,
+) -> None:
+    surfaces = _active_head_target_surfaces(
+        out,
+        batch,
+        device,
+        path_scale_bps=path_scale_bps,
+        mfe_scale_bps=mfe_scale_bps,
+    )
+    head_store = accumulator.get("heads")
+    if not isinstance(head_store, dict) or tuple(head_store) != tuple(
+        MODEL_NATIVE_ACTIVE_HEADS
+    ):
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ACCUMULATOR_INVALID]")
+
+    for head_name, components in surfaces.items():
+        for component_name, (prediction, target, mask) in components.items():
+            if prediction.ndim != 2 or target.ndim != 2:
+                raise RuntimeError(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_SHAPE_INVALID] "
+                    f"head={head_name} component={component_name} "
+                    f"prediction={tuple(prediction.shape)} target={tuple(target.shape)}"
+                )
+            if prediction.shape != target.shape or mask.ndim != 1:
+                raise RuntimeError(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_SHAPE_MISMATCH] "
+                    f"head={head_name} component={component_name} "
+                    f"prediction={tuple(prediction.shape)} target={tuple(target.shape)} "
+                    f"mask={tuple(mask.shape)}"
+                )
+            if int(mask.shape[0]) != int(prediction.shape[0]):
+                raise RuntimeError(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_MASK_ROW_MISMATCH] "
+                    f"head={head_name} component={component_name}"
+                )
+            component_store = head_store[head_name]["components"].setdefault(
+                component_name,
+                {"prediction": [], "target": []},
+            )
+            component_store["prediction"].append(
+                prediction[mask].detach().float().cpu().numpy()
+            )
+            component_store["target"].append(
+                target[mask].detach().float().cpu().numpy()
+            )
+
+    pre_fusion_outputs = {
+        output_name: out[output_name].float()
+        for output_name, _width in EXACT_EVIDENCE_FUSION_OUTPUTS
+    }
+    raw_logits = out.get("raw_direction_logits")
+    if not isinstance(raw_logits, torch.Tensor):
+        raise RuntimeError(
+            "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_OUTPUT_MISSING] "
+            "output=raw_direction_logits"
+        )
+    raw_centered = raw_logits.float() - raw_logits.float().mean(
+        dim=1,
+        keepdim=True,
+    )
+    fusion_owner = model._orig_mod if hasattr(model, "_orig_mod") else model
+    fuse = getattr(fusion_owner, "_fuse_direction_evidence", None)
+    if not callable(fuse):
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_FUSION_CALL_MISSING]")
+    for head_name in MODEL_NATIVE_ACTIVE_HEADS:
+        ablated_inputs = _active_head_ablated_fusion_inputs(
+            head_name,
+            pre_fusion_outputs,
+        )
+        ablated_logits = fuse(ablated_inputs).float()
+        ablated_centered = ablated_logits - ablated_logits.mean(
+            dim=1,
+            keepdim=True,
+        )
+        head_store[head_name]["influence"].append(
+            (raw_centered - ablated_centered).detach().float().cpu().numpy()
+        )
+
+
+def _active_head_epoch_diagnostics(
+    accumulator: Dict[str, Any],
+) -> Tuple[Dict[str, Any], List[str]]:
+    """Finalize epoch-wide target, output-liveness and fusion-influence proof."""
+    failures = _active_head_contract_failures()
+    head_store = accumulator.get("heads") if isinstance(accumulator, dict) else None
+    if not isinstance(head_store, dict):
+        return {}, failures + ["[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_EVIDENCE_MISSING]"]
+
+    missing_heads = sorted(set(MODEL_NATIVE_ACTIVE_HEADS) - set(head_store))
+    unexpected_heads = sorted(set(head_store) - set(MODEL_NATIVE_ACTIVE_HEADS))
+    if missing_heads or unexpected_heads:
+        failures.append(
+            "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_HEAD_SET_INVALID] "
+            f"missing={missing_heads} unexpected={unexpected_heads}"
+        )
+
+    head_metrics: Dict[str, Any] = {}
+    for head_name in MODEL_NATIVE_ACTIVE_HEADS:
+        failure_count_before = len(failures)
+        evidence = head_store.get(head_name)
+        if not isinstance(evidence, dict):
+            failures.append(
+                f"[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_HEAD_MISSING] head={head_name}"
+            )
+            continue
+        components = evidence.get("components")
+        component_metrics: Dict[str, Any] = {}
+        if not isinstance(components, dict) or not components:
+            failures.append(
+                "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENTS_MISSING] "
+                f"head={head_name}"
+            )
+            components = {}
+        expected_components = set(_ACTIVE_HEAD_TARGET_COMPONENTS[head_name])
+        missing_components = sorted(expected_components - set(components))
+        unexpected_components = sorted(set(components) - expected_components)
+        if missing_components or unexpected_components:
+            failures.append(
+                "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_SET_INVALID] "
+                f"head={head_name} missing={missing_components} "
+                f"unexpected={unexpected_components}"
+            )
+        for component_name, component in components.items():
+            prediction_chunks = (
+                component.get("prediction") if isinstance(component, dict) else None
+            )
+            target_chunks = (
+                component.get("target") if isinstance(component, dict) else None
+            )
+            if not prediction_chunks or not target_chunks:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_MISSING] "
+                    f"head={head_name} component={component_name}"
+                )
+                continue
+            try:
+                prediction = np.concatenate(
+                    [np.asarray(value, dtype=np.float64) for value in prediction_chunks],
+                    axis=0,
+                )
+                target = np.concatenate(
+                    [np.asarray(value, dtype=np.float64) for value in target_chunks],
+                    axis=0,
+                )
+            except Exception as exc:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_INVALID] "
+                    f"head={head_name} component={component_name} error={exc}"
+                )
+                continue
+            if prediction.ndim != 2 or target.shape != prediction.shape:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_SHAPE_INVALID] "
+                    f"head={head_name} component={component_name} "
+                    f"prediction={prediction.shape} target={target.shape}"
+                )
+                continue
+            expected_width = int(_ACTIVE_HEAD_COMPONENT_WIDTHS[component_name])
+            if int(prediction.shape[1]) != expected_width:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_WIDTH_INVALID] "
+                    f"head={head_name} component={component_name} "
+                    f"observed={int(prediction.shape[1])} expected={expected_width}"
+                )
+                continue
+            rows = int(prediction.shape[0])
+            if rows < _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ROWS_INSUFFICIENT] "
+                    f"head={head_name} component={component_name} rows={rows}"
+                )
+                continue
+            if not np.isfinite(prediction).all() or not np.isfinite(target).all():
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_NONFINITE] "
+                    f"head={head_name} component={component_name}"
+                )
+                continue
+            prediction_range = np.ptp(prediction, axis=0)
+            target_range = np.ptp(target, axis=0)
+            prediction_std = np.std(prediction, axis=0)
+            target_std = np.std(target, axis=0)
+            dead_prediction_columns = np.flatnonzero(
+                prediction_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+            ).astype(int).tolist()
+            dead_target_columns = np.flatnonzero(
+                target_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+            ).astype(int).tolist()
+            structural_constant_columns = set(
+                _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS.get(
+                    component_name,
+                    frozenset(),
+                )
+            )
+            blocking_dead_prediction_columns = sorted(
+                set(dead_prediction_columns) - structural_constant_columns
+            )
+            blocking_dead_target_columns = sorted(
+                set(dead_target_columns) - structural_constant_columns
+            )
+            if blocking_dead_prediction_columns:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_OUTPUT_DEAD] "
+                    f"head={head_name} component={component_name} "
+                    f"columns={blocking_dead_prediction_columns}"
+                )
+            target_dead = bool(blocking_dead_target_columns)
+            if component_name in _ACTIVE_HEAD_DERIVED_TARGET_COMPONENTS:
+                target_dead = len(blocking_dead_target_columns) == int(
+                    target.shape[1]
+                )
+            if target_dead:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_DEAD] "
+                    f"head={head_name} component={component_name} "
+                    f"columns={blocking_dead_target_columns}"
+                )
+            component_metrics[component_name] = {
+                "rows": rows,
+                "width": int(prediction.shape[1]),
+                "prediction_min_range": float(np.min(prediction_range)),
+                "prediction_min_std": float(np.min(prediction_std)),
+                "target_min_range": float(np.min(target_range)),
+                "target_min_std": float(np.min(target_std)),
+                "prediction_dead_columns": dead_prediction_columns,
+                "target_dead_columns": dead_target_columns,
+                "structural_constant_columns": sorted(
+                    structural_constant_columns
+                ),
+            }
+
+        influence_chunks = evidence.get("influence")
+        influence_max_abs = 0.0
+        influence_rms = 0.0
+        influence_rows = 0
+        if not influence_chunks:
+            failures.append(
+                "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_MISSING] "
+                f"head={head_name}"
+            )
+        else:
+            try:
+                influence = np.concatenate(
+                    [np.asarray(value, dtype=np.float64) for value in influence_chunks],
+                    axis=0,
+                )
+            except Exception as exc:
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_INVALID] "
+                    f"head={head_name} error={exc}"
+                )
+                influence = np.empty((0, 3), dtype=np.float64)
+            influence_rows = int(influence.shape[0]) if influence.ndim == 2 else 0
+            if (
+                influence.ndim != 2
+                or influence.shape[1] != 3
+                or influence_rows < _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS
+                or not np.isfinite(influence).all()
+            ):
+                failures.append(
+                    "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_EVIDENCE_INVALID] "
+                    f"head={head_name} shape={influence.shape}"
+                )
+            else:
+                influence_max_abs = float(np.max(np.abs(influence)))
+                influence_rms = float(np.sqrt(np.mean(np.square(influence))))
+                if (
+                    influence_max_abs
+                    <= _ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_EPS
+                ):
+                    failures.append(
+                        "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_DEAD] "
+                        f"head={head_name} max_abs={influence_max_abs:.12g}"
+                    )
+        head_metrics[head_name] = {
+            "ok": len(failures) == failure_count_before,
+            "components": component_metrics,
+            "influence_rows": influence_rows,
+            "influence_class_centered_max_abs": influence_max_abs,
+            "influence_class_centered_rms": influence_rms,
+        }
+
+    metrics = {
+        "active_head_diagnostic_schema": (
+            "entry_model_native_active_head_epoch_diagnostics_v1"
+        ),
+        "active_head_contract": list(MODEL_NATIVE_ACTIVE_HEADS),
+        "active_head_diagnostics": head_metrics,
+        "active_head_health_ok": not failures,
+        "active_head_health_failures": list(failures),
+    }
+    return metrics, failures
 
 
 def _direction_ckpt_balance_stats(
@@ -6352,7 +7442,8 @@ def validate(
     clean_edge_loss_sum = 0.0
     survival_loss_sum = 0.0
     clean_edge_rank_loss_sum = 0.0
-    bad_path_loss_sum = 0.0
+    aux_bad_path_bce_loss_sum = 0.0
+    bad_path_prob_penalty_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
     tail_direction_rows = 0
     hier_trade_loss_sum = 0.0
@@ -6390,6 +7481,7 @@ def validate(
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
     _diag_lbl: "dict[str, list]" = {k: [] for k in ("tradable", "bad_path", "clean_edge", "survival")}
     _diag_real: "dict[str, list]" = {k: [] for k in ("mfe_first_n_bps", "path_quality_bps")}
+    active_head_epoch = _new_active_head_epoch_accumulator()
     hierarchy_trade_prob_chunks: List[np.ndarray] = []
     hierarchy_side_pred_chunks: List[np.ndarray] = []
     hierarchy_side_long_prob_chunks: List[np.ndarray] = []
@@ -6420,6 +7512,15 @@ def validate(
             y_survival_bidir = batch["y_survival_bidir"].to(device, non_blocking=non_blocking)
 
             out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+            _accumulate_active_head_epoch(
+                active_head_epoch,
+                model,
+                out,
+                batch,
+                device,
+                path_scale_bps=aux_path_scale_bps,
+                mfe_scale_bps=aux_mfe_scale_bps,
+            )
             logits = out["direction_logits"]
             path_pred = out["path_quality"]
             path_log_var = out["path_quality_log_var"]
@@ -6572,10 +7673,8 @@ def validate(
             hard_neg_prob_loss = torch.tensor(0.0, device=device)
             dead_neg_prob_loss = torch.tensor(0.0, device=device)
             teaser_neg_prob_loss = torch.tensor(0.0, device=device)
-            bad_path_prob_loss = torch.tensor(0.0, device=device)
             dead_neg_mask = y_dead_negative_long.float() > 0.5
             teaser_neg_mask = y_teaser_negative_long.float() > 0.5
-            bad_path_neg_mask = y_bad_path.float() > 0.5
             hard_neg_mask = residual_hard_neg_long > 0.5
             if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_mask.any():
                 dead_neg_prob_loss = float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_mask, 0].mean()
@@ -6583,9 +7682,13 @@ def validate(
             if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_mask.any():
                 teaser_neg_prob_loss = float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_mask, 0].mean()
                 loss = loss + teaser_neg_prob_loss
-            if float(ENTRY_BAD_PATH_PROB_PENALTY) > 0.0 and bad_path_neg_mask.any():
-                bad_path_prob_loss = float(ENTRY_BAD_PATH_PROB_PENALTY) * probs[bad_path_neg_mask, 0].mean()
-                loss = loss + bad_path_prob_loss
+            bad_path_prob_penalty_loss = _selected_side_bad_path_probability_penalty(
+                probs,
+                y,
+                y_bad_path,
+                ENTRY_BAD_PATH_PROB_PENALTY,
+            )
+            loss = loss + bad_path_prob_penalty_loss
             if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
                 hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
                 loss = loss + hard_neg_prob_loss
@@ -6604,7 +7707,6 @@ def validate(
             clean_edge_loss = torch.tensor(0.0, device=device)
             survival_loss = torch.tensor(0.0, device=device)
             clean_edge_rank_loss = torch.tensor(0.0, device=device)
-            bad_path_loss = torch.tensor(0.0, device=device)
             path_loss = torch.tensor(0.0, device=device)
             mfe_loss = torch.tensor(0.0, device=device)
             positive_mask = y_tradable.float() > 0.5
@@ -6648,13 +7750,14 @@ def validate(
                     tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
             if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0:
                 if selector_mask.any():
-                    bad_path_loss = nn.functional.binary_cross_entropy_with_logits(
+                    bad_path_bce_loss = nn.functional.binary_cross_entropy_with_logits(
                         bad_path_logit.squeeze(1)[selector_mask],
                         y_bad_path.float()[selector_mask],
                         pos_weight=torch.tensor(float(bad_path_pos_weight), device=device, dtype=bad_path_logit.dtype),
                     )
-                    loss = loss + (float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_loss)
-                    bad_path_loss_sum += float(bad_path_loss.item()) * y.shape[0]
+                    bad_path_bce_loss = float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_bce_loss
+                    loss = loss + bad_path_bce_loss
+                    aux_bad_path_bce_loss_sum += float(bad_path_bce_loss.item()) * y.shape[0]
             if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0:
                 if selector_mask.any():
                     clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
@@ -6735,6 +7838,7 @@ def validate(
                 out,
                 batch,
                 device,
+                bps_scale=aux_mfe_scale_bps,
             )
             loss = loss + offline_rl_aux_loss(out, batch, device)
             bs = y.shape[0]
@@ -6767,7 +7871,9 @@ def validate(
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
             path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
             hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
-            bad_path_loss_sum += float(bad_path_prob_loss) * bs
+            bad_path_prob_penalty_loss_sum += float(
+                bad_path_prob_penalty_loss.detach().cpu().item()
+            ) * bs
             hier_trade_loss_sum += float(hier_stats.get("hier_trade_loss", 0.0)) * bs
             hier_trade_global_prior_loss_sum += float(hier_stats.get("hier_trade_global_prior_loss", 0.0)) * bs
             hier_slice_trade_prior_loss_sum += float(hier_stats.get("hier_slice_trade_prior_loss", 0.0)) * bs
@@ -6840,7 +7946,10 @@ def validate(
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
-        "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
+        "aux_bad_path_bce_loss_mean": (aux_bad_path_bce_loss_sum / max(1, n)),
+        "bad_path_prob_penalty_loss_mean": (
+            bad_path_prob_penalty_loss_sum / max(1, n)
+        ),
         "aux_clean_edge_loss_mean": (clean_edge_loss_sum / max(1, n)),
         "aux_survival_loss_mean": (survival_loss_sum / max(1, n)),
         "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
@@ -6994,6 +8103,15 @@ def validate(
             "[ENTRY_AUX_HEAD_HEALTH_CHECKPOINT_BLOCKED] %s",
             "; ".join(_diag_failures),
         )
+    active_head_metrics, active_head_failures = _active_head_epoch_diagnostics(
+        active_head_epoch
+    )
+    stats.update(active_head_metrics)
+    if active_head_failures:
+        log.error(
+            "[ENTRY_ACTIVE_HEAD_HEALTH_CHECKPOINT_BLOCKED] %s",
+            "; ".join(active_head_failures),
+        )
     gate_failures = _cooperation_gate_health_failures(stats)
     stats["cooperation_gate_health_ok"] = not gate_failures
     stats["cooperation_gate_health_failures"] = list(gate_failures)
@@ -7058,6 +8176,11 @@ def run_train(
 
     if m5_prebuilt_path is None:
         raise RuntimeError("[MULTI_TF_MANDATORY] m5_prebuilt_path is required")
+    if int(grad_accum_steps) < 1:
+        raise RuntimeError(
+            "[ENTRY_GRAD_ACCUM_STEPS_INVALID] "
+            f"observed={int(grad_accum_steps)} expected>=1"
+        )
 
     log.info(
         f"[TRAIN] seed={seed} device={device} batch_size={batch_size} epochs={epochs} lr={lr} "
@@ -7075,39 +8198,7 @@ def run_train(
     # memory = max(train_parquet, M5_prebuilt) instead of their sum. Without
     # this, OOM on 15GB hosts during Dataset construction (1.5GB parquet ×
     # pandas overhead + 1.5GB M5 prebuilt × pandas overhead > 15GB).
-    if m5_prebuilt_path is not None:
-        v2_mode = True  # MANDATORY V2 5×25 (env-gate removed 2026-05-26)
-        cache_key = f"{Path(m5_prebuilt_path).resolve()}|v2={v2_mode}"
-        if cache_key not in _MULTI_TF_CACHE:
-            from gx1.features.htf_features import (
-                build_multi_tf_per_bar_features,
-                build_multi_tf_per_bar_features_v2,
-            )
-            log.info(f"[MULTI_TF] pre-building features (peak-mem-fix): {Path(m5_prebuilt_path).name} v2={v2_mode}")
-            load_cols = ["time", "open", "high", "low", "close"]
-            if v2_mode:
-                import pyarrow.parquet as pq
-                if "volume" in pq.ParquetFile(m5_prebuilt_path).schema_arrow.names:
-                    load_cols.append("volume")
-            m5 = pd.read_parquet(m5_prebuilt_path, columns=load_cols)
-            m5["time"] = pd.to_datetime(m5["time"], utc=True)
-            m5 = m5.set_index("time").sort_index()
-            for c in ("open", "high", "low", "close"):
-                m5[c] = m5[c].astype(np.float32)
-            if "volume" in m5.columns:
-                m5["volume"] = m5["volume"].astype(np.float32)
-            if v2_mode:
-                feats = build_multi_tf_per_bar_features_v2(m5)
-            else:
-                feats = build_multi_tf_per_bar_features(m5)
-                feats = {k: v for k, v in feats.items() if k != "M5"}
-            del m5
-            import gc
-
-            gc.collect()
-            _MULTI_TF_CACHE[cache_key] = feats
-            for tf_name, df in feats.items():
-                log.info(f"[MULTI_TF] {tf_name}: {len(df):,} bars × {df.shape[1]} feats")
+    _prebuild_multi_tf_v2_features_once(m5_prebuilt_path)
 
     # Build exact per-TF sequence lengths.
     _per_tf_lens: Dict[str, int] = {}
@@ -7291,10 +8382,34 @@ def run_train(
     val_dead_neg_long_rate = float(val_ds.df["y_dead_negative_long"].astype(float).mean())
     train_teaser_neg_long_rate = float(train_ds.df["y_teaser_negative_long"].astype(float).mean())
     val_teaser_neg_long_rate = float(val_ds.df["y_teaser_negative_long"].astype(float).mean())
-    train_clean_edge_rate = float(train_ds.df["y_clean_edge_long"].astype(float).mean())
-    val_clean_edge_rate = float(val_ds.df["y_clean_edge_long"].astype(float).mean())
-    train_survival_rate = float(train_ds.df["y_survival_long"].astype(float).mean())
-    val_survival_rate = float(val_ds.df["y_survival_long"].astype(float).mean())
+    train_clean_edge_rate = _active_aux_target_rate_from_frame(
+        train_ds.df,
+        split_name="train",
+        target_name="clean_edge",
+        long_column="y_clean_edge_long",
+        bidir_column="y_clean_edge_bidir",
+    )
+    val_clean_edge_rate = _active_aux_target_rate_from_frame(
+        val_ds.df,
+        split_name="val",
+        target_name="clean_edge",
+        long_column="y_clean_edge_long",
+        bidir_column="y_clean_edge_bidir",
+    )
+    train_survival_rate = _active_aux_target_rate_from_frame(
+        train_ds.df,
+        split_name="train",
+        target_name="survival",
+        long_column="y_survival_long",
+        bidir_column="y_survival_bidir",
+    )
+    val_survival_rate = _active_aux_target_rate_from_frame(
+        val_ds.df,
+        split_name="val",
+        target_name="survival",
+        long_column="y_survival_long",
+        bidir_column="y_survival_bidir",
+    )
     train_selector_long_mask_rate = float(train_ds.df["y_selector_long_mask"].astype(float).mean())
     val_selector_long_mask_rate = float(val_ds.df["y_selector_long_mask"].astype(float).mean())
     train_label_counts = train_ds.df["y_direction"].value_counts().to_dict()
@@ -7338,13 +8453,13 @@ def run_train(
         float(min(float(ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_hier_long_bad_path_pos_weight))),
         float(min(float(ENTRY_HIER_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_hier_short_bad_path_pos_weight))),
     ]
-    raw_clean_edge_pos_weight = ((1.0 - train_clean_edge_rate) / max(train_clean_edge_rate, 1e-9)) if train_clean_edge_rate > 0.0 else 1.0
-    clean_edge_pos_weight = float(
-        min(float(ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP), max(1.0, raw_clean_edge_pos_weight))
+    raw_clean_edge_pos_weight, clean_edge_pos_weight = _positive_class_weight_from_rate(
+        train_clean_edge_rate,
+        ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP,
     )
-    raw_survival_pos_weight = ((1.0 - train_survival_rate) / max(train_survival_rate, 1e-9)) if train_survival_rate > 0.0 else 1.0
-    survival_pos_weight = float(
-        min(float(ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP), max(1.0, raw_survival_pos_weight))
+    raw_survival_pos_weight, survival_pos_weight = _positive_class_weight_from_rate(
+        train_survival_rate,
+        ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP,
     )
     # 2026-05-26: SYMMETRIC + sqrt-softened directional class weights. The old
     # per-side inverse-frequency weights made the model over-predict SHORT (short
@@ -7418,7 +8533,11 @@ def run_train(
         float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
     )
     log.info(
-        "[ENTRY_CLEAN_EDGE_RATE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
+        "[ENTRY_CLEAN_EDGE_RATE_PROOF] target_mode=%s selector_mode=%s "
+        "train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f "
+        "capped_pos_weight=%.6f cap=%.3f",
+        "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
+        "long_short_union" if ENTRY_SYMMETRIC_NEGATIVES else "long_only",
         train_clean_edge_rate,
         val_clean_edge_rate,
         raw_clean_edge_pos_weight,
@@ -7426,7 +8545,11 @@ def run_train(
         float(ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP),
     )
     log.info(
-        "[ENTRY_SURVIVAL_RATE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
+        "[ENTRY_SURVIVAL_RATE_PROOF] target_mode=%s selector_mode=%s "
+        "train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f "
+        "capped_pos_weight=%.6f cap=%.3f",
+        "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
+        "long_short_union" if ENTRY_SYMMETRIC_NEGATIVES else "long_only",
         train_survival_rate,
         val_survival_rate,
         raw_survival_pos_weight,
@@ -7481,7 +8604,8 @@ def run_train(
         )
         log.info(
             "[ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER] enabled=1 audited_train_slices=%d "
-            "batch_size=%d min_rows=%d min_label_rate=%.3f num_samples=%d",
+            "batch_size=%d min_rows=%d min_label_rate=%.3f num_samples=%d "
+            "coverage_preserving=1 replacement=0 padding=0",
             int(getattr(train_sampler, "audited_slice_count", 0)),
             int(batch_size),
             int(ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER_MIN_ROWS),
@@ -7668,6 +8792,7 @@ def run_train(
         preflight_out,
         preflight_batch,
         device,
+        bps_scale=ENTRY_AUX_MFE_SCALE_BPS,
     )
     offline_rl_aux_loss(
         preflight_out,
@@ -8372,7 +9497,10 @@ def run_train(
     try:
         from gx1.utils.fast_train import build_cosine_warmup_scheduler, _fast_train_master
         if _fast_train_master():
-            _steps_per_epoch = max(1, len(train_loader))
+            _steps_per_epoch = max(
+                1,
+                math.ceil(len(train_loader) / int(grad_accum_steps)),
+            )
             _total_steps = _steps_per_epoch * int(epochs)
             _warmup_steps = max(1, int(_total_steps * 0.10))
             _scheduler = build_cosine_warmup_scheduler(
@@ -8429,6 +9557,7 @@ def run_train(
             hier_trade_pos_weight=hier_trade_pos_weight,
             hier_bad_path_pos_weight=hier_bad_path_pos_weight,
             scheduler=_scheduler,
+            grad_accum_steps=int(grad_accum_steps),
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
             model,
@@ -8454,6 +9583,42 @@ def run_train(
             f"train={tr_loss:.6f} val={va_loss:.6f} auc={auc_display} acc={acc:.4f} "
             f"short_to_long_val={val_short_to_long:.6f}"
         )
+        active_head_details = (
+            val_stats.get("active_head_diagnostics", {})
+            if isinstance(val_stats, dict)
+            else {}
+        )
+        for head_name in MODEL_NATIVE_ACTIVE_HEADS:
+            details = (
+                active_head_details.get(head_name, {})
+                if isinstance(active_head_details, dict)
+                else {}
+            )
+            components = details.get("components", {}) if isinstance(details, dict) else {}
+            prediction_ranges = [
+                float(component.get("prediction_min_range", 0.0))
+                for component in components.values()
+                if isinstance(component, dict)
+            ]
+            target_ranges = [
+                float(component.get("target_min_range", 0.0))
+                for component in components.values()
+                if isinstance(component, dict)
+            ]
+            log.info(
+                "[ENTRY_ACTIVE_HEAD_HEALTH] split=val epoch=%d head=%s ok=%d "
+                "components=%d prediction_min_range=%.12g target_min_range=%.12g "
+                "class_centered_influence_max_abs=%.12g",
+                epoch + 1,
+                head_name,
+                int(bool(details.get("ok", False))) if isinstance(details, dict) else 0,
+                len(components),
+                min(prediction_ranges) if prediction_ranges else 0.0,
+                min(target_ranges) if target_ranges else 0.0,
+                float(details.get("influence_class_centered_max_abs", 0.0))
+                if isinstance(details, dict)
+                else 0.0,
+            )
         if val_stats:
             log.info(
                 "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f global_prior=%.6f slice_min_pred=%.6f flat_margin=%.6f utility_margin=%.6f side_utility_conviction=%.6f utility_trade_conviction=%.6f utility_triad_ce=%.6f flat_starvation=%.6f slice_recall=%.6f slice_bal_ce=%.6f slice_true_margin=%.6f slice_acc_edge=%.6f slice_confusion_pair=%.6f slice_prior=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_trade_global_prior=%.6f hier_slice_trade_prior=%.6f hier_flat_logit_margin=%.6f hier_slice_flat_logit_margin=%.6f hier_side=%.6f hier_slice_side_ce=%.6f hier_slice_side_margin=%.6f hier_slice_side_acc_edge=%.6f hier_side_global_prior=%.6f hier_slice_side_prior=%.6f hier_side_acc=%.4f total=%.6f",
@@ -8702,12 +9867,16 @@ def run_train(
         _aux_head_health_ok = bool(
             val_stats.get("aux_head_health_ok", False)
         ) if val_stats else False
+        _active_head_health_ok = bool(
+            val_stats.get("active_head_health_ok", False)
+        ) if val_stats else False
         _cooperation_gate_health_ok = bool(
             val_stats.get("cooperation_gate_health_ok", False)
         ) if val_stats else False
         _improved = bool(
             _improved
             and _aux_head_health_ok
+            and _active_head_health_ok
             and _cooperation_gate_health_ok
         )
         if _improved:
@@ -8729,13 +9898,15 @@ def run_train(
             epochs_since_improve = 0
             log.info(
                 "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f dir_ckpt_score=%.6f "
-                "balance_guard_ok=%d slice_contract_ok=%d monitor=%s",
+                "balance_guard_ok=%d slice_contract_ok=%d active_head_health_ok=%d "
+                "monitor=%s",
                 best_epoch,
                 best_val,
                 acc,
                 best_dir_ckpt_score,
                 int(bool(best_direction_balance_guard_ok)),
                 int(bool(best_direction_slice_contract_ok)),
+                int(bool(_active_head_health_ok)),
                 _ckpt_monitor,
             )
         else:
@@ -10099,7 +11270,7 @@ def main() -> None:
     )
     parser.add_argument("--specialist-num-layers", type=int, default=1)
     parser.add_argument("--specialist-fusion-scale", type=float, default=0.25)
-    parser.add_argument("--grad-accum-steps", type=int, default=0)
+    parser.add_argument("--grad-accum-steps", type=int, required=True)
     parser.add_argument("--tf-input-scale-init-m5", type=float, default=1.0)
     parser.add_argument("--tf-input-scale-init-m15", type=float, default=1.0)
     parser.add_argument("--tf-input-scale-init-h1", type=float, default=0.7)
@@ -10140,6 +11311,7 @@ def main() -> None:
         train_parquet=args.train_parquet,
         val_parquet=args.val_parquet,
         test_parquet=args.test_parquet,
+        m5_prebuilt_path=args.m5_prebuilt_path,
         dataset_run_id=args.dataset_run_id,
         profile=args.profile,
     )

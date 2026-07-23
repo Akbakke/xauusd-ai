@@ -97,13 +97,16 @@ evidence exists.
 
 1. Preserve V24/V7 as immutable failure evidence. Do not rerun, patch data in
    place or promote any output.
-2. Repair both P0s and the sampling/aux semantic P1s with signed-domain,
-   LONG↔SHORT invariance, unique-coverage and conditional-skill tests.
-3. Add immutable ordered input scaling, per-group fusion scaling, true
-   context-specialist ownership, MTF/cache byte binding and support-aware
-   all-head/all-group checkpoint influence.
+2. Preserve the completed source repairs for both P0s, no-replacement
+   sampling, bidirectional weights, exact recipe/M5 binding, one causal MTF
+   cache mode, all-head influence, forward-head bps units and grad accumulation.
+3. Add immutable ordered input scaling and true context-specialist ownership
+   for all 142+5 context fields; explicitly resolve the 82 current-bar aliases.
+   Add tradable-conditioned path metrics and remaining cache-byte proof.
 4. Make bundle export atomic and implement one transactional promotion/launch
    finalizer with exact immutable vedtak identity. No `.env` launch authority.
+   Joint Exit/sizing proof must bind an immutable Exit-only registry snapshot
+   so promotion cannot invalidate its own prerequisite.
 5. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.

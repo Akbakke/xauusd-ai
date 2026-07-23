@@ -14,6 +14,17 @@ closed. The absence of model/edge proof means no direction and no order; it
 must never become a guessed direction, synthetic FLAT, cached decision or
 manual overlay.
 
+The post-V7 source-repair checkpoint now closes signed dip-MFE, selected-side
+bad-path symmetry, no-replacement sampler coverage, bidirectional auxiliary
+weights, exact 162-value trainer recipe, M5 hash binding, single causal MTF
+cache identity, all-22-head checkpoint influence, forward-head bps units,
+grad-accum consumption and stale loader compatibility fields. These are code
+proofs only. Fresh data have not been rebuilt and no model has been retrained.
+Remaining pre-rebuild blockers are ordered TRAIN-fit normalization for the raw
+513+142 continuous values and real per-family routing of all 142+5 context
+fields into specialist tokens. Dynamic inspection proves current context is
+globally live but direct specialist-token routing is zero.
+
 The active signal contract is
 `xau_seq513_model_native_direction_v4`:
 

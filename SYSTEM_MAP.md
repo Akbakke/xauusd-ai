@@ -673,5 +673,22 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
   grenser er obligatoriske kjede-input; ingen sluttdato har fallback/default.
   Rankingens TRAIN-vindu må matche eksakt.
 
+### Post-V7 source-repair routing checkpoint (2026-07-23)
+
+The target/trainer path now preserves signed dip-MFE, applies selected-side
+bad-path symmetrically, samples without replacement, binds exact recipe and M5
+bytes, uses one causal MTF cache identity, normalizes raw-bps forward-head
+targets to a 20-bps model unit and gates checkpoints on all 22 active heads'
+target/output liveness plus final-fusion influence. The bundle loader no longer
+accepts unused external scaler/feature paths.
+
+Context routing is not yet equal to the specialist taxonomy. Current
+`specialist_input_indices` cover only the 513 signal tensor. All 142 continuous
+and five categorical fields are globally live, but none directly changes its
+claimed pre-cross specialist token; 82 continuous fields have exact signal
+aliases, while 60 continuous and five categorical fields are global-only.
+The next architecture contract must own exact per-specialist context indices,
+alias policy and all-147 perturbation proof before rebuild.
+
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

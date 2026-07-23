@@ -13,7 +13,51 @@ Three independent read-only audits covered:
    admission;
 3. bundle loading, serving, replay, shadow, launch authority and handover.
 
-The audits changed no file and did not interfere with V7.
+The initial audits changed no file and did not interfere with V7.
+
+## Source-repair checkpoint — 2026-07-23T14:28:38Z
+
+The following findings are repaired in source and regression-tested, but do
+not rehabilitate V24/V7 and are not empirical edge evidence:
+
+- all six dip-MFE targets preserve signed negative outcomes; MAE remains
+  non-negative and the aux-target contract is versioned forward;
+- selected-side bad-path penalizes LONG on LONG rows and SHORT on SHORT rows,
+  with mirrored loss/gradient proof and FLAT fail-closed validation;
+- clean-edge/survival target rates and positive weights use the same
+  bidirectional selector semantics as TRAIN/VAL loss;
+- the slice-balanced sampler visits every selected row exactly once per epoch,
+  without replacement or hidden padding;
+- the trainer itself requires the exact 162-value recipe, rejects ambient
+  `ENTRY_*`/`GX1_*` controls and binds the external M5 source path/hash through
+  launch env, all split manifests and state contracts;
+- MTF construction has one causal V2 cache identity and no V1/double-build
+  branch;
+- all 22 active heads now require epoch-wide output/target liveness and
+  class-centered influence through the final learned 96→128→3 fusion before
+  checkpoint admission;
+- raw-bps dip, forecast, tail-risk and volatility targets are normalized to
+  one explicit 20-bps model unit before entering the shared fusion contract;
+- `--grad-accum-steps` is the consumed trainer value and partial final
+  accumulation is correctly rescaled;
+- stale bundle-loader scaler/feature compatibility arguments and metadata are
+  removed and explicitly rejected.
+
+Still open before any rebuild/training:
+
+- immutable TRAIN-fit per-field normalization for the raw 513+142 continuous
+  inputs;
+- real family-owned context routing. Dynamic proof shows zero direct
+  `ctx_cont`/`ctx_cat` movement of pre-cross specialist tokens: 82 continuous
+  fields are byte-identical current-bar signal aliases, while 60 continuous
+  and all five categorical fields reach only global context/gates/FiLM;
+- tradable-conditioned LONG/SHORT path metrics and incremental-skill proof;
+- atomic bundle export;
+- the transactional promotion/vedtak path. A new audit also proved that the
+  joint Exit/sizing proof cannot hash-bind the mutable canonical artifact
+  registry and then survive promotion; it needs an immutable Exit-only
+  registry snapshot;
+- repair/parity of the canonical/live December-2024 M5 tape.
 
 ## V7 terminal result
 
@@ -39,6 +83,8 @@ hard-red slice gate stopped epochs seven and eight with
 
 ## P0 — signed dip-MFE target corruption
 
+Status: **source repaired; fresh rebuild required**.
+
 The dataset builder calculates signed spread-aware MFE, but then clips all six
 `y_dip_mfe_{long,short}_K{12,48,96}` targets to a non-negative range.
 
@@ -59,6 +105,8 @@ Required repair:
 - rebuild every split from source; V24 cannot be patched in place.
 
 ## P0 — selected-side bad-path loss always suppresses LONG
+
+Status: **source repaired and LONG↔SHORT gradient-tested**.
 
 `y_bad_path` is selected from LONG or SHORT bad-path truth according to the
 model-native direction side:
@@ -87,6 +135,8 @@ Required repair:
 
 ## P1 — replacement sampler hides 37% of selected rows per epoch
 
+Status: **source repaired with exact no-replacement epoch coverage**.
+
 `_SliceBalancedSampler` is documented as ordering the selected data, but uses
 random choice with replacement in
 `gx1/models/entry_v10/entry_v10_ctx_train_v3.py`, around lines 2799-2939.
@@ -110,6 +160,8 @@ row exactly once per epoch and form balanced batches by grouping/swapping
 without replacement. Any padding must be explicit and separately measured.
 
 ## P1 — symmetric targets use LONG-only positive weights
+
+Status: **source repaired with shared bidirectional target/rate semantics**.
 
 Clean-edge and survival use bidirectional targets when symmetric mode is
 active, but their positive weights are computed from LONG-only target rates.
@@ -140,6 +192,8 @@ conditioned on tradable support, reported separately for LONG/SHORT and prove
 incremental skill over a tradable-only baseline.
 
 ## P1 — checkpoint admission does not cover every decision influence
+
+Status: **source repaired for all 22 active heads and all 26 fusion inputs**.
 
 The checkpoint aux gate currently audits only tradable, bad-path, clean-edge,
 survival, path-quality and MFE. A checkpoint can be written while the following
@@ -179,6 +233,9 @@ Required repair:
 
 ## P1 — 96 fusion values have incompatible units
 
+Status: **raw-bps forward heads repaired to an explicit 20-bps model unit;
+per-field raw-input normalization remains open**.
+
 The 96 values combine raw bps, scaled bps, logits and `[0,1]` timing values,
 then apply one cross-channel `LayerNorm(96)`. Example V7 target standard
 deviations range from timing `0.194` and time-to-MFE `0.347` to dip-MFE
@@ -190,6 +247,8 @@ groups needs a contract-scaled output or group projection/normalization before
 fusion, followed by scale-perturbation and group-influence tests.
 
 ## P1 — context specialist routing is taxonomy-only
+
+Status: **confirmed dynamically; architecture repair remains open**.
 
 The specialist audit classifies all 142 continuous and five categorical
 context fields and reports full mapping. The model specialist indices,
@@ -207,6 +266,9 @@ Required repair:
 - explicit policy against double-weighting the 82 aliased context values.
 
 ## P1 — MTF source identity is incomplete
+
+Status: **trainer-bound M5 identity repaired; disk-cache component binding
+remains an external rebuild/readiness requirement**.
 
 The trainer binds the three split manifests and parquets but not the external
 `--m5-prebuilt-path` used to build all M5/M15/H1/H4/D1 inputs. It checks

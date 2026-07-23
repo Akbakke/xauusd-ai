@@ -421,10 +421,22 @@ def test_preflight_binds_exact_run_lineage_and_wrapper_inputs(
     assert command["fixed_builder_contract"]["run_lineage_required"] is True
     assert command["fixed_builder_contract"]["rank_reference_run_id_match_required"] is True
     aux_contract = command["fixed_builder_contract"]["aux_head_target_contract"]
-    assert aux_contract["schema_version"] == "entry_model_native_aux_targets_v4"
+    assert aux_contract["schema_version"] == "entry_model_native_aux_targets_v5"
     assert len(aux_contract["columns"]) == 46
     assert aux_contract["max_future_horizon_bars"] == 96
     assert aux_contract["spread_aware_risk_magnitudes_required"] is True
+    assert aux_contract["target_value_domains"]["dip_mfe"]["signed"] is True
+    assert (
+        aux_contract["target_value_domains"]["dip_mfe"]["negative_values_preserved"]
+        is True
+    )
+    assert (
+        aux_contract["target_value_domains"]["dip_mfe"]["lower_bound_bps"] is None
+    )
+    assert aux_contract["target_value_domains"]["dip_mae"]["signed"] is False
+    assert (
+        aux_contract["target_value_domains"]["dip_mae"]["lower_bound_bps"] == 0.0
+    )
     assert aux_contract["incomplete_rows_may_be_emitted"] is False
     assert command["fixed_builder_contract"]["feature_history_mode"] == MODEL_NATIVE_HISTORY_MODE
     assert command["fixed_builder_contract"]["split_reset_allowed"] is False

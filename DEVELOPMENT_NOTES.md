@@ -45,18 +45,20 @@ checkpoint or bundle. It is immutable failure evidence and must not be reused
 or silently treated as a default. V24 is also rejected for rebuild after the
 post-V7 audit proved signed dip-MFE clipping.
 
-Read `PIPELINE_AUDIT_XAU_20260723.md` before any Entry data/model edit. No new
-rebuild or trainer run is admissible until both P0s and the sampling/aux
-semantic P1s have exact regression proof. The active blockers include:
+Read `PIPELINE_AUDIT_XAU_20260723.md` before any Entry data/model edit. The two
+P0s, replacement sampler, bidirectional weights, recipe/M5 boundary,
+single-mode MTF cache, all-head checkpoint influence, raw-bps fusion units,
+grad accumulation and stale loader compatibility are source-repaired and
+regression-tested. Do not infer dataset/model proof: V24/V7 predate the fixes.
+No rebuild or trainer run is admissible until the remaining blockers have
+exact proof:
 
-- selected-side bad-path probability loss always suppressing LONG;
-- six spread-aware dip-MFE targets clipped to non-negative values;
-- replacement sampling that exposes only about 62% unique selected rows;
-- bidirectional auxiliary targets weighted from LONG-only rates;
-- global path AUC that can pass by relearning tradable versus FLAT;
-- incomplete per-head/per-group checkpoint influence proof;
-- unbound MTF/scaler bytes, taxonomy-only context specialist routing and
-  incompatible fusion units.
+- ordered immutable TRAIN-fit normalization for raw 513+142 continuous input;
+- direct family-owned specialist routing for all 142+5 context fields, with an
+  explicit policy for the 82 current-bar aliases;
+- tradable-conditioned LONG/SHORT path skill versus a tradable-only baseline;
+- atomic bundle export and transactional promotion/immutable vedtak;
+- canonical/live tape parity for the known December-2024 defect.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean

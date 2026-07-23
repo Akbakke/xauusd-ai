@@ -6,6 +6,36 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — first audit repair checkpoint; BLOCK remains
+
+The post-V7 findings were reproduced before repair. Source now closes signed
+dip-MFE, selected-side bad-path symmetry, no-replacement sampling,
+bidirectional clean/survival weighting, exact 162-value trainer recipe, M5
+path/hash authority, one causal MTF cache identity, all-22-head checkpoint
+liveness/influence, raw-bps forward-head units, CLI gradient accumulation and
+stale loader compatibility inputs. Focused integration completed with 391
+tests passing and two declared runtime skips.
+
+This is not authority to rebuild or train. Dynamic routing proof shows the
+specialist audit still overstates context ownership: none of the 142
+continuous or five categorical fields directly changes its claimed pre-cross
+specialist token. Eighty-two continuous fields have byte-identical current-bar
+signal aliases; 60 continuous plus all five categorical fields are global-only.
+Raw 513+142 continuous input scaling is also not yet immutable TRAIN-fit.
+
+Launch design found a separate bootstrap conflict: a joint Exit/sizing proof
+cannot bind the full mutable canonical artifact registry and remain valid when
+promotion adds `active.v10_entry`. The future chain must bind an immutable
+Exit-only registry snapshot and compare it exactly before promotion.
+
+Decision:
+
+- preserve all completed repairs and their regression contracts;
+- implement TRAIN-fit ordered normalization and true 142+5 family routing
+  before fresh rebuild;
+- keep bundle publication/promotion/vedtak work separate and fail-closed;
+- keep launch `BLOCK`; V24/V7 remain immutable failed evidence.
+
 ## 2026-07-23 — V7 is terminal RED; pipeline audit requires rebuild
 
 V7 ran on the exact immutable 25,000-row recipe and completed six full

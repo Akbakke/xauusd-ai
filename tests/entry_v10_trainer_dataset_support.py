@@ -43,7 +43,7 @@ def install_multi_tf_stub(
         tf: pd.DataFrame(np.zeros((1, 25), dtype=np.float32), index=index)
         for tf in ("M5", "M15", "H1", "H4", "D1")
     }
-    cache_key = f"{m5_path.resolve()}|contract=V2_CAUSAL"
+    cache_key = trainer._multi_tf_cache_key(m5_path)
     monkeypatch.setitem(trainer._MULTI_TF_CACHE, cache_key, frames)
     monkeypatch.setattr(
         trainer.EntryV10CtxDataset,

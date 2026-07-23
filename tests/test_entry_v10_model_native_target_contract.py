@@ -228,6 +228,7 @@ def test_dip_forecast_loss_unconditionally_rejects_missing_head_and_target() -> 
             missing_head,
             batch,
             torch.device("cpu"),
+            bps_scale=20.0,
         )
 
     missing_target = dict(batch)
@@ -237,6 +238,39 @@ def test_dip_forecast_loss_unconditionally_rejects_missing_head_and_target() -> 
             outputs,
             missing_target,
             torch.device("cpu"),
+            bps_scale=20.0,
+        )
+
+
+def test_forward_bps_heads_share_one_explicit_model_unit_scale() -> None:
+    batch = {
+        name: torch.full((2,), 40.0)
+        for name in trainer._DIP_FORECAST_TARGET_COLS
+    }
+    for name in trainer._TIMING_TARGET_COLS:
+        batch[name] = torch.full((2,), 0.5)
+    outputs = {
+        "dip_pred": torch.full((2, 18), 2.0),
+        "forecast_pred": torch.full((2, 4), 2.0),
+        "timing_pred": torch.full((2, 12), 0.5),
+        "tail_risk_pred": torch.full((2, 6), 2.0),
+        "vol_forecast_pred": torch.full((2, 3), 2.0),
+    }
+
+    loss = trainer.dip_forecast_loss(
+        outputs,
+        batch,
+        torch.device("cpu"),
+        bps_scale=20.0,
+    )
+
+    assert float(loss.item()) == pytest.approx(0.0)
+    with pytest.raises(RuntimeError, match="FORWARD_AUX_BPS_SCALE_INVALID"):
+        trainer.dip_forecast_loss(
+            outputs,
+            batch,
+            torch.device("cpu"),
+            bps_scale=0.0,
         )
 
 

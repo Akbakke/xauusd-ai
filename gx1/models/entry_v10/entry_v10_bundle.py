@@ -183,6 +183,13 @@ _MODEL_NATIVE_REQUIRED_SPECIALISTS = (
     "price_action_candle_encoder",
 )
 
+_MODEL_NATIVE_FORBIDDEN_COMPATIBILITY_ARTIFACTS = (
+    "feature_meta_path",
+    "seq_scaler_path",
+    "snap_scaler_path",
+)
+
+
 def _require_mapping_field(parent: Mapping[str, Any], key: str, *, context: str) -> Mapping[str, Any]:
     value = parent.get(key)
     if not isinstance(value, Mapping):
@@ -199,6 +206,18 @@ def _require_exact_model_native_bundle_metadata(
     Lock and metadata must each carry the complete reconstruction contract;
     the loader never infers a missing value from the other file or a default.
     """
+
+    stale_artifacts = [
+        f"{owner}.{key}"
+        for owner, payload in (("meta", meta), ("lock", lock))
+        for key in _MODEL_NATIVE_FORBIDDEN_COMPATIBILITY_ARTIFACTS
+        if key in payload
+    ]
+    if stale_artifacts:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_STALE_COMPATIBILITY_ARTIFACT_FORBIDDEN] "
+            f"fields={stale_artifacts}"
+        )
 
     shared_exact = (
         "contract_mode",
@@ -721,9 +740,6 @@ def _infer_entry_bundle_capabilities(meta: Dict[str, Any], state_dict: Dict[str,
 def load_entry_v10_ctx_bundle(
     *,
     bundle_dir: str | Path,
-    feature_meta_path: Optional[str | Path] = None,
-    seq_scaler_path: Optional[str | Path] = None,
-    snap_scaler_path: Optional[str | Path] = None,
     device: Optional[str] = None,
     is_replay: bool = True,
 ) -> EntryV10Bundle:
@@ -863,41 +879,6 @@ def load_entry_v10_ctx_bundle(
         capabilities["unsupported_heads"],
     )
 
-    # Feature meta path is optional for CTX bundles (metadata carries contract)
-    fmeta: Optional[Path] = None
-    meta_feat = meta.get("feature_meta_path")
-    if feature_meta_path is not None:
-        fmeta = Path(feature_meta_path).expanduser().resolve()
-        if not fmeta.is_absolute():
-            fmeta = (bd / fmeta).resolve()
-        _guard_required(fmeta, "feature_meta_path")
-    elif meta_feat:
-        fmeta = Path(meta_feat).expanduser()
-        if not fmeta.is_absolute():
-            fmeta = (bd / fmeta).resolve()
-        else:
-            fmeta = fmeta.resolve()
-        _guard_required(fmeta, "feature_meta_path")
-    if seq_scaler_path is None and meta.get("seq_scaler_path"):
-        seq_scaler_path = meta.get("seq_scaler_path")
-    if snap_scaler_path is None and meta.get("snap_scaler_path"):
-        snap_scaler_path = meta.get("snap_scaler_path")
-
-    if seq_scaler_path:
-        seq_scaler_path = Path(seq_scaler_path).expanduser()
-        if not seq_scaler_path.is_absolute():
-            seq_scaler_path = (bd / seq_scaler_path).resolve()
-        else:
-            seq_scaler_path = seq_scaler_path.resolve()
-        _guard_required(seq_scaler_path, "seq_scaler_path")
-    if snap_scaler_path:
-        snap_scaler_path = Path(snap_scaler_path).expanduser()
-        if not snap_scaler_path.is_absolute():
-            snap_scaler_path = (bd / snap_scaler_path).resolve()
-        else:
-            snap_scaler_path = snap_scaler_path.resolve()
-        _guard_required(snap_scaler_path, "snap_scaler_path")
-
     bundle = EntryV10Bundle(
         bundle_dir=str(bd),
         device=dev,
@@ -905,9 +886,6 @@ def load_entry_v10_ctx_bundle(
         metadata={
             **meta,
             "model_variant": "v10_ctx",
-            "feature_meta_path": str(fmeta) if fmeta else None,
-            "seq_scaler_path": str(seq_scaler_path) if seq_scaler_path else None,
-            "snap_scaler_path": str(snap_scaler_path) if snap_scaler_path else None,
             "is_replay": bool(is_replay),
             "capabilities": capabilities,
         },

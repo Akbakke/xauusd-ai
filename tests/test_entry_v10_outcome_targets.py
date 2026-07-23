@@ -7,6 +7,10 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_RISK_HORIZONS,
+    MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
+    MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
+    MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
     require_model_native_aux_target_contract,
     require_model_native_aux_target_emission_contract,
 )
@@ -45,6 +49,31 @@ def _spread_tape(n_rows: int = 130) -> pd.DataFrame:
     )
 
 
+def _monotonic_unfavorable_spread_tape(
+    side: str,
+    n_rows: int = 130,
+) -> pd.DataFrame:
+    if side not in {"long", "short"}:
+        raise ValueError(f"unsupported side: {side}")
+    step = -0.10 if side == "long" else 0.10
+    close = 2000.0 + np.arange(n_rows, dtype=np.float64) * step
+    high = close + 0.01
+    low = close - 0.01
+    return pd.DataFrame(
+        {
+            "close": close,
+            "high": high,
+            "low": low,
+            "bid_close": close - 0.05,
+            "ask_close": close + 0.05,
+            "bid_high": high - 0.05,
+            "bid_low": low - 0.05,
+            "ask_high": high + 0.05,
+            "ask_low": low + 0.05,
+        }
+    )
+
+
 def test_aux_targets_have_exact_horizons_and_no_fake_tail_values() -> None:
     frame = _spread_tape()
     targets, complete = _build_model_native_aux_head_targets(frame)
@@ -62,11 +91,26 @@ def test_aux_targets_have_exact_horizons_and_no_fake_tail_values() -> None:
 def test_aux_target_contract_is_exact_and_spread_aware() -> None:
     contract = model_native_aux_target_contract_metadata()
 
-    assert contract["schema_version"] == "entry_model_native_aux_targets_v4"
+    assert contract["schema_version"] == "entry_model_native_aux_targets_v5"
     assert len(contract["columns"]) == 46
     assert contract["columns"] == list(MODEL_NATIVE_AUX_TARGET_COLUMNS)
     assert contract["max_future_horizon_bars"] == 96
     assert contract["spread_aware_risk_magnitudes_required"] is True
+    domains = contract["target_value_domains"]
+    assert domains["dip_mfe"] == {
+        "columns": list(MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS),
+        "unit": "bps",
+        "finite_on_complete_rows": True,
+        "signed": True,
+        "negative_values_preserved": True,
+        "lower_bound_bps": None,
+        "upper_safety_cap_bps": MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS,
+    }
+    assert domains["dip_mae"]["columns"] == list(
+        MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS
+    )
+    assert domains["dip_mae"]["signed"] is False
+    assert domains["dip_mae"]["lower_bound_bps"] == 0.0
     assert contract["mid_price_timing_reference_only"] is True
     assert contract["incomplete_rows_may_be_emitted"] is False
     assert contract["offline_rl"]["action_value_layout"] == "action_major_then_horizon"
@@ -149,14 +193,42 @@ def test_aux_risk_magnitude_uses_executable_spread_path() -> None:
         / frame.loc[0, "ask_close"]
         * 1e4
     )
-    expected_short_mfe = max(
-        0.0,
+    expected_short_mfe = (
         (frame.loc[0, "bid_close"] - frame.loc[1, "ask_low"])
         / frame.loc[0, "bid_close"]
-        * 1e4,
+        * 1e4
     )
     assert targets["y_dip_mfe_long_K12"][0] == pytest.approx(expected_long_mfe)
     assert targets["y_dip_mfe_short_K12"][0] == pytest.approx(expected_short_mfe)
+
+
+@pytest.mark.parametrize("side", ("long", "short"))
+def test_signed_dip_mfe_preserves_negative_spread_excursion_on_unfavorable_tape(
+    side: str,
+) -> None:
+    targets, _ = _build_model_native_aux_head_targets(
+        _monotonic_unfavorable_spread_tape(side)
+    )
+
+    for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS:
+        mfe = targets[f"y_dip_mfe_{side}_K{horizon}"]
+        mae = targets[f"y_dip_mae_{side}_K{horizon}"]
+        complete_rows = len(mfe) - horizon
+        assert np.all(mfe[:complete_rows] < 0.0)
+        assert np.all(mae[:complete_rows] >= 0.0)
+
+
+def test_aux_target_validator_rejects_negative_dip_mae_but_accepts_negative_mfe() -> None:
+    targets, _ = _build_model_native_aux_head_targets(
+        _monotonic_unfavorable_spread_tape("long")
+    )
+    assert targets["y_dip_mfe_long_K12"][0] < 0.0
+    _validate_model_native_aux_head_targets(targets, n_rows=130)
+
+    broken = {name: values.copy() for name, values in targets.items()}
+    broken["y_dip_mae_long_K12"][0] = -1.0
+    with pytest.raises(RuntimeError, match="AUX_TARGET_DOMAIN_INVALID"):
+        _validate_model_native_aux_head_targets(broken, n_rows=130)
 
 
 def test_action_values_are_full_counterfactual_spread_aware_path_utilities() -> None:

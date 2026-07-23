@@ -63,6 +63,7 @@ def test_candidate_wrapper_validates_exact_contract_without_writes(tmp_path: Pat
     assert "Capped candidate train command:" in result.stdout
     assert "gx1_capped_run.sh" in result.stdout
     assert f"--dataset-run-id {DATASET_RUN_ID}" in result.stdout
+    assert "GX1_ENTRY_M5_PREBUILT_SHA256=" in result.stdout
     assert "--multi-tf-seq-len 96" in result.stdout
     assert "--specialist-audit-json" in result.stdout
     assert "--mtf-dir-scale-init" not in result.stdout

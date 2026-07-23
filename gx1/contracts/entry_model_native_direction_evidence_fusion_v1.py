@@ -7,7 +7,7 @@ import json
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "entry_model_native_direction_evidence_fusion_v2"
+SCHEMA_VERSION = "entry_model_native_direction_evidence_fusion_v3"
 FUSION_MODE = "sole_learned_acyclic_96x128x3"
 CLASS_ORDER = ("LONG", "SHORT", "FLAT")
 INPUT_DIM = 96
@@ -42,6 +42,47 @@ INPUTS = (
     ("action_advantage", 9),
 )
 
+PREDICTION_UNIT_CONTRACT = {
+    "model_unit": "approximately_one_for_material_evidence",
+    "train_target_bps_scale": 20.0,
+    "bps_scaled_outputs": [
+        "dip_pred",
+        "forecast_pred",
+        "tail_risk_pred",
+        "vol_forecast_pred",
+    ],
+    "unit_interval_outputs": ["timing_pred"],
+    "already_scaled_regression_outputs": [
+        "path_quality_raw",
+        "mfe_first_n",
+        "side_utility",
+        "side_mae",
+        "action_value",
+        "expectile_value",
+        "action_advantage",
+    ],
+    "logit_or_dimensionless_outputs": [
+        name
+        for name, _width in INPUTS
+        if name
+        not in {
+            "dip_pred",
+            "forecast_pred",
+            "tail_risk_pred",
+            "vol_forecast_pred",
+            "timing_pred",
+            "path_quality_raw",
+            "mfe_first_n",
+            "side_utility",
+            "side_mae",
+            "action_value",
+            "expectile_value",
+            "action_advantage",
+        }
+    ],
+    "raw_bps_outputs_forbidden": True,
+}
+
 
 def _ordered_input_layout() -> list[dict[str, Any]]:
     layout: list[dict[str, Any]] = []
@@ -63,6 +104,7 @@ _HASH_PAYLOAD = {
     "mode": FUSION_MODE,
     "class_order": list(CLASS_ORDER),
     "inputs": ORDERED_INPUT_LAYOUT,
+    "prediction_unit_contract": PREDICTION_UNIT_CONTRACT,
 }
 INPUTS_SHA256 = hashlib.sha256(
     json.dumps(

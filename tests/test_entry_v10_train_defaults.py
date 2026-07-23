@@ -18,23 +18,6 @@ def _trainer_ast() -> ast.Module:
     return ast.parse(TRAINER_PATH.read_text(encoding="utf-8"))
 
 
-def _canonical_env_defaults(module: ast.Module) -> dict[str, str]:
-    for node in module.body:
-        if not (
-            isinstance(node, ast.AnnAssign)
-            and isinstance(node.target, ast.Name)
-            and node.target.id == "_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS"
-            and isinstance(node.value, ast.Dict)
-        ):
-            continue
-        defaults: dict[str, str] = {}
-        for key, value in zip(node.value.keys, node.value.values):
-            if isinstance(key, ast.Constant) and isinstance(value, ast.Constant):
-                defaults[str(key.value)] = str(value.value)
-        return defaults
-    raise AssertionError("_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS not found")
-
-
 def _env_str_defaults(module: ast.Module) -> dict[str, str]:
     defaults: dict[str, str] = {}
     for node in ast.walk(module):
@@ -51,18 +34,17 @@ def _env_str_defaults(module: ast.Module) -> dict[str, str]:
     return defaults
 
 
-def test_entry_v10_env_defaults_match_canonical_guard_contract() -> None:
+def test_entry_v10_env_reads_are_owned_by_the_exact_recipe_contract() -> None:
+    from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        MODEL_NATIVE_RECIPE_ENV,
+    )
+
     module = _trainer_ast()
-    canonical = _canonical_env_defaults(module)
     env_defaults = _env_str_defaults(module)
-
-    mismatches = {
-        key: {"env_str_default": env_defaults[key], "canonical_default": canonical[key]}
-        for key in sorted(canonical.keys() & env_defaults.keys())
-        if env_defaults[key] != canonical[key]
-    }
-
-    assert mismatches == {}
+    assert set(env_defaults).issubset(MODEL_NATIVE_RECIPE_ENV)
+    assert "_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS" not in TRAINER_PATH.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_entry_v10_bad_path_and_path_quality_evidence_are_trained() -> None:
@@ -461,7 +443,6 @@ def test_entry_v10_direction_slice_failure_evidence_writes_outside_bundle(tmp_pa
 
 
 def test_entry_v10_direction_slice_balanced_sampler_builds_hard_slice_batches() -> None:
-    import itertools
     import numpy as np
 
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
@@ -478,12 +459,45 @@ def test_entry_v10_direction_slice_balanced_sampler_builds_hard_slice_batches() 
         seed=20260715,
     )
 
-    first_batch = list(itertools.islice(iter(sampler), 12))
+    first_epoch = list(iter(sampler))
+    first_batch = first_epoch[:12]
     batch_slices = set(ctx_cat[first_batch, 0].tolist())
+    second_epoch = list(iter(sampler))
 
     assert len(sampler) == 48
     assert sampler.audited_slice_count == 2
     assert batch_slices == {0, 1}
+    assert len(first_epoch) == len(set(first_epoch)) == len(labels)
+    assert sorted(first_epoch) == list(range(len(labels)))
+    assert len(second_epoch) == len(set(second_epoch)) == len(labels)
+    assert sorted(second_epoch) == list(range(len(labels)))
+    assert first_epoch != second_epoch
+    assert np.bincount(labels[first_epoch], minlength=3).tolist() == [16, 16, 16]
+
+
+def test_entry_v10_direction_slice_balanced_sampler_does_not_pad_or_replace() -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    labels = np.asarray([0, 1, 2] * 17, dtype=np.int64)
+    ctx_cat = np.asarray([[0]] * 24 + [[1]] * 27, dtype=np.int64)
+    sampler = trainer._DirectionSliceBalancedSampler(
+        labels=labels,
+        ctx_cat=ctx_cat,
+        ctx_cat_indices=[0],
+        batch_size=12,
+        min_rows=6,
+        min_label_rate=0.10,
+        seed=20260723,
+    )
+
+    epoch = list(iter(sampler))
+
+    assert len(sampler) == 51
+    assert len(epoch) == len(set(epoch)) == 51
+    assert sorted(epoch) == list(range(51))
+    assert np.bincount(labels[epoch], minlength=3).tolist() == [17, 17, 17]
 
 
 def test_entry_v10_direction_slice_balanced_sampler_fails_without_active_slice() -> None:
@@ -1750,6 +1764,463 @@ def test_entry_v10_symmetric_aux_helpers_use_short_side(monkeypatch) -> None:
     assert trainer._aux_survival_target(survival_long, survival_bidir).tolist() == [1.0, 1.0, 0.0]
 
 
+def test_entry_v10_selected_side_bad_path_penalty_is_long_short_swap_invariant() -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    probs = torch.tensor(
+        [
+            [0.70, 0.20, 0.10],
+            [0.15, 0.65, 0.20],
+            [0.50, 0.30, 0.20],
+            [0.25, 0.55, 0.20],
+        ],
+        dtype=torch.float32,
+        requires_grad=True,
+    )
+    direction = torch.tensor([0, 1, 0, 1], dtype=torch.long)
+    bad_path = torch.tensor([1.0, 1.0, 0.0, 1.0])
+    loss = trainer._selected_side_bad_path_probability_penalty(
+        probs,
+        direction,
+        bad_path,
+        0.24,
+    )
+    loss.backward()
+    grad = probs.grad.detach().clone()
+
+    swapped_probs = (
+        probs.detach()[:, [1, 0, 2]].clone().requires_grad_(True)
+    )
+    swapped_direction = torch.tensor([1, 0, 1, 0], dtype=torch.long)
+    swapped_loss = trainer._selected_side_bad_path_probability_penalty(
+        swapped_probs,
+        swapped_direction,
+        bad_path,
+        0.24,
+    )
+    swapped_loss.backward()
+
+    assert torch.allclose(loss, swapped_loss, atol=0.0, rtol=0.0)
+    assert torch.allclose(
+        grad[:, [1, 0, 2]],
+        swapped_probs.grad,
+        atol=0.0,
+        rtol=0.0,
+    )
+
+
+def test_entry_v10_selected_side_bad_path_penalty_touches_only_selected_probability() -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    probs = torch.tensor(
+        [
+            [0.70, 0.20, 0.10],
+            [0.15, 0.65, 0.20],
+            [0.20, 0.25, 0.55],
+        ],
+        dtype=torch.float32,
+        requires_grad=True,
+    )
+    loss = trainer._selected_side_bad_path_probability_penalty(
+        probs,
+        torch.tensor([0, 1, 2]),
+        torch.tensor([1.0, 1.0, 0.0]),
+        0.40,
+    )
+    loss.backward()
+
+    expected_grad = torch.tensor(
+        [
+            [0.20, 0.00, 0.00],
+            [0.00, 0.20, 0.00],
+            [0.00, 0.00, 0.00],
+        ],
+        dtype=torch.float32,
+    )
+    assert torch.allclose(loss, torch.tensor(0.27), atol=1e-7, rtol=0.0)
+    assert torch.allclose(probs.grad, expected_grad, atol=0.0, rtol=0.0)
+
+
+def test_entry_v10_selected_side_bad_path_penalty_rejects_flat_positive_even_when_disabled() -> None:
+    import pytest
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_SELECTED_SIDE_BAD_PATH_FLAT_TARGET_INVALID",
+    ):
+        trainer._selected_side_bad_path_probability_penalty(
+            torch.tensor([[0.20, 0.20, 0.60]], dtype=torch.float32),
+            torch.tensor([2]),
+            torch.tensor([1.0]),
+            0.0,
+        )
+
+
+def test_entry_v10_train_and_validate_share_selected_side_bad_path_penalty_and_stats() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert text.count("_selected_side_bad_path_probability_penalty(") >= 3
+    assert "probs[bad_path_neg_mask, 0]" not in text
+    assert text.count('"aux_bad_path_bce_loss_mean"') == 2
+    assert text.count('"bad_path_prob_penalty_loss_mean"') == 2
+    assert '"bad_path_prob_loss_mean"' not in text
+
+
+def test_entry_v10_aux_pos_weights_match_active_bce_target_and_selector(monkeypatch) -> None:
+    import pandas as pd
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    frame = pd.DataFrame(
+        {
+            "y_selector_long_mask": [1.0, 0.0, 1.0, 0.0],
+            "y_selector_short_mask": [0.0, 1.0, 0.0, 0.0],
+            "y_clean_edge_long": [1.0, 0.0, 0.0, 1.0],
+            "y_clean_edge_bidir": [1.0, 1.0, 0.0, 0.0],
+            "y_survival_long": [0.0, 0.0, 1.0, 1.0],
+            "y_survival_bidir": [0.0, 1.0, 0.0, 0.0],
+        }
+    )
+
+    target_specs = (
+        (
+            "clean_edge",
+            "y_clean_edge_long",
+            "y_clean_edge_bidir",
+            trainer._aux_clean_edge_target,
+        ),
+        (
+            "survival",
+            "y_survival_long",
+            "y_survival_bidir",
+            trainer._aux_survival_target,
+        ),
+    )
+    for symmetric in (False, True):
+        monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", symmetric)
+        selector = trainer._aux_selector_mask(
+            torch.tensor(frame["y_selector_long_mask"].to_numpy()),
+            torch.tensor(frame["y_selector_short_mask"].to_numpy()),
+        )
+        for target_name, long_column, bidir_column, target_helper in target_specs:
+            active_target = target_helper(
+                torch.tensor(frame[long_column].to_numpy()),
+                torch.tensor(frame[bidir_column].to_numpy()),
+            )
+            expected_rate = float(active_target[selector].mean().item())
+            measured_rate = trainer._active_aux_target_rate_from_frame(
+                frame,
+                split_name="train",
+                target_name=target_name,
+                long_column=long_column,
+                bidir_column=bidir_column,
+            )
+            raw_weight, capped_weight = trainer._positive_class_weight_from_rate(
+                measured_rate,
+                10.0,
+            )
+            expected_raw_weight = (
+                (1.0 - expected_rate) / expected_rate
+                if expected_rate > 0.0
+                else 1.0
+            )
+
+            assert measured_rate == expected_rate
+            assert raw_weight == expected_raw_weight
+            assert capped_weight == min(10.0, max(1.0, expected_raw_weight))
+
+
+def _live_active_head_epoch_accumulator(trainer):
+    import numpy as np
+
+    rows = 32
+    base = np.linspace(-1.0, 1.0, rows, dtype=np.float64)
+    accumulator = trainer._new_active_head_epoch_accumulator()
+    for head_name, component_names in trainer._ACTIVE_HEAD_TARGET_COMPONENTS.items():
+        for component_name in component_names:
+            width = int(trainer._ACTIVE_HEAD_COMPONENT_WIDTHS[component_name])
+            prediction = np.stack(
+                [base + 0.01 * column for column in range(width)],
+                axis=1,
+            )
+            target = np.stack(
+                [base[::-1] + 0.02 * column for column in range(width)],
+                axis=1,
+            )
+            accumulator["heads"][head_name]["components"][component_name] = {
+                "prediction": [prediction],
+                "target": [target],
+            }
+        accumulator["heads"][head_name]["influence"] = [
+            np.stack([0.10 * base, -0.10 * base, 0.05 * base], axis=1)
+        ]
+    return accumulator
+
+
+def test_entry_v10_active_head_diagnostic_contract_covers_all_22_heads() -> None:
+    from gx1.contracts.entry_model_native_readiness_v1 import (
+        MODEL_NATIVE_ACTIVE_HEADS,
+    )
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    assert len(MODEL_NATIVE_ACTIVE_HEADS) == 22
+    assert tuple(trainer._ACTIVE_HEAD_FUSION_INPUTS) == MODEL_NATIVE_ACTIVE_HEADS
+    assert tuple(trainer._ACTIVE_HEAD_TARGET_COMPONENTS) == MODEL_NATIVE_ACTIVE_HEADS
+    assert trainer._active_head_contract_failures() == []
+
+    metrics, failures = trainer._active_head_epoch_diagnostics(
+        _live_active_head_epoch_accumulator(trainer)
+    )
+
+    assert failures == []
+    assert metrics["active_head_health_ok"] is True
+    assert tuple(metrics["active_head_diagnostics"]) == MODEL_NATIVE_ACTIVE_HEADS
+    assert all(
+        details["ok"] is True
+        for details in metrics["active_head_diagnostics"].values()
+    )
+
+
+def test_entry_v10_every_active_head_dead_output_blocks_checkpoint_health() -> None:
+    import numpy as np
+
+    from gx1.contracts.entry_model_native_readiness_v1 import (
+        MODEL_NATIVE_ACTIVE_HEADS,
+    )
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    for head_name in MODEL_NATIVE_ACTIVE_HEADS:
+        accumulator = _live_active_head_epoch_accumulator(trainer)
+        component_name = trainer._ACTIVE_HEAD_TARGET_COMPONENTS[head_name][0]
+        prediction = accumulator["heads"][head_name]["components"][component_name][
+            "prediction"
+        ][0]
+        accumulator["heads"][head_name]["components"][component_name][
+            "prediction"
+        ] = [np.zeros_like(prediction)]
+
+        metrics, failures = trainer._active_head_epoch_diagnostics(accumulator)
+
+        assert metrics["active_head_health_ok"] is False
+        assert any(
+            "ENTRY_ACTIVE_HEAD_DIAGNOSTIC_OUTPUT_DEAD" in failure
+            and f"head={head_name}" in failure
+            for failure in failures
+        )
+
+
+def test_entry_v10_active_head_dead_target_or_fusion_influence_blocks_health() -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    target_dead = _live_active_head_epoch_accumulator(trainer)
+    target_dead["heads"]["timing"]["components"]["timing_pred"]["target"] = [
+        np.zeros((32, 12), dtype=np.float64)
+    ]
+    target_metrics, target_failures = trainer._active_head_epoch_diagnostics(
+        target_dead
+    )
+    assert target_metrics["active_head_health_ok"] is False
+    assert any(
+        "ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_DEAD" in failure
+        and "head=timing" in failure
+        for failure in target_failures
+    )
+
+    influence_dead = _live_active_head_epoch_accumulator(trainer)
+    influence_dead["heads"]["offline_rl_expectile_value"]["influence"] = [
+        np.zeros((32, 3), dtype=np.float64)
+    ]
+    influence_metrics, influence_failures = trainer._active_head_epoch_diagnostics(
+        influence_dead
+    )
+    assert influence_metrics["active_head_health_ok"] is False
+    assert any(
+        "ENTRY_ACTIVE_HEAD_DIAGNOSTIC_INFLUENCE_DEAD" in failure
+        and "head=offline_rl_expectile_value" in failure
+        for failure in influence_failures
+    )
+
+    structural_flat_q = _live_active_head_epoch_accumulator(trainer)
+    action_component = structural_flat_q["heads"]["offline_rl_action_value"][
+        "components"
+    ]["action_value"]
+    action_component["prediction"][0][:, 6:9] = 0.0
+    action_component["target"][0][:, 6:9] = 0.0
+    structural_metrics, structural_failures = (
+        trainer._active_head_epoch_diagnostics(structural_flat_q)
+    )
+    assert structural_failures == []
+    assert structural_metrics["active_head_health_ok"] is True
+
+
+def test_entry_v10_active_head_target_surfaces_match_exact_output_widths(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", True)
+    rows = 32
+    base = torch.linspace(-1.0, 1.0, rows)
+    out = {
+        output_name: torch.stack(
+            [base + 0.01 * column for column in range(width)],
+            dim=1,
+        )
+        for output_name, width in trainer.EXACT_EVIDENCE_FUSION_OUTPUTS
+    }
+    out["raw_direction_logits"] = torch.stack(
+        [base, -base, 0.5 * base],
+        dim=1,
+    )
+    batch = {
+        "y": torch.tensor([index % 3 for index in range(rows)]),
+        "y_tradable": torch.tensor([float(index % 2) for index in range(rows)]),
+        "y_selector_long_mask": torch.ones(rows),
+        "y_selector_short_mask": torch.ones(rows),
+        "y_clean_edge_long": torch.tensor(
+            [float(index % 2) for index in range(rows)]
+        ),
+        "y_clean_edge_bidir": torch.tensor(
+            [float((index + 1) % 2) for index in range(rows)]
+        ),
+        "y_survival_long": torch.tensor(
+            [float(index % 2) for index in range(rows)]
+        ),
+        "y_survival_bidir": torch.tensor(
+            [float((index // 2) % 2) for index in range(rows)]
+        ),
+        "path_quality_bps": 20.0 * base,
+        "mfe_first_n_bps": 10.0 * base,
+        "y_bad_path": torch.tensor(
+            [float(index % 2) for index in range(rows)]
+        ),
+        "y_tf_agreement_score": (base + 1.0) / 2.0,
+        "y_position_size_target": (base + 1.0) / 2.0,
+        "y_trade": torch.tensor([float(index % 2) for index in range(rows)]),
+        "y_side": torch.tensor([index % 2 for index in range(rows)]),
+        "y_side_mask": torch.ones(rows),
+        "y_long_path_utility_bps": 30.0 * base,
+        "y_short_path_utility_bps": -25.0 * base,
+        "y_long_bad_path": torch.tensor(
+            [float(index % 2) for index in range(rows)]
+        ),
+        "y_short_bad_path": torch.tensor(
+            [float((index + 1) % 2) for index in range(rows)]
+        ),
+        "y_long_expected_mae_bps": 5.0 * (base + 1.0),
+        "y_short_expected_mae_bps": 6.0 * (1.0 - base),
+        "y_rising_channel_support_touch": torch.tensor(
+            [float(index % 2) for index in range(rows)]
+        ),
+        "y_falling_channel_resistance_touch": torch.tensor(
+            [float((index + 1) % 2) for index in range(rows)]
+        ),
+        "y_countertrend_short_trap": torch.tensor(
+            [float((index // 2) % 2) for index in range(rows)]
+        ),
+        "y_countertrend_long_trap": torch.tensor(
+            [float((index // 3) % 2) for index in range(rows)]
+        ),
+        "y_short_high_mae_low_mfe_early_failure": torch.tensor(
+            [float((index // 4) % 2) for index in range(rows)]
+        ),
+        "y_long_high_mae_low_mfe_early_failure": torch.tensor(
+            [float((index // 5) % 2) for index in range(rows)]
+        ),
+    }
+    for direction in trainer.DIP_DIRECTIONS:
+        for horizon in trainer.DIP_HORIZONS:
+            for target_name in trainer.DIP_TARGETS:
+                column = (
+                    f"y_dip_mfe_{direction}_K{horizon}"
+                    if target_name.startswith("recovery")
+                    else f"y_dip_mae_{direction}_K{horizon}"
+                )
+                batch[column] = base + float(horizon)
+    for horizon in trainer.FORECAST_HORIZONS:
+        batch[f"y_forecast_ret_K{horizon}"] = base + float(horizon)
+    for direction in trainer.TIMING_DIRECTIONS:
+        for horizon in trainer.TIMING_HORIZONS:
+            for target_name in trainer.TIMING_TARGETS:
+                batch[f"y_{target_name}_{direction}_K{horizon}"] = (
+                    (base + 1.0) / 2.0
+                )
+    for direction in trainer.TAIL_RISK_DIRECTIONS:
+        for horizon in trainer.TAIL_RISK_HORIZONS:
+            batch[f"y_tail_mae_{direction}_K{horizon}"] = (
+                base + float(horizon)
+            )
+    for horizon in trainer.VOL_FORECAST_HORIZONS:
+        batch[f"y_vol_fwd_K{horizon}"] = base + float(horizon)
+    for offset, column in enumerate(trainer._OFFLINE_RL_TARGET_COLS):
+        batch[column] = (10.0 + float(offset)) * base + float(offset)
+
+    surfaces = trainer._active_head_target_surfaces(
+        out,
+        batch,
+        torch.device("cpu"),
+        path_scale_bps=50.0,
+        mfe_scale_bps=20.0,
+    )
+
+    assert tuple(surfaces) == tuple(trainer.MODEL_NATIVE_ACTIVE_HEADS)
+    for head_name, components in surfaces.items():
+        assert tuple(components) == trainer._ACTIVE_HEAD_TARGET_COMPONENTS[head_name]
+        for component_name, (prediction, target, mask) in components.items():
+            expected_width = trainer._ACTIVE_HEAD_COMPONENT_WIDTHS[component_name]
+            assert tuple(prediction.shape) == (rows, expected_width)
+            assert tuple(target.shape) == (rows, expected_width)
+            assert tuple(mask.shape) == (rows,)
+
+    class _FusionStub(torch.nn.Module):
+        def _fuse_direction_evidence(self, pre_fusion_outputs):
+            evidence = torch.cat(
+                [
+                    pre_fusion_outputs[output_name]
+                    for output_name, _width in trainer.EXACT_EVIDENCE_FUSION_OUTPUTS
+                ],
+                dim=1,
+            )
+            scalar = evidence.sum(dim=1)
+            return torch.stack([scalar, -0.5 * scalar, 0.25 * scalar], dim=1)
+
+    fusion_stub = _FusionStub()
+    out["raw_direction_logits"] = fusion_stub._fuse_direction_evidence(out)
+    accumulator = trainer._new_active_head_epoch_accumulator()
+    trainer._accumulate_active_head_epoch(
+        accumulator,
+        fusion_stub,
+        out,
+        batch,
+        torch.device("cpu"),
+        path_scale_bps=50.0,
+        mfe_scale_bps=20.0,
+    )
+    metrics, failures = trainer._active_head_epoch_diagnostics(accumulator)
+
+    assert failures == []
+    assert metrics["active_head_health_ok"] is True
+
+
+def test_entry_v10_checkpoint_admission_requires_all_active_head_health() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert 'val_stats.get("active_head_health_ok", False)' in text
+    assert "and _active_head_health_ok" in text
+    assert "[ENTRY_ACTIVE_HEAD_HEALTH_CHECKPOINT_BLOCKED]" in text
+    assert "[ENTRY_ACTIVE_HEAD_HEALTH]" in text
+
+
 def test_entry_v10_direction_ce_weight_includes_bad_path_and_short_side(monkeypatch) -> None:
     import torch
 
@@ -2101,3 +2572,48 @@ def test_entry_v10_standalone_eval_matches_training_objective() -> None:
     assert '"validation_objective_matches_train": True' in text
     assert "direction_only_ce_plus_residual_side_bias" not in text
     assert '"hierarchical_loss_metrics_included": False' not in text
+
+
+def test_entry_v10_grad_accum_cli_drives_steps_and_rescales_final_remainder(
+    monkeypatch,
+) -> None:
+    import pytest
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    model = torch.nn.Linear(1, 1, bias=False)
+    with torch.no_grad():
+        model.weight.fill_(1.0)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    model.weight.grad = torch.tensor([[0.5]])
+    scheduler_steps: list[int] = []
+
+    class _Scheduler:
+        def step(self) -> None:
+            scheduler_steps.append(1)
+
+    monkeypatch.setattr(trainer, "_GRAD_CLIP_NORM", 1_000.0)
+    assert trainer._step_partial_gradient_accumulation(
+        model=model,
+        optimizer=optimizer,
+        scheduler=_Scheduler(),
+        configured_steps=4,
+        observed_steps=2,
+    )
+    assert float(model.weight.detach().item()) == pytest.approx(0.9)
+    assert model.weight.grad is None
+    assert scheduler_steps == [1]
+
+    with pytest.raises(RuntimeError, match="GRAD_ACCUM_REMAINDER_INVALID"):
+        trainer._step_partial_gradient_accumulation(
+            model=model,
+            optimizer=optimizer,
+            scheduler=None,
+            configured_steps=4,
+            observed_steps=4,
+        )
+
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    assert 'parser.add_argument("--grad-accum-steps", type=int, required=True)' in source
+    assert "grad_accum_steps=int(grad_accum_steps)" in source

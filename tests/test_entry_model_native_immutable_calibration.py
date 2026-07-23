@@ -218,11 +218,9 @@ def _source_bundle(tmp_path: Path) -> Path:
             "fusion_scale": 0.25,
             "cross_family_fusion_scale": 0.25,
         },
-        "feature_meta_path": "feature_meta.json",
     }
     _write_json(bundle / "MASTER_TRANSFORMER_LOCK.json", lock)
     _write_json(bundle / "bundle_metadata.json", metadata)
-    _write_json(bundle / "feature_meta.json", {"schema_version": "synthetic_feature_meta_v1"})
     (bundle / "unrelated_training_checkpoint.pt").write_bytes(b"must not be copied")
     return bundle
 
@@ -362,7 +360,6 @@ def test_direction_execute_publishes_new_hash_bound_bundle_without_source_mutati
     assert _tree_hashes(source) == before
     assert output.is_dir()
     assert not (output / "unrelated_training_checkpoint.pt").exists()
-    assert (output / "feature_meta.json").is_file()
     assert (output / "MASTER_TRANSFORMER_LOCK.json").read_bytes() == (
         source / "MASTER_TRANSFORMER_LOCK.json"
     ).read_bytes()
@@ -373,6 +370,11 @@ def test_direction_execute_publishes_new_hash_bound_bundle_without_source_mutati
     source_meta = json.loads((source / "bundle_metadata.json").read_text(encoding="utf-8"))
     output_meta = json.loads((output / "bundle_metadata.json").read_text(encoding="utf-8"))
     assert "direction_calibration" not in source_meta
+    assert not {
+        "feature_meta_path",
+        "seq_scaler_path",
+        "snap_scaler_path",
+    } & output_meta.keys()
     assert output_meta["direction_calibration"]["version"] == (
         calibration.DIRECTION_CALIBRATION_VERSION
     )

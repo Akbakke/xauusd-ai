@@ -55,11 +55,6 @@ BUNDLE_REQUIRED_FILES = (
     "bundle_metadata.json",
     "model_state_dict.pt",
 )
-RELATIVE_BUNDLE_REFERENCE_KEYS = (
-    "feature_meta_path",
-    "seq_scaler_path",
-    "snap_scaler_path",
-)
 CALIBRATION_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_CALIBRATION_"
 _TIMESTAMPED_DIR_RE = re.compile(
     r"[A-Za-z0-9][A-Za-z0-9._-]*_(?P<stamp>\d{8}T\d{12}Z)"
@@ -205,38 +200,8 @@ def _load_state_dict(path: Path) -> Mapping[str, Any]:
     return value
 
 
-def _relative_bundle_artifacts(bundle_dir: Path, metadata: Mapping[str, Any]) -> dict[str, Path]:
-    artifacts: dict[str, Path] = {}
-    for key in RELATIVE_BUNDLE_REFERENCE_KEYS:
-        raw = metadata.get(key)
-        if raw is None:
-            continue
-        if not isinstance(raw, str) or not raw.strip():
-            raise RuntimeError(f"bundle metadata {key} must be null or a non-empty relative path")
-        relative = Path(raw)
-        if relative.is_absolute() or ".." in relative.parts:
-            raise RuntimeError(f"bundle metadata {key} must be a contained relative path: {raw!r}")
-        unresolved = bundle_dir / relative
-        source = unresolved.resolve()
-        if source != unresolved:
-            raise RuntimeError(f"bundle metadata {key} cannot traverse symlinks: {raw!r}")
-        try:
-            source.relative_to(bundle_dir)
-        except ValueError as exc:
-            raise RuntimeError(f"bundle metadata {key} escapes source bundle: {raw!r}") from exc
-        _require_plain_file(source, label=key)
-        normalized = relative.as_posix()
-        if normalized in BUNDLE_REQUIRED_FILES:
-            raise RuntimeError(f"bundle metadata {key} collides with a required artifact")
-        artifacts[normalized] = source
-    return artifacts
-
-
-def _bundle_artifact_hashes(
-    bundle_dir: Path,
-    relative_artifacts: Mapping[str, Path],
-) -> dict[str, str]:
-    names = [*BUNDLE_REQUIRED_FILES, *sorted(relative_artifacts)]
+def _bundle_artifact_hashes(bundle_dir: Path) -> dict[str, str]:
+    names = list(BUNDLE_REQUIRED_FILES)
     hashes: dict[str, str] = {}
     for name in names:
         path = bundle_dir / name
@@ -250,7 +215,7 @@ def _bundle_artifact_hashes(
 
 def _validate_source_bundle(
     source_bundle_dir: Path,
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, Path], dict[str, str]]:
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
     required = {name: source_bundle_dir / name for name in BUNDLE_REQUIRED_FILES}
     for name, path in required.items():
         _require_plain_file(path, label=name)
@@ -272,9 +237,8 @@ def _validate_source_bundle(
     state_dict = _load_state_dict(state_path)
     _require_model_native_state_head_contract(metadata, state_dict)
     _require_model_native_learned_component_liveness(state_dict)
-    relative_artifacts = _relative_bundle_artifacts(source_bundle_dir, metadata)
-    artifact_hashes = _bundle_artifact_hashes(source_bundle_dir, relative_artifacts)
-    return metadata, lock, relative_artifacts, artifact_hashes
+    artifact_hashes = _bundle_artifact_hashes(source_bundle_dir)
+    return metadata, lock, artifact_hashes
 
 
 def _numeric_column(frame: pd.DataFrame, name: str) -> np.ndarray:
@@ -508,14 +472,9 @@ def _copy_bundle_to_stage(
     *,
     source_bundle_dir: Path,
     stage_dir: Path,
-    relative_artifacts: Mapping[str, Path],
 ) -> None:
     for name in ("MASTER_TRANSFORMER_LOCK.json", "model_state_dict.pt"):
         _copy_file_fsync(source_bundle_dir / name, stage_dir / name)
-    for relative, source in sorted(relative_artifacts.items()):
-        destination = stage_dir / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        _copy_file_fsync(source, destination)
 
 
 def _rename_dir_noreplace(source: Path, destination: Path) -> None:
@@ -557,7 +516,6 @@ def _publish_bundle(
     out_stamp: str,
     source_metadata: Mapping[str, Any],
     source_lock: Mapping[str, Any],
-    relative_artifacts: Mapping[str, Path],
     source_hashes: Mapping[str, str],
     calibration_key: str,
     calibration: Mapping[str, Any],
@@ -572,9 +530,7 @@ def _publish_bundle(
     stage_dir = Path(tempfile.mkdtemp(prefix=f".{out_bundle_dir.name}.", dir=parent))
     published = False
     try:
-        if _bundle_artifact_hashes(source_bundle_dir, relative_artifacts) != dict(
-            source_hashes
-        ):
+        if _bundle_artifact_hashes(source_bundle_dir) != dict(source_hashes):
             raise RuntimeError("source bundle changed after validation")
         if sha256_file(Path(str(provenance["predictions_path"]))) != provenance[
             "predictions_sha256"
@@ -587,7 +543,6 @@ def _publish_bundle(
         _copy_bundle_to_stage(
             source_bundle_dir=source_bundle_dir,
             stage_dir=stage_dir,
-            relative_artifacts=relative_artifacts,
         )
         output_metadata = copy.deepcopy(dict(source_metadata))
         output_metadata[calibration_key] = dict(calibration)
@@ -614,14 +569,10 @@ def _publish_bundle(
         ]:
             raise RuntimeError("staged lock bytes differ from source lock")
 
-        staged_relative = {
-            relative: stage_dir / relative for relative in relative_artifacts
-        }
-        output_hashes = _bundle_artifact_hashes(stage_dir, staged_relative)
+        output_hashes = _bundle_artifact_hashes(stage_dir)
         unchanged_names = {
             "MASTER_TRANSFORMER_LOCK.json",
             "model_state_dict.pt",
-            *relative_artifacts,
         }
         changed_copies = sorted(
             name
@@ -729,7 +680,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if mutable := _mutable_alias_tokens(dataset_dir):
         raise RuntimeError(f"dataset dir contains mutable alias tokens: {mutable}")
 
-    source_metadata, source_lock, relative_artifacts, source_hashes = (
+    source_metadata, source_lock, source_hashes = (
         _validate_source_bundle(source_bundle_dir)
     )
     calibration_key = f"{args.heads}_calibration"
@@ -860,7 +811,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         out_stamp=out_stamp,
         source_metadata=source_metadata,
         source_lock=source_lock,
-        relative_artifacts=relative_artifacts,
         source_hashes=source_hashes,
         calibration_key=calibration_key,
         calibration=calibration,

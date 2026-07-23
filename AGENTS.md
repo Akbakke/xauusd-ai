@@ -75,16 +75,19 @@ bad-path/survival AUC 0.478/0.514, six cross-head collapses and near-zero
 specialist/family×TF minimum use. No checkpoint or bundle was written.
 
 The independent full-pipeline audit in
-`PIPELINE_AUDIT_XAU_20260723.md` found two P0s and multiple P1s. The active
-selected-side bad-path penalty always suppresses LONG, including 425 SHORT
-bad-path rows in the V7 cap. Six signed dip-MFE targets are clipped to zero.
-Replacement sampling exposes only about 62% unique selected rows per epoch;
-symmetric auxiliary weights use LONG-only rates; global AUC can pass by
-relearning tradable versus FLAT; checkpoint admission omits many active heads;
-MTF/scaler identity, context-specialist routing and fusion scales are
-incomplete. V24/V7 are therefore immutable failure evidence only. No V8,
-rebuild, candidate or launch is allowed before the ordered repairs and a fresh
-XAU-only dataset.
+`PIPELINE_AUDIT_XAU_20260723.md` found two P0s and multiple P1s. Source now
+repairs signed dip-MFE, selected-side bad-path symmetry, no-replacement
+sampling, bidirectional aux weighting, exact recipe/M5 authority, single-mode
+MTF caching, all-22-head checkpoint influence, forward-head bps units,
+grad-accum consumption and stale bundle-loader pass-throughs. V24/V7 remain
+immutable failure evidence because their bytes and training outcome predate
+those repairs. The remaining pre-rebuild architecture blockers are immutable
+TRAIN-fit normalization for raw 513+142 continuous inputs and true direct
+142+5 family-owned context routing; 60 continuous plus all five categorical
+fields currently reach global context/gates/FiLM but no claimed pre-cross
+specialist token. Atomic bundle publication and transactional launch/vedtak
+also remain open. No V8, rebuild, candidate or launch is allowed before those
+repairs and a fresh XAU-only dataset.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

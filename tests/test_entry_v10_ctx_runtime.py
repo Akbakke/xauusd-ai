@@ -8,13 +8,9 @@ DEL 6: Minimum unit tests to verify:
 3. Proof test: same sample, ctx vs permuted ctx → output differs
 """
 
-import os
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
-import numpy as np
 import pytest
 import torch
 
@@ -41,14 +37,9 @@ class TestEntryV10CtxLoader:
         if not bundle_dir.exists():
             pytest.skip(f"Smoke-run bundle not found: {bundle_dir}")
         
-        feature_meta_path = Path("gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json")
-        if not feature_meta_path.exists():
-            pytest.skip(f"Feature metadata not found: {feature_meta_path}")
-        
         # Load bundle
         bundle = load_entry_v10_ctx_bundle(
             bundle_dir=bundle_dir,
-            feature_meta_path=feature_meta_path,
             is_replay=True,
         )
         

@@ -12,7 +12,7 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
 )
 
 
-MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v4"
+MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v5"
 MODEL_NATIVE_AUX_FORECAST_HORIZONS = (1, 5, 12, 24)
 MODEL_NATIVE_AUX_RISK_HORIZONS = (12, 48, 96)
 MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS = tuple(
@@ -25,6 +25,8 @@ MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS = tuple(
     for side in ("long", "short")
     for horizon in MODEL_NATIVE_AUX_RISK_HORIZONS
 )
+MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS = 1000.0
+MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS = 1000.0
 MODEL_NATIVE_DIP_TARGET_COLUMNS = (
     *MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
     *MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS,
@@ -129,6 +131,29 @@ def model_native_aux_target_contract_metadata() -> dict[str, Any]:
         },
         "max_future_horizon_bars": int(MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS),
         "spread_aware_risk_magnitudes_required": True,
+        "target_value_domains": {
+            "dip_mfe": {
+                "columns": list(MODEL_NATIVE_DIP_MFE_TARGET_COLUMNS),
+                "unit": "bps",
+                "finite_on_complete_rows": True,
+                "signed": True,
+                "negative_values_preserved": True,
+                "lower_bound_bps": None,
+                "upper_safety_cap_bps": float(
+                    MODEL_NATIVE_DIP_MFE_UPPER_SAFETY_CAP_BPS
+                ),
+            },
+            "dip_mae": {
+                "columns": list(MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS),
+                "unit": "bps",
+                "finite_on_complete_rows": True,
+                "signed": False,
+                "lower_bound_bps": 0.0,
+                "upper_safety_cap_bps": float(
+                    MODEL_NATIVE_DIP_MAE_UPPER_SAFETY_CAP_BPS
+                ),
+            },
+        },
         "mid_price_timing_reference_only": True,
         "incomplete_value": "NaN_before_emission_only",
         "incomplete_rows_may_be_emitted": False,

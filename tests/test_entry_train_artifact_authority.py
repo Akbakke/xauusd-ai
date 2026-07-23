@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,9 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     model_native_aux_target_contract_metadata,
 )
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 
 
@@ -26,6 +30,17 @@ DATASET_RUN_ID = "MODEL_NATIVE_TRAIN_DATASET_PYTEST_V1"
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _set_exact_trainer_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in tuple(os.environ):
+        if key.startswith("ENTRY_") or key.startswith("GX1_"):
+            monkeypatch.delenv(key)
+    for key, value in MODEL_NATIVE_RECIPE_ENV.items():
+        monkeypatch.setenv(key, value)
+    for env_name in trainer._TRAIN_ARTIFACT_HASH_ENV.values():
+        monkeypatch.setenv(env_name, "0" * 64)
+    monkeypatch.setenv(trainer._TRAIN_DATASET_RUN_ID_ENV, DATASET_RUN_ID)
 
 
 def _aux_target_contract(split: str) -> dict[str, object]:
@@ -42,9 +57,11 @@ def _aux_target_contract(split: str) -> dict[str, object]:
 def _artifacts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-) -> tuple[dict[str, Path], dict[str, Path]]:
+) -> tuple[dict[str, Path], dict[str, Path], Path]:
     root = (tmp_path / "dataset_20260719T220000123456Z").resolve()
     root.mkdir()
+    m5_prebuilt = root / "FULL_PLUS_CTX_v3src.parquet"
+    m5_prebuilt.write_bytes(b"immutable-xau-m5-source")
     selected = canonical_model_native_selected_fields(
         remainder_prefix="session_regime.train_artifact_authority"
     )
@@ -54,6 +71,8 @@ def _artifacts(
         "entry_run_id": DATASET_RUN_ID,
         "rank_fit_start_utc": "2021-03-16T00:00:00Z",
         "rank_fit_end_utc": "2026-03-31T23:59:59Z",
+        "rank_reference_source_parquet": str(m5_prebuilt),
+        "rank_reference_source_parquet_sha256": _sha(m5_prebuilt),
     }
     manifests: dict[str, Path] = {}
     parquets: dict[str, Path] = {}
@@ -68,6 +87,7 @@ def _artifacts(
                     "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
                     "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
                     "output_data_path": str(parquet),
+                    "inputs": {"source_parquet": str(m5_prebuilt)},
                     "extra": {
                         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
                         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -96,12 +116,17 @@ def _artifacts(
             trainer._TRAIN_ARTIFACT_HASH_ENV[f"{split}_parquet"], _sha(parquet)
         )
     monkeypatch.setenv(trainer._TRAIN_DATASET_RUN_ID_ENV, DATASET_RUN_ID)
-    return manifests, parquets
+    monkeypatch.setenv(
+        trainer._TRAIN_ARTIFACT_HASH_ENV["m5_prebuilt_path"],
+        _sha(m5_prebuilt),
+    )
+    return manifests, parquets, m5_prebuilt
 
 
 def _resolve(
     manifests: dict[str, Path],
     parquets: dict[str, Path],
+    m5_prebuilt: Path,
 ) -> tuple[dict[str, Path], dict[str, Path]]:
     return trainer._resolve_explicit_train_split_artifacts(
         train_manifest=manifests["train"],
@@ -110,34 +135,68 @@ def _resolve(
         train_parquet=parquets["train"],
         val_parquet=parquets["val"],
         test_parquet=parquets["test"],
+        m5_prebuilt_path=m5_prebuilt,
         dataset_run_id=DATASET_RUN_ID,
         profile="candidate",
     )
 
 
-def test_exact_six_artifact_identity_passes(
+def test_exact_dataset_artifact_identity_including_m5_passes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
 
-    observed_manifests, observed_parquets = _resolve(manifests, parquets)
+    observed_manifests, observed_parquets = _resolve(
+        manifests,
+        parquets,
+        m5_prebuilt,
+    )
 
     assert observed_manifests == manifests
     assert observed_parquets == parquets
+
+
+def test_trainer_boundary_requires_exact_recipe_and_allows_only_bound_runtime_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_exact_trainer_env(monkeypatch)
+
+    trainer._enforce_canonical_train_env_contract()
+
+    monkeypatch.setenv("ENTRY_DIRECTION_CE_SCALE", "999")
+    with pytest.raises(RuntimeError, match="TRAIN_RECIPE_ENV_INVALID"):
+        trainer._enforce_canonical_train_env_contract()
+
+
+def test_trainer_boundary_rejects_missing_recipe_and_ambient_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_exact_trainer_env(monkeypatch)
+    monkeypatch.delenv("ENTRY_DIRECTION_CE_SCALE")
+    with pytest.raises(RuntimeError, match="TRAIN_RECIPE_ENV_INVALID"):
+        trainer._enforce_canonical_train_env_contract()
+
+    monkeypatch.setenv(
+        "ENTRY_DIRECTION_CE_SCALE",
+        MODEL_NATIVE_RECIPE_ENV["ENTRY_DIRECTION_CE_SCALE"],
+    )
+    monkeypatch.setenv("GX1_MTF_TAPERED", "1")
+    with pytest.raises(RuntimeError, match="AMBIENT_CONTROL_FORBIDDEN"):
+        trainer._enforce_canonical_train_env_contract()
 
 
 def test_dataset_run_id_must_match_launch_owned_environment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
     monkeypatch.setenv(
         trainer._TRAIN_DATASET_RUN_ID_ENV,
         "DIFFERENT_DATASET_RUN_ID",
     )
 
     with pytest.raises(RuntimeError, match="DATASET_RUN_ID_ENV_MISMATCH"):
-        _resolve(manifests, parquets)
+        _resolve(manifests, parquets, m5_prebuilt)
 
 
 @pytest.mark.parametrize("mode", ("missing", "mismatch"))
@@ -146,7 +205,7 @@ def test_hash_env_is_mandatory_and_exact(
     monkeypatch: pytest.MonkeyPatch,
     mode: str,
 ) -> None:
-    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
     env_name = trainer._TRAIN_ARTIFACT_HASH_ENV["val_parquet"]
     if mode == "missing":
         monkeypatch.delenv(env_name)
@@ -156,13 +215,13 @@ def test_hash_env_is_mandatory_and_exact(
         expected = "SHA256_MISMATCH"
 
     with pytest.raises(RuntimeError, match=expected):
-        _resolve(manifests, parquets)
+        _resolve(manifests, parquets, m5_prebuilt)
 
 
 def test_relative_symlink_and_latest_paths_fail_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
     with pytest.raises(RuntimeError, match="PATH_NOT_ABSOLUTE"):
         trainer._resolve_explicit_train_split_artifacts(
             train_manifest=Path("relative_train.manifest.json"),
@@ -171,6 +230,7 @@ def test_relative_symlink_and_latest_paths_fail_closed(
             train_parquet=parquets["train"],
             val_parquet=parquets["val"],
             test_parquet=parquets["test"],
+            m5_prebuilt_path=m5_prebuilt,
             dataset_run_id=DATASET_RUN_ID,
             profile="candidate",
         )
@@ -178,22 +238,26 @@ def test_relative_symlink_and_latest_paths_fail_closed(
     symlink = manifests["train"].with_name("symlink_train.manifest.json")
     symlink.symlink_to(manifests["train"])
     with pytest.raises(RuntimeError, match="NOT_REGULAR"):
-        _resolve({**manifests, "train": symlink}, parquets)
+        _resolve({**manifests, "train": symlink}, parquets, m5_prebuilt)
 
     latest = manifests["train"].parent / "latest" / manifests["train"].name
     latest.parent.mkdir()
     latest.write_bytes(manifests["train"].read_bytes())
     monkeypatch.setenv(trainer._TRAIN_ARTIFACT_HASH_ENV["train_manifest"], _sha(latest))
     with pytest.raises(RuntimeError, match="PATH_MUTABLE"):
-        _resolve({**manifests, "train": latest}, parquets)
+        _resolve({**manifests, "train": latest}, parquets, m5_prebuilt)
 
 
 def test_split_paths_must_be_six_way_distinct(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
     with pytest.raises(RuntimeError, match="PATHS_NOT_DISTINCT"):
-        _resolve(manifests, {**parquets, "val": parquets["train"]})
+        _resolve(
+            manifests,
+            {**parquets, "val": parquets["train"]},
+            m5_prebuilt,
+        )
 
 
 @pytest.mark.parametrize("mutation", ("self_path", "run_id"))
@@ -202,7 +266,7 @@ def test_manifest_self_path_and_run_lineage_are_exact(
     monkeypatch: pytest.MonkeyPatch,
     mutation: str,
 ) -> None:
-    manifests, parquets = _artifacts(tmp_path, monkeypatch)
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
     manifest = manifests["test"]
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     if mutation == "self_path":
@@ -217,7 +281,53 @@ def test_manifest_self_path_and_run_lineage_are_exact(
     monkeypatch.setenv(trainer._TRAIN_ARTIFACT_HASH_ENV["test_manifest"], _sha(manifest))
 
     with pytest.raises(RuntimeError, match=expected):
-        _resolve(manifests, parquets)
+        _resolve(manifests, parquets, m5_prebuilt)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("hash_env", "manifest_source", "state_path", "state_hash"),
+)
+def test_m5_source_is_hash_and_manifest_bound(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    manifests, parquets, m5_prebuilt = _artifacts(tmp_path, monkeypatch)
+    expected = "M5_"
+    if mutation == "hash_env":
+        monkeypatch.setenv(
+            trainer._TRAIN_ARTIFACT_HASH_ENV["m5_prebuilt_path"],
+            "0" * 64,
+        )
+        expected = "SHA256_MISMATCH"
+    else:
+        manifest = manifests["val"]
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if mutation == "manifest_source":
+            payload["inputs"]["source_parquet"] = str(parquets["train"])
+            expected = "M5_SOURCE_PATH_MISMATCH"
+        elif mutation == "state_path":
+            payload["extra"]["model_native_state_contract"][
+                "rank_reference_source_parquet"
+            ] = str(parquets["train"])
+            expected = "M5_STATE_BINDING_MISMATCH"
+        else:
+            payload["extra"]["model_native_state_contract"][
+                "rank_reference_source_parquet_sha256"
+            ] = "0" * 64
+            expected = "M5_STATE_BINDING_MISMATCH"
+        manifest.write_text(
+            json.dumps(payload, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv(
+            trainer._TRAIN_ARTIFACT_HASH_ENV["val_manifest"],
+            _sha(manifest),
+        )
+
+    with pytest.raises(RuntimeError, match=expected):
+        _resolve(manifests, parquets, m5_prebuilt)
 
 
 def test_wrappers_forward_all_six_explicit_artifacts_without_inference() -> None:

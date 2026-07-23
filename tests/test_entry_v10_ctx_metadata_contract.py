@@ -1,3 +1,5 @@
+import inspect
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -44,6 +46,7 @@ from gx1.models.entry_v10.entry_v10_bundle import (
     _infer_entry_bundle_capabilities,
     _require_exact_model_native_bundle_metadata,
     _require_model_native_learned_component_liveness,
+    load_entry_v10_ctx_bundle,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _build_active_head_names,
@@ -233,6 +236,46 @@ def test_model_native_bundle_metadata_contract_is_exact_and_complete() -> None:
     meta, lock = _exact_model_native_metadata()
 
     _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("feature_meta_path", "seq_scaler_path", "snap_scaler_path"),
+)
+@pytest.mark.parametrize("owner", ("meta", "lock"))
+def test_model_native_bundle_rejects_stale_compatibility_artifact_declarations(
+    field: str,
+    owner: str,
+) -> None:
+    meta, lock = _exact_model_native_metadata()
+    payload = meta if owner == "meta" else lock
+    payload[field] = None
+
+    with pytest.raises(
+        RuntimeError,
+        match="STALE_COMPATIBILITY_ARTIFACT_FORBIDDEN",
+    ):
+        _require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_model_native_bundle_loader_has_no_stale_compatibility_arguments() -> None:
+    parameters = inspect.signature(load_entry_v10_ctx_bundle).parameters
+
+    assert set(parameters) == {"bundle_dir", "device", "is_replay"}
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("feature_meta_path", "seq_scaler_path", "snap_scaler_path"),
+)
+def test_model_native_bundle_loader_rejects_stale_compatibility_arguments(
+    field: str,
+) -> None:
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        load_entry_v10_ctx_bundle(
+            bundle_dir="/bundle/path/is/not/inspected",
+            **{field: "/stale/compatibility/artifact"},
+        )
 
 
 def test_model_native_bundle_rejects_collapsed_training_and_dataset_lineage() -> None:

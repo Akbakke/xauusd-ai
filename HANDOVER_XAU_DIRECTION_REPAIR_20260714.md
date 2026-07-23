@@ -678,23 +678,29 @@ Ordered steps (each gate fail-closed; stop at first red):
 1. Do **not** reuse V1-V24. Keep every retained failure input explicit and
    hash-bound; never discover through glob, mtime, symlink or mutable `latest`
    selection.
-2. Repair signed dip-MFE and selected-side bad-path semantics, replacement
-   sampling, bidirectional aux weights/conditional metrics and all-head/group
-   influence admission. Bind MTF/scaler bytes and implement true context
-   specialist routing plus compatible group scaling.
-3. Make bundle publication atomic. Add the one public transactional
+2. Treat signed dip-MFE, selected-side bad-path symmetry, no-replacement
+   sampling, bidirectional weights, exact recipe/M5 binding, single-mode MTF,
+   all-head influence, forward-head bps units and grad accumulation as
+   source-repaired only; preserve their regression tests.
+3. Implement immutable ordered TRAIN-fit normalization for raw 513+142
+   continuous inputs and true 142+5 context-specialist ownership. Handle the
+   82 byte-identical current-bar aliases explicitly and prove all 147 owner
+   token perturbations.
+4. Make bundle publication atomic. Add the one public transactional
    candidate/promotion/launch finalizer and require an immutable, exact vedtak
-   ID/hash; arbitrary `.env` text must never authorize launch.
-4. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
+   ID/hash; arbitrary `.env` text must never authorize launch. The joint
+   Exit/sizing proof must bind an immutable Exit-only registry snapshot, not
+   the mutable canonical registry that promotion changes.
+5. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
    readiness/trainability audit, then materialize a new recipe only from those
    new immutable bytes.
-5. Compare a declared full-history baseline and TRAIN-only recent-regime
+6. Compare a declared full-history baseline and TRAIN-only recent-regime
    challenger. Use June validation for selection/calibration and preserve July
    TEST for the final untouched evaluation.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.
-6. Candidate chain only after smoke PASS: trainability-readiness ->
+7. Candidate chain only after smoke PASS: trainability-readiness ->
    candidate-train -> calibration -> immutable prediction evidence ->
    unit-normalized replay -> the nine-item evidence list above.
 

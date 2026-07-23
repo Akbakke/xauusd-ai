@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import json
 import subprocess
 from pathlib import Path
@@ -47,24 +46,12 @@ def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
 def test_every_recipe_value_is_consumed_by_the_only_trainer_source() -> None:
     trainer_path = REPO / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
     trainer = trainer_path.read_text(encoding="utf-8")
-    syntax = ast.parse(trainer)
-    canonical_defaults = None
-    for node in syntax.body:
-        if not isinstance(node, ast.AnnAssign):
-            continue
-        if isinstance(node.target, ast.Name) and (
-            node.target.id == "_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS"
-        ):
-            canonical_defaults = ast.literal_eval(node.value)
-            break
 
-    missing = sorted(key for key in MODEL_NATIVE_RECIPE_ENV if key not in trainer)
-
-    assert missing == []
-    assert isinstance(canonical_defaults, dict)
-    assert set(MODEL_NATIVE_RECIPE_ENV) == set(canonical_defaults).union(
-        {"GX1_V10_CKPT_MONITOR"}
-    )
+    assert "_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS" not in trainer
+    assert "MODEL_NATIVE_RECIPE_ENV_KEYS" in trainer
+    assert "for key in MODEL_NATIVE_RECIPE_ENV_KEYS" in trainer
+    assert "require_model_native_recipe_env(recipe_env)" in trainer
+    assert "[ENTRY_TRAIN_AMBIENT_CONTROL_FORBIDDEN]" in trainer
 
 
 @pytest.mark.parametrize("mutation", ("missing", "extra", "changed"))
