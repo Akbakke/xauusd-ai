@@ -19,10 +19,10 @@ selection, mutable-latest evidence or soft compatibility path.
 
 ## Current terminal status
 
-**BLOCK FOR MODEL/EDGE/LAUNCH.** V24 is the current audited dataset lineage for
-`xau_seq513_model_native_direction_v4`, but there is no trained model, accepted
-bundle or empirical direction-edge proof. Candidate, replay, paper/demo/live
-and promotion remain closed.
+**BLOCK FOR DATA/MODEL/EDGE/LAUNCH.** V24/V7 are immutable failure evidence
+for `xau_seq513_model_native_direction_v4`. There is no currently admitted
+dataset, trained model, accepted bundle or empirical direction-edge proof.
+Candidate, replay, paper/demo/live and promotion remain closed.
 
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
@@ -91,14 +91,33 @@ smoke-readiness SHA is
 `395d76f9dbe58e7c5a2c9a7488de32d320487efa0942908fcc39a57219034ebb`
 and trainability SHA is
 `9f05c6970e7ee17fd8dba5c5583a6332fc068c59d34068e0e49a218079048e77`.
-The current immutable recipe is
+The terminal V7 recipe is
 `train_recipe_20260723T124100Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T124040048490Z.json`,
 SHA-256 `fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`,
-and its exact public dry-run passes. It binds training V7 separately from
-dataset V24 and source commit `37128985`. V7 uses 25,000 stratified rows,
-eight epochs/patience eight and stronger direction-neutral gate balance.
-Exact epoch-wide specialist/TF/family×TF health is now checkpoint-blocking;
-no direction, auxiliary or promotion threshold is relaxed.
+and its exact public dry-run passed. It binds training V7 separately from
+dataset V24 and source commit `37128985`. V7 then completed six full
+TRAIN/VAL epochs before hard-red stopping raised
+`TRAIN_FAIL_NO_BEST_STATE`. Raw accuracy peaked at 0.403455 only through
+85.1118% FLAT. The final epoch predicted 71.4092% SHORT, failed 32 slices,
+retained bad-path/survival AUC 0.478/0.514, six cross-head collapses and
+near-zero specialist/family×TF minimum use. No checkpoint or bundle was
+written; the temporary 72.71 GB memmap was cleaned.
+
+Three independent read-only audits then covered data/features/targets/MTF,
+model/training/checkpoint and inference/bundle/replay/shadow/launch. The
+canonical report is `PIPELINE_AUDIT_XAU_20260723.md`. It proves two P0s:
+
+- the selected-side bad-path probability penalty always suppresses LONG,
+  including 425 SHORT bad-path rows in the exact V7 cap;
+- all six signed spread-aware dip-MFE targets are clipped to zero, so V24 must
+  be rebuilt.
+
+P1 findings include replacement sampling with only 62.13-62.64% unique-row
+coverage per epoch, bidirectional auxiliary targets with LONG-only weights,
+global path AUC leakage through tradable versus FLAT, incomplete active-head
+and evidence influence admission, unbound MTF/scaler identity,
+taxonomy-only context specialist routing, incompatible fusion units and no
+transactional identity-bound launch finalizer. V24/V7 may not be reused.
 
 No model has been accepted and the declared output bundle does not exist. Do not
 hand-author recipe/audit evidence, invoke owners out of band or treat dry-run
@@ -276,9 +295,10 @@ row. The earlier zero-copy commit `1a51ce42` raised complete feature throughput
 to about 2,062 rows/s; a 4,096-row block measured 1.99 seconds and was
 bit-identical to V10 output over 17 x 60 sampled values.
 
-No V1-V21 ranking, manifest, preflight, checkpoint, dataset or source artifact
-may be promoted or resumed. V22 and V23 also remain rejected; only the exact
-V24 dataset bytes named at the top of this handover may enter the next gate.
+No V1-V24 ranking, manifest, preflight, checkpoint, dataset or source artifact
+may be promoted or resumed. V24 is retained only as exact failure evidence;
+the next dataset gate requires a new run ID and a complete XAU-only rebuild
+after the P0/P1 repairs.
 
 The 2026-07-21 feature audit then closed the remaining build/serve skew before
 another heavy run: the TRAIN-rank reference is created before ranking and
@@ -626,7 +646,7 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 ### Open decisions / next work
 
-1. V24 satisfies the active dataset, post-rebuild, feature, target, specialist,
+1. V24 satisfied the pre-V7 dataset, post-rebuild, feature, target, specialist,
    smoke-readiness, trainability, immutable recipe-v2 and public wrapper
    dry-run contracts. V1 through V6 failed without a bundle: emitted
    aux-target validation, collapsed dataset-build/training-output IDs, the
@@ -634,15 +654,15 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    Commits `9459babe`, `b986c8db`, `c9e2569f` and `f05b3390` repair those
    exact walls. V5 then completed one optimizer/validation epoch but failed
    the model-native checkpoint evidence. V6 completed six epochs and exposed
-   gate starvation, class oscillation and evidence-head collapse. V7 binds
+   gate starvation, class oscillation and evidence-head collapse. V7 bound
    `run_id=XAU_SEQ513_SMOKE_20260723_V7` separately from launch-derived
    `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24`; recipe SHA-256 is
    `fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`.
-   The next exact gate is V7 capped eight-epoch/patience-eight/25,000-row smoke execute under
-   30G/2G followed immediately by the public smoke-bundle audit. Zero FLAT
-   predictions remains hard-red by definition. After an accepted candidate
-   exists, adaptation still requires fresh TEST evidence, settled zero-order
-   broker shadow rows and paired incumbent/challenger lifecycle proof.
+   V7 executed six epochs and failed hard-red with no checkpoint/bundle. The
+   next exact gate is source repair plus a fresh XAU-only rebuild—not another
+   V7 run. After an accepted future candidate exists, adaptation still
+   requires fresh TEST evidence, settled zero-order broker shadow rows and
+   paired incumbent/challenger lifecycle proof.
 2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
    the event copy is repaired) — separate decision; live Exit serves on it.
 3. Exit env-softeners (3 audit MEDIUMs), CI replacement, gx1/scripts sorting
@@ -655,23 +675,26 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 Ordered steps (each gate fail-closed; stop at first red):
 
-1. Do **not** reuse V1-V23. Keep every V24 input explicit and hash-bound; never
-   discover through glob, mtime, symlink or mutable `latest` selection.
-2. Recipe producer, exact post-smoke control route, source commit
-   `37128985`, refreshed readiness/trainability and V7 public `--dry-run` are
-   complete and hash-bound. Dataset identity is never a caller argument:
-   launch derives it from V24 post-rebuild plus TRAIN/VAL/TEST and the trainer
-   requires exact CLI/environment/manifest/state equality.
-3. Run V7 capped `--execute` only while the recipe and every upstream gate
-   remain green; immediately audit any produced smoke bundle through the new
-   route.
-4. Compare a declared full-history baseline and TRAIN-only recent-regime
+1. Do **not** reuse V1-V24. Keep every retained failure input explicit and
+   hash-bound; never discover through glob, mtime, symlink or mutable `latest`
+   selection.
+2. Repair signed dip-MFE and selected-side bad-path semantics, replacement
+   sampling, bidirectional aux weights/conditional metrics and all-head/group
+   influence admission. Bind MTF/scaler bytes and implement true context
+   specialist routing plus compatible group scaling.
+3. Make bundle publication atomic. Add the one public transactional
+   candidate/promotion/launch finalizer and require an immutable, exact vedtak
+   ID/hash; arbitrary `.env` text must never authorize launch.
+4. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
+   readiness/trainability audit, then materialize a new recipe only from those
+   new immutable bytes.
+5. Compare a declared full-history baseline and TRAIN-only recent-regime
    challenger. Use June validation for selection/calibration and preserve July
    TEST for the final untouched evaluation.
    Smoke acceptance ADDITIONALLY requires a non-degenerate FLAT rate on val
    and test (zero FLAT predictions is an automatic hard-red, as on
    2026-07-16) before any slice metric is even considered.
-5. Candidate chain only after smoke PASS: trainability-readiness ->
+6. Candidate chain only after smoke PASS: trainability-readiness ->
    candidate-train -> calibration -> immutable prediction evidence ->
    unit-normalized replay -> the nine-item evidence list above.
 

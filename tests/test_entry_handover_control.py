@@ -16,6 +16,7 @@ AUTHORITY_PATHS = (
     HANDOVER,
     REPO / "PROJECT_STATE.md",
     REPO / "DECISION_LOG.md",
+    REPO / "PIPELINE_AUDIT_XAU_20260723.md",
     REPO / "PROJECT_STATE_artifacts.json",
     REPO / "PROJECT_STATE_entry_iql_delete_incident.json",
     REPO / "PROJECT_STATE_xau_direction_launch.json",
@@ -83,12 +84,16 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "decision: BLOCK" in result.stdout
     assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
     assert "dataset_event_id: XAU_SEQ513_REBUILD_20260722_V24" in result.stdout
-    assert "dataset_admission_stage: READY_FOR_CAPPED_SMOKE_EXECUTION" in result.stdout
+    assert (
+        "dataset_admission_stage: REJECTED_AFTER_V7_PIPELINE_AUDIT_REBUILD_REQUIRED"
+        in result.stdout
+    )
     assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
     assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
     assert "smoke_recipe_evidence: VERIFIED decision=PASS env_count=162" in result.stdout
     assert "source_commit=3712898531916374e67c9c4c58f9d9dc4e1995c3" in result.stdout
     assert "smoke_recipe_dry_run: PASS" in result.stdout
+    assert "smoke_recipe_execution_state: TERMINAL_FAILED" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert "active_seq513_chain" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
@@ -103,7 +108,10 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
     assert state["latest_terminal_event_decision"] == "GREEN"
     assert state["dataset_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
-    assert state["dataset_admission_stage"] == "READY_FOR_CAPPED_SMOKE_EXECUTION"
+    assert (
+        state["dataset_admission_stage"]
+        == "REJECTED_AFTER_V7_PIPELINE_AUDIT_REBUILD_REQUIRED"
+    )
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
 
@@ -144,9 +152,21 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
         == recipe_binding["source_bindings_sha256"]
     )
     assert recipe_binding["dry_run_decision"] == "PASS"
-    assert recipe_binding["execution_started"] is False
+    assert recipe_binding["execution_state"] == "TERMINAL_FAILED"
+    assert recipe_binding["execution_started"] is True
+    assert recipe_binding["execution_completed"] is True
+    assert recipe_binding["execution_decision"] == "BLOCK"
+    assert recipe_binding["execution_failure_code"] == "TRAIN_FAIL_NO_BEST_STATE"
+    assert recipe_binding["epochs_completed"] == 6
     assert recipe_binding["out_bundle_present"] is False
     assert not Path(recipe_binding["out_bundle_dir"]).exists()
+    failed = state["latest_failed_smoke_execution"]
+    assert failed["run_id"] == recipe_binding["run_id"] == "XAU_SEQ513_SMOKE_20260723_V7"
+    assert failed["dataset_run_id"] == recipe_binding["dataset_run_id"]
+    assert failed["completed_utc"] == recipe_binding["execution_completed_utc"]
+    assert failed["failure_code"] == recipe_binding["execution_failure_code"]
+    assert failed["epochs_completed"] == recipe_binding["epochs_completed"]
+    assert failed["bundle_created"] is False
     assert subprocess.run(
         [
             "git",
@@ -165,8 +185,8 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
 
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
-    assert "capped smoke execution" in blockers
-    assert "post-smoke bundle audit have not run" in blockers
+    assert "V7 completed six full train/validation epochs" in blockers
+    assert "fresh XAU source" in blockers
     assert "no canonical immutable" not in blockers
 
 

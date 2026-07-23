@@ -6,11 +6,13 @@ Updated 2026-07-23.
 
 Status: **BLOCK**.
 
-GX1 has one current audited Entry dataset lineage, V24, but no trained model,
-prediction evidence, accepted bundle or launch authority. Paper, demo and live
-Entry trading remain closed. The absence of model/edge proof means no direction
-and no order; it must never become a guessed direction, synthetic FLAT, cached
-decision or manual overlay.
+GX1 has no currently admitted Entry dataset or model. V24/V7 are immutable
+failure evidence after the post-execution audit found signed target corruption
+and active training-objective mismatches. There is no prediction evidence,
+accepted bundle or launch authority. Paper, demo and live Entry trading remain
+closed. The absence of model/edge proof means no direction and no order; it
+must never become a guessed direction, synthetic FLAT, cached decision or
+manual overlay.
 
 The active signal contract is
 `xau_seq513_model_native_direction_v4`:
@@ -20,7 +22,9 @@ The active signal contract is
 - 101 deterministic TRAIN-only ranked remainder fields;
 - 142 continuous and five categorical context fields;
 - sequence length 96;
-- five causal timeframe caches with 25 values per timeframe;
+- five causal timeframe branches with 25 values per bar and explicit
+  per-timeframe history lengths; V7 used M5/M15/H1/H4/D1 lengths
+  `16/16/16/8/8`, not 96;
 - eight learned specialist encoders;
 - 26 learned evidence groups producing one exact 96-value fusion;
 - one final model-native `96 -> 128 -> 3` LONG/SHORT/FLAT direction path.
@@ -45,7 +49,8 @@ resistance, momentum, SMC or MTF rule may change the result.
 
 ## Dataset evidence
 
-V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable data lineage.
+V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable failed data
+lineage.
 It rebuilt a fresh source cascade through the last complete M5 bar at
 `2026-07-22T12:05:00Z`; FULL_PLUS contains 393,176 rows x 188 columns and its
 source-cascade proof is PASS. The chain terminal is GREEN, stopped at the
@@ -62,15 +67,19 @@ The exact V24 split identity is:
 - TEST: 4,115 July rows through 12:05 UTC, parquet SHA-256
   `2cbc718fb8aa7d8122c5847c62ae9950bdb2dc862fccfd09388494398802a666`.
 
-Exhaustive input liveness and pretrain pass. Post-rebuild readiness, foundation
-feature, complete 46-target and specialist audits all pass on those same
-bytes. The specialist audit proves 513/513 signals and 479/479 selected
+Exhaustive input liveness and pretrain passed under the pre-V7 contracts.
+Post-rebuild readiness, foundation feature, complete 46-target and specialist
+audits also passed on those same bytes. The specialist audit proves 513/513
+signals and 479/479 selected
 features, all eight model contracts, zero TRAIN dead signals, zero TRAIN exact
 duplicate groups and zero unmapped signal/context fields. Sparse TRAIN support
 includes CHoCH 375, bullish/bearish outside-after-inside 3,345/3,129 and M5
 EMA50/200 cross-up/down 1,114/1,114. A six-field D1 exact duplicate group exists
 only in June VAL because that short OOS window occupies one regime state; it is
-diagnostic OOD evidence, not a TRAIN code duplicate.
+diagnostic OOD evidence, not a TRAIN code duplicate. Those passes do not admit
+V24 now: the later audit proved that all six signed dip-MFE targets were
+clipped to a non-negative domain and that the MTF source identity was not
+fully bound at the trainer boundary. A fresh rebuild is mandatory after repair.
 
 V22 had failed this specialist audit because SMC liquidity-pool proximity was
 exactly identical to S/R-memory proximity and because sparse events were judged
@@ -94,12 +103,13 @@ pass-through/default values, validate the real split-native pretrain audit and
 bind every executable source file by SHA-256. The single control surface now
 exposes both recipe production and the existing exact post-smoke bundle audit.
 
-Fresh V24 smoke readiness is READY with SHA-256
+The terminal V24 smoke-readiness event was READY with SHA-256
 `395d76f9dbe58e7c5a2c9a7488de32d320487efa0942908fcc39a57219034ebb`;
-trainability is READY with SHA-256
+the terminal trainability event was READY with SHA-256
 `9f05c6970e7ee17fd8dba5c5583a6332fc068c59d34068e0e49a218079048e77`.
+The post-V7 audit supersedes both for future admission.
 
-Six real capped executions have provided fail-closed evidence.
+Seven real capped executions have provided fail-closed evidence.
 V1 rejected the stronger emitted aux-target contract because the trainer
 compared it with only the static 46-target subset. Commit `9459babe` added the
 exact four-counter emission validator. V2 then reached the next wall and
@@ -139,9 +149,10 @@ Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
 lineages without weakening identity. Recipe schema v2 derives
 `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24` from post-rebuild plus all
 three split manifests. Commit
-`c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` restores the exact target
-domain: finite signed MFE/path quality remain signed in active validation and
-both losses, while MAE remains a non-negative magnitude. Commit
+`c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` restores the selected-side
+MFE/path-quality target domain in active validation and both losses, while MAE
+remains a non-negative magnitude. The post-V7 audit proves that the separate
+six-field dip-MFE producer still clips negative values and remains open. Commit
 `f05b3390144f988079bbd49aa1abff8cacd4bd55` makes both train and validation
 MTF heads require the canonical `y` class tensor, without aliases or fallback.
 Commit `3712898531916374e67c9c4c58f9d9dc4e1995c3` closes the
@@ -153,16 +164,28 @@ direction-neutral balance weight rises from 0.05 to 0.50 so a family cannot
 win by starving another. This changes no LONG/SHORT/FLAT, auxiliary AUC,
 slice or promotion threshold.
 
-The new `run_id=XAU_SEQ513_SMOKE_20260723_V7` owns the next training/output
-lineage. Wrapper, trainer, bundle metadata/lock and handover all revalidate the
-roles. The immutable V7 recipe is PASS with SHA-256
+The terminal `run_id=XAU_SEQ513_SMOKE_20260723_V7` owns its historical
+training/output lineage. Wrapper and trainer revalidated the distinct dataset
+and training roles. The immutable V7 recipe is PASS as a pre-execution recipe
+with SHA-256
 `fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`,
 eight epochs, patience eight, a 25,000-row stratified cap and the same 30G/2G
 memory/swap caps. Its exact public dry-run passes and binds source commit
-`37128985`. V7 increases support for rare bad-path learning from roughly 334
-to roughly 835 positive TRAIN rows while preserving the exact V24 bytes,
-seed, learning rate and every evidence threshold. V7 execution has not
-started and its output bundle does not exist.
+`37128985`.
+
+V7 executed six full epochs before the hard-red slice stop emitted
+`TRAIN_FAIL_NO_BEST_STATE`. Raw VAL accuracy peaked at 0.403455 only with
+85.1118% FLAT. The final epoch predicted 71.4092% SHORT, failed 32 slices,
+retained bad-path/survival AUC 0.478/0.514, six cross-head collapse pairs and
+near-zero specialist/family×TF minimum use. No checkpoint or bundle was
+written and the temporary memmap was cleaned.
+
+The exact cap did not provide the presumed roughly 835 unique bad-path rows
+per epoch: replacement sampling exposed only 556-613 unique positives and
+15,533-15,661 unique total rows. The full audit also proved a side-asymmetric
+bad-path penalty, LONG-only weighting for bidirectional auxiliaries and global
+AUC leakage through tradable versus FLAT. `PIPELINE_AUDIT_XAU_20260723.md`
+contains the complete P0/P1/P2 findings and ordered repair.
 V21/V22/V23 large rejected split parquets have been deleted, while their small
 terminal/manifest/audit evidence remains.
 
@@ -193,13 +216,13 @@ environment override, artifact search, default value, cached row or synthetic
 FLAT.
 
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable launch
-decision. It is `BLOCK`, identifies V24 as the current audited dataset
-lineage, binds the non-activating recipe/dry-run evidence and has no accepted
+decision. It is `BLOCK`, marks V24/V7 rejected for rebuild after terminal
+failure, binds the historical recipe/execution evidence and has no accepted
 bundle or launch evidence.
 
 ## Verification state
 
-The active v4 source and V24 data contracts pass:
+The pre-V7 v4 source and V24 audits passed their then-active checks:
 
 - the full repository suite: 100% pass, five explicit skips, zero failures;
 - Python compilation for `gx1` and `tests`;
@@ -209,7 +232,9 @@ The active v4 source and V24 data contracts pass:
   trainability, immutable V7 162-setting recipe and exact wrapper dry-run;
 - repository and active-hook forbidden-instrument zero-scan.
 
-These are source and contract proofs. They do not prove market edge,
+V7 execution and the later three-part audit supersede dataset/training
+admission. The old passes remain historical proof of the bytes they checked;
+they do not prove correct signed dip targets, objective symmetry, market edge,
 near-perfect precision or live readiness.
 
 ## Exit
@@ -225,19 +250,18 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Run the exact capped eight-epoch/patience-eight/25,000-row V7/V24 smoke recipe
-through the public wrapper, then immediately audit any produced bundle through
-`model-native-smoke-bundle-audit`. Stop at the first red gate; do not
-hand-author an authority artifact, relax the fixed evidence gates or bypass
-the control surface. Zero FLAT predictions or missing/passive required
-evidence is an automatic hard red.
+Do not rerun V7 or reuse V24. First repair both P0s, sampling and auxiliary
+semantics, then immutable MTF/input/group scaling, context specialist routing
+and all-head/group-influence checkpoint admission. Harden atomic bundle export,
+promotion/launch finalization, vedtak identity and handover states before a
+candidate can exist. Only then rebuild fresh XAU-only splits and rerun every
+dataset/readiness audit before binding a new smoke recipe.
 
-Only after smoke passes may a candidate be calibrated and evaluated. Compare a
-declared full-history baseline with a TRAIN-only recent-regime challenger,
-select and calibrate without touching the final TEST window, then open TEST
-once for the declared final gate. Zero FLAT predictions is an automatic hard
-red. A candidate still needs replay, serve parity, learned sizing, joint Exit
-and shadow lifecycle evidence before paper/demo/live can open.
+After a new smoke passes, compare a declared full-history baseline with a
+TRAIN-only recent-regime challenger, select/calibrate without touching the
+final TEST window, then open TEST once for the declared final gate. A candidate
+still needs replay, serve parity, learned sizing, joint Exit and shadow
+lifecycle evidence before paper/demo/live can open.
 
 Selective, well-supported high precision is a feasible research target.
 Near-perfect practical precision is not assumed and may only be claimed from

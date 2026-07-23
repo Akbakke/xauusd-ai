@@ -14,13 +14,15 @@ live rule or fallback.
 
 ## Current state
 
-V24 is the current dataset/audit lineage. It rebuilt every source artifact from
-canonical XAU roots, including an event-local Dec-2024 repair and an immutable
-live-M1 snapshot, through the last complete M5 bar at
+V24/V7 are the current immutable failed dataset/training lineage. V24 rebuilt
+every source artifact from canonical XAU roots, including an event-local
+Dec-2024 repair and an immutable live-M1 snapshot, through the last complete M5 bar at
 `2026-07-22T12:05:00Z`. Its 393,176 x 188 FULL_PLUS source has 187 live numeric
 fields, no constants, exact duplicates, non-finite values, stale self-paths or
 fallback. The chain terminal is GREEN with SHA-256
 `aaf5458fa53e83f16c436031650ff7ede322094b2376a9747fbe30f388891e48`.
+That terminal is historical byte evidence, not current admission: the post-V7
+audit proved signed dip-MFE target corruption and requires a new rebuild.
 
 The V24 splits are 369,081 TRAIN / 5,904 June VAL / 4,115 July TEST. All
 513+142+5 fields pass exhaustive liveness and all target/polarity checks pass.
@@ -70,40 +72,51 @@ only +0.699 between their VAL targets. No checkpoint or bundle was admitted.
 Commit `37128985` makes exact epoch-wide specialist, timeframe and
 family×timeframe gate health checkpoint-blocking at the unchanged 0.01 floor
 and strengthens only the direction-neutral gate balance from 0.05 to 0.50.
-Fresh readiness and trainability are READY. Recipe schema v2 now binds
+Fresh readiness and trainability were READY under the pre-run contracts.
+Recipe schema v2 binds
 training run `XAU_SEQ513_SMOKE_20260723_V7` separately from dataset run
 `XAU_SEQ513_REBUILD_20260722_V24`; recipe SHA-256
 `fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`
-is PASS and its exact public dry-run passes without creating a bundle. V7
-uses 25,000 stratified TRAIN rows and eight epochs/patience eight, preserving
-the exact V24 bytes, seed, learning rate and all direction/auxiliary evidence
-thresholds. V21/V22/
+is PASS as immutable pre-execution evidence and its public dry-run passed.
+V7 then completed six full TRAIN/VAL epochs before hard-red stopping emitted
+`TRAIN_FAIL_NO_BEST_STATE`. Accuracy peaked at 0.403455 only through 85.1118%
+FLAT; the final epoch predicted 71.4092% SHORT, failed 32 slices, retained weak
+path auxiliary AUC, six cross-head collapses and starved specialist/family×TF
+gates. No checkpoint or bundle was written.
+
+The full audit in `PIPELINE_AUDIT_XAU_20260723.md` proves two P0s and multiple
+P1s: signed dip-MFE clipping, selected-side bad-path LONG bias, replacement
+sampling with only about 62% unique-row coverage, mismatched bidirectional aux
+weights/metrics, partial checkpoint admission, incomplete MTF/scaler/context/
+fusion identity and missing transactional launch authority. V21/V22/
 V23 large rejected split parquets have been removed while their small terminal
 and audit evidence remains. No bundle, candidate, untouched OOS edge or launch
 evidence exists.
 
 ## Ordered gates
 
-1. Preserve the PASS V7 recipe and exact V24 readiness/trainability bindings.
-   Any copied dataset, stale schema, executable-source hash drift, dirty source,
-   operator-supplied dataset identity or different source/smoke identity stops
-   the path.
-2. Run capped V7 smoke training and bundle audit with the exact produced
-   recipe. Zero FLAT prediction support or passive head/specialist evidence is
-   hard red.
-   Compare full-history training against a declared recent-regime adaptation
-   phase; the trainer currently has no generic recency weighting, so no
-   freshness claim is allowed until that candidate is implemented and wins on
-   validation and then untouched OOS evidence.
-3. Train/evaluate a candidate only if smoke evidence is green; require OOS
+1. Preserve V24/V7 as immutable failure evidence. Do not rerun, patch data in
+   place or promote any output.
+2. Repair both P0s and the sampling/aux semantic P1s with signed-domain,
+   LONG↔SHORT invariance, unique-coverage and conditional-skill tests.
+3. Add immutable ordered input scaling, per-group fusion scaling, true
+   context-specialist ownership, MTF/cache byte binding and support-aware
+   all-head/all-group checkpoint influence.
+4. Make bundle export atomic and implement one transactional promotion/launch
+   finalizer with exact immutable vedtak identity. No `.env` launch authority.
+5. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
+   then bind a new recipe. Compare full-history training with a declared
+   TRAIN-only recent-regime challenger while preserving the final TEST window.
+6. Train/evaluate a candidate only if smoke evidence is green; require OOS
    calibration, support, costs, TOP/BOTTOM timing, Q/V/Advantage, specialist,
    context and timeframe influence evidence.
-4. Require candidate replay, exact serve parity, learned-sizing adoption with
+7. Require candidate replay, exact serve parity, learned-sizing adoption with
    the active Exit stack, zero-order runtime parity, then the immutable
    adaptation/shadow lifecycle. Any missing or newer-red event remains BLOCK.
 
 ## Takeover
 
-Run bash scripts/gx1_handover.sh, then read AGENTS.md, SYSTEM_MAP.md, this
-file and HANDOVER_XAU_DIRECTION_REPAIR_20260714.md. Never infer status from
-filenames, partial artifacts or process absence.
+Run `bash scripts/gx1_handover.sh`, then read `AGENTS.md`,
+`PIPELINE_AUDIT_XAU_20260723.md`, `SYSTEM_MAP.md`, this file and
+`HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`. Never infer status from filenames,
+partial artifacts or process absence.

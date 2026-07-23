@@ -13,9 +13,10 @@ empirical direction-edge proof and no launch authority. Old Smart520,
 neutral-XGB, anchored Entry and Entry-IQL evidence is historical and cannot
 authorize a run or launch.
 
-V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable dataset
-lineage. It rebuilt a fresh XAU source cascade through the last complete M5 bar
-at `2026-07-22T12:05:00Z` and terminalized `GREEN` at the designed smoke gate.
+V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable failed
+dataset/training lineage. It rebuilt a fresh XAU source cascade through the
+last complete M5 bar at `2026-07-22T12:05:00Z` and terminalized `GREEN` under
+the pre-V7 dataset gates.
 The exact 369,081 TRAIN / 5,904 VAL / 4,115 TEST rows bind 513 ordered signals,
 142 continuous context fields, five categorical fields, exhaustive 1,980-row
 input liveness and pretrain target/polarity evidence. Post-rebuild, foundation
@@ -23,7 +24,9 @@ feature, all-46-target and eight-specialist audits pass on the same six split
 bytes. TRAIN has zero dead signals, zero exact duplicate signal groups and
 zero unmapped signal/context fields. One exact six-field D1 duplicate group in
 June VAL is recorded as a truthful one-regime OOS observation; it is not a
-TRAIN duplicate and is not fabricated away.
+TRAIN duplicate and is not fabricated away. The post-V7 full-pipeline audit
+supersedes that former admission: six signed dip-MFE targets are clipped to
+zero, so V24 must be rebuilt and cannot authorize another training run.
 
 V22 previously exposed two exact TRAIN duplicate SMC-liquidity/SR pairs and a
 sparse-event policy mismatch. V23 proved those repairs and all specialist
@@ -35,9 +38,9 @@ contract check that rejected correct imports from the signal-contract owner;
 commit `0f2b9468` replaced literal duplication with AST-proven import/use and
 the immutable trainability review now passes.
 
-This is a data and contract breakthrough, not a model or trading-edge
+This was a data and contract breakthrough, not a model or trading-edge
 breakthrough. Commits `f08cd904`, `b5a61e21` and `bf5c61a0` closed the
-source-level smoke-launch gap. Six capped executions then failed closed
+former source-level smoke-launch gap. Seven capped executions then failed closed
 without a bundle: V1 exposed an
 over-strict static-versus-emitted aux-target check; V2 exposed that the trainer
 incorrectly treated V24's dataset-build ID as the new training/output ID; V3
@@ -56,20 +59,32 @@ then completed six epochs, briefly reached near-label global balance, but
 never passed local slices or auxiliary health; it ended with LONG starvation
 and clean-edge/path-quality head collapse. No bundle was written.
 
-Commit `37128985` now records exact epoch-wide health for specialist,
+Commit `37128985` records exact epoch-wide health for specialist,
 timeframe and family×timeframe gates and makes it part of checkpoint admission
 at the unchanged minimum. It strengthens direction-neutral gate balance
-without encoding a live direction. Recipe schema v2 now binds distinct
+without encoding a live direction. Recipe schema v2 binds distinct
 `run_id=XAU_SEQ513_SMOKE_20260723_V7` and
 `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24`; launch derives the latter
 from post-rebuild plus all three manifests, and trainer/bundle contracts
-revalidate the separation. Fresh readiness, trainability, the 25,000-row
-eight-epoch/patience-eight V7 recipe and public dry-run pass. Exact V24 bytes,
-seed, learning rate and all direction/auxiliary evidence thresholds remain
-fixed. No accepted smoke model,
-bundle or prediction evidence exists. Launch remains `BLOCK` until smoke,
-candidate, untouched OOS,
-replay, serve parity, sizing and shadow gates all pass.
+revalidate the separation.
+
+V7 then ran six full TRAIN/VAL epochs before the hard-red slice stop emitted
+`TRAIN_FAIL_NO_BEST_STATE`. Raw accuracy peaked at 0.403455 only with 85.1118%
+FLAT; the final epoch predicted 71.4092% SHORT, failed 32 slices, retained
+bad-path/survival AUC 0.478/0.514, six cross-head collapses and near-zero
+specialist/family×TF minimum use. No checkpoint or bundle was written.
+
+The independent full-pipeline audit in
+`PIPELINE_AUDIT_XAU_20260723.md` found two P0s and multiple P1s. The active
+selected-side bad-path penalty always suppresses LONG, including 425 SHORT
+bad-path rows in the V7 cap. Six signed dip-MFE targets are clipped to zero.
+Replacement sampling exposes only about 62% unique selected rows per epoch;
+symmetric auxiliary weights use LONG-only rates; global AUC can pass by
+relearning tradable versus FLAT; checkpoint admission omits many active heads;
+MTF/scaler identity, context-specialist routing and fusion scales are
+incomplete. V24/V7 are therefore immutable failure evidence only. No V8,
+rebuild, candidate or launch is allowed before the ordered repairs and a fresh
+XAU-only dataset.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
@@ -78,12 +93,13 @@ machine-readable launch BLOCK.
 Read in this order:
 
 1. `AGENTS.md`
-2. `SYSTEM_MAP.md` — including the "Pipeline- og ingredienskart" section: read
+2. `PIPELINE_AUDIT_XAU_20260723.md`
+3. `SYSTEM_MAP.md` — including the "Pipeline- og ingredienskart" section: read
    it BEFORE grepping for artifact producers or feature-column owners; it is
    the one-truth map of the data DAG and saves large amounts of re-scanning.
-3. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
-4. `PROJECT_STATE_xau_direction_launch.json`
-5. relevant code contract and test files
+4. `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`
+5. `PROJECT_STATE_xau_direction_launch.json`
+6. relevant code contract and test files
 
 Run `bash scripts/gx1_handover.sh` for a read-only takeover snapshot.
 

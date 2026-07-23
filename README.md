@@ -6,17 +6,19 @@ stack and prove its edge through immutable out-of-sample contracts. Missing,
 stale or contradictory evidence blocks the system; there is no fallback
 direction policy.
 
-Current status: **BLOCKED FOR MODEL/EDGE/LAUNCH**, with one current audited
-dataset lineage. V24 rebuilt fresh XAU source through
+Current status: **BLOCKED FOR DATA/MODEL/EDGE/LAUNCH**. V24 rebuilt fresh XAU
+source through
 `2026-07-22T12:05:00Z`, terminalized GREEN at the designed smoke gate and
 passed post-rebuild, full-input, pretrain, foundation-feature, all-46-target,
 eight-specialist, smoke-readiness and trainability review. Its exact splits
 contain 369,081 TRAIN, 5,904 VAL and 4,115 TEST rows. TRAIN has zero dead
 signals, zero exact duplicate signal groups and zero unmapped signal/context
-fields. This proves data/routing contracts, not direction edge.
+fields. The later full-pipeline audit nevertheless found signed dip-MFE target
+corruption, so V24 is retained only as immutable failure evidence and must be
+rebuilt.
 
-No accepted smoke model, bundle, calibration or learned prediction evidence exists, so
-no Entry launch is authorized. The canonical producer now emits and validates
+No accepted smoke model, bundle, calibration or learned prediction evidence
+exists, so no Entry launch is authorized. The canonical producer emits and validates
 one immutable recipe containing all 162 exact trainer settings, and the
 post-smoke bundle audit has one public control route. Smoke V1 through V6 all
 failed closed without a bundle: V1 found
@@ -35,11 +37,20 @@ LONG/SHORT/FLAT balance, persistently weak auxiliary AUC, near-redundant
 clean-edge/path-quality heads and specialist-gate starvation; it also wrote no
 bundle. Commit `37128985` makes exact epoch-wide specialist, timeframe and
 family×timeframe gate health checkpoint-blocking and strengthens only their
-direction-neutral balance pressure. Recipe schema v2 and the exact V7 dry-run
-now bind a distinct training `run_id` plus launch-derived V24
-`dataset_run_id`. V7 uses 25,000 stratified TRAIN rows and eight
-epochs/patience eight while preserving every direction, auxiliary and
-promotion threshold. The old
+direction-neutral balance pressure. Recipe schema v2 and the exact V7 run
+bound a distinct training `run_id` plus launch-derived V24 `dataset_run_id`.
+V7 completed six full TRAIN/VAL epochs and failed hard-red with
+`TRAIN_FAIL_NO_BEST_STATE`; no checkpoint or bundle was written. It oscillated
+between class collapse modes, ended at 71.4092% SHORT, failed 32 slices,
+retained weak path auxiliary AUC and starved specialist/family×TF gates.
+
+Three independent audits then found two P0s and multiple P1s, documented in
+`PIPELINE_AUDIT_XAU_20260723.md`: selected-side bad-path loss always
+suppresses LONG; signed dip-MFE is clipped; replacement sampling hides about
+37% of selected rows per epoch; symmetric auxiliary weights/metrics do not
+match their targets; checkpoint admission omits active evidence; and
+MTF/scaler/context/fusion/launch bindings remain incomplete. No V8 or dataset
+rebuild may start before the ordered repairs have regression proof. The old
 Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
 be used for training, replay, paper trading, live trading or promotion.
 

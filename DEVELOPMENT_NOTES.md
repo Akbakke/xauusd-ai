@@ -39,21 +39,38 @@ and ambient decision-setting overrides are invalid. `--dry-run` is the
 non-writing contract test. `--execute` is a real capped training job and its
 output must immediately enter `model-native-smoke-bundle-audit`.
 
-The current V7 smoke recipe declares 25,000 stratified rows, eight epochs and
-patience eight. This is not a general smoke default and must not be inferred
-or silently reused: the immutable recipe owns it. V6 completed six epochs but
-failed checkpoint admission on direction-slice, auxiliary-health, class
-stability and evidence-head redundancy.
+The terminal V7 smoke recipe declared 25,000 stratified rows, eight epochs and
+patience eight. It completed six epochs, then failed hard-red with no
+checkpoint or bundle. It is immutable failure evidence and must not be reused
+or silently treated as a default. V24 is also rejected for rebuild after the
+post-V7 audit proved signed dip-MFE clipping.
+
+Read `PIPELINE_AUDIT_XAU_20260723.md` before any Entry data/model edit. No new
+rebuild or trainer run is admissible until both P0s and the sampling/aux
+semantic P1s have exact regression proof. The active blockers include:
+
+- selected-side bad-path probability loss always suppressing LONG;
+- six spread-aware dip-MFE targets clipped to non-negative values;
+- replacement sampling that exposes only about 62% unique selected rows;
+- bidirectional auxiliary targets weighted from LONG-only rates;
+- global path AUC that can pass by relearning tradable versus FLAT;
+- incomplete per-head/per-group checkpoint influence proof;
+- unbound MTF/scaler bytes, taxonomy-only context specialist routing and
+  incompatible fusion units.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean
 use above 0.01 and each gate must retain its direction-neutral entropy floor.
 Training-batch proxies or delayed post-bundle checks cannot substitute for
-this admission gate.
+this admission gate. Gate mean/entropy proves only use distribution; the
+repaired admission contract must additionally prove class-margin influence by
+specialist, timeframe, family×timeframe and all 26 fusion groups on supported
+VAL slices.
 
 Target-domain changes require producer, validator, train-loss and val-loss
-review together. Spread-aware MFE and path quality are signed forward outcomes
-and must not be clamped to zero; MAE is a non-negative adverse magnitude.
+review together. Every spread-aware MFE, including all six dip-MFE targets,
+and path quality are signed forward outcomes and must not be clamped to zero;
+MAE is a non-negative adverse magnitude.
 Focused tests must cover both an admitted negative signed target and rejection
 of negative MAE.
 

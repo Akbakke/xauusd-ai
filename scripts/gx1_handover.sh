@@ -34,6 +34,7 @@ sources=(
   "$HANDOVER"
   "$REPO/PROJECT_STATE.md"
   "$REPO/DECISION_LOG.md"
+  "$REPO/PIPELINE_AUDIT_XAU_20260723.md"
   "$REPO/PROJECT_STATE_artifacts.json"
   "$REPO/PROJECT_STATE_entry_iql_delete_incident.json"
   "$LAUNCH_STATE"
@@ -188,15 +189,43 @@ if (
 ):
     raise SystemExit("FATAL: smoke recipe source binding set/hash mismatch")
 for name, source_path in expected_source_paths.items():
-    if source_bindings.get(name) != artifact_binding(source_path):
-        raise SystemExit(f"FATAL: smoke recipe source binding is stale: {name}")
+    if (
+        recipe_binding.get("execution_state") == "READY_NOT_STARTED"
+        and source_bindings.get(name) != artifact_binding(source_path)
+    ):
+        raise SystemExit(f"FATAL: ready smoke recipe source binding is stale: {name}")
+execution_state = recipe_binding.get("execution_state")
+out_bundle_path = Path(str(recipe_binding.get("out_bundle_dir", "")))
 if (
     recipe_binding.get("dry_run_decision") != "PASS"
-    or recipe_binding.get("execution_started") is not False
     or recipe_binding.get("out_bundle_present") is not False
-    or Path(str(recipe_binding.get("out_bundle_dir", ""))).exists()
+    or out_bundle_path.exists()
 ):
-    raise SystemExit("FATAL: smoke recipe execution-state mismatch")
+    raise SystemExit("FATAL: smoke recipe output-state mismatch")
+if execution_state == "READY_NOT_STARTED":
+    if (
+        recipe_binding.get("execution_started") is not False
+        or recipe_binding.get("execution_completed") not in (None, False)
+    ):
+        raise SystemExit("FATAL: ready smoke recipe execution-state mismatch")
+elif execution_state == "TERMINAL_FAILED":
+    failed = state.get("latest_failed_smoke_execution")
+    if (
+        recipe_binding.get("execution_started") is not True
+        or recipe_binding.get("execution_completed") is not True
+        or recipe_binding.get("execution_decision") != "BLOCK"
+        or not isinstance(failed, dict)
+        or failed.get("run_id") != recipe_binding.get("run_id")
+        or failed.get("dataset_run_id") != recipe_binding.get("dataset_run_id")
+        or failed.get("decision") != "BLOCK"
+        or failed.get("failure_code") != recipe_binding.get("execution_failure_code")
+        or failed.get("epochs_completed") != recipe_binding.get("epochs_completed")
+        or failed.get("bundle_created") is not False
+        or failed.get("completed_utc") != recipe_binding.get("execution_completed_utc")
+    ):
+        raise SystemExit("FATAL: terminal failed smoke recipe evidence mismatch")
+else:
+    raise SystemExit(f"FATAL: unsupported smoke recipe execution state: {execution_state!r}")
 if subprocess.run(
     ["git", "merge-base", "--is-ancestor", recipe["source_commit"], "HEAD"],
     check=False,
@@ -378,15 +407,43 @@ if (
 ):
     raise SystemExit("FATAL: smoke recipe source binding set/hash mismatch")
 for name, source_path in expected_source_paths.items():
-    if source_bindings.get(name) != artifact_binding(source_path):
-        raise SystemExit(f"FATAL: smoke recipe source binding is stale: {name}")
+    if (
+        recipe_binding.get("execution_state") == "READY_NOT_STARTED"
+        and source_bindings.get(name) != artifact_binding(source_path)
+    ):
+        raise SystemExit(f"FATAL: ready smoke recipe source binding is stale: {name}")
+execution_state = recipe_binding.get("execution_state")
+out_bundle_path = Path(str(recipe_binding.get("out_bundle_dir", "")))
 if (
     recipe_binding.get("dry_run_decision") != "PASS"
-    or recipe_binding.get("execution_started") is not False
     or recipe_binding.get("out_bundle_present") is not False
-    or Path(str(recipe_binding.get("out_bundle_dir", ""))).exists()
+    or out_bundle_path.exists()
 ):
-    raise SystemExit("FATAL: smoke recipe execution-state mismatch")
+    raise SystemExit("FATAL: smoke recipe output-state mismatch")
+if execution_state == "READY_NOT_STARTED":
+    if (
+        recipe_binding.get("execution_started") is not False
+        or recipe_binding.get("execution_completed") not in (None, False)
+    ):
+        raise SystemExit("FATAL: ready smoke recipe execution-state mismatch")
+elif execution_state == "TERMINAL_FAILED":
+    failed = state.get("latest_failed_smoke_execution")
+    if (
+        recipe_binding.get("execution_started") is not True
+        or recipe_binding.get("execution_completed") is not True
+        or recipe_binding.get("execution_decision") != "BLOCK"
+        or not isinstance(failed, dict)
+        or failed.get("run_id") != recipe_binding.get("run_id")
+        or failed.get("dataset_run_id") != recipe_binding.get("dataset_run_id")
+        or failed.get("decision") != "BLOCK"
+        or failed.get("failure_code") != recipe_binding.get("execution_failure_code")
+        or failed.get("epochs_completed") != recipe_binding.get("epochs_completed")
+        or failed.get("bundle_created") is not False
+        or failed.get("completed_utc") != recipe_binding.get("execution_completed_utc")
+    ):
+        raise SystemExit("FATAL: terminal failed smoke recipe evidence mismatch")
+else:
+    raise SystemExit(f"FATAL: unsupported smoke recipe execution state: {execution_state!r}")
 if subprocess.run(
     ["git", "merge-base", "--is-ancestor", recipe["source_commit"], "HEAD"],
     check=False,
@@ -398,6 +455,7 @@ print(
     f"source_commit={recipe['source_commit']} sha256={observed_recipe_sha256}"
 )
 print(f"smoke_recipe_dry_run: {recipe_binding['dry_run_decision']}")
+print(f"smoke_recipe_execution_state: {execution_state}")
 print(f"smoke_recipe_path: {recipe_path}")
 print(
     "dimensions: "

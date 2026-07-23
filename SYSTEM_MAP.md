@@ -16,15 +16,16 @@ exact split manifests and chronological leak-safe rows
         +-- 479 specialist fields
         |     +-- 378 mandatory outputs from 12 causal layers
         |     +-- 101 deterministic TRAIN-only ranked fields
-        +-- 142 continuous context fields
-        +-- 5 categorical context fields
-        +-- M5/M15/H1/H4/D1 sequences, length 96
+        +-- 142 continuous + 5 categorical context fields
+        |     +-- currently generic context projections; per-family routing is OPEN
+        +-- M5/M15/H1/H4/D1 sequences with recipe-owned lengths
+              +-- terminal V7 used 16/16/16/8/8
         |
         v
 full-field liveness + field order/hash + feature/target/specialist audits
         |
         v
-eight specialist encoders + temporal/MTF/cross-TF/FiLM fusion
+eight signal specialist encoders + temporal/MTF/cross-TF/FiLM fusion
         |
         v
 22 supervised evidence heads
@@ -466,11 +467,12 @@ Current facts:
 - source has one chain-owned ranker/dataset path, a host-wide exclusive
   capped-job lock, immutable bounded Group-A chunks, one exact checkpoint
   retry and schema-v4 immutable terminal events;
-- V24 is GREEN at the designed smoke gate and binds current XAU data through
-  `2026-07-22T12:05:00Z`, 369,081/5,904/4,115 split rows and the exact
-  513+142+5 field surface;
+- V24 terminalized GREEN under the pre-V7 dataset gates and binds XAU data
+  through `2026-07-22T12:05:00Z`, 369,081/5,904/4,115 split rows and the
+  exact 513+142+5 field surface. The post-V7 audit rejects it for reuse because
+  all six signed dip-MFE targets are clipped to a non-negative domain;
 - V24 post-rebuild, liveness, pretrain, foundation feature, complete target,
-  specialist, smoke-readiness and trainability reviews pass on the same split
+  specialist, smoke-readiness and trainability reviews historically passed the same split
   bytes. TRAIN has zero dead signals, exact duplicate groups or unmapped
   fields; the only exact OOS duplicate group is six D1 regime-state fields in
   June VAL and is recorded, not waived;
@@ -481,10 +483,13 @@ Current facts:
 - trainability source wiring validates that downstream owners import and use
   `MODEL_NATIVE_CONTRACT_MODE` and `MODEL_NATIVE_SIGNAL_DIM` from the exact
   signal contract. Resolved-literal grep is not contract proof;
-- no model training is running. The canonical 162-setting recipe producer and
-  exact post-smoke audit route now exist; the final V24 recipe and public
-  wrapper dry-run pass, but no smoke output bundle or learned prediction
-  evidence exists;
+- no model training is running. V7 completed six TRAIN/VAL epochs and failed
+  hard-red with no checkpoint/bundle. The terminal output path is absent and
+  its temporary memmap is cleaned;
+- the full audit in `PIPELINE_AUDIT_XAU_20260723.md` proves selected-side
+  bad-path LONG bias, signed dip-MFE corruption, replacement-sampler coverage
+  loss, auxiliary target/weight/metric mismatches, partial checkpoint
+  admission and incomplete MTF/scaler/context/fusion/launch contracts;
 - rejected V21/V22/V23 large split parquets are deleted; their terminal,
   manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
@@ -499,11 +504,11 @@ Current facts:
 
 ## Pipeline- og ingredienskart (seq513-datakjeden)
 
-Oppdatert 2026-07-23 etter V24s komplette dataset-/auditkjede og den eksakte
-162-felts smoke-recipe-kontrakten. Alle 19
-strukturelle krav og alle fire polaritetskrav er obligatoriske; V24 har bevist
+Oppdatert 2026-07-23 etter V7-terminalfeil og full-pipeline-audit. Alle 19
+strukturelle krav og alle fire polaritetskrav er obligatoriske. V24 beviste
 378+101-flaten, separat likviditets-/S/R-semantikk, sparse-event-livlighet og
-den komplette seksnøklers preflightkontrakten.
+den komplette seksnøklers preflightkontrakten, men er nå eksplisitt avvist for
+rebuild på grunn av signed-target- og training-contract-feil.
 Kartet beskriver den herdede, påkrevde artefakt-DAG-en og kolonne-eierskapet.
 Les dette FØR du rg-jakter i builderen.
 
@@ -565,7 +570,7 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review. V1–V6 feilet uten bundle: først
+V24 nådde og bestod den daværende `trainability`-reviewen. V1–V6 feilet uten bundle: først
 på emitted aux-target proof, deretter fordi trainer feilaktig sammenlignet
 smoke-run-ID med dataset-build-ID, så fordi signert spread-aware MFE feilaktig
 ble validert som ikke-negativ, og til slutt fordi MTF-direction-headens
@@ -574,9 +579,11 @@ kanoniske `y`-tensoren. V4 bygget full 72.71 GB TRAIN-tensor, subsamplet 10 000
 rader og nådde første model-forward; ingen optimizer-step fullførte.
 `entry_model_native_seq513_train_recipe_audit_v2` produseres nå av én kanonisk
 eier med 162 eksakte treningsverdier, separat training/dataset-lineage og
-bytebinding til hele kjørebanen. Commit `c9e2569f` bevarer signert MFE og path
-quality gjennom aktiv target-validering samt train/val-loss, mens MAE fortsatt
-er en ikke-negativ adverse magnitude. Commit `f05b3390` binder MTF-headen til
+bytebinding til hele kjørebanen. Commit `c9e2569f` bevarer valgt-side signert
+MFE og path quality gjennom aktiv target-validering samt train/val-loss, mens
+MAE fortsatt er en ikke-negativ adverse magnitude. Den separate seksfelts
+dip-MFE-produsenten ble senere bevist å fortsatt klippe negative verdier.
+Commit `f05b3390` binder MTF-headen til
 samme kanoniske klasse-target i train og val. V5 fullførte deretter en hel
 train/val-epoke med optimizer-steg, men 23 direction-slice-feil og
 tradable/bad-path AUC 0.509/0.482 mot fast gulv 0.52 avviste checkpointen.
@@ -588,9 +595,16 @@ kollapset til Spearman +0.959 mot bare +0.699 mellom VAL-targetene. Commit
 family×TF-portene og gjør alle tre checkpoint-blokkerende ved uendret gulv
 0.01. Den retning-nøytrale balansevekten økes 0.05→0.50; ingen retnings-,
 AUC-, slice- eller promotionsterskel senkes. V7-recipe og offentlig dry-run
-passerer med 25 000 stratifierte rader og åtte epoker/patience åtte.
-`model-native-smoke-bundle-audit` er eksponert i samme kontrollflate. Neste pil
-er derfor V7 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
+passerte med 25 000 stratifierte rader og åtte epoker/patience åtte. V7
+fullførte seks epoker før hard-red-stop. Accuracy toppet 0.403455 gjennom
+85.1118% FLAT; sluttpunktet hadde 71.4092% SHORT, 32 slice-feil, svak
+bad-path/survival AUC, seks cross-head-kollapser og sultede specialist-/
+family×TF-porter. Ingen bundle ble skrevet.
+
+Neste pil er ikke ny trening. Begge P0-target/objective-feil, replacement-
+sampling, auxiliary-vekt/metrikk, alle-heads/influence admission,
+MTF/scaler/context/fusion-binding og atomisk launch-authority må repareres.
+Deretter kreves en helt fersk XAU-only rebuild og alle audits på nytt.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)

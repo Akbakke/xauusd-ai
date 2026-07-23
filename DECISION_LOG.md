@@ -6,6 +6,46 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — V7 is terminal RED; pipeline audit requires rebuild
+
+V7 ran on the exact immutable 25,000-row recipe and completed six full
+TRAIN/VAL epochs. The hard-red slice policy then stopped epochs seven/eight
+with `TRAIN_FAIL_NO_BEST_STATE`. No checkpoint or bundle was written and the
+72.71 GB temporary memmap was cleaned.
+
+Raw VAL accuracy peaked at 0.403455 only through 85.1118% FLAT. The final
+epoch predicted 71.4092% SHORT, failed 32 direction-slice checks, retained
+bad-path/survival AUC 0.478/0.514, six cross-head collapse pairs and
+specialist/family×TF minimum means 0.000054/0.000300. The TF gate itself
+passed at 0.024166, proving that one healthy aggregate gate cannot substitute
+for full cooperation and directional evidence.
+
+Three independent read-only audits then reviewed the complete data, model and
+runtime pipeline. `PIPELINE_AUDIT_XAU_20260723.md` is the detailed record.
+Two findings are P0:
+
+1. the selected-side `y_bad_path` probability penalty always suppresses LONG,
+   including all 425 SHORT bad-path rows in the exact V7 cap;
+2. six signed spread-aware dip-MFE targets are clipped to zero, corrupting V24
+   and requiring a fresh rebuild.
+
+P1 findings include 62% unique-row coverage from replacement sampling,
+LONG-only positive weights for bidirectional clean/survival targets, global
+path AUC leakage through tradable-versus-FLAT, partial checkpoint coverage,
+taxonomy-only context specialist routing, incomplete MTF/scaler identity,
+incompatible fusion units and missing transactional launch authority.
+
+Decision:
+
+- V24 and V7 are immutable failure evidence and cannot be retrained or
+  promoted.
+- No threshold is relaxed and no V8 is materialized.
+- Repair target semantics and objective symmetry first, then sampling,
+  conditional metrics/all-head influence, MTF/scaler/context/fusion contracts,
+  atomic bundle/promotion/vedtak and handover lifecycle.
+- Rebuild all XAU-only splits only after focused and full source proof.
+- Launch remains `BLOCK`.
+
 ## 2026-07-23 — V6 proves objective instability; cooperation becomes an admission gate
 
 V6 completed six full train/VAL epochs with optimizer steps and no runtime
