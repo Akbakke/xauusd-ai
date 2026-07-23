@@ -46,14 +46,18 @@ No model has been trained on V24. The former smoke source blocker is closed:
 commits `f08cd904`, `b5a61e21` and `bf5c61a0` provide one canonical
 162-setting recipe owner/producer, validate the real pretrain schema, bind
 executable source bytes and expose the exact post-smoke audit through the
-single control surface. Two actual capped attempts then failed closed before
-training and created no bundle. V1 exposed a static-versus-emitted aux-target
-contract mismatch, repaired by `9459babe`; V2 exposed that dataset-build and
-training-output run IDs were incorrectly collapsed, repaired by `b986c8db`.
-Fresh readiness and trainability are READY. Recipe schema v2 now binds
-training run `XAU_SEQ513_SMOKE_20260723_V3` separately from dataset run
+single control surface. Three actual capped attempts then failed closed before
+the first training batch and created no bundle. V1 exposed a
+static-versus-emitted aux-target mismatch, repaired by `9459babe`; V2 exposed
+collapsed dataset-build/training-output IDs, repaired by `b986c8db`; V3
+crossed both walls and completed five-timeframe prebuild before exposing the
+trainer's false non-negative requirement for signed spread-aware MFE. Commit
+`c9e2569f` also removes the related silent zero-clipping of signed MFE and path
+quality in train/validation loss while retaining non-negative MAE. Fresh
+readiness and trainability are READY. Recipe schema v2 now binds training run
+`XAU_SEQ513_SMOKE_20260723_V4` separately from dataset run
 `XAU_SEQ513_REBUILD_20260722_V24`; recipe SHA-256
-`0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`
+`d07b4af58bc019277d4501cd396d3e091b8ee9642dd9fcdb2d73649c554b0083`
 is PASS and its exact public dry-run passes without creating a bundle. V21/V22/
 V23 large rejected split parquets have been removed while their small terminal
 and audit evidence remains. No bundle, candidate, untouched OOS edge or launch
@@ -61,11 +65,11 @@ evidence exists.
 
 ## Ordered gates
 
-1. Preserve the PASS V3 recipe and exact V24 readiness/trainability bindings.
+1. Preserve the PASS V4 recipe and exact V24 readiness/trainability bindings.
    Any copied dataset, stale schema, executable-source hash drift, dirty source,
    operator-supplied dataset identity or different source/smoke identity stops
    the path.
-2. Run capped V3 smoke training and bundle audit with the exact produced
+2. Run capped V4 smoke training and bundle audit with the exact produced
    recipe. Zero FLAT prediction support or passive head/specialist evidence is
    hard red.
    Compare full-history training against a declared recent-regime adaptation

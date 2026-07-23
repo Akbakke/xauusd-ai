@@ -95,29 +95,39 @@ bind every executable source file by SHA-256. The single control surface now
 exposes both recipe production and the existing exact post-smoke bundle audit.
 
 Fresh V24 smoke readiness is READY with SHA-256
-`849615a753ac86ece4843dfdf5cc139e6a118d1cfa9a7deb6c050802fcffb0b5`;
+`ca27425ea3250cb878f786f5441c4d9c208271a2b64466f14ff613f3940fbb24`;
 trainability is READY with SHA-256
-`0f90efa225c5a8f8911f35c327d485661c17eee833b9351b6227cc7853898fc9`.
+`960282bbbed0889d06b818abcf5e9ef9ef47b0b44a50d3d32763ad327411d66e`.
 
-Two real capped executions have provided fail-closed pre-training evidence.
+Three real capped executions have provided fail-closed pre-training evidence.
 V1 rejected the stronger emitted aux-target contract because the trainer
 compared it with only the static 46-target subset. Commit `9459babe` added the
 exact four-counter emission validator. V2 then reached the next wall and
 rejected V24's correct dataset-build ID because the trainer compared it with
-the new smoke output ID. Neither attempt started a training batch or created an
-output directory.
+the new smoke output ID. V3 crossed both walls, started the trainer and
+completed the five-timeframe prebuild, then rejected 1,952 / 52 / 31 legitimate
+negative TRAIN / VAL / TEST `mfe_first_n_bps` rows. Spread-aware selected-side
+MFE is signed when price never recovers the entry spread. The same inspection
+found that train and validation loss silently clipped signed MFE and path
+quality to zero; among tradable rows the affected path-quality counts were
+12,965 / 413 / 216. None of the three attempts started a training batch or
+created an output directory.
 
 Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
 lineages without weakening identity. Recipe schema v2 derives
 `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24` from post-rebuild plus all
-three split manifests, while `run_id=XAU_SEQ513_SMOKE_20260723_V3` owns the
-training/output lineage. Wrapper, trainer, bundle metadata/lock and handover
-all revalidate the roles. The immutable V3 recipe is PASS with SHA-256
-`0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`,
+three split manifests. Commit
+`c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` then restores the exact target
+domain: finite signed MFE/path quality remain signed in active validation and
+both losses, while MAE remains a non-negative magnitude. The new
+`run_id=XAU_SEQ513_SMOKE_20260723_V4` owns the training/output lineage.
+Wrapper, trainer, bundle metadata/lock and handover all revalidate the roles.
+The immutable V4 recipe is PASS with SHA-256
+`d07b4af58bc019277d4501cd396d3e091b8ee9642dd9fcdb2d73649c554b0083`,
 one epoch, 10,000-row cap and 30G/2G memory/swap caps. Its exact public dry-run
-passes. No smoke training batch has started and the V3 output bundle does not
-exist. V21/V22/V23 large rejected split parquets have been deleted, while
-their small terminal/manifest/audit evidence remains.
+passes. V4 execution has not started and its output bundle does not exist.
+V21/V22/V23 large rejected split parquets have been deleted, while their small
+terminal/manifest/audit evidence remains.
 
 ## Evidence and runtime boundary
 

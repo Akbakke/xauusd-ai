@@ -148,10 +148,14 @@ timing/tail/volatility, TF agreement and position size. Target timestamps and
 future horizons must be auditable and strictly after the input cutoff.
 
 The position-size target is exactly `sigmoid((MFE-MAE)/(2*ATR_bps))`, where MAE
-is a non-negative adverse magnitude; `FLAT` is neutral during training and
-executes zero units. Any label-horizon TEST utility/exposure/drawdown result is
-diagnostic only; no fresh accepted current-contract result exists. Paper/live
-exposure authority additionally requires
+is a non-negative adverse magnitude. MFE is selected-side and spread-aware: it
+remains signed when the path never earns back the entry spread. Path quality
+is also a signed forward outcome. Validators, normalization, train loss and
+validation loss must preserve both signed domains exactly; zero clipping,
+absolute values and parked-zero substitution are forbidden. `FLAT` is neutral
+during training and executes zero units. Any label-horizon TEST
+utility/exposure/drawdown result is diagnostic only; no fresh accepted
+current-contract result exists. Paper/live exposure authority additionally requires
 a joint sizing-only replay with the exact adopted active Exit stack and a fresh
 post-adoption broker runtime-parity event. Until both exist and pass, capital
 adoption is blocked; fixed 1x is only a named historical benchmark and never a

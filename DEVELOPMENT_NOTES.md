@@ -39,6 +39,12 @@ and ambient decision-setting overrides are invalid. `--dry-run` is the
 non-writing contract test. `--execute` is a real capped training job and its
 output must immediately enter `model-native-smoke-bundle-audit`.
 
+Target-domain changes require producer, validator, train-loss and val-loss
+review together. Spread-aware MFE and path quality are signed forward outcomes
+and must not be clamped to zero; MAE is a non-negative adverse magnitude.
+Focused tests must cover both an admitted negative signed target and rejection
+of negative MAE.
+
 Every heavy GX1 job must use the capped runner, explicit RAM/swap limits and
 the one host-wide heavy-job lock. Never start another heavy job merely to test
 a wrapper. Destructive `GX1_DATA` work must use the sole evidence-retention

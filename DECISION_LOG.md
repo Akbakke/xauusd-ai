@@ -6,6 +6,33 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — signed forward-outcome domains are exact
+
+V3 crossed the V1 aux-emission and V2 run-lineage walls, started the trainer
+and completed M5/M15/H1/H4/D1 prebuild. It then failed before the first batch
+with `ENTRY_V10_CTX_MODEL_NATIVE_ACTIVE_TARGET_CONTRACT_INVALID` because the
+trainer incorrectly required `mfe_first_n_bps >= 0`. Selected-side MFE is
+spread-aware and legitimately negative when price never earns back the entry
+spread: V24 contains 1,952 / 52 / 31 such TRAIN / VAL / TEST rows. MAE remains
+a non-negative adverse magnitude.
+
+The audit found a second mismatch in the same domain: train and validation
+losses silently clipped signed MFE and `path_quality_bps` to zero. Among
+tradable V24 rows, 12,965 / 413 / 216 negative path-quality outcomes were
+therefore being rewritten. Commit `c9e2569f` removes the invalid MFE
+non-negativity check and preserves exact signed scaling in both losses, with
+regression tests keeping negative MAE invalid.
+
+Fresh smoke-readiness SHA-256
+`ca27425ea3250cb878f786f5441c4d9c208271a2b64466f14ff613f3940fbb24`
+and trainability SHA-256
+`960282bbbed0889d06b818abcf5e9ef9ef47b0b44a50d3d32763ad327411d66e`
+are READY. V4 recipe SHA-256
+`d07b4af58bc019277d4501cd396d3e091b8ee9642dd9fcdb2d73649c554b0083`
+is PASS for `XAU_SEQ513_SMOKE_20260723_V4`, binds dataset V24 and source
+commit `c9e2569f`, and its exact public dry-run passes. V4 execution has not
+started; no bundle or edge evidence exists.
+
 ## 2026-07-23 — dataset-build and training-output lineage are distinct
 
 The first two real V24 smoke executions both failed closed before training and
@@ -29,15 +56,8 @@ CLI/environment/manifest/state agreement, and successful metadata plus lock
 must carry one exact `entry_model_native_training_run_lineage_v1`. Collapsed
 roles, missing values and meta/lock split-brain are invalid.
 
-Fresh smoke-readiness SHA-256
-`849615a753ac86ece4843dfdf5cc139e6a118d1cfa9a7deb6c050802fcffb0b5`
-and trainability SHA-256
-`0f90efa225c5a8f8911f35c327d485661c17eee833b9351b6227cc7853898fc9`
-are READY. Recipe-audit v2 SHA-256
-`0d28f1832f2602c7ae5ee5c461d645ad44c01382f8f9d4cac1354368626de37f`
-is PASS for V3, binds dataset V24 and source commit `b986c8db`, and the public
-dry-run passes. This proves launch consistency only; no training batch, bundle,
-prediction or direction edge exists yet.
+The resulting V3 recipe and dry-run passed, then the next real execution
+exposed the signed-target mismatch recorded in the newer decision above.
 
 ## 2026-07-23 — exact smoke recipe is executable, edge remains unproved
 

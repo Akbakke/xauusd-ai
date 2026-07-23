@@ -37,16 +37,19 @@ the immutable trainability review now passes.
 
 This is a data and contract breakthrough, not a model or trading-edge
 breakthrough. Commits `f08cd904`, `b5a61e21` and `bf5c61a0` closed the
-source-level smoke-launch gap. The first two capped executions then failed
-closed before the first training batch and created no bundle: V1 exposed an
+source-level smoke-launch gap. Three capped executions then failed closed
+before the first training batch and created no bundle: V1 exposed an
 over-strict static-versus-emitted aux-target check; V2 exposed that the trainer
-incorrectly treated V24's dataset-build ID as the new training/output ID.
-Commits `9459babe` and `b986c8db` repair those boundaries. Recipe schema v2
-now binds distinct `run_id=XAU_SEQ513_SMOKE_20260723_V3` and
+incorrectly treated V24's dataset-build ID as the new training/output ID; V3
+crossed both walls and completed the M5/M15/H1/H4/D1 prebuild, then exposed an
+invalid non-negative requirement on signed, spread-aware MFE. The same review
+found silent zero-clipping of signed MFE and path-quality regression targets.
+Commits `9459babe`, `b986c8db` and `c9e2569f` repair those boundaries. Recipe
+schema v2 now binds distinct `run_id=XAU_SEQ513_SMOKE_20260723_V4` and
 `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24`; launch derives the latter
 from post-rebuild plus all three manifests, and trainer/bundle contracts
 revalidate the separation. Fresh readiness, trainability, recipe and public
-dry-run pass. No smoke model has been trained and no bundle or prediction
+dry-run pass. No smoke model has completed and no bundle or prediction
 evidence exists. Launch remains `BLOCK` until smoke, candidate, untouched OOS,
 replay, serve parity, sizing and shadow gates all pass.
 
@@ -130,6 +133,12 @@ exported and audited. This includes direction, MTF direction, specialist
 fusion/gates, path/MFE/tradability/bad-path/clean-edge/survival evidence,
 trade-side hierarchy, side validity, trendline rail, timing/tail/volatility,
 TF agreement, position size, counterfactual action value and expectile value.
+
+Forward-outcome domains are exact. Spread-aware MFE and path quality are
+signed and must remain signed through validation, scaling, train loss and
+validation loss; MAE is a non-negative adverse magnitude. Silent clipping,
+absolute-value conversion, target substitution or parked-zero aliasing is a
+forbidden target rewrite.
 
 Head liveness alone is not learned evidence. Current target audit requires the
 complete canonical 46-target surface in TRAIN/VAL/TEST. Current immutable

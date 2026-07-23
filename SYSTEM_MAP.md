@@ -195,12 +195,15 @@ evidence groups / 96 values, followed by `LayerNorm(96)`, a learned
 calibration is applied after those raw `LONG/SHORT/FLAT` logits; exact argmax
 remains the only public direction selection.
 
-The position-size target is exactly `sigmoid((MFE-MAE)/(2*ATR_bps))`, with MAE
-defined as a non-negative adverse magnitude. `FLAT` has a neutral training
-target and zero executable units. Prediction is exported and journaled, but it
-can become capital authority only through the separate immutable learned-size
-calibration and OOS exposure/drawdown/parity contract. Missing or rejected
-sizing proof emits no order; it is never converted to multiplier `1.0`.
+The position-size target is exactly `sigmoid((MFE-MAE)/(2*ATR_bps))`. MFE is
+selected-side, spread-aware and signed; path quality is also signed. MAE is a
+non-negative adverse magnitude. Validator, scaling, train loss and validation
+loss preserve those domains without clipping or parked-zero substitution.
+`FLAT` has a neutral training target and zero executable units. Prediction is
+exported and journaled, but it can become capital authority only through the
+separate immutable learned-size calibration and OOS exposure/drawdown/parity
+contract. Missing or rejected sizing proof emits no order; it is never
+converted to multiplier `1.0`.
 
 ## Runtime evidence ownership
 
@@ -562,14 +565,18 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review. V1 og V2 feilet begge før første
+V24 har nådd og bestått `trainability`-review. V1, V2 og V3 feilet før første
 treningsbatch og uten bundle: først på emitted aux-target proof, deretter fordi
-trainer feilaktig sammenlignet smoke-run-ID med dataset-build-ID.
+trainer feilaktig sammenlignet smoke-run-ID med dataset-build-ID, og til slutt
+fordi signert spread-aware MFE feilaktig ble validert som ikke-negativ. V3
+startet trainer og fullførte M5/M15/H1/H4/D1-prebuild før denne sperren.
 `entry_model_native_seq513_train_recipe_audit_v2` produseres nå av én kanonisk
 eier med 162 eksakte treningsverdier, separat training/dataset-lineage og
-bytebinding til hele kjørebanen. V3-recipe og offentlig dry-run passerer.
+bytebinding til hele kjørebanen. Commit `c9e2569f` bevarer signert MFE og path
+quality gjennom aktiv target-validering samt train/val-loss, mens MAE fortsatt
+er en ikke-negativ adverse magnitude. V4-recipe og offentlig dry-run passerer.
 `model-native-smoke-bundle-audit` er eksponert i samme kontrollflate. Neste pil
-er derfor V3 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
+er derfor V4 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)

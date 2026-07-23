@@ -18,13 +18,16 @@ fields. This proves data/routing contracts, not direction edge.
 No smoke model, bundle, calibration or learned prediction evidence exists, so
 no Entry launch is authorized. The canonical producer now emits and validates
 one immutable recipe containing all 162 exact trainer settings, and the
-post-smoke bundle audit has one public control route. Smoke V1 and V2 both
-failed closed before training and created no bundle: V1 found an aux-target
-emission-contract mismatch; V2 found a dataset-build/training-run lineage
-collision. Recipe schema v2 and the exact V3 dry-run now bind a distinct
-training `run_id` plus launch-derived V24 `dataset_run_id`. The old Smart520
-evidence and rejected V1-V23 lineages are historical only and cannot be used
-for training, replay, paper trading, live trading or promotion.
+post-smoke bundle audit has one public control route. Smoke V1, V2 and V3 all
+failed closed before the first training batch and created no bundle: V1 found
+an aux-target emission-contract mismatch; V2 found a dataset-build/training-run
+lineage collision; V3 crossed those walls, completed five-timeframe prebuild
+and then found an invalid non-negative constraint on signed spread-aware MFE.
+That review also removed silent zero-clipping from signed MFE and path-quality
+train/validation targets. Recipe schema v2 and the exact V4 dry-run now bind a
+distinct training `run_id` plus launch-derived V24 `dataset_run_id`. The old
+Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
+be used for training, replay, paper trading, live trading or promotion.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive

@@ -54,3 +54,7 @@ documentation and code together.
 15. Dataset-build and training-output identities are separate roles. Recipe,
     wrapper, trainer, bundle metadata/lock and handover must bind both; missing,
     collapsed or split-brain lineage fails closed.
+16. Forward-outcome target domains are exact. Spread-aware MFE and path quality
+    remain signed through validation and both train/validation losses; MAE
+    remains a non-negative adverse magnitude. Clipping, taking absolute values
+    or substituting parked zeros is a forbidden target rewrite.

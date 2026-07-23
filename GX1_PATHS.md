@@ -16,9 +16,9 @@
 - current dataset terminal evidence:
   `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/CHAIN_TERMINAL_20260722T130501752412Z_GREEN.json`
 - current immutable smoke recipe evidence:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T101600Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T101541020294Z.json`
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T104800Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T104534572474Z.json`
 - declared smoke output (currently absent; never infer existence/authority):
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v10_entry_model_native_seq513_smoke_20260723T101600Z`
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v10_entry_model_native_seq513_smoke_20260723T104800Z`
 - rejected-split cleanup evidence:
   `/home/andre2/GX1_DATA/cleanup_events/XAU_FAILED_SPLIT_CLEANUP_20260722_V4`
 
@@ -33,9 +33,10 @@ hash-bound and accepted by the relevant contract.
 Environment variables may configure non-authoritative tooling, but they may
 not override immutable Entry artifact identity or introduce a fallback bundle.
 
-The V24 data and V3 recipe paths above are admitted only to exact capped smoke
-execution. Recipe v2 binds training/output V3 separately from launch-derived
-dataset V24. The recipe/dry-run is not a bundle, model, direction or launch
+The V24 data and V4 recipe paths above are admitted only to exact capped smoke
+execution. Recipe v2 binds training/output V4 separately from launch-derived
+dataset V24. V4 preserves signed MFE/path-quality target semantics and binds
+source commit `c9e2569f`. The recipe/dry-run is not a bundle, model, direction or launch
 authority; `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
 Never delete or move `GX1_DATA` content merely to reduce repository search
