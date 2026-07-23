@@ -428,6 +428,13 @@ def _model_native_active_target_failures(
     return failures
 
 
+_MODEL_NATIVE_COOPERATION_GATE_WIDTHS = {
+    "specialist_gate": 8,
+    "tf_gate": 5,
+    "family_tf_cooperation_gate": 13,
+}
+
+
 _MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS = {
     **dict(EXACT_EVIDENCE_FUSION_OUTPUTS),
     "raw_direction_logits": 3,
@@ -435,9 +442,7 @@ _MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS = {
     "path_quality": 1,
     "bad_path_logit": 1,
     "public_trade_flat_decision_logits": 2,
-    "specialist_gate": 8,
-    "tf_gate": 5,
-    "family_tf_cooperation_gate": 13,
+    **_MODEL_NATIVE_COOPERATION_GATE_WIDTHS,
 }
 
 
@@ -583,7 +588,7 @@ ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT"
 ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE = float(_env_str("ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE", "0.70"))
 ENTRY_TAIL_DIRECTION_MIN_BATCH = int(_env_str("ENTRY_TAIL_DIRECTION_MIN_BATCH", "8"))
 ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT", "0.05"))
-ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT", "0.05"))
+ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT", "0.50"))
 ENTRY_SPECIALIST_GATE_MIN_MEAN = float(_env_str("ENTRY_SPECIALIST_GATE_MIN_MEAN", "0.01"))
 # Forceful MTF→direction (2026-06-06): aux CE on the multi-TF direction logits vs
 # the direction label, forcing the 5 multi-TF streams to predict direction.
@@ -1028,7 +1033,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_FLAT_STARVATION_PRED_FLOOR": "0.10",
     "ENTRY_DIRECTION_FLAT_STARVATION_LOGIT_MARGIN": "0.10",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.05",
-    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.05",
+    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.50",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
     "ENTRY_MTF_DIR_AUX_WEIGHT": "0.30",
     "ENTRY_OFFLINE_RL_Q_WEIGHT": "0.50",
@@ -4452,14 +4457,9 @@ def _specialist_gate_regularization(
     The loss only prevents token starvation/collapse.  It does not encode any
     LONG/SHORT/FLAT preference or hand-written confluence rule.
     """
-    configurations = (
-        ("specialist_gate", 8),
-        ("tf_gate", 5),
-        ("family_tf_cooperation_gate", 13),
-    )
     losses: list[torch.Tensor] = []
     all_stats: dict[str, float] = {}
-    for output_name, expected_width in configurations:
+    for output_name, expected_width in _MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items():
         gate_loss, gate_stats = _probability_gate_regularization(
             out,
             device,
@@ -4480,6 +4480,113 @@ def _specialist_gate_regularization(
         }
     )
     return torch.stack(losses).mean(), all_stats
+
+
+def _new_cooperation_gate_epoch_accumulator() -> dict[str, dict[str, Any]]:
+    return {
+        output_name: {
+            "rows": 0,
+            "sum": np.zeros(expected_width, dtype=np.float64),
+            "entropy_sum": 0.0,
+        }
+        for output_name, expected_width in _MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items()
+    }
+
+
+def _accumulate_cooperation_gate_epoch(
+    accumulator: dict[str, dict[str, Any]],
+    out: dict[str, Any],
+) -> None:
+    """Accumulate exact epoch-wide cooperation use, not batch-minimum proxies."""
+    for output_name, expected_width in _MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items():
+        gate = out.get(output_name)
+        if not isinstance(gate, torch.Tensor):
+            raise RuntimeError(
+                f"[ENTRY_MODEL_NATIVE_ACTIVE_HEAD_MISSING] output={output_name}"
+            )
+        if gate.ndim != 2 or int(gate.shape[1]) != expected_width or gate.numel() == 0:
+            raise RuntimeError(
+                "[ENTRY_MODEL_NATIVE_GATE_SHAPE_INVALID] "
+                f"output={output_name} shape={tuple(gate.shape)} "
+                f"expected=(batch,{expected_width})"
+            )
+        detached = gate.detach().double()
+        if not bool(torch.isfinite(detached).all().item()):
+            raise RuntimeError(
+                f"[ENTRY_MODEL_NATIVE_GATE_NONFINITE] output={output_name}"
+            )
+        clipped = detached.clamp(min=1e-12)
+        state = accumulator[output_name]
+        state["rows"] = int(state["rows"]) + int(detached.shape[0])
+        state["sum"] += detached.sum(dim=0).cpu().numpy()
+        state["entropy_sum"] = float(state["entropy_sum"]) + float(
+            (-(clipped * clipped.log()).sum(dim=1).sum()).cpu().item()
+        )
+
+
+def _finalize_cooperation_gate_epoch(
+    accumulator: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    stats: dict[str, Any] = {}
+    for output_name, expected_width in _MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items():
+        state = accumulator[output_name]
+        rows = int(state["rows"])
+        if rows <= 0:
+            raise RuntimeError(
+                f"[ENTRY_MODEL_NATIVE_GATE_EPOCH_EVIDENCE_MISSING] output={output_name}"
+            )
+        mean_weight = np.asarray(state["sum"], dtype=np.float64) / float(rows)
+        if (
+            mean_weight.shape != (expected_width,)
+            or not np.isfinite(mean_weight).all()
+            or not np.isclose(float(mean_weight.sum()), 1.0, rtol=1e-6, atol=1e-7)
+        ):
+            raise RuntimeError(
+                "[ENTRY_MODEL_NATIVE_GATE_EPOCH_EVIDENCE_INVALID] "
+                f"output={output_name} mean_shape={mean_weight.shape} "
+                f"mean_sum={float(mean_weight.sum()):.12g}"
+            )
+        stats[f"{output_name}_rows"] = rows
+        stats[f"{output_name}_mean_weight"] = mean_weight.tolist()
+        stats[f"{output_name}_min_mean"] = float(mean_weight.min())
+        stats[f"{output_name}_entropy_mean"] = float(state["entropy_sum"]) / float(rows)
+    return stats
+
+
+def _cooperation_gate_health_failures(stats: dict[str, Any]) -> list[str]:
+    """Fail checkpoint admission when any learned cooperation path is starved."""
+    failures: list[str] = []
+    min_mean = float(ENTRY_SPECIALIST_GATE_MIN_MEAN)
+    for output_name, expected_width in _MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items():
+        mean_weight = np.asarray(
+            stats.get(f"{output_name}_mean_weight", ()),
+            dtype=np.float64,
+        )
+        entropy = stats.get(f"{output_name}_entropy_mean")
+        if (
+            mean_weight.shape != (expected_width,)
+            or not np.isfinite(mean_weight).all()
+            or not np.isclose(float(mean_weight.sum()), 1.0, rtol=1e-6, atol=1e-7)
+        ):
+            failures.append(
+                f"{output_name} epoch-wide mean-weight evidence is missing or invalid"
+            )
+            continue
+        observed_min = float(mean_weight.min())
+        if observed_min <= min_mean:
+            failures.append(
+                f"{output_name} min mean={observed_min:.6f} "
+                f"(must be > {min_mean:.6f})"
+            )
+        entropy_floor = 0.5 * float(np.log(float(expected_width)))
+        if entropy is None or not np.isfinite(float(entropy)):
+            failures.append(f"{output_name} epoch-wide entropy evidence is missing")
+        elif float(entropy) < entropy_floor:
+            failures.append(
+                f"{output_name} entropy={float(entropy):.6f} "
+                f"(must be >= {entropy_floor:.6f})"
+            )
+    return failures
 
 
 def _bad_path_quality_rank_loss(
@@ -5025,8 +5132,7 @@ def train_epoch(
     total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
     specialist_gate_loss_sum = 0.0
-    specialist_gate_entropy_sum = 0.0
-    specialist_gate_min_mean_sum = 0.0
+    cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
     n = 0
@@ -5145,6 +5251,7 @@ def train_epoch(
             target_names=("y_survival_long", "y_survival_bidir"),
         )
         specialist_gate_loss, specialist_gate_stats = _specialist_gate_regularization(out, device)
+        _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
         bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
         path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
 
@@ -5496,8 +5603,6 @@ def train_epoch(
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
         specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
-        specialist_gate_entropy_sum += float(specialist_gate_stats.get("entropy", 0.0)) * bs
-        specialist_gate_min_mean_sum += float(specialist_gate_stats.get("min_mean", 0.0)) * bs
         bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
         path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
@@ -5542,7 +5647,7 @@ def train_epoch(
         trendline_falling_rows_sum += int(trendline_stats.get("trendline_falling_rows", 0.0))
         n += bs
 
-    return total / max(1, n), {
+    stats = {
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
@@ -5568,8 +5673,6 @@ def train_epoch(
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
         "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
-        "specialist_gate_entropy_mean": (specialist_gate_entropy_sum / max(1, n)),
-        "specialist_gate_min_mean": (specialist_gate_min_mean_sum / max(1, n)),
         "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
@@ -5618,6 +5721,8 @@ def train_epoch(
         "trendline_rising_rows": int(trendline_rising_rows_sum),
         "trendline_falling_rows": int(trendline_falling_rows_sum),
     }
+    stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
+    return total / max(1, n), stats
 
 
 def _aux_head_diagnostics(
@@ -6232,6 +6337,8 @@ def validate(
     total_direction_utility_triad_ce = 0.0
     total_direction_flat_starvation = 0.0
     total_tail_direction = 0.0
+    specialist_gate_loss_sum = 0.0
+    cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
     n = 0
@@ -6324,6 +6431,7 @@ def validate(
             trade_logit = out["trade_logit"]
             side_logits = out["side_logits"]
             specialist_gate_loss, _specialist_gate_stats = _specialist_gate_regularization(out, device)
+            _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
             bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
             path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
 
@@ -6655,6 +6763,7 @@ def validate(
             total_direction_flat_starvation += float(direction_flat_starvation_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
+            specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
             path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
             hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
@@ -6727,6 +6836,7 @@ def validate(
     acc = float(accuracy_score(targets_np.astype(int), preds_np.astype(int)))
     short_pred_long_rate = (short_pred_long / short_total if short_total > 0 else 0.0)
     stats: Dict[str, Any] = {
+        "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
@@ -6848,6 +6958,7 @@ def validate(
         "trendline_rising_rows": int(trendline_rising_rows_sum),
         "trendline_falling_rows": int(trendline_falling_rows_sum),
     }
+    stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
     stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
     stats.update(
         _direction_hierarchy_output_stats(
@@ -6882,6 +6993,14 @@ def validate(
         log.error(
             "[ENTRY_AUX_HEAD_HEALTH_CHECKPOINT_BLOCKED] %s",
             "; ".join(_diag_failures),
+        )
+    gate_failures = _cooperation_gate_health_failures(stats)
+    stats["cooperation_gate_health_ok"] = not gate_failures
+    stats["cooperation_gate_health_failures"] = list(gate_failures)
+    if gate_failures:
+        log.error(
+            "[ENTRY_COOPERATION_GATE_HEALTH_CHECKPOINT_BLOCKED] %s",
+            "; ".join(gate_failures),
         )
     # AUC is intentionally disabled for this 3-class path (previously hardcoded 0.0)
     return total / max(1, n), float("nan"), acc, short_pred_long_rate, stats
@@ -8381,6 +8500,30 @@ def run_train(
                 float(val_stats.get("path_quality_rank_loss_mean", 0.0)),
             )
             log.info(
+                "[ENTRY_COOPERATION_GATE_HEALTH] split=val epoch=%d ok=%d "
+                "specialist_entropy=%.6f specialist_min_mean=%.6f "
+                "tf_entropy=%.6f tf_min_mean=%.6f "
+                "family_tf_entropy=%.6f family_tf_min_mean=%.6f",
+                epoch + 1,
+                int(bool(val_stats.get("cooperation_gate_health_ok", False))),
+                float(val_stats.get("specialist_gate_entropy_mean", 0.0)),
+                float(val_stats.get("specialist_gate_min_mean", 0.0)),
+                float(val_stats.get("tf_gate_entropy_mean", 0.0)),
+                float(val_stats.get("tf_gate_min_mean", 0.0)),
+                float(
+                    val_stats.get(
+                        "family_tf_cooperation_gate_entropy_mean",
+                        0.0,
+                    )
+                ),
+                float(
+                    val_stats.get(
+                        "family_tf_cooperation_gate_min_mean",
+                        0.0,
+                    )
+                ),
+            )
+            log.info(
                 "[ENTRY_DIR_CKPT_BALANCE] split=val epoch=%d score=%.6f raw_acc=%.6f l1=%.6f "
                 "penalty=%.6f guard_ok=%d pred_long=%.6f pred_short=%.6f pred_flat=%.6f "
                 "label_long=%.6f label_short=%.6f label_flat=%.6f min_pred_to_label=%.6f",
@@ -8506,11 +8649,28 @@ def run_train(
                 float(tr_loss),
             )
             log.info(
-                "[ENTRY_SPECIALIST_GATE_LOSS] split=train epoch=%d loss=%.6f entropy=%.6f min_mean=%.6f",
+                "[ENTRY_COOPERATION_GATE_LOSS] split=train epoch=%d loss=%.6f "
+                "specialist_entropy=%.6f specialist_min_mean=%.6f "
+                "tf_entropy=%.6f tf_min_mean=%.6f "
+                "family_tf_entropy=%.6f family_tf_min_mean=%.6f",
                 epoch + 1,
                 float(tr_stats.get("specialist_gate_loss_mean", 0.0)),
                 float(tr_stats.get("specialist_gate_entropy_mean", 0.0)),
                 float(tr_stats.get("specialist_gate_min_mean", 0.0)),
+                float(tr_stats.get("tf_gate_entropy_mean", 0.0)),
+                float(tr_stats.get("tf_gate_min_mean", 0.0)),
+                float(
+                    tr_stats.get(
+                        "family_tf_cooperation_gate_entropy_mean",
+                        0.0,
+                    )
+                ),
+                float(
+                    tr_stats.get(
+                        "family_tf_cooperation_gate_min_mean",
+                        0.0,
+                    )
+                ),
             )
             log.info(
                 "[ENTRY_BAD_PATH_RANK_LOSS] split=train epoch=%d loss=%.6f",
@@ -8542,7 +8702,14 @@ def run_train(
         _aux_head_health_ok = bool(
             val_stats.get("aux_head_health_ok", False)
         ) if val_stats else False
-        _improved = bool(_improved and _aux_head_health_ok)
+        _cooperation_gate_health_ok = bool(
+            val_stats.get("cooperation_gate_health_ok", False)
+        ) if val_stats else False
+        _improved = bool(
+            _improved
+            and _aux_head_health_ok
+            and _cooperation_gate_health_ok
+        )
         if _improved:
             best_val = va_loss
             if np.isfinite(acc):

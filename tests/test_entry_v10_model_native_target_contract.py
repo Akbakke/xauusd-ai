@@ -401,6 +401,46 @@ def test_every_fused_evidence_head_is_required_during_train_and_validation() -> 
         trainer._specialist_gate_regularization({}, torch.device("cpu"))
 
 
+def test_cooperation_gate_epoch_health_requires_every_gate_family_live() -> None:
+    accumulator = trainer._new_cooperation_gate_epoch_accumulator()
+    uniform = {
+        name: torch.full((4, width), 1.0 / float(width), dtype=torch.float32)
+        for name, width in trainer._MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items()
+    }
+    trainer._accumulate_cooperation_gate_epoch(accumulator, uniform)
+    stats = trainer._finalize_cooperation_gate_epoch(accumulator)
+
+    assert trainer._cooperation_gate_health_failures(stats) == []
+    assert stats["specialist_gate_rows"] == 4
+    assert stats["specialist_gate_min_mean"] == pytest.approx(1.0 / 8.0)
+    assert stats["tf_gate_min_mean"] == pytest.approx(1.0 / 5.0)
+    assert stats["family_tf_cooperation_gate_min_mean"] == pytest.approx(
+        1.0 / 13.0
+    )
+
+
+def test_cooperation_gate_epoch_health_rejects_starved_specialist() -> None:
+    accumulator = trainer._new_cooperation_gate_epoch_accumulator()
+    out = {
+        name: torch.full((3, width), 1.0 / float(width), dtype=torch.float32)
+        for name, width in trainer._MODEL_NATIVE_COOPERATION_GATE_WIDTHS.items()
+    }
+    starved = torch.full((3, 8), (1.0 - 0.001) / 7.0, dtype=torch.float32)
+    starved[:, 0] = 0.001
+    out["specialist_gate"] = starved
+    trainer._accumulate_cooperation_gate_epoch(accumulator, out)
+    stats = trainer._finalize_cooperation_gate_epoch(accumulator)
+
+    failures = trainer._cooperation_gate_health_failures(stats)
+    assert any(
+        "specialist_gate min mean=0.001000" in failure
+        for failure in failures
+    )
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    assert "_improved = bool(" in source
+    assert "and _cooperation_gate_health_ok" in source
+
+
 def test_entry_trainer_has_no_stale_warm_start_artifact_lane() -> None:
     source = TRAINER_PATH.read_text(encoding="utf-8")
     assert "--init-from-state-dict" not in source
