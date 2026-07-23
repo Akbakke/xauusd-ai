@@ -95,11 +95,11 @@ bind every executable source file by SHA-256. The single control surface now
 exposes both recipe production and the existing exact post-smoke bundle audit.
 
 Fresh V24 smoke readiness is READY with SHA-256
-`ca27425ea3250cb878f786f5441c4d9c208271a2b64466f14ff613f3940fbb24`;
+`fa44e809e28599b9c9d4fa897fafaccd15cdb80f3bdee9948665cd1c1b283650`;
 trainability is READY with SHA-256
-`960282bbbed0889d06b818abcf5e9ef9ef47b0b44a50d3d32763ad327411d66e`.
+`6908796b6e289c708d0d1b1bd942c10ef9482391fd3cfb3aba2168cfbc88e312`.
 
-Three real capped executions have provided fail-closed pre-training evidence.
+Four real capped executions have provided fail-closed evidence.
 V1 rejected the stronger emitted aux-target contract because the trainer
 compared it with only the static 46-target subset. Commit `9459babe` added the
 exact four-counter emission validator. V2 then reached the next wall and
@@ -111,21 +111,29 @@ MFE is signed when price never recovers the entry spread. The same inspection
 found that train and validation loss silently clipped signed MFE and path
 quality to zero; among tradable rows the affected path-quality counts were
 12,965 / 413 / 216. None of the three attempts started a training batch or
-created an output directory.
+created an output directory. V4 crossed that target wall, built the complete
+72.71 GB TRAIN tensor, stratified 10,000 rows, loaded VAL and the five exact
+timeframe tables, constructed all mandatory specialists/heads and entered the
+first model forward. It then failed before loss completion or optimizer step
+because the MTF direction-head liveness check required `y_direction`, while
+the Dataset canonically maps that immutable parquet column once to batch tensor
+`y`. V4 also created no output directory.
 
 Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
 lineages without weakening identity. Recipe schema v2 derives
 `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24` from post-rebuild plus all
 three split manifests. Commit
-`c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` then restores the exact target
+`c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` restores the exact target
 domain: finite signed MFE/path quality remain signed in active validation and
-both losses, while MAE remains a non-negative magnitude. The new
-`run_id=XAU_SEQ513_SMOKE_20260723_V4` owns the training/output lineage.
+both losses, while MAE remains a non-negative magnitude. Commit
+`f05b3390144f988079bbd49aa1abff8cacd4bd55` makes both train and validation
+MTF heads require the canonical `y` class tensor, without aliases or fallback.
+The new `run_id=XAU_SEQ513_SMOKE_20260723_V5` owns the training/output lineage.
 Wrapper, trainer, bundle metadata/lock and handover all revalidate the roles.
-The immutable V4 recipe is PASS with SHA-256
-`d07b4af58bc019277d4501cd396d3e091b8ee9642dd9fcdb2d73649c554b0083`,
+The immutable V5 recipe is PASS with SHA-256
+`9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a`,
 one epoch, 10,000-row cap and 30G/2G memory/swap caps. Its exact public dry-run
-passes. V4 execution has not started and its output bundle does not exist.
+passes. V5 execution has not started and its output bundle does not exist.
 V21/V22/V23 large rejected split parquets have been deleted, while their small
 terminal/manifest/audit evidence remains.
 

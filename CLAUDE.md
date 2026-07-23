@@ -58,3 +58,7 @@ documentation and code together.
     remain signed through validation and both train/validation losses; MAE
     remains a non-negative adverse magnitude. Clipping, taking absolute values
     or substituting parked zeros is a forbidden target rewrite.
+17. Active head liveness checks must require the exact batch keys emitted by
+    the canonical Dataset mapping. `y_direction` is converted once to class
+    tensor `y`; adding aliases, defaults or duplicated targets to satisfy a
+    head check is forbidden.

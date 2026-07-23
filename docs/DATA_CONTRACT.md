@@ -146,6 +146,9 @@ supporting head: MTF direction, path/MFE/tradability/bad-path/clean-edge/
 survival evidence, utility, hierarchy, side validity, trendline rail,
 timing/tail/volatility, TF agreement and position size. Target timestamps and
 future horizons must be auditable and strictly after the input cutoff.
+The Dataset converts immutable parquet `y_direction` exactly once to the
+class-index batch tensor `y`; the primary and MTF direction losses share that
+same tensor. A duplicated `y_direction` batch alias is forbidden.
 
 The position-size target is exactly `sigmoid((MFE-MAE)/(2*ATR_bps))`, where MAE
 is a non-negative adverse magnitude. MFE is selected-side and spread-aware: it

@@ -565,18 +565,21 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review. V1, V2 og V3 feilet før første
-treningsbatch og uten bundle: først på emitted aux-target proof, deretter fordi
-trainer feilaktig sammenlignet smoke-run-ID med dataset-build-ID, og til slutt
-fordi signert spread-aware MFE feilaktig ble validert som ikke-negativ. V3
-startet trainer og fullførte M5/M15/H1/H4/D1-prebuild før denne sperren.
+V24 har nådd og bestått `trainability`-review. V1–V4 feilet uten bundle: først
+på emitted aux-target proof, deretter fordi trainer feilaktig sammenlignet
+smoke-run-ID med dataset-build-ID, så fordi signert spread-aware MFE feilaktig
+ble validert som ikke-negativ, og til slutt fordi MTF-direction-headens
+liveness-sjekk krevde et redundant `y_direction` batch-alias i stedet for det
+kanoniske `y`-tensoren. V4 bygget full 72.71 GB TRAIN-tensor, subsamplet 10 000
+rader og nådde første model-forward; ingen optimizer-step fullførte.
 `entry_model_native_seq513_train_recipe_audit_v2` produseres nå av én kanonisk
 eier med 162 eksakte treningsverdier, separat training/dataset-lineage og
 bytebinding til hele kjørebanen. Commit `c9e2569f` bevarer signert MFE og path
 quality gjennom aktiv target-validering samt train/val-loss, mens MAE fortsatt
-er en ikke-negativ adverse magnitude. V4-recipe og offentlig dry-run passerer.
+er en ikke-negativ adverse magnitude. Commit `f05b3390` binder MTF-headen til
+samme kanoniske klasse-target i train og val. V5-recipe og offentlig dry-run passerer.
 `model-native-smoke-bundle-audit` er eksponert i samme kontrollflate. Neste pil
-er derfor V4 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
+er derfor V5 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)

@@ -6,6 +6,32 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — active head checks bind canonical batch targets
+
+V4 crossed the signed-target wall, built the complete 369,081-row
+`96 x 513` TRAIN tensor (72.71 GB disk-backed), stratified the exact 10,000-row
+smoke subset, loaded VAL and all five timeframe tables, constructed every
+mandatory specialist/head and entered its first model forward. It then failed
+before loss completion or optimizer step with
+`ENTRY_MODEL_NATIVE_ACTIVE_HEAD_TARGET_MISSING`: the MTF direction-head check
+required `y_direction`, although the Dataset deliberately converts that
+immutable parquet field once to the canonical class-index batch tensor `y`.
+
+Commit `f05b3390` makes both train and validation MTF checks require `y`.
+Adding a second alias would have weakened the no-alias/no-default contract and
+is not allowed. All other active head checks were reviewed against emitted
+batch keys; no other mismatch was found.
+
+Fresh smoke-readiness SHA-256
+`fa44e809e28599b9c9d4fa897fafaccd15cdb80f3bdee9948665cd1c1b283650`
+and trainability SHA-256
+`6908796b6e289c708d0d1b1bd942c10ef9482391fd3cfb3aba2168cfbc88e312`
+are READY. V5 recipe SHA-256
+`9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a`
+is PASS for `XAU_SEQ513_SMOKE_20260723_V5`, binds dataset V24 and source
+commit `f05b3390`, and its exact public dry-run passes. V5 execution has not
+started; no bundle or edge evidence exists.
+
 ## 2026-07-23 — signed forward-outcome domains are exact
 
 V3 crossed the V1 aux-emission and V2 run-lineage walls, started the trainer
@@ -30,8 +56,9 @@ and trainability SHA-256
 are READY. V4 recipe SHA-256
 `d07b4af58bc019277d4501cd396d3e091b8ee9642dd9fcdb2d73649c554b0083`
 is PASS for `XAU_SEQ513_SMOKE_20260723_V4`, binds dataset V24 and source
-commit `c9e2569f`, and its exact public dry-run passes. V4 execution has not
-started; no bundle or edge evidence exists.
+commit `c9e2569f`, and its exact public dry-run passes. At that recorded
+boundary V4 had not started; its later failure is recorded in the newer
+decision above.
 
 ## 2026-07-23 — dataset-build and training-output lineage are distinct
 

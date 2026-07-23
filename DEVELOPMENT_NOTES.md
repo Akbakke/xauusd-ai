@@ -45,6 +45,11 @@ and must not be clamped to zero; MAE is a non-negative adverse magnitude.
 Focused tests must cover both an admitted negative signed target and rejection
 of negative MAE.
 
+Head/target changes require an emitted-batch-key audit across both train and
+validation. The Dataset maps immutable parquet `y_direction` once to class
+tensor `y`; head checks consume `y` directly and may not add an alias or
+fallback merely to satisfy liveness.
+
 Every heavy GX1 job must use the capped runner, explicit RAM/swap limits and
 the one host-wide heavy-job lock. Never start another heavy job merely to test
 a wrapper. Destructive `GX1_DATA` work must use the sole evidence-retention

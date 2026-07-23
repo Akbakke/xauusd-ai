@@ -87,7 +87,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
     assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
     assert "smoke_recipe_evidence: VERIFIED decision=PASS env_count=162" in result.stdout
-    assert "source_commit=c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119" in result.stdout
+    assert "source_commit=f05b3390144f988079bbd49aa1abff8cacd4bd55" in result.stdout
     assert "smoke_recipe_dry_run: PASS" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert "active_seq513_chain" in result.stdout
