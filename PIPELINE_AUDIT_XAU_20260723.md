@@ -13,9 +13,11 @@ Three independent read-only audits covered:
    admission;
 3. bundle loading, serving, replay, shadow, launch authority and handover.
 
-The initial audits changed no file and did not interfere with V7.
+The initial audits changed no file and did not interfere with V7. Their
+repairs were then implemented in source; no dataset rebuild or training run
+was started.
 
-## Source-repair checkpoint — 2026-07-23T14:28:38Z
+## Source-repair checkpoint — 2026-07-23T15:43:37Z
 
 The following findings are repaired in source and regression-tested, but do
 not rehabilitate V24/V7 and are not empirical edge evidence:
@@ -38,6 +40,35 @@ not rehabilitate V24/V7 and are not empirical edge evidence:
   checkpoint admission;
 - raw-bps dip, forecast, tail-risk and volatility targets are normalized to
   one explicit 20-bps model unit before entering the shared fusion contract;
+- all 513 signals, 142 continuous context values and five MTF 25-field
+  surfaces use one ordered immutable robust TRAIN-fit normalization contract.
+  Fit consumes the complete physical TRAIN population before sampling,
+  preserves binary/categorical semantics, binds every field/statistic and
+  per-TF causal-row hash, and records zero VAL/TEST fit rows;
+- all 142 continuous and five categorical context fields have exactly one of
+  eight specialist owners. Family-specific projections enter their specialist
+  tokens before cross-attention; the current-bar alias set is derived from the
+  actual ordered signal manifest and must remain bit-identical rather than
+  being assumed to contain 82 fields;
+- tradable, LONG and SHORT conditional bad-path/clean-edge/survival metrics
+  plus incremental lift over the tradable baseline are checkpoint evidence;
+- the five-timeframe V2 disk cache is mandatory for admitted training and
+  binds the exact source M5 bytes, ten component arrays, sizes, hashes,
+  11-file inventory and aggregate cache identity;
+- trained, calibrated and sizing-finalized bundles are built in hidden sibling
+  staging directories, carry one exact commit manifest, pass strict load
+  before publication and use `renameat2(RENAME_NOREPLACE)` plus `fsync`;
+- immutable JSON events are fully written and fsynced under a hidden staging
+  name before atomic no-replace publication;
+- launch approval is no longer accepted from arbitrary environment text.
+  Future ALLOW state must bind the newest immutable one-time approval to the
+  complete launch-state hash and exact bundle commit; the runner revalidates
+  the unchanged launch/registry lease before every new exposure;
+- joint Entry-sizing/Exit evidence now inventories and hash-binds every regular
+  file under all three selected Exit artifacts, not only the mutable registry
+  JSON;
+- a missing broker `trade_id` can no longer trigger an opposite market-order
+  “close”; it fails closed as unresolved exposure;
 - `--grad-accum-steps` is the consumed trainer value and partial final
   accumulation is correctly rescaled;
 - stale bundle-loader scaler/feature compatibility arguments and metadata are
@@ -45,19 +76,24 @@ not rehabilitate V24/V7 and are not empirical edge evidence:
 
 Still open before any rebuild/training:
 
-- immutable TRAIN-fit per-field normalization for the raw 513+142 continuous
-  inputs;
-- real family-owned context routing. Dynamic proof shows zero direct
-  `ctx_cont`/`ctx_cat` movement of pre-cross specialist tokens: 82 continuous
-  fields are byte-identical current-bar signal aliases, while 60 continuous
-  and all five categorical fields reach only global context/gates/FiLM;
-- tradable-conditioned LONG/SHORT path metrics and incremental-skill proof;
-- atomic bundle export;
-- the transactional promotion/vedtak path. A new audit also proved that the
-  joint Exit/sizing proof cannot hash-bind the mutable canonical artifact
-  registry and then survive promotion; it needs an immutable Exit-only
-  registry snapshot;
+- one canonical transactional candidate/promotion/launch finalizer. The
+  consumers now reject soft approval, mutable bundle content, expired evidence
+  and mid-process authority changes, but no producer yet validates the entire
+  candidate chain and publishes the activating state as one recoverable
+  transaction;
 - repair/parity of the canonical/live December-2024 M5 tape.
+
+Still empirically unproved after source repair: a fresh dataset, trained
+checkpoint, calibrated LONG/SHORT/FLAT predictions, untouched OOS direction
+edge, train==serve parity, replay, sizing/Exit performance and live-like
+precision. V24/V7 predate these contracts.
+
+Repository verification after the repairs collected 1,725 tests: 1,720
+passed, five were explicitly skipped and zero failed. Changed Python sources
+and tests compile and pass Ruff (excluding the repository's intentional
+import-bootstrap `E402` pattern); JSON, shell syntax, diff hygiene, handover
+self-check and the exact forbidden-instrument scan are green. These results
+prove source contracts, not a trading edge.
 
 ## V7 terminal result
 
@@ -213,6 +249,9 @@ TF changes the correct class margin in the regimes where it should matter.
 
 ## P1 — raw input scales are not contract-normalized
 
+Status: **source repaired with complete physical-TRAIN fit and immutable
+field/statistic/causal-row lineage; fresh rebuild required**.
+
 V24 TRAIN input standard deviations span approximately 6.4 million times:
 
 - `session_regime.eu_structure_breakout_readiness`: `3.3438e-5`;
@@ -222,19 +261,17 @@ The 513 signals and 142 continuous context fields enter raw Linear projections.
 The legacy `seq_scaler_path` and `snap_scaler_path` loader arguments only
 validate/store paths and never transform input.
 
-Required repair:
-
-- one immutable TRAIN-only, ordered scaler for 513 signals and 142 continuous
-  context values;
-- binary fields remain binary, categorical fields remain categorical and
-  continuous fields use contract-owned robust scaling with scale floors;
-- dataset, bundle, replay and live serving bind the same scaler bytes/hash;
-- wrong field order, invalid scale or missing scaler fails closed.
+The repair fits robust median/IQR then positive absolute-deviation fallback,
+rejects constant/invalid fields, preserves exact binary and categorical
+domains, caps TRAIN clipping at two percent and binds the same state in
+metadata, lock, model buffers, loader, replay and serve. The 82-field V24 alias
+count is test evidence only; the live alias set is derived from ordered names.
 
 ## P1 — 96 fusion values have incompatible units
 
-Status: **raw-bps forward heads repaired to an explicit 20-bps model unit;
-per-field raw-input normalization remains open**.
+Status: **source repaired with 20-bps forward-head units, immutable per-field
+input normalization, positive contract-bound TF scales and learned group
+projections; fresh influence/edge evidence required**.
 
 The 96 values combine raw bps, scaled bps, logits and `[0,1]` timing values,
 then apply one cross-channel `LayerNorm(96)`. Example V7 target standard
@@ -242,13 +279,15 @@ deviations range from timing `0.194` and time-to-MFE `0.347` to dip-MFE
 `45.280`, tail-MAE `55.142` and action value `143.84` before its separate
 Q-scale.
 
-One global LayerNorm does not create fieldwise semantic parity. Each of the 26
-groups needs a contract-scaled output or group projection/normalization before
-fusion, followed by scale-perturbation and group-influence tests.
+The model now receives contract-normalized raw inputs, unit-normalized forward
+heads and positive hash-bound TF scales before the learned 26-group fusion.
+All 26 groups retain checkpoint-blocking class-margin influence. This proves
+connectivity and scale ownership, not useful OOS cooperation.
 
 ## P1 — context specialist routing is taxonomy-only
 
-Status: **confirmed dynamically; architecture repair remains open**.
+Status: **source repaired with exact 142+5 one-owner routing and perturbation
+proof**.
 
 The specialist audit classifies all 142 continuous and five categorical
 context fields and reports full mapping. The model specialist indices,
@@ -257,18 +296,14 @@ context projections and may affect later gates, but 60 continuous context
 fields have no signal alias and can never enter the specialist token claimed
 by the audit.
 
-Required repair:
-
-- exact per-family `ctx_cont`/`ctx_cat` ownership;
-- family-specific context projections fused into the corresponding specialist
-  token before cross-attention;
-- complete 142+5 coverage and perturbation tests;
-- explicit policy against double-weighting the 82 aliased context values.
+Family-specific continuous and categorical projections now enter the owned
+specialist token before cross-attention. Categorical fields use separate
+field/domain embeddings. Alias values must equal their signal snapshot bytes;
+they have a single normalization-stat owner and no second independent value.
 
 ## P1 — MTF source identity is incomplete
 
-Status: **trainer-bound M5 identity repaired; disk-cache component binding
-remains an external rebuild/readiness requirement**.
+Status: **source repaired end to end; fresh cache/rebuild proof required**.
 
 The trainer binds the three split manifests and parquets but not the external
 `--m5-prebuilt-path` used to build all M5/M15/H1/H4/D1 inputs. It checks
@@ -279,9 +314,10 @@ files.
 The V7 CLI did point at the intended V24 file; no current byte divergence was
 observed. The boundary is nevertheless replaceable.
 
-Required repair: bind the M5 path/SHA into the recipe, require equality across
-all split manifests and hash every cache component plus the aggregate cache
-identity.
+The admitted trainer now requires an absolute V2 disk-cache directory and
+rejects source-build fallback. Its schema binds source M5, the exact ten
+arrays, file sizes/hashes, feature order, the 11-file inventory and one cache
+identity; the trainer reuses only those verified bytes.
 
 ## P1 — launch authority has no safe completion path
 
@@ -290,25 +326,28 @@ there is no canonical transactional finalizer that can later validate a full
 candidate chain and atomically update both launch authority and artifact
 registry.
 
-Additionally, live launch and artifact validation currently treat a nonempty
-`GX1_LIVE_VEDTAK` environment value as sufficient. It is not bound to an
-immutable launch event, exact candidate/bundle or one-time identity.
+The former nonempty `GX1_SMART_LAUNCH_VEDTAK` pass-through is now removed from
+both shell launcher and runner. Artifact validation requires the newest exact
+approval event, complete launch-state payload hash and bundle-commit hash.
+Runtime revalidates the unchanged authority lease before each new exposure.
+The remaining gap is producer-side transactional promotion/finalization.
 
 Required repair:
 
 - one public promotion/launch finalizer that validates the newest immutable
   bundle, serve, sizing, Exit, replay, shadow and lifecycle evidence;
 - atomic registry/state update with a terminal failure event on partial error;
-- explicit one-time vedtak ID/hash bound to that launch event;
-- `.env` may not supply launch authority.
+- explicit one-time vedtak ID/hash bound to that launch event (consumer side
+  is repaired);
+- `.env` may not supply launch authority (repaired).
 
 ## P2 cleanup and quality findings
 
 - Handover was hard-coded to pre-execution V7 state. It must validate explicit
   `READY_NOT_STARTED` and `TERMINAL_FAILED` states now, and later add
   independently validated produced/candidate/active states.
-- Bundle export writes directly into the final output directory before all
-  checks finish. Export must use a staging directory, `fsync` and atomic rename.
+- Bundle export direct-write is repaired with hidden staging, exact commit
+  inventory, strict pre-publication load, `fsync` and atomic no-replace rename.
 - `feature_meta_path`, `seq_scaler_path` and `snap_scaler_path` are unused
   compatibility arguments in the loader.
 - TRAIN and VAL component statistics mix weighted and raw loss units; the
@@ -317,12 +356,10 @@ Required repair:
 - Selector masks are dead indirection because both path-candidate arrays are
   always one.
 - Some rates/weights use the full dataset instead of the selected subsample.
-- MTF is built twice because the producer and consumer use different cache
-  keys; a hard-coded V2 path leaves a dead V1 branch.
-- RSI, percentage change and rate-of-change fields are assigned to trend
-  before momentum matching.
-- Optional feature ranking uses marginal Spearman against H24 mid-close return,
-  not the spread-aware LONG/SHORT/FLAT path-utility target suite.
+- Duplicate MTF construction and the dead V1 branch are removed.
+- RSI, percentage change and rate-of-change fields route to momentum.
+- Optional feature ranking now uses the exact spread-aware LONG-utility minus
+  SHORT-utility target with final PnL, MFE, MAE and path-quality terms.
 - System documentation claimed MTF sequence length 96; V7 actually used
   `16/16/16/8/8` for M5/M15/H1/H4/D1.
 - The repaired December-2024 tape exists only in the V24 event copy; canonical
@@ -344,6 +381,13 @@ Required repair:
   forward merge.
 - Bundle loading is strict and hash-bound; missing/invalid evidence raises
   direction unavailability rather than synthetic FLAT.
+- Every context field has one specialist owner; signal/context aliases and
+  seq-terminal/snapshot values must be bit-identical.
+- Immutable TRAIN-fit normalization and five-timeframe cache bytes are
+  persistent model/bundle state, not runtime defaults.
+- Bundle/event publication is hidden-stage, fsynced and atomic no-replace.
+- Active Exit artifact bytes, launch approval and runtime authority lease are
+  independently fail-closed.
 - Runtime spread/sizing may block order placement but cannot rewrite model
   direction.
 - The forbidden-instrument scan is clean; `eu_*` is the European session
@@ -353,14 +397,13 @@ Required repair:
 ## Ordered repair boundary
 
 1. Record V7 and this audit as immutable failure evidence.
-2. Fix both P0s and the sampling/aux semantic mismatches with exact symmetry,
-   coverage and target-domain tests.
-3. Add immutable input/group scaling, context specialist ownership, MTF byte
-   binding and all-head/group-influence checkpoint admission.
-4. Remove dead/duplicate compatibility paths and make bundle export atomic.
-5. Implement the transactional promotion/launch finalizer and identity-bound
+2. Preserve the completed source repairs for both P0s, sampling, auxiliary
+   semantics, normalization, context routing, MTF binding, all-head influence,
+   atomic bundle/event publication, Exit-byte binding and runtime fail-close.
+3. Implement the transactional promotion/launch finalizer and identity-bound
    vedtak.
-6. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
+4. Repair and prove canonical/live December-2024 tape parity.
+5. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
    readiness and trainability audit.
-7. Only then bind a new smoke recipe. Preserve the final TEST window for one
+6. Only then bind a new smoke recipe. Preserve the final TEST window for one
    declared untouched decision.

@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Pre-build V2 multi-TF feature cache to disk-backed numpy memmap.
+"""Pre-build an immutable, byte-verified V2 multi-TF feature cache.
 
 Saves ~84s per trainer init (V2 build is single-threaded resampling of 456K M5
 bars across 5 TFs). After running this once, subsequent V10/V3 trainer launches
-load the cache directly (lazy mmap, ~instant).
+verify and load the cache without rebuilding it.
 
 Output layout:
     <cache-dir>/
-        manifest.json          {tf -> {n_bars, feature_count, feats_npy, ts_npy}}
-        M5_feats.npy           (N_m5, 25) float32 memmap
-        M5_ts.npy              (N_m5,) int64 memmap (ns since epoch)
+        manifest.json          schema, identity, source, and per-file SHA-256
+        M5_feats.npy           (N_m5, 25) float32
+        M5_ts.npy              (N_m5,) int64 (ns since epoch)
         M15_feats.npy / _ts.npy
         H1_feats.npy / _ts.npy
         H4_feats.npy / _ts.npy
         D1_feats.npy / _ts.npy
 
-The trainer needs a small loader-shim that reconstructs the DataFrame .attrs
-("ts_int64", "feats_np") from these memmaps. See `gx1.features.htf_features`.
+The loader reconstructs the DataFrame .attrs ("ts_int64", "feats_np") from the
+same bytes that it hashes. See `gx1.features.htf_features`.
 
 Usage:
     python -m gx1.scripts.prebuild_multi_tf_cache_v2 \\
@@ -26,9 +26,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import ctypes
+import errno
 import hashlib
 import json
+import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -43,6 +48,221 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _rename_dir_noreplace(source: Path, destination: Path) -> None:
+    libc = ctypes.CDLL(None, use_errno=True)
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise RuntimeError("HTF_V2_CACHE_ATOMIC_PUBLISH_UNAVAILABLE")
+    renameat2.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    renameat2.restype = ctypes.c_int
+    result = renameat2(
+        -100,
+        os.fsencode(source),
+        -100,
+        os.fsencode(destination),
+        1,
+    )
+    if result != 0:
+        code = ctypes.get_errno()
+        if code == errno.EEXIST:
+            raise RuntimeError(
+                f"HTF_V2_CACHE_OUTPUT_EXISTS: immutable output exists: {destination}"
+            )
+        raise RuntimeError(
+            f"HTF_V2_CACHE_ATOMIC_PUBLISH_FAILED: {os.strerror(code)}"
+        )
+    _fsync_directory(destination.parent)
+
+
+def _write_npy_fsync(path: Path, values: np.ndarray) -> None:
+    with path.open("xb") as handle:
+        np.save(handle, values, allow_pickle=False)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _write_json_fsync(path: Path, payload: dict) -> None:
+    encoded = (json.dumps(payload, indent=2, allow_nan=False) + "\n").encode("utf-8")
+    with path.open("xb") as handle:
+        handle.write(encoded)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def publish_multi_tf_v2_cache(
+    *,
+    out_dir: Path,
+    m5_prebuilt: Path,
+    expected_source_sha256: str,
+    features: dict,
+) -> Path:
+    from gx1.features.htf_features import (
+        HTF_V2_CACHE_BUILDER_VERSION,
+        HTF_V2_CACHE_SCHEMA_VERSION,
+        HTF_V2_MATRIX_CONTRACT,
+        MULTI_TF_FEATURE_COUNT_V2,
+        MULTI_TF_PER_BAR_FEATURES_V2,
+        MULTI_TF_RESAMPLE_RULES,
+        MULTI_TF_SHIFT,
+        compute_htf_v2_cache_identity,
+        validate_causal_feature_matrix,
+    )
+
+    source = m5_prebuilt.expanduser()
+    expected_source_sha256 = str(expected_source_sha256)
+    if len(expected_source_sha256) != 64 or any(
+        ch not in "0123456789abcdef" for ch in expected_source_sha256
+    ):
+        raise RuntimeError(
+            "HTF_V2_CACHE_SOURCE_INVALID: expected source SHA-256 is not exact"
+        )
+    if (
+        not source.is_absolute()
+        or source.is_symlink()
+        or not source.is_file()
+        or source.resolve() != source
+    ):
+        raise RuntimeError(
+            f"HTF_V2_CACHE_SOURCE_INVALID: exact absolute regular file required: {source}"
+        )
+    if _sha256_file(source) != expected_source_sha256:
+        raise RuntimeError("HTF_V2_CACHE_SOURCE_CHANGED_DURING_BUILD")
+    if tuple(features) != tuple(MULTI_TF_RESAMPLE_RULES):
+        raise RuntimeError(
+            "HTF_V2_CACHE_FEATURE_SET_INVALID: ordered exact M5/M15/H1/H4/D1 required"
+        )
+
+    requested_out = out_dir.expanduser()
+    if not requested_out.is_absolute():
+        raise RuntimeError("HTF_V2_CACHE_OUTPUT_INVALID: --out-dir must be absolute")
+    if requested_out.exists() or requested_out.is_symlink():
+        raise RuntimeError(
+            f"HTF_V2_CACHE_OUTPUT_EXISTS: immutable output exists: {requested_out}"
+        )
+    if any(
+        component.is_symlink()
+        for component in (requested_out.parent, *requested_out.parent.parents)
+    ):
+        raise RuntimeError(
+            "HTF_V2_CACHE_OUTPUT_INVALID: parent path traverses a symlink"
+        )
+    parent = requested_out.parent.resolve(strict=True)
+    if not parent.is_dir() or parent.is_symlink():
+        raise RuntimeError(
+            f"HTF_V2_CACHE_OUTPUT_INVALID: parent must be a real directory: {parent}"
+        )
+    destination = parent / requested_out.name
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{destination.name}.staging.", dir=str(parent))
+    )
+    published = False
+    try:
+        manifest = {
+            "schema_version": HTF_V2_CACHE_SCHEMA_VERSION,
+            "feature_count": int(MULTI_TF_FEATURE_COUNT_V2),
+            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+            "shift_contract": {
+                tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()
+            },
+            "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
+            "m5_prebuilt_source": str(source),
+            "m5_prebuilt_source_sha256": expected_source_sha256,
+            "tfs": {},
+        }
+        for tf in MULTI_TF_RESAMPLE_RULES:
+            frame = features[tf]
+            if not isinstance(frame, pd.DataFrame):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_FEATURE_SET_INVALID: {tf} is not a DataFrame"
+                )
+            feats_np = np.asarray(frame.attrs.get("feats_np"))
+            ts_int64 = np.asarray(frame.attrs.get("ts_int64"))
+            if (
+                feats_np.dtype != np.dtype(np.float32)
+                or feats_np.ndim != 2
+                or feats_np.shape[1] != MULTI_TF_FEATURE_COUNT_V2
+                or ts_int64.dtype != np.dtype(np.int64)
+                or ts_int64.shape != (len(feats_np),)
+                or len(ts_int64) == 0
+                or np.any(np.diff(ts_int64) <= 0)
+            ):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_FEATURE_SET_INVALID: malformed {tf} arrays"
+                )
+            warmup_rows = validate_causal_feature_matrix(
+                feats_np,
+                expected_width=MULTI_TF_FEATURE_COUNT_V2,
+                context=f"HTF_V2_CACHE_PUBLISH_{tf}",
+            )
+            if warmup_rows == len(feats_np):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_WARMUP_INCOMPLETE: {tf} has no complete row"
+                )
+            if (
+                frame.attrs.get("causal_warmup_rows") != warmup_rows
+                or frame.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT
+            ):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_FEATURE_SET_INVALID: {tf} attrs mismatch"
+                )
+
+            feats_path = staging / f"{tf}_feats.npy"
+            ts_path = staging / f"{tf}_ts.npy"
+            _write_npy_fsync(feats_path, feats_np)
+            _write_npy_fsync(ts_path, ts_int64)
+            manifest["tfs"][tf] = {
+                "n_bars": int(feats_np.shape[0]),
+                "feature_count": int(feats_np.shape[1]),
+                "feats_npy": feats_path.name,
+                "feats_npy_sha256": _sha256_file(feats_path),
+                "feats_npy_size_bytes": int(feats_path.stat().st_size),
+                "ts_npy": ts_path.name,
+                "ts_npy_sha256": _sha256_file(ts_path),
+                "ts_npy_size_bytes": int(ts_path.stat().st_size),
+                "first_ts_ns": int(ts_int64[0]),
+                "last_ts_ns": int(ts_int64[-1]),
+                "causal_warmup_rows": int(warmup_rows),
+            }
+
+        if _sha256_file(source) != expected_source_sha256:
+            raise RuntimeError("HTF_V2_CACHE_SOURCE_CHANGED_DURING_BUILD")
+        manifest["cache_identity_sha256"] = compute_htf_v2_cache_identity(manifest)
+        expected_inventory = {
+            "manifest.json",
+            *(
+                name
+                for tf in MULTI_TF_RESAMPLE_RULES
+                for name in (f"{tf}_feats.npy", f"{tf}_ts.npy")
+            ),
+        }
+        _write_json_fsync(staging / "manifest.json", manifest)
+        if {path.name for path in staging.iterdir()} != expected_inventory or any(
+            path.is_symlink() or not path.is_file() for path in staging.iterdir()
+        ):
+            raise RuntimeError("HTF_V2_CACHE_STAGING_INVENTORY_INVALID")
+        _fsync_directory(staging)
+        _rename_dir_noreplace(staging, destination)
+        published = True
+        return destination / "manifest.json"
+    finally:
+        if not published:
+            shutil.rmtree(staging, ignore_errors=True)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--m5-prebuilt", type=Path, required=True,
@@ -55,24 +275,30 @@ def main() -> int:
     from gx1.features.htf_features import (
         build_multi_tf_per_bar_features_v2,
         MULTI_TF_FEATURE_COUNT_V2,
-        MULTI_TF_PER_BAR_FEATURES_V2,
-        MULTI_TF_SHIFT,
-        HTF_V2_CACHE_BUILDER_VERSION,
     )
     import pyarrow.parquet as pq
 
-    args.out_dir.mkdir(parents=True, exist_ok=True)
+    source = args.m5_prebuilt.expanduser()
+    if not source.is_absolute() or source.is_symlink() or not source.is_file():
+        raise RuntimeError(
+            f"[CACHE_V2_SOURCE_CONTRACT] exact absolute non-symlink source required: {source}"
+        )
+    source = source.resolve(strict=True)
+    args.out_dir = args.out_dir.expanduser()
+    if not args.out_dir.is_absolute():
+        raise RuntimeError("[CACHE_V2_OUTPUT_CONTRACT] --out-dir must be absolute")
+    source_sha256 = _sha256_file(source)
     print(f"[CACHE_V2] m5_prebuilt: {args.m5_prebuilt}")
     print(f"[CACHE_V2] out_dir: {args.out_dir}")
 
     cols = ["time", "open", "high", "low", "close", "volume"]
-    missing = [name for name in cols if name not in pq.ParquetFile(args.m5_prebuilt).schema_arrow.names]
+    missing = [name for name in cols if name not in pq.ParquetFile(source).schema_arrow.names]
     if missing:
         raise RuntimeError(
             f"[CACHE_V2_SOURCE_CONTRACT] exact canonical OHLCV source missing: {missing}"
         )
-    print(f"[LOAD] {args.m5_prebuilt.name} cols={cols}")
-    m5 = pd.read_parquet(args.m5_prebuilt, columns=cols)
+    print(f"[LOAD] {source.name} cols={cols}")
+    m5 = pd.read_parquet(source, columns=cols)
     m5["time"] = pd.to_datetime(m5["time"], utc=True)
     m5 = m5.set_index("time").sort_index()
     for c in ("open", "high", "low", "close"):
@@ -83,36 +309,19 @@ def main() -> int:
     print(f"[BUILD] V2 multi-TF features (5 TFs × {MULTI_TF_FEATURE_COUNT_V2} feats)...")
     feats = build_multi_tf_per_bar_features_v2(m5)
 
-    manifest = {
-        "feature_count": int(MULTI_TF_FEATURE_COUNT_V2),
-        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
-        "shift_contract": {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()},
-        "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
-        "m5_prebuilt_source": str(args.m5_prebuilt.resolve()),
-        "m5_prebuilt_source_sha256": _sha256_file(args.m5_prebuilt),
-        "tfs": {},
-    }
+    manifest_path = publish_multi_tf_v2_cache(
+        out_dir=args.out_dir,
+        m5_prebuilt=source,
+        expected_source_sha256=source_sha256,
+        features=feats,
+    )
     for tf, df in feats.items():
-        feats_np = df.attrs["feats_np"]   # (N, 25) float32
-        ts_int64 = df.attrs["ts_int64"]   # (N,) int64 ns
         feats_path = args.out_dir / f"{tf}_feats.npy"
-        ts_path = args.out_dir / f"{tf}_ts.npy"
-        np.save(feats_path, feats_np)
-        np.save(ts_path, ts_int64)
-        manifest["tfs"][tf] = {
-            "n_bars": int(feats_np.shape[0]),
-            "feature_count": int(feats_np.shape[1]),
-            "feats_npy": feats_path.name,
-            "ts_npy": ts_path.name,
-            "first_ts_ns": int(ts_int64[0]),
-            "last_ts_ns": int(ts_int64[-1]),
-            "causal_warmup_rows": int(df.attrs["causal_warmup_rows"]),
-        }
-        print(f"  [SAVED] {tf}: {feats_np.shape} → {feats_path.name} "
-              f"+ ts.npy ({feats_path.stat().st_size/1e6:.2f} MB feats)")
-
-    (args.out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
-    print(f"[DONE] manifest: {args.out_dir / 'manifest.json'}")
+        print(
+            f"  [SAVED] {tf}: {df.attrs['feats_np'].shape} → {feats_path.name} "
+            f"+ ts.npy ({feats_path.stat().st_size/1e6:.2f} MB feats)"
+        )
+    print(f"[DONE] manifest: {manifest_path}")
     return 0
 
 

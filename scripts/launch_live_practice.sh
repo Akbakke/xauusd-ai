@@ -67,17 +67,12 @@ fi
 #      launch-bound model-native bundle and prediction-evidence SHA
 #   2. the immutable newest directional live-like pocket event PASS for the
 #      same launch-bound bundle and prediction-evidence SHA
-#   3. an explicit user LAUNCH VEDTAK id in GX1_SMART_LAUNCH_VEDTAK
+#   3. a newest immutable one-time launch approval cross-bound inside the
+#      launch state to the complete evidence set and bundle commit
 #   4. an exact rule-free operating point: selection_score plus execution
 #      max_trades; edge/utility thresholds and session allowlists are rejected
 # (This replaces the 20260627 legacy-ack block, which guarded — and referenced —
 # the retired chain.)
-if [[ -z "${GX1_SMART_LAUNCH_VEDTAK:-}" ]]; then
-    echo "[ABORT] smart-serving launch requires an explicit user vedtak:" >&2
-    echo "        GX1_SMART_LAUNCH_VEDTAK=<vedtak-id> bash scripts/launch_live_practice.sh" >&2
-    echo "        (demo/paper launch opens only after parity-gate PASS + preflight + vedtak)" >&2
-    exit 2
-fi
 echo "[preflight] model-native train==serve parity-gate check…"
 PYTHONPATH=$REPO "$PY" - <<'PYEOF' || { echo "FATAL: model-native serve gate BLOCKED — rerun parity and directional pocket audit for the exact contract-bound bundle before relaunch." >&2; exit 2; }
 # ONE truth: the same assert the runner's own guard calls — launcher and

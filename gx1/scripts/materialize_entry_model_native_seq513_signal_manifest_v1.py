@@ -46,6 +46,11 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_model_native_offline_rl_v1 import (
+    UTILITY_MAE_WEIGHT,
+    UTILITY_MFE_WEIGHT,
+    UTILITY_PATH_WEIGHT,
+)
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_RANK_TRANSFORM,
     MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
@@ -54,15 +59,33 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v6"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v7"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v6"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v7"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v6"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v7"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v6"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v7"
+TRAIN_FEATURE_RANKING_TARGET_CONTRACT = {
+    "target": "spread_aware_direction_utility_margin_bps",
+    "direction_horizon_bars": 24,
+    "path_horizon_bars": 10,
+    "long_entry_price": "ask_close_t0",
+    "long_exit_price": "bid_close_t_plus_24",
+    "short_entry_price": "bid_close_t0",
+    "short_exit_price": "ask_close_t_plus_24",
+    "mfe_weight": float(UTILITY_MFE_WEIGHT),
+    "mae_weight": float(UTILITY_MAE_WEIGHT),
+    "path_weight": float(UTILITY_PATH_WEIGHT),
+    "utility_formula": (
+        "pnl_at_h + mfe_weight*mfe_first_10 - mae_weight*mae_first_10 "
+        "+ path_weight*(mfe_first_10-mae_first_10)"
+    ),
+    "ranking_target_formula": "long_utility_bps-short_utility_bps",
+    "fit_scope": "train_only_full_horizons",
+}
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "score_descending",
     "tie_break": "feature_name_ascending",
@@ -93,6 +116,7 @@ _RANKING_TOP_LEVEL_KEYS = frozenset(
         "target_time_max_utc",
         "source_sha256",
         "target_sha256",
+        "target_contract",
         "rank_reference",
         "ranking_order",
         "causality_contract",
@@ -312,6 +336,8 @@ def load_and_validate_train_feature_ranking(
         raise RuntimeError("FEATURE_RANKING_DETERMINISTIC_ORDER_CONTRACT_INVALID")
     if ranking.get("causality_contract") != TRAIN_FEATURE_CAUSALITY_CONTRACT:
         raise RuntimeError("FEATURE_RANKING_CAUSALITY_CONTRACT_INVALID")
+    if ranking.get("target_contract") != TRAIN_FEATURE_RANKING_TARGET_CONTRACT:
+        raise RuntimeError("FEATURE_RANKING_TARGET_CONTRACT_INVALID")
 
     created = _parse_utc(ranking.get("created_utc"), field="created_utc")
     _require_timestamp_match(path, created, ranking=True)
@@ -540,6 +566,7 @@ def validate_signal_manifest_training_lineage(
         "train_end_utc": ranking["train_end_utc"],
         "source_sha256": ranking["source_sha256"],
         "target_sha256": ranking["target_sha256"],
+        "target_contract": ranking["target_contract"],
         "ranking_order": ranking["ranking_order"],
         "causality_contract": ranking["causality_contract"],
         "rank_reference": ranking["rank_reference"],
@@ -730,6 +757,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "train_end_utc": ranking["train_end_utc"],
             "source_sha256": ranking["source_sha256"],
             "target_sha256": ranking["target_sha256"],
+            "target_contract": ranking["target_contract"],
             "ranking_order": ranking["ranking_order"],
             "causality_contract": ranking["causality_contract"],
             "rank_reference": ranking["rank_reference"],

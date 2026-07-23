@@ -45,14 +45,16 @@ between class collapse modes, ended at 71.4092% SHORT, failed 32 slices,
 retained weak path auxiliary AUC and starved specialist/family×TF gates.
 
 Three independent audits then found two P0s and multiple P1s, documented in
-`PIPELINE_AUDIT_XAU_20260723.md`: selected-side bad-path loss always
-suppresses LONG; signed dip-MFE is clipped; replacement sampling hides about
-37% of selected rows per epoch; symmetric auxiliary weights/metrics do not
-match their targets; checkpoint admission omits active evidence; and
-MTF/scaler/context/fusion/launch bindings remain incomplete. No V8 or dataset
-rebuild may start before the ordered repairs have regression proof. The old
-Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
-be used for training, replay, paper trading, live trading or promotion.
+`PIPELINE_AUDIT_XAU_20260723.md`. Source repairs now cover signed dip-MFE,
+side-correct bad-path gradients, no-replacement sampling, bidirectional
+auxiliary weighting and conditional skill, all-head/group influence,
+full-TRAIN immutable normalization, exact 142+5 context ownership, complete
+MTF cache bytes, atomic bundle/event publication, active-Exit byte identity,
+immutable launch approval, runtime lease rechecks and fail-closed close
+identity. These code proofs do not rehabilitate V24/V7. The remaining source
+P0 is the transactional candidate→promotion→launch finalizer; canonical/live
+December-2024 tape parity and every empirical model/edge gate also remain
+open. No new dataset rebuild or training run has been started.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive
@@ -81,9 +83,13 @@ their small failure/audit evidence was retained.
   layers are code-owned and mandatory; only the remaining 101 positions come
   from deterministic TRAIN-only ranking.
 - 142 continuous and 5 categorical context fields.
+- Complete physical-TRAIN robust normalization for 513+142 inputs and each
+  25-field timeframe surface; binary/categorical domains and every fit/source
+  hash are immutable model state.
 - Eight learned specialists: structure/swing, SMC/liquidity, trend/EMA,
   volatility/compression, momentum/flow, session/regime, chart geometry and
-  price-action/candles.
+  price-action/candles. Every context field has one owner and is projected
+  into that specialist before cross-attention.
 - Twenty-two positively supervised evidence heads feeding one exact learned
   26-group/96-value fusion (`96 -> 128 -> 3`).
 - One final direction authority: calibrated model logits and exact

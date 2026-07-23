@@ -10,6 +10,7 @@ import torch.nn as nn
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
@@ -24,10 +25,22 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     HORIZON_COUNT as OFFLINE_RL_HORIZON_COUNT,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_AUX_RISK_HORIZONS as TIMING_HORIZONS,
-    MODEL_NATIVE_TIMING_DIRECTIONS as TIMING_DIRECTIONS,
+    MODEL_NATIVE_AUX_RISK_HORIZONS as TIMING_HORIZONS,  # noqa: F401
+    MODEL_NATIVE_TIMING_DIRECTIONS as TIMING_DIRECTIONS,  # noqa: F401
     MODEL_NATIVE_TIMING_OUTPUT_DIM as TIMING_HEAD_DIM,
-    MODEL_NATIVE_TIMING_TARGETS as TIMING_TARGETS,
+    MODEL_NATIVE_TIMING_TARGETS as TIMING_TARGETS,  # noqa: F401
+)
+from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    MIN_EFFECTIVE_SCALE as TF_INPUT_SCALE_MIN_EFFECTIVE,
+    raw_tf_input_scale_from_effective,
+)
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    CLIP_ABS as INPUT_NORMALIZATION_CLIP_ABS,
+    EXPECTED_SURFACES as INPUT_NORMALIZATION_SURFACES,
+    require_input_normalization_contract,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_CTX_CAT_DOMAINS,
 )
 
 
@@ -54,6 +67,9 @@ EXACT_SPECIALIST_NAMES = (
     "chart_geometry_encoder",
     "price_action_candle_encoder",
 )
+EXACT_CTX_CAT_DOMAINS = MODEL_NATIVE_CTX_CAT_DOMAINS
+if tuple(EXACT_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
+    raise RuntimeError("ENTRY_MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_INVALID")
 
 # ── Dip-analysis head layout (V10 entry) — risk-aware, multi-horizon, distributional.
 # Output index = flatten over (direction, horizon, target) in this order. The
@@ -115,7 +131,6 @@ class CtxModelConfig:
     ctx_cat_dim: int = MODEL_NATIVE_CTX_CAT_DIM
     ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM
     # simple, robust embedding: one shared vocab for all ctx_cat slots
-    ctx_cat_vocab: int = 1024
     ctx_cat_emb_dim: int = 8
     # Keep ctx as correction, not primary driver
     ctx_cat_scale: float = 0.25
@@ -187,6 +202,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         m5_seq_dim: int,
         m5_seq_len: int = 96,
         specialist_input_indices: Dict[str, list[int]],
+        specialist_ctx_cont_indices: Dict[str, list[int]],
+        specialist_ctx_cont_nominal_indices: Dict[str, list[int]],
+        specialist_ctx_cat_indices: Dict[str, list[int]],
+        temporal_alias_signal_indices: list[int],
+        temporal_alias_ctx_cont_indices: list[int],
+        input_normalization: Mapping[str, object],
         specialist_num_layers: int = 1,
         specialist_fusion_scale: float = 0.25,
         tf_input_scale_init_m5: float = 1.0,
@@ -200,6 +221,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
             raise RuntimeError(
                 f"INVALID_INIT: seq_input_dim={seq_input_dim} snap_input_dim={snap_input_dim} seq_len={seq_len}"
+            )
+        if int(seq_input_dim) != int(snap_input_dim):
+            raise RuntimeError(
+                "SEQ_SNAP_DIM_MISMATCH: bit-identical current-bar contract "
+                f"requires equal widths; seq={seq_input_dim} snap={snap_input_dim}"
             )
         if (
             int(ctx_cont_dim) != MODEL_NATIVE_CTX_CONT_DIM
@@ -270,9 +296,207 @@ class EntryV10CtxHybridTransformer(nn.Module):
         dropout = float(self.cfg.dropout)
         d_ff = int(self.cfg.dim_feedforward) if self.cfg.dim_feedforward else int(d_model * 4)
 
-        # Project signal-only inputs into transformer dimension
+        if (
+            not isinstance(temporal_alias_signal_indices, list)
+            or any(
+                isinstance(value, bool) or not isinstance(value, int)
+                for value in temporal_alias_signal_indices
+            )
+            or temporal_alias_signal_indices
+            != sorted(set(temporal_alias_signal_indices))
+            or any(
+                value < 0 or value >= int(snap_input_dim)
+                for value in temporal_alias_signal_indices
+            )
+        ):
+            raise RuntimeError("TEMPORAL_ALIAS_SIGNAL_INDICES_INVALID")
+        if (
+            not isinstance(temporal_alias_ctx_cont_indices, list)
+            or any(
+                isinstance(value, bool) or not isinstance(value, int)
+                for value in temporal_alias_ctx_cont_indices
+            )
+            or len(temporal_alias_ctx_cont_indices)
+            != len(temporal_alias_signal_indices)
+            or len(set(temporal_alias_ctx_cont_indices))
+            != len(temporal_alias_ctx_cont_indices)
+            or any(
+                value < 0 or value >= int(ctx_cont_dim)
+                for value in temporal_alias_ctx_cont_indices
+            )
+        ):
+            raise RuntimeError("TEMPORAL_ALIAS_CTX_CONT_INDICES_INVALID")
+
+        if not isinstance(input_normalization, Mapping):
+            raise RuntimeError("ENTRY_INPUT_NORMALIZATION_CONTRACT_MISSING")
+        normalization_surfaces = input_normalization.get("surfaces")
+        if not isinstance(normalization_surfaces, Mapping):
+            raise RuntimeError("ENTRY_INPUT_NORMALIZATION_SURFACES_MISSING")
+        normalization_field_names = {
+            surface: list(
+                normalization_surfaces.get(surface, {}).get(
+                    "field_names",
+                    [],
+                )
+            )
+            if isinstance(normalization_surfaces.get(surface), Mapping)
+            else []
+            for surface in INPUT_NORMALIZATION_SURFACES
+        }
+        normalized_input_contract = require_input_normalization_contract(
+            input_normalization,
+            expected_field_names=normalization_field_names,
+            expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+        )
+        expected_surface_widths = {
+            "signal": int(seq_input_dim),
+            "ctx_cont": int(ctx_cont_dim),
+            "mtf_m5": int(self.cfg.m5_seq_dim),
+            "mtf_m15": int(self.cfg.m15_seq_dim),
+            "mtf_h1": int(self.cfg.h1_seq_dim),
+            "mtf_h4": int(self.cfg.h4_seq_dim),
+            "mtf_d1": int(self.cfg.d1_seq_dim),
+        }
+        if any(
+            len(normalization_field_names[surface]) != width
+            for surface, width in expected_surface_widths.items()
+        ):
+            raise RuntimeError("ENTRY_INPUT_NORMALIZATION_WIDTH_MISMATCH")
+        normalized_alias_pairs = [
+            (
+                int(alias["signal_index"]),
+                int(alias["ctx_cont_index"]),
+            )
+            for alias in normalized_input_contract["temporal_aliases"]
+        ]
+        if normalized_alias_pairs != list(
+            zip(
+                temporal_alias_signal_indices,
+                temporal_alias_ctx_cont_indices,
+            )
+        ):
+            raise RuntimeError("ENTRY_INPUT_NORMALIZATION_ALIAS_MISMATCH")
+        self._input_normalization_contract = normalized_input_contract
+        self._input_normalization_field_names = normalization_field_names
+        self._input_norm_categorical_domains = {
+            surface: {
+                str(field): tuple(int(value) for value in domain)
+                for field, domain in normalized_input_contract["surfaces"][
+                    surface
+                ]["categorical_domains"].items()
+            }
+            for surface in INPUT_NORMALIZATION_SURFACES
+        }
+        self.register_buffer(
+            "input_norm_contract_sha256",
+            torch.tensor(
+                list(
+                    bytes.fromhex(
+                        str(normalized_input_contract["contract_sha256"])
+                    )
+                ),
+                dtype=torch.uint8,
+            ),
+        )
+        for surface in INPUT_NORMALIZATION_SURFACES:
+            surface_contract = normalized_input_contract["surfaces"][surface]
+            prefix = f"input_norm_{surface}"
+            self.register_buffer(
+                f"{prefix}_center",
+                torch.tensor(surface_contract["center"], dtype=torch.float32),
+            )
+            self.register_buffer(
+                f"{prefix}_scale",
+                torch.tensor(surface_contract["scale"], dtype=torch.float32),
+            )
+            self.register_buffer(
+                f"{prefix}_binary_mask",
+                torch.tensor(
+                    surface_contract["binary_mask"],
+                    dtype=torch.bool,
+                ),
+            )
+            self.register_buffer(
+                f"{prefix}_categorical_mask",
+                torch.tensor(
+                    surface_contract["categorical_mask"],
+                    dtype=torch.bool,
+                ),
+            )
+        self.register_buffer(
+            "input_norm_alias_signal_indices",
+            torch.tensor(temporal_alias_signal_indices, dtype=torch.long),
+        )
+        self.register_buffer(
+            "input_norm_alias_ctx_cont_indices",
+            torch.tensor(temporal_alias_ctx_cont_indices, dtype=torch.long),
+        )
+        ctx_cat_domains = normalized_input_contract["ctx_cat"]["domains"]
+        self.register_buffer(
+            "input_norm_ctx_cat_min",
+            torch.tensor(
+                [
+                    min(ctx_cat_domains[name])
+                    for name in MODEL_NATIVE_CTX_CAT_FIELDS
+                ],
+                dtype=torch.long,
+            ),
+        )
+        self.register_buffer(
+            "input_norm_ctx_cat_max",
+            torch.tensor(
+                [
+                    max(ctx_cat_domains[name])
+                    for name in MODEL_NATIVE_CTX_CAT_FIELDS
+                ],
+                dtype=torch.long,
+            ),
+        )
+        generic_snap_indices = [
+            index
+            for index in range(int(snap_input_dim))
+            if index not in set(temporal_alias_signal_indices)
+        ]
+        if not generic_snap_indices:
+            raise RuntimeError("GENERIC_SNAP_INPUT_EMPTY_AFTER_ALIAS_EXCLUSION")
+
+        # Project signal-only inputs into transformer dimension. Exact
+        # ctx_cont aliases remain temporal seq evidence, but their byte-equal
+        # current-bar snap copies cannot enter this generic snapshot path.
         self.seq_proj = nn.Linear(int(seq_input_dim), d_model)
-        self.snap_proj = nn.Linear(int(snap_input_dim), d_model)
+        self.snap_proj = nn.Linear(len(generic_snap_indices), d_model)
+        self.register_buffer(
+            "generic_snap_idx",
+            torch.tensor(generic_snap_indices, dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "temporal_alias_signal_idx",
+            torch.tensor(temporal_alias_signal_indices, dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "temporal_alias_ctx_cont_idx",
+            torch.tensor(temporal_alias_ctx_cont_indices, dtype=torch.long),
+            persistent=False,
+        )
+        signal_categorical_indices = torch.nonzero(
+            self.input_norm_signal_categorical_mask,
+            as_tuple=False,
+        ).flatten().tolist()
+        self.signal_nominal_embeddings = nn.ModuleDict(
+            {
+                str(index): nn.Embedding(
+                    len(
+                        self._input_norm_categorical_domains["signal"][
+                            normalization_field_names["signal"][index]
+                        ]
+                    ),
+                    d_model,
+                )
+                for index in signal_categorical_indices
+            }
+        )
 
         enc_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
@@ -285,14 +509,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         self.encoder = nn.TransformerEncoder(enc_layer, num_layers=num_layers)
 
-        # Context encoders
-        self.ctx_cat_emb = nn.Embedding(int(self.cfg.ctx_cat_vocab), int(self.cfg.ctx_cat_emb_dim))
-        self.ctx_cont_proj = nn.Linear(int(self.cfg.ctx_cont_dim), d_model)
-
-        # Combine: pooled_seq + snap + ctx_cat + ctx_cont
-        ctx_cat_flat_dim = int(self.cfg.ctx_cat_dim) * int(self.cfg.ctx_cat_emb_dim)
+        # Context encoders. Raw context never receives an independent global
+        # projection: every field first enters its one exact family token.
+        self.ctx_cat_embeddings = nn.ModuleList(
+            [
+                nn.Embedding(len(domain), int(self.cfg.ctx_cat_emb_dim))
+                for domain in EXACT_CTX_CAT_DOMAINS.values()
+            ]
+        )
         self.fuse = nn.Sequential(
-            nn.Linear(d_model + d_model + ctx_cat_flat_dim + d_model, d_model),
+            nn.Linear(d_model + d_model + d_model, d_model),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(d_model, d_model),
@@ -335,6 +561,107 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 f"missing={missing[:20]} total_missing={len(missing)} "
                 f"unexpected={unexpected[:20]} total_unexpected={len(unexpected)}"
             )
+
+        def _clean_context_partition(
+            raw: Dict[str, list[int]],
+            *,
+            width: int,
+            label: str,
+        ) -> Dict[str, list[int]]:
+            if tuple(raw) != EXACT_SPECIALIST_NAMES:
+                raise RuntimeError(
+                    f"{label}_SPECIALIST_NAMES_MISMATCH: "
+                    f"got={tuple(raw)} expected={EXACT_SPECIALIST_NAMES}"
+                )
+            cleaned_partition: Dict[str, list[int]] = {}
+            seen: set[int] = set()
+            for specialist in EXACT_SPECIALIST_NAMES:
+                values = raw[specialist]
+                if not isinstance(values, list):
+                    raise RuntimeError(f"{label}_INDICES_INVALID: {specialist}")
+                if any(
+                    isinstance(value, bool) or not isinstance(value, int)
+                    for value in values
+                ):
+                    raise RuntimeError(
+                        f"{label}_INDEX_TYPE_INVALID: {specialist}"
+                    )
+                if values != sorted(set(values)):
+                    raise RuntimeError(
+                        f"{label}_INDEX_ORDER_OR_DUPLICATE: {specialist}"
+                    )
+                if any(value < 0 or value >= int(width) for value in values):
+                    raise RuntimeError(f"{label}_INDEX_OOB: {specialist}")
+                overlap = seen.intersection(values)
+                if overlap:
+                    raise RuntimeError(
+                        f"{label}_INDEX_OVERLAP: {specialist} "
+                        f"overlap={sorted(overlap)}"
+                    )
+                seen.update(values)
+                cleaned_partition[specialist] = list(values)
+            expected = set(range(int(width)))
+            if seen != expected:
+                raise RuntimeError(
+                    f"{label}_INDEX_COVERAGE_INVALID: "
+                    f"missing={sorted(expected - seen)} "
+                    f"unexpected={sorted(seen - expected)}"
+                )
+            return cleaned_partition
+
+        cleaned_ctx_cont = _clean_context_partition(
+            specialist_ctx_cont_indices,
+            width=int(self.cfg.ctx_cont_dim),
+            label="SPECIALIST_CTX_CONT",
+        )
+        cleaned_ctx_cat = _clean_context_partition(
+            specialist_ctx_cat_indices,
+            width=int(self.cfg.ctx_cat_dim),
+            label="SPECIALIST_CTX_CAT",
+        )
+        if (
+            not isinstance(specialist_ctx_cont_nominal_indices, Mapping)
+            or set(specialist_ctx_cont_nominal_indices)
+            != set(EXACT_SPECIALIST_NAMES)
+        ):
+            raise RuntimeError(
+                "SPECIALIST_CTX_CONT_NOMINAL_SPECIALIST_SET_INVALID"
+            )
+        cleaned_ctx_cont_nominal: Dict[str, list[int]] = {}
+        seen_nominal: set[int] = set()
+        for specialist in EXACT_SPECIALIST_NAMES:
+            values = specialist_ctx_cont_nominal_indices[specialist]
+            if (
+                not isinstance(values, list)
+                or any(
+                    isinstance(value, bool) or not isinstance(value, int)
+                    for value in values
+                )
+                or values != sorted(set(values))
+            ):
+                raise RuntimeError(
+                    f"SPECIALIST_CTX_CONT_NOMINAL_INDEX_INVALID: {specialist}"
+                )
+            if any(value not in cleaned_ctx_cont[specialist] for value in values):
+                raise RuntimeError(
+                    f"SPECIALIST_CTX_CONT_NOMINAL_OWNER_INVALID: {specialist}"
+                )
+            overlap = seen_nominal.intersection(values)
+            if overlap:
+                raise RuntimeError(
+                    "SPECIALIST_CTX_CONT_NOMINAL_INDEX_OVERLAP: "
+                    f"{specialist} overlap={sorted(overlap)}"
+                )
+            seen_nominal.update(values)
+            cleaned_ctx_cont_nominal[specialist] = list(values)
+        cleaned_ctx_cont_numeric = {
+            specialist: [
+                index
+                for index in cleaned_ctx_cont[specialist]
+                if index not in set(cleaned_ctx_cont_nominal[specialist])
+            ]
+            for specialist in EXACT_SPECIALIST_NAMES
+        }
         self._specialist_names = EXACT_SPECIALIST_NAMES
         self.specialist_proj = nn.ModuleDict(
             {name: nn.Linear(len(idx), d_model) for name, idx in cleaned.items()}
@@ -358,6 +685,58 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.specialist_encoder = nn.ModuleDict(
             {name: _mk_encoder(specialist_layers) for name in self._specialist_names}
         )
+        self.specialist_ctx_cont_proj = nn.ModuleDict(
+            {
+                name: nn.Linear(len(indices), d_model)
+                for name, indices in cleaned_ctx_cont_numeric.items()
+                if indices
+            }
+        )
+        self.specialist_ctx_cont_nominal_embeddings = nn.ModuleDict(
+            {
+                str(index): nn.Embedding(5, d_model)
+                for index in sorted(seen_nominal)
+            }
+        )
+        self.specialist_ctx_cont_nominal_out = nn.ModuleDict(
+            {
+                name: nn.Sequential(
+                    nn.LayerNorm(len(indices) * d_model),
+                    nn.Linear(len(indices) * d_model, d_model),
+                )
+                for name, indices in cleaned_ctx_cont_nominal.items()
+                if indices
+            }
+        )
+        self.specialist_ctx_cat_proj = nn.ModuleDict(
+            {
+                name: nn.Linear(
+                    len(indices) * int(self.cfg.ctx_cat_emb_dim),
+                    d_model,
+                )
+                for name, indices in cleaned_ctx_cat.items()
+                if indices
+            }
+        )
+        self.specialist_context_out = nn.ModuleDict(
+            {
+                name: nn.Sequential(
+                    nn.GELU(),
+                    nn.Linear(d_model, d_model, bias=False),
+                )
+                for name in self._specialist_names
+                if (
+                    cleaned_ctx_cont_numeric[name]
+                    or cleaned_ctx_cont_nominal[name]
+                    or cleaned_ctx_cat[name]
+                )
+            }
+        )
+        self.family_context_global = nn.Sequential(
+            nn.LayerNorm(len(self._specialist_names) * d_model),
+            nn.Linear(len(self._specialist_names) * d_model, d_model),
+            nn.GELU(),
+        )
         # Specialists first reason over their own temporal fields, then attend
         # to one another.  This makes structure×trend, S/R×momentum,
         # SMC×candles, etc. learned interactions instead of isolated votes.
@@ -369,6 +748,24 @@ class EntryV10CtxHybridTransformer(nn.Module):
         for name, idx in cleaned.items():
             self.register_buffer(
                 f"specialist_idx_{name}",
+                torch.tensor(idx, dtype=torch.long),
+                persistent=False,
+            )
+        for name, idx in cleaned_ctx_cont_numeric.items():
+            self.register_buffer(
+                f"specialist_ctx_cont_idx_{name}",
+                torch.tensor(idx, dtype=torch.long),
+                persistent=False,
+            )
+        for name, idx in cleaned_ctx_cont_nominal.items():
+            self.register_buffer(
+                f"specialist_ctx_cont_nominal_idx_{name}",
+                torch.tensor(idx, dtype=torch.long),
+                persistent=False,
+            )
+        for name, idx in cleaned_ctx_cat.items():
+            self.register_buffer(
+                f"specialist_ctx_cat_idx_{name}",
                 torch.tensor(idx, dtype=torch.long),
                 persistent=False,
             )
@@ -387,7 +784,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self._direction_cal: Optional[Tuple[float, torch.Tensor]] = None
         self._path_cal: Optional[Tuple[float, float, float, float]] = None
         self.regime_film = nn.Sequential(
-            nn.Linear(ctx_cat_flat_dim, d_model),
+            nn.Linear(d_model, d_model),
             nn.GELU(),
             nn.Linear(d_model, 2 * d_model),
         )
@@ -447,6 +844,40 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.h1_proj = nn.Linear(int(self.cfg.h1_seq_dim), d_model)
         self.h4_proj = nn.Linear(int(self.cfg.h4_seq_dim), d_model)
         self.d1_proj = nn.Linear(int(self.cfg.d1_seq_dim), d_model)
+        mtf_reference_names = normalization_field_names["mtf_m5"]
+        mtf_categorical_indices = torch.nonzero(
+            self.input_norm_mtf_m5_categorical_mask,
+            as_tuple=False,
+        ).flatten().tolist()
+        for tf_name in ("m15", "h1", "h4", "d1"):
+            surface = f"mtf_{tf_name}"
+            if (
+                normalization_field_names[surface] != mtf_reference_names
+                or torch.nonzero(
+                    getattr(self, f"input_norm_{surface}_categorical_mask"),
+                    as_tuple=False,
+                ).flatten().tolist()
+                != mtf_categorical_indices
+                or self._input_norm_categorical_domains[surface]
+                != self._input_norm_categorical_domains["mtf_m5"]
+            ):
+                raise RuntimeError(
+                    "ENTRY_INPUT_NORMALIZATION_MTF_CATEGORICAL_SPLIT_BRAIN"
+                )
+        self.mtf_nominal_embeddings = nn.ModuleDict(
+            {
+                f"{tf_name}_{index}": nn.Embedding(
+                    len(
+                        self._input_norm_categorical_domains[f"mtf_{tf_name}"][
+                            mtf_reference_names[index]
+                        ]
+                    ),
+                    d_model,
+                )
+                for tf_name in ("m5", "m15", "h1", "h4", "d1")
+                for index in mtf_categorical_indices
+            }
+        )
         self.m5_encoder = _mk_encoder(mtf_layers)
         self.m15_encoder = _mk_encoder(mtf_layers)
         self.h1_encoder = _mk_encoder(mtf_layers)
@@ -467,11 +898,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self._expected_h4_seq_dim = int(self.cfg.h4_seq_dim)
         self._expected_d1_seq_dim = int(self.cfg.d1_seq_dim)
         self.register_buffer("multi_tf_scale", torch.tensor(float(self.cfg.multi_tf_scale)))
-        self.tf_input_scale_m5 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_m5)))
-        self.tf_input_scale_m15 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_m15)))
-        self.tf_input_scale_h1 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_h1)))
-        self.tf_input_scale_h4 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_h4)))
-        self.tf_input_scale_d1 = nn.Parameter(torch.tensor(float(self.cfg.tf_input_scale_init_d1)))
+        # State keys retain their historical names, but store unconstrained raw
+        # scalars. The effective multiplier is always min + softplus(raw), so
+        # training cannot zero, negate, or invert one timeframe branch.
+        for tf_name in ("m5", "m15", "h1", "h4", "d1"):
+            effective_init = float(
+                getattr(self.cfg, f"tf_input_scale_init_{tf_name}")
+            )
+            self.register_parameter(
+                f"tf_input_scale_{tf_name}",
+                nn.Parameter(
+                    torch.tensor(
+                        raw_tf_input_scale_from_effective(effective_init),
+                        dtype=torch.float32,
+                    )
+                ),
+            )
 
         # Learned high-order cooperation across all eight feature-family
         # specialists and all five timeframe representations.  Token identity
@@ -526,6 +968,290 @@ class EntryV10CtxHybridTransformer(nn.Module):
         """Add the mandatory positional encoding for this sequence branch."""
         pe = getattr(self, buf_name)
         return t + pe[:, : t.size(1)]
+
+    def require_input_normalization_state(self) -> None:
+        """Prove persistent buffers still match the immutable metadata contract."""
+
+        contract = self._input_normalization_contract
+        expected_contract_hash = torch.tensor(
+            list(bytes.fromhex(str(contract["contract_sha256"]))),
+            dtype=torch.uint8,
+        )
+        if not torch.equal(
+            self.input_norm_contract_sha256.detach().cpu(),
+            expected_contract_hash,
+        ):
+            raise RuntimeError("ENTRY_INPUT_NORMALIZATION_STATE_HASH_MISMATCH")
+        for surface in INPUT_NORMALIZATION_SURFACES:
+            surface_contract = contract["surfaces"][surface]
+            expected = {
+                "center": torch.tensor(
+                    surface_contract["center"], dtype=torch.float32
+                ),
+                "scale": torch.tensor(
+                    surface_contract["scale"], dtype=torch.float32
+                ),
+                "binary_mask": torch.tensor(
+                    surface_contract["binary_mask"], dtype=torch.bool
+                ),
+                "categorical_mask": torch.tensor(
+                    surface_contract["categorical_mask"], dtype=torch.bool
+                ),
+            }
+            for suffix, expected_value in expected.items():
+                observed = getattr(
+                    self,
+                    f"input_norm_{surface}_{suffix}",
+                ).detach().cpu()
+                if not torch.equal(observed, expected_value):
+                    raise RuntimeError(
+                        "ENTRY_INPUT_NORMALIZATION_STATE_BUFFER_MISMATCH: "
+                        f"surface={surface} field={suffix}"
+                    )
+        expected_alias_signal = torch.tensor(
+            [
+                int(alias["signal_index"])
+                for alias in contract["temporal_aliases"]
+            ],
+            dtype=torch.long,
+        )
+        expected_alias_ctx = torch.tensor(
+            [
+                int(alias["ctx_cont_index"])
+                for alias in contract["temporal_aliases"]
+            ],
+            dtype=torch.long,
+        )
+        if (
+            not torch.equal(
+                self.input_norm_alias_signal_indices.detach().cpu(),
+                expected_alias_signal,
+            )
+            or not torch.equal(
+                self.input_norm_alias_ctx_cont_indices.detach().cpu(),
+                expected_alias_ctx,
+            )
+        ):
+            raise RuntimeError("ENTRY_INPUT_NORMALIZATION_STATE_ALIAS_MISMATCH")
+        ctx_domains = contract["ctx_cat"]["domains"]
+        expected_ctx_min = torch.tensor(
+            [min(ctx_domains[name]) for name in MODEL_NATIVE_CTX_CAT_FIELDS],
+            dtype=torch.long,
+        )
+        expected_ctx_max = torch.tensor(
+            [max(ctx_domains[name]) for name in MODEL_NATIVE_CTX_CAT_FIELDS],
+            dtype=torch.long,
+        )
+        if (
+            not torch.equal(
+                self.input_norm_ctx_cat_min.detach().cpu(),
+                expected_ctx_min,
+            )
+            or not torch.equal(
+                self.input_norm_ctx_cat_max.detach().cpu(),
+                expected_ctx_max,
+            )
+        ):
+            raise RuntimeError(
+                "ENTRY_INPUT_NORMALIZATION_STATE_CTX_CAT_DOMAIN_MISMATCH"
+            )
+
+    def _normalize_input_surface(
+        self,
+        raw: torch.Tensor,
+        *,
+        surface: str,
+    ) -> torch.Tensor:
+        center = getattr(self, f"input_norm_{surface}_center").to(
+            device=raw.device,
+            dtype=torch.float32,
+        )
+        scale = getattr(self, f"input_norm_{surface}_scale").to(
+            device=raw.device,
+            dtype=torch.float32,
+        )
+        binary_mask = getattr(
+            self,
+            f"input_norm_{surface}_binary_mask",
+        ).to(raw.device)
+        categorical_mask = getattr(
+            self,
+            f"input_norm_{surface}_categorical_mask",
+        ).to(raw.device)
+        raw_float = raw.float()
+        if int(raw_float.shape[-1]) != int(center.numel()):
+            raise RuntimeError(
+                f"ENTRY_INPUT_NORMALIZATION_RUNTIME_WIDTH_MISMATCH: {surface}"
+            )
+        field_names = self._input_normalization_field_names[surface]
+        if surface.startswith("mtf_") and "ema_stack_aligned_v2" in field_names:
+            ema_stack_index = field_names.index("ema_stack_aligned_v2")
+            ema_stack = raw_float[..., ema_stack_index]
+            if bool(
+                (
+                    (ema_stack != -1.0)
+                    & (ema_stack != 0.0)
+                    & (ema_stack != 1.0)
+                )
+                .any()
+                .item()
+            ):
+                raise RuntimeError(
+                    "ENTRY_INPUT_NORMALIZATION_MTF_EMA_STACK_DOMAIN_INVALID: "
+                    f"surface={surface}"
+                )
+        if bool(binary_mask.any().item()):
+            binary_values = raw_float[..., binary_mask]
+            if bool(
+                ((binary_values != 0.0) & (binary_values != 1.0)).any().item()
+            ):
+                raise RuntimeError(
+                    f"ENTRY_INPUT_NORMALIZATION_BINARY_VALUE_INVALID: {surface}"
+                )
+        if bool(categorical_mask.any().item()):
+            domains = self._input_norm_categorical_domains[surface]
+            for index in torch.nonzero(
+                categorical_mask,
+                as_tuple=False,
+            ).flatten().tolist():
+                values = raw_float[..., index]
+                rounded = values.round()
+                domain = domains[field_names[index]]
+                if (
+                    not torch.equal(values, rounded)
+                    or bool(
+                        (
+                            (rounded < min(domain))
+                            | (rounded > max(domain))
+                        )
+                        .any()
+                        .item()
+                    )
+                ):
+                    raise RuntimeError(
+                        "ENTRY_INPUT_NORMALIZATION_CATEGORICAL_VALUE_INVALID: "
+                        f"surface={surface} field={field_names[index]}"
+                    )
+        normalized = (raw_float - center) / scale
+        identity_mask = binary_mask | categorical_mask
+        if bool(identity_mask.any().item()):
+            normalized[..., identity_mask] = raw_float[..., identity_mask]
+        overflow = torch.abs(normalized) > float(INPUT_NORMALIZATION_CLIP_ABS)
+        if bool(overflow.any().item()) and not self.training:
+            first = torch.nonzero(overflow, as_tuple=False)[0]
+            field_index = int(first[-1].item())
+            raise RuntimeError(
+                "ENTRY_INPUT_NORMALIZATION_RUNTIME_OOD: "
+                f"surface={surface} "
+                f"field={self._input_normalization_field_names[surface][field_index]} "
+                f"clip_abs={INPUT_NORMALIZATION_CLIP_ABS}"
+            )
+        normalized = torch.clamp(
+            normalized,
+            -float(INPUT_NORMALIZATION_CLIP_ABS),
+            float(INPUT_NORMALIZATION_CLIP_ABS),
+        )
+        _assert_finite(f"normalized.{surface}", normalized)
+        return normalized
+
+    def _effective_tf_input_scale(self, suffix: str) -> torch.Tensor:
+        raw = getattr(self, f"tf_input_scale_{suffix}")
+        effective = (
+            nn.functional.softplus(raw)
+            + float(TF_INPUT_SCALE_MIN_EFFECTIVE)
+        )
+        _assert_finite(f"tf_input_scale_effective_{suffix}", effective)
+        return effective
+
+    def _build_family_context_tokens(
+        self,
+        ctx_cont: torch.Tensor,
+        ctx_cat: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        batch_size = int(ctx_cont.shape[0])
+        cat_emb = torch.stack(
+            [
+                embedding(ctx_cat[:, index].long())
+                for index, embedding in enumerate(self.ctx_cat_embeddings)
+            ],
+            dim=1,
+        )
+        family_context_parts = []
+        for name in self._specialist_names:
+            context_token = torch.zeros(
+                batch_size,
+                int(self.cfg.d_model),
+                device=ctx_cont.device,
+                dtype=ctx_cont.dtype,
+            )
+            cont_idx = getattr(
+                self,
+                f"specialist_ctx_cont_idx_{name}",
+            ).to(ctx_cont.device)
+            if int(cont_idx.numel()) > 0:
+                cont_values = ctx_cont.float().index_select(
+                    dim=1,
+                    index=cont_idx,
+                )
+                context_token = context_token + self.specialist_ctx_cont_proj[
+                    name
+                ](cont_values) * float(self.cfg.ctx_cont_scale)
+            nominal_idx = getattr(
+                self,
+                f"specialist_ctx_cont_nominal_idx_{name}",
+            ).to(ctx_cont.device)
+            if int(nominal_idx.numel()) > 0:
+                nominal_values = ctx_cont.float().index_select(
+                    dim=1,
+                    index=nominal_idx,
+                )
+                rounded = nominal_values.round()
+                if (
+                    not bool(torch.isfinite(nominal_values).all().item())
+                    or not bool(torch.equal(nominal_values, rounded))
+                    or bool(((rounded < 0) | (rounded >= 5)).any().item())
+                ):
+                    raise RuntimeError(
+                        "CTX_CONT_NOMINAL_DOMAIN_INVALID: "
+                        f"specialist={name} expected_exact_integer_domain=0..4"
+                    )
+                embedded = torch.cat(
+                    [
+                        self.specialist_ctx_cont_nominal_embeddings[str(index)](
+                            rounded[:, position].long()
+                        )
+                        for position, index in enumerate(nominal_idx.tolist())
+                    ],
+                    dim=1,
+                )
+                context_token = context_token + (
+                    self.specialist_ctx_cont_nominal_out[name](embedded)
+                    * float(self.cfg.ctx_cont_scale)
+                )
+            cat_idx = getattr(
+                self,
+                f"specialist_ctx_cat_idx_{name}",
+            ).to(ctx_cat.device)
+            if int(cat_idx.numel()) > 0:
+                cat_values = cat_emb.index_select(
+                    dim=1,
+                    index=cat_idx,
+                ).reshape(batch_size, -1)
+                context_token = context_token + self.specialist_ctx_cat_proj[
+                    name
+                ](cat_values) * float(self.cfg.ctx_cat_scale)
+            if name in self.specialist_context_out:
+                context_token = self.specialist_context_out[name](
+                    context_token
+                )
+            family_context_parts.append(context_token)
+        family_context_tokens = torch.stack(family_context_parts, dim=1)
+        global_context_h = self.family_context_global(
+            family_context_tokens.reshape(batch_size, -1)
+        )
+        _assert_finite("family_context_tokens", family_context_tokens)
+        _assert_finite("global_context_h", global_context_h)
+        return family_context_tokens, global_context_h
 
     def set_direction_calibration(self, temperature: float, bias: torch.Tensor) -> None:
         """Install post-hoc direction calibration (fitted on a recent held-out
@@ -640,45 +1366,115 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError(
                 f"CTX_CONT_DIM_MISMATCH: got={int(ctx_cont.shape[1])} expected={self._expected_ctx_cont_dim}"
             )
+        if (
+            int(snap_x.shape[0]) != int(B)
+            or int(ctx_cat.shape[0]) != int(B)
+            or int(ctx_cont.shape[0]) != int(B)
+        ):
+            raise RuntimeError("ENTRY_MODEL_NATIVE_BATCH_DIM_MISMATCH")
 
         # Hard finite checks
         _assert_finite("seq_x", seq_x)
         _assert_finite("snap_x", snap_x)
         _assert_finite("ctx_cont", ctx_cont)
 
-        # ctx_cat must be integer
+        # These equalities are raw-input contracts and precede every transform
+        # or projection.  They prevent stale snap rows and independently
+        # materialized ctx aliases from entering separate decision paths.
+        if not torch.equal(seq_x[:, -1, :], snap_x):
+            raise RuntimeError("SEQ_LAST_SNAP_NOT_BIT_IDENTICAL")
+        alias_signal_idx = self.temporal_alias_signal_idx.to(snap_x.device)
+        alias_ctx_idx = self.temporal_alias_ctx_cont_idx.to(ctx_cont.device)
+        if int(alias_signal_idx.numel()) > 0 and not torch.equal(
+            snap_x.index_select(dim=1, index=alias_signal_idx),
+            ctx_cont.index_select(dim=1, index=alias_ctx_idx),
+        ):
+            raise RuntimeError("SNAP_CTX_CONT_ALIAS_NOT_BIT_IDENTICAL")
+
+        # ctx_cat must be integer and every semantic field has its own domain.
         if ctx_cat.dtype not in (torch.int64, torch.int32, torch.int16, torch.int8, torch.uint8):
             raise RuntimeError(f"CTX_CAT_DTYPE_MISMATCH: expected integer dtype, got {ctx_cat.dtype}")
+        ctx_cat_min = self.input_norm_ctx_cat_min.to(ctx_cat.device)
+        ctx_cat_max = self.input_norm_ctx_cat_max.to(ctx_cat.device)
+        for index, field in enumerate(EXACT_CTX_CAT_DOMAINS):
+            values = ctx_cat[:, index]
+            if bool(
+                (
+                    (values < ctx_cat_min[index])
+                    | (values > ctx_cat_max[index])
+                )
+                .any()
+                .item()
+            ):
+                raise RuntimeError(
+                    "CTX_CAT_DOMAIN_INVALID: "
+                    f"field={field} "
+                    f"expected={int(ctx_cat_min[index].item())}.."
+                    f"{int(ctx_cat_max[index].item())}"
+                )
 
-        # Range guard for embedding vocab
-        mx = int(ctx_cat.max().item()) if ctx_cat.numel() > 0 else 0
-        if mx >= int(self.cfg.ctx_cat_vocab):
-            raise RuntimeError(f"CTX_CAT_OOB: max_id={mx} >= vocab={int(self.cfg.ctx_cat_vocab)}")
+        # One immutable transform owns every numerical path. The raw tensors
+        # above are used only for identity/domain guards and categorical IDs.
+        seq_n = self._normalize_input_surface(seq_x, surface="signal")
+        snap_n = self._normalize_input_surface(snap_x, surface="signal")
+        ctx_cont_n = self._normalize_input_surface(
+            ctx_cont,
+            surface="ctx_cont",
+        )
+        signal_categorical_mask = self.input_norm_signal_categorical_mask.to(
+            seq_n.device
+        )
+        seq_numeric = seq_n.masked_fill(
+            signal_categorical_mask.view(1, 1, -1),
+            0.0,
+        )
+        snap_numeric = snap_n.masked_fill(
+            signal_categorical_mask.view(1, -1),
+            0.0,
+        )
 
-        # Encode
-        seq_h = self.seq_proj(seq_x)                  # (B,T,d)
+        # Encode. Nominal temporal fields never enter a linear layer as fake
+        # ordinal numbers; their learned embeddings are added explicitly.
+        seq_h = self.seq_proj(seq_numeric)             # (B,T,d)
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            seq_h = seq_h + embedding(seq_x[..., index].long())
         seq_h = self._add_pe(seq_h, "pos_enc")        # mandatory temporal order
         seq_h = self.encoder(seq_h)                   # (B,T,d)
         seq_pool = seq_h.mean(dim=1)                  # (B,d)
 
-        snap_h = self.snap_proj(snap_x)               # (B,d)
+        generic_snap_idx = self.generic_snap_idx.to(snap_x.device)
+        snap_h = self.snap_proj(
+            snap_numeric.index_select(dim=1, index=generic_snap_idx)
+        )                                              # (B,d)
+        generic_snap_set = set(generic_snap_idx.tolist())
+        for index_text, embedding in self.signal_nominal_embeddings.items():
+            index = int(index_text)
+            if index in generic_snap_set:
+                snap_h = snap_h + embedding(snap_x[:, index].long())
 
-        cat_emb = self.ctx_cat_emb(ctx_cat.long())    # (B,ctx_cat_dim,emb)
-        cat_flat = cat_emb.reshape(B, -1)             # (B,ctx_cat_dim*emb)
+        family_context_tokens, global_context_h = (
+            self._build_family_context_tokens(ctx_cont_n, ctx_cat)
+        )
 
-        cont_h = self.ctx_cont_proj(ctx_cont.float()) # (B,d)
-        cat_flat = cat_flat * float(self.cfg.ctx_cat_scale)
-        cont_h = cont_h * float(self.cfg.ctx_cont_scale)
-
-        fused = torch.cat([seq_pool, snap_h, cat_flat, cont_h], dim=1)
+        fused = torch.cat([seq_pool, snap_h, global_context_h], dim=1)
         z_v3 = self.fuse(fused)
 
         pools = []
-        for name in self._specialist_names:
+        for specialist_position, name in enumerate(self._specialist_names):
             idx = getattr(self, f"specialist_idx_{name}").to(seq_x.device)
-            seq_part = seq_x.index_select(dim=2, index=idx)
+            seq_part = seq_numeric.index_select(dim=2, index=idx)
             spec_h = self._add_pe(self.specialist_proj[name](seq_part), "pos_enc")
-            pools.append(self.specialist_encoder[name](spec_h).mean(dim=1))
+            specialist_index_set = set(idx.tolist())
+            for index_text, embedding in self.signal_nominal_embeddings.items():
+                index = int(index_text)
+                if index in specialist_index_set:
+                    spec_h = spec_h + embedding(seq_x[..., index].long())
+            temporal_pool = self.specialist_encoder[name](spec_h).mean(dim=1)
+            pools.append(
+                temporal_pool
+                + family_context_tokens[:, specialist_position, :]
+            )
         specialist_tokens = torch.stack(pools, dim=1)
         specialist_tokens = self.specialist_cross_attn(
             specialist_tokens + self.specialist_token_identity
@@ -720,8 +1516,29 @@ class EntryV10CtxHybridTransformer(nn.Module):
         pool_list = []
         for name, tensor, _exp_len, _exp_dim in tf_inputs:
             suffix = name.removeprefix("seq_")
-            scaled = tensor * getattr(self, f"tf_input_scale_{suffix}")
+            surface = f"mtf_{suffix}"
+            normalized_tf = self._normalize_input_surface(
+                tensor,
+                surface=surface,
+            )
+            categorical_mask = getattr(
+                self,
+                f"input_norm_{surface}_categorical_mask",
+            ).to(normalized_tf.device)
+            numeric_tf = normalized_tf.masked_fill(
+                categorical_mask.view(1, 1, -1),
+                0.0,
+            )
+            effective_scale = self._effective_tf_input_scale(suffix)
+            scaled = numeric_tf * effective_scale
             projected = getattr(self, f"{suffix}_proj")(scaled)
+            for index in torch.nonzero(
+                categorical_mask,
+                as_tuple=False,
+            ).flatten().tolist():
+                projected = projected + self.mtf_nominal_embeddings[
+                    f"{suffix}_{index}"
+                ](tensor[..., index].long()) * effective_scale
             encoded = getattr(self, f"{suffix}_encoder")(
                 self._add_pe(projected, f"pos_enc_{suffix}")
             )
@@ -763,9 +1580,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         # Regime FiLM (BIG-9): modulate a SEPARATE z_dir for the direction head only,
         # leaving z untouched for the aux heads + downstream. Zero-init -> z_dir==z at cold
-        # start (bit-parity). cat_emb (B,ctx_cat_dim,emb) was computed above; flatten as the
-        # Learned regime conditioning from the exact categorical context tensor.
-        film = self.regime_film(cat_emb.reshape(cat_emb.shape[0], -1))
+        # start (bit-parity). FiLM consumes the same family-derived global
+        # context token; there is no independent raw categorical bypass.
+        film = self.regime_film(global_context_h)
         gamma, beta = film.chunk(2, dim=1)
         z_dir = (1.0 + gamma) * z + beta
         model_native_logits = self.head_direction(z_dir)   # (B,3)

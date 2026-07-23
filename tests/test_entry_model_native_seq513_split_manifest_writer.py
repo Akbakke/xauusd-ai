@@ -94,7 +94,7 @@ def _extra() -> dict:
             "rank_reference_source_parquet": "/immutable/source.parquet",
             "rank_reference_source_parquet_sha256": "b" * 64,
             "rank_reference_fit_row_count": 123,
-            "normalization_fit_scope": "train_only",
+            "rank_reference_fit_scope": "train_only",
             "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
             "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
             "split_reset_allowed": False,
@@ -266,7 +266,7 @@ def test_builder_requires_audited_rank_reference_and_source_hashes(
         == payload["source_parquet_sha256"]
     )
     assert contract["rank_reference_fit_row_count"] == 3
-    assert contract["normalization_fit_scope"] == "train_only"
+    assert contract["rank_reference_fit_scope"] == "train_only"
     assert contract["split_reset_allowed"] is False
     assert contract["entry_run_id"] == "MODEL_NATIVE_DATASET_BUILD_PYTEST"
 

@@ -26,6 +26,15 @@ from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HE
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     model_native_aux_target_contract_metadata,
 )
+from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    build_tf_input_scale_contract,
+    raw_tf_input_scale_from_effective,
+)
+from gx1.features.htf_features import (
+    HTF_V2_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_NAMES_SHA256_V2,
+    MULTI_TF_PER_BAR_FEATURES_V2,
+)
 from tests.model_native_signal_support import canonical_model_native_selected_fields
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     direction_evidence_fusion_metadata,
@@ -50,6 +59,13 @@ from gx1.models.entry_v10.entry_v10_bundle import (
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _build_active_head_names,
+)
+from tests.model_native_context_routing_support import (
+    context_routing_for_ordered_signal_names,
+)
+from tests.model_native_input_normalization_support import (
+    input_normalization_fit_population_proof_fixture,
+    input_normalization_fixture,
 )
 
 
@@ -119,6 +135,9 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
     training_objective = training_objective_contract_metadata(
         {name: 1.0 for name in REQUIRED_POSITIVE_LOSS_WEIGHTS}
     )
+    context_routing = context_routing_for_ordered_signal_names(
+        list(signal_contract["fields"])
+    )
     movement = {
         "schema_version": MOVEMENT_SCHEMA_VERSION,
         "reference": MOVEMENT_REFERENCE,
@@ -136,6 +155,47 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         "output_rows_distinct": True,
         "decision": "PASS",
     }
+    mtf_contract = {
+        "enabled": True,
+        "v2_mode": True,
+        "m5_seq_dim": 25,
+        "m5_seq_len": 96,
+        "m15_seq_dim": 25,
+        "m15_seq_len": 64,
+        "h1_seq_dim": 25,
+        "h1_seq_len": 96,
+        "h4_seq_dim": 25,
+        "h4_seq_len": 48,
+        "d1_seq_dim": 25,
+        "d1_seq_len": 30,
+        "multi_tf_scale": 0.5,
+        "feature_contract": "MULTI_TF_PER_BAR_V2",
+        "matrix_contract": HTF_V2_MATRIX_CONTRACT,
+        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+        "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V2,
+        "closed_bar_target_availability": True,
+        "target_availability_shift_minutes": 5.0,
+    }
+    tf_inits = {"m5": 1.0, "m15": 0.7, "h1": 0.7, "h4": 0.5, "d1": 0.3}
+    tf_scale_contract = build_tf_input_scale_contract(
+        init_effective=tf_inits,
+        learned_raw={
+            name: raw_tf_input_scale_from_effective(value)
+            for name, value in tf_inits.items()
+        },
+    )
+    input_normalization = input_normalization_fixture(
+        signal_names=list(signal_contract["fields"]),
+        mtf_names=list(MULTI_TF_PER_BAR_FEATURES_V2),
+        per_tf_seq_lens={
+            "M5": mtf_contract["m5_seq_len"],
+            "M15": mtf_contract["m15_seq_len"],
+            "H1": mtf_contract["h1_seq_len"],
+            "H4": mtf_contract["h4_seq_len"],
+            "D1": mtf_contract["d1_seq_len"],
+        },
+        dataset_run_id="MODEL_NATIVE_DATASET_PYTEST_V1",
+    )
     shared = {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -153,6 +213,15 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
             direction_evidence_fusion_metadata()
         ),
         "model_native_learned_component_movement": movement,
+        "context_specialist_routing": copy.deepcopy(context_routing),
+        "input_normalization": input_normalization,
+        "input_normalization_fit_population_proof": (
+            input_normalization_fit_population_proof_fixture(
+                input_normalization
+            )
+        ),
+        "multi_tf": mtf_contract,
+        "tf_input_scale": tf_scale_contract,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
         "run_lineage": {
             "schema_version": "entry_model_native_training_run_lineage_v1",
@@ -185,29 +254,8 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
         "train_recipe": {
             "active_heads": sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS)
         },
-        "multi_tf": {
-            "enabled": True,
-            "v2_mode": True,
-            "m5_seq_dim": 25,
-            "m5_seq_len": 96,
-            "m15_seq_dim": 25,
-            "m15_seq_len": 64,
-            "h1_seq_dim": 25,
-            "h1_seq_len": 96,
-            "h4_seq_dim": 25,
-            "h4_seq_len": 48,
-            "d1_seq_dim": 25,
-            "d1_seq_len": 30,
-            "multi_tf_scale": 0.5,
-            "closed_bar_target_availability": True,
-            "target_availability_shift_minutes": 5.0,
-        },
         "enable_pos_enc": True,
         "enable_regime_film": True,
-        "tf_input_scale": {
-            "enabled": True,
-            "init": {"m5": 1.0, "m15": 0.7, "h1": 0.7, "h4": 0.5, "d1": 0.3},
-        },
         "hierarchical_entry_heads": {"enabled": True},
         "trendline_rail_head": {
             "enabled": True,
@@ -223,6 +271,7 @@ def _exact_model_native_metadata() -> tuple[dict, dict]:
             "enabled": True,
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "input_indices": specialist_indices,
+            "context_routing": copy.deepcopy(context_routing),
             "trainable_specialists": list(_MODEL_NATIVE_REQUIRED_SPECIALISTS),
             "num_layers": 1,
             "fusion_scale": 0.25,
@@ -292,7 +341,13 @@ def test_model_native_bundle_rejects_collapsed_training_and_dataset_lineage() ->
 @pytest.mark.parametrize(
     ("mutation", "error"),
     [
-        (lambda meta, lock: meta["multi_tf"].pop("h4_seq_len"), "MTF_METADATA_MISSING"),
+        (
+            lambda meta, lock: (
+                meta["multi_tf"].pop("h4_seq_len"),
+                lock["multi_tf"].pop("h4_seq_len"),
+            ),
+            "MTF_METADATA_MISSING",
+        ),
         (
             lambda meta, lock: meta["train_recipe"]["active_heads"].remove(
                 "trendline_rail"

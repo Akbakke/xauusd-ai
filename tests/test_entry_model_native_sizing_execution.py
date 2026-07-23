@@ -36,6 +36,11 @@ def test_joint_active_exit_sizing_proof_is_row_recomputed_and_registry_bound(
     assert proof["exit_replay_coverage"]["failed_rows"] == 0
     assert proof["exit_replay_coverage"]["trade_rows"] >= 128
     assert proof["paired_oos_utility"]["decision"] == "PASS"
+    assert set(proof["active_exit_artifact_manifests"]) == {
+        "xgb",
+        "v3_exit",
+        "exit_iql",
+    }
 
     authority = learned_sizing_authority_contract_metadata(
         adoption_artifact=evidence["adoption_artifact"]
@@ -143,6 +148,23 @@ def test_joint_active_exit_sizing_proof_is_row_recomputed_and_registry_bound(
             registry_sha256=proof["artifact_registry"]["sha256"],
             context="UNIT_TRACE_STEP_GAP",
         )
+
+    exit_identity = (
+        Path(proof["active_exit_artifact_manifests"]["v3_exit"]["root_path"])
+        / "identity.bin"
+    )
+    original_identity = exit_identity.read_bytes()
+    exit_identity.write_bytes(b"mutated")
+    with pytest.raises(
+        ModelNativeSizingExecutionContractError,
+        match="artifact bytes differ",
+    ):
+        load_bound_joint_exit_sizing_proof(
+            evidence["joint_exit_proof_artifact"],
+            context="UNIT_MUTATED_ACTIVE_EXIT_BYTES",
+            verify_source_files=True,
+        )
+    exit_identity.write_bytes(original_identity)
 
     evidence["artifact_registry_path"].write_text("{}\n", encoding="utf-8")
     with pytest.raises(ModelNativeSizingExecutionContractError, match="hash mismatch"):

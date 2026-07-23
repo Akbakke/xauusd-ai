@@ -23,6 +23,14 @@ from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     learned_sizing_authority_contract_metadata,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    require_bundle_commit_manifest,
+)
+from gx1.contracts.entry_model_native_launch_approval_v1 import (
+    EVENT_PREFIX as LAUNCH_APPROVAL_EVENT_PREFIX,
+    SCHEMA_VERSION as LAUNCH_APPROVAL_SCHEMA_VERSION,
+    launch_state_approval_payload_sha256,
+)
 from gx1.contracts.model_native_serve_gate_v1 import (
     DIRECTION_POCKET_MAX_BAD_SIDE_RATE,
     DIRECTION_POCKET_MAX_BAD_SIDE_WILSON_UPPER_95,
@@ -73,12 +81,44 @@ def _allow_state(**updates: object) -> dict:
         "required_ctx_cont_dim": artifacts.REQUIRED_XAU_CTX_CONT_DIM,
         "required_ctx_cat_dim": artifacts.REQUIRED_XAU_CTX_CAT_DIM,
         "sizing_adoption_mode": MODEL_NATIVE_SIZING_MODE_LEARNED,
-        "accepted_via_vedtak": "UNIT_DIRECTION_VEDTAK",
+        "accepted_via_vedtak": None,
         "dataset_event_id": "UNIT_DATASET_EVENT",
         "adaptation_lifecycle_evidence": {},
     }
     state.update(updates)
     return state
+
+
+def _attach_launch_approval(
+    state: dict,
+    *,
+    root: Path,
+    bundle_dir: Path,
+) -> None:
+    vedtak_id = "UNIT_DIRECTION_VEDTAK"
+    commit = require_bundle_commit_manifest(bundle_dir.resolve())
+    event_path, _ = write_immutable_json_event(
+        root,
+        LAUNCH_APPROVAL_EVENT_PREFIX,
+        {
+            "schema_version": LAUNCH_APPROVAL_SCHEMA_VERSION,
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "decision": "ALLOW",
+            "project": artifacts.THIS_PROJECT,
+            "vedtak_id": vedtak_id,
+            "accepted_bundle_dir": str(bundle_dir.resolve()),
+            "bundle_commit_sha256": commit["commit_sha256"],
+            "launch_state_payload_sha256": (
+                launch_state_approval_payload_sha256(state)
+            ),
+        },
+    )
+    state["accepted_via_vedtak"] = {
+        "schema_version": LAUNCH_APPROVAL_SCHEMA_VERSION,
+        "vedtak_id": vedtak_id,
+        "event_path": str(event_path),
+        "event_sha256": hashlib.sha256(event_path.read_bytes()).hexdigest(),
+    }
 
 
 def test_missing_xau_launch_contract_fails_closed(
@@ -267,6 +307,11 @@ def test_allow_state_requires_complete_serve_exit_sizing_and_adaptation_chain(
         },
     )
     state["adaptation_lifecycle_evidence"] = lifecycle["artifact"]
+    _attach_launch_approval(
+        state,
+        root=tmp_path / "launch_approval",
+        bundle_dir=bundle_dir,
+    )
     launch = tmp_path / "PROJECT_STATE_xau_direction_launch.json"
     _write_json(launch, state)
     monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", launch)
@@ -278,9 +323,21 @@ def test_allow_state_requires_complete_serve_exit_sizing_and_adaptation_chain(
         "joint_exit_proof_artifact"
     ]
 
+    original_dataset_event_id = state["dataset_event_id"]
+    state["dataset_event_id"] = "UNIT_TAMPERED_DATASET_EVENT"
+    _write_json(launch, state)
+    with pytest.raises(artifacts.ArtifactGuardError, match="approval invalid"):
+        artifacts._check_v10_entry_launch_contract(bundle_dir)
+    state["dataset_event_id"] = original_dataset_event_id
+
     state["serve_gate_evidence"]["model_native_direction_pocket_audit"][
         "sha256"
     ] = "0" * 64
+    _attach_launch_approval(
+        state,
+        root=tmp_path / "launch_approval",
+        bundle_dir=bundle_dir,
+    )
     _write_json(launch, state)
     with pytest.raises(artifacts.ArtifactGuardError, match="hash mismatch"):
         artifacts._check_v10_entry_launch_contract(bundle_dir)

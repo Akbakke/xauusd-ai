@@ -13,15 +13,32 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_DIM,
 )
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import INPUTS
+from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    MIN_EFFECTIVE_SCALE,
+    build_tf_input_scale_contract,
+    require_tf_input_scale_state,
+)
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    EXACT_CTX_CAT_DOMAINS,
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
+)
+from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V2
+from tests.model_native_input_normalization_support import (
+    input_normalization_fixture,
 )
 
 
 SEQ_DIM = 16
 SEQ_LEN = 4
 TF_DIM = 3
+INPUT_NORMALIZATION = input_normalization_fixture(
+    signal_names=[f"signal_{index}" for index in range(SEQ_DIM)],
+    mtf_names=[f"mtf_{index}" for index in range(TF_DIM)],
+)
 
 
 def _specialist_indices() -> dict[str, list[int]]:
@@ -49,17 +66,60 @@ def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
         "h4_seq_len": SEQ_LEN,
         "d1_seq_len": SEQ_LEN,
         "specialist_input_indices": _specialist_indices(),
+        "specialist_ctx_cont_indices": {
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_indices"
+            ].items()
+        },
+        "specialist_ctx_cont_nominal_indices": {
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_nominal_indices"
+            ].items()
+        },
+        "specialist_ctx_cat_indices": {
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cat_indices"
+            ].items()
+        },
+        "temporal_alias_signal_indices": [],
+        "temporal_alias_ctx_cont_indices": [],
+        "input_normalization": INPUT_NORMALIZATION,
     }
     kwargs.update(overrides)
     return EntryV10CtxHybridTransformer(**kwargs)
 
 
 def _make_inputs(batch_size: int = 2) -> tuple:
+    seq_x = torch.randn(batch_size, SEQ_LEN, SEQ_DIM)
+    snap_x = seq_x[:, -1, :].clone()
+    ctx_cont = torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM)
+    nominal_indices = [
+        index
+        for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+            "ctx_cont_nominal_indices"
+        ].values()
+        for index in values
+    ]
+    ctx_cont[:, nominal_indices] = torch.randint(
+        0,
+        5,
+        (batch_size, len(nominal_indices)),
+    ).float()
+    ctx_cat = torch.stack(
+        [
+            torch.randint(0, len(domain), (batch_size,))
+            for domain in EXACT_CTX_CAT_DOMAINS.values()
+        ],
+        dim=1,
+    )
     return (
-        torch.randn(batch_size, SEQ_LEN, SEQ_DIM),
-        torch.randn(batch_size, SEQ_DIM),
-        torch.randint(0, 4, (batch_size, MODEL_NATIVE_CTX_CAT_DIM)),
-        torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM),
+        seq_x,
+        snap_x,
+        ctx_cat,
+        ctx_cont,
         {
             f"seq_{tf}": torch.randn(batch_size, SEQ_LEN, TF_DIM)
             for tf in ("m5", "m15", "h1", "h4", "d1")
@@ -313,6 +373,44 @@ def test_exact_architecture_rejects_wrong_context_width(bad_key: str) -> None:
         model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
 
 
+@pytest.mark.parametrize(
+    ("field_index", "invalid_value"),
+    [
+        (index, invalid)
+        for index, domain in enumerate(EXACT_CTX_CAT_DOMAINS.values())
+        for invalid in (-1, domain[-1] + 1)
+    ],
+)
+def test_ctx_cat_field_specific_domains_fail_closed(
+    field_index: int,
+    invalid_value: int,
+) -> None:
+    model = _make_model().eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs()
+    ctx_cat[:, field_index] = invalid_value
+    field = tuple(EXACT_CTX_CAT_DOMAINS)[field_index]
+
+    with pytest.raises(RuntimeError, match=f"field={field}"):
+        model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+
+
+def test_ctx_cat_fields_use_separate_domain_sized_embedding_tables() -> None:
+    model = _make_model()
+
+    assert len(model.ctx_cat_embeddings) == len(EXACT_CTX_CAT_DOMAINS)
+    assert [
+        embedding.num_embeddings for embedding in model.ctx_cat_embeddings
+    ] == [len(domain) for domain in EXACT_CTX_CAT_DOMAINS.values()]
+    assert len(
+        {
+            embedding.weight.data_ptr()
+            for embedding in model.ctx_cat_embeddings
+        }
+    ) == len(EXACT_CTX_CAT_DOMAINS)
+    assert not hasattr(model, "ctx_cat_emb")
+    assert not hasattr(model, "specialist_ctx_cont_norm")
+
+
 def test_exact_architecture_eval_is_deterministic() -> None:
     model = _make_model().eval()
     seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=1)
@@ -320,6 +418,109 @@ def test_exact_architecture_eval_is_deterministic() -> None:
     second = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
     for key in first:
         assert torch.allclose(first[key], second[key]), key
+
+
+def test_tf_input_scale_cannot_become_zero_or_negative() -> None:
+    model = _make_model()
+    for tf_name in ("m5", "m15", "h1", "h4", "d1"):
+        getattr(model, f"tf_input_scale_{tf_name}").data.fill_(-100.0)
+        effective = model._effective_tf_input_scale(tf_name)
+        assert torch.isfinite(effective)
+        assert float(effective.item()) > 0.0
+        assert float(effective.item()) == pytest.approx(
+            MIN_EFFECTIVE_SCALE,
+            rel=1e-6,
+        )
+
+
+def test_tf_input_scale_contract_is_bound_to_raw_state() -> None:
+    model = _make_model()
+    init = {
+        "m5": 1.0,
+        "m15": 1.0,
+        "h1": 0.7,
+        "h4": 0.5,
+        "d1": 0.3,
+    }
+    raw = {
+        name: float(model.state_dict()[f"tf_input_scale_{name}"].item())
+        for name in init
+    }
+    contract = build_tf_input_scale_contract(
+        init_effective=init,
+        learned_raw=raw,
+    )
+
+    assert require_tf_input_scale_state(contract, model.state_dict()) == contract[
+        "learned"
+    ]
+    model.tf_input_scale_h4.data.add_(0.01)
+    with pytest.raises(RuntimeError, match="STATE_HASH_MISMATCH"):
+        require_tf_input_scale_state(contract, model.state_dict())
+
+
+def test_input_normalization_buffers_are_persistent_and_hash_bound() -> None:
+    model = _make_model()
+
+    model.require_input_normalization_state()
+    assert "input_norm_signal_center" in model.state_dict()
+    assert "input_norm_contract_sha256" in model.state_dict()
+
+    model.input_norm_signal_center[0].add_(0.01)
+    with pytest.raises(RuntimeError, match="STATE_BUFFER_MISMATCH"):
+        model.require_input_normalization_state()
+
+
+def test_input_normalization_fails_closed_on_eval_ood_but_clips_during_train() -> None:
+    model = _make_model()
+    center = model.input_norm_signal_center
+    scale = model.input_norm_signal_scale
+    raw = center.clone().view(1, 1, -1)
+    raw[..., 0] = center[0] + scale[0] * 13.0
+
+    model.eval()
+    with pytest.raises(RuntimeError, match="RUNTIME_OOD"):
+        model._normalize_input_surface(raw, surface="signal")
+
+    model.train()
+    normalized = model._normalize_input_surface(raw, surface="signal")
+    assert float(normalized[..., 0].item()) == 12.0
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value", "error"),
+    (
+        (
+            "ema_stack_aligned_v2",
+            2.0,
+            "MTF_EMA_STACK_DOMAIN_INVALID",
+        ),
+        ("regime_class_id", 5.0, "CATEGORICAL_VALUE_INVALID"),
+    ),
+)
+def test_mtf_semantic_domains_fail_closed_at_model_boundary(
+    field: str,
+    invalid_value: float,
+    error: str,
+) -> None:
+    mtf_names = list(MULTI_TF_PER_BAR_FEATURES_V2)
+    normalization = input_normalization_fixture(
+        signal_names=[f"signal_{index}" for index in range(SEQ_DIM)],
+        mtf_names=mtf_names,
+    )
+    model = _make_model(
+        m5_seq_dim=len(mtf_names),
+        m15_seq_dim=len(mtf_names),
+        h1_seq_dim=len(mtf_names),
+        h4_seq_dim=len(mtf_names),
+        d1_seq_dim=len(mtf_names),
+        input_normalization=normalization,
+    ).eval()
+    raw = model.input_norm_mtf_m5_center.clone().view(1, 1, -1)
+    raw[..., mtf_names.index(field)] = invalid_value
+
+    with pytest.raises(RuntimeError, match=error):
+        model._normalize_input_surface(raw, surface="mtf_m5")
 
 
 def test_model_and_config_expose_no_architecture_disable_switches() -> None:

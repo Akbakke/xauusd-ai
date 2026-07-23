@@ -24,6 +24,39 @@ for `xau_seq513_model_native_direction_v4`. There is no currently admitted
 dataset, trained model, accepted bundle or empirical direction-edge proof.
 Candidate, replay, paper/demo/live and promotion remain closed.
 
+### 2026-07-23 post-V7 full-pipeline source repair
+
+Three parallel audits covered data/features/targets/MTF,
+model/training/checkpoint and inference/bundle/replay/launch. Their confirmed
+P0/P1 findings are now source-repaired and regression-tested for:
+
+- signed dip-MFE and side-correct bad-path gradients;
+- no-replacement sampling, bidirectional weights and tradable/LONG/SHORT
+  conditional path skill versus a tradable baseline;
+- all-22-head and all-26-group class-margin influence;
+- exact spread-aware utility ranking instead of H24 mid-close return;
+- one immutable normalization fit over the complete physical TRAIN population
+  for 513 signals, 142 continuous context fields and all five 25-field MTF
+  surfaces, before sampling;
+- exact one-owner family routing for all 142+5 context fields, separate
+  categorical field/domain embeddings and dynamic current-bar alias parity;
+- mandatory MTF V2 disk cache with exact M5 source, ten component hashes/sizes,
+  11-file inventory and aggregate identity;
+- hidden-stage, fsynced, atomic no-replace bundle and immutable-event
+  publication plus exact bundle commit inventory;
+- recursive content manifests for the actual three selected Exit artifacts;
+- immutable launch approval bound to the complete launch-state hash and exact
+  bundle commit, with no environment-string authority;
+- unchanged launch/registry lease and freshness revalidation before every new
+  exposure;
+- fail-closed missing broker trade identity; no opposite market-order close.
+
+No rebuild, training, calibration, replay or launch was run. V24/V7 predate
+all repairs and remain rejected. The remaining source P0 is one canonical
+transactional candidate→promotion→launch finalizer. Canonical/live
+December-2024 tape parity and every empirical dataset/model/edge gate are also
+still open.
+
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
 V22 rebuilt successfully to the smoke gate but failed the specialist audit.
@@ -520,9 +553,13 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-Focused contract suites and full test collection have been green at each
-completed boundary. Re-run the complete verification after the concurrent
-source cleanup settles.
+The settled post-V7 source-repair tree collected 1,725 tests on 2026-07-23:
+1,720 passed, five were explicitly skipped and zero failed. Changed Python
+sources/tests compile and pass Ruff with the repository's intentional
+import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
+hygiene, the handover self-check and the exact forbidden-instrument zero-scan
+are green. This verifies source contracts only; it does not admit data, a
+model, an edge or launch.
 
 ## Remaining source boundary work
 
@@ -678,19 +715,18 @@ Ordered steps (each gate fail-closed; stop at first red):
 1. Do **not** reuse V1-V24. Keep every retained failure input explicit and
    hash-bound; never discover through glob, mtime, symlink or mutable `latest`
    selection.
-2. Treat signed dip-MFE, selected-side bad-path symmetry, no-replacement
-   sampling, bidirectional weights, exact recipe/M5 binding, single-mode MTF,
-   all-head influence, forward-head bps units and grad accumulation as
-   source-repaired only; preserve their regression tests.
-3. Implement immutable ordered TRAIN-fit normalization for raw 513+142
-   continuous inputs and true 142+5 context-specialist ownership. Handle the
-   82 byte-identical current-bar aliases explicitly and prove all 147 owner
-   token perturbations.
-4. Make bundle publication atomic. Add the one public transactional
-   candidate/promotion/launch finalizer and require an immutable, exact vedtak
-   ID/hash; arbitrary `.env` text must never authorize launch. The joint
-   Exit/sizing proof must bind an immutable Exit-only registry snapshot, not
-   the mutable canonical registry that promotion changes.
+2. Preserve all completed source repairs: signed targets, side symmetry,
+   no-replacement sampling, conditional auxiliary evidence, exact recipe/M5/
+   MTF bytes, complete TRAIN-fit normalization, 142+5 context ownership,
+   all-head/group influence, 20-bps units, positive TF scales, atomic
+   bundle/event publication, recursive active-Exit bytes, immutable approval,
+   runtime lease and missing-trade-ID fail-close. The alias set is dynamic;
+   V24's count of 82 is fixture evidence only.
+3. Add the one public transactional candidate/promotion/launch finalizer with
+   durable terminal failure evidence. Consumer-side vedtak/state/bundle
+   binding and `.env` rejection are already repaired.
+4. Repair and prove canonical/live December-2024 M5 parity before a fresh
+   rebuild.
 5. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
    readiness/trainability audit, then materialize a new recipe only from those
    new immutable bytes.

@@ -62,3 +62,17 @@ documentation and code together.
     the canonical Dataset mapping. `y_direction` is converted once to class
     tensor `y`; adding aliases, defaults or duplicated targets to satisfy a
     head check is forbidden.
+18. Input normalization is fitted once on the complete physical TRAIN
+    population before sampling. Its exact ordered statistics, categorical
+    domains, alias ownership and per-timeframe causal row hashes are immutable
+    bundle/model state; VAL/TEST/live never refit.
+19. Every 142+5 context field has exactly one specialist owner. Current-bar
+    aliases are discovered from the actual ordered signal manifest, must be
+    bit-identical and may not create a second normalization owner.
+20. A usable bundle or immutable event may never appear under its final name
+    before all bytes, hashes, strict-load checks and `fsync` complete. Publish
+    only by atomic no-replace rename with exact inventory.
+21. Environment text is not launch approval. Future ALLOW requires the newest
+    immutable one-time approval bound to the complete launch-state hash and
+    exact bundle commit, plus a runtime lease recheck before every new
+    exposure. Missing broker trade identity never permits a counter-order.

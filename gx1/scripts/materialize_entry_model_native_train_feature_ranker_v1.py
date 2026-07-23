@@ -11,8 +11,10 @@ positions.
 Determinism contract (declared in the emitted JSON and enforced downstream):
 - fit scope is TRAIN only: every feature value and every target value comes
   from rows at or before --train-end; no validation/test rows are read;
-- the target is the forward 24-bar mid-close log return (bps), computed only
-  where the full horizon stays inside the TRAIN window;
+- the target is the exact spread-aware LONG-minus-SHORT direction-utility
+  margin used by the model-native labels: final PnL at 24 bars plus the
+  contracted first-10-bar MFE/MAE/path utility, computed only where both
+  horizons stay inside the TRAIN window;
 - score = |Spearman rank correlation| between candidate and target over rows
   where both are finite; candidates with fewer than MIN_SUPPORT_FRACTION
   finite rows score exactly 0.0;
@@ -60,6 +62,7 @@ from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import
     TRAIN_FEATURE_RANKING_PRODUCER,
     TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
     TRAIN_FEATURE_RANKING_SCHEMA_VERSION,
+    TRAIN_FEATURE_RANKING_TARGET_CONTRACT,
     _is_forbidden_leak_name,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
@@ -74,10 +77,24 @@ from gx1.contracts.entry_model_native_state_v2 import (
 
 
 RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
-TARGET_HORIZON_BARS = 24
+DIRECTION_HORIZON_BARS = int(
+    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["direction_horizon_bars"]
+)
+PATH_HORIZON_BARS = int(
+    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["path_horizon_bars"]
+)
+UTILITY_MFE_WEIGHT = float(
+    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["mfe_weight"]
+)
+UTILITY_MAE_WEIGHT = float(
+    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["mae_weight"]
+)
+UTILITY_PATH_WEIGHT = float(
+    TRAIN_FEATURE_RANKING_TARGET_CONTRACT["path_weight"]
+)
 MIN_SUPPORT_FRACTION = 0.10
 SCORE_DECIMALS = 12
-RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v3"
+RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v4"
 _RANKING_OUTPUT_RE = re.compile(
     rf"^{RANKING_EVENT_PREFIX}_(\d{{8}}T\d{{6}}(?:\d{{6}})?Z)\.json$"
 )
@@ -154,7 +171,7 @@ def _ranker_checkpoint_key(
         "train_start_utc": train_start.isoformat(),
         "train_end_utc": train_end.isoformat(),
         "producer_version": TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
-        "target_horizon_bars": TARGET_HORIZON_BARS,
+        "target_contract": TRAIN_FEATURE_RANKING_TARGET_CONTRACT,
     }
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -181,7 +198,7 @@ def _write_ranker_checkpoint(path: Path, **arrays: Any) -> None:
 
 def _sha256_target(times: np.ndarray, values: np.ndarray) -> str:
     digest = hashlib.sha256()
-    digest.update(b"entry_model_native_train_feature_ranker_target_v1")
+    digest.update(b"entry_model_native_train_feature_ranker_target_v2")
     digest.update(np.ascontiguousarray(times.astype("datetime64[ns]").view(np.int64)).tobytes())
     digest.update(np.ascontiguousarray(values.astype(np.float64)).tobytes())
     return digest.hexdigest()
@@ -368,24 +385,86 @@ def _compute_candidate_matrix(
     return ordered, list(candidates)
 
 
-def _forward_return_target(
+def _direction_utility_margin_target(
     frame: pd.DataFrame,
     *,
     train_start: pd.Timestamp,
     train_end: pd.Timestamp,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Forward TARGET_HORIZON_BARS mid-close log return in bps, TRAIN-capped."""
+    """Exact spread-aware direction-utility margin, capped to TRAIN.
+
+    This mirrors the dataset label contract.  It is target engineering for
+    offline ranking only and is never a live direction rule.
+    """
     bid = frame["bid_close"].astype(np.float64).to_numpy()
     ask = frame["ask_close"].astype(np.float64).to_numpy()
-    mid = (bid + ask) / 2.0
-    if not np.isfinite(mid).all() or (mid <= 0).any():
-        raise RuntimeError("FEATURE_RANKER_MID_CLOSE_INVALID")
-    future = np.roll(mid, -TARGET_HORIZON_BARS)
-    target = (np.log(future) - np.log(mid)) * 1e4
-    target[-TARGET_HORIZON_BARS:] = np.nan
+    if (
+        not np.isfinite(bid).all()
+        or not np.isfinite(ask).all()
+        or (bid <= 0.0).any()
+        or (ask <= 0.0).any()
+        or (ask < bid).any()
+    ):
+        raise RuntimeError("FEATURE_RANKER_BID_ASK_INVALID")
+    if len(frame) <= DIRECTION_HORIZON_BARS:
+        raise RuntimeError("FEATURE_RANKER_DIRECTION_HORIZON_UNAVAILABLE")
+
+    target = np.full(len(frame), np.nan, dtype=np.float64)
+    usable = len(frame) - DIRECTION_HORIZON_BARS
+    entry_bid = bid[:usable]
+    entry_ask = ask[:usable]
+    exit_bid = bid[DIRECTION_HORIZON_BARS:]
+    exit_ask = ask[DIRECTION_HORIZON_BARS:]
+    pnl_long = (exit_bid - entry_ask) / entry_ask * 1e4
+    pnl_short = (entry_bid - exit_ask) / entry_bid * 1e4
+
+    mfe_long = np.empty(usable, dtype=np.float64)
+    mae_long = np.empty(usable, dtype=np.float64)
+    mfe_short = np.empty(usable, dtype=np.float64)
+    mae_short = np.empty(usable, dtype=np.float64)
+    for offset in range(usable):
+        window_bid = bid[offset : offset + PATH_HORIZON_BARS + 1]
+        window_ask = ask[offset : offset + PATH_HORIZON_BARS + 1]
+        mfe_long[offset] = (
+            (float(np.max(window_bid)) - entry_ask[offset])
+            / entry_ask[offset]
+            * 1e4
+        )
+        mae_long[offset] = (
+            (entry_ask[offset] - float(np.min(window_bid)))
+            / entry_ask[offset]
+            * 1e4
+        )
+        mfe_short[offset] = (
+            (entry_bid[offset] - float(np.min(window_ask)))
+            / entry_bid[offset]
+            * 1e4
+        )
+        mae_short[offset] = (
+            (float(np.max(window_ask)) - entry_bid[offset])
+            / entry_bid[offset]
+            * 1e4
+        )
+
+    long_utility = (
+        pnl_long
+        + UTILITY_MFE_WEIGHT * mfe_long
+        - UTILITY_MAE_WEIGHT * mae_long
+        + UTILITY_PATH_WEIGHT * (mfe_long - mae_long)
+    )
+    short_utility = (
+        pnl_short
+        + UTILITY_MFE_WEIGHT * mfe_short
+        - UTILITY_MAE_WEIGHT * mae_short
+        + UTILITY_PATH_WEIGHT * (mfe_short - mae_short)
+    )
+    target[:usable] = long_utility - short_utility
     times = frame["time"].to_numpy()
     in_fit = (frame["time"] >= train_start) & (frame["time"] <= train_end)
     target[~in_fit.to_numpy()] = np.nan
+    full_horizon = np.arange(len(frame)) < usable
+    if not np.isfinite(target[in_fit.to_numpy() & full_horizon]).all():
+        raise RuntimeError("FEATURE_RANKER_DIRECTION_UTILITY_NONFINITE")
     return times, target
 
 
@@ -456,6 +535,7 @@ def emit_ranking(
         "target_time_max_utc": target_time_max.isoformat(),
         "source_sha256": source_sha256,
         "target_sha256": target_sha256,
+        "target_contract": dict(TRAIN_FEATURE_RANKING_TARGET_CONTRACT),
         "rank_reference": {
             "path": str(rank_reference.path),
             "sha256": rank_reference.sha256,
@@ -628,7 +708,7 @@ def main() -> None:
             candidates=candidates,
             source_ctx_cont=source_ctx_cont,
         )
-        times, target = _forward_return_target(
+        times, target = _direction_utility_margin_target(
             frame, train_start=train_start, train_end=train_end
         )
         train_rows = int(len(frame))

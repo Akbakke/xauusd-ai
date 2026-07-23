@@ -33,6 +33,12 @@ ordered identically across train, validation, test, bundle and serve. No field
 may be silently dropped, zero-filled, renamed, appended, sorted or recovered
 from another manifest.
 
+The exact ordered surface is normalized only from the complete physical TRAIN
+population before sampling. Binary/categorical semantics, robust continuous
+statistics, alias ownership and every selected causal MTF source row are
+hash-bound into metadata, lock and persistent model state. External scaler
+paths and VAL/TEST refits are forbidden.
+
 Feature selection is training-only. Test/OOS outcomes cannot select fields or
 their order. The manifest binds source data, builder revision, split range,
 feature audit, liveness audit and specialist audit by immutable hashes.
@@ -40,9 +46,11 @@ feature audit, liveness audit and specialist audit by immutable hashes.
 The TRAIN-rank NPZ is a feature-computation prerequisite, not a later dataset
 side effect. The ranker must apply those exact ECDF/ATR bytes before it derives
 regime/session candidates and must embed their path, hash, source and fit
-window plus both the NPZ and sidecar hashes in ranking v6. Manifest v6 reopens
-and validates both artifacts; a
-ranking computed from source-provided buckets cannot pass.
+window plus both the NPZ and sidecar hashes in ranking v7. Manifest v7 reopens
+and validates both artifacts. Optional ranking uses the exact spread-aware
+LONG-utility minus SHORT-utility target, combining final PnL, MFE, MAE and
+path-quality evidence rather than H24 mid-close return. A ranking computed
+from source-provided buckets cannot pass.
 
 `gx1/scripts/materialize_entry_model_native_seq513_signal_manifest_v1.py` is
 the sole current manifest producer. It cannot pass the ranking through as an

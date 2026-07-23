@@ -34,13 +34,13 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v1"
+    "entry_model_native_joint_exit_sizing_proof_v2"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_active_exit_chain_to_exit_now_v1"
+    "full_candidate_test_exact_active_exit_chain_to_exit_now_v2"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE = (
     "canonical_oos_reference"
@@ -52,6 +52,67 @@ MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES = (
     "v3_exit",
     "exit_iql",
 )
+
+
+def active_exit_artifact_manifests(
+    active_exit_entries: Mapping[str, Any],
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Hash-bind every regular byte consumed from each selected Exit artifact."""
+
+    manifests: dict[str, Any] = {}
+    if set(active_exit_entries) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES):
+        _fail(context, "active Exit role set mismatch")
+    for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES:
+        entry = active_exit_entries[role]
+        if not isinstance(entry, Mapping):
+            _fail(context, f"active Exit role {role} entry is invalid")
+        raw_root = Path(str(entry.get("path") or "")).expanduser()
+        if not raw_root.is_absolute() or raw_root.is_symlink() or not raw_root.exists():
+            _fail(context, f"active Exit role {role} root is invalid")
+        root = raw_root.resolve()
+        candidates = [root] if root.is_file() else sorted(root.rglob("*"))
+        files: list[dict[str, Any]] = []
+        for path in candidates:
+            if path.is_symlink():
+                _fail(context, f"active Exit role {role} contains a symlink: {path}")
+            if path.is_dir():
+                continue
+            if not path.is_file():
+                _fail(
+                    context,
+                    f"active Exit role {role} contains a non-regular path: {path}",
+                )
+            relative = "." if path == root else path.relative_to(root).as_posix()
+            files.append(
+                {
+                    "relative_path": relative,
+                    "sha256": sha256_file(path),
+                    "size_bytes": int(path.stat().st_size),
+                }
+            )
+        if not files:
+            _fail(context, f"active Exit role {role} contains no regular files")
+        files.sort(key=lambda row: row["relative_path"])
+        inventory_sha = hashlib.sha256(
+            json.dumps(
+                files,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                allow_nan=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        manifests[role] = {
+            "root_path": str(root),
+            "root_kind": "file" if root.is_file() else "directory",
+            "file_count": len(files),
+            "total_size_bytes": sum(int(row["size_bytes"]) for row in files),
+            "files": files,
+            "inventory_sha256": inventory_sha,
+        }
+    return manifests
 MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS = frozenset(
     {
         "exit_replay_status",
@@ -177,6 +238,7 @@ _PROOF_KEYS = frozenset(
         "test_prediction_provenance",
         "artifact_registry",
         "active_exit_entries",
+        "active_exit_artifact_manifests",
         "replay_rows",
         "exit_trace_rows",
         "exit_replay_coverage",
@@ -594,6 +656,12 @@ def load_bound_joint_exit_sizing_proof(
                 _fail(context, f"active Exit role {role} path is invalid")
         if observed["active_exit_entries"] != expected_exit_entries:
             _fail(context, "active Exit entries differ from bound registry")
+        expected_exit_manifests = active_exit_artifact_manifests(
+            expected_exit_entries,
+            context=f"{context}.active_exit_artifact_manifests",
+        )
+        if observed["active_exit_artifact_manifests"] != expected_exit_manifests:
+            _fail(context, "active Exit artifact bytes differ from bound proof")
         replay_binding = _source_binding(
             observed["replay_rows"],
             context=f"{context}.replay_rows",
@@ -908,6 +976,7 @@ __all__ = [
     "MODEL_NATIVE_SIZING_RUNTIME_PARITY_MIN_ROWS",
     "MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION",
     "ModelNativeSizingExecutionContractError",
+    "active_exit_artifact_manifests",
     "joint_exit_trace_sha256",
     "load_bound_joint_exit_sizing_proof",
     "load_bound_runtime_sizing_parity",

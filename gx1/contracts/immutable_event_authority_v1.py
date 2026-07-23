@@ -7,9 +7,12 @@ have been verified.
 """
 from __future__ import annotations
 
+import ctypes
+import errno
 import json
 import os
 import re
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -30,6 +33,39 @@ def _fsync_directory(path: Path) -> None:
         os.fsync(fd)
     finally:
         os.close(fd)
+
+
+def _publish_file_noreplace(source: Path, destination: Path) -> None:
+    libc = ctypes.CDLL(None, use_errno=True)
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise ImmutableEventAuthorityError(
+            "atomic no-replace immutable event publication is unavailable"
+        )
+    renameat2.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    renameat2.restype = ctypes.c_int
+    if renameat2(
+        -100,
+        os.fsencode(source),
+        -100,
+        os.fsencode(destination),
+        1,
+    ) != 0:
+        code = ctypes.get_errno()
+        if code == errno.EEXIST:
+            raise ImmutableEventAuthorityError(
+                f"immutable event already exists: {destination}"
+            )
+        raise ImmutableEventAuthorityError(
+            "atomic no-replace immutable event publication failed: "
+            f"{os.strerror(code)}"
+        )
 
 
 def _event_time_from_name(path: Path, *, event_prefix: str) -> tuple[datetime, bool]:
@@ -252,27 +288,31 @@ def write_immutable_json_event(
         raise ImmutableEventAuthorityError(
             f"immutable event payload is not strict JSON: {exc}"
         ) from exc
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    fd, stage_name = tempfile.mkstemp(
+        prefix=f".{path.name}.staging.",
+        dir=str(root),
+    )
+    stage_path = Path(stage_name)
+    published = False
     try:
-        fd = os.open(path, flags, 0o644)
-    except FileExistsError as exc:
-        raise ImmutableEventAuthorityError(
-            f"immutable event already exists for timestamp {stamp}: {path}"
-        ) from exc
-    try:
+        os.fchmod(fd, 0o644)
         view = memoryview(encoded)
         while view:
             written = os.write(fd, view)
             if written <= 0:
-                raise OSError(f"short write while publishing immutable event: {path}")
+                raise OSError(
+                    f"short write while staging immutable event: {stage_path}"
+                )
             view = view[written:]
         os.fsync(fd)
-    except Exception:
-        try:
-            path.unlink(missing_ok=True)
-        finally:
-            raise
-    finally:
         os.close(fd)
-    _fsync_directory(root)
+        fd = -1
+        _publish_file_noreplace(stage_path, path)
+        published = True
+        _fsync_directory(root)
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        if not published:
+            stage_path.unlink(missing_ok=True)
     return path, event

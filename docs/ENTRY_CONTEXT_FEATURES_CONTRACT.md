@@ -8,7 +8,11 @@ post-model direction gate.
 - 142 ordered continuous fields;
 - 5 ordered categorical fields;
 - exact order and hashes bound in each split manifest and bundle;
-- identical construction and normalization in train, replay and serve.
+- identical construction and normalization in train, replay and serve;
+- exactly one of eight specialist-family owners per field;
+- family-specific continuous projections and separate categorical
+  field/domain embeddings entering the owned specialist token before
+  cross-attention.
 
 The categorical surface includes session/regime, volatility/ATR, spread and
 higher-timeframe trend state according to the exact manifest-owned names. The
@@ -28,7 +32,11 @@ Every field must pass strict learnability on TRAIN and exact full-scan coverage
 on validation and test. A chronological OOS split may legitimately remain in
 one context/regime category, but that value must be inside the TRAIN vocabulary
 and may not be filled, rewritten or silently ignored. Normalization statistics
-are training-owned, bundle-bound and immutable.
+are fit once on the complete physical TRAIN population before sampling,
+bundle-bound and immutable. Current-bar signal/context aliases are derived
+from the actual ordered signal names, must remain bit-identical and use the
+context statistic as their single owner; V24's observed count of 82 is not a
+hard-coded contract.
 
 ## Direction boundary
 

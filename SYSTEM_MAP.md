@@ -17,15 +17,18 @@ exact split manifests and chronological leak-safe rows
         |     +-- 378 mandatory outputs from 12 causal layers
         |     +-- 101 deterministic TRAIN-only ranked fields
         +-- 142 continuous + 5 categorical context fields
-        |     +-- currently generic context projections; per-family routing is OPEN
+        |     +-- exact one-owner routing into the eight specialist tokens
         +-- M5/M15/H1/H4/D1 sequences with recipe-owned lengths
               +-- terminal V7 used 16/16/16/8/8
+        |
+        v
+full physical-TRAIN robust normalization + exact MTF V2 cache-byte binding
         |
         v
 full-field liveness + field order/hash + feature/target/specialist audits
         |
         v
-eight signal specialist encoders + temporal/MTF/cross-TF/FiLM fusion
+eight signal+owned-context specialist encoders + temporal/MTF/cross-TF/FiLM fusion
         |
         v
 22 supervised evidence heads
@@ -318,7 +321,8 @@ Foundation target audit schema v2 requires all 46 aux targets in every split,
 including `time_to_mfe` and all Q targets. LONG/SHORT Q targets must be live,
 FLAT must be exact zero reward, and every horizon must contain non-collapsed
 unique LONG/SHORT/FLAT best actions. Prediction evidence schema v2 and smoke
-bundle audit schema v3 then prove on both VAL and TEST that all 12 timing
+bundle audit schema v4 then bind the exact bundle commit and prove on both
+VAL and TEST that all 12 timing
 outputs align with their targets, learned near-BOTTOM LONG and near-TOP SHORT
 pockets meet immutable precision/support/Wilson floors, Q aligns with reward
 targets, Q ranking selects the reward-best action, V tracks max-Q, and
@@ -336,9 +340,13 @@ context and M5/M15/H1/H4/D1. Layout, reference, bundle and lock hashes are
 admission-bound; an old event or one passive input/group blocks launch.
 
 `gx1/scripts/fit_entry_direction_calibration_v1.py` may fit only the declared
-calibration artifact. `gx1/contracts/immutable_event_authority_v1.py` and the
-candidate evidence/readiness scripts bind events by content and lineage. A
-mutable report path or a copied `PASS` decision is insufficient.
+calibration artifact. Trained, calibrated and sizing-finalized bundles share
+the exact inventory/commit owner in
+`entry_model_native_bundle_commit_v1.py`; publication occurs only after hidden
+staging, strict load, `fsync` and atomic no-replace rename.
+`gx1/contracts/immutable_event_authority_v1.py` likewise stages and fsyncs a
+complete event before its final name becomes visible. A mutable report path or
+a copied `PASS` decision is insufficient.
 
 Selective-edge prediction carries exact VAL/TEST manifest and parquet
 identities into its immutable report. Candidate replay and serve parity consume
@@ -355,10 +363,12 @@ price-path outcome. It is an offline direction diagnostic with
 learned sizing must be proven separately against its OOS controls, the exact
 adopted active Exit replay and post-adoption runtime parity. The source
 contracts/finalizers now require a file-bound contiguous per-M1 Exit trace,
-row-recomputed bid/ask results, exact registry identity, adopted bundle hashes
-and fresh broker-shadow parity with zero orders. No current real chain has
-passed, so capital authority remains `BLOCK`; live/paper emits `NO_ORDER`
-whenever that sizing authority is missing or red.
+row-recomputed bid/ask results, exact registry identity, a recursive
+path/size/SHA inventory of every regular file under all three active Exit
+artifacts, adopted bundle hashes and fresh broker-shadow parity with zero
+orders. No current real chain has passed, so capital authority remains
+`BLOCK`; live/paper emits `NO_ORDER` whenever that sizing authority is missing
+or red.
 
 `gx1/contracts/entry_model_native_adaptation_drift_v1.py` owns the only market
 adaptation trigger. It row-recomputes immutable same-bundle candidate-TEST and
@@ -377,10 +387,15 @@ bid/ask-recomputed outcomes, absolute challenger side edge and positive
 lower-95% paired improvement globally and per supported direction/context.
 Newest
 terminal evidence wins; failed drift, replay or transition refresh invalidates
-older green evidence. `gx1_guards/artifacts.py` accepts launch `ALLOW` only from
-a fresh activating lifecycle event cross-bound to the exact accepted bundle,
-serve gates, joint Exit proof and sizing runtime parity. No real lifecycle
-chain exists; current launch remains `BLOCK`.
+older green evidence. `gx1_guards/artifacts.py` accepts launch `ALLOW` only
+from a fresh activating lifecycle event cross-bound to the exact accepted
+bundle, serve gates, joint Exit proof, sizing runtime parity and the newest
+immutable one-time launch approval. The approval binds the complete
+launch-state payload and exact bundle commit; environment text is not
+authority. The runner binds a startup lease and revalidates unchanged
+launch/registry bytes and all freshness gates before every new exposure. No
+real lifecycle chain or canonical transactional launch finalizer exists;
+current launch remains `BLOCK`.
 
 ## Evidence retention and cleanup ownership
 
@@ -407,8 +422,9 @@ launch authority.
 model-native decision adapter; it loads only a launch-admitted bundle and
 validates the shared exact runtime evidence contract before returning a result.
 `gx1_guards/artifacts.py` requires both the artifact registry and
-`PROJECT_STATE_xau_direction_launch.json` to agree on the exact bundle and
-metadata hash. Current launch state is `BLOCK`, so resolution must fail.
+`PROJECT_STATE_xau_direction_launch.json` to agree on the exact bundle,
+metadata hash, sizing/Exit/lifecycle evidence, bundle commit and immutable
+launch approval. Current launch state is `BLOCK`, so resolution must fail.
 
 Serving must reproduce the same ordered features, normalization, timeframe
 alignment, architecture, calibration and final logits as immutable replay on
@@ -489,7 +505,9 @@ Current facts:
 - the full audit in `PIPELINE_AUDIT_XAU_20260723.md` proves selected-side
   bad-path LONG bias, signed dip-MFE corruption, replacement-sampler coverage
   loss, auxiliary target/weight/metric mismatches, partial checkpoint
-  admission and incomplete MTF/scaler/context/fusion/launch contracts;
+  admission and incomplete MTF/scaler/context/fusion/launch contracts. All
+  listed faults except the transactional launch producer are now
+  source-repaired; V24/V7 remain rejected;
 - rejected V21/V22/V23 large split parquets are deleted; their terminal,
   manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
@@ -601,10 +619,12 @@ fullførte seks epoker før hard-red-stop. Accuracy toppet 0.403455 gjennom
 bad-path/survival AUC, seks cross-head-kollapser og sultede specialist-/
 family×TF-porter. Ingen bundle ble skrevet.
 
-Neste pil er ikke ny trening. Begge P0-target/objective-feil, replacement-
-sampling, auxiliary-vekt/metrikk, alle-heads/influence admission,
-MTF/scaler/context/fusion-binding og atomisk launch-authority må repareres.
-Deretter kreves en helt fersk XAU-only rebuild og alle audits på nytt.
+Neste pil er ikke ny trening. Bevar de ferdige source-reparasjonene for
+target/objective, sampling, conditional metrics, alle-heads/influence,
+MTF/normalisering/context/fusion, bundle/event-atomisitet, Exit-bytebinding og
+runtime fail-close. Den transaksjonelle launch-produsenten og canonical/live
+Dec-2024-paritet gjenstår. Deretter kreves en helt fersk XAU-only rebuild og
+alle audits på nytt.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
@@ -676,19 +696,25 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
 ### Post-V7 source-repair routing checkpoint (2026-07-23)
 
 The target/trainer path now preserves signed dip-MFE, applies selected-side
-bad-path symmetrically, samples without replacement, binds exact recipe and M5
-bytes, uses one causal MTF cache identity, normalizes raw-bps forward-head
-targets to a 20-bps model unit and gates checkpoints on all 22 active heads'
-target/output liveness plus final-fusion influence. The bundle loader no longer
-accepts unused external scaler/feature paths.
+bad-path symmetrically, samples without replacement, binds exact recipe and
+all M5/MTF component bytes, normalizes raw-bps forward heads to a 20-bps model
+unit and gates checkpoints on conditional path skill plus all 22 active heads'
+target/output liveness and final-fusion influence.
 
-Context routing is not yet equal to the specialist taxonomy. Current
-`specialist_input_indices` cover only the 513 signal tensor. All 142 continuous
-and five categorical fields are globally live, but none directly changes its
-claimed pre-cross specialist token; 82 continuous fields have exact signal
-aliases, while 60 continuous and five categorical fields are global-only.
-The next architecture contract must own exact per-specialist context indices,
-alias policy and all-147 perturbation proof before rebuild.
+One immutable normalization contract fits all 513+142 continuous surfaces and
+the five 25-field timeframe surfaces on the complete physical TRAIN population
+before sampling. Every statistic, categorical domain, selected causal source
+row and alias is hash-bound in bundle state. All 142+5 context fields have one
+family owner and enter family-specific projections before specialist
+cross-attention. Current-bar aliases are derived from the actual ordered
+signal names, must be bit-identical and reuse context-owned statistics; `82`
+is V24 fixture evidence, not a hard-coded architecture constant.
+
+Bundle/event publication, recursive active-Exit byte identity, structured
+launch approval, per-entry runtime lease recheck and missing-trade-ID close
+behavior are source-repaired. The remaining source P0 is one transactional
+candidate→promotion→launch producer; empirical dataset/model/edge proof and
+canonical/live December-2024 tape parity also remain absent.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

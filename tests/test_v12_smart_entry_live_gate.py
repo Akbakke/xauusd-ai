@@ -143,7 +143,7 @@ def _write_gate_artifacts(
             rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
         ).hexdigest(),
         "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "normalization_fit_scope": "train_only",
+        "rank_reference_fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
         "split_reset_allowed": False,
@@ -358,7 +358,7 @@ def test_smart_serving_gate_rejects_old_direction_audit_without_repair_pockets(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    bundle_dir = _write_gate_artifacts(
+    _write_gate_artifacts(
         tmp_path,
         monkeypatch,
         pockets={

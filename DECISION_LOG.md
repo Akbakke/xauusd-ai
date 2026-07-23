@@ -6,7 +6,7 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
-## 2026-07-23 — first audit repair checkpoint; BLOCK remains
+## 2026-07-23 — first audit repair checkpoint; later superseded
 
 The post-V7 findings were reproduced before repair. Source now closes signed
 dip-MFE, selected-side bad-path symmetry, no-replacement sampling,
@@ -16,24 +16,21 @@ liveness/influence, raw-bps forward-head units, CLI gradient accumulation and
 stale loader compatibility inputs. Focused integration completed with 391
 tests passing and two declared runtime skips.
 
-This is not authority to rebuild or train. Dynamic routing proof shows the
-specialist audit still overstates context ownership: none of the 142
-continuous or five categorical fields directly changes its claimed pre-cross
-specialist token. Eighty-two continuous fields have byte-identical current-bar
-signal aliases; 60 continuous plus all five categorical fields are global-only.
-Raw 513+142 continuous input scaling is also not yet immutable TRAIN-fit.
+This historical checkpoint was later superseded the same day by the complete
+TRAIN-fit normalization and 142+5 one-owner context-routing decisions at the
+end of this file. The 82-alias observation remains V24 fixture evidence only,
+not a current architecture constant.
 
-Launch design found a separate bootstrap conflict: a joint Exit/sizing proof
-cannot bind the full mutable canonical artifact registry and remain valid when
-promotion adds `active.v10_entry`. The future chain must bind an immutable
-Exit-only registry snapshot and compare it exactly before promotion.
+Launch design found a separate bootstrap conflict. Joint Exit/sizing now binds
+the actual recursive Exit artifact bytes, and consumer-side immutable approval
+is repaired. The transactional launch producer remains open.
 
 Decision:
 
 - preserve all completed repairs and their regression contracts;
-- implement TRAIN-fit ordered normalization and true 142+5 family routing
-  before fresh rebuild;
-- keep bundle publication/promotion/vedtak work separate and fail-closed;
+- preserve the later normalization, routing, MTF, bundle/event, Exit-byte and
+  runtime fail-close repairs before fresh rebuild;
+- implement the transactional promotion/launch producer;
 - keep launch `BLOCK`; V24/V7 remain immutable failed evidence.
 
 ## 2026-07-23 — V7 is terminal RED; pipeline audit requires rebuild
@@ -1037,3 +1034,66 @@ V17, V19 and the obsolete pre-foundation seq520 lineage were deleted after
 exact path/status/reference checks. The deletion removed 386,704,608,791
 bytes. Small terminal, manifest and audit records remain as failure evidence;
 active V21 and canonical XAU sources were not touched.
+
+## 2026-07-23 — full-stack input cooperation is contract-owned
+
+The post-V7 audit proved that field presence was insufficient: raw scales
+spanned millions, 147 context fields did not enter their claimed specialist
+tokens, disk MTF components were replaceable and global auxiliary metrics
+could pass without conditional path skill.
+
+The active source now fits one ordered immutable normalization contract on the
+complete physical TRAIN population before sampling for all 513 signals, 142
+continuous context values and each five-timeframe 25-field surface. Binary and
+categorical semantics remain exact; every continuous statistic, categorical
+domain, causal TF source-row hash and alias owner is bound into metadata, lock
+and persistent model state. VAL, TEST, replay and serve cannot refit.
+
+All 142 continuous and five categorical fields have exactly one of eight
+family owners. Family projections enter the owned specialist token before
+cross-attention; categorical fields use separate field/domain embeddings. The
+signal/context alias set is derived from the actual ordered signal names and
+must be bit-identical. V24's 82 aliases are fixture evidence, not a hard-coded
+constant. RSI, percentage change and rate-of-change evidence routes to
+momentum. Conditional tradable/LONG/SHORT path metrics and incremental lift,
+all 22 active heads and all 26 fusion groups are checkpoint-blocking.
+
+Optional TRAIN ranking now uses exact spread-aware LONG utility minus SHORT
+utility with final PnL, MFE, MAE and path-quality terms, not H24 mid-close
+return. These changes prove one learned cooperation path in code; they do not
+prove OOS direction edge.
+
+## 2026-07-23 — MTF, bundle, Exit and runtime identities fail closed
+
+Admitted training requires one exact V2 disk cache bound to its M5 source,
+ten component array hashes/sizes, exact 11-file inventory and aggregate
+identity. Source-build fallback is not an admitted trainer mode.
+
+Trained, calibrated and sizing-finalized bundles use a shared exact commit
+manifest. They are built under a hidden sibling path, fsynced, strict-loaded
+before visibility and atomically published with no replacement. Immutable
+JSON events follow the same hidden-stage/fsync/no-replace visibility rule.
+Smoke bundle audit schema v4 binds the commit.
+
+Joint Entry-sizing/Exit proof schema v2 recursively binds path, size and
+SHA-256 for every regular file under the selected XGB, V3 Exit and Exit-IQL
+artifacts; registry JSON alone is no longer sufficient. Runtime retains file
+stats and rejects in-place changes.
+
+A missing OANDA trade ID is unresolved exposure and can no longer send an
+opposite market order on a hedging account. Journal writes are locked and
+fsynced.
+
+## 2026-07-23 — environment text is not launch authority
+
+`GX1_SMART_LAUNCH_VEDTAK` is removed from both launcher and runner. A future
+ALLOW consumer requires the newest immutable one-time approval with an exact
+ID, event SHA, complete launch-state payload hash and bundle-commit hash.
+The runner captures an exact launch/registry lease at startup and revalidates
+the unchanged identity and all freshness evidence before every new exposure.
+
+No canonical transactional candidate→promotion→launch producer exists yet.
+That remains a source P0; consumer hardening does not manufacture a safe
+completion path. Launch remains `BLOCK`. No rebuild, training, calibration,
+replay, paper/demo/live execution or promotion was run, and V24/V7 remain
+immutable failure evidence.

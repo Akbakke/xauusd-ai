@@ -75,6 +75,7 @@ from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX,
     MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT,
     MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION,
+    active_exit_artifact_manifests,
     load_bound_joint_exit_sizing_proof,
     load_bound_runtime_sizing_parity,
     recompute_joint_exit_replay_coverage,
@@ -87,6 +88,13 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 from gx1.contracts.immutable_event_authority_v1 import (
     write_immutable_json_event,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
+    publish_bundle_directory_noreplace,
+    require_bundle_commit_manifest,
+    write_bundle_commit_manifest,
+)
 
 
 INSTRUMENT_EVIDENCE_SCHEMA_VERSION = (
@@ -98,6 +106,8 @@ OOS_SOURCE_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_SOURCE"
 PROOF_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_OOS_PROOF"
 ADOPTION_PREFIX = "ENTRY_MODEL_NATIVE_SIZING_ADOPTION"
 JOINT_EXIT_PROOF_PREFIX = MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX
+
+
 RUNTIME_PARITY_PREFIX = MODEL_NATIVE_SIZING_RUNTIME_PARITY_EVENT_PREFIX
 MIN_FIT_ROWS_PER_SPLIT = MODEL_NATIVE_SIZING_MIN_FIT_ROWS_PER_SPLIT
 _AUTHORITY_STAGE_DIRS = {
@@ -731,17 +741,24 @@ def bind_bundle_sizing_calibration(
     source_state = source_bundle_dir / "model_state_dict.pt"
     source_metadata = source_bundle_dir / "bundle_metadata.json"
     source_lock = source_bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
-    required_inventory = {
-        "bundle_metadata.json",
-        "MASTER_TRANSFORMER_LOCK.json",
-        "model_state_dict.pt",
+    try:
+        require_bundle_commit_manifest(source_bundle_dir)
+    except RuntimeError as exc:
+        raise SizingFinalizationError(str(exc)) from exc
+    source_inventory = {
+        *BUNDLE_COMMIT_CORE_ARTIFACTS,
+        BUNDLE_COMMIT_MANIFEST_NAME,
+    }
+    output_inventory = {
+        *BUNDLE_COMMIT_CORE_ARTIFACTS,
+        BUNDLE_COMMIT_MANIFEST_NAME,
     }
     source_entries = list(source_bundle_dir.iterdir())
     observed_inventory = {path.name for path in source_entries}
-    if observed_inventory != required_inventory:
+    if observed_inventory != source_inventory:
         raise SizingFinalizationError(
             "source bundle inventory must be exact code-owned files; "
-            f"expected={sorted(required_inventory)} observed={sorted(observed_inventory)}"
+            f"expected={sorted(source_inventory)} observed={sorted(observed_inventory)}"
         )
     if any(path.is_symlink() or not path.is_file() for path in source_entries):
         raise SizingFinalizationError(
@@ -782,7 +799,7 @@ def bind_bundle_sizing_calibration(
         )
     )
     try:
-        for name in sorted(required_inventory):
+        for name in sorted(BUNDLE_COMMIT_CORE_ARTIFACTS):
             shutil.copy2(source_bundle_dir / name, staging / name)
         paths = (
             staging / "bundle_metadata.json",
@@ -799,7 +816,16 @@ def bind_bundle_sizing_calibration(
             payloads.append(payload)
         for path, payload in zip(paths, payloads, strict=True):
             _atomic_json(path, payload)
-        os.rename(staging, output_bundle_dir)
+        write_bundle_commit_manifest(
+            bundle_dir=staging.resolve(),
+            artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+            bundle_kind="sizing_finalized",
+            created_at_utc=datetime.now(timezone.utc).isoformat(),
+        )
+        try:
+            publish_bundle_directory_noreplace(staging, output_bundle_dir)
+        except RuntimeError as exc:
+            raise SizingFinalizationError(str(exc)) from exc
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
@@ -807,8 +833,9 @@ def bind_bundle_sizing_calibration(
         output_bundle_dir / "bundle_metadata.json",
         output_bundle_dir / "MASTER_TRANSFORMER_LOCK.json",
     )
-    if {path.name for path in output_bundle_dir.iterdir()} != required_inventory:
+    if {path.name for path in output_bundle_dir.iterdir()} != output_inventory:
         raise SizingFinalizationError("finalized bundle inventory parity failed")
+    require_bundle_commit_manifest(output_bundle_dir)
     metadata = _read_json(paths[0], label="finalized bundle metadata")
     lock = _read_json(paths[1], label="finalized transformer lock")
     for label, payload in (("metadata", metadata), ("lock", lock)):
@@ -1095,6 +1122,10 @@ def finalize_joint_exit_sizing_proof(
             raise SizingFinalizationError(
                 f"active Exit role {role} path is missing: {role_path}"
             )
+    exit_artifact_manifests = active_exit_artifact_manifests(
+        active_exit_entries,
+        context="SIZING_JOINT_EXIT_ACTIVE_ARTIFACTS",
+    )
 
     replay_rows = pd.read_parquet(replay_rows_path)
     exit_trace_rows = pd.read_parquet(exit_trace_rows_path)
@@ -1139,6 +1170,7 @@ def finalize_joint_exit_sizing_proof(
         "test_prediction_provenance": proof["test_prediction_provenance"],
         "artifact_registry": registry_binding,
         "active_exit_entries": active_exit_entries,
+        "active_exit_artifact_manifests": exit_artifact_manifests,
         "replay_rows": replay_binding,
         "exit_trace_rows": exit_trace_binding,
         "exit_replay_coverage": coverage,

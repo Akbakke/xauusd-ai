@@ -10,6 +10,10 @@ import pytest
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     model_native_mandatory_full_stack_metadata,
     model_native_signal_contract_metadata,
@@ -19,12 +23,15 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_EXPECTED_SIGNAL_DIM,
     MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
+    MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
+    MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS,
     MODEL_NATIVE_SMART_FAMILY_CONTRACT,
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     SPECIALIST_CONTRACT_MODES,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
+    model_native_context_temporal_alias_policy,
     require_model_native_specialist_contract_mode,
     required_training_specialists_for_mode,
     smart_family_contract_for_mode,
@@ -33,9 +40,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
 from gx1.scripts.audit_entry_specialist_feature_groups_v1 import (
-    _context_routing_failures,
+    _context_taxonomy_failures,
     _specialist_input_liveness_rows,
     run,
+)
+from tests.model_native_context_routing_support import (
+    V24_TEMPORAL_ALIAS_SIGNAL_FIELDS,
 )
 
 
@@ -74,8 +84,10 @@ def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
         "ctx_cont.d1_dist_to_boundary_v3": "session_regime_encoder",
         "ctx_cont.retracement_from_last_impulse": "structure_swing_encoder",
         "ctx_cont.D1_dist_from_ema200_atr": "trend_ema_encoder",
-        "ctx_cont.d1_pct_change_5_canon_v2": "trend_ema_encoder",
-        "ctx_cont.d1_dist_roc_288_v3": "trend_ema_encoder",
+        "ctx_cont.d1_pct_change_5_canon_v2": "momentum_flow_encoder",
+        "ctx_cont.d1_dist_roc_288_v3": "momentum_flow_encoder",
+        "ctx_cont.d1_rsi14_canon_v2": "momentum_flow_encoder",
+        "ctx_cont.m15_rsi14_canon_v2": "momentum_flow_encoder",
         "ctx_cont.dip_proximity_h1_v3": "momentum_flow_encoder",
         "ctx_cont.dip_proximity_mean_h1h4d1": "momentum_flow_encoder",
         "ctx_cont.smc_premium_extreme_snap": "smc_liquidity_encoder",
@@ -84,7 +96,7 @@ def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
     assert {field: classify_entry_specialist_feature(field) for field in expected} == expected
 
 
-def test_context_routing_failures_fail_closed_for_model_native_contract() -> None:
+def test_context_taxonomy_failures_fail_closed_for_model_native_contract() -> None:
     rows = [
         {
             "scope": "ctx_cont",
@@ -94,11 +106,54 @@ def test_context_routing_failures_fail_closed_for_model_native_contract() -> Non
         }
     ]
 
-    failures = _context_routing_failures(rows)
+    failures = _context_taxonomy_failures(rows)
 
     assert len(failures) == 1
     assert MODEL_NATIVE_CONTRACT_MODE in failures[0]
     assert "ctx_cont.unowned_context_feature_v1" in failures[0]
+
+
+def test_context_routing_partitions_numeric_and_nominal_semantics_exactly() -> None:
+    routing = MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT
+    numeric = {
+        index
+        for values in routing["ctx_cont_numeric_indices"].values()
+        for index in values
+    }
+    nominal = {
+        index
+        for values in routing["ctx_cont_nominal_indices"].values()
+        for index in values
+    }
+
+    assert not (numeric & nominal)
+    assert numeric | nominal == set(range(len(MODEL_NATIVE_CTX_CONT_FIELDS)))
+    assert {
+        MODEL_NATIVE_CTX_CONT_FIELDS[index] for index in nominal
+    } == set(MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS)
+    assert routing["ctx_cont_nominal_indices"]["session_regime_encoder"] == sorted(
+        nominal
+    )
+    assert routing["nominal_ctx_cont_cardinality"] == 5
+    assert routing["nominal_ctx_cont_representation"] == (
+        "learned_categorical_embedding"
+    )
+
+
+def test_temporal_alias_policy_is_artifact_derived_not_fixed_to_v24_count() -> None:
+    v24 = model_native_context_temporal_alias_policy(
+        V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
+    )
+    future_fields = [
+        *V24_TEMPORAL_ALIAS_SIGNAL_FIELDS[:-1],
+        "ctx_cont.h1_regime_class_id_v2",
+    ]
+    future = model_native_context_temporal_alias_policy(future_fields)
+
+    assert v24["alias_count"] == 82
+    assert future["alias_count"] == 82
+    assert future["signal_fields"] != v24["signal_fields"]
+    assert future["signal_fields_sha256"] != v24["signal_fields_sha256"]
 
 
 def test_specialist_liveness_uses_exact_sparse_event_support_contract(
@@ -207,6 +262,11 @@ def _smart_seq513_fields() -> tuple[list[str], list[str]]:
         if feature not in set(selected)
     )
     selected.extend(
+        feature
+        for feature in V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
+        if feature not in set(selected)
+    )
+    selected.extend(
         _fill_features(
             "session_regime.smart_contract_ranked_fill_",
             MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT - len(selected),
@@ -252,18 +312,17 @@ def _write_smart_seq513_fixture(
                     "seq_structure_extension_v1": {"features": selected},
                 },
                 "ctx_contract": {
-                    "tag": "UNIT_CTX",
-                    "ctx_cont_names": [
-                        "spread_bps",
-                        "is_us_only",
-                        "regime_stack_sum_v3",
-                        "d1_regime_changed_flag_v3",
-                        "dip_proximity_h1_v3",
-                        "sr_support_minus_resistance_prox",
-                    ],
-                    "ctx_cat_names": ["spread_bucket", "atr_bucket"],
-                    "ctx_cont_dim": 6,
-                    "ctx_cat_dim": 2,
+                    "tag": "CTX142CAT5",
+                    "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+                    "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
+                    "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
+                    "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS),
+                    "ctx_cont_fields_sha256": (
+                        MODEL_NATIVE_CTX_CONT_FIELDS_SHA256
+                    ),
+                    "ctx_cat_fields_sha256": (
+                        MODEL_NATIVE_CTX_CAT_FIELDS_SHA256
+                    ),
                 },
             }
         }
@@ -368,6 +427,22 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert all(row["feature_count_matches"] is True for row in report["smart_family_contract_rows"])
     assert len(report["specialist_input_liveness"]) == 24
     assert report["specialist_input_liveness_all_live"] is True
+    assert report["context_taxonomy_all_mapped"] is True
+    assert report["context_specialist_routing_all_mapped"] is True
+    assert report["context_specialist_routing_failure_count"] == 0
+    alias_policy = report["architecture_contract"][
+        "context_specialist_routing"
+    ]["temporal_alias_policy"]
+    assert alias_policy["alias_count"] == 82
+    assert alias_policy["signal_fields"] == [
+        field
+        for field in _smart_seq513_fields()[0]
+        if field in V24_TEMPORAL_ALIAS_SIGNAL_FIELDS
+    ]
+    assert alias_policy["statistics_owner"] == "ctx_cont"
+    assert alias_policy["signal_alias_statistics_policy"] == (
+        "bit_identical_copy_from_ctx_cont_train_stats"
+    )
     assert set(report["split_artifacts"]) == {"train", "val", "test"}
 
 

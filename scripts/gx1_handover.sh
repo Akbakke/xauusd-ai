@@ -29,12 +29,17 @@ esac
 
 sources=(
   "$REPO/AGENTS.md"
+  "$REPO/CLAUDE.md"
+  "$REPO/DEVELOPMENT_NOTES.md"
+  "$REPO/README.md"
   "$REPO/ROADMAP.md"
   "$REPO/SYSTEM_MAP.md"
   "$HANDOVER"
   "$REPO/PROJECT_STATE.md"
   "$REPO/DECISION_LOG.md"
   "$REPO/PIPELINE_AUDIT_XAU_20260723.md"
+  "$REPO/docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md"
+  "$REPO/docs/FEATURE_MANIFEST.md"
   "$REPO/PROJECT_STATE_artifacts.json"
   "$REPO/PROJECT_STATE_entry_iql_delete_incident.json"
   "$LAUNCH_STATE"
@@ -83,6 +88,34 @@ if not isinstance(state, dict):
 for key in ("decision", "updated_utc"):
     if not isinstance(state.get(key), str) or not state[key]:
         raise SystemExit(f"FATAL: malformed launch authority: missing {key}")
+repair = state.get("source_repair_checkpoint")
+if (
+    not isinstance(repair, dict)
+    or repair.get("status") != "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
+    or repair.get("fresh_rebuild_started") is not False
+    or repair.get("fresh_training_started") is not False
+    or repair.get("empirical_direction_edge_proven") is not False
+    or repair.get("remaining_source_p0")
+    != ["canonical_transactional_candidate_promotion_launch_finalizer"]
+):
+    raise SystemExit("FATAL: malformed source-repair checkpoint")
+verification = repair.get("repository_verification")
+if (
+    not isinstance(verification, dict)
+    or verification.get("tests_collected") != 1725
+    or verification.get("tests_passed") != 1720
+    or verification.get("tests_skipped") != 5
+    or verification.get("tests_failed") != 0
+    or verification.get("changed_python_compile") != "PASS"
+    or verification.get("git_diff_check") != "PASS"
+    or verification.get("json_parse") != "PASS"
+    or verification.get("shell_syntax") != "PASS"
+    or verification.get("handover_self_check") != "PASS"
+    or verification.get("forbidden_instrument_scan") != "PASS"
+):
+    raise SystemExit("FATAL: malformed repository-verification checkpoint")
+if state["decision"] == "BLOCK" and state.get("accepted_via_vedtak") is not None:
+    raise SystemExit("FATAL: blocked launch state carries approval authority")
 
 dataset_event_id = state.get("dataset_event_id")
 terminal = state.get("accepted_dataset_terminal_evidence")

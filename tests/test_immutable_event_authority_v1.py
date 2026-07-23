@@ -156,6 +156,37 @@ def test_immutable_event_writer_self_binds_without_mutable_mirror(tmp_path: Path
         )
 
 
+def test_immutable_event_is_hidden_and_fsynced_before_final_publish(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.contracts import immutable_event_authority_v1 as authority
+
+    original_publish = authority._publish_file_noreplace
+    observed: dict[str, object] = {}
+
+    def capture_publish(source: Path, destination: Path) -> None:
+        observed["source_hidden"] = source.name.startswith(".")
+        observed["source_bytes"] = source.read_bytes()
+        observed["destination_absent"] = not destination.exists()
+        original_publish(source, destination)
+
+    monkeypatch.setattr(authority, "_publish_file_noreplace", capture_publish)
+    event_path, _ = write_immutable_json_event(
+        tmp_path,
+        PREFIX,
+        {
+            "created_utc": "2026-07-16T11:00:00.123456+00:00",
+            "decision": "PASS",
+        },
+    )
+
+    assert observed["source_hidden"] is True
+    assert observed["destination_absent"] is True
+    assert observed["source_bytes"] == event_path.read_bytes()
+    assert not list(tmp_path.glob(".*.staging.*"))
+
+
 def test_next_event_time_is_strictly_newer_than_future_inventory(
     tmp_path: Path,
 ) -> None:

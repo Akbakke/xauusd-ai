@@ -28,7 +28,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
 from gx1.execution import v12_model_native_state_live as state_module
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
     classify_entry_specialist_feature,
+    model_native_context_temporal_alias_policy,
     specialist_contract_training_allowed_for_mode,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
@@ -40,10 +42,14 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+    EXACT_CTX_CAT_DOMAINS,
     EXACT_SPECIALIST_NAMES,
     EntryV10CtxHybridTransformer,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.model_native_input_normalization_support import (
+    input_normalization_fixture,
+)
 
 
 # The code-owned family fields plus ranked fixture fields form the exact
@@ -89,6 +95,12 @@ def _exact_specialist_indices() -> dict[str, list[int]]:
 
 
 def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dict:
+    ordered_signal_names = list(
+        ordered_model_native_signal_fields(_selected_fields())
+    )
+    temporal_alias_policy = model_native_context_temporal_alias_policy(
+        ordered_signal_names
+    )
     return {
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
         "snap_input_dim": MODEL_NATIVE_SIGNAL_DIM,
@@ -106,6 +118,34 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
         "h4_seq_len": 4,
         "d1_seq_len": 4,
         "specialist_input_indices": _exact_specialist_indices(),
+        "specialist_ctx_cont_indices": {
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_indices"
+            ].items()
+        },
+        "specialist_ctx_cont_nominal_indices": {
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_nominal_indices"
+            ].items()
+        },
+        "specialist_ctx_cat_indices": {
+            str(name): list(values)
+            for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cat_indices"
+            ].items()
+        },
+        "temporal_alias_signal_indices": list(
+            temporal_alias_policy["signal_indices"]
+        ),
+        "temporal_alias_ctx_cont_indices": list(
+            temporal_alias_policy["ctx_cont_indices"]
+        ),
+        "input_normalization": input_normalization_fixture(
+            signal_names=ordered_signal_names,
+            mtf_names=["mtf_0", "mtf_1", "mtf_2"],
+        ),
     }
 
 
@@ -266,9 +306,27 @@ def test_model_native_transformer_direction_is_direct_and_anchor_free() -> None:
     torch.manual_seed(7)
     model = EntryV10CtxHybridTransformer(**_exact_model_kwargs()).eval()
     seq_x = torch.randn(2, 4, MODEL_NATIVE_SIGNAL_DIM)
-    snap_x = torch.randn(2, MODEL_NATIVE_SIGNAL_DIM)
+    snap_x = seq_x[:, -1, :].clone()
     ctx_cont = torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM)
-    ctx_cat = torch.randint(0, 4, (2, MODEL_NATIVE_CTX_CAT_DIM))
+    nominal_indices = [
+        index
+        for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+            "ctx_cont_nominal_indices"
+        ].values()
+        for index in values
+    ]
+    ctx_cont[:, nominal_indices] = torch.randint(
+        0,
+        5,
+        (2, len(nominal_indices)),
+    ).float()
+    ctx_cat = torch.stack(
+        [
+            torch.randint(0, len(domain), (2,))
+            for domain in EXACT_CTX_CAT_DOMAINS.values()
+        ],
+        dim=1,
+    )
 
     mtf = {f"seq_{tf}": torch.randn(2, 4, 3) for tf in ("m5", "m15", "h1", "h4", "d1")}
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)

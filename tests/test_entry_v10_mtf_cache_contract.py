@@ -67,6 +67,98 @@ def test_exact_mtf_prebuild_builds_once_and_reuses_one_cache_identity(
     assert cache[cache_key] is first
 
 
+def test_in_process_mtf_cache_does_not_reuse_mutated_m5_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    m5_path = tmp_path / "xau_m5.parquet"
+    _write_m5_source(m5_path)
+    monkeypatch.setattr(trainer, "_MULTI_TF_CACHE", {})
+    monkeypatch.setattr(trainer, "_MULTI_TF_ACTIVE_CACHE_KEYS", {})
+    calls = 0
+
+    def fake_build(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
+        nonlocal calls
+        calls += 1
+        return {
+            tf: pd.DataFrame(
+                np.full((1, 25), calls, dtype=np.float32),
+                index=pd.DatetimeIndex([pd.Timestamp("2026-01-01", tz="UTC")]),
+            )
+            for tf in ("M5", "M15", "H1", "H4", "D1")
+        }
+
+    monkeypatch.setattr(
+        htf_features,
+        "build_multi_tf_per_bar_features_v2",
+        fake_build,
+    )
+    first = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+    changed = pd.read_parquet(m5_path)
+    changed.loc[0, "close"] = float(changed.loc[0, "close"]) + 1.0
+    changed.to_parquet(m5_path, index=False)
+    second = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+
+    assert calls == 2
+    assert second is not first
+    assert len(trainer._MULTI_TF_CACHE) == 2
+
+
+def test_prebuild_owner_uses_verified_disk_cache_and_binds_cache_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    m5_path = (tmp_path / "xau_m5.parquet").resolve()
+    _write_m5_source(m5_path)
+    disk_cache = (tmp_path / "verified_cache").resolve()
+    disk_cache.mkdir()
+    monkeypatch.setenv("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(disk_cache))
+    monkeypatch.setattr(trainer, "_MULTI_TF_CACHE", {})
+    monkeypatch.setattr(trainer, "_MULTI_TF_ACTIVE_CACHE_KEYS", {})
+    source_sha256 = trainer._sha256_file(m5_path)
+    index = pd.DatetimeIndex(
+        pd.read_parquet(m5_path, columns=["time"])["time"]
+    )
+
+    class VerifiedCache(dict):
+        cache_identity_sha256 = "a" * 64
+        m5_prebuilt_source = str(m5_path)
+        m5_prebuilt_source_sha256 = source_sha256
+
+    verified = VerifiedCache(
+        {
+            tf: pd.DataFrame(
+                np.zeros((len(index), 25), dtype=np.float32),
+                index=index,
+            )
+            for tf in ("M5", "M15", "H1", "H4", "D1")
+        }
+    )
+    load_calls = 0
+
+    def fake_load(cache_dir: str) -> VerifiedCache:
+        nonlocal load_calls
+        load_calls += 1
+        assert Path(cache_dir).resolve() == disk_cache
+        return verified
+
+    monkeypatch.setattr(htf_features, "load_multi_tf_v2_cache", fake_load)
+    monkeypatch.setattr(
+        htf_features,
+        "build_multi_tf_per_bar_features_v2",
+        lambda frame: pytest.fail("source builder bypassed verified disk cache"),
+    )
+
+    first = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+    second = trainer._prebuild_multi_tf_v2_features_once(m5_path)
+
+    assert first is verified
+    assert second is first
+    assert load_calls == 1
+    assert len(trainer._MULTI_TF_CACHE) == 1
+    assert "cache_identity=" + ("a" * 64) in next(iter(trainer._MULTI_TF_CACHE))
+
+
 @pytest.mark.parametrize(
     "invalid_mode",
     ("", "V1", "V2", "v2_causal", "V2_CAUSAL_COMPAT", None, True),

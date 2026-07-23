@@ -1541,10 +1541,11 @@ def test_entry_v10_metadata_records_multi_tf_target_availability_shift() -> None
 def test_entry_v10_trainer_verifies_mtf_cache_source_sha() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
-    assert "MULTI_TF_CACHE_SOURCE_SHA_MISMATCH" in text
+    assert "MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH" in text
     assert "m5_prebuilt_source_sha256" in text
-    assert "MULTI_TF_CACHE_FEATURE_CONTRACT_MISMATCH" in text
-    assert "MULTI_TF_CACHE_SHIFT_CONTRACT_MISMATCH" in text
+    assert "cache_identity_sha256" in text
+    assert "load_multi_tf_v2_cache" in text
+    assert "MULTI_TF_DISK_CACHE_MANDATORY" in text
 
 
 def test_entry_v10_side_validity_head_cannot_be_enabled_untrained() -> None:

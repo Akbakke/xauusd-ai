@@ -697,9 +697,30 @@ def _trainer_loader_probe(specialist_audit_json: Path) -> dict[str, Any]:
     try:
         from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
 
+        report = _read_json_or_empty(specialist_audit_json)
+        feature_rows = report.get("feature_rows")
+        if not isinstance(feature_rows, list):
+            raise RuntimeError(
+                "[SMOKE_READINESS_SPECIALIST_ORDERED_SIGNAL_NAMES_MISSING]"
+            )
+        indexed_names = {
+            int(row["index"]): str(row["feature"])
+            for row in feature_rows
+            if isinstance(row, dict)
+            and isinstance(row.get("index"), int)
+            and str(row.get("feature") or "")
+        }
+        if set(indexed_names) != set(range(EXPECTED_SIGNAL_DIM)):
+            raise RuntimeError(
+                "[SMOKE_READINESS_SPECIALIST_ORDERED_SIGNAL_NAMES_INVALID]"
+            )
+        ordered_signal_names = [
+            indexed_names[index] for index in range(EXPECTED_SIGNAL_DIM)
+        ]
         indices, meta = _load_specialist_fusion_contract(
             specialist_audit_json,
             expected_signal_dim=EXPECTED_SIGNAL_DIM,
+            ordered_signal_names=ordered_signal_names,
             contract_mode=CONTRACT_MODE,
         )
         details.update(
@@ -1223,11 +1244,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "smart specialist routing has no unmapped signal or context fields",
                     bool(specialist.get("signal_routing_all_mapped"))
                     and int(specialist.get("signal_unmapped_count") or 0) == 0
-                    and bool(specialist.get("context_routing_all_mapped"))
-                    and int(specialist.get("context_routing_unmapped_count") or 0) == 0,
+                    and bool(
+                        specialist.get(
+                            "context_specialist_routing_all_mapped"
+                        )
+                    )
+                    and int(
+                        specialist.get(
+                            "context_specialist_routing_failure_count"
+                        )
+                        or 0
+                    )
+                    == 0,
                     {
                         "signal_unmapped_count": specialist.get("signal_unmapped_count"),
-                        "context_routing_unmapped_count": specialist.get("context_routing_unmapped_count"),
+                        "context_specialist_routing_failure_count": (
+                            specialist.get(
+                                "context_specialist_routing_failure_count"
+                            )
+                        ),
                     },
                 ),
                 _check(

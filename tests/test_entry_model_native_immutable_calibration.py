@@ -35,6 +35,19 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     REFERENCE as MOVEMENT_REFERENCE,
     SCHEMA_VERSION as MOVEMENT_SCHEMA_VERSION,
 )
+from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    build_tf_input_scale_contract,
+    raw_tf_input_scale_from_effective,
+)
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    write_bundle_commit_manifest,
+)
+from gx1.features.htf_features import (
+    HTF_V2_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_NAMES_SHA256_V2,
+    MULTI_TF_PER_BAR_FEATURES_V2,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -60,6 +73,13 @@ from tests.model_native_turning_point_support import (
     turning_point_prediction_columns,
 )
 from tests.model_native_offline_rl_support import offline_rl_prediction_columns
+from tests.model_native_context_routing_support import (
+    context_routing_for_ordered_signal_names,
+)
+from tests.model_native_input_normalization_support import (
+    input_normalization_fit_population_proof_fixture,
+    input_normalization_fixture,
+)
 
 
 SOURCE_STAMP = "20260716T100000123456Z"
@@ -71,7 +91,11 @@ def _write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value) + "\n", encoding="utf-8")
 
 
-def _source_bundle(tmp_path: Path) -> Path:
+def _source_bundle(
+    tmp_path: Path,
+    *,
+    direction_calibration_present: bool = False,
+) -> Path:
     bundle = tmp_path / f"entry_model_native_bundle_{SOURCE_STAMP}"
     bundle.mkdir()
     selected = canonical_model_native_selected_fields(
@@ -80,6 +104,9 @@ def _source_bundle(tmp_path: Path) -> Path:
     signal_contract = model_native_signal_contract_metadata(selected)
     objective = training_objective_contract_metadata(
         {name: 1.0 for name in REQUIRED_POSITIVE_LOSS_WEIGHTS}
+    )
+    context_routing = context_routing_for_ordered_signal_names(
+        list(signal_contract["fields"])
     )
     movement = {
         "schema_version": MOVEMENT_SCHEMA_VERSION,
@@ -120,10 +147,50 @@ def _source_bundle(tmp_path: Path) -> Path:
             "evidence_fusion_out.bias": torch.zeros(3),
         }
     )
+    tf_inits = {name: 1.0 for name in ("m5", "m15", "h1", "h4", "d1")}
+    learned_tf_raw = {
+        name: raw_tf_input_scale_from_effective(value)
+        for name, value in tf_inits.items()
+    }
+    for name, raw in learned_tf_raw.items():
+        state[f"tf_input_scale_{name}"] = torch.tensor(raw, dtype=torch.float32)
     state_path = bundle / "model_state_dict.pt"
     torch.save(state, state_path)
     state_sha = sha256_file(state_path)
 
+    mtf_contract = {
+        "enabled": True,
+        "v2_mode": True,
+        "m5_seq_dim": 25,
+        "m5_seq_len": 96,
+        "m15_seq_dim": 25,
+        "m15_seq_len": 96,
+        "h1_seq_dim": 25,
+        "h1_seq_len": 96,
+        "h4_seq_dim": 25,
+        "h4_seq_len": 96,
+        "d1_seq_dim": 25,
+        "d1_seq_len": 96,
+        "multi_tf_scale": 0.5,
+        "feature_contract": "MULTI_TF_PER_BAR_V2",
+        "matrix_contract": HTF_V2_MATRIX_CONTRACT,
+        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+        "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V2,
+        "closed_bar_target_availability": True,
+        "target_availability_shift_minutes": 5.0,
+    }
+    tf_scale_contract = build_tf_input_scale_contract(
+        init_effective=tf_inits,
+        learned_raw=learned_tf_raw,
+    )
+    input_normalization = input_normalization_fixture(
+        signal_names=list(signal_contract["fields"]),
+        mtf_names=list(MULTI_TF_PER_BAR_FEATURES_V2),
+        per_tf_seq_lens={
+            tf: 96 for tf in ("M5", "M15", "H1", "H4", "D1")
+        },
+        dataset_run_id="MODEL_NATIVE_CALIBRATION_DATASET_PYTEST_V1",
+    )
     shared = {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
@@ -141,6 +208,15 @@ def _source_bundle(tmp_path: Path) -> Path:
             direction_evidence_fusion_metadata()
         ),
         "model_native_learned_component_movement": movement,
+        "context_specialist_routing": context_routing,
+        "input_normalization": input_normalization,
+        "input_normalization_fit_population_proof": (
+            input_normalization_fit_population_proof_fixture(
+                input_normalization
+            )
+        ),
+        "multi_tf": mtf_contract,
+        "tf_input_scale": tf_scale_contract,
         "aux_head_target_contract": model_native_aux_target_contract_metadata(),
         "run_lineage": {
             "schema_version": "entry_model_native_training_run_lineage_v1",
@@ -175,29 +251,8 @@ def _source_bundle(tmp_path: Path) -> Path:
         "anchor_gate": {"enabled": False},
         "direction_decision_contract": direction_contract,
         "train_recipe": {"active_heads": sorted(_MODEL_NATIVE_REQUIRED_ACTIVE_COMPONENTS)},
-        "multi_tf": {
-            "enabled": True,
-            "v2_mode": True,
-            "m5_seq_dim": 5,
-            "m5_seq_len": 96,
-            "m15_seq_dim": 5,
-            "m15_seq_len": 96,
-            "h1_seq_dim": 5,
-            "h1_seq_len": 96,
-            "h4_seq_dim": 5,
-            "h4_seq_len": 96,
-            "d1_seq_dim": 5,
-            "d1_seq_len": 96,
-            "multi_tf_scale": 0.5,
-            "closed_bar_target_availability": True,
-            "target_availability_shift_minutes": 5.0,
-        },
         "enable_pos_enc": True,
         "enable_regime_film": True,
-        "tf_input_scale": {
-            "enabled": True,
-            "init": {name: 1.0 for name in ("m5", "m15", "h1", "h4", "d1")},
-        },
         "hierarchical_entry_heads": {"enabled": True},
         "trendline_rail_head": {
             "enabled": True,
@@ -213,15 +268,23 @@ def _source_bundle(tmp_path: Path) -> Path:
             "enabled": True,
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "input_indices": specialist_indices,
+            "context_routing": context_routing,
             "trainable_specialists": list(_MODEL_NATIVE_REQUIRED_SPECIALISTS),
             "num_layers": 1,
             "fusion_scale": 0.25,
             "cross_family_fusion_scale": 0.25,
         },
     }
+    if direction_calibration_present:
+        metadata["direction_calibration"] = None
     _write_json(bundle / "MASTER_TRANSFORMER_LOCK.json", lock)
     _write_json(bundle / "bundle_metadata.json", metadata)
-    (bundle / "unrelated_training_checkpoint.pt").write_bytes(b"must not be copied")
+    write_bundle_commit_manifest(
+        bundle_dir=bundle.resolve(),
+        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+        bundle_kind="trained",
+        created_at_utc="2026-07-16T10:00:00+00:00",
+    )
     return bundle
 
 
@@ -359,7 +422,6 @@ def test_direction_execute_publishes_new_hash_bound_bundle_without_source_mutati
 
     assert _tree_hashes(source) == before
     assert output.is_dir()
-    assert not (output / "unrelated_training_checkpoint.pt").exists()
     assert (output / "MASTER_TRANSFORMER_LOCK.json").read_bytes() == (
         source / "MASTER_TRANSFORMER_LOCK.json"
     ).read_bytes()
@@ -443,11 +505,10 @@ def test_output_collision_fails_without_mutating_either_bundle(
 def test_existing_selected_calibration_key_is_rejected_even_when_null(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    source = _source_bundle(tmp_path)
-    metadata_path = source / "bundle_metadata.json"
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    metadata["direction_calibration"] = None
-    _write_json(metadata_path, metadata)
+    source = _source_bundle(
+        tmp_path,
+        direction_calibration_present=True,
+    )
     event = _prediction_event(tmp_path, source)
     output = tmp_path / f"entry_model_native_calibrated_{OUTPUT_STAMP}"
 

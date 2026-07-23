@@ -945,7 +945,8 @@ class TradeJournal:
             # Write as JSONL (one JSON object per line)
             json_line = json.dumps(event, ensure_ascii=False, default=str)
             self._file_handle.write(json_line + "\n")
-            self._file_handle.flush()  # Crash safety: flush immediately
+            self._file_handle.flush()
+            os.fsync(self._file_handle.fileno())
 
         except Exception as e:
             logger.exception("[TRADE_JOURNAL] Failed to log event %s", event_type)

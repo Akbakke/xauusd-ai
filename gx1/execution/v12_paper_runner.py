@@ -27,6 +27,8 @@ model inputs/evidence, never post-model direction overrides.
 from __future__ import annotations
 
 import argparse
+import fcntl
+import hashlib
 import json
 import logging
 import math
@@ -784,14 +786,17 @@ def attempt_close_trade(client: OandaClient, trade: TradeState) -> dict[str, Any
     PUT /accounts/{id}/trades/{tradeID}/close endpoint closes only the units
     associated with that tradeID, not the full netted position.
 
-    Falls back to a counter-direction market order if `trade.trade_id` is
-    missing (e.g. virtual dry-run trade) — best-effort, may net incorrectly
-    if multiple same-direction trades are open.
+    Missing ``trade_id`` is an unresolved broker-identity failure. Sending a
+    counter-direction market order is forbidden because a hedging account may
+    open a second trade instead of reducing the original exposure.
     """
     if not trade.trade_id:
-        LOG.warning("close_trade: trade has no OANDA tradeID — using counter-market fallback")
-        close_side = "short" if trade.side == "long" else "long"
-        return attempt_market_entry(client, close_side, units=trade.units)
+        LOG.error("close_trade: trade has no OANDA tradeID; refusing counter-order")
+        return {
+            "status": "missing_trade_id",
+            "trade_id": None,
+            "reason": "broker trade identity is required for fail-closed close",
+        }
     try:
         response = client.close_trade(trade.trade_id)
         fill = response.get("orderFillTransaction", {})
@@ -812,9 +817,28 @@ def attempt_close_trade(client: OandaClient, trade: TradeState) -> dict[str, Any
 
 def log_journal_event(journal_path: Path, event: dict[str, Any]) -> None:
     journal_path.parent.mkdir(parents=True, exist_ok=True)
-    event["logged_at_utc"] = datetime.now(timezone.utc).isoformat()
-    with journal_path.open("a") as f:
-        f.write(json.dumps(event, default=str) + "\n")
+    record = dict(event)
+    record["logged_at_utc"] = datetime.now(timezone.utc).isoformat()
+    encoded = (json.dumps(record, default=str) + "\n").encode("utf-8")
+    fd = os.open(
+        journal_path,
+        os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+        0o644,
+    )
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        view = memoryview(encoded)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:
+                raise OSError(f"short journal write: {journal_path}")
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
 
 
 def daily_journal_path(suffix: str = "") -> Path:
@@ -841,52 +865,103 @@ def assert_no_retired_entry_overrides() -> None:
         )
 
 
-def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
-    """Fail closed: the runner serves the SMART entry chain (vedtak
-    SMART_JOINT_POLICY_PROMOTION_20260708). A direct start requires
-    (1) an explicit launch vedtak in GX1_SMART_LAUNCH_VEDTAK and
-    (2) the one-truth smart serving gate (train==serve parity PASS for the
-        contract-ACTIVE bundle) — the same gate launch_live_practice.sh
-        enforces, so runner-direct cannot bypass the launcher's floor.
-    The 20260627 legacy foundation-freeze ack is RETIRED with the legacy chain."""
-    assert_no_retired_entry_overrides()
-    vedtak = os.environ.get("GX1_SMART_LAUNCH_VEDTAK", "").strip()
-    if vedtak:
-        from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
-        from gx1_guards.artifacts import load_decision_entry
-        from gx1.models.entry_v10.direction_decision_contract import (
-            require_model_direction_operating_point,
-        )
+def _sha256_regular_file(path: Path, *, label: str) -> str:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"[SMART_GATE] {label} is not a regular file: {path}")
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
-        rep = assert_smart_serving_gate()   # raises loud on any violation
-        entry = load_decision_entry("v10_entry")
-        op = require_model_direction_operating_point(
-            entry.get("operating_point"), context="paper runner v10_entry"
-        )
-        expected_max_trades = int(op["max_trades"])
-        if int(args.max_trades) != expected_max_trades:
-            raise SystemExit(
-                f"[SMART_GATE] --max-trades {args.max_trades} != contract v10_entry.operating_point.max_trades "
-                f"{expected_max_trades}"
-            )
-        LOG.warning("[SMART_GATE] runner start authorized: vedtak=%s parity=%s (%s bars, %s)",
-                    vedtak, rep.get("decision"), rep.get("n_bars"), rep.get("created_utc"))
-        return
 
-    print(
-        "\n".join(
-            [
-                "Smart serving gate blocks direct v12_paper_runner use.",
-                "Demo/paper start requires the parity gate + an explicit launch vedtak:",
-                "  1. scripts/gx1_capped_run.sh --mem 34G -- .venv/bin/python -m "
-                "gx1.scripts.verify_model_native_serve_parity_v1   (must PASS)",
-                "  2. GX1_SMART_LAUNCH_VEDTAK=<vedtak-id> bash scripts/launch_live_practice.sh",
-                "(The legacy XGB->V10->Entry-IQL chain is RETIRED; its 20260627 ack no longer opens anything.)",
-            ]
+def require_runtime_entry_launch_lease(
+    *,
+    expected_lease: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Revalidate launch authority and reject any mid-process identity change."""
+
+    from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
+    from gx1_guards import artifacts as artifact_guard
+
+    state_path = artifact_guard.XAU_DIRECTION_LAUNCH_CONTRACT
+    registry_path = artifact_guard.SELECTION_CONTRACT
+    before = {
+        "launch_state_sha256": _sha256_regular_file(
+            state_path, label="launch state"
         ),
-        file=sys.stderr,
+        "artifact_registry_sha256": _sha256_regular_file(
+            registry_path, label="artifact registry"
+        ),
+    }
+    assert_smart_serving_gate()
+    entry = artifact_guard.load_decision_entry("v10_entry")
+    after = {
+        "launch_state_sha256": _sha256_regular_file(
+            state_path, label="launch state"
+        ),
+        "artifact_registry_sha256": _sha256_regular_file(
+            registry_path, label="artifact registry"
+        ),
+    }
+    if before != after:
+        raise RuntimeError(
+            "[SMART_GATE] launch authority changed during lease validation"
+        )
+    launch_state = entry.get("xau_direction_launch_state")
+    approval = (
+        launch_state.get("accepted_via_vedtak")
+        if isinstance(launch_state, dict)
+        else None
     )
-    raise SystemExit(2)
+    if not isinstance(approval, dict):
+        raise RuntimeError("[SMART_GATE] validated launch approval is missing")
+    lease = {
+        **after,
+        "accepted_bundle_dir": str(Path(entry["path"]).resolve()),
+        "approval_event_sha256": str(approval.get("event_sha256") or ""),
+        "approval_vedtak_id": str(approval.get("vedtak_id") or ""),
+    }
+    if expected_lease is not None and lease != expected_lease:
+        raise RuntimeError(
+            "[SMART_GATE] launch authority was replaced or revoked; restart required"
+        )
+    return lease
+
+
+def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> dict[str, str]:
+    """Require the exact immutable launch approval and serving evidence.
+
+    Direct runner startup and the shell launcher use the same artifact-bound
+    authority. Ambient environment text is never launch authorization.
+    """
+    assert_no_retired_entry_overrides()
+    from gx1_guards.artifacts import load_decision_entry
+    from gx1.models.entry_v10.direction_decision_contract import (
+        require_model_direction_operating_point,
+    )
+
+    lease = require_runtime_entry_launch_lease()
+    entry = load_decision_entry("v10_entry")
+    op = require_model_direction_operating_point(
+        entry.get("operating_point"), context="paper runner v10_entry"
+    )
+    expected_max_trades = int(op["max_trades"])
+    if int(args.max_trades) != expected_max_trades:
+        raise SystemExit(
+            f"[SMART_GATE] --max-trades {args.max_trades} != "
+            "contract v10_entry.operating_point.max_trades "
+            f"{expected_max_trades}"
+        )
+    approval = entry["xau_direction_launch_state"]["accepted_via_vedtak"]
+    LOG.warning(
+        "[SMART_GATE] runner start authorized: vedtak=%s parity=%s "
+        "launch_state_sha256=%s",
+        approval["vedtak_id"],
+        "PASS",
+        lease["launch_state_sha256"],
+    )
+    return lease
 
 
 # ── Main loop ────────────────────────────────────────────────────────────
@@ -907,7 +982,7 @@ def main() -> int:
     args = p.parse_args()
     if args.shadow_only and not args.dry_run:
         raise SystemExit("--shadow-only requires --dry-run")
-    enforce_entry_next_edge_runner_guard(args)
+    startup_launch_lease = enforce_entry_next_edge_runner_guard(args)
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
@@ -1240,6 +1315,22 @@ def main() -> int:
                 continue
 
             try:
+                require_runtime_entry_launch_lease(
+                    expected_lease=startup_launch_lease
+                )
+            except RuntimeError as exc:
+                event["order_status"] = "LAUNCH_AUTHORITY_UNAVAILABLE_NO_ORDER"
+                event["launch_authority_evidence"] = str(exc)
+                log_journal_event(
+                    daily_journal_path(args.journal_suffix),
+                    event,
+                )
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
+
+            try:
                 decision = make_v12_decision(
                     pipeline,
                     datetime.now(timezone.utc),
@@ -1348,6 +1439,23 @@ def main() -> int:
                         "no_order_reason"
                     ]
                     log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+                try:
+                    require_runtime_entry_launch_lease(
+                        expected_lease=startup_launch_lease
+                    )
+                except RuntimeError as exc:
+                    event["order_status"] = (
+                        "LAUNCH_AUTHORITY_UNAVAILABLE_NO_ORDER"
+                    )
+                    event["launch_authority_evidence"] = str(exc)
+                    log_journal_event(
+                        daily_journal_path(args.journal_suffix),
+                        event,
+                    )
                     last_decision_minute = current_minute
                     consecutive_errors = 0
                     time.sleep(args.poll_seconds)

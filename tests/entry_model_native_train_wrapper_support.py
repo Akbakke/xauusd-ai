@@ -24,6 +24,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     model_native_aux_target_contract_metadata,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    write_bundle_commit_manifest,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
@@ -418,6 +422,12 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         )
         smoke_state = smoke_bundle_dir / "model_state_dict.pt"
         smoke_state.write_bytes(b"smoke model state")
+        write_bundle_commit_manifest(
+            bundle_dir=smoke_bundle_dir,
+            artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+            bundle_kind="trained",
+            created_at_utc="2026-07-23T12:00:00+00:00",
+        )
         prediction_report = _write_json(
             evidence_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{STAMP}.json",
             {"fixture": "prediction report"},
@@ -430,7 +440,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         artifacts["smoke_bundle_audit_json"] = _write_json(
             evidence_dir / f"ENTRY_SMOKE_BUNDLE_AUDIT_{STAMP}.json",
             {
-                "schema_version": "entry_foundation_smoke_bundle_audit_v3",
+                "schema_version": "entry_foundation_smoke_bundle_audit_v4",
                 **foundation_audit_policy_binding(),
                 "decision": "PASS",
                 "failures": [],
@@ -447,6 +457,10 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
                     model_direction_decision_contract_metadata()
                 ),
                 "bundle_artifacts": {
+                    "bundle_commit": simple_binding(
+                        smoke_bundle_dir
+                        / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json"
+                    ),
                     "bundle_metadata": simple_binding(smoke_metadata),
                     "master_transformer_lock": simple_binding(smoke_lock),
                     "model_state_dict": simple_binding(smoke_state),

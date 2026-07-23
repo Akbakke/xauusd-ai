@@ -10,7 +10,6 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
-    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
@@ -359,7 +358,7 @@ def _write_split(
                 "rank_reference_npz_sha256": rank_ref_sha,
                 "rank_reference_sidecar_sha256": rank_ref_sidecar_sha,
                 "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-                "normalization_fit_scope": "train_only",
+                "rank_reference_fit_scope": "train_only",
                 "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
                 "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
                 "split_reset_allowed": False,

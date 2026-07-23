@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,6 +37,10 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     training_objective_contract_metadata,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    write_bundle_commit_manifest,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
 )
@@ -112,6 +115,12 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     lock_path = _write_json(bundle / "MASTER_TRANSFORMER_LOCK.json", lock)
     state_path = bundle / "model_state_dict.pt"
     state_path.write_bytes(b"exact model state")
+    write_bundle_commit_manifest(
+        bundle_dir=bundle,
+        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+        bundle_kind="trained",
+        created_at_utc=STAMP_TIME.isoformat(),
+    )
 
     specialist_payload = {
         "schema_version": "entry_specialist_feature_group_audit_v1",
@@ -165,7 +174,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         return readiness._artifact_binding(path)
 
     report = {
-        "schema_version": "entry_foundation_smoke_bundle_audit_v3",
+        "schema_version": "entry_foundation_smoke_bundle_audit_v4",
         **foundation_audit_policy_binding(),
         "decision": "PASS",
         "failures": [],
@@ -178,6 +187,9 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         "model_native_readiness_contract": model_native_readiness_contract_metadata(),
         "direction_decision_contract": model_direction_decision_contract_metadata(),
         "bundle_artifacts": {
+            "bundle_commit": binding(
+                bundle / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json"
+            ),
             "bundle_metadata": binding(metadata_path),
             "master_transformer_lock": binding(lock_path),
             "model_state_dict": binding(state_path),

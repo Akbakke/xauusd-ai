@@ -1730,7 +1730,7 @@ def _model_native_state_contract(
         "rank_reference_fit_time_max": str(sidecar["fit_time_max"]),
         "rank_reference_source_parquet": str(source_path),
         "rank_reference_source_parquet_sha256": source_sha,
-        "normalization_fit_scope": "train_only",
+        "rank_reference_fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
         "split_reset_allowed": False,

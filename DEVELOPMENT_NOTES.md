@@ -46,18 +46,21 @@ or silently treated as a default. V24 is also rejected for rebuild after the
 post-V7 audit proved signed dip-MFE clipping.
 
 Read `PIPELINE_AUDIT_XAU_20260723.md` before any Entry data/model edit. The two
-P0s, replacement sampler, bidirectional weights, recipe/M5 boundary,
-single-mode MTF cache, all-head checkpoint influence, raw-bps fusion units,
-grad accumulation and stale loader compatibility are source-repaired and
-regression-tested. Do not infer dataset/model proof: V24/V7 predate the fixes.
-No rebuild or trainer run is admissible until the remaining blockers have
-exact proof:
+P0 target/objective faults, replacement sampler, bidirectional/conditional
+auxiliary evidence, recipe/M5/MTF byte boundary, complete physical-TRAIN
+normalization, 142+5 family-owned context routing, all-head/group influence,
+raw-bps units, positive TF scales, grad accumulation, strict bundle commit,
+atomic bundle/event publication, active-Exit byte identity, immutable approval,
+runtime lease and missing-trade-ID execution path are source-repaired and
+regression-tested. The current-bar alias set is derived from actual ordered
+signals; V24's count of 82 is not a code constant.
 
-- ordered immutable TRAIN-fit normalization for raw 513+142 continuous input;
-- direct family-owned specialist routing for all 142+5 context fields, with an
-  explicit policy for the 82 current-bar aliases;
-- tradable-conditioned LONG/SHORT path skill versus a tradable-only baseline;
-- atomic bundle export and transactional promotion/immutable vedtak;
+Do not infer dataset/model proof: V24/V7 predate the fixes. No rebuild or
+trainer run is admissible until the remaining source blockers have exact
+proof:
+
+- one transactional candidate/promotion/launch finalizer with terminal
+  failure evidence;
 - canonical/live tape parity for the known December-2024 defect.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,

@@ -82,26 +82,66 @@ def test_spearman_scores_are_deterministic_with_support_floor() -> None:
     assert again == scores
 
 
-def test_forward_return_target_is_train_capped_and_correct() -> None:
+def test_direction_utility_margin_target_is_train_capped_and_exact() -> None:
     rows = 60
     times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
     mid = np.full(rows, 100.0)
-    mid[ranker.TARGET_HORIZON_BARS :] = 200.0  # first bars double over horizon
+    mid[ranker.DIRECTION_HORIZON_BARS :] = 200.0
     frame = pd.DataFrame(
-        {"time": times, "bid_close": mid - 0.01, "ask_close": mid + 0.01}
+        {"time": times, "bid_close": mid, "ask_close": mid}
     )
     train_start = times[10]
     train_end = times[-1]
 
-    out_times, target = ranker._forward_return_target(
+    out_times, target = ranker._direction_utility_margin_target(
         frame, train_start=train_start, train_end=train_end
     )
 
     assert len(out_times) == rows
-    assert np.isnan(target[-ranker.TARGET_HORIZON_BARS :]).all()
+    assert np.isnan(target[-ranker.DIRECTION_HORIZON_BARS :]).all()
     assert np.isnan(target[:10]).all()  # before train_start
-    # Row 10 doubles over the horizon: log(2) * 1e4 bps.
-    assert target[10] == pytest.approx(np.log(2.0) * 1e4, rel=1e-6)
+    # Row 10 doubles over H24 while its first-10 path is flat:
+    # LONG utility=+10,000 bps, SHORT utility=-10,000 bps.
+    assert target[10] == pytest.approx(20_000.0, rel=1e-6)
+
+
+def test_direction_utility_margin_target_matches_spread_and_path_formula() -> None:
+    rows = 40
+    times = pd.date_range("2026-01-01", periods=rows, freq="5min", tz="UTC")
+    bid = 100.0 + np.linspace(0.0, 1.2, rows)
+    bid[1:11] += np.array([0.10, -0.08, 0.25, -0.15, 0.40, -0.20, 0.30, -0.05, 0.50, 0.15])
+    ask = bid + 0.02
+    frame = pd.DataFrame({"time": times, "bid_close": bid, "ask_close": ask})
+
+    _, target = ranker._direction_utility_margin_target(
+        frame,
+        train_start=times[0],
+        train_end=times[-1],
+    )
+
+    entry_bid = bid[0]
+    entry_ask = ask[0]
+    pnl_long = (bid[24] - entry_ask) / entry_ask * 1e4
+    pnl_short = (entry_bid - ask[24]) / entry_bid * 1e4
+    window_bid = bid[:11]
+    window_ask = ask[:11]
+    mfe_long = (window_bid.max() - entry_ask) / entry_ask * 1e4
+    mae_long = (entry_ask - window_bid.min()) / entry_ask * 1e4
+    mfe_short = (entry_bid - window_ask.min()) / entry_bid * 1e4
+    mae_short = (window_ask.max() - entry_bid) / entry_bid * 1e4
+    long_utility = (
+        pnl_long
+        + ranker.UTILITY_MFE_WEIGHT * mfe_long
+        - ranker.UTILITY_MAE_WEIGHT * mae_long
+        + ranker.UTILITY_PATH_WEIGHT * (mfe_long - mae_long)
+    )
+    short_utility = (
+        pnl_short
+        + ranker.UTILITY_MFE_WEIGHT * mfe_short
+        - ranker.UTILITY_MAE_WEIGHT * mae_short
+        + ranker.UTILITY_PATH_WEIGHT * (mfe_short - mae_short)
+    )
+    assert target[0] == pytest.approx(long_utility - short_utility, rel=1e-12)
 
 
 def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
@@ -211,6 +251,9 @@ def test_emit_ranking_round_trips_through_the_real_manifest_producer(
         MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
     )
     assert manifest["selected_features"][mandatory_count:] == candidates
+    assert manifest["feature_ranking"]["target_contract"] == (
+        manifest_producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT
+    )
     require_model_native_manifest(manifest, context="RANKER_ROUND_TRIP_TEST")
 
 

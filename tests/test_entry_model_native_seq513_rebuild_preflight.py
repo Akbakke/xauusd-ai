@@ -163,6 +163,9 @@ def _build_fixture(
         "target_time_max_utc": SPLITS["train_end"],
         "source_sha256": _sha256(source),
         "target_sha256": "2" * 64,
+        "target_contract": dict(
+            signal_manifest_producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT
+        ),
         "rank_reference": {
             "path": str(rank_reference.path),
             "sha256": rank_reference.sha256,

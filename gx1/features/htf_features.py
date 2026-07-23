@@ -31,7 +31,13 @@ The functions never write to disk and never modify their inputs.
 """
 from __future__ import annotations
 
+import hashlib
+import io
+import json
+import os
+import stat
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -517,7 +523,18 @@ MULTI_TF_PER_BAR_FEATURES_V2 = (
     "trend_age_bars_norm",    # bars since last EMA stack flip, normalized log
 )
 MULTI_TF_FEATURE_COUNT_V2 = len(MULTI_TF_PER_BAR_FEATURES_V2)   # = 25
-HTF_V2_CACHE_BUILDER_VERSION = "prebuild_multi_tf_cache_v2_causal_no_fallback_20260717"
+MULTI_TF_FEATURE_NAMES_SHA256_V2 = hashlib.sha256(
+    json.dumps(
+        list(MULTI_TF_PER_BAR_FEATURES_V2),
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+).hexdigest()
+HTF_V2_CACHE_SCHEMA_VERSION = "htf_v2_disk_cache_manifest_v2"
+HTF_V2_CACHE_BUILDER_VERSION = (
+    "prebuild_multi_tf_cache_v2_causal_sha256_bound_no_fallback_20260723"
+)
 HTF_V2_MATRIX_CONTRACT = "HTF_V2_CAUSAL_MATRIX_V1"
 
 MULTI_TF_RESAMPLE_RULES = {
@@ -998,6 +1015,190 @@ def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
     return cv3
 
 
+_HTF_V2_CACHE_MANIFEST_KEYS = frozenset(
+    {
+        "schema_version",
+        "cache_identity_sha256",
+        "feature_count",
+        "feature_names",
+        "shift_contract",
+        "builder_version",
+        "m5_prebuilt_source",
+        "m5_prebuilt_source_sha256",
+        "tfs",
+    }
+)
+_HTF_V2_CACHE_TF_KEYS = frozenset(
+    {
+        "n_bars",
+        "feature_count",
+        "feats_npy",
+        "feats_npy_sha256",
+        "feats_npy_size_bytes",
+        "ts_npy",
+        "ts_npy_sha256",
+        "ts_npy_size_bytes",
+        "first_ts_ns",
+        "last_ts_ns",
+        "causal_warmup_rows",
+    }
+)
+
+
+class MultiTFV2DiskCache(dict):
+    """Verified TF mapping with one content-bound disk-cache identity."""
+
+    def __init__(
+        self,
+        *,
+        cache_identity_sha256: str,
+        manifest_sha256: str,
+        m5_prebuilt_source: str,
+        m5_prebuilt_source_sha256: str,
+    ) -> None:
+        super().__init__()
+        self.cache_identity_sha256 = cache_identity_sha256
+        self.manifest_sha256 = manifest_sha256
+        self.m5_prebuilt_source = m5_prebuilt_source
+        self.m5_prebuilt_source_sha256 = m5_prebuilt_source_sha256
+
+
+def compute_htf_v2_cache_identity(manifest: dict) -> str:
+    """Return the canonical identity for a manifest and all declared arrays."""
+
+    identity_payload = dict(manifest)
+    identity_payload.pop("cache_identity_sha256", None)
+    try:
+        encoded = json.dumps(
+            identity_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("HTF_V2_CACHE_MANIFEST_INVALID: non-canonical value") from exc
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _json_object_without_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    result: dict = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object key: {key}")
+        result[key] = value
+    return result
+
+
+def _cache_path_has_symlink_component(path: Path) -> bool:
+    absolute = path if path.is_absolute() else Path.cwd() / path
+    return any(component.is_symlink() for component in (absolute, *absolute.parents))
+
+
+def _read_cache_file_bytes(
+    directory_fd: int,
+    name: str,
+    *,
+    expected_sha256: str | None,
+    expected_size_bytes: int | None,
+    label: str,
+) -> bytes:
+    """Read one regular cache file once and verify those exact bytes.
+
+    ``dir_fd`` pins the already-opened cache directory. ``O_NOFOLLOW`` prevents
+    a manifest-named symlink from being resolved between inventory validation
+    and open. The returned bytes are also the bytes passed to ``numpy.load``.
+    """
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as exc:
+        raise RuntimeError(f"HTF_V2_CACHE_FILE_INVALID: {label}") from exc
+    try:
+        file_stat = os.fstat(fd)
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise RuntimeError(f"HTF_V2_CACHE_FILE_INVALID: {label} is not regular")
+        chunks: list[bytes] = []
+        digest = hashlib.sha256()
+        observed_size = 0
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            digest.update(chunk)
+            observed_size += len(chunk)
+    finally:
+        os.close(fd)
+    if expected_size_bytes is not None and observed_size != expected_size_bytes:
+        raise RuntimeError(
+            f"HTF_V2_CACHE_SIZE_MISMATCH: {label} "
+            f"observed={observed_size} expected={expected_size_bytes}"
+        )
+    observed_sha256 = digest.hexdigest()
+    if expected_sha256 is not None and observed_sha256 != expected_sha256:
+        raise RuntimeError(
+            f"HTF_V2_CACHE_SHA256_MISMATCH: {label} "
+            f"observed={observed_sha256} expected={expected_sha256}"
+        )
+    return b"".join(chunks)
+
+
+def _exact_cache_sha256(value: object, *, label: str) -> str:
+    if not isinstance(value, str):
+        raise RuntimeError(
+            f"HTF_V2_CACHE_CONTRACT_MISMATCH: {label} must be an exact SHA-256"
+        )
+    if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
+        raise RuntimeError(
+            f"HTF_V2_CACHE_CONTRACT_MISMATCH: {label} must be an exact SHA-256"
+        )
+    return value
+
+
+def _exact_cache_int(
+    value: object,
+    *,
+    label: str,
+    minimum: int,
+) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+        raise RuntimeError(
+            f"HTF_V2_CACHE_CONTRACT_MISMATCH: {label} must be an exact integer"
+        )
+    observed = int(value)
+    if observed < minimum:
+        raise RuntimeError(
+            f"HTF_V2_CACHE_CONTRACT_MISMATCH: {label}={observed} < {minimum}"
+        )
+    return observed
+
+
+def _load_verified_cache_npy(
+    directory_fd: int,
+    name: str,
+    *,
+    expected_sha256: str,
+    expected_size_bytes: int,
+    label: str,
+) -> np.ndarray:
+    payload = _read_cache_file_bytes(
+        directory_fd,
+        name,
+        expected_sha256=expected_sha256,
+        expected_size_bytes=expected_size_bytes,
+        label=label,
+    )
+    try:
+        loaded = np.load(io.BytesIO(payload), allow_pickle=False)
+    except Exception as exc:
+        raise RuntimeError(f"HTF_V2_CACHE_NPY_INVALID: {label}") from exc
+    if not isinstance(loaded, np.ndarray):
+        raise RuntimeError(f"HTF_V2_CACHE_NPY_INVALID: {label} is not an ndarray")
+    return loaded
+
+
 def load_multi_tf_v2_cache(cache_dir) -> dict:
     """Load a pre-built V2 cache (see gx1/scripts/prebuild_multi_tf_cache_v2.py).
 
@@ -1007,93 +1208,243 @@ def load_multi_tf_v2_cache(cache_dir) -> dict:
 
     Saves the ~84s rebuild cost on every trainer launch.
     """
-    import json
-    from pathlib import Path as _P
-    cache_dir = _P(cache_dir)
-    manifest_path = cache_dir / "manifest.json"
-    if not manifest_path.is_file():
-        raise RuntimeError(f"HTF_V2_CACHE_MANIFEST_MISSING: {manifest_path}")
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"HTF_V2_CACHE_MANIFEST_INVALID: {manifest_path}") from exc
-    if not isinstance(manifest, dict):
-        raise RuntimeError("HTF_V2_CACHE_MANIFEST_INVALID: root must be an object")
-    expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
-    contracts = {
-        "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
-        "feature_count": MULTI_TF_FEATURE_COUNT_V2,
-        "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
-        "shift_contract": expected_shift,
-    }
-    for name, expected in contracts.items():
-        if manifest.get(name) != expected:
-            raise RuntimeError(
-                f"HTF_V2_CACHE_CONTRACT_MISMATCH: {name} observed={manifest.get(name)!r} "
-                f"expected={expected!r}"
-            )
-    source_sha = str(manifest.get("m5_prebuilt_source_sha256") or "")
-    if len(source_sha) != 64 or any(ch not in "0123456789abcdef" for ch in source_sha.lower()):
-        raise RuntimeError("HTF_V2_CACHE_CONTRACT_MISMATCH: source SHA-256 is missing or invalid")
-    tf_manifest = manifest.get("tfs")
-    if not isinstance(tf_manifest, dict) or set(tf_manifest) != set(MULTI_TF_RESAMPLE_RULES):
+    supplied = Path(cache_dir).expanduser()
+    absolute = supplied if supplied.is_absolute() else Path.cwd() / supplied
+    if _cache_path_has_symlink_component(absolute):
         raise RuntimeError(
-            "HTF_V2_CACHE_CONTRACT_MISMATCH: exact M5/M15/H1/H4/D1 entries required"
+            f"HTF_V2_CACHE_PATH_INVALID: cache path traverses a symlink: {absolute}"
         )
-    out = {}
-    for tf_name in MULTI_TF_RESAMPLE_RULES:
-        info = tf_manifest[tf_name]
-        if not isinstance(info, dict):
-            raise RuntimeError(f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} entry must be an object")
-        feats_name = str(info.get("feats_npy") or "")
-        ts_name = str(info.get("ts_npy") or "")
-        if _P(feats_name).name != feats_name or _P(ts_name).name != ts_name:
-            raise RuntimeError(f"HTF_V2_CACHE_CONTRACT_MISMATCH: unsafe {tf_name} cache filenames")
-        feats_path = cache_dir / feats_name
-        ts_path = cache_dir / ts_name
-        if not feats_path.is_file() or not ts_path.is_file():
-            raise RuntimeError(f"HTF_V2_CACHE_FILE_MISSING: {tf_name}")
-        feats_np = np.load(feats_path, mmap_mode="r", allow_pickle=False)
-        ts_int64 = np.load(ts_path, mmap_mode="r", allow_pickle=False)
-        if feats_np.dtype != np.dtype(np.float32) or ts_int64.dtype != np.dtype(np.int64):
+    try:
+        resolved_cache_dir = absolute.resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError(f"HTF_V2_CACHE_PATH_INVALID: {absolute}") from exc
+    if not resolved_cache_dir.is_dir():
+        raise RuntimeError(f"HTF_V2_CACHE_PATH_INVALID: {resolved_cache_dir}")
+
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(
+        os, "O_NOFOLLOW", 0
+    )
+    try:
+        directory_fd = os.open(resolved_cache_dir, directory_flags)
+    except OSError as exc:
+        raise RuntimeError(
+            f"HTF_V2_CACHE_PATH_INVALID: {resolved_cache_dir}"
+        ) from exc
+    try:
+        initial_inventory = set(os.listdir(directory_fd))
+        if "manifest.json" not in initial_inventory:
             raise RuntimeError(
-                f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} requires float32 features/int64 timestamps"
+                f"HTF_V2_CACHE_MANIFEST_MISSING: {resolved_cache_dir / 'manifest.json'}"
             )
-        if ts_int64.ndim != 1 or np.any(np.diff(ts_int64) <= 0):
-            raise RuntimeError(f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} timestamps invalid")
-        warmup_rows = validate_causal_feature_matrix(
-            feats_np,
-            expected_width=MULTI_TF_FEATURE_COUNT_V2,
-            context=f"HTF_V2_CACHE_{tf_name}",
+        manifest_bytes = _read_cache_file_bytes(
+            directory_fd,
+            "manifest.json",
+            expected_sha256=None,
+            expected_size_bytes=None,
+            label="manifest.json",
         )
-        if warmup_rows == len(feats_np):
-            raise RuntimeError(f"HTF_V2_CACHE_WARMUP_INCOMPLETE: {tf_name} has no complete row")
-        expected_meta = {
-            "n_bars": int(len(ts_int64)),
+        try:
+            manifest = json.loads(
+                manifest_bytes.decode("utf-8"),
+                object_pairs_hook=_json_object_without_duplicate_keys,
+            )
+        except (UnicodeError, ValueError) as exc:
+            raise RuntimeError(
+                f"HTF_V2_CACHE_MANIFEST_INVALID: {resolved_cache_dir / 'manifest.json'}"
+            ) from exc
+        if not isinstance(manifest, dict):
+            raise RuntimeError("HTF_V2_CACHE_MANIFEST_INVALID: root must be an object")
+        if set(manifest) != _HTF_V2_CACHE_MANIFEST_KEYS:
+            raise RuntimeError(
+                "HTF_V2_CACHE_CONTRACT_MISMATCH: manifest exact keys differ "
+                f"missing={sorted(_HTF_V2_CACHE_MANIFEST_KEYS - set(manifest))} "
+                f"unexpected={sorted(set(manifest) - _HTF_V2_CACHE_MANIFEST_KEYS)}"
+            )
+        expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
+        contracts = {
+            "schema_version": HTF_V2_CACHE_SCHEMA_VERSION,
+            "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
             "feature_count": MULTI_TF_FEATURE_COUNT_V2,
-            "first_ts_ns": int(ts_int64[0]),
-            "last_ts_ns": int(ts_int64[-1]),
-            "causal_warmup_rows": warmup_rows,
+            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+            "shift_contract": expected_shift,
         }
-        for name, expected in expected_meta.items():
-            if info.get(name) != expected:
+        for name, expected in contracts.items():
+            if manifest.get(name) != expected:
                 raise RuntimeError(
-                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name}.{name} "
-                    f"observed={info.get(name)!r} expected={expected!r}"
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {name} observed={manifest.get(name)!r} "
+                    f"expected={expected!r}"
                 )
-        # Reconstruct minimal DataFrame (only index + attrs matter for fast-path).
-        idx = pd.DatetimeIndex(ts_int64.astype("datetime64[ns]"), tz="UTC")
-        df = pd.DataFrame(
-            np.empty((len(idx), feats_np.shape[1]), dtype=np.float32),
-            index=idx,
-            columns=MULTI_TF_PER_BAR_FEATURES_V2,
+        source_path = Path(str(manifest.get("m5_prebuilt_source") or "")).expanduser()
+        if not source_path.is_absolute():
+            raise RuntimeError(
+                "HTF_V2_CACHE_CONTRACT_MISMATCH: m5_prebuilt_source must be absolute"
+            )
+        m5_prebuilt_source_sha256 = _exact_cache_sha256(
+            manifest["m5_prebuilt_source_sha256"],
+            label="m5_prebuilt_source_sha256",
         )
-        df.attrs["ts_int64"] = np.ascontiguousarray(ts_int64).astype(np.int64, copy=False)
-        df.attrs["feats_np"] = np.ascontiguousarray(feats_np).astype(np.float32, copy=False)
-        df.attrs["causal_warmup_rows"] = warmup_rows
-        df.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
-        out[tf_name] = df
-    return out
+        cache_identity_sha256 = _exact_cache_sha256(
+            manifest["cache_identity_sha256"],
+            label="cache_identity_sha256",
+        )
+        computed_cache_identity = compute_htf_v2_cache_identity(manifest)
+        if cache_identity_sha256 != computed_cache_identity:
+            raise RuntimeError(
+                "HTF_V2_CACHE_IDENTITY_MISMATCH: "
+                f"observed={cache_identity_sha256} expected={computed_cache_identity}"
+            )
+        tf_manifest = manifest.get("tfs")
+        if not isinstance(tf_manifest, dict) or tuple(tf_manifest) != tuple(
+            MULTI_TF_RESAMPLE_RULES
+        ):
+            raise RuntimeError(
+                "HTF_V2_CACHE_CONTRACT_MISMATCH: ordered exact "
+                "M5/M15/H1/H4/D1 entries required"
+            )
+        declared_inventory = {"manifest.json"}
+        for tf_name in MULTI_TF_RESAMPLE_RULES:
+            info = tf_manifest[tf_name]
+            if not isinstance(info, dict) or set(info) != _HTF_V2_CACHE_TF_KEYS:
+                observed_keys = set(info) if isinstance(info, dict) else set()
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} exact keys differ "
+                    f"missing={sorted(_HTF_V2_CACHE_TF_KEYS - observed_keys)} "
+                    f"unexpected={sorted(observed_keys - _HTF_V2_CACHE_TF_KEYS)}"
+                )
+            feats_name = str(info["feats_npy"])
+            ts_name = str(info["ts_npy"])
+            expected_names = (f"{tf_name}_feats.npy", f"{tf_name}_ts.npy")
+            if (feats_name, ts_name) != expected_names:
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} filenames "
+                    f"observed={(feats_name, ts_name)!r} expected={expected_names!r}"
+                )
+            declared_inventory.update((feats_name, ts_name))
+        if initial_inventory != declared_inventory:
+            raise RuntimeError(
+                "HTF_V2_CACHE_INVENTORY_MISMATCH: "
+                f"missing={sorted(declared_inventory - initial_inventory)} "
+                f"unexpected={sorted(initial_inventory - declared_inventory)}"
+            )
+
+        out = MultiTFV2DiskCache(
+            cache_identity_sha256=cache_identity_sha256,
+            manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+            m5_prebuilt_source=str(source_path),
+            m5_prebuilt_source_sha256=m5_prebuilt_source_sha256,
+        )
+        for tf_name in MULTI_TF_RESAMPLE_RULES:
+            info = tf_manifest[tf_name]
+            n_bars = _exact_cache_int(
+                info["n_bars"], label=f"{tf_name}.n_bars", minimum=1
+            )
+            feature_count = _exact_cache_int(
+                info["feature_count"],
+                label=f"{tf_name}.feature_count",
+                minimum=1,
+            )
+            if feature_count != MULTI_TF_FEATURE_COUNT_V2:
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name}.feature_count "
+                    f"observed={feature_count} expected={MULTI_TF_FEATURE_COUNT_V2}"
+                )
+            feats_size = _exact_cache_int(
+                info["feats_npy_size_bytes"],
+                label=f"{tf_name}.feats_npy_size_bytes",
+                minimum=1,
+            )
+            ts_size = _exact_cache_int(
+                info["ts_npy_size_bytes"],
+                label=f"{tf_name}.ts_npy_size_bytes",
+                minimum=1,
+            )
+            feats_np = _load_verified_cache_npy(
+                directory_fd,
+                str(info["feats_npy"]),
+                expected_sha256=_exact_cache_sha256(
+                    info["feats_npy_sha256"],
+                    label=f"{tf_name}.feats_npy_sha256",
+                ),
+                expected_size_bytes=feats_size,
+                label=f"{tf_name}.feats_npy",
+            )
+            ts_int64 = _load_verified_cache_npy(
+                directory_fd,
+                str(info["ts_npy"]),
+                expected_sha256=_exact_cache_sha256(
+                    info["ts_npy_sha256"],
+                    label=f"{tf_name}.ts_npy_sha256",
+                ),
+                expected_size_bytes=ts_size,
+                label=f"{tf_name}.ts_npy",
+            )
+            if (
+                feats_np.dtype != np.dtype(np.float32)
+                or ts_int64.dtype != np.dtype(np.int64)
+            ):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} requires "
+                    "float32 features/int64 timestamps"
+                )
+            if feats_np.shape != (n_bars, MULTI_TF_FEATURE_COUNT_V2):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} feature shape "
+                    f"observed={feats_np.shape} "
+                    f"expected={(n_bars, MULTI_TF_FEATURE_COUNT_V2)}"
+                )
+            if ts_int64.shape != (n_bars,) or np.any(np.diff(ts_int64) <= 0):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name} timestamps invalid"
+                )
+            warmup_rows = validate_causal_feature_matrix(
+                feats_np,
+                expected_width=MULTI_TF_FEATURE_COUNT_V2,
+                context=f"HTF_V2_CACHE_{tf_name}",
+            )
+            if warmup_rows == len(feats_np):
+                raise RuntimeError(
+                    f"HTF_V2_CACHE_WARMUP_INCOMPLETE: {tf_name} has no complete row"
+                )
+            expected_meta = {
+                "n_bars": n_bars,
+                "feature_count": MULTI_TF_FEATURE_COUNT_V2,
+                "first_ts_ns": int(ts_int64[0]),
+                "last_ts_ns": int(ts_int64[-1]),
+                "causal_warmup_rows": warmup_rows,
+            }
+            for name, expected in expected_meta.items():
+                observed = _exact_cache_int(
+                    info[name],
+                    label=f"{tf_name}.{name}",
+                    minimum=0,
+                )
+                if observed != expected:
+                    raise RuntimeError(
+                        f"HTF_V2_CACHE_CONTRACT_MISMATCH: {tf_name}.{name} "
+                        f"observed={observed!r} expected={expected!r}"
+                    )
+            # Reconstruct minimal DataFrame (only index + attrs matter for fast-path).
+            idx = pd.DatetimeIndex(ts_int64.astype("datetime64[ns]"), tz="UTC")
+            df = pd.DataFrame(
+                np.empty((len(idx), feats_np.shape[1]), dtype=np.float32),
+                index=idx,
+                columns=MULTI_TF_PER_BAR_FEATURES_V2,
+            )
+            df.attrs["ts_int64"] = np.ascontiguousarray(ts_int64)
+            df.attrs["feats_np"] = np.ascontiguousarray(feats_np)
+            df.attrs["causal_warmup_rows"] = warmup_rows
+            df.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
+            out[tf_name] = df
+        final_inventory = set(os.listdir(directory_fd))
+        if final_inventory != declared_inventory:
+            raise RuntimeError(
+                "HTF_V2_CACHE_INVENTORY_CHANGED_DURING_LOAD: "
+                f"missing={sorted(declared_inventory - final_inventory)} "
+                f"unexpected={sorted(final_inventory - declared_inventory)}"
+            )
+        return out
+    finally:
+        os.close(directory_fd)
 
 
 def build_multi_tf_per_bar_features(m5_df: pd.DataFrame) -> dict:

@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import ctypes
-import errno
 import hashlib
 import json
 import math
@@ -37,6 +35,12 @@ from gx1.models.entry_v10.entry_v10_bundle import (
     _require_exact_model_native_bundle_metadata,
     _require_model_native_learned_component_liveness,
     _require_model_native_state_head_contract,
+)
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    publish_bundle_directory_noreplace,
+    require_bundle_commit_manifest,
+    write_bundle_commit_manifest,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     resolve_and_validate_prediction_evidence,
@@ -216,6 +220,7 @@ def _bundle_artifact_hashes(bundle_dir: Path) -> dict[str, str]:
 def _validate_source_bundle(
     source_bundle_dir: Path,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
+    require_bundle_commit_manifest(source_bundle_dir)
     required = {name: source_bundle_dir / name for name in BUNDLE_REQUIRED_FILES}
     for name, path in required.items():
         _require_plain_file(path, label=name)
@@ -477,38 +482,6 @@ def _copy_bundle_to_stage(
         _copy_file_fsync(source_bundle_dir / name, stage_dir / name)
 
 
-def _rename_dir_noreplace(source: Path, destination: Path) -> None:
-    """Atomically publish a directory using Linux renameat2(RENAME_NOREPLACE)."""
-
-    libc = ctypes.CDLL(None, use_errno=True)
-    renameat2 = getattr(libc, "renameat2", None)
-    if renameat2 is None:
-        raise RuntimeError("atomic no-replace directory publication is unavailable")
-    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-    renameat2.restype = ctypes.c_int
-    at_fdcwd = -100
-    rename_noreplace = 1
-    result = renameat2(
-        at_fdcwd,
-        os.fsencode(source),
-        at_fdcwd,
-        os.fsencode(destination),
-        rename_noreplace,
-    )
-    if result != 0:
-        code = ctypes.get_errno()
-        if code == errno.EEXIST:
-            raise RuntimeError(f"immutable output bundle already exists: {destination}")
-        raise RuntimeError(
-            f"atomic no-replace bundle publication failed: {os.strerror(code)}"
-        )
-    parent_fd = os.open(destination.parent, os.O_RDONLY | os.O_DIRECTORY)
-    try:
-        os.fsync(parent_fd)
-    finally:
-        os.close(parent_fd)
-
-
 def _publish_bundle(
     *,
     source_bundle_dir: Path,
@@ -633,12 +606,18 @@ def _publish_bundle(
         if event["output_bundle"]["training_objective_unchanged"] is not True:
             raise RuntimeError("derived bundle training-objective identity proof failed")
         _write_json_fsync(stage_dir / event_name, event)
+        write_bundle_commit_manifest(
+            bundle_dir=stage_dir,
+            artifact_names=(*BUNDLE_COMMIT_CORE_ARTIFACTS, event_name),
+            bundle_kind="calibrated",
+            created_at_utc=str(provenance["fitted_at_utc"]),
+        )
         stage_fd = os.open(stage_dir, os.O_RDONLY | os.O_DIRECTORY)
         try:
             os.fsync(stage_fd)
         finally:
             os.close(stage_fd)
-        _rename_dir_noreplace(stage_dir, out_bundle_dir)
+        publish_bundle_directory_noreplace(stage_dir, out_bundle_dir)
         published = True
         return final_event_path, event
     finally:

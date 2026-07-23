@@ -313,6 +313,23 @@ Operational discipline (paid for in the 2026-07-18/19 campaign; follow always):
   Hash and validate exact decision OHLC against it, then fan disjoint row
   ranges over the one shared context. Never reset 60-D1 liquidity at a split
   boundary and never use chunk overlap; long-memory features make both wrong.
+- Model-native normalization MUST fit the complete physical TRAIN population
+  before any cap, sampler or weighting step. The exact 513+142 order,
+  categorical domains, current-bar alias ownership and five-timeframe causal
+  source-row hashes are bundle/model state. VAL, TEST, replay and live never
+  refit or accept an external scaler path.
+- Every 142+5 context field MUST have exactly one family owner and enter that
+  specialist before cross-attention. Alias count is derived from the exact
+  ordered signal surface, never pinned from a historical dataset.
+- Final bundle/event names MUST remain absent until hidden staging, byte/hash
+  validation and `fsync` pass. Bundles require the exact commit manifest and
+  atomic no-replace directory publication; immutable JSON events use the same
+  visibility rule.
+- Launch authority cannot come from `.env` or a nonempty string. A future
+  ALLOW must bind the newest immutable one-time approval, complete launch-state
+  payload, exact bundle commit and unchanged runtime lease. Revalidate before
+  every new exposure. Missing broker `trade_id` blocks close execution; it
+  never authorizes a counter-market order.
 
 Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python` for repository Python.
 Use `rg`/`rg --files` for source discovery so `.gitignore` excludes `.venv`,

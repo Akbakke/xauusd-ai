@@ -39,6 +39,11 @@ evidence. V7 completed six epochs, failed hard-red with
 The post-run audit found signed dip-MFE target corruption and active training
 objective mismatches; neither V24 nor V7 may be reused for another run.
 `PIPELINE_AUDIT_XAU_20260723.md` is the detailed repair boundary.
+Those findings plus normalization, context routing, MTF component identity,
+bundle/event publication, active-Exit byte identity and runtime launch
+fail-close are now source-repaired only. No new data/model artifacts were
+written. The transactional launch finalizer and canonical/live December-2024
+tape parity remain open.
 `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
 Never delete or move `GX1_DATA` content merely to reduce repository search

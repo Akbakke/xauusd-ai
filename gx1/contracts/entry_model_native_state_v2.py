@@ -21,7 +21,7 @@ import pandas as pd
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 
 
-MODEL_NATIVE_STATE_SCHEMA_VERSION = "model_native_state_contract_v5"
+MODEL_NATIVE_STATE_SCHEMA_VERSION = "model_native_state_contract_v6"
 MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION = "model_native_train_rank_reference_v5"
 MODEL_NATIVE_RANK_TRANSFORM = (
     "train_fit_atr_spread_ecdf_plus_causal_288bar_vol_rank_v2"
@@ -379,7 +379,7 @@ def validate_state_contract_metadata_v2(
         "rank_reference_npz_sha256",
         "rank_reference_sidecar_sha256",
         "rank_reference_schema_version",
-        "normalization_fit_scope",
+        "rank_reference_fit_scope",
         "rank_transform",
         "feature_history_mode",
         "split_reset_allowed",
@@ -392,7 +392,7 @@ def validate_state_contract_metadata_v2(
         raise RuntimeError(f"MODEL_NATIVE_STATE_FIELDS_MISSING: {missing}")
     if data["rank_reference_schema_version"] != MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION:
         raise RuntimeError("MODEL_NATIVE_STATE_RANK_SCHEMA_INVALID")
-    if data["normalization_fit_scope"] != "train_only":
+    if data["rank_reference_fit_scope"] != "train_only":
         raise RuntimeError("MODEL_NATIVE_STATE_FIT_SCOPE_INVALID")
     if data["rank_transform"] != MODEL_NATIVE_RANK_TRANSFORM:
         raise RuntimeError("MODEL_NATIVE_STATE_RANK_TRANSFORM_INVALID")

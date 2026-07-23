@@ -37,6 +37,10 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     model_native_aux_target_contract_metadata,
     require_model_native_aux_target_contract,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
+    require_bundle_commit_manifest,
+)
 from gx1.contracts.entry_model_native_offline_rl_v1 import (
     ACTION_ORDER as OFFLINE_RL_ACTION_ORDER,
     ACTION_VALUE_DIM,
@@ -696,7 +700,9 @@ def _bundle_contract_report(
     metadata_path = bundle_dir / "bundle_metadata.json"
     lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
     state_path = bundle_dir / "model_state_dict.pt"
+    commit_path = bundle_dir / BUNDLE_COMMIT_MANIFEST_NAME
     try:
+        require_bundle_commit_manifest(bundle_dir)
         metadata = _read_json(metadata_path)
         lock = _read_json(lock_path)
         loaded = load_entry_v10_ctx_bundle(
@@ -890,6 +896,8 @@ def _bundle_contract_report(
     report = {
         "decision": "PASS" if not failures else "FAIL",
         "failures": failures,
+        "commit_path": str(commit_path),
+        "commit_sha256": _sha256_file(commit_path),
         "metadata_path": str(metadata_path),
         "metadata_sha256": _sha256_file(metadata_path),
         "lock_path": str(lock_path),
@@ -2107,6 +2115,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
 
     bundle_artifacts = {
+        "bundle_commit": {
+            "path": bundle_contract["commit_path"],
+            "sha256": bundle_contract["commit_sha256"],
+        },
         "bundle_metadata": {
             "path": bundle_contract["metadata_path"],
             "sha256": bundle_contract["metadata_sha256"],

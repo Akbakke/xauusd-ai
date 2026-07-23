@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T13:58:19Z",
+  "updated_utc": "2026-07-23T16:05:53Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
   "latest_terminal_event_decision": "GREEN",
@@ -16,6 +16,52 @@
   "required_mandatory_causal_layer_count": 12,
   "required_ctx_cont_dim": 142,
   "required_ctx_cat_dim": 5,
+  "source_repair_checkpoint": {
+    "status": "CODE_PROVEN_EMPIRICALLY_UNPROVEN",
+    "completed": [
+      "signed_dip_mfe_targets",
+      "selected_side_bad_path_symmetry",
+      "no_replacement_epoch_sampling",
+      "bidirectional_auxiliary_weights",
+      "tradable_long_short_conditional_path_metrics_and_incremental_lift",
+      "all_22_head_and_26_group_checkpoint_influence",
+      "spread_aware_train_feature_ranking_target",
+      "full_physical_train_input_normalization",
+      "exact_142_continuous_plus_5_categorical_context_family_ownership",
+      "dynamic_signal_context_alias_parity",
+      "exact_m5_plus_ten_component_mtf_v2_cache_identity",
+      "positive_hash_bound_tf_input_scales",
+      "atomic_no_replace_bundle_and_event_publication",
+      "exact_bundle_commit_inventory",
+      "recursive_active_exit_artifact_byte_identity",
+      "immutable_launch_approval_consumer_contract",
+      "runtime_launch_lease_revalidation_before_new_exposure",
+      "missing_trade_id_counter_order_removed"
+    ],
+    "remaining_source_p0": [
+      "canonical_transactional_candidate_promotion_launch_finalizer"
+    ],
+    "remaining_source_data_parity": [
+      "canonical_and_live_december_2024_m5_tape_parity"
+    ],
+    "repository_verification": {
+      "verified_utc": "2026-07-23T16:05:53Z",
+      "tests_collected": 1725,
+      "tests_passed": 1720,
+      "tests_skipped": 5,
+      "tests_failed": 0,
+      "changed_python_compile": "PASS",
+      "changed_python_ruff": "PASS_WITH_INTENTIONAL_E402_EXCLUSION",
+      "git_diff_check": "PASS",
+      "json_parse": "PASS",
+      "shell_syntax": "PASS",
+      "handover_self_check": "PASS",
+      "forbidden_instrument_scan": "PASS"
+    },
+    "fresh_rebuild_started": false,
+    "fresh_training_started": false,
+    "empirical_direction_edge_proven": false
+  },
   "accepted_bundle_dir": null,
   "bundle_metadata_sha256": null,
   "dataset_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
@@ -332,8 +378,9 @@
   "blockers": [
     "No smoke model, accepted bundle, calibration or learned LONG/SHORT/FLAT prediction evidence exists. V24/V7 are immutable failure evidence and are rejected for further training because the post-execution pipeline audit found signed-target corruption and active objective mismatches.",
     "V7 completed six full train/validation epochs and failed closed without a checkpoint or bundle. Raw accuracy peaked only through 85.1118% FLAT; the final epoch predicted 71.4092% SHORT, failed 32 context-slice checks, retained bad-path/survival AUC 0.478/0.514, six cross-head collapses and near-zero specialist/family-timeframe gate minima. Hard-red stopping refused further compute.",
-    "Before any new dataset or recipe, repair signed dip-MFE targets, side-aware bad-path penalty, replacement sampler coverage, symmetric auxiliary weighting/conditional metrics, full-head/influence admission, immutable MTF/scaler bindings, context specialist routing and evidence-scale contracts; then rebuild all splits from fresh XAU source.",
-    "Before any launch path can open, implement an atomic hash-bound candidate/promotion/launch finalizer and bind the explicit vedtak identity instead of accepting arbitrary nonempty environment text.",
+    "The post-V7 target/objective, sampler, conditional-metric, full-head/group-influence, normalization, context-routing, MTF, bundle/event-publication, Exit-byte, launch-approval-consumer, runtime-lease and missing-trade-ID faults are source-repaired only. V24/V7 predate them and no fresh artifacts prove the repairs empirically.",
+    "Before any launch path can open, implement the one remaining canonical transactional candidate/promotion/launch finalizer with durable terminal failure evidence. Consumer-side immutable vedtak/state/bundle binding is repaired and arbitrary environment text is rejected.",
+    "Canonical and live December-2024 M5 tape parity remains unproved; only the rejected event-local repair exists.",
     "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for one final untouched evaluation.",
     "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration and cost gates.",
     "No candidate replay or exact train-equals-serve proof exists for all five timeframes, eight specialists and 26 fusion groups.",

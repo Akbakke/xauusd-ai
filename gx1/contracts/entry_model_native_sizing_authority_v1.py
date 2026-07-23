@@ -355,6 +355,20 @@ def _snapshot_file_specs(
             str(joint_proof["artifact_registry"]["sha256"]),
         ),
     ]
+    for role, manifest in joint_proof[
+        "active_exit_artifact_manifests"
+    ].items():
+        root = Path(str(manifest["root_path"]))
+        for file_binding in manifest["files"]:
+            relative = str(file_binding["relative_path"])
+            path = root if relative == "." else root / relative
+            rows.append(
+                (
+                    f"active_exit.{role}.{relative}",
+                    str(path),
+                    str(file_binding["sha256"]),
+                )
+            )
     lineage = calibration["lineage"]
     for stem in (
         "dataset_manifest",

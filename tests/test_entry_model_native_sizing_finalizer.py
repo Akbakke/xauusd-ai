@@ -79,6 +79,7 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
         "bundle_metadata.json",
         "MASTER_TRANSFORMER_LOCK.json",
         "model_state_dict.pt",
+        "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json",
     }
 
     source_metadata = json.loads(
@@ -124,7 +125,10 @@ def test_canonical_fit_and_bundle_binding_clones_exact_pristine_bundle(
         )
 
     (source_bundle / "stale_policy.json").write_text("{}\n", encoding="utf-8")
-    with pytest.raises(SizingFinalizationError, match="inventory must be exact"):
+    with pytest.raises(
+        SizingFinalizationError,
+        match="DIRECTORY_INVENTORY_MISMATCH",
+    ):
         bind_bundle_sizing_calibration(
             source_bundle_dir=source_bundle,
             output_bundle_dir=tmp_path / "must_not_exist_bundle",

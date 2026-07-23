@@ -18,6 +18,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.scripts import materialize_entry_model_native_seq513_smoke_manifest_v1 as manifest_gate
 from gx1.scripts import verify_entry_model_native_seq513_trainability_readiness_v1 as trainability_gate
 from gx1.scripts import verify_entry_model_native_seq513_smoke_readiness_v1 as readiness
+from tests.model_native_context_routing_support import (
+    context_routing_for_ordered_signal_names,
+    ordered_signal_names_for_specialist_indices,
+)
 from tests.entry_full_input_liveness_support import write_full_input_liveness_fixture
 from tests.model_native_offline_rl_support import (
     model_native_target_audit_evidence,
@@ -185,6 +189,12 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
         for split in ("train", "val", "test")
         for name in readiness.REQUIRED_SPECIALISTS
     ]
+    ordered_signal_names = ordered_signal_names_for_specialist_indices(
+        specialist_indices
+    )
+    context_routing = context_routing_for_ordered_signal_names(
+        ordered_signal_names
+    )
     _write_json(
         tmp_path / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260716T120005123456Z.json",
         {
@@ -200,13 +210,18 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             "specialist_model_contract_failures": [],
             "signal_routing_all_mapped": True,
             "signal_unmapped_count": 0,
-            "context_routing_all_mapped": True,
-            "context_routing_unmapped_count": 0,
+            "context_specialist_routing_all_mapped": True,
+            "context_specialist_routing_failure_count": 0,
             "specialist_input_liveness_all_live": True,
             "specialist_input_liveness": specialist_liveness,
+            "feature_rows": [
+                {"index": index, "feature": field}
+                for index, field in enumerate(ordered_signal_names)
+            ],
             "architecture_contract": {
                 "input_dim": MODEL_NATIVE_SIGNAL_DIM,
                 "specialist_input_indices": specialist_indices,
+                "context_specialist_routing": context_routing,
                 "recommended_fusion": {
                     "active_heads": list(readiness.SPECIALIST_FUSION_ACTIVE_HEADS),
                     "blocked_heads": list(readiness.SPECIALIST_FUSION_BLOCKED_HEADS),

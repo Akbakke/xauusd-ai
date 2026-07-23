@@ -322,7 +322,7 @@ def _state_metadata(rank_ref: Path, report: dict, *, sha256: str | None = None) 
             rank_ref.with_suffix(rank_ref.suffix + ".json").read_bytes()
         ).hexdigest(),
         "rank_reference_schema_version": MODEL_NATIVE_TRAIN_RANK_SCHEMA_VERSION,
-        "normalization_fit_scope": "train_only",
+        "rank_reference_fit_scope": "train_only",
         "rank_transform": MODEL_NATIVE_RANK_TRANSFORM,
         "feature_history_mode": MODEL_NATIVE_HISTORY_MODE,
         "split_reset_allowed": False,

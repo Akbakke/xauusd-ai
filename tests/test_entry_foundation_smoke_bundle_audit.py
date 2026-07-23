@@ -21,6 +21,10 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
+    write_bundle_commit_manifest,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     model_native_signal_contract_metadata,
 )
@@ -409,6 +413,16 @@ def test_bundle_contract_uses_strict_loader_and_proves_full_stack(
         json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
     )
     _write_json(bundle / "MASTER_TRANSFORMER_LOCK.json", lock)
+    write_bundle_commit_manifest(
+        bundle_dir=bundle.resolve(),
+        artifact_names=(
+            "MASTER_TRANSFORMER_LOCK.json",
+            "bundle_metadata.json",
+            "model_state_dict.pt",
+        ),
+        bundle_kind="trained",
+        created_at_utc="2026-07-16T12:00:00+00:00",
+    )
     state_keys = {
         "cross_tf_attn.in_proj_weight",
         "tf_gate_logits",
@@ -492,6 +506,16 @@ def test_run_publishes_exact_consumer_contract_without_latest(
         {"model_native_training_objective": objective},
     )
     (bundle / "model_state_dict.pt").write_bytes(b"model-native-state")
+    write_bundle_commit_manifest(
+        bundle_dir=bundle.resolve(),
+        artifact_names=(
+            "MASTER_TRANSFORMER_LOCK.json",
+            "bundle_metadata.json",
+            "model_state_dict.pt",
+        ),
+        bundle_kind="trained",
+        created_at_utc="2026-07-16T12:00:00+00:00",
+    )
     val_manifest = _write_json(dataset / "xau_val.manifest.json", {"fixture": True})
     test_manifest = _write_json(dataset / "xau_test.manifest.json", {"fixture": True})
     predictions = tmp_path / f"selective_edge_predictions_{STAMP}.parquet"
@@ -562,6 +586,10 @@ def test_run_publishes_exact_consumer_contract_without_latest(
     bundle_contract = {
         "decision": "PASS",
         "failures": [],
+        "commit_path": str((bundle / BUNDLE_COMMIT_MANIFEST_NAME).resolve()),
+        "commit_sha256": audit._sha256_file(
+            bundle / BUNDLE_COMMIT_MANIFEST_NAME
+        ),
         "metadata_path": str((bundle / "bundle_metadata.json").resolve()),
         "metadata_sha256": audit._sha256_file(bundle / "bundle_metadata.json"),
         "lock_path": str((bundle / "MASTER_TRANSFORMER_LOCK.json").resolve()),

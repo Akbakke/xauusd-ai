@@ -47,6 +47,9 @@ from gx1.contracts.entry_model_native_adaptation_lifecycle_v1 import (
     ModelNativeAdaptationLifecycleError,
     require_launch_adaptation_authority,
 )
+from gx1.contracts.entry_model_native_launch_approval_v1 import (
+    require_entry_launch_approval,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_operating_point,
 )
@@ -487,8 +490,6 @@ def _check_v10_entry_launch_contract(path: Path) -> dict:
         raise ArtifactGuardError(
             "XAU direction launch contract is not model-native/current: " + " | ".join(mismatches)
         )
-    if not str(state.get("accepted_via_vedtak") or "").strip():
-        raise ArtifactGuardError("XAU direction launch contract lacks accepted_via_vedtak")
     if not str(state.get("dataset_event_id") or "").strip():
         raise ArtifactGuardError("XAU direction launch contract lacks dataset_event_id")
     for evidence_name in (
@@ -534,6 +535,15 @@ def _check_v10_entry_launch_contract(path: Path) -> dict:
         raise ArtifactGuardError(
             "XAU direction launch accepted_bundle_dir differs from selected artifact"
         )
+    try:
+        require_entry_launch_approval(
+            state,
+            accepted_bundle=accepted_bundle.resolve(),
+        )
+    except RuntimeError as exc:
+        raise ArtifactGuardError(
+            f"XAU direction launch approval invalid: {exc}"
+        ) from exc
     metadata_path = accepted_bundle.resolve() / "bundle_metadata.json"
     if not metadata_path.is_file() or _sha256_file(metadata_path) != str(
         state.get("bundle_metadata_sha256") or ""

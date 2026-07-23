@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import json
 import logging
+import math
 import mmap
 import os
 import subprocess
@@ -53,6 +54,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    publish_bundle_directory_noreplace,
+    write_bundle_commit_manifest,
+)
 from gx1.contracts.xau_tape_provenance_v1 import validate_xau_tape_provenance_v1
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     FIXED_POSITIVE_LOSS_WEIGHTS as _MODEL_NATIVE_FIXED_POSITIVE_LOSS_WEIGHTS,
@@ -78,10 +84,6 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     q_ranking_margin_loss,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
-    MODEL_NATIVE_AUX_TARGET_COLUMNS,
-    MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN,
-    MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
     MODEL_NATIVE_DIP_TARGET_COLUMNS,
     MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
@@ -95,6 +97,14 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     REFERENCE as _EVIDENCE_FUSION_MOVEMENT_REFERENCE,
     SCHEMA_VERSION as _EVIDENCE_FUSION_MOVEMENT_SCHEMA_VERSION,
     require_learned_component_movement_metadata,
+)
+from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    TF_NAMES as TF_INPUT_SCALE_NAMES,
+    build_tf_input_scale_contract,
+)
+from gx1.models.entry_v10.entry_v10_input_normalization import (
+    TrainNormalizationArtifacts,
+    fit_entry_v10_train_input_normalization,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
@@ -111,6 +121,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    require_model_native_context_specialist_routing,
     required_training_specialists_for_mode,
     require_model_native_specialist_contract_mode,
     specialist_model_contract_for_mode,
@@ -1223,6 +1234,7 @@ def _load_specialist_fusion_contract(
     audit_json: Optional[Path],
     *,
     expected_signal_dim: int,
+    ordered_signal_names: list[str],
     contract_mode: str,
 ) -> tuple[Dict[str, list[int]], Dict[str, Any]]:
     try:
@@ -1286,6 +1298,23 @@ def _load_specialist_fusion_contract(
         )
     arch = report.get("architecture_contract") if isinstance(report.get("architecture_contract"), dict) else {}
     raw = arch.get("specialist_input_indices") if isinstance(arch.get("specialist_input_indices"), dict) else {}
+    context_routing = (
+        arch.get("context_specialist_routing")
+        if isinstance(arch.get("context_specialist_routing"), dict)
+        else {}
+    )
+    if report.get("context_specialist_routing_all_mapped") is not True:
+        raise RuntimeError(
+            "[SPECIALIST_CONTEXT_ROUTING_NOT_PROVEN] "
+            f"failures={report.get('context_specialist_routing_failures')}"
+        )
+    if int(report.get("context_specialist_routing_failure_count") or 0) != 0:
+        raise RuntimeError("[SPECIALIST_CONTEXT_ROUTING_FAILURES_PRESENT]")
+    context_routing = require_model_native_context_specialist_routing(
+        context_routing,
+        ordered_signal_names=ordered_signal_names,
+        context="SPECIALIST_AUDIT",
+    )
     recommended = arch.get("recommended_fusion") if isinstance(arch.get("recommended_fusion"), dict) else {}
     active_heads = [str(head) for head in recommended.get("active_heads") or recommended.get("heads") or [] if str(head)]
     blocked_heads = [str(head) for head in recommended.get("blocked_heads") or [] if str(head)]
@@ -1340,6 +1369,15 @@ def _load_specialist_fusion_contract(
             f"missing={missing_indices[:20]} total_missing={len(missing_indices)} "
             f"unexpected={unexpected_indices[:20]} total_unexpected={len(unexpected_indices)}"
         )
+    for alias in context_routing["temporal_alias_policy"]["aliases"]:
+        owner = str(alias["specialist"])
+        signal_index = int(alias["signal_index"])
+        if signal_index not in indices.get(owner, []):
+            raise RuntimeError(
+                "[SPECIALIST_CONTEXT_TEMPORAL_ALIAS_OWNER_MISMATCH] "
+                f"field={alias['signal_field']} index={signal_index} "
+                f"owner={owner}"
+            )
     required = list(required_training_specialists)
     missing = [name for name in required if name not in indices]
     if missing:
@@ -1352,6 +1390,7 @@ def _load_specialist_fusion_contract(
         "selected_feature_count": int(report.get("selected_feature_count") or 0),
         "input_indices": indices,
         "group_feature_counts": {name: len(vals) for name, vals in indices.items()},
+        "context_routing": context_routing,
         "contract_mode": normalized_contract_mode,
         "audit_contract_mode": observed_contract_mode,
         "trainable_specialists": list(required_training_specialists),
@@ -2108,12 +2147,15 @@ def _log_label_distribution(parquet_path: Path, split: str) -> None:
 # contract-qualified key is shared by the pre-train peak-memory build and every
 # dataset instance so one source path can produce only one in-process object.
 _MULTI_TF_CACHE: Dict[str, Dict[str, pd.DataFrame]] = {}
+_MULTI_TF_ACTIVE_CACHE_KEYS: Dict[str, str] = {}
 _MULTI_TF_CACHE_CONTRACT = "V2_CAUSAL"
 
 
 def _multi_tf_cache_key(
     m5_prebuilt_path: Path,
     *,
+    source_sha256: Optional[str] = None,
+    backend_identity: str = "source_build",
     contract_mode: str = _MULTI_TF_CACHE_CONTRACT,
 ) -> str:
     if contract_mode != _MULTI_TF_CACHE_CONTRACT:
@@ -2121,8 +2163,24 @@ def _multi_tf_cache_key(
             "[MULTI_TF_CACHE_CONTRACT_MODE_INVALID] "
             f"observed={contract_mode!r} expected={_MULTI_TF_CACHE_CONTRACT!r}"
         )
+    source_path = Path(m5_prebuilt_path).expanduser().resolve()
+    observed_source_sha256 = (
+        str(source_sha256).strip().lower()
+        if source_sha256 is not None
+        else _sha256_file(source_path)
+    )
+    if (
+        len(observed_source_sha256) != 64
+        or any(ch not in "0123456789abcdef" for ch in observed_source_sha256)
+    ):
+        raise RuntimeError("[MULTI_TF_CACHE_SOURCE_SHA256_INVALID]")
+    normalized_backend = str(backend_identity).strip()
+    if not normalized_backend:
+        raise RuntimeError("[MULTI_TF_CACHE_BACKEND_IDENTITY_INVALID]")
     return (
-        f"{Path(m5_prebuilt_path).expanduser().resolve()}"
+        f"{source_path}"
+        f"|source_sha256={observed_source_sha256}"
+        f"|backend={normalized_backend}"
         f"|contract={_MULTI_TF_CACHE_CONTRACT}"
     )
 
@@ -2130,14 +2188,98 @@ def _multi_tf_cache_key(
 def _prebuild_multi_tf_v2_features_once(
     m5_prebuilt_path: Path,
 ) -> Dict[str, pd.DataFrame]:
-    """Build the exact V2 causal tables once and return their shared identity."""
+    """Load/build exact V2 tables once under a byte-bound source identity."""
 
-    m5_path = Path(m5_prebuilt_path).expanduser().resolve()
-    if not m5_path.is_file():
+    supplied = Path(m5_prebuilt_path).expanduser()
+    absolute = supplied if supplied.is_absolute() else Path.cwd() / supplied
+    if any(component.is_symlink() for component in (absolute, *absolute.parents)):
+        raise RuntimeError(
+            f"[MULTI_TF_SOURCE_CONTRACT] source path traverses symlink: {absolute}"
+        )
+    try:
+        m5_path = absolute.resolve(strict=True)
+    except OSError as exc:
+        raise FileNotFoundError(
+            f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {absolute}"
+        ) from exc
+    if not m5_path.is_file() or m5_path.is_symlink():
         raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
-    cache_key = _multi_tf_cache_key(m5_path)
+    source_sha256 = _sha256_file(m5_path)
+    disk_cache_raw = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR", "").strip()
+    backend_locator = (
+        f"disk_path:{Path(disk_cache_raw).expanduser().resolve()}"
+        if disk_cache_raw
+        else "source_build"
+    )
+    active_identity = (
+        f"{m5_path}|source_sha256={source_sha256}"
+        f"|backend_locator={backend_locator}"
+        f"|contract={_MULTI_TF_CACHE_CONTRACT}"
+    )
+    active_cache_key = _MULTI_TF_ACTIVE_CACHE_KEYS.get(active_identity)
+    if active_cache_key is not None:
+        active_cached = _MULTI_TF_CACHE.get(active_cache_key)
+        if active_cached is None:
+            raise RuntimeError("[MULTI_TF_CACHE_ACTIVE_IDENTITY_DANGLING]")
+        return active_cached
+
+    if disk_cache_raw:
+        from gx1.features.htf_features import load_multi_tf_v2_cache
+
+        loaded = load_multi_tf_v2_cache(disk_cache_raw)
+        if (
+            str(getattr(loaded, "m5_prebuilt_source", "")) != str(m5_path)
+            or str(getattr(loaded, "m5_prebuilt_source_sha256", ""))
+            != source_sha256
+        ):
+            raise RuntimeError(
+                "[MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH] "
+                f"cache_source={getattr(loaded, 'm5_prebuilt_source', None)!r} "
+                f"expected_source={str(m5_path)!r}"
+            )
+        cache_identity_sha256 = str(
+            getattr(loaded, "cache_identity_sha256", "")
+        )
+        cache_key = _multi_tf_cache_key(
+            m5_path,
+            source_sha256=source_sha256,
+            backend_identity=(
+                f"{backend_locator}:cache_identity={cache_identity_sha256}"
+            ),
+        )
+        cached = _MULTI_TF_CACHE.get(cache_key)
+        if cached is not None:
+            _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
+            return cached
+
+        import pyarrow.parquet as pq
+
+        prebuilt_max = pd.to_datetime(
+            pq.read_table(m5_path, columns=["time"])
+            .column("time")
+            .to_numpy(zero_copy_only=False)
+            .max(),
+            utc=True,
+        )
+        cache_max = loaded["M5"].index.max()
+        if cache_max != prebuilt_max:
+            raise RuntimeError(
+                "[MULTI_TF_CACHE_STALE] "
+                f"disk cache M5 max {cache_max} does not exactly match "
+                f"prebuilt max {prebuilt_max}"
+            )
+        _MULTI_TF_CACHE[cache_key] = loaded
+        _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
+        return loaded
+
+    cache_key = _multi_tf_cache_key(
+        m5_path,
+        source_sha256=source_sha256,
+        backend_identity=backend_locator,
+    )
     cached = _MULTI_TF_CACHE.get(cache_key)
     if cached is not None:
+        _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
         return cached
 
     from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
@@ -2166,7 +2308,10 @@ def _prebuild_multi_tf_v2_features_once(
     import gc
 
     gc.collect()
+    if _sha256_file(m5_path) != source_sha256:
+        raise RuntimeError("[MULTI_TF_SOURCE_CHANGED_DURING_BUILD]")
     _MULTI_TF_CACHE[cache_key] = feats
+    _MULTI_TF_ACTIVE_CACHE_KEYS[active_identity] = cache_key
     for tf_name, frame in feats.items():
         log.info(
             "[MULTI_TF] %s: %s bars × %s feats",
@@ -2446,80 +2591,11 @@ class EntryV10CtxDataset(Dataset):
                 "(path to canonical_v3 M5 OHLC parquet)."
             )
         m5_path = Path(m5_prebuilt_path)
-        if not m5_path.is_file():
-            raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
-        cache_key = _multi_tf_cache_key(m5_path)
-        cached = _MULTI_TF_CACHE.get(cache_key)
-        # Disk cache (V2 only): GX1_V10_MULTI_TF_V2_CACHE_DIR points at a pre-built
-        # cache from gx1/scripts/prebuild_multi_tf_cache_v2.py. Saves ~84s per init.
-        _disk_cache_dir = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR", "").strip()
-        if cached is not None:
-            log.info(f"[MULTI_TF] reusing exact V2 causal feature tables (key={m5_path.name})")
-            self._multi_tf_feats = cached
-        elif _disk_cache_dir:
-            from gx1.features.htf_features import (
-                MULTI_TF_PER_BAR_FEATURES_V2,
-                MULTI_TF_SHIFT,
-                load_multi_tf_v2_cache,
-            )
-            log.info(f"[MULTI_TF] loading V2 disk cache: {_disk_cache_dir}")
-            _disk_manifest_path = Path(_disk_cache_dir) / "manifest.json"
-            if not _disk_manifest_path.is_file():
-                raise RuntimeError(f"[MULTI_TF_CACHE_MANIFEST_MISSING] {_disk_manifest_path}")
-            _disk_manifest = json.loads(_disk_manifest_path.read_text(encoding="utf-8"))
-            _observed_features = [str(x) for x in (_disk_manifest.get("feature_names") or [])]
-            _expected_features = list(MULTI_TF_PER_BAR_FEATURES_V2)
-            if _observed_features != _expected_features:
-                raise RuntimeError(
-                    "[MULTI_TF_CACHE_FEATURE_CONTRACT_MISMATCH] "
-                    f"cache={_disk_cache_dir} observed={_observed_features or '<missing>'} "
-                    f"expected={_expected_features}"
-                )
-            _observed_shift = (
-                _disk_manifest.get("shift_contract")
-                if isinstance(_disk_manifest.get("shift_contract"), dict)
-                else {}
-            )
-            _expected_shift = {tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()}
-            if _observed_shift != _expected_shift:
-                raise RuntimeError(
-                    "[MULTI_TF_CACHE_SHIFT_CONTRACT_MISMATCH] "
-                    f"cache={_disk_cache_dir} observed={_observed_shift or '<missing>'} "
-                    f"expected={_expected_shift}"
-                )
-            _expected_source_sha = _sha256_file(m5_path)
-            _observed_source_sha = str(_disk_manifest.get("m5_prebuilt_source_sha256") or "").strip()
-            if _observed_source_sha != _expected_source_sha:
-                raise RuntimeError(
-                    "[MULTI_TF_CACHE_SOURCE_SHA_MISMATCH] "
-                    f"cache={_disk_cache_dir} observed={_observed_source_sha or '<missing>'} "
-                    f"expected={_expected_source_sha} m5_prebuilt={m5_path}"
-                )
-            _loaded_cache = load_multi_tf_v2_cache(_disk_cache_dir)
-            # FRESHNESS GUARD (2026-07-04 stale-cache incident): the disk cache is
-            # keyed by filename, so an in-place-extended prebuilt silently serves a
-            # stale snapshot — June eval bars got MTF context frozen at 2026-05-25
-            # (same freeze class as the 2026-05-25 BASE34 incident, rule 9). The
-            # dataset-build side already fail-closes on this; this is the eval/train
-            # twin. Cache lagging the prebuilt by >2 days = hard error, never a
-            # silent frozen-context eval.
-            import pyarrow.parquet as _pq
-            _prebuilt_max = pd.to_datetime(
-                _pq.read_table(m5_path, columns=["time"]).column("time").to_numpy(zero_copy_only=False).max(),
-                utc=True,
-            )
-            _cache_max = _loaded_cache["M5"].index.max()
-            if _cache_max != _prebuilt_max:
-                raise RuntimeError(
-                    f"[MULTI_TF_CACHE_STALE] disk cache M5 max {_cache_max} does not exactly "
-                    f"match prebuilt max {_prebuilt_max} — regenerate via "
-                    f"python -m gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt {m5_path} "
-                    f"--out-dir {_disk_cache_dir}"
-                )
-            self._multi_tf_feats = _loaded_cache
-            _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
-        else:
-            self._multi_tf_feats = _prebuild_multi_tf_v2_features_once(m5_path)
+        # One loader owns both source-build and verified disk-cache paths. Its
+        # in-process identity includes the exact M5 SHA and, when used, the
+        # full byte-bound disk-cache identity. No path-only cache shortcut is
+        # permitted.
+        self._multi_tf_feats = _prebuild_multi_tf_v2_features_once(m5_path)
         self._multi_tf_shift = MULTI_TF_SHIFT
         self._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
         self._multi_tf_feature_count = int(MULTI_TF_FEATURE_COUNT_V2)
@@ -5948,20 +6024,26 @@ def _aux_head_diagnostics(
     head_preds: "dict[str, list]",
     binary_labels: "dict[str, list]",
     realized: "dict[str, list]",
+    row_masks: "dict[str, list]",
 ) -> "tuple[dict, list]":
     """Compute mandatory auxiliary-head health evidence.
 
     Computes, on the accumulated validation predictions:
       (a) cross-head Spearman between aux-head predictions -> catches the rho~0.99
           head-collapse (clean_edge/survival/tradable becoming redundant);
-      (b) per-head AUC vs each head's own binary label -> catches a head that stopped
-          discriminating;
+      (b) tradable AUC on all rows, but path-head AUC on TRADE and separately
+          LONG/SHORT rows -> prevents FLAT recognition from masquerading as
+          selected-side path discrimination;
+      (c) path-head AUC lift over the generic tradable score on each conditional
+          scope -> proves that a dedicated path head contributes incremental
+          evidence instead of duplicating trade/no-trade;
       (c) Spearman(head_pred, realized outcome) -> catches MIS-TARGETING such as the
           documented bad_path head predicting volatility instead of loss (bad_path prob
           should correlate NEGATIVELY with realized path_quality_bps).
 
-    Missing dependencies, predictions, labels, finite metrics, discriminative
-    evidence, or anti-targeted/collapsed heads are bundle-blocking failures.
+    Missing masks, insufficient per-side support, non-finite metrics,
+    non-discriminative/incrementally redundant heads, anti-targeting, and
+    collapsed heads are checkpoint-blocking failures.
     """
     metrics: "dict[str, float]" = {}
     warns: "list[str]" = []
@@ -5987,6 +6069,14 @@ def _aux_head_diagnostics(
             )
         return arr
 
+    def _cat_mask(k: str) -> np.ndarray:
+        arr = _cat(row_masks, k)
+        if not np.logical_or(arr == 0.0, arr == 1.0).all():
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_MASK_NOT_BINARY] {k}"
+            )
+        return arr > 0.5
+
     required_preds = (
         "tradable",
         "bad_path",
@@ -5996,14 +6086,35 @@ def _aux_head_diagnostics(
         "mfe_first_n",
     )
     pred_arrays = {k: _cat(head_preds, k) for k in required_preds}
+    masks = {name: _cat_mask(name) for name in ("trade", "long", "short")}
+    row_count = int(next(iter(pred_arrays.values())).size)
+    if any(int(value.size) != row_count for value in pred_arrays.values()):
+        raise RuntimeError("[ENTRY_AUX_HEAD_HEALTH_PREDICTION_ROW_MISMATCH]")
+    if any(int(value.size) != row_count for value in masks.values()):
+        raise RuntimeError("[ENTRY_AUX_HEAD_HEALTH_MASK_ROW_MISMATCH]")
+    if np.logical_and(masks["long"], masks["short"]).any() or not np.array_equal(
+        masks["trade"],
+        np.logical_or(masks["long"], masks["short"]),
+    ):
+        raise RuntimeError("[ENTRY_AUX_HEAD_HEALTH_SIDE_MASK_PARTITION_INVALID]")
+    metrics["conditional_rows__all"] = row_count
+    for name, mask in masks.items():
+        rows = int(mask.sum())
+        metrics[f"conditional_rows__{name}"] = rows
+        if rows < 16:
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] scope={name} rows={rows}"
+            )
 
-    # (a) cross-head Spearman -> report the max |rho| off-diagonal + flag redundant pairs.
+    # (a) Cross-head collapse must be measured inside the actual edge rows.
+    # Flat-vs-trade separation is not evidence that two path heads differ.
     names = sorted(pred_arrays.keys())
     max_abs_rho = 0.0
     max_pair = ""
     for i in range(len(names)):
         for j in range(i + 1, len(names)):
-            a, b = pred_arrays[names[i]], pred_arrays[names[j]]
+            a = pred_arrays[names[i]][masks["trade"]]
+            b = pred_arrays[names[j]][masks["trade"]]
             if a.size != b.size:
                 raise RuntimeError(
                     f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] {names[i]}={a.size} {names[j]}={b.size}"
@@ -6032,29 +6143,118 @@ def _aux_head_diagnostics(
         if abs(max_abs_rho) >= 0.95:
             warns.append(f"[V10-AUX-02] highest cross-head |rho|={max_abs_rho:+.3f} @ {max_pair}")
 
-    # (b) per-head AUC vs its own binary label.
-    for k in ("tradable", "bad_path", "clean_edge", "survival"):
-        pred = pred_arrays.get(k)
-        lbl = _cat(binary_labels, k)
-        if pred.size != lbl.size:
+    def _auc(
+        *,
+        head: str,
+        prediction: np.ndarray,
+        label: np.ndarray,
+        mask: np.ndarray,
+        scope: str,
+    ) -> float:
+        pred = prediction[mask]
+        lbl = label[mask]
+        if pred.size < 16:
             raise RuntimeError(
-                f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] pred_{k}={pred.size} label_{k}={lbl.size}"
+                f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] "
+                f"head={head} scope={scope} rows={pred.size}"
             )
-        ub = np.unique(lbl[np.isfinite(lbl)])
-        if ub.size < 2:
-            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_LABEL_CONSTANT] {k}")
-        m = np.isfinite(pred) & np.isfinite(lbl)
-        if m.sum() < 16:
-            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] {k}={int(m.sum())}")
+        unique = np.unique(lbl)
+        if unique.size < 2:
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_LABEL_CONSTANT] "
+                f"head={head} scope={scope}"
+            )
+        if not np.logical_or(lbl == 0.0, lbl == 1.0).all():
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_LABEL_NOT_BINARY] "
+                f"head={head} scope={scope}"
+            )
         try:
-            auc = float(roc_auc_score((lbl[m] > 0.5).astype(int), pred[m]))
+            value = float(roc_auc_score(lbl.astype(int), pred))
         except Exception as exc:
-            raise RuntimeError(f"[ENTRY_AUX_HEAD_HEALTH_AUC_FAILED] {k}: {exc}") from exc
-        metrics[f"auc__{k}"] = auc
-        if auc < 0.52:
-            warns.append(f"[V10-AUX-02] {k} AUC={auc:.3f} (~chance => head not discriminating)")
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_AUC_FAILED] "
+                f"head={head} scope={scope}: {exc}"
+            ) from exc
+        if not np.isfinite(value):
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_AUC_NONFINITE] "
+                f"head={head} scope={scope}"
+            )
+        return value
 
-    # (c) Spearman(head_pred, realized outcome) -> mis-targeting detector.
+    # (b) The generic tradable head owns the all-row task.
+    tradable_label = _cat(binary_labels, "tradable")
+    if tradable_label.size != row_count:
+        raise RuntimeError(
+            "[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] "
+            f"pred_tradable={row_count} label_tradable={tradable_label.size}"
+        )
+    tradable_auc = _auc(
+        head="tradable",
+        prediction=pred_arrays["tradable"],
+        label=tradable_label,
+        mask=np.ones(row_count, dtype=bool),
+        scope="all",
+    )
+    metrics["auc__tradable__all"] = tradable_auc
+    metrics["auc__tradable"] = tradable_auc
+    if tradable_auc < 0.52:
+        warns.append(
+            f"[V10-AUX-02] tradable AUC={tradable_auc:.3f} "
+            "(~chance => head not discriminating)"
+        )
+
+    # Dedicated path heads must discriminate within TRADE, LONG and SHORT.
+    for k in ("bad_path", "clean_edge", "survival"):
+        lbl = _cat(binary_labels, k)
+        if lbl.size != row_count:
+            raise RuntimeError(
+                f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] "
+                f"pred_{k}={row_count} label_{k}={lbl.size}"
+            )
+        for scope in ("trade", "long", "short"):
+            mask = masks[scope]
+            auc = _auc(
+                head=k,
+                prediction=pred_arrays[k],
+                label=lbl,
+                mask=mask,
+                scope=scope,
+            )
+            metrics[f"auc__{k}__{scope}"] = auc
+            if scope == "trade":
+                metrics[f"auc__{k}"] = auc
+            if auc < 0.52:
+                warns.append(
+                    f"[V10-AUX-02] {k} conditional AUC={auc:.3f} "
+                    f"scope={scope} (~chance => path head not discriminating)"
+                )
+
+            baseline_prediction = (
+                1.0 - pred_arrays["tradable"]
+                if k == "bad_path"
+                else pred_arrays["tradable"]
+            )
+            baseline_auc = _auc(
+                head=f"{k}_tradable_baseline",
+                prediction=baseline_prediction,
+                label=lbl,
+                mask=mask,
+                scope=scope,
+            )
+            lift = float(auc - baseline_auc)
+            metrics[f"baseline_auc__{k}__{scope}"] = baseline_auc
+            metrics[f"incremental_auc_lift__{k}__{scope}"] = lift
+            if lift < 0.01:
+                warns.append(
+                    f"[V10-AUX-02] {k} no incremental conditional edge: "
+                    f"scope={scope} head_auc={auc:.3f} "
+                    f"tradable_baseline_auc={baseline_auc:.3f} "
+                    f"lift={lift:+.3f} required>=+0.010"
+                )
+
+    # (c) Realized-target alignment is also conditional on edge/side.
     for rk in realized:
         rv = _cat(realized, rk)
         for hk, pred in pred_arrays.items():
@@ -6062,30 +6262,50 @@ def _aux_head_diagnostics(
                 raise RuntimeError(
                     f"[ENTRY_AUX_HEAD_HEALTH_ROW_MISMATCH] pred_{hk}={pred.size} realized_{rk}={rv.size}"
                 )
-            m = np.isfinite(pred) & np.isfinite(rv)
-            if m.sum() < 16:
-                raise RuntimeError(
-                    f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] {hk}~{rk}={int(m.sum())}"
-                )
-            try:
-                rho = spearmanr(pred[m], rv[m]).correlation
-            except Exception as exc:
-                raise RuntimeError(
-                    f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_FAILED] {hk}~{rk}: {exc}"
-                ) from exc
-            if rho is None or not np.isfinite(rho):
-                raise RuntimeError(
-                    f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_NONFINITE] {hk}~{rk}"
-                )
-            metrics[f"realized_rho__{hk}__{rk}"] = float(rho)
-            # Documented failure: bad_path (prob of a BAD path) should be NEGATIVELY
-            # correlated with realized path_quality_bps. A positive sign = anti-targeted.
-            if hk == "bad_path" and rk == "path_quality_bps" and rho > -0.02:
-                warns.append(
-                    f"[V10-AUX-02] bad_path ANTI-TARGETED: Spearman(bad_path, "
-                    f"path_quality_bps)={rho:+.3f} (expected strongly negative; "
-                    f"head may be predicting volatility, not loss)"
-                )
+            for scope in ("trade", "long", "short"):
+                mask = masks[scope]
+                if int(mask.sum()) < 16:
+                    raise RuntimeError(
+                        f"[ENTRY_AUX_HEAD_HEALTH_ROWS_INSUFFICIENT] "
+                        f"{hk}~{rk} scope={scope}"
+                    )
+                try:
+                    rho = spearmanr(pred[mask], rv[mask]).correlation
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_FAILED] "
+                        f"{hk}~{rk} scope={scope}: {exc}"
+                    ) from exc
+                if rho is None or not np.isfinite(rho):
+                    raise RuntimeError(
+                        f"[ENTRY_AUX_HEAD_HEALTH_SPEARMAN_NONFINITE] "
+                        f"{hk}~{rk} scope={scope}"
+                    )
+                metrics[f"realized_rho__{hk}__{rk}__{scope}"] = float(rho)
+                if scope == "trade":
+                    metrics[f"realized_rho__{hk}__{rk}"] = float(rho)
+                if (
+                    hk == "bad_path"
+                    and rk == "path_quality_bps"
+                    and rho > -0.02
+                ):
+                    warns.append(
+                        "[V10-AUX-02] bad_path ANTI-TARGETED: "
+                        f"scope={scope} Spearman(bad_path,path_quality_bps)="
+                        f"{rho:+.3f} expected<=-0.020"
+                    )
+                if (
+                    (hk, rk)
+                    in {
+                        ("path_quality", "path_quality_bps"),
+                        ("mfe_first_n", "mfe_first_n_bps"),
+                    }
+                    and rho < 0.02
+                ):
+                    warns.append(
+                        f"[V10-AUX-02] {hk} MIS-TARGETED: scope={scope} "
+                        f"Spearman({hk},{rk})={rho:+.3f} expected>=+0.020"
+                    )
     return metrics, warns
 
 
@@ -7310,6 +7530,18 @@ def _resolve_train_out_bundle_dir(out_bundle_dir: Path, gx1_data_override: str) 
     return (_resolve_gx1_data(gx1_data_override) / path).resolve()
 
 
+def _fsync_regular_file(path: Path) -> None:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(
+            f"[ENTRY_BUNDLE_STAGE_ARTIFACT_INVALID] {path}"
+        )
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _direction_slice_stats_snapshot(stats: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not isinstance(stats, dict):
         return {}
@@ -7481,6 +7713,9 @@ def validate(
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
     _diag_lbl: "dict[str, list]" = {k: [] for k in ("tradable", "bad_path", "clean_edge", "survival")}
     _diag_real: "dict[str, list]" = {k: [] for k in ("mfe_first_n_bps", "path_quality_bps")}
+    _diag_mask: "dict[str, list]" = {
+        k: [] for k in ("trade", "long", "short")
+    }
     active_head_epoch = _new_active_head_epoch_accumulator()
     hierarchy_trade_prob_chunks: List[np.ndarray] = []
     hierarchy_side_pred_chunks: List[np.ndarray] = []
@@ -7560,6 +7795,9 @@ def validate(
             _diag_lbl["survival"].append(_np1d(_aux_survival_target(y_survival_long, y_survival_bidir)))
             _diag_real["mfe_first_n_bps"].append(_np1d(y_mfe_first))
             _diag_real["path_quality_bps"].append(_np1d(y_path_quality))
+            _diag_mask["trade"].append(_np1d(y != 2))
+            _diag_mask["long"].append(_np1d(y == 0))
+            _diag_mask["short"].append(_np1d(y == 1))
 
             residual_hard_neg_long = _hard_negative_residual(
                 y_hard_negative_long, y_dead_negative_long, y_teaser_negative_long
@@ -8094,6 +8332,7 @@ def validate(
         _diag_pred,
         _diag_lbl,
         _diag_real,
+        _diag_mask,
     )
     stats.update(_diag_metrics)
     stats["aux_head_health_ok"] = not _diag_failures
@@ -8129,6 +8368,7 @@ def validate(
 # -----------------------------------------------------------------------------
 def run_train(
     train_parquet: Path,
+    train_manifest_path: Path,
     val_parquet: Path,
     seq_len: int,
     seed: int,
@@ -8176,6 +8416,16 @@ def run_train(
 
     if m5_prebuilt_path is None:
         raise RuntimeError("[MULTI_TF_MANDATORY] m5_prebuilt_path is required")
+    mtf_cache_raw = str(
+        os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR") or ""
+    ).strip()
+    mtf_cache_dir = Path(mtf_cache_raw).expanduser()
+    if not mtf_cache_raw or not mtf_cache_dir.is_absolute():
+        raise RuntimeError(
+            "[MULTI_TF_DISK_CACHE_MANDATORY] "
+            "GX1_V10_MULTI_TF_V2_CACHE_DIR must name the exact absolute "
+            "verified V2 cache used by training and normalization"
+        )
     if int(grad_accum_steps) < 1:
         raise RuntimeError(
             "[ENTRY_GRAD_ACCUM_STEPS_INVALID] "
@@ -8223,6 +8473,51 @@ def run_train(
         multi_tf_seq_len=multi_tf_seq_len,
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
+    )
+    normalization_per_tf_seq_lens = {
+        "M5": int(multi_tf_seq_len),
+        "M15": 64 if _tapered else int(multi_tf_seq_len),
+        "H1": int(multi_tf_seq_len),
+        "H4": (
+            int(per_tf_seq_len_h4)
+            if int(per_tf_seq_len_h4) > 0
+            else int(multi_tf_seq_len)
+        ),
+        "D1": (
+            int(per_tf_seq_len_d1)
+            if int(per_tf_seq_len_d1) > 0
+            else (252 if _tapered else int(multi_tf_seq_len))
+        ),
+    }
+    normalization_fit = fit_entry_v10_train_input_normalization(
+        train_seq=train_ds._np_seq,
+        train_snap=train_ds._np_snap,
+        train_ctx_cont=train_ds._np_ctx_cont,
+        train_ctx_cat=train_ds._np_ctx_cat,
+        train_times=train_ds.df["time"],
+        ordered_signal_names=list(train_ds.signal_names),
+        per_tf_seq_lens=normalization_per_tf_seq_lens,
+        artifacts=TrainNormalizationArtifacts(
+            dataset_run_id=str(dataset_run_id),
+            train_parquet_path=Path(train_parquet),
+            train_manifest_path=Path(train_manifest_path),
+            m5_prebuilt_path=Path(m5_prebuilt_path),
+            mtf_cache_dir=mtf_cache_dir,
+        ),
+    )
+    input_normalization = normalization_fit["normalization_contract"]
+    input_normalization_fit_population_proof = normalization_fit[
+        "fit_population_proof"
+    ]
+    log.info(
+        "[ENTRY_INPUT_NORMALIZATION_FIT] contract_sha256=%s "
+        "full_train_rows=%d val_rows=0 test_rows=0",
+        input_normalization["contract_sha256"],
+        int(
+            input_normalization_fit_population_proof[
+                "train_decision_row_count"
+            ]
+        ),
     )
     # V12.2 sweep mode: stratified subsample on training set ONLY (val untouched).
     if subsample_rows > 0 and subsample_rows < len(train_ds):
@@ -8675,6 +8970,12 @@ def run_train(
     )
 
     # V12.2: detect multi-TF feature count from dataset (avoid hardcoding 19)
+    from gx1.features.htf_features import (
+        HTF_V2_MATRIX_CONTRACT,
+        MULTI_TF_FEATURE_NAMES_SHA256_V2,
+        MULTI_TF_PER_BAR_FEATURES_V2,
+    )
+
     _mtf_feat_count = int(train_ds._multi_tf_feature_count)
     # Exact mode always includes the causal M5 branch and all four higher TFs.
     _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False))
@@ -8691,6 +8992,7 @@ def run_train(
     specialist_indices, specialist_meta = _load_specialist_fusion_contract(
         specialist_audit_json,
         expected_signal_dim=seq_input_dim,
+        ordered_signal_names=list(train_ds.signal_names),
         contract_mode=specialist_contract_mode,
     )
     log.info("[SPECIALIST_FUSION] exact groups=%s", sorted(specialist_indices))
@@ -8712,6 +9014,34 @@ def run_train(
         m5_seq_len=multi_tf_seq_len,
         multi_tf_scale=multi_tf_scale,
         specialist_input_indices=specialist_indices,
+        specialist_ctx_cont_indices={
+            str(name): list(values)
+            for name, values in specialist_meta["context_routing"][
+                "ctx_cont_indices"
+            ].items()
+        },
+        specialist_ctx_cont_nominal_indices={
+            str(name): list(values)
+            for name, values in specialist_meta["context_routing"][
+                "ctx_cont_nominal_indices"
+            ].items()
+        },
+        specialist_ctx_cat_indices={
+            str(name): list(values)
+            for name, values in specialist_meta["context_routing"][
+                "ctx_cat_indices"
+            ].items()
+        },
+        temporal_alias_signal_indices=list(
+            specialist_meta["context_routing"]["temporal_alias_policy"][
+                "signal_indices"
+            ]
+        ),
+        temporal_alias_ctx_cont_indices=list(
+            specialist_meta["context_routing"]["temporal_alias_policy"][
+                "ctx_cont_indices"
+            ]
+        ),
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
         cross_family_fusion_scale=float(specialist_fusion_scale),
@@ -8720,6 +9050,7 @@ def run_train(
         tf_input_scale_init_h1=tf_input_scale_init_h1,
         tf_input_scale_init_h4=tf_input_scale_init_h4,
         tf_input_scale_init_d1=tf_input_scale_init_d1,
+        input_normalization=input_normalization,
     ).to(device)
     evidence_fusion_initial_state = _capture_evidence_fusion_initial_state(model)
     log.info(
@@ -10391,9 +10722,28 @@ def run_train(
             "refusing to write a slice-failed direction bundle"
         )
 
-    # Resolve output bundle dir (under GX1_DATA if relative)
-    out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
-    out_bundle_dir.mkdir(parents=True, exist_ok=True)
+    # Build the complete bundle in a hidden sibling directory.  The requested
+    # immutable destination does not exist until every strict verification has
+    # passed and Linux RENAME_NOREPLACE publishes the directory in one step.
+    final_out_bundle_dir = _resolve_train_out_bundle_dir(
+        out_bundle_dir,
+        gx1_data_override,
+    )
+    final_out_bundle_dir.parent.mkdir(parents=True, exist_ok=True)
+    if (
+        final_out_bundle_dir.exists()
+        or final_out_bundle_dir.parent.is_symlink()
+        or not final_out_bundle_dir.parent.is_dir()
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_IMMUTABLE_DESTINATION_INVALID] "
+            f"{final_out_bundle_dir}"
+        )
+    staging_directory = tempfile.TemporaryDirectory(
+        prefix=f".{final_out_bundle_dir.name}.staging.",
+        dir=final_out_bundle_dir.parent,
+    )
+    out_bundle_dir = Path(staging_directory.name).resolve(strict=True)
 
     model_path = out_bundle_dir / "model_state_dict.pt"
     torch.save(best_state, model_path)
@@ -10439,6 +10789,11 @@ def run_train(
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "model_native_signal_contract": trained_model_native_signal_contract,
+        "context_specialist_routing": specialist_meta["context_routing"],
+        "input_normalization": input_normalization,
+        "input_normalization_fit_population_proof": (
+            input_normalization_fit_population_proof
+        ),
         "run_lineage": run_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "model_native_training_objective": model_native_training_objective,
@@ -10458,12 +10813,10 @@ def run_train(
         "model_path_relative": "model_state_dict.pt",
         "model_sha256": state_dict_sha256,
     }
-    # 2026-06-02: extract learned per-TF input scales from best_state.
-    # These are saved next to the initial priors so inference can rebuild the
-    # model identically (init values define the Parameter, then state_dict
-    # overwrites with the learned values).
-    learned_tf_input_scales: Dict[str, float] = {}
-    for _tf in ("m5", "m15", "h1", "h4", "d1"):
+    # State stores unconstrained raw scalars; the immutable contract records
+    # their hashes and the corresponding strictly-positive effective scales.
+    learned_tf_input_scale_raw: Dict[str, float] = {}
+    for _tf in TF_INPUT_SCALE_NAMES:
         _key = f"tf_input_scale_{_tf}"
         _state_key = _key if _key in best_state else f"_orig_mod.{_key}"
         if _state_key not in best_state:
@@ -10471,10 +10824,23 @@ def run_train(
         _value = float(best_state[_state_key].item())
         if not np.isfinite(_value):
             raise RuntimeError(f"[TF_INPUT_SCALE_STATE_NONFINITE] {_key}={_value}")
-        learned_tf_input_scales[_tf] = _value
+        learned_tf_input_scale_raw[_tf] = _value
+    tf_input_scale_contract = build_tf_input_scale_contract(
+        init_effective={
+            "m5": float(tf_input_scale_init_m5),
+            "m15": float(tf_input_scale_init_m15),
+            "h1": float(tf_input_scale_init_h1),
+            "h4": float(tf_input_scale_init_h4),
+            "d1": float(tf_input_scale_init_d1),
+        },
+        learned_raw=learned_tf_input_scale_raw,
+    )
     log.info(
         "[TF_INPUT_SCALE_LEARNED] %s",
-        {k: round(v, 4) for k, v in learned_tf_input_scales.items()},
+        {
+            k: round(float(v), 4)
+            for k, v in tf_input_scale_contract["learned"].items()
+        },
     )
 
     active_heads = _build_active_head_names()
@@ -10485,6 +10851,11 @@ def run_train(
         "model_native_training_objective": model_native_training_objective,
         "model_native_direction_evidence_fusion": model_native_direction_evidence_fusion,
         "model_native_learned_component_movement": model_native_learned_component_movement,
+        "context_specialist_routing": specialist_meta["context_routing"],
+        "input_normalization": input_normalization,
+        "input_normalization_fit_population_proof": (
+            input_normalization_fit_population_proof
+        ),
         "train_data": str(train_parquet),
         "val_data": str(val_parquet),
         "train_data_sha256": _sha256_file(Path(train_parquet)),
@@ -10526,6 +10897,9 @@ def run_train(
             "d1_seq_len": int(_d1_len),
             "multi_tf_scale": float(multi_tf_scale),
             "feature_contract": "MULTI_TF_PER_BAR_V2",
+            "matrix_contract": HTF_V2_MATRIX_CONTRACT,
+            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+            "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V2,
             "closed_bar_target_availability": bool(
                 getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)) > pd.Timedelta(0)
             ),
@@ -10539,17 +10913,7 @@ def run_train(
         # values used at train time so state_dict load is shape-compatible.
         # Learned values overwrite the inits via state_dict; we surface them
         # here for inspection/debugging.
-        "tf_input_scale": {
-            "enabled": True,
-            "init": {
-                "m5": float(tf_input_scale_init_m5),
-                "m15": float(tf_input_scale_init_m15),
-                "h1": float(tf_input_scale_init_h1),
-                "h4": float(tf_input_scale_init_h4),
-                "d1": float(tf_input_scale_init_d1),
-            },
-            "learned": learned_tf_input_scales,
-        },
+        "tf_input_scale": tf_input_scale_contract,
         # Positional encoding marker — buffer is persistent=False (not in
         # state_dict), so the live bundle loader MUST read this to rebuild the
         # model with matching forward behaviour.
@@ -11079,6 +11443,11 @@ def run_train(
             "tradable_pos_weight_cap": float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
         },
     }
+    # Architecture reconstruction fields are duplicated exactly in the lock;
+    # neither side may infer MTF layout or positive-scale semantics from the
+    # other.
+    lock["multi_tf"] = meta["multi_tf"]
+    lock["tf_input_scale"] = meta["tf_input_scale"]
     export_contract_failures = _direction_decision_contract_export_failures(lock, meta)
     if export_contract_failures:
         raise RuntimeError(
@@ -11089,6 +11458,22 @@ def run_train(
         json.dumps(lock, indent=2)
     )
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
+    for artifact_name in BUNDLE_COMMIT_CORE_ARTIFACTS:
+        _fsync_regular_file(out_bundle_dir / artifact_name)
+    write_bundle_commit_manifest(
+        bundle_dir=out_bundle_dir,
+        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+        bundle_kind="trained",
+        created_at_utc=str(meta["created_at_utc"]),
+    )
+    stage_fd = os.open(
+        out_bundle_dir,
+        os.O_RDONLY | os.O_DIRECTORY,
+    )
+    try:
+        os.fsync(stage_fd)
+    finally:
+        os.close(stage_fd)
 
     # Post-export verify: reconstruct the one exact architecture and strict-load.
     model2 = EntryV10CtxHybridTransformer(
@@ -11108,6 +11493,34 @@ def run_train(
         m5_seq_dim=_mtf_feat_count,
         m5_seq_len=multi_tf_seq_len,
         specialist_input_indices=specialist_indices,
+        specialist_ctx_cont_indices={
+            str(name): list(values)
+            for name, values in specialist_meta["context_routing"][
+                "ctx_cont_indices"
+            ].items()
+        },
+        specialist_ctx_cont_nominal_indices={
+            str(name): list(values)
+            for name, values in specialist_meta["context_routing"][
+                "ctx_cont_nominal_indices"
+            ].items()
+        },
+        specialist_ctx_cat_indices={
+            str(name): list(values)
+            for name, values in specialist_meta["context_routing"][
+                "ctx_cat_indices"
+            ].items()
+        },
+        temporal_alias_signal_indices=list(
+            specialist_meta["context_routing"]["temporal_alias_policy"][
+                "signal_indices"
+            ]
+        ),
+        temporal_alias_ctx_cont_indices=list(
+            specialist_meta["context_routing"]["temporal_alias_policy"][
+                "ctx_cont_indices"
+            ]
+        ),
         specialist_num_layers=int(specialist_num_layers),
         specialist_fusion_scale=float(specialist_fusion_scale),
         tf_input_scale_init_m5=tf_input_scale_init_m5,
@@ -11115,24 +11528,43 @@ def run_train(
         tf_input_scale_init_h1=tf_input_scale_init_h1,
         tf_input_scale_init_h4=tf_input_scale_init_h4,
         tf_input_scale_init_d1=tf_input_scale_init_d1,
+        input_normalization=input_normalization,
     )
     model2.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
+    model2.require_input_normalization_state()
     model2.eval()
     with torch.no_grad():
         B = 2
-        dummy_seq = torch.zeros(B, seq_len, seq_input_dim)
-        dummy_snap = torch.zeros(B, snap_input_dim)
+        signal_center = torch.tensor(
+            input_normalization["surfaces"]["signal"]["center"],
+            dtype=torch.float32,
+        )
+        ctx_cont_center = torch.tensor(
+            input_normalization["surfaces"]["ctx_cont"]["center"],
+            dtype=torch.float32,
+        )
+        dummy_seq = signal_center.view(1, 1, -1).repeat(B, seq_len, 1)
+        dummy_snap = signal_center.view(1, -1).repeat(B, 1)
         dummy_cat = torch.zeros(B, ctx_cat_dim, dtype=torch.long)
-        dummy_cont = torch.zeros(B, ctx_cont_dim)
+        dummy_cont = ctx_cont_center.view(1, -1).repeat(B, 1)
         mtf_kwargs = {
-            "seq_m5": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
-            "seq_m15": torch.zeros(B, _m15_len, _mtf_feat_count),
-            "seq_h1": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
-            "seq_h4": torch.zeros(B, _h4_len, _mtf_feat_count),
-            "seq_d1": torch.zeros(B, _d1_len, _mtf_feat_count),
+            f"seq_{tf.lower()}": torch.tensor(
+                input_normalization["surfaces"][f"mtf_{tf.lower()}"][
+                    "center"
+                ],
+                dtype=torch.float32,
+            ).view(1, 1, -1).repeat(
+                B,
+                normalization_per_tf_seq_lens[tf],
+                1,
+            )
+            for tf in ("M5", "M15", "H1", "H4", "D1")
         }
         _ = model2(dummy_seq, dummy_snap, ctx_cat=dummy_cat, ctx_cont=dummy_cont, **mtf_kwargs)
-    log.info(f"[DONE] Bundle OK strict load verified: {out_bundle_dir}")
+    log.info(
+        "[ENTRY_BUNDLE_STAGE_VERIFIED] strict state load OK: %s",
+        out_bundle_dir,
+    )
 
     # Bundle load proof via runtime loader (strict)
     from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
@@ -11222,6 +11654,15 @@ def run_train(
         raise RuntimeError(
             f"[FEATURE_LIVENESS_AUDIT_UNAVAILABLE] {_e!r}"
         ) from _e
+    publish_bundle_directory_noreplace(
+        out_bundle_dir,
+        final_out_bundle_dir,
+    )
+    staging_directory.cleanup()
+    log.info(
+        "[DONE] immutable bundle atomically published: %s",
+        final_out_bundle_dir,
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -11322,6 +11763,7 @@ def main() -> None:
 
     run_train(
         train_parquet=train_parquet,
+        train_manifest_path=_manifests["train"],
         val_parquet=val_parquet,
         seq_len=args.seq_len,
         seed=args.seed,

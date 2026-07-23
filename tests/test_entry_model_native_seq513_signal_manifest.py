@@ -61,6 +61,7 @@ def _ranking_payload(tmp_path: Path) -> dict:
         "target_time_max_utc": "2025-12-31T23:55:00+00:00",
         "source_sha256": str(reference.sidecar["source_parquet_sha256"]),
         "target_sha256": "2" * 64,
+        "target_contract": dict(producer.TRAIN_FEATURE_RANKING_TARGET_CONTRACT),
         "rank_reference": {
             "path": str(reference.path),
             "sha256": reference.sha256,

@@ -16,14 +16,19 @@ manual overlay.
 
 The post-V7 source-repair checkpoint now closes signed dip-MFE, selected-side
 bad-path symmetry, no-replacement sampler coverage, bidirectional auxiliary
-weights, exact 162-value trainer recipe, M5 hash binding, single causal MTF
-cache identity, all-22-head checkpoint influence, forward-head bps units,
-grad-accum consumption and stale loader compatibility fields. These are code
-proofs only. Fresh data have not been rebuilt and no model has been retrained.
-Remaining pre-rebuild blockers are ordered TRAIN-fit normalization for the raw
-513+142 continuous values and real per-family routing of all 142+5 context
-fields into specialist tokens. Dynamic inspection proves current context is
-globally live but direct specialist-token routing is zero.
+weights/conditional metrics, exact 162-value trainer recipe, full M5/MTF cache
+byte identity, complete physical-TRAIN normalization, all-142+5 family-owned
+context routing, all-22-head/26-group checkpoint influence, forward-head bps
+units, positive TF scales, grad-accum consumption, atomic bundle/event
+publication, recursive active-Exit byte binding, structured launch approval,
+runtime authority rechecks and the unsafe missing-trade-ID close fallback.
+These are code proofs only. Fresh data have not been rebuilt and no model has
+been retrained.
+
+The remaining source P0 is a canonical transactional
+candidate→promotion→launch finalizer. Canonical/live December-2024 tape parity
+also remains unresolved. No consumer accepts arbitrary environment text or a
+partially published bundle/event while these are open.
 
 The active signal contract is
 `xau_seq513_model_native_direction_v4`:
@@ -36,7 +41,9 @@ The active signal contract is
 - five causal timeframe branches with 25 values per bar and explicit
   per-timeframe history lengths; V7 used M5/M15/H1/H4/D1 lengths
   `16/16/16/8/8`, not 96;
-- eight learned specialist encoders;
+- exact immutable normalization fitted on the full physical TRAIN population;
+- eight learned specialist encoders, each receiving its one-owner signal and
+  context family before cross-attention;
 - 26 learned evidence groups producing one exact 96-value fusion;
 - one final model-native `96 -> 128 -> 3` LONG/SHORT/FLAT direction path.
 
@@ -162,8 +169,9 @@ lineages without weakening identity. Recipe schema v2 derives
 three split manifests. Commit
 `c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119` restores the selected-side
 MFE/path-quality target domain in active validation and both losses, while MAE
-remains a non-negative magnitude. The post-V7 audit proves that the separate
-six-field dip-MFE producer still clips negative values and remains open. Commit
+remains a non-negative magnitude. The post-V7 audit then proved that the
+separate six-field dip-MFE producer still clipped negative values; current
+source preserves those signed values. Commit
 `f05b3390144f988079bbd49aa1abff8cacd4bd55` makes both train and validation
 MTF heads require the canonical `y` class tensor, without aliases or fallback.
 Commit `3712898531916374e67c9c4c58f9d9dc4e1995c3` closes the
@@ -197,6 +205,8 @@ per epoch: replacement sampling exposed only 556-613 unique positives and
 bad-path penalty, LONG-only weighting for bidirectional auxiliaries and global
 AUC leakage through tradable versus FLAT. `PIPELINE_AUDIT_XAU_20260723.md`
 contains the complete P0/P1/P2 findings and ordered repair.
+Those mismatches are now source-repaired and regression-tested; this paragraph
+remains historical evidence explaining why V24/V7 cannot be reused.
 V21/V22/V23 large rejected split parquets have been deleted, while their small
 terminal/manifest/audit evidence remains.
 
@@ -226,6 +236,14 @@ invalid, stale or session-inconsistent evidence cannot be repaired by an
 environment override, artifact search, default value, cached row or synthetic
 FLAT.
 
+Every future bundle must carry an exact inventory commit and be published from
+a fully validated hidden sibling directory. Every launch approval must be the
+newest immutable one-time event bound to the complete launch state and bundle
+commit. The long-running runner revalidates unchanged launch/registry identity
+and expiring evidence before every new exposure. Joint Exit sizing binds the
+actual recursive Exit artifact bytes. Missing broker trade identity blocks a
+close attempt rather than creating an opposite hedge.
+
 `PROJECT_STATE_xau_direction_launch.json` is the machine-readable launch
 decision. It is `BLOCK`, marks V24/V7 rejected for rebuild after terminal
 failure, binds the historical recipe/execution evidence and has no accepted
@@ -233,11 +251,23 @@ bundle or launch evidence.
 
 ## Verification state
 
-The pre-V7 v4 source and V24 audits passed their then-active checks:
+The current post-V7 source-repair tree completed repository-wide verification
+on 2026-07-23:
 
-- the full repository suite: 100% pass, five explicit skips, zero failures;
-- Python compilation for `gx1` and `tests`;
-- `git diff --check`;
+- 1,725 tests collected;
+- 1,720 passed, five explicit skips and zero failures;
+- Python compilation for every changed Python source and test;
+- Ruff on every changed Python source and test, with only the repository's
+  intentional import-bootstrap `E402` pattern excluded;
+- `git diff --check`, JSON parsing, shell syntax and handover self-check;
+- exact contract/count/routing assertions;
+- repository and active-hook forbidden-instrument zero-scan;
+- zero executable references to the retired
+  `GX1_SMART_LAUNCH_VEDTAK` pass-through or smoke-audit schema v3.
+
+The earlier pre-V7 v4 source and V24 audits also passed their then-active
+checks:
+
 - exact contract/count/routing assertions;
 - V24 post-rebuild, foundation feature/target/specialist, smoke-readiness,
   trainability, immutable V7 162-setting recipe and exact wrapper dry-run;
@@ -261,12 +291,13 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Do not rerun V7 or reuse V24. First repair both P0s, sampling and auxiliary
-semantics, then immutable MTF/input/group scaling, context specialist routing
-and all-head/group-influence checkpoint admission. Harden atomic bundle export,
-promotion/launch finalization, vedtak identity and handover states before a
-candidate can exist. Only then rebuild fresh XAU-only splits and rerun every
-dataset/readiness audit before binding a new smoke recipe.
+Do not rerun V7 or reuse V24. Preserve the completed target/objective,
+sampling, conditional-metric, normalization, context-routing, MTF,
+all-head/group-influence, atomic-publication, Exit-byte and runtime fail-close
+repairs. Implement the remaining transactional promotion/launch finalizer and
+repair/prove canonical/live December-2024 tape parity. Only then rebuild fresh
+XAU-only splits and rerun every dataset/readiness audit before binding a new
+smoke recipe.
 
 After a new smoke passes, compare a declared full-history baseline with a
 TRAIN-only recent-regime challenger, select/calibrate without touching the

@@ -11,12 +11,17 @@ CONTROL = REPO / "scripts/entry_next_edge_control.sh"
 LAUNCH_STATE = REPO / "PROJECT_STATE_xau_direction_launch.json"
 AUTHORITY_PATHS = (
     REPO / "AGENTS.md",
+    REPO / "CLAUDE.md",
+    REPO / "DEVELOPMENT_NOTES.md",
+    REPO / "README.md",
     REPO / "ROADMAP.md",
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
     REPO / "PROJECT_STATE.md",
     REPO / "DECISION_LOG.md",
     REPO / "PIPELINE_AUDIT_XAU_20260723.md",
+    REPO / "docs/ENTRY_CONTEXT_FEATURES_CONTRACT.md",
+    REPO / "docs/FEATURE_MANIFEST.md",
     REPO / "PROJECT_STATE_artifacts.json",
     REPO / "PROJECT_STATE_entry_iql_delete_incident.json",
     REPO / "PROJECT_STATE_xau_direction_launch.json",
@@ -114,6 +119,14 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     )
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
+    repair = state["source_repair_checkpoint"]
+    assert repair["status"] == "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
+    assert repair["fresh_rebuild_started"] is False
+    assert repair["fresh_training_started"] is False
+    assert repair["empirical_direction_edge_proven"] is False
+    assert repair["remaining_source_p0"] == [
+        "canonical_transactional_candidate_promotion_launch_finalizer"
+    ]
 
     terminal = state["accepted_dataset_terminal_evidence"]
     terminal_path = Path(terminal["path"])
@@ -186,7 +199,8 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
     assert "V7 completed six full train/validation epochs" in blockers
-    assert "fresh XAU source" in blockers
+    assert "source-repaired only" in blockers
+    assert "transactional candidate/promotion/launch finalizer" in blockers
     assert "no canonical immutable" not in blockers
 
 

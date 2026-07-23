@@ -303,8 +303,8 @@ class ModelNativeStateContract:
             "rank_reference_schema_version": str(
                 self.raw.get("rank_reference_schema_version") or ""
             ),
-            "normalization_fit_scope": str(
-                self.raw.get("normalization_fit_scope") or ""
+            "rank_reference_fit_scope": str(
+                self.raw.get("rank_reference_fit_scope") or ""
             ),
             "rank_transform": str(self.raw.get("rank_transform") or ""),
             "feature_history_mode": str(self.raw.get("feature_history_mode") or ""),

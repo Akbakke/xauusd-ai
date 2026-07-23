@@ -40,13 +40,14 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
 )
-SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v3"
+SCHEMA_VERSION = "entry_foundation_smoke_bundle_audit_v4"
 PASS_DECISION = "PASS"
 DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 PREDICTION_EVIDENCE_SCHEMA_VERSION = (
     "entry_candidate_model_direction_prediction_evidence_v2"
 )
 BUNDLE_ARTIFACT_KEYS = (
+    "bundle_commit",
     "bundle_metadata",
     "master_transformer_lock",
     "model_state_dict",
@@ -958,6 +959,7 @@ def require_smoke_bundle_audit_contract(
         for name in BUNDLE_ARTIFACT_KEYS
     }
     expected_paths = {
+        "bundle_commit": bundle_dir / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json",
         "bundle_metadata": bundle_dir / "bundle_metadata.json",
         "master_transformer_lock": bundle_dir / "MASTER_TRANSFORMER_LOCK.json",
         "model_state_dict": bundle_dir / "model_state_dict.pt",

@@ -6,12 +6,20 @@ never an encoder group, model input, prior, or compatibility route.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import OrderedDict
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -98,6 +106,29 @@ MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT = MODEL_NATIVE_SELECTED_FEATURE_COU
 MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT = (
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT
 )
+MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_SCHEMA_VERSION = (
+    "entry_model_native_context_specialist_routing_v1"
+)
+MODEL_NATIVE_CONTEXT_TEMPORAL_ALIAS_POLICY_SCHEMA_VERSION = (
+    "entry_model_native_context_temporal_alias_policy_v1"
+)
+MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS = (
+    "m5_regime_class_id_v2",
+    "m15_regime_class_id_v2",
+    "h1_regime_class_id_v2",
+    "h4_regime_class_id_v2",
+    "d1_regime_class_id_v2",
+)
+MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY = 5
+MODEL_NATIVE_CTX_CAT_DOMAINS = {
+    "session_id": (0, 1, 2, 3),
+    "vol_regime_id": (0, 1, 2, 3, 4),
+    "atr_bucket": (0, 1, 2, 3, 4),
+    "spread_bucket": (0, 1, 2, 3, 4),
+    "H4_trend_sign_cat": (0, 1, 2),
+}
+if tuple(MODEL_NATIVE_CTX_CAT_DOMAINS) != MODEL_NATIVE_CTX_CAT_FIELDS:
+    raise RuntimeError("MODEL_NATIVE_CTX_CAT_DOMAIN_ORDER_INVALID")
 
 SPECIALIST_FUSION_ACTIVE_HEADS = (
     "direction",
@@ -748,9 +779,6 @@ def classify_entry_specialist_feature(name: str) -> str:
             "pos_vs_ema",
             "price_vs_ema",
             "tf_agreement",
-            "rsi",
-            "pct_change",
-            "dist_roc",
         ),
     ):
         return "trend_ema_encoder"
@@ -767,6 +795,9 @@ def classify_entry_specialist_feature(name: str) -> str:
             "clv",
             "signed_vol",
             "followthrough",
+            "rsi",
+            "pct_change",
+            "dist_roc",
         ),
     ):
         return "momentum_flow_encoder"
@@ -785,6 +816,221 @@ def group_features_by_specialist(features: Iterable[str]) -> dict[str, list[str]
         group = classify_entry_specialist_feature(str(feature))
         grouped.setdefault(group, []).append(str(feature))
     return grouped
+
+
+def _canonical_sha256(value: object) -> str:
+    payload = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def model_native_context_specialist_routing_contract() -> dict[str, object]:
+    """Return the exact one-owner routing for all 142+5 context fields."""
+
+    ctx_cont_indices = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    ctx_cat_indices = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    ctx_cont_names = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    ctx_cat_names = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    for index, field in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS):
+        owner = classify_entry_specialist_feature(f"ctx_cont.{field}")
+        if owner not in ctx_cont_indices:
+            raise RuntimeError(
+                "MODEL_NATIVE_CONTEXT_CONT_SPECIALIST_OWNER_INVALID: "
+                f"field={field} owner={owner}"
+            )
+        ctx_cont_indices[owner].append(index)
+        ctx_cont_names[owner].append(field)
+    for index, field in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS):
+        owner = classify_entry_specialist_feature(f"ctx_cat.{field}")
+        if owner not in ctx_cat_indices:
+            raise RuntimeError(
+                "MODEL_NATIVE_CONTEXT_CAT_SPECIALIST_OWNER_INVALID: "
+                f"field={field} owner={owner}"
+            )
+        ctx_cat_indices[owner].append(index)
+        ctx_cat_names[owner].append(field)
+
+    nominal_set = set(MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS)
+    ctx_cont_numeric_indices = {
+        name: [
+            index
+            for index in indices
+            if MODEL_NATIVE_CTX_CONT_FIELDS[index] not in nominal_set
+        ]
+        for name, indices in ctx_cont_indices.items()
+    }
+    ctx_cont_nominal_indices = {
+        name: [
+            index
+            for index in indices
+            if MODEL_NATIVE_CTX_CONT_FIELDS[index] in nominal_set
+        ]
+        for name, indices in ctx_cont_indices.items()
+    }
+    routing_payload = {
+        "ctx_cont_indices": ctx_cont_indices,
+        "ctx_cat_indices": ctx_cat_indices,
+        "ctx_cont_names": ctx_cont_names,
+        "ctx_cat_names": ctx_cat_names,
+        "ctx_cont_numeric_indices": ctx_cont_numeric_indices,
+        "ctx_cont_nominal_indices": ctx_cont_nominal_indices,
+    }
+    return {
+        "schema_version": MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_SCHEMA_VERSION,
+        "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+        "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
+        "ctx_cont_fields_sha256": MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
+        "ctx_cat_fields_sha256": MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
+        **routing_payload,
+        "routing_sha256": _canonical_sha256(routing_payload),
+        "family_context_injection": "pre_cross_specialist_token",
+        "global_context_source": "family_context_tokens",
+        "independent_raw_global_context_projection": False,
+        "all_context_fields_have_exactly_one_owner": True,
+        "nominal_ctx_cont_fields": list(MODEL_NATIVE_NOMINAL_CTX_CONT_FIELDS),
+        "nominal_ctx_cont_cardinality": (
+            MODEL_NATIVE_NOMINAL_CTX_CONT_CARDINALITY
+        ),
+        "nominal_ctx_cont_representation": "learned_categorical_embedding",
+        "nominal_ctx_cont_hard_integer_domain_check": True,
+        "nominal_ctx_cont_excluded_from_numeric_projection": True,
+        "ctx_cat_domains": {
+            name: list(domain)
+            for name, domain in MODEL_NATIVE_CTX_CAT_DOMAINS.items()
+        },
+        "ctx_cat_embedding_scope": "separate_table_per_field",
+        "numeric_ctx_cont_pre_projection_normalization": (
+            "frozen_train_per_field_robust_only"
+        ),
+        "family_ctx_cont_layer_norm": False,
+        "forward_identity_guards": [
+            "seq_last_equals_snap_bit_identical",
+            "snap_alias_equals_ctx_cont_bit_identical",
+        ],
+    }
+
+
+MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT = (
+    model_native_context_specialist_routing_contract()
+)
+
+
+def model_native_context_temporal_alias_policy(
+    ordered_signal_names: Iterable[str],
+) -> dict[str, object]:
+    """Derive the exact temporal/context overlap owned by one signal artifact."""
+
+    signal_fields = tuple(str(field) for field in ordered_signal_names)
+    if len(signal_fields) != len(set(signal_fields)):
+        raise RuntimeError("MODEL_NATIVE_CONTEXT_TEMPORAL_ALIAS_SIGNAL_DUPLICATE")
+    ctx_index = {
+        field: index for index, field in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
+    }
+    aliases: list[dict[str, object]] = []
+    for signal_index, signal_field in enumerate(signal_fields):
+        if not signal_field.startswith("ctx_cont."):
+            continue
+        ctx_field = signal_field.removeprefix("ctx_cont.")
+        if ctx_field not in ctx_index:
+            continue
+        owner = classify_entry_specialist_feature(f"ctx_cont.{ctx_field}")
+        if owner not in MODEL_NATIVE_TRAINING_SPECIALISTS:
+            raise RuntimeError(
+                "MODEL_NATIVE_CONTEXT_TEMPORAL_ALIAS_OWNER_INVALID: "
+                f"field={signal_field} owner={owner}"
+            )
+        aliases.append(
+            {
+                "signal_field": signal_field,
+                "signal_index": signal_index,
+                "ctx_cont_field": ctx_field,
+                "ctx_cont_index": ctx_index[ctx_field],
+                "specialist": owner,
+            }
+        )
+    alias_fields = [str(alias["signal_field"]) for alias in aliases]
+    return {
+        "schema_version": (
+            MODEL_NATIVE_CONTEXT_TEMPORAL_ALIAS_POLICY_SCHEMA_VERSION
+        ),
+        "derivation": (
+            "ordered_signal_names_intersection_exact_ordered_ctx_cont_names"
+        ),
+        "alias_count": len(aliases),
+        "signal_fields": alias_fields,
+        "signal_fields_sha256": _canonical_sha256(alias_fields),
+        "signal_indices": [int(alias["signal_index"]) for alias in aliases],
+        "ctx_cont_indices": [int(alias["ctx_cont_index"]) for alias in aliases],
+        "aliases": aliases,
+        "aliases_sha256": _canonical_sha256(aliases),
+        "signal_role": "temporal_sequence_only",
+        "generic_snap_projection_excludes_aliases": True,
+        "current_bar_context_source": "owner_family_context_token",
+        "statistics_owner": "ctx_cont",
+        "signal_alias_statistics_policy": (
+            "bit_identical_copy_from_ctx_cont_train_stats"
+        ),
+        "forward_identity_guard": (
+            "snap_alias_equals_ctx_cont_bit_identical_before_transform"
+        ),
+    }
+
+
+def require_model_native_context_specialist_routing(
+    value: object,
+    *,
+    ordered_signal_names: Iterable[str],
+    context: str,
+) -> dict[str, object]:
+    if not isinstance(value, Mapping) or not value:
+        raise RuntimeError(f"[{context}_CONTEXT_SPECIALIST_ROUTING_MISSING]")
+    observed = dict(value)
+    expected = MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT
+    for key in (
+        "schema_version",
+        "ctx_cont_dim",
+        "ctx_cat_dim",
+        "ctx_cont_fields_sha256",
+        "ctx_cat_fields_sha256",
+        "ctx_cont_indices",
+        "ctx_cat_indices",
+        "ctx_cont_names",
+        "ctx_cat_names",
+        "ctx_cont_numeric_indices",
+        "ctx_cont_nominal_indices",
+        "routing_sha256",
+        "family_context_injection",
+        "global_context_source",
+        "independent_raw_global_context_projection",
+        "all_context_fields_have_exactly_one_owner",
+        "nominal_ctx_cont_fields",
+        "nominal_ctx_cont_cardinality",
+        "nominal_ctx_cont_representation",
+        "nominal_ctx_cont_hard_integer_domain_check",
+        "nominal_ctx_cont_excluded_from_numeric_projection",
+        "ctx_cat_domains",
+        "ctx_cat_embedding_scope",
+        "numeric_ctx_cont_pre_projection_normalization",
+        "family_ctx_cont_layer_norm",
+        "forward_identity_guards",
+    ):
+        if observed.get(key) != expected.get(key):
+            raise RuntimeError(
+                f"[{context}_CONTEXT_SPECIALIST_ROUTING_MISMATCH] field={key}"
+            )
+    alias_policy_raw = observed.get("temporal_alias_policy")
+    if not isinstance(alias_policy_raw, Mapping):
+        raise RuntimeError(f"[{context}_CONTEXT_TEMPORAL_ALIAS_POLICY_MISSING]")
+    expected_alias_policy = model_native_context_temporal_alias_policy(
+        ordered_signal_names
+    )
+    if dict(alias_policy_raw) != expected_alias_policy:
+        raise RuntimeError(f"[{context}_CONTEXT_TEMPORAL_ALIAS_POLICY_INVALID]")
+    return json.loads(json.dumps(observed))
 
 
 for _family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES:

@@ -17,6 +17,7 @@ bundle_dir contains:
 
 from __future__ import annotations
 
+import io
 import json
 import hashlib
 import logging
@@ -51,6 +52,18 @@ from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     require_model_native_aux_target_contract,
 )
+from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
+    TF_NAMES as TF_INPUT_SCALE_NAMES,
+    require_tf_input_scale_contract,
+    require_tf_input_scale_state,
+)
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    EXPECTED_TFS as INPUT_NORMALIZATION_TFS,
+    require_input_normalization_contract,
+)
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    require_bundle_commit_manifest,
+)
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -58,6 +71,15 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     require_model_direction_decision_contract,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    require_model_native_context_specialist_routing,
+)
+from gx1.features.htf_features import (
+    HTF_V2_MATRIX_CONTRACT,
+    MULTI_TF_FEATURE_COUNT_V2,
+    MULTI_TF_FEATURE_NAMES_SHA256_V2,
+    MULTI_TF_PER_BAR_FEATURES_V2,
 )
 
 
@@ -74,18 +96,6 @@ class EntryV10Bundle:
 def _guard_required(path: Path, label: str) -> None:
     if not path.exists():
         raise RuntimeError(f"[ENTRY_V10_BUNDLE_MISSING] {label} not found: {path}")
-
-
-def _load_json(path: Path) -> Dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _resolve_device(device: Optional[str]) -> torch.device:
@@ -235,6 +245,11 @@ def _require_exact_model_native_bundle_metadata(
         "model_native_training_objective",
         "model_native_direction_evidence_fusion",
         "model_native_learned_component_movement",
+        "context_specialist_routing",
+        "input_normalization",
+        "input_normalization_fit_population_proof",
+        "multi_tf",
+        "tf_input_scale",
         "run_lineage",
     )
     missing_meta = [key for key in shared_exact if key not in meta]
@@ -365,6 +380,10 @@ def _require_exact_model_native_bundle_metadata(
         "d1_seq_dim",
         "d1_seq_len",
         "multi_tf_scale",
+        "feature_contract",
+        "matrix_contract",
+        "feature_names",
+        "feature_names_sha256",
         "closed_bar_target_availability",
         "target_availability_shift_minutes",
     )
@@ -373,6 +392,16 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_METADATA_MISSING] {missing_mtf}")
     if mtf["enabled"] is not True or mtf["v2_mode"] is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_V2_REQUIRED]")
+    if (
+        mtf["feature_contract"] != "MULTI_TF_PER_BAR_V2"
+        or mtf["matrix_contract"] != HTF_V2_MATRIX_CONTRACT
+        or mtf["feature_names"] != list(MULTI_TF_PER_BAR_FEATURES_V2)
+        or mtf["feature_names_sha256"]
+        != MULTI_TF_FEATURE_NAMES_SHA256_V2
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_FEATURE_CONTRACT_INVALID]"
+        )
     if not math.isfinite(float(mtf["multi_tf_scale"])) or float(mtf["multi_tf_scale"]) <= 0.0:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_SCALE_INVALID]")
     if mtf["closed_bar_target_availability"] is not True:
@@ -393,23 +422,137 @@ def _require_exact_model_native_bundle_metadata(
     ):
         if isinstance(mtf[key], bool) or int(mtf[key]) <= 0:
             raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_VALUE_INVALID] {key}={mtf[key]!r}")
+    if any(
+        int(mtf[key]) != int(MULTI_TF_FEATURE_COUNT_V2)
+        for key in (
+            "m5_seq_dim",
+            "m15_seq_dim",
+            "h1_seq_dim",
+            "h4_seq_dim",
+            "d1_seq_dim",
+        )
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_WIDTH_INVALID]")
+
+    input_normalization = require_input_normalization_contract(
+        meta["input_normalization"],
+        expected_field_names={
+            "signal": list(meta["ordered_signal_names"]),
+            "ctx_cont": list(meta["ordered_ctx_cont_names"]),
+            **{
+                f"mtf_{tf.lower()}": list(MULTI_TF_PER_BAR_FEATURES_V2)
+                for tf in INPUT_NORMALIZATION_TFS
+            },
+        },
+        expected_ctx_cat_names=list(meta["ordered_ctx_cat_names"]),
+    )
+    fit_proof = meta["input_normalization_fit_population_proof"]
+    if not isinstance(fit_proof, Mapping):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_INPUT_NORMALIZATION_FIT_PROOF_MISSING]"
+        )
+    fit_proof_without_hash = dict(fit_proof)
+    observed_fit_proof_hash = str(
+        fit_proof_without_hash.pop("proof_sha256", "")
+    )
+    expected_fit_proof_hash = hashlib.sha256(
+        json.dumps(
+            fit_proof_without_hash,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    lineage = input_normalization["lineage"]
+    expected_normalization_seq_lens = {
+        "M5": int(mtf["m5_seq_len"]),
+        "M15": int(mtf["m15_seq_len"]),
+        "H1": int(mtf["h1_seq_len"]),
+        "H4": int(mtf["h4_seq_len"]),
+        "D1": int(mtf["d1_seq_len"]),
+    }
+    if (
+        lineage["dataset_run_id"]
+        != meta["run_lineage"]["dataset_run_id"]
+        or lineage["per_tf_seq_lens"] != expected_normalization_seq_lens
+        or lineage["mtf_feature_names_sha256"]
+        != MULTI_TF_FEATURE_NAMES_SHA256_V2
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_INPUT_NORMALIZATION_LINEAGE_MISMATCH]"
+        )
+    if (
+        fit_proof.get("schema_version")
+        != "entry_v10_train_input_normalization_population_proof_v1"
+        or fit_proof.get("fit_scope") != "train_only"
+        or int(fit_proof.get("train_decision_row_count", -1))
+        != int(lineage["train_row_count"])
+        or fit_proof.get("val_fit_row_count") != 0
+        or fit_proof.get("test_fit_row_count") != 0
+        or fit_proof.get("temporal_aliases_sha256")
+        != input_normalization["temporal_aliases_sha256"]
+        or observed_fit_proof_hash != expected_fit_proof_hash
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_INPUT_NORMALIZATION_FIT_PROOF_INVALID]"
+        )
+    mtf_populations = fit_proof.get("mtf_populations")
+    if (
+        not isinstance(mtf_populations, Mapping)
+        or tuple(mtf_populations) != INPUT_NORMALIZATION_TFS
+    ):
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_INPUT_NORMALIZATION_MTF_PROOF_INVALID]"
+        )
+    for tf in INPUT_NORMALIZATION_TFS:
+        raw_population = mtf_populations[tf]
+        window = lineage["per_tf_fit_windows"][tf]
+        population_without_hash = (
+            dict(raw_population) if isinstance(raw_population, Mapping) else {}
+        )
+        population_hash = str(
+            population_without_hash.pop("selection_proof_sha256", "")
+        )
+        expected_population_hash = hashlib.sha256(
+            json.dumps(
+                population_without_hash,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                allow_nan=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        if (
+            population_hash != expected_population_hash
+            or not isinstance(raw_population, Mapping)
+            or raw_population.get("tf") != tf
+            or int(raw_population.get("seq_len", -1))
+            != int(lineage["per_tf_seq_lens"][tf])
+            or any(
+                raw_population.get(field) != window[field]
+                for field in (
+                    "left_index_inclusive",
+                    "right_index_exclusive",
+                    "selected_unique_row_count",
+                    "selected_row_indices_sha256",
+                    "selected_row_values_sha256",
+                    "time_min_utc",
+                    "time_max_utc",
+                )
+            )
+        ):
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_INPUT_NORMALIZATION_MTF_PROOF_INVALID] "
+                f"tf={tf}"
+            )
 
     for key in ("enable_pos_enc", "enable_regime_film"):
         if meta.get(key) is not True:
             raise RuntimeError(
                 f"[ENTRY_BUNDLE_MODEL_NATIVE_FULL_STACK_COMPONENT_REQUIRED] meta.{key}"
             )
-    tf_input_scale = _require_mapping_field(meta, "tf_input_scale", context="meta")
-    if tf_input_scale.get("enabled") is not True:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_REQUIRED]")
-    tf_init = _require_mapping_field(tf_input_scale, "init", context="meta.tf_input_scale")
-    if set(tf_init) != {"m5", "m15", "h1", "h4", "d1"}:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_INIT_MISMATCH]")
-    if any(
-        not math.isfinite(float(value)) or float(value) <= 0.0
-        for value in tf_init.values()
-    ):
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_INVALID]")
+    require_tf_input_scale_contract(meta["tf_input_scale"])
 
     forbidden_direction_artifacts = (
         "hierarchical_direction_composition",
@@ -464,6 +607,15 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_FUSION_REQUIRED]")
     if specialist.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_MODE_INVALID]")
+    context_routing = require_model_native_context_specialist_routing(
+        meta["context_specialist_routing"],
+        ordered_signal_names=meta["ordered_signal_names"],
+        context="ENTRY_BUNDLE",
+    )
+    if specialist.get("context_routing") != context_routing:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_CONTEXT_ROUTING_SPLIT_BRAIN]"
+        )
     input_indices = specialist.get("input_indices")
     if not isinstance(input_indices, Mapping) or not input_indices:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_SPECIALIST_INDICES_MISSING]")
@@ -507,6 +659,15 @@ def _require_exact_model_native_bundle_metadata(
             f"missing={missing[:20]} total_missing={len(missing)} "
             f"unexpected={unexpected[:20]} total_unexpected={len(unexpected)}"
         )
+    for alias in context_routing["temporal_alias_policy"]["aliases"]:
+        owner = str(alias["specialist"])
+        signal_index = int(alias["signal_index"])
+        if signal_index not in input_indices.get(owner, []):
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_MODEL_NATIVE_CONTEXT_ALIAS_OWNER_MISMATCH] "
+                f"field={alias['signal_field']} index={signal_index} "
+                f"owner={owner}"
+            )
     if list(specialist.get("trainable_specialists") or []) != list(
         _MODEL_NATIVE_REQUIRED_SPECIALISTS
     ):
@@ -744,8 +905,26 @@ def load_entry_v10_ctx_bundle(
     is_replay: bool = True,
 ) -> EntryV10Bundle:
 
-    bd = Path(bundle_dir).expanduser().resolve()
+    supplied_bundle_dir = Path(bundle_dir).expanduser()
+    if (
+        not supplied_bundle_dir.is_absolute()
+        or any(
+            component.is_symlink()
+            for component in (
+                supplied_bundle_dir,
+                *supplied_bundle_dir.parents,
+            )
+        )
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_PATH_NOT_CANONICAL]")
+    try:
+        bd = supplied_bundle_dir.resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError("[ENTRY_BUNDLE_PATH_NOT_CANONICAL]") from exc
+    if bd != supplied_bundle_dir:
+        raise RuntimeError("[ENTRY_BUNDLE_PATH_NOT_CANONICAL]")
     _guard_required(bd, "bundle_dir")
+    committed_bundle = require_bundle_commit_manifest(bd)
 
     lock_path = bd / "MASTER_TRANSFORMER_LOCK.json"
     meta_path = bd / "bundle_metadata.json"
@@ -755,8 +934,29 @@ def load_entry_v10_ctx_bundle(
     _guard_required(meta_path, "bundle_metadata.json")
     _guard_required(state_path, "model_state_dict.pt")
 
-    lock = _load_json(lock_path)
-    meta = _load_json(meta_path)
+    lock_bytes = lock_path.read_bytes()
+    meta_bytes = meta_path.read_bytes()
+    state_bytes = state_path.read_bytes()
+    try:
+        lock = json.loads(lock_bytes.decode("utf-8"))
+        meta = json.loads(meta_bytes.decode("utf-8"))
+    except Exception as exc:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_JSON_INVALID]") from exc
+    for name, payload in (
+        ("MASTER_TRANSFORMER_LOCK.json", lock_bytes),
+        ("bundle_metadata.json", meta_bytes),
+        ("model_state_dict.pt", state_bytes),
+    ):
+        binding = committed_bundle["artifacts"][name]
+        if (
+            int(binding["size_bytes"]) != len(payload)
+            or str(binding["sha256"])
+            != hashlib.sha256(payload).hexdigest()
+        ):
+            raise RuntimeError(
+                "[ENTRY_BUNDLE_COMMITTED_BYTES_MISMATCH] "
+                f"name={name}"
+            )
     _require_exact_model_native_bundle_metadata(meta, lock)
     seq_input_dim = int(meta["seq_input_dim"])
     snap_input_dim = int(meta["snap_input_dim"])
@@ -765,7 +965,7 @@ def load_entry_v10_ctx_bundle(
     ctx_cat_dim = int(meta["ctx_cat_dim"])
     if lock.get("model_path_relative") != state_path.name:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_PATH_BINDING_INVALID]")
-    observed_state_sha256 = _sha256_file(state_path)
+    observed_state_sha256 = hashlib.sha256(state_bytes).hexdigest()
     lock_state_sha256 = lock.get("model_sha256")
     meta_state_sha256 = meta.get("state_dict_sha256")
     if lock_state_sha256 != observed_state_sha256 or meta_state_sha256 != observed_state_sha256:
@@ -802,14 +1002,21 @@ def load_entry_v10_ctx_bundle(
     mtf_scale = float(mtf_meta["multi_tf_scale"])
     _m5_seq_dim = int(mtf_meta["m5_seq_dim"])
     _m5_seq_len = int(mtf_meta["m5_seq_len"])
-    state_dict_preview = torch.load(state_path, map_location="cpu")
+    state_dict_preview = torch.load(
+        io.BytesIO(state_bytes),
+        map_location="cpu",
+        weights_only=True,
+    )
     _require_model_native_state_head_contract(meta, state_dict_preview)
     _require_model_native_learned_component_liveness(state_dict_preview)
     _tf_inits = meta["tf_input_scale"]["init"]
-    required_tf_scale_keys = {f"tf_input_scale_{tf}" for tf in ("m5", "m15", "h1", "h4", "d1")}
+    required_tf_scale_keys = {
+        f"tf_input_scale_{tf}" for tf in TF_INPUT_SCALE_NAMES
+    }
     missing_tf_scale_keys = sorted(required_tf_scale_keys - set(state_dict_preview))
     if missing_tf_scale_keys:
         raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_STATE_MISSING] {missing_tf_scale_keys}")
+    require_tf_input_scale_state(meta["tf_input_scale"], state_dict_preview)
 
     _specialist_cfg = meta["specialist_fusion"]
     _indices = _specialist_cfg["input_indices"]
@@ -832,15 +1039,45 @@ def load_entry_v10_ctx_bundle(
         specialist_input_indices={
             str(k): list(v) for k, v in _indices.items()
         },
+        specialist_ctx_cont_indices={
+            str(k): list(v)
+            for k, v in _specialist_cfg["context_routing"][
+                "ctx_cont_indices"
+            ].items()
+        },
+        specialist_ctx_cont_nominal_indices={
+            str(k): list(v)
+            for k, v in _specialist_cfg["context_routing"][
+                "ctx_cont_nominal_indices"
+            ].items()
+        },
+        specialist_ctx_cat_indices={
+            str(k): list(v)
+            for k, v in _specialist_cfg["context_routing"][
+                "ctx_cat_indices"
+            ].items()
+        },
+        temporal_alias_signal_indices=list(
+            _specialist_cfg["context_routing"]["temporal_alias_policy"][
+                "signal_indices"
+            ]
+        ),
+        temporal_alias_ctx_cont_indices=list(
+            _specialist_cfg["context_routing"]["temporal_alias_policy"][
+                "ctx_cont_indices"
+            ]
+        ),
         specialist_num_layers=int(_specialist_cfg["num_layers"]),
         specialist_fusion_scale=float(_specialist_cfg["fusion_scale"]),
         cross_family_fusion_scale=float(
             _specialist_cfg["cross_family_fusion_scale"]
         ),
+        input_normalization=meta["input_normalization"],
     ).to(dev)
 
     state_dict = state_dict_preview
     model.load_state_dict(state_dict, strict=True)
+    model.require_input_normalization_state()
     model.eval()
     # Optional immutable calibrations are part of the canonical forward and
     # were fully validated above before any model is returned.
@@ -897,4 +1134,6 @@ def load_entry_v10_ctx_bundle(
         capabilities=capabilities,
     )
 
+    if require_bundle_commit_manifest(bd) != committed_bundle:
+        raise RuntimeError("[ENTRY_BUNDLE_CHANGED_DURING_LOAD]")
     return bundle

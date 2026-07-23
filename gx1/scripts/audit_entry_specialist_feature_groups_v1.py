@@ -33,6 +33,12 @@ from gx1.contracts.entry_dataset_split_artifacts_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CAT_FIELDS,
+    MODEL_NATIVE_CTX_CAT_FIELDS_SHA256,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
+    MODEL_NATIVE_CTX_CONT_FIELDS_SHA256,
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
@@ -46,6 +52,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     FOUNDATION_OBJECTIVE_SPECIALISTS,
     FOUNDATION_REQUIREMENT_PATTERNS,
     MODEL_NATIVE_EXPECTED_SPECIALIST_FEATURE_COUNT,
+    MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
+    MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_SCHEMA_VERSION,
     MODEL_NATIVE_SMART_FAMILY_CONTRACT,
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -55,6 +63,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
     group_features_by_specialist,
+    model_native_context_temporal_alias_policy,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
 
@@ -119,6 +128,16 @@ def _json_default(obj: Any) -> Any:
 
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _canonical_json_sha256(value: object) -> str:
+    payload = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _load_selected_features(path: Path) -> list[str]:
@@ -188,6 +207,12 @@ def _load_split_context_fields(
             "ctx_cat_names": ctx_cat_names,
             "ctx_cont_dim": int(ctx_contract.get("ctx_cont_dim") or len(ctx_cont_names)),
             "ctx_cat_dim": int(ctx_contract.get("ctx_cat_dim") or len(ctx_cat_names)),
+            "ctx_cont_fields_sha256": str(
+                ctx_contract.get("ctx_cont_fields_sha256") or ""
+            ),
+            "ctx_cat_fields_sha256": str(
+                ctx_contract.get("ctx_cat_fields_sha256") or ""
+            ),
         }
     return out
 
@@ -222,7 +247,7 @@ def _count_rows(signal_fields: list[str], selected_features: list[str]) -> list[
     return rows
 
 
-def _context_routing_rows(context_contracts: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def _context_taxonomy_rows(context_contracts: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     if not context_contracts:
         return []
     split = sorted(context_contracts)[0]
@@ -242,7 +267,7 @@ def _context_routing_rows(context_contracts: dict[str, dict[str, Any]]) -> list[
     return rows
 
 
-def _context_routing_failures(rows: list[dict[str, Any]]) -> list[str]:
+def _context_taxonomy_failures(rows: list[dict[str, Any]]) -> list[str]:
     unmapped = [row for row in rows if str(row.get("specialist")) == "unmapped"]
     if unmapped:
         return [
@@ -251,6 +276,70 @@ def _context_routing_failures(rows: list[dict[str, Any]]) -> list[str]:
             + f" total={len(unmapped)}"
         ]
     return []
+
+
+def _context_specialist_routing_failures(
+    context_contracts: dict[str, dict[str, Any]],
+    taxonomy_rows: list[dict[str, Any]],
+    signal_fields: list[str],
+) -> list[str]:
+    failures: list[str] = []
+    for split, contract in context_contracts.items():
+        if tuple(contract.get("ctx_cont_names") or ()) != MODEL_NATIVE_CTX_CONT_FIELDS:
+            failures.append(f"{split}: exact ctx_cont field order mismatch")
+        if tuple(contract.get("ctx_cat_names") or ()) != MODEL_NATIVE_CTX_CAT_FIELDS:
+            failures.append(f"{split}: exact ctx_cat field order mismatch")
+        if int(contract.get("ctx_cont_dim") or -1) != MODEL_NATIVE_CTX_CONT_DIM:
+            failures.append(f"{split}: exact ctx_cont dimension mismatch")
+        if int(contract.get("ctx_cat_dim") or -1) != MODEL_NATIVE_CTX_CAT_DIM:
+            failures.append(f"{split}: exact ctx_cat dimension mismatch")
+        if contract.get("ctx_cont_fields_sha256") != MODEL_NATIVE_CTX_CONT_FIELDS_SHA256:
+            failures.append(f"{split}: exact ctx_cont field hash mismatch")
+        if contract.get("ctx_cat_fields_sha256") != MODEL_NATIVE_CTX_CAT_FIELDS_SHA256:
+            failures.append(f"{split}: exact ctx_cat field hash mismatch")
+
+    expected = MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT
+    observed_cont = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    observed_cat = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    seen: set[tuple[str, int]] = set()
+    for row in taxonomy_rows:
+        scope = str(row.get("scope"))
+        index = int(row.get("index", -1))
+        owner = str(row.get("specialist"))
+        key = (scope, index)
+        if key in seen:
+            failures.append(f"context field routed more than once: {key}")
+            continue
+        seen.add(key)
+        target = observed_cont if scope == "ctx_cont" else observed_cat
+        if owner not in target:
+            failures.append(
+                f"context field lacks an exact specialist owner: {row.get('feature')}"
+            )
+            continue
+        target[owner].append(index)
+    if observed_cont != expected["ctx_cont_indices"]:
+        failures.append("ctx_cont specialist ownership differs from exact contract")
+    if observed_cat != expected["ctx_cat_indices"]:
+        failures.append("ctx_cat specialist ownership differs from exact contract")
+    if len({index for values in observed_cont.values() for index in values}) != MODEL_NATIVE_CTX_CONT_DIM:
+        failures.append("ctx_cont specialist ownership does not cover exactly 142 fields")
+    if len({index for values in observed_cat.values() for index in values}) != MODEL_NATIVE_CTX_CAT_DIM:
+        failures.append("ctx_cat specialist ownership does not cover exactly five fields")
+
+    observed_aliases = [
+        field
+        for field in signal_fields
+        if field.startswith("ctx_cont.")
+        and field.removeprefix("ctx_cont.") in set(MODEL_NATIVE_CTX_CONT_FIELDS)
+    ]
+    derived_aliases = model_native_context_temporal_alias_policy(signal_fields)
+    if observed_aliases != derived_aliases["signal_fields"]:
+        failures.append(
+            "temporal context alias derivation differs from ordered signal/context "
+            "intersection"
+        )
+    return failures
 
 
 def _contract_training_surface() -> dict[str, Any]:
@@ -528,7 +617,6 @@ def _specialist_input_liveness_rows(
                 if clean.size
                 else np.asarray([], dtype=np.float64)
             )
-            finite_by_feature = np.all(finite, axis=0) if finite.size else np.asarray([], dtype=bool)
             live_mask = all_live[idx] if idx else np.asarray([], dtype=bool)
             live_features = [feature for feature, live in zip(features, live_mask, strict=False) if bool(live)]
             near_constant_features = [
@@ -673,7 +761,6 @@ def _specialist_model_contract_failures(
             f"missing={sorted(required - actual)} extra={sorted(actual - required)}"
         )
     objective_owner: dict[str, str] = {}
-    active_heads = set(SPECIALIST_FUSION_ACTIVE_HEADS)
     for specialist in required_specialists:
         spec = contract.get(specialist) if isinstance(contract.get(specialist), dict) else {}
         if not str(spec.get("model_role") or ""):
@@ -721,17 +808,24 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
     by_group["unmapped"] = []
     for row in rows:
         by_group.setdefault(str(row["specialist"]), []).append(int(row["index"]))
+    routing = json.loads(
+        json.dumps(MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT)
+    )
+    routing["temporal_alias_policy"] = (
+        model_native_context_temporal_alias_policy(signal_fields)
+    )
     return {
         "input_dim": int(len(signal_fields)),
         "seq_len": 96,
         "specialist_input_indices": by_group,
+        "context_specialist_routing": routing,
         "recommended_fusion": {
             "type": "cross_attended_dynamic_gated_specialists_plus_five_tf_cooperation",
             "gate_context": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
             "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
             "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
-            "direction_path": "specialist cross-attention -> dynamic specialist gate -> specialist+five-TF cross-attention -> 96-value learned evidence fusion -> calibrated LONG/SHORT/FLAT argmax",
+            "direction_path": "family context -> pre-cross specialist token -> specialist cross-attention -> dynamic specialist gate -> specialist+five-TF cross-attention -> 96-value learned evidence fusion -> calibrated LONG/SHORT/FLAT argmax",
             "independent_timeframe_only_head": "mtf_direction",
         },
     }
@@ -796,9 +890,16 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
             f"{row['feature_count']} min={row['min_required_live_feature_count']} "
             f"mean_active={row['mean_active_rate']:.6f} nonfinite={row['nonfinite_count']}"
         )
-    lines.extend(["", "## Context Routing", ""])
-    context_unmapped = [str(x) for x in report.get("context_routing_unmapped_fields") or []]
-    lines.append(f"- Unmapped context fields: `{len(context_unmapped)}`")
+    lines.extend(["", "## Context Specialist Routing", ""])
+    context_unmapped = [
+        str(x)
+        for x in report.get("context_taxonomy_unmapped_fields") or []
+    ]
+    lines.append(f"- Taxonomy-unmapped context fields: `{len(context_unmapped)}`")
+    lines.append(
+        "- Exact owner routing: "
+        f"`{report.get('context_specialist_routing_all_mapped') is True}`"
+    )
     if context_unmapped:
         lines.append(f"- Fields: `{', '.join(context_unmapped[:40])}`")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -921,14 +1022,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             f"{[row['features'] for row in train_duplicate_groups[:10]]} "
             f"total_groups={len(train_duplicate_groups)}"
         )
-    context_routing_rows = _context_routing_rows(context_contracts)
-    context_routing_unmapped_fields = [
+    context_taxonomy_rows = _context_taxonomy_rows(context_contracts)
+    context_taxonomy_unmapped_fields = [
         str(row.get("feature"))
-        for row in context_routing_rows
+        for row in context_taxonomy_rows
         if str(row.get("specialist")) == "unmapped"
     ]
-    context_routing_failures = _context_routing_failures(context_routing_rows)
-    failures.extend(context_routing_failures)
+    context_taxonomy_failures = _context_taxonomy_failures(
+        context_taxonomy_rows
+    )
+    context_specialist_routing_failures = (
+        _context_specialist_routing_failures(
+            context_contracts,
+            context_taxonomy_rows,
+            signal_fields,
+        )
+    )
+    failures.extend(context_taxonomy_failures)
+    failures.extend(context_specialist_routing_failures)
 
     foundation_rows = _foundation_requirement_rows(selected_features)
     for row in foundation_rows:
@@ -1025,11 +1136,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             }
             for split, contract in context_contracts.items()
         },
-        "context_routing": context_routing_rows,
-        "context_routing_unmapped_count": int(len(context_routing_unmapped_fields)),
-        "context_routing_unmapped_fields": context_routing_unmapped_fields,
-        "context_routing_all_mapped": not context_routing_unmapped_fields,
-        "context_routing_failures": context_routing_failures,
+        "context_taxonomy": context_taxonomy_rows,
+        "context_taxonomy_unmapped_count": int(
+            len(context_taxonomy_unmapped_fields)
+        ),
+        "context_taxonomy_unmapped_fields": context_taxonomy_unmapped_fields,
+        "context_taxonomy_all_mapped": not context_taxonomy_unmapped_fields,
+        "context_taxonomy_failures": context_taxonomy_failures,
+        "context_specialist_routing_schema_version": (
+            MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_SCHEMA_VERSION
+        ),
+        "context_specialist_routing_all_mapped": not (
+            context_taxonomy_failures
+            or context_specialist_routing_failures
+        ),
+        "context_specialist_routing_failure_count": int(
+            len(context_specialist_routing_failures)
+        ),
+        "context_specialist_routing_failures": (
+            context_specialist_routing_failures
+        ),
         "min_live_feature_counts": MIN_LIVE_FEATURE_COUNTS,
         "min_specialist_mean_active_rate": float(MIN_SPECIALIST_MEAN_ACTIVE_RATE),
         "min_feature_active_rate": float(MIN_FEATURE_ACTIVE_RATE),

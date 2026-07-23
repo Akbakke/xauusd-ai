@@ -466,7 +466,7 @@ def test_active_runtime_source_has_no_decision_state_substitution() -> None:
     assert "BROKER_RECONCILIATION_REQUIRED" in runner_source
 
 
-def test_missing_trade_id_counter_order_is_retained_only_for_safe_close(
+def test_missing_trade_id_fails_closed_without_counter_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from gx1.execution import v12_paper_runner as runner
@@ -481,11 +481,12 @@ def test_missing_trade_id_counter_order_is_retained_only_for_safe_close(
 
     result = runner.attempt_close_trade(object(), trade)
 
-    assert result == {"status": "filled"}
-    assert calls == [("short", 7)]
+    assert result["status"] == "missing_trade_id"
+    assert result["trade_id"] is None
+    assert calls == []
 
 
-def test_empty_trade_id_also_uses_counter_order_safe_close(
+def test_empty_trade_id_fails_closed_without_counter_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from gx1.execution import v12_paper_runner as runner
@@ -500,8 +501,58 @@ def test_empty_trade_id_also_uses_counter_order_safe_close(
 
     result = runner.attempt_close_trade(object(), trade)
 
-    assert result == {"status": "filled"}
-    assert calls == [("long", 3)]
+    assert result["status"] == "missing_trade_id"
+    assert result["trade_id"] is None
+    assert calls == []
+
+
+def test_runtime_launch_lease_rejects_replacement_and_in_check_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+    from gx1.execution import v12_smart_entry_live as smart_live
+    from gx1_guards import artifacts
+
+    state_path = tmp_path / "launch.json"
+    registry_path = tmp_path / "registry.json"
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    state_path.write_text('{"decision":"ALLOW"}\n', encoding="utf-8")
+    registry_path.write_text('{"active":{}}\n', encoding="utf-8")
+    monkeypatch.setattr(artifacts, "XAU_DIRECTION_LAUNCH_CONTRACT", state_path)
+    monkeypatch.setattr(artifacts, "SELECTION_CONTRACT", registry_path)
+    monkeypatch.setattr(smart_live, "assert_smart_serving_gate", lambda: {})
+    monkeypatch.setattr(
+        artifacts,
+        "load_decision_entry",
+        lambda _role: {
+            "path": bundle,
+            "xau_direction_launch_state": {
+                "accepted_via_vedtak": {
+                    "event_sha256": "a" * 64,
+                    "vedtak_id": "UNIT_RUNTIME_LEASE",
+                }
+            },
+        },
+    )
+
+    lease = runner.require_runtime_entry_launch_lease()
+    state_path.write_text('{"decision":"BLOCK"}\n', encoding="utf-8")
+    with pytest.raises(RuntimeError, match="replaced or revoked"):
+        runner.require_runtime_entry_launch_lease(expected_lease=lease)
+
+    def mutate_during_check() -> dict:
+        registry_path.write_text('{"changed":true}\n', encoding="utf-8")
+        return {}
+
+    monkeypatch.setattr(
+        smart_live,
+        "assert_smart_serving_gate",
+        mutate_during_check,
+    )
+    with pytest.raises(RuntimeError, match="changed during lease"):
+        runner.require_runtime_entry_launch_lease()
 
 
 def test_filled_order_with_missing_price_is_explicitly_incomplete_not_zero() -> None:

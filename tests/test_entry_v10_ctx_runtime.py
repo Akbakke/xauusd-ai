@@ -18,6 +18,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
 )
+from tests.model_native_input_normalization_support import (
+    input_normalization_fixture,
+)
 
 # Add project root to path
 script_dir = Path(__file__).parent
@@ -81,12 +84,15 @@ class TestEntryV10CtxProof:
             EXACT_SPECIALIST_NAMES,
             EntryV10CtxHybridTransformer,
         )
+        from gx1.features.entry_specialist_feature_groups_v1 import (
+            MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
+        )
 
         torch.manual_seed(1337)
         # Create model
         model = EntryV10CtxHybridTransformer(
             seq_input_dim=16,
-            snap_input_dim=88,
+            snap_input_dim=16,
             seq_len=30,
             m5_seq_dim=3,
             m15_seq_dim=3,
@@ -102,25 +108,57 @@ class TestEntryV10CtxProof:
                 name: list(range(index, 16, len(EXACT_SPECIALIST_NAMES)))
                 for index, name in enumerate(EXACT_SPECIALIST_NAMES)
             },
+            specialist_ctx_cont_indices={
+                str(name): list(values)
+                for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                    "ctx_cont_indices"
+                ].items()
+            },
+            specialist_ctx_cont_nominal_indices={
+                str(name): list(values)
+                for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                    "ctx_cont_nominal_indices"
+                ].items()
+            },
+            specialist_ctx_cat_indices={
+                str(name): list(values)
+                for name, values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                    "ctx_cat_indices"
+                ].items()
+            },
+            temporal_alias_signal_indices=[],
+            temporal_alias_ctx_cont_indices=[],
+            input_normalization=input_normalization_fixture(
+                signal_names=[f"signal_{index}" for index in range(16)],
+                mtf_names=["mtf_0", "mtf_1", "mtf_2"],
+            ),
         )
         model.eval()
 
         # Create dummy inputs (multi-TF windows held fixed so only ctx varies)
         batch_size = 1
         seq_x = torch.randn(batch_size, 30, 16)  # [1, 30, 16]
-        snap_x = torch.randn(batch_size, 88)  # [1, 88]
+        snap_x = seq_x[:, -1, :].clone()
         mtf_inputs = {
             f"seq_{tf}": torch.randn(batch_size, 30, 3)
             for tf in ("m5", "m15", "h1", "h4", "d1")
         }
 
         # Pass A: Real ctx
-        ctx_cat_A = torch.arange(MODEL_NATIVE_CTX_CAT_DIM).reshape(1, -1)
+        ctx_cat_A = torch.tensor([[1, 2, 3, 4, 2]], dtype=torch.long)
         ctx_cont_A = torch.linspace(
             -1.0,
             1.0,
             MODEL_NATIVE_CTX_CONT_DIM,
         ).reshape(1, -1)
+        nominal_indices = [
+            index
+            for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
+                "ctx_cont_nominal_indices"
+            ].values()
+            for index in values
+        ]
+        ctx_cont_A[:, nominal_indices] = 1.0
         
         with torch.no_grad():
             outputs_A = model(
@@ -133,7 +171,7 @@ class TestEntryV10CtxProof:
             prob_long_A = torch.softmax(outputs_A["direction_logits"], dim=1)[0, 0].item()
         
         # Pass B: Permuted ctx_cat + null ctx_cont
-        ctx_cat_B = torch.roll(ctx_cat_A, shifts=1, dims=1)  # Permute categorical
+        ctx_cat_B = torch.tensor([[2, 3, 4, 0, 0]], dtype=torch.long)
         ctx_cont_B = torch.zeros_like(ctx_cont_A)  # Null continuous
         
         with torch.no_grad():

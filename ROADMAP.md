@@ -93,20 +93,28 @@ V23 large rejected split parquets have been removed while their small terminal
 and audit evidence remains. No bundle, candidate, untouched OOS edge or launch
 evidence exists.
 
+The target/objective, sampler, conditional metrics, checkpoint influence,
+complete physical-TRAIN normalization, all-147 context ownership, exact
+five-timeframe cache bytes, positive TF scales, atomic bundle/event
+publication, recursive active-Exit artifact identity, immutable approval,
+runtime lease recheck and missing-trade-ID close path are now source-repaired
+with regression proof. V24/V7 predate every one of these changes. No fresh
+artifact or edge result exists.
+
 ## Ordered gates
 
 1. Preserve V24/V7 as immutable failure evidence. Do not rerun, patch data in
    place or promote any output.
-2. Preserve the completed source repairs for both P0s, no-replacement
-   sampling, bidirectional weights, exact recipe/M5 binding, one causal MTF
-   cache mode, all-head influence, forward-head bps units and grad accumulation.
-3. Add immutable ordered input scaling and true context-specialist ownership
-   for all 142+5 context fields; explicitly resolve the 82 current-bar aliases.
-   Add tradable-conditioned path metrics and remaining cache-byte proof.
-4. Make bundle export atomic and implement one transactional promotion/launch
-   finalizer with exact immutable vedtak identity. No `.env` launch authority.
-   Joint Exit/sizing proof must bind an immutable Exit-only registry snapshot
-   so promotion cannot invalidate its own prerequisite.
+2. Preserve all completed source repairs: both P0s, no-replacement sampling,
+   bidirectional/conditional auxiliary evidence, exact recipe/M5/MTF bytes,
+   complete TRAIN-fit normalization, 142+5 context ownership, all-head/group
+   influence, atomic bundle/event publication, active-Exit byte identity,
+   immutable approval, runtime lease and execution fail-close.
+3. Implement the one remaining source P0: a canonical transactional
+   candidate/promotion/launch finalizer with terminal failure evidence. The
+   existing consumer contract already rejects `.env` authority and requires
+   the exact one-time approval/state/bundle binding.
+4. Repair and prove canonical/live December-2024 M5 parity.
 5. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.

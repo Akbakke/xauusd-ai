@@ -902,7 +902,7 @@ def assert_smart_serving_gate() -> dict:
             "rank_reference_npz_sha256",
             "rank_reference_sidecar_sha256",
             "rank_reference_schema_version",
-            "normalization_fit_scope",
+            "rank_reference_fit_scope",
             "rank_transform",
             "feature_history_mode",
             "split_reset_allowed",

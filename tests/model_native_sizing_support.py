@@ -21,6 +21,10 @@ from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     joint_exit_trace_sha256,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    CORE_ARTIFACTS as BUNDLE_COMMIT_CORE_ARTIFACTS,
+    write_bundle_commit_manifest,
+)
 from gx1.contracts.model_native_serve_gate_v1 import (
     MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION,
     MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION,
@@ -392,6 +396,12 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             "model_sha256": state_sha,
             "direction_decision_contract": direction_contract,
         },
+    )
+    write_bundle_commit_manifest(
+        bundle_dir=source_bundle.resolve(),
+        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+        bundle_kind="trained",
+        created_at_utc="2026-07-17T00:00:00+00:00",
     )
 
     train_times = pd.date_range("2024-01-01T00:00:00Z", periods=300, freq="12h")
