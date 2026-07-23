@@ -565,7 +565,7 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review. V1–V5 feilet uten bundle: først
+V24 har nådd og bestått `trainability`-review. V1–V6 feilet uten bundle: først
 på emitted aux-target proof, deretter fordi trainer feilaktig sammenlignet
 smoke-run-ID med dataset-build-ID, så fordi signert spread-aware MFE feilaktig
 ble validert som ikke-negativ, og til slutt fordi MTF-direction-headens
@@ -580,12 +580,17 @@ er en ikke-negativ adverse magnitude. Commit `f05b3390` binder MTF-headen til
 samme kanoniske klasse-target i train og val. V5 fullførte deretter en hel
 train/val-epoke med optimizer-steg, men 23 direction-slice-feil og
 tradable/bad-path AUC 0.509/0.482 mot fast gulv 0.52 avviste checkpointen.
-Ingen bundle ble skrevet. V6-recipe og offentlig dry-run passerer med identiske
-data-, source-, miljø-, terskel- og tapsvektsbindinger; bare den eksplisitte
-horisonten er økt til åtte epoker/patience seks slik at uendret hard-red-policy
-kan evalueres fra sin konfigurerte minimumsepoke seks.
+Ingen bundle ble skrevet. V6 kjørte seks fulle epoker og viste at global balanse
+kunne bli god i epoke 4, men lokale slices og auxiliary-health passerte aldri.
+Ved epoke 6 var LONG-andelen 0.058943 og clean-edge/path-quality-headene hadde
+kollapset til Spearman +0.959 mot bare +0.699 mellom VAL-targetene. Commit
+`37128985` samler derfor eksakt epokevid gatebruk for specialist-, TF- og
+family×TF-portene og gjør alle tre checkpoint-blokkerende ved uendret gulv
+0.01. Den retning-nøytrale balansevekten økes 0.05→0.50; ingen retnings-,
+AUC-, slice- eller promotionsterskel senkes. V7-recipe og offentlig dry-run
+passerer med 25 000 stratifierte rader og åtte epoker/patience åtte.
 `model-native-smoke-bundle-audit` er eksponert i samme kontrollflate. Neste pil
-er derfor V6 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
+er derfor V7 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)

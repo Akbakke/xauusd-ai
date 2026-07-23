@@ -6,6 +6,43 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — V6 proves objective instability; cooperation becomes an admission gate
+
+V6 completed six full train/VAL epochs with optimizer steps and no runtime
+contract failure. Epoch 4 was the strongest direction candidate: accuracy
+0.383469, direction checkpoint score 0.361111, prediction rates
+0.256267/0.373645/0.370088 and near-label global balance. It still failed 15
+local context slices, while bad-path/clean-edge/survival AUC was
+0.472/0.517/0.501. By epoch 6, LONG support had fallen to 0.058943, slice
+failures rose to 29, bad-path/survival AUC remained 0.474/0.509, and
+clean-edge/path-quality predictions collapsed to Spearman +0.959. The
+corresponding VAL targets correlate only +0.699, so this is learned
+redundancy, not target identity. No epoch admitted a checkpoint; early
+stopping emitted `TRAIN_FAIL_NO_BEST_STATE` and no bundle.
+
+The review found a separate observability gap: VAL computed regularization for
+`specialist_gate`, `tf_gate` and `family_tf_cooperation_gate` but discarded
+their use statistics. Checkpoint admission therefore depended on auxiliary
+health but not on direct evidence that every cooperation path remained live.
+Commit `37128985` now aggregates exact epoch-wide mean weights and entropy for
+all three gates and blocks checkpoint admission when any token mean is at or
+below the existing 0.01 minimum or entropy misses its existing training floor.
+The direction-neutral gate-balance weight rises from 0.05 to 0.50 to oppose
+the starvation observed in V6. No direction, AUC, slice or promotion threshold
+is reduced.
+
+Fresh smoke-readiness SHA-256
+`395d76f9dbe58e7c5a2c9a7488de32d320487efa0942908fcc39a57219034ebb`
+and trainability SHA-256
+`9f05c6970e7ee17fd8dba5c5583a6332fc068c59d34068e0e49a218079048e77`
+are READY. V7 recipe SHA-256
+`fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`
+is PASS for `XAU_SEQ513_SMOKE_20260723_V7`, binds source `37128985`, and its
+public dry-run passes. V7 declares 25,000 stratified TRAIN rows, eight epochs
+and patience eight so rare bad-path support rises from roughly 334 to roughly
+835 positive rows. Exact V24 bytes, seed, learning rate and all empirical
+acceptance thresholds remain fixed. V7 has not executed at this boundary.
+
 ## 2026-07-23 — one-epoch V5 is empirical red; V6 preserves the gates
 
 V5 crossed every source and runtime wall, built the complete TRAIN tensor,

@@ -18,7 +18,7 @@ fields. This proves data/routing contracts, not direction edge.
 No accepted smoke model, bundle, calibration or learned prediction evidence exists, so
 no Entry launch is authorized. The canonical producer now emits and validates
 one immutable recipe containing all 162 exact trainer settings, and the
-post-smoke bundle audit has one public control route. Smoke V1 through V5 all
+post-smoke bundle audit has one public control route. Smoke V1 through V6 all
 failed closed without a bundle: V1 found
 an aux-target emission-contract mismatch; V2 found a dataset-build/training-run
 lineage collision; V3 crossed those walls, completed five-timeframe prebuild
@@ -30,11 +30,16 @@ then found that MTF head validation incorrectly demanded a redundant
 optimizer step completed. V5 crossed that final source wall and completed one
 full train/validation epoch with optimizer steps, but its direction-slice and
 auxiliary AUC evidence failed the fixed checkpoint gates; no best state or
-bundle was admitted. Recipe schema v2 and the exact V6 dry-run now bind a
-distinct training `run_id` plus launch-derived V24 `dataset_run_id`. V6 keeps
-all data, source, environment, threshold and loss-weight bindings unchanged,
-but explicitly permits eight epochs with patience six so the unchanged
-hard-red contract can evaluate learned evidence from epoch six. The old
+bundle was admitted. V6 completed six epochs and exposed unstable
+LONG/SHORT/FLAT balance, persistently weak auxiliary AUC, near-redundant
+clean-edge/path-quality heads and specialist-gate starvation; it also wrote no
+bundle. Commit `37128985` makes exact epoch-wide specialist, timeframe and
+family×timeframe gate health checkpoint-blocking and strengthens only their
+direction-neutral balance pressure. Recipe schema v2 and the exact V7 dry-run
+now bind a distinct training `run_id` plus launch-derived V24
+`dataset_run_id`. V7 uses 25,000 stratified TRAIN rows and eight
+epochs/patience eight while preserving every direction, auxiliary and
+promotion threshold. The old
 Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
 be used for training, replay, paper trading, live trading or promotion.
 

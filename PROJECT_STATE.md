@@ -95,11 +95,11 @@ bind every executable source file by SHA-256. The single control surface now
 exposes both recipe production and the existing exact post-smoke bundle audit.
 
 Fresh V24 smoke readiness is READY with SHA-256
-`fa44e809e28599b9c9d4fa897fafaccd15cdb80f3bdee9948665cd1c1b283650`;
+`395d76f9dbe58e7c5a2c9a7488de32d320487efa0942908fcc39a57219034ebb`;
 trainability is READY with SHA-256
-`6908796b6e289c708d0d1b1bd942c10ef9482391fd3cfb3aba2168cfbc88e312`.
+`9f05c6970e7ee17fd8dba5c5583a6332fc068c59d34068e0e49a218079048e77`.
 
-Five real capped executions have provided fail-closed evidence.
+Six real capped executions have provided fail-closed evidence.
 V1 rejected the stronger emitted aux-target contract because the trainer
 compared it with only the static 46-target subset. Commit `9459babe` added the
 exact four-counter emission validator. V2 then reached the next wall and
@@ -126,7 +126,14 @@ with 23 failures, tradable AUC was 0.509 and bad-path AUC was 0.482 against the
 fixed 0.52 auxiliary-health floor. The checkpoint contract consequently
 admitted no best state and wrote no bundle (`TRAIN_FAIL_NO_BEST_STATE`). This
 is empirical model-quality evidence, not a source failure and not permission
-to weaken a gate.
+to weaken a gate. V6 then ran six complete train/VAL epochs. Epoch 4 briefly
+reached 0.383469 accuracy, near-label global class balance and direction score
+0.361111, but 15 local slices still failed and bad-path/clean-edge/survival
+AUC remained 0.472/0.517/0.501. By epoch 6, LONG support had fallen to 0.058943,
+29 slice checks failed, bad-path/survival AUC was 0.474/0.509, and the learned
+clean-edge/path-quality heads had collapsed to Spearman +0.959 although their
+VAL targets correlate only +0.699. Early stopping correctly ended the run with
+no admissible checkpoint or bundle.
 
 Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
 lineages without weakening identity. Recipe schema v2 derives
@@ -137,19 +144,25 @@ domain: finite signed MFE/path quality remain signed in active validation and
 both losses, while MAE remains a non-negative magnitude. Commit
 `f05b3390144f988079bbd49aa1abff8cacd4bd55` makes both train and validation
 MTF heads require the canonical `y` class tensor, without aliases or fallback.
-The new `run_id=XAU_SEQ513_SMOKE_20260723_V6` owns the next training/output
+Commit `3712898531916374e67c9c4c58f9d9dc4e1995c3` closes the
+cooperation-observability mismatch exposed by V6. Train and VAL now aggregate
+exact epoch-wide use for the specialist, timeframe and 13-way
+family×timeframe gates; checkpoint admission fails if any token mean is at or
+below 0.01 or gate entropy is below the existing training floor. The
+direction-neutral balance weight rises from 0.05 to 0.50 so a family cannot
+win by starving another. This changes no LONG/SHORT/FLAT, auxiliary AUC,
+slice or promotion threshold.
+
+The new `run_id=XAU_SEQ513_SMOKE_20260723_V7` owns the next training/output
 lineage. Wrapper, trainer, bundle metadata/lock and handover all revalidate the
-roles. The immutable V6 recipe is PASS with SHA-256
-`470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b`,
-eight epochs, patience six, the same 10,000-row cap and the same 30G/2G
-memory/swap caps. Its exact public dry-run passes. Data, source bytes, all 162
-trainer-environment values, thresholds and loss weights are unchanged from
-V5. The recipe records repository commit `87b0cec2`; its executable source
-bindings remain the exact `f05b3390` repair bytes. The longer explicit horizon
-only allows the existing auxiliary-health and
-direction hard-red policy, whose minimum evaluation epoch is six, to judge
-learned rather than cold one-epoch evidence. V6 execution has not started and
-its output bundle does not exist.
+roles. The immutable V7 recipe is PASS with SHA-256
+`fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`,
+eight epochs, patience eight, a 25,000-row stratified cap and the same 30G/2G
+memory/swap caps. Its exact public dry-run passes and binds source commit
+`37128985`. V7 increases support for rare bad-path learning from roughly 334
+to roughly 835 positive TRAIN rows while preserving the exact V24 bytes,
+seed, learning rate and every evidence threshold. V7 execution has not
+started and its output bundle does not exist.
 V21/V22/V23 large rejected split parquets have been deleted, while their small
 terminal/manifest/audit evidence remains.
 
@@ -193,7 +206,7 @@ The active v4 source and V24 data contracts pass:
 - `git diff --check`;
 - exact contract/count/routing assertions;
 - V24 post-rebuild, foundation feature/target/specialist, smoke-readiness,
-  trainability, immutable V6 162-setting recipe and exact wrapper dry-run;
+  trainability, immutable V7 162-setting recipe and exact wrapper dry-run;
 - repository and active-hook forbidden-instrument zero-scan.
 
 These are source and contract proofs. They do not prove market edge,
@@ -212,7 +225,7 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Run the exact capped eight-epoch/patience-six/10,000-row V6/V24 smoke recipe
+Run the exact capped eight-epoch/patience-eight/25,000-row V7/V24 smoke recipe
 through the public wrapper, then immediately audit any produced bundle through
 `model-native-smoke-bundle-audit`. Stop at the first red gate; do not
 hand-author an authority artifact, relax the fixed evidence gates or bypass

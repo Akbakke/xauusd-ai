@@ -37,7 +37,7 @@ the immutable trainability review now passes.
 
 This is a data and contract breakthrough, not a model or trading-edge
 breakthrough. Commits `f08cd904`, `b5a61e21` and `bf5c61a0` closed the
-source-level smoke-launch gap. Five capped executions then failed closed
+source-level smoke-launch gap. Six capped executions then failed closed
 without a bundle: V1 exposed an
 over-strict static-versus-emitted aux-target check; V2 exposed that the trainer
 incorrectly treated V24's dataset-build ID as the new training/output ID; V3
@@ -51,13 +51,22 @@ Commits `9459babe`, `b986c8db`, `c9e2569f` and `f05b3390` repair those
 boundaries. V5 then completed one full train/validation epoch with optimizer
 steps, but direction-slice evidence and auxiliary tradable/bad-path AUC
 failed the fixed checkpoint gates. No best state or bundle was admitted; this
-is empirical model-quality rejection, not a reason to soften a contract.
-Recipe schema v2 now binds distinct `run_id=XAU_SEQ513_SMOKE_20260723_V6` and
+is empirical model-quality rejection, not a reason to soften a contract. V6
+then completed six epochs, briefly reached near-label global balance, but
+never passed local slices or auxiliary health; it ended with LONG starvation
+and clean-edge/path-quality head collapse. No bundle was written.
+
+Commit `37128985` now records exact epoch-wide health for specialist,
+timeframe and family×timeframe gates and makes it part of checkpoint admission
+at the unchanged minimum. It strengthens direction-neutral gate balance
+without encoding a live direction. Recipe schema v2 now binds distinct
+`run_id=XAU_SEQ513_SMOKE_20260723_V7` and
 `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24`; launch derives the latter
 from post-rebuild plus all three manifests, and trainer/bundle contracts
-revalidate the separation. Fresh readiness, trainability, the eight-epoch/
-patience-six V6 recipe and public dry-run pass with unchanged data, source,
-162-setting environment, thresholds and loss weights. No accepted smoke model,
+revalidate the separation. Fresh readiness, trainability, the 25,000-row
+eight-epoch/patience-eight V7 recipe and public dry-run pass. Exact V24 bytes,
+seed, learning rate and all direction/auxiliary evidence thresholds remain
+fixed. No accepted smoke model,
 bundle or prediction evidence exists. Launch remains `BLOCK` until smoke,
 candidate, untouched OOS,
 replay, serve parity, sizing and shadow gates all pass.

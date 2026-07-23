@@ -39,11 +39,17 @@ and ambient decision-setting overrides are invalid. `--dry-run` is the
 non-writing contract test. `--execute` is a real capped training job and its
 output must immediately enter `model-native-smoke-bundle-audit`.
 
-The current V6 smoke recipe declares eight epochs and patience six because the
-unchanged direction hard-red policy begins at epoch six. This is not a general
-smoke default and must not be inferred or silently reused: the immutable
-recipe owns it. V5's one-epoch run completed optimizer and validation work but
-failed checkpoint admission on direction-slice plus auxiliary-health evidence.
+The current V7 smoke recipe declares 25,000 stratified rows, eight epochs and
+patience eight. This is not a general smoke default and must not be inferred
+or silently reused: the immutable recipe owns it. V6 completed six epochs but
+failed checkpoint admission on direction-slice, auxiliary-health, class
+stability and evidence-head redundancy.
+
+Checkpoint selection must consume exact epoch-wide `specialist_gate`,
+`tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean
+use above 0.01 and each gate must retain its direction-neutral entropy floor.
+Training-batch proxies or delayed post-bundle checks cannot substitute for
+this admission gate.
 
 Target-domain changes require producer, validator, train-loss and val-loss
 review together. Spread-aware MFE and path quality are signed forward outcomes

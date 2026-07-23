@@ -46,7 +46,7 @@ No accepted model has been produced on V24. The former smoke source blocker is c
 commits `f08cd904`, `b5a61e21` and `bf5c61a0` provide one canonical
 162-setting recipe owner/producer, validate the real pretrain schema, bind
 executable source bytes and expose the exact post-smoke audit through the
-single control surface. Five actual capped attempts then failed closed without
+single control surface. Six actual capped attempts then failed closed without
 a bundle. V1 exposed a
 static-versus-emitted aux-target mismatch, repaired by `9459babe`; V2 exposed
 collapsed dataset-build/training-output IDs, repaired by `b986c8db`; V3
@@ -61,27 +61,34 @@ fallback. V5 then completed one full train/validation epoch with optimizer
 steps. It preserved LONG/SHORT/FLAT prediction support, but direction slices
 failed 23 checks and auxiliary tradable/bad-path AUCs were 0.509/0.482 versus
 the fixed 0.52 floor, so checkpoint admission failed and no bundle was written.
-Fresh readiness and trainability remain READY. Recipe schema v2 now binds
-training run `XAU_SEQ513_SMOKE_20260723_V6` separately from dataset run
+V6 then completed six epochs. Epoch 4 briefly gave near-label global balance
+and direction score 0.361111, but still failed 15 local slices and all required
+auxiliary health. By epoch 6, LONG support was 0.058943, 29 slices failed, and
+clean-edge/path-quality predictions had collapsed to Spearman +0.959 versus
+only +0.699 between their VAL targets. No checkpoint or bundle was admitted.
+
+Commit `37128985` makes exact epoch-wide specialist, timeframe and
+family×timeframe gate health checkpoint-blocking at the unchanged 0.01 floor
+and strengthens only the direction-neutral gate balance from 0.05 to 0.50.
+Fresh readiness and trainability are READY. Recipe schema v2 now binds
+training run `XAU_SEQ513_SMOKE_20260723_V7` separately from dataset run
 `XAU_SEQ513_REBUILD_20260722_V24`; recipe SHA-256
-`470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b`
-is PASS and its exact public dry-run passes without creating a bundle. V6
-keeps the exact data, source, 162-setting environment, thresholds and loss
-weights, but declares eight epochs and patience six so the existing hard-red
-policy can evaluate from its configured minimum epoch six. The recipe's
-repository commit is `87b0cec2`; executable bindings remain unchanged from
-the `f05b3390` repair. V21/V22/
+`fc012059594f5a197fdf145c86487e74ddfeba997f2604fa6759a0378416568d`
+is PASS and its exact public dry-run passes without creating a bundle. V7
+uses 25,000 stratified TRAIN rows and eight epochs/patience eight, preserving
+the exact V24 bytes, seed, learning rate and all direction/auxiliary evidence
+thresholds. V21/V22/
 V23 large rejected split parquets have been removed while their small terminal
 and audit evidence remains. No bundle, candidate, untouched OOS edge or launch
 evidence exists.
 
 ## Ordered gates
 
-1. Preserve the PASS V6 recipe and exact V24 readiness/trainability bindings.
+1. Preserve the PASS V7 recipe and exact V24 readiness/trainability bindings.
    Any copied dataset, stale schema, executable-source hash drift, dirty source,
    operator-supplied dataset identity or different source/smoke identity stops
    the path.
-2. Run capped V6 smoke training and bundle audit with the exact produced
+2. Run capped V7 smoke training and bundle audit with the exact produced
    recipe. Zero FLAT prediction support or passive head/specialist evidence is
    hard red.
    Compare full-history training against a declared recent-regime adaptation

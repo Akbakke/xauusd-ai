@@ -16,9 +16,9 @@
 - current dataset terminal evidence:
   `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/CHAIN_TERMINAL_20260722T130501752412Z_GREEN.json`
 - current immutable smoke recipe evidence:
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T114200Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T114138588679Z.json`
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T124100Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T124040048490Z.json`
 - declared smoke output (currently absent; never infer existence/authority):
-  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v11_entry_model_native_seq513_smoke_20260723T114200Z`
+  `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v12_entry_model_native_seq513_smoke_20260723T124100Z`
 - rejected-split cleanup evidence:
   `/home/andre2/GX1_DATA/cleanup_events/XAU_FAILED_SPLIT_CLEANUP_20260722_V4`
 
@@ -33,13 +33,12 @@ hash-bound and accepted by the relevant contract.
 Environment variables may configure non-authoritative tooling, but they may
 not override immutable Entry artifact identity or introduce a fallback bundle.
 
-The V24 data and V6 recipe paths above are admitted only to exact capped smoke
-execution. Recipe v2 binds training/output V6 separately from launch-derived
-dataset V24. V6 preserves signed MFE/path-quality target semantics and binds
-repository commit `87b0cec2`; its executable bindings retain the exact
-`f05b3390` canonical MTF batch-target repair bytes. It
-changes only the explicit horizon to eight epochs/patience six after V5's
-one-epoch learned evidence failed checkpoint admission; no gate is relaxed. The
+The V24 data and V7 recipe paths above are admitted only to exact capped smoke
+execution. Recipe v2 binds training/output V7 separately from launch-derived
+dataset V24. V7 preserves signed MFE/path-quality semantics and binds source
+commit `37128985`, including exact epoch-wide cooperation-gate health. It uses
+25,000 rows and eight epochs/patience eight after V6 proved auxiliary,
+slice and learned-gate instability; no evidence gate is relaxed. The
 recipe/dry-run is not a bundle, model, direction or launch
 authority; `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
