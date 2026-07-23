@@ -565,7 +565,7 @@ V24-terminal + preflight + liveness + pretrain + seks split-filer/manifester
               → model-native-smoke-train --dry-run → capped --execute
 ```
 
-V24 har nådd og bestått `trainability`-review. V1–V4 feilet uten bundle: først
+V24 har nådd og bestått `trainability`-review. V1–V5 feilet uten bundle: først
 på emitted aux-target proof, deretter fordi trainer feilaktig sammenlignet
 smoke-run-ID med dataset-build-ID, så fordi signert spread-aware MFE feilaktig
 ble validert som ikke-negativ, og til slutt fordi MTF-direction-headens
@@ -577,9 +577,15 @@ eier med 162 eksakte treningsverdier, separat training/dataset-lineage og
 bytebinding til hele kjørebanen. Commit `c9e2569f` bevarer signert MFE og path
 quality gjennom aktiv target-validering samt train/val-loss, mens MAE fortsatt
 er en ikke-negativ adverse magnitude. Commit `f05b3390` binder MTF-headen til
-samme kanoniske klasse-target i train og val. V5-recipe og offentlig dry-run passerer.
+samme kanoniske klasse-target i train og val. V5 fullførte deretter en hel
+train/val-epoke med optimizer-steg, men 23 direction-slice-feil og
+tradable/bad-path AUC 0.509/0.482 mot fast gulv 0.52 avviste checkpointen.
+Ingen bundle ble skrevet. V6-recipe og offentlig dry-run passerer med identiske
+data-, source-, miljø-, terskel- og tapsvektsbindinger; bare den eksplisitte
+horisonten er økt til åtte epoker/patience seks slik at uendret hard-red-policy
+kan evalueres fra sin konfigurerte minimumsepoke seks.
 `model-native-smoke-bundle-audit` er eksponert i samme kontrollflate. Neste pil
-er derfor V5 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
+er derfor V6 capped smoke `--execute` etterfulgt umiddelbart av bundle-audit.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)

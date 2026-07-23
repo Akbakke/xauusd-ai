@@ -65,7 +65,7 @@ AST-validates import and use of both SSOT constants.
 Commits `f08cd904`, `b5a61e21` and `bf5c61a0` close the former smoke source
 blocker. One canonical producer owns all 162 exact trainer values, validates
 the real split-native pretrain audit and binds every executable source owner;
-the exact post-smoke audit now has one control route. V1 through V4 then failed
+the exact post-smoke audit now has one control route. V1 through V5 then failed
 closed without bundle output: aux-target
 emission proof, collapsed dataset/training lineage, and an invalid
 non-negative constraint on signed spread-aware MFE, followed by an incorrect
@@ -76,18 +76,26 @@ validation loss silently zero-clipped signed MFE and path quality. V4 crossed
 that wall, built the 72.71 GB TRAIN surface, loaded all five timeframes and
 entered its first model forward before the MTF check failed; no optimizer step
 completed. Commits `9459babe`, `b986c8db`, `c9e2569f` and `f05b3390` repair
-those exact boundaries without alias, default or fallback. Fresh
+those exact boundaries without alias, default or fallback. V5 then completed
+one entire train/validation epoch with optimizer steps and non-degenerate
+class support, but failed checkpoint admission: direction-slice score
+-0.914416 had 23 failures, while tradable/bad-path AUC 0.509/0.482 missed the
+fixed 0.52 floor. `TRAIN_FAIL_NO_BEST_STATE` wrote no bundle. Fresh
 smoke-readiness SHA is
 `fa44e809e28599b9c9d4fa897fafaccd15cdb80f3bdee9948665cd1c1b283650`
 and trainability SHA is
 `6908796b6e289c708d0d1b1bd942c10ef9482391fd3cfb3aba2168cfbc88e312`.
 The current immutable recipe is
-`train_recipe_20260723T111400Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T111308616509Z.json`,
-SHA-256 `9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a`,
-and its exact public dry-run passes. It binds training V5 separately from
-dataset V24.
+`train_recipe_20260723T114200Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T114138588679Z.json`,
+SHA-256 `470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b`,
+and its exact public dry-run passes. It binds training V6 separately from
+dataset V24 and preserves every V5 data/source/environment/threshold/loss
+binding. The recipe records repository commit `87b0cec2`, while executable
+bindings retain the exact `f05b3390` repair bytes. Only the declared horizon
+changes to eight epochs and patience six,
+allowing the unchanged hard-red policy to evaluate from minimum epoch six.
 
-No model has been trained and the declared output bundle does not exist. Do not
+No model has been accepted and the declared output bundle does not exist. Do not
 hand-author recipe/audit evidence, invoke owners out of band or treat dry-run
 readiness as model/edge proof. V21/V22/V23 large split parquets have been
 deleted; small terminal/manifest/audit evidence remains. V21 cleanup removed
@@ -615,14 +623,16 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
 
 1. V24 satisfies the active dataset, post-rebuild, feature, target, specialist,
    smoke-readiness, trainability, immutable recipe-v2 and public wrapper
-   dry-run contracts. V1 through V4 failed without a bundle: emitted
+   dry-run contracts. V1 through V5 failed without a bundle: emitted
    aux-target validation, collapsed dataset-build/training-output IDs, the
    signed-MFE target-domain mismatch, then the MTF batch-target key mismatch.
    Commits `9459babe`, `b986c8db`, `c9e2569f` and `f05b3390` repair those
-   exact walls. V5 binds `run_id=XAU_SEQ513_SMOKE_20260723_V5` separately from launch-derived
+   exact walls. V5 then completed one optimizer/validation epoch but failed
+   the model-native checkpoint evidence. V6 binds
+   `run_id=XAU_SEQ513_SMOKE_20260723_V6` separately from launch-derived
    `dataset_run_id=XAU_SEQ513_REBUILD_20260722_V24`; recipe SHA-256 is
-   `9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a`.
-   The next exact gate is V5 capped one-epoch/10,000-row smoke execute under
+   `470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b`.
+   The next exact gate is V6 capped eight-epoch/patience-six/10,000-row smoke execute under
    30G/2G followed immediately by the public smoke-bundle audit. Zero FLAT
    predictions remains hard-red by definition. After an accepted candidate
    exists, adaptation still requires fresh TEST evidence, settled zero-order
@@ -642,11 +652,11 @@ Ordered steps (each gate fail-closed; stop at first red):
 1. Do **not** reuse V1-V23. Keep every V24 input explicit and hash-bound; never
    discover through glob, mtime, symlink or mutable `latest` selection.
 2. Recipe producer, exact post-smoke control route, source commit
-   `f05b3390`, refreshed readiness/trainability and V5 public `--dry-run` are
+   `f05b3390`, refreshed readiness/trainability and V6 public `--dry-run` are
    complete and hash-bound. Dataset identity is never a caller argument:
    launch derives it from V24 post-rebuild plus TRAIN/VAL/TEST and the trainer
    requires exact CLI/environment/manifest/state equality.
-3. Run V5 capped `--execute` only while the recipe and every upstream gate
+3. Run V6 capped `--execute` only while the recipe and every upstream gate
    remain green; immediately audit any produced smoke bundle through the new
    route.
 4. Compare a declared full-history baseline and TRAIN-only recent-regime

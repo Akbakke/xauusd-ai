@@ -99,7 +99,7 @@ Fresh V24 smoke readiness is READY with SHA-256
 trainability is READY with SHA-256
 `6908796b6e289c708d0d1b1bd942c10ef9482391fd3cfb3aba2168cfbc88e312`.
 
-Four real capped executions have provided fail-closed evidence.
+Five real capped executions have provided fail-closed evidence.
 V1 rejected the stronger emitted aux-target contract because the trainer
 compared it with only the static 46-target subset. Commit `9459babe` added the
 exact four-counter emission validator. V2 then reached the next wall and
@@ -117,7 +117,16 @@ timeframe tables, constructed all mandatory specialists/heads and entered the
 first model forward. It then failed before loss completion or optimizer step
 because the MTF direction-head liveness check required `y_direction`, while
 the Dataset canonically maps that immutable parquet column once to batch tensor
-`y`. V4 also created no output directory.
+`y`. V4 also created no output directory. V5 crossed every source/runtime wall:
+it completed the full TRAIN load, the exact 10,000-row subsample, all five
+timeframe inputs, one complete training epoch with optimizer steps and the
+full VAL epoch. Class support was non-degenerate, but the learned evidence was
+red: validation accuracy was 0.324187, direction-slice score was -0.914416
+with 23 failures, tradable AUC was 0.509 and bad-path AUC was 0.482 against the
+fixed 0.52 auxiliary-health floor. The checkpoint contract consequently
+admitted no best state and wrote no bundle (`TRAIN_FAIL_NO_BEST_STATE`). This
+is empirical model-quality evidence, not a source failure and not permission
+to weaken a gate.
 
 Commit `b986c8dbb05b06dc89cbfb6da1aa61535ca2debd` separates the two
 lineages without weakening identity. Recipe schema v2 derives
@@ -128,12 +137,19 @@ domain: finite signed MFE/path quality remain signed in active validation and
 both losses, while MAE remains a non-negative magnitude. Commit
 `f05b3390144f988079bbd49aa1abff8cacd4bd55` makes both train and validation
 MTF heads require the canonical `y` class tensor, without aliases or fallback.
-The new `run_id=XAU_SEQ513_SMOKE_20260723_V5` owns the training/output lineage.
-Wrapper, trainer, bundle metadata/lock and handover all revalidate the roles.
-The immutable V5 recipe is PASS with SHA-256
-`9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a`,
-one epoch, 10,000-row cap and 30G/2G memory/swap caps. Its exact public dry-run
-passes. V5 execution has not started and its output bundle does not exist.
+The new `run_id=XAU_SEQ513_SMOKE_20260723_V6` owns the next training/output
+lineage. Wrapper, trainer, bundle metadata/lock and handover all revalidate the
+roles. The immutable V6 recipe is PASS with SHA-256
+`470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b`,
+eight epochs, patience six, the same 10,000-row cap and the same 30G/2G
+memory/swap caps. Its exact public dry-run passes. Data, source bytes, all 162
+trainer-environment values, thresholds and loss weights are unchanged from
+V5. The recipe records repository commit `87b0cec2`; its executable source
+bindings remain the exact `f05b3390` repair bytes. The longer explicit horizon
+only allows the existing auxiliary-health and
+direction hard-red policy, whose minimum evaluation epoch is six, to judge
+learned rather than cold one-epoch evidence. V6 execution has not started and
+its output bundle does not exist.
 V21/V22/V23 large rejected split parquets have been deleted, while their small
 terminal/manifest/audit evidence remains.
 
@@ -177,7 +193,7 @@ The active v4 source and V24 data contracts pass:
 - `git diff --check`;
 - exact contract/count/routing assertions;
 - V24 post-rebuild, foundation feature/target/specialist, smoke-readiness,
-  trainability, immutable 162-setting recipe and exact wrapper dry-run;
+  trainability, immutable V6 162-setting recipe and exact wrapper dry-run;
 - repository and active-hook forbidden-instrument zero-scan.
 
 These are source and contract proofs. They do not prove market edge,
@@ -196,11 +212,12 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Run the exact capped one-epoch/10,000-row V3/V24 smoke recipe through the
-public wrapper, then immediately audit any produced bundle through
+Run the exact capped eight-epoch/patience-six/10,000-row V6/V24 smoke recipe
+through the public wrapper, then immediately audit any produced bundle through
 `model-native-smoke-bundle-audit`. Stop at the first red gate; do not
-hand-author an authority artifact or bypass the control surface. Zero FLAT
-predictions or missing/passive required evidence is an automatic hard red.
+hand-author an authority artifact, relax the fixed evidence gates or bypass
+the control surface. Zero FLAT predictions or missing/passive required
+evidence is an automatic hard red.
 
 Only after smoke passes may a candidate be calibrated and evaluated. Compare a
 declared full-history baseline with a TRAIN-only recent-regime challenger,

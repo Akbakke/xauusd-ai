@@ -15,10 +15,10 @@ contain 369,081 TRAIN, 5,904 VAL and 4,115 TEST rows. TRAIN has zero dead
 signals, zero exact duplicate signal groups and zero unmapped signal/context
 fields. This proves data/routing contracts, not direction edge.
 
-No smoke model, bundle, calibration or learned prediction evidence exists, so
+No accepted smoke model, bundle, calibration or learned prediction evidence exists, so
 no Entry launch is authorized. The canonical producer now emits and validates
 one immutable recipe containing all 162 exact trainer settings, and the
-post-smoke bundle audit has one public control route. Smoke V1 through V4 all
+post-smoke bundle audit has one public control route. Smoke V1 through V5 all
 failed closed without a bundle: V1 found
 an aux-target emission-contract mismatch; V2 found a dataset-build/training-run
 lineage collision; V3 crossed those walls, completed five-timeframe prebuild
@@ -27,8 +27,14 @@ That review also removed silent zero-clipping from signed MFE and path-quality
 train/validation targets. V4 reached the first train batch and model forward,
 then found that MTF head validation incorrectly demanded a redundant
 `y_direction` batch alias instead of the canonical class tensor `y`; no
-optimizer step completed. Recipe schema v2 and the exact V5 dry-run now bind a
-distinct training `run_id` plus launch-derived V24 `dataset_run_id`. The old
+optimizer step completed. V5 crossed that final source wall and completed one
+full train/validation epoch with optimizer steps, but its direction-slice and
+auxiliary AUC evidence failed the fixed checkpoint gates; no best state or
+bundle was admitted. Recipe schema v2 and the exact V6 dry-run now bind a
+distinct training `run_id` plus launch-derived V24 `dataset_run_id`. V6 keeps
+all data, source, environment, threshold and loss-weight bindings unchanged,
+but explicitly permits eight epochs with patience six so the unchanged
+hard-red contract can evaluate learned evidence from epoch six. The old
 Smart520 evidence and rejected V1-V23 lineages are historical only and cannot
 be used for training, replay, paper trading, live trading or promotion.
 

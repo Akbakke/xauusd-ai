@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T11:14:00Z",
+  "updated_utc": "2026-07-23T11:42:00Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
   "latest_terminal_event_decision": "GREEN",
@@ -76,24 +76,60 @@
   },
   "current_smoke_launch_evidence": {
     "train_recipe_audit": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T111400Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T111308616509Z.json",
-      "sha256": "9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T114200Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T114138588679Z.json",
+      "sha256": "470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b",
       "decision": "PASS",
       "profile": "smoke",
-      "run_id": "XAU_SEQ513_SMOKE_20260723_V5",
+      "run_id": "XAU_SEQ513_SMOKE_20260723_V6",
       "dataset_run_id": "XAU_SEQ513_REBUILD_20260722_V24",
-      "source_commit": "f05b3390144f988079bbd49aa1abff8cacd4bd55",
+      "source_commit": "87b0cec205a044a9fabbaf5c61c7707a45449892",
       "trainer_env_count": 162,
       "trainer_env_contract_sha256": "54ed4552e180873df2eae6abacd683eee79a648f9aaaaf3ef4d9b64f36ae01d7",
       "source_bindings_sha256": "18dcb787faf71a1a6e94f80935e21b92e8df2bfec65a30d3cdcf6f8d0e1d91d4",
       "dry_run_decision": "PASS",
-      "dry_run_verified_utc": "2026-07-23T11:14:00Z",
+      "dry_run_verified_utc": "2026-07-23T11:42:00Z",
       "execution_started": false,
-      "out_bundle_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v10_entry_model_native_seq513_smoke_20260723T111400Z",
+      "out_bundle_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v11_entry_model_native_seq513_smoke_20260723T114200Z",
       "out_bundle_present": false
     }
   },
   "latest_failed_smoke_execution": {
+    "run_id": "XAU_SEQ513_SMOKE_20260723_V5",
+    "dataset_run_id": "XAU_SEQ513_REBUILD_20260722_V24",
+    "attempted_utc": "2026-07-23T11:21:38Z",
+    "decision": "BLOCK",
+    "failure_code": "TRAIN_FAIL_NO_BEST_STATE",
+    "failure_stage": "post_epoch_checkpoint_selection",
+    "training_batches_started": true,
+    "optimizer_steps_completed": true,
+    "epochs_completed": 1,
+    "bundle_created": false,
+    "repair_commit": null,
+    "metrics": {
+      "train_loss": 126.997794,
+      "val_loss": 153.215991,
+      "val_accuracy": 0.324187,
+      "direction_checkpoint_score": 0.011518,
+      "direction_slice_score": -0.914416,
+      "direction_slice_failure_count": 23,
+      "tradable_auc": 0.509,
+      "bad_path_auc": 0.482,
+      "aux_health_min_auc_required": 0.52,
+      "prediction_rates": {
+        "long": 0.575542,
+        "short": 0.226287,
+        "flat": 0.198171
+      },
+      "label_rates": {
+        "long": 0.262873,
+        "short": 0.351287,
+        "flat": 0.38584
+      },
+      "class_balance_min_pred_to_label": 0.513608
+    },
+    "reason": "V5 completed the full 72.71 GB TRAIN load, exact 10,000-row subsample, all five timeframe caches, every mandatory specialist/head, one complete training epoch with optimizer steps and the full validation epoch. Class support remained non-degenerate, but the model-native evidence was empirically red: direction-slice score -0.914416 with 23 failures, tradable AUC 0.509 and bad-path AUC 0.482 below the fixed 0.52 auxiliary-health floor. Because checkpoint admission is coupled to auxiliary-head health, no best state or bundle was written. This is an honest model-quality rejection, not a source exception and not authority to soften a gate."
+  },
+  "prior_failed_smoke_execution": {
     "run_id": "XAU_SEQ513_SMOKE_20260723_V4",
     "dataset_run_id": "XAU_SEQ513_REBUILD_20260722_V24",
     "attempted_utc": "2026-07-23T10:53:21Z",
@@ -106,7 +142,7 @@
     "repair_commit": "f05b3390144f988079bbd49aa1abff8cacd4bd55",
     "reason": "V4 crossed the V3 signed-target wall, built the complete 72.71 GB TRAIN tensor, stratified the exact 10,000-row smoke subset, loaded VAL and all five timeframe tables, constructed every mandatory specialist and head, and entered the first train batch. The active MTF direction-head liveness check then incorrectly required a second batch alias named y_direction even though the Dataset canonically converts the immutable parquet column once to the class-index tensor y. The repair makes both train and validation MTF head checks require the exact canonical y tensor; it adds no alias, default or fallback."
   },
-  "prior_failed_smoke_execution": {
+  "earlier_failed_smoke_execution": {
     "run_id": "XAU_SEQ513_SMOKE_20260723_V3",
     "dataset_run_id": "XAU_SEQ513_REBUILD_20260722_V24",
     "attempted_utc": "2026-07-23T10:16:00Z",
@@ -118,7 +154,7 @@
     "repair_commit": "c9e2569fa04d5ecbe3c6b2fe0d1aeda0cda66119",
     "reason": "V3 crossed all prior launch and lineage walls, started the trainer and completed the five-timeframe prebuild, then failed closed because the active-target validator incorrectly required spread-aware selected-side MFE to be non-negative. V24 truthfully contains signed MFE when price never recovers the entry spread. The same audit found that train and validation losses silently clipped signed MFE and path-quality targets to zero. The repair accepts signed finite MFE, keeps MAE as a non-negative magnitude and preserves exact signed forward targets in both train and validation losses."
   },
-  "earlier_failed_smoke_execution": {
+  "older_failed_smoke_execution": {
     "run_id": "XAU_SEQ513_SMOKE_20260723_V2",
     "dataset_run_id": "XAU_SEQ513_REBUILD_20260722_V24",
     "attempted_utc": "2026-07-23T10:00:00Z",
@@ -165,7 +201,7 @@
   "accepted_via_vedtak": null,
   "blockers": [
     "No smoke model, accepted bundle, calibration or learned LONG/SHORT/FLAT prediction evidence exists for the V24 dataset.",
-    "The repaired V5 canonical 162-setting smoke recipe and exact public dry-run pass, but V5 capped smoke execution and the immediate immutable post-smoke bundle audit have not run. V1 through V4 all failed closed without a bundle: V1 exposed the emitted aux-target completeness mismatch; V2 exposed collapsed dataset-build versus training-output lineage; V3 exposed the invalid non-negative-MFE validator and silent signed path-target clipping; V4 reached the first train batch and exposed the incorrect y_direction batch-alias requirement in the active MTF direction head. Hand-authored authority JSON and direct control-surface bypass remain forbidden.",
+    "V5 completed one full train/validation epoch with optimizer steps but failed closed on empirical model quality: auxiliary AUC and direction-slice evidence did not admit a checkpoint, so no bundle exists. The V6 canonical 162-setting recipe and public dry-run are PASS for capped smoke execution with the same data, source, thresholds and weights; V6 execution and the immediate post-smoke bundle audit have not run. Only the explicit training horizon is extended to eight epochs with patience six so the unchanged hard-red policy can evaluate learned evidence from epoch six. Hand-authored authority JSON, threshold relaxation and direct control-surface bypass remain forbidden.",
     "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for one final untouched evaluation.",
     "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration and cost gates.",
     "No candidate replay or exact train-equals-serve proof exists for all five timeframes, eight specialists and 26 fusion groups.",

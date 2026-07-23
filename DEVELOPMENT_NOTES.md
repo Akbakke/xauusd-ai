@@ -39,6 +39,12 @@ and ambient decision-setting overrides are invalid. `--dry-run` is the
 non-writing contract test. `--execute` is a real capped training job and its
 output must immediately enter `model-native-smoke-bundle-audit`.
 
+The current V6 smoke recipe declares eight epochs and patience six because the
+unchanged direction hard-red policy begins at epoch six. This is not a general
+smoke default and must not be inferred or silently reused: the immutable
+recipe owns it. V5's one-epoch run completed optimizer and validation work but
+failed checkpoint admission on direction-slice plus auxiliary-health evidence.
+
 Target-domain changes require producer, validator, train-loss and val-loss
 review together. Spread-aware MFE and path quality are signed forward outcomes
 and must not be clamped to zero; MAE is a non-negative adverse magnitude.

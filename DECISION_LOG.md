@@ -6,6 +6,31 @@ decisions that constrain the current model-native Entry work. Later entries
 supersede earlier event-specific state; historical headings below describe the
 boundary at which each decision was made, not current artifact authority.
 
+## 2026-07-23 — one-epoch V5 is empirical red; V6 preserves the gates
+
+V5 crossed every source and runtime wall, built the complete TRAIN tensor,
+trained the exact 10,000-row subsample for one epoch with optimizer steps and
+completed full validation. LONG/SHORT/FLAT prediction rates were
+0.575542/0.226287/0.198171, so the class-balance guard passed. The direction
+evidence did not: validation accuracy was 0.324187, direction-slice score was
+-0.914416 with 23 failures, tradable AUC was 0.509 and bad-path AUC was 0.482
+against the fixed auxiliary-health floor 0.52.
+
+Checkpoint admission requires auxiliary health. V5 therefore emitted
+`TRAIN_FAIL_NO_BEST_STATE`, wrote no checkpoint and created no bundle. The
+result is retained as model-quality evidence; no threshold, loss weight,
+feature, source binding or fail-closed condition is relaxed.
+
+The recipe contract permits an explicit multi-epoch smoke, while the existing
+direction hard-red policy is configured to begin at epoch six. V6 therefore
+keeps exact V24 data, all 162 environment settings, thresholds, loss weights,
+10,000-row cap and 30G/2G caps, changing only the declared horizon to eight
+epochs and patience six. It records repository commit `87b0cec2`; its
+executable source bindings remain the exact `f05b3390` repair bytes. Recipe SHA-256
+`470b6abb287a9ebb23d2b897555217466b3cbabc1c2593271d41bb82493b1d1b`
+is PASS for `XAU_SEQ513_SMOKE_20260723_V6`; the public dry-run passes. No V6
+execution or bundle exists at this boundary.
+
 ## 2026-07-23 — active head checks bind canonical batch targets
 
 V4 crossed the signed-target wall, built the complete 369,081-row
@@ -29,8 +54,9 @@ and trainability SHA-256
 are READY. V5 recipe SHA-256
 `9e9ae299332b29360c7434e0d237aadfe55e817e1c447e4a97c88ad1d1cd903a`
 is PASS for `XAU_SEQ513_SMOKE_20260723_V5`, binds dataset V24 and source
-commit `f05b3390`, and its exact public dry-run passes. V5 execution has not
-started; no bundle or edge evidence exists.
+commit `f05b3390`, and its exact public dry-run passes. V5 had not started at
+that recorded boundary; its later empirical failure is recorded in the newer
+decision above.
 
 ## 2026-07-23 — signed forward-outcome domains are exact
 
