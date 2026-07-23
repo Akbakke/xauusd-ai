@@ -368,8 +368,10 @@ _MODEL_NATIVE_UNIT_INTERVAL_TARGET_COLS = (
     "y_tf_agreement_score",
     "y_position_size_target",
 ) + _TIMING_TARGET_COLS
+# `mfe_first_n_bps` is intentionally absent: it is the selected-side,
+# spread-aware favorable excursion and remains signed when price never earns
+# back the entry spread.  MAE targets below are adverse magnitudes.
 _MODEL_NATIVE_NONNEGATIVE_TARGET_COLS = (
-    "mfe_first_n_bps",
     "y_long_expected_mae_bps",
     "y_short_expected_mae_bps",
 ) + _DIP_TARGET_COLS + _TAIL_RISK_TARGET_COLS + _VOL_FORECAST_TARGET_COLS
@@ -4928,6 +4930,15 @@ def _aux_survival_target(
     return (y_survival_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_survival_long).float()
 
 
+def _signed_scaled_aux_regression_target(
+    values: torch.Tensor,
+    positive_mask: torch.Tensor,
+    scale_bps: float,
+) -> torch.Tensor:
+    """Preserve the exact signed forward-outcome target used by the dataset."""
+    return values[positive_mask].float() / max(1.0, float(scale_bps))
+
+
 def _clean_edge_rank_masks(
     y_clean_edge_long: torch.Tensor,
     y_clean_edge_bidir: torch.Tensor,
@@ -5288,9 +5299,13 @@ def train_epoch(
         survival_target = _aux_survival_target(y_survival_long, y_survival_bidir)
         if aux_path_weight > 0.0:
             if positive_mask.any():
-                p_scale = max(1.0, float(aux_path_scale_bps))
-                # Path-quality should be learned from premium tradable rows, not diluted by parked zeros.
-                path_target = (y_path_quality[positive_mask] / p_scale).clamp(min=0.0)
+                # Learn the exact signed path outcome on tradable rows; negative
+                # paths must remain distinguishable from parked zeros.
+                path_target = _signed_scaled_aux_regression_target(
+                    y_path_quality,
+                    positive_mask,
+                    aux_path_scale_bps,
+                )
                 # V10 v3+ Target 2: if heteroscedastic head is active, use Gaussian NLL
                 # so model learns uncertainty (high var on regime-conflict samples).
                 # NLL = 0.5 * (log_var + (y - mu)^2 / exp(log_var))
@@ -5303,8 +5318,11 @@ def train_epoch(
                 path_loss_sum += float(path_loss.item()) * y.shape[0]
         if aux_mfe_weight > 0.0:
             if positive_mask.any():
-                m_scale = max(1.0, float(aux_mfe_scale_bps))
-                mfe_target = (y_mfe_first[positive_mask] / m_scale).clamp(min=0.0)
+                mfe_target = _signed_scaled_aux_regression_target(
+                    y_mfe_first,
+                    positive_mask,
+                    aux_mfe_scale_bps,
+                )
                 mfe_loss = nn.functional.smooth_l1_loss(
                     mfe_pred.squeeze(1)[positive_mask], mfe_target.float()
                 )
@@ -6483,8 +6501,11 @@ def validate(
             survival_target = _aux_survival_target(y_survival_long, y_survival_bidir)
             if aux_path_weight > 0.0:
                 if positive_mask.any():
-                    p_scale = max(1.0, float(aux_path_scale_bps))
-                    path_target = (y_path_quality[positive_mask] / p_scale).clamp(min=0.0)
+                    path_target = _signed_scaled_aux_regression_target(
+                        y_path_quality,
+                        positive_mask,
+                        aux_path_scale_bps,
+                    )
                     # V10 v3+ Target 2: heteroscedastic path_quality NLL (val)
                     mu = path_pred.squeeze(1)[positive_mask]
                     lv = path_log_var.squeeze(1)[positive_mask].clamp(min=-5.0, max=5.0)
@@ -6494,8 +6515,11 @@ def validate(
                     path_loss_sum += float(path_loss.item()) * y.shape[0]
             if aux_mfe_weight > 0.0:
                 if positive_mask.any():
-                    m_scale = max(1.0, float(aux_mfe_scale_bps))
-                    mfe_target = (y_mfe_first[positive_mask] / m_scale).clamp(min=0.0)
+                    mfe_target = _signed_scaled_aux_regression_target(
+                        y_mfe_first,
+                        positive_mask,
+                        aux_mfe_scale_bps,
+                    )
                     mfe_loss = nn.functional.smooth_l1_loss(
                         mfe_pred.squeeze(1)[positive_mask], mfe_target.float()
                     )

@@ -67,6 +67,43 @@ def test_model_native_active_target_contract_rejects_nonfinite() -> None:
     assert any("y_forecast_ret_K1 contains non-finite" in item for item in failures)
 
 
+def test_model_native_active_target_contract_accepts_signed_spread_aware_mfe() -> None:
+    frame = _valid_active_target_frame()
+    frame.loc[0, "mfe_first_n_bps"] = -4.8103
+
+    failures = trainer._model_native_active_target_failures("train", frame)
+
+    assert failures == []
+
+
+@pytest.mark.parametrize(
+    "mae_target",
+    ("y_long_expected_mae_bps", "y_short_expected_mae_bps"),
+)
+def test_model_native_active_target_contract_rejects_negative_mae_magnitude(
+    mae_target: str,
+) -> None:
+    frame = _valid_active_target_frame()
+    frame.loc[0, mae_target] = -0.01
+
+    failures = trainer._model_native_active_target_failures("train", frame)
+
+    assert any(f"{mae_target} contains negative values" in item for item in failures)
+
+
+def test_aux_path_regression_preserves_signed_forward_outcome_targets() -> None:
+    values = torch.tensor([-10.0, 20.0, -30.0])
+    positive_mask = torch.tensor([True, True, False])
+
+    scaled = trainer._signed_scaled_aux_regression_target(
+        values,
+        positive_mask,
+        20.0,
+    )
+
+    torch.testing.assert_close(scaled, torch.tensor([-0.5, 1.0]))
+
+
 def test_model_native_architecture_has_no_head_enable_config_surface() -> None:
     import inspect
 
