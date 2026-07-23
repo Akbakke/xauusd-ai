@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T09:29:10Z",
+  "updated_utc": "2026-07-23T09:56:30Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
   "latest_terminal_event_decision": "GREEN",
@@ -64,33 +64,44 @@
       "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
     },
     "smoke_readiness": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/smoke_readiness_20260723T093000Z/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260723T092103949840Z.json",
-      "sha256": "d8c09f0d20e3928b55d38a33d0a4b8fb1d0db5bf29b5a0939db7fc2213f12c9e",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/smoke_readiness_20260723T095000Z/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260723T095525305726Z.json",
+      "sha256": "21b131e1bea84771e148c102ac76e1f36000a7be55031589737b90545610d287",
       "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
     },
     "trainability_readiness": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/trainability_20260723T093200Z/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260723T092119690166Z.json",
-      "sha256": "29d03b3fd45b31f5f7c9df64dd985c9f6892ed0c4d5f758ee712e2dfb260508e",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/trainability_20260723T095800Z/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260723T095518730045Z.json",
+      "sha256": "4651f484ec1e7ef77022e7aea006c9c84a1bca7caf31056d12b2e3b71142cd15",
       "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
     }
   },
   "current_smoke_launch_evidence": {
     "train_recipe_audit": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T095000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T092611395428Z.json",
-      "sha256": "fa2404603a435d8dc47e26fb2d7345e25b3a2d81b3760e9a0a6c7cf1078ec040",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/train_recipe_20260723T100000Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260723T095613033681Z.json",
+      "sha256": "0b6887a8876a4640bba8abc546f2179ca1eb9e1b4f42a2d5c2979428f275ffe9",
       "decision": "PASS",
       "profile": "smoke",
-      "run_id": "XAU_SEQ513_SMOKE_20260723_V1",
-      "source_commit": "bf5c61a00500aa50890f118b6eb41ab5e91bb0c6",
+      "run_id": "XAU_SEQ513_SMOKE_20260723_V2",
+      "source_commit": "9459babe5cf8a9a0b92519af7906f88d24799550",
       "trainer_env_count": 162,
       "trainer_env_contract_sha256": "54ed4552e180873df2eae6abacd683eee79a648f9aaaaf3ef4d9b64f36ae01d7",
-      "source_bindings_sha256": "ce6bd27dc42811e416439d364e20b03296937d988b994170ed4d47a3915b71da",
+      "source_bindings_sha256": "1f24864630a1275a3dac707b210a1f804db8f89f8225690bf632429094666f40",
       "dry_run_decision": "PASS",
-      "dry_run_verified_utc": "2026-07-23T09:29:10Z",
+      "dry_run_verified_utc": "2026-07-23T09:56:30Z",
       "execution_started": false,
-      "out_bundle_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v10_entry_model_native_seq513_smoke_20260723T092000Z",
+      "out_bundle_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v24_6yr_rebuild_20260722_seq513_model_native_v24/v10_entry_model_native_seq513_smoke_20260723T100000Z",
       "out_bundle_present": false
     }
+  },
+  "latest_failed_smoke_execution": {
+    "run_id": "XAU_SEQ513_SMOKE_20260723_V1",
+    "attempted_utc": "2026-07-23T09:37:43Z",
+    "decision": "BLOCK",
+    "failure_code": "ENTRY_DATASET_AUX_TARGET_CONTRACT_INVALID",
+    "failure_stage": "split_manifest_validation_before_training",
+    "training_batches_started": false,
+    "bundle_created": false,
+    "repair_commit": "9459babe5cf8a9a0b92519af7906f88d24799550",
+    "reason": "The split manifests contained the exact static 46-target contract plus four producer-owned completeness counters. The trainer incorrectly required equality to the static subset and rejected the stronger emitted contract. The repair adds one exact emission validator to launch and trainer, validates all four counters and binds its source owner in the recipe."
   },
   "superseded_dataset_evidence": {
     "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v19_6yr_rebuild_20260721_seq513_model_native_v19/dataset",
@@ -116,7 +127,7 @@
   "accepted_via_vedtak": null,
   "blockers": [
     "No smoke model, accepted bundle, calibration or learned LONG/SHORT/FLAT prediction evidence exists for the V24 dataset.",
-    "The canonical 162-setting smoke recipe and exact public dry-run pass, but capped smoke execution and the immediate immutable post-smoke bundle audit have not run. Hand-authored authority JSON and direct control-surface bypass remain forbidden.",
+    "The repaired V2 canonical 162-setting smoke recipe and exact public dry-run pass, but V2 capped smoke execution and the immediate immutable post-smoke bundle audit have not run. V1 failed closed before training on an aux-target emission-contract mismatch and created no bundle. Hand-authored authority JSON and direct control-surface bypass remain forbidden.",
     "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for one final untouched evaluation.",
     "No candidate has passed untouched OOS direction, class, slice, pocket, context, path-quality, utility, support, calibration and cost gates.",
     "No candidate replay or exact train-equals-serve proof exists for all five timeframes, eight specialists and 26 fusion groups.",

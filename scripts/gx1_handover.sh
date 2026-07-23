@@ -53,6 +53,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    artifact_binding,
+    canonical_json_sha256,
+    recipe_source_binding_paths,
+)
+
 
 paths = tuple(Path(raw) for raw in sys.argv[1:])
 digest = hashlib.sha256()
@@ -156,6 +162,31 @@ if (
     or recipe.get("source_bindings_sha256") != recipe_binding.get("source_bindings_sha256")
 ):
     raise SystemExit("FATAL: smoke recipe contract mismatch")
+repo = Path.cwd().resolve()
+wrapper_path = (
+    repo
+    / "scripts"
+    / (
+        "run_entry_model_native_seq513_smoke_train.sh"
+        if recipe["profile"] == "smoke"
+        else "run_entry_model_native_seq513_candidate_train.sh"
+    )
+).resolve()
+expected_source_paths = recipe_source_binding_paths(
+    repo=repo,
+    wrapper_path=wrapper_path,
+)
+source_bindings = recipe.get("source_bindings")
+if (
+    not isinstance(source_bindings, dict)
+    or set(source_bindings) != set(expected_source_paths)
+    or recipe.get("source_bindings_sha256")
+    != canonical_json_sha256(source_bindings)
+):
+    raise SystemExit("FATAL: smoke recipe source binding set/hash mismatch")
+for name, source_path in expected_source_paths.items():
+    if source_bindings.get(name) != artifact_binding(source_path):
+        raise SystemExit(f"FATAL: smoke recipe source binding is stale: {name}")
 if (
     recipe_binding.get("dry_run_decision") != "PASS"
     or recipe_binding.get("execution_started") is not False
@@ -202,6 +233,12 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    artifact_binding,
+    canonical_json_sha256,
+    recipe_source_binding_paths,
+)
 
 state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 for key in (
@@ -312,6 +349,31 @@ if (
     or recipe.get("source_bindings_sha256") != recipe_binding.get("source_bindings_sha256")
 ):
     raise SystemExit("FATAL: smoke recipe contract mismatch")
+repo = Path.cwd().resolve()
+wrapper_path = (
+    repo
+    / "scripts"
+    / (
+        "run_entry_model_native_seq513_smoke_train.sh"
+        if recipe["profile"] == "smoke"
+        else "run_entry_model_native_seq513_candidate_train.sh"
+    )
+).resolve()
+expected_source_paths = recipe_source_binding_paths(
+    repo=repo,
+    wrapper_path=wrapper_path,
+)
+source_bindings = recipe.get("source_bindings")
+if (
+    not isinstance(source_bindings, dict)
+    or set(source_bindings) != set(expected_source_paths)
+    or recipe.get("source_bindings_sha256")
+    != canonical_json_sha256(source_bindings)
+):
+    raise SystemExit("FATAL: smoke recipe source binding set/hash mismatch")
+for name, source_path in expected_source_paths.items():
+    if source_bindings.get(name) != artifact_binding(source_path):
+        raise SystemExit(f"FATAL: smoke recipe source binding is stale: {name}")
 if (
     recipe_binding.get("dry_run_decision") != "PASS"
     or recipe_binding.get("execution_started") is not False
