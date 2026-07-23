@@ -318,12 +318,14 @@ HTF_TAPE_COLUMNS = (
 def _align_last_closed_tape(
     target_index: pd.DatetimeIndex, htf_series: pd.Series, shift: pd.Timedelta
 ) -> pd.Series:
-    """Vectorized no-lookahead align: each M5 bar gets the value of the last HTF bar
-    that CLOSED at or before it (an HTF bar opened at T closes at T+shift). Mirrors
-    add_ctx_cont_columns_to_prebuilt._align_last_closed and v12_ctx_augment_live._align_last_closed."""
+    """Align at the M5 decision time, five minutes after its start label."""
+
     shifted = htf_series.copy()
     shifted.index = shifted.index + shift
-    return shifted.reindex(target_index, method="ffill")
+    decision_index = target_index + pd.Timedelta(minutes=5)
+    aligned = shifted.reindex(decision_index, method="ffill")
+    aligned.index = target_index
+    return aligned
 
 
 def build_htf_tape(m5_candles: pd.DataFrame) -> pd.DataFrame:

@@ -39,11 +39,21 @@ evidence. V7 completed six epochs, failed hard-red with
 The post-run audit found signed dip-MFE target corruption and active training
 objective mismatches; neither V24 nor V7 may be reused for another run.
 `PIPELINE_AUDIT_XAU_20260723.md` is the detailed repair boundary.
-Those findings plus normalization, context routing, MTF component identity,
-bundle/event publication, active-Exit byte identity and runtime launch
-fail-close are now source-repaired only. No new data/model artifacts were
-written. The transactional launch finalizer and canonical/live December-2024
-tape parity remain open.
+The first-wave findings plus normalization, context routing, MTF component
+identity, bundle/event publication, active-Exit byte identity, the
+identity-bound transactional launch finalizer and runtime launch fail-close
+are source-repaired only. The second audit additionally repairs exact
+T+5/closed-M5 Exit timing, V3 window coverage, transactional TradeState and
+production-only Exit loading, but it reopens incremental state/generation,
+formula convergence, V3 lineage and Exit rebuild/rescore/retrain P0s. The
+public launch route owns canonical repository
+registry/state targets and canonical
+`/home/andre2/GX1_DATA/reports/entry_model_native_launch_authority` evidence
+roots; callers may not substitute alternate roots. No new data/model or launch
+artifacts were written. Caller-supplied joint Exit replay/trace parquets have
+zero launch authority; the retained Exit bundle is research-only and
+non-production. A canonical full-TEST producer, causal Exit rebuild and
+canonical/live December-2024 tape parity remain open.
 `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
 Never delete or move `GX1_DATA` content merely to reduce repository search

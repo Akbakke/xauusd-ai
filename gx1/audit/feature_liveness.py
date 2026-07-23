@@ -16,7 +16,9 @@ Run automatically: the V10 trainer calls assert_v10_batch_liveness() at post-exp
 Run manually:  python -m gx1.audit.feature_liveness --v10-bundle <dir> --test-parquet <pq> --m5-prebuilt <pq>
 """
 from __future__ import annotations
-import argparse, json, sys
+import argparse
+import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
@@ -37,10 +39,6 @@ DEAD_STD = 1e-4   # std below this over a real batch = constant = "ignored input
 # historical IQL/XGB hygiene readers only. The model-native entry gate below
 # explicitly disables it for all 513 signal and 142 ctx-cont inputs.
 KNOWN_ALLOWED_DEAD: Dict[str, str] = {
-    # Structural — XAU OHLC has NO bid/ask spread, so any spread/cost-from-spread is const:
-    "spread_bps": "XAU OHLC has no bid/ask spread (structural). Hygiene wave: drop or wire a cost proxy.",
-    "spread_bucket": "bucketization of the const spread (structural).",
-    "_v1_cost_bps_est": "const fallback (no spread). _v1_cost_bps_dyn IS alive.",
     "vol_pct_m5_1yr": "1-year vol-percentile not computed → pinned 0.5. Hygiene wave: compute or drop.",
     "vol_pct_h1_1yr": "ditto (pinned 0.5).",
     # Ultra-sparse but ALIVE (91 nonzero / 396,681 rows): false-flags as dead below
@@ -209,14 +207,16 @@ def check_multi_tf_integrity(
             )
         )
         # mask zero-padded warmup rows (atr==0) so the ATR-scaling sanity isn't deflated on a skewed batch
-        _atr_col = a.reshape(-1, a.shape[-1])[:, atr_idx]; _nz = _atr_col[_atr_col > 0]
+        _atr_col = a.reshape(-1, a.shape[-1])[:, atr_idx]
+        _nz = _atr_col[_atr_col > 0]
         rep["atr_by_tf"][tf] = float(_nz.mean()) if _nz.size else 0.0
     # distinctness: ema50_dist series must not be ~identical across TFs (corr<0.98)
     if ema50_idx is not None and {"M5", "D1"} <= set(seq_by_tf):
         def ser(tf):
             return np.asarray(seq_by_tf[tf], np.float64)[:, :, ema50_idx].reshape(-1)
         for a, b in (("M5", "D1"), ("M5", "H1"), ("H1", "D1")):
-            sa, sb = ser(a), ser(b); n = min(len(sa), len(sb))  # truncate so the corr ALWAYS runs (no silent skip)
+            sa, sb = ser(a), ser(b)
+            n = min(len(sa), len(sb))  # always run correlation on shared rows
             if n > 100:
                 r = float(np.corrcoef(sa[:n], sb[:n])[0, 1])
                 if abs(r) > 0.98:
@@ -400,11 +400,15 @@ def check_live_continuity(tail_days: int = 10, fresh_fail_hours: int = 48,
         mask = diffs > pd.Timedelta(minutes=step)
         for s, dlt in zip(idx[:-1][mask], diffs[mask]):
             m = dlt.total_seconds() / 60
-            if s.dayofweek == 4 and 2300 <= m <= 3200: continue          # helg
-            if s.hour in (20, 21) and 50 <= m <= 75: continue            # daglig pause
-            if m <= 10: continue                                          # tick-tomt
+            if s.dayofweek == 4 and 2300 <= m <= 3200:
+                continue  # helg
+            if s.hour in (20, 21) and 50 <= m <= 75:
+                continue  # daglig pause
+            if m <= 10:
+                continue  # tick-tomt
             keys = {(s + pd.Timedelta(days=o)).strftime("%Y-%m-%d") for o in (0, 1)}
-            if keys & US_MARKET_HOLIDAYS: continue
+            if keys & US_MARKET_HOLIDAYS:
+                continue
             if keys & set(KNOWN_DATA_GAPS):
                 out["stale_gaps"].append(f"{name}: {s} +{m:.0f}min (kjent: {KNOWN_DATA_GAPS[sorted(keys & set(KNOWN_DATA_GAPS))[0]]})")
                 continue
@@ -527,8 +531,9 @@ def _main() -> int:
         print(f"[XGB] new-dead (0 gain, off allowlist): {dead or 'NONE ✓'}")
         failed |= bool(dead)
     if a.v10_bundle and a.test_parquet and a.m5_prebuilt:
-        import os, torch
-        os.environ.setdefault("GX1_REGIME_V4", "1"); os.environ.setdefault("GX1_TREND_REGIME_FROM_D1", "1")
+        import os
+        os.environ.setdefault("GX1_REGIME_V4", "1")
+        os.environ.setdefault("GX1_TREND_REGIME_FROM_D1", "1")
         from torch.utils.data import DataLoader
         from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
         from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle

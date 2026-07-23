@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +15,13 @@ from gx1.execution.v12_pipeline import (
     V12Pipeline,
     _exact_closed_m5_row,
     _validated_v3_output,
+)
+from gx1.execution.v12_v3_live import (
+    WINDOW_LEN as V3_WINDOW_LEN,
+    XGB_BRIDGE_NAMES,
+    V3LiveInference,
+    _resolve_default_v3_bundle,
+    required_closed_m5_keys_for_v3_window,
 )
 
 
@@ -36,6 +44,21 @@ def _collector_rows(*times: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def test_v3_default_bundle_ignores_environment_path_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1_guards import artifacts
+
+    monkeypatch.setenv("GX1_V3_BUNDLE_DIR", "/tmp/unbound-v3")
+    monkeypatch.setattr(
+        artifacts,
+        "load_decision_artifact",
+        lambda role: "/registry/bound-v3" if role == "v3_exit" else None,
+    )
+
+    assert _resolve_default_v3_bundle() == Path("/registry/bound-v3")
+
+
 def _pipeline(loader: object | None = None, **kwargs: object) -> V12Pipeline:
     return V12Pipeline(
         prebuilt_loader=loader or SimpleNamespace(),
@@ -45,9 +68,16 @@ def _pipeline(loader: object | None = None, **kwargs: object) -> V12Pipeline:
 
 
 class _CanonicalLoader:
-    def __init__(self, cutoff: pd.Timestamp, window: pd.DataFrame) -> None:
+    def __init__(
+        self,
+        cutoff: pd.Timestamp,
+        window: pd.DataFrame,
+        *,
+        base_m1: pd.DataFrame | None = None,
+    ) -> None:
         self.cutoff_ts = cutoff
         self.window = window
+        self._base28 = base_m1
         self.requested: list[tuple[pd.Timestamp, int]] = []
 
     def refresh_if_changed(self) -> bool:
@@ -67,12 +97,23 @@ def _canonical_window(end: str) -> pd.DataFrame:
     return pd.DataFrame({"atr_bps": np.full(len(index), 12.0)}, index=index)
 
 
+def _v3_m1_source(end: str) -> pd.DataFrame:
+    index = pd.date_range(
+        end=pd.Timestamp(end),
+        periods=V3_WINDOW_LEN,
+        freq="min",
+    )
+    return pd.DataFrame({"m1_source": np.arange(len(index), dtype=float)}, index=index)
+
+
 def test_entry_canonical_freshness_is_fixed_and_ignores_exit_staleness_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    base_m1 = _v3_m1_source("2026-07-16T12:05:00Z")
     loader = _CanonicalLoader(
         pd.Timestamp("2026-07-16T11:55:00Z"),
         _canonical_window("2026-07-16T11:55:00Z"),
+        base_m1=base_m1,
     )
     pipe = _pipeline(loader)
     monkeypatch.setenv("GX1_MAX_PREBUILT_STALENESS_MIN", "999999")
@@ -85,12 +126,194 @@ def test_entry_canonical_freshness_is_fixed_and_ignores_exit_staleness_env(
     assert raised.value.evidence["canonical_cutoff_age_cap_sec"] == 390.0
     assert loader.requested == []
 
-    # The same variable remains an Exit-only operational control; splitting the
-    # paths must not silently change the separately admitted Exit behavior.
-    assert pipe._refresh_exit_canonical(pd.Timestamp("2026-07-16T12:06:00Z")) is True
-    assert loader.requested == [
-        (pd.Timestamp("2026-07-16T11:55:00Z"), pipeline_module.ENTRY_SEQ_LEN)
-    ]
+    # The Exit staleness knob cannot authorize a cutoff that omits even one
+    # closed-M5 key required by the actual 512-M1 V3 window.
+    with pytest.raises(ExitDecisionUnavailable) as exit_raised:
+        pipe._refresh_exit_canonical(pd.Timestamp("2026-07-16T12:06:00Z"))
+    assert exit_raised.value.reason == "exit_latest_required_closed_m5_unavailable"
+    assert exit_raised.value.evidence["required_latest_m5"] == "2026-07-16 12:00:00+00:00"
+    assert loader.requested == []
+
+
+def test_exit_canonical_window_is_derived_from_exact_512_m1_coverage() -> None:
+    now = pd.Timestamp("2026-07-16T12:07:00Z")
+    decision_m1 = now - pd.Timedelta(minutes=1)
+    base_m1 = _v3_m1_source(str(decision_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(decision_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"atr_bps": np.full(len(required_m5), 12.0)},
+        index=required_m5,
+    )
+    loader = _CanonicalLoader(required_m5[-1], canonical, base_m1=base_m1)
+    pipe = _pipeline(loader)
+
+    pipe._refresh_exit_canonical(now)
+
+    assert len(required_m5) > pipeline_module.ENTRY_SEQ_LEN
+    assert loader.requested == [(required_m5[-1], len(required_m5))]
+    assert pipe._last_exit_augmented is not None
+    assert pipe._last_exit_augmented.index.equals(required_m5)
+    assert pipe._last_augmented is None
+
+
+class _ExactBridge:
+    def __init__(self) -> None:
+        self.observed_index: pd.DatetimeIndex | None = None
+
+    def predict(self, frame: pd.DataFrame) -> dict[str, np.ndarray]:
+        self.observed_index = pd.DatetimeIndex(frame.index)
+        bridge = np.arange(len(frame) * 7, dtype=np.float32).reshape(len(frame), 7)
+        return {"signal_bridge_v1": bridge}
+
+
+def _minimal_v3() -> V3LiveInference:
+    features = [*XGB_BRIDGE_NAMES, "atr_bps"]
+    return V3LiveInference(
+        bundle_dir=Path("."),
+        _features=features,
+        _feature_count=len(features),
+    )
+
+
+def test_v3_maps_each_m1_row_to_its_exact_latest_closed_m5() -> None:
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    base_m1 = _v3_m1_source(str(end_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"atr_bps": np.arange(len(required_m5), dtype=float) + 1.0},
+        index=required_m5,
+    )
+    bridge = _ExactBridge()
+
+    matrix = _minimal_v3().build_window(
+        end_m1,
+        base_m1,
+        bridge,
+        canonical_v3_window=canonical,
+    )
+
+    per_m1_closed_m5 = (
+        base_m1.index + pd.Timedelta(minutes=1)
+    ).floor("5min") - pd.Timedelta(minutes=5)
+    expected_atr = canonical.loc[per_m1_closed_m5, "atr_bps"].to_numpy()
+    bridge_positions = required_m5.get_indexer(per_m1_closed_m5)
+    expected_bridge = np.arange(
+        len(required_m5) * 7,
+        dtype=np.float32,
+    ).reshape(len(required_m5), 7)[bridge_positions]
+    assert required_m5[-1] == pd.Timestamp("2026-07-16T12:00:00Z")
+    assert bridge.observed_index is not None
+    assert bridge.observed_index.equals(required_m5)
+    np.testing.assert_array_equal(matrix[:, :7], expected_bridge)
+    np.testing.assert_array_equal(matrix[:, 7], expected_atr.astype(np.float32))
+    assert np.isfinite(matrix).all()
+
+
+def test_v3_rejects_one_missing_required_closed_m5_key_before_xgb() -> None:
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    base_m1 = _v3_m1_source(str(end_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"atr_bps": np.ones(len(required_m5) - 1)},
+        index=required_m5.delete(len(required_m5) // 2),
+    )
+    bridge = _ExactBridge()
+
+    with pytest.raises(RuntimeError, match="V3_CANONICAL_CLOSED_M5_COVERAGE_MISSING"):
+        _minimal_v3().build_window(
+            end_m1,
+            base_m1,
+            bridge,
+            canonical_v3_window=canonical,
+        )
+
+    assert bridge.observed_index is None
+
+
+def test_v3_rejects_nonfinite_active_feature_before_xgb() -> None:
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    base_m1 = _v3_m1_source(str(end_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"atr_bps": np.ones(len(required_m5))},
+        index=required_m5,
+    )
+    canonical.iloc[len(canonical) // 2, 0] = np.nan
+    bridge = _ExactBridge()
+
+    with pytest.raises(RuntimeError, match="V3_ACTIVE_FEATURE_INVALID"):
+        _minimal_v3().build_window(
+            end_m1,
+            base_m1,
+            bridge,
+            canonical_v3_window=canonical,
+        )
+
+    assert bridge.observed_index is None
+
+
+def test_v3_rejects_missing_active_feature_instead_of_zero_fill() -> None:
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    base_m1 = _v3_m1_source(str(end_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"unrelated": np.ones(len(required_m5))},
+        index=required_m5,
+    )
+    bridge = _ExactBridge()
+
+    with pytest.raises(RuntimeError, match="V3_ACTIVE_FEATURE_MISSING: atr_bps"):
+        _minimal_v3().build_window(
+            end_m1,
+            base_m1,
+            bridge,
+            canonical_v3_window=canonical,
+        )
+
+    assert bridge.observed_index is None
+
+
+def test_v3_rejects_nonfinite_xgb_bridge_before_model_inference() -> None:
+    class _NonfiniteBridge:
+        def predict(self, frame: pd.DataFrame) -> dict[str, np.ndarray]:
+            values = np.ones((len(frame), 7), dtype=np.float32)
+            values[-1, -1] = np.inf
+            return {"signal_bridge_v1": values}
+
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    base_m1 = _v3_m1_source(str(end_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"atr_bps": np.ones(len(required_m5))},
+        index=required_m5,
+    )
+
+    with pytest.raises(RuntimeError, match="V3_XGB_BRIDGE_OUTPUT_INVALID"):
+        _minimal_v3().build_window(
+            end_m1,
+            base_m1,
+            _NonfiniteBridge(),
+            canonical_v3_window=canonical,
+        )
+
+
+def test_v3_rejects_duplicate_canonical_m5_key() -> None:
+    end_m1 = pd.Timestamp("2026-07-16T12:06:00Z")
+    base_m1 = _v3_m1_source(str(end_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(end_m1, base_m1)
+    duplicate_index = required_m5.insert(1, required_m5[0])
+    canonical = pd.DataFrame(
+        {"atr_bps": np.ones(len(duplicate_index))},
+        index=duplicate_index,
+    )
+
+    with pytest.raises(RuntimeError, match="V3_CANONICAL_INDEX_INVALID"):
+        _minimal_v3().build_window(
+            end_m1,
+            base_m1,
+            _ExactBridge(),
+            canonical_v3_window=canonical,
+        )
 
 
 def test_entry_canonical_requires_the_exact_latest_closed_m5() -> None:
@@ -303,6 +526,13 @@ class _FakeTrade:
     def _pnl_bps(self, _bid: float, _ask: float) -> float:
         return self._quote_pnl_bps
 
+    def clone_for_exit_decision(self) -> "_FakeTrade":
+        return deepcopy(self)
+
+    def commit_complete_exit_bar(self, staged: "_FakeTrade") -> None:
+        self.__dict__.clear()
+        self.__dict__.update(deepcopy(staged.__dict__))
+
     def update_bar(self, **values: float) -> None:
         self.updated_bar = dict(values)
         self.bars_in_trade += 1
@@ -315,6 +545,9 @@ class _FakeTrade:
     def update_v3(self, output: dict[str, object]) -> None:
         self.v3_updates.append(output)
 
+    def build_v3_tracking_features(self) -> dict[str, float]:
+        return {}
+
 
 class _FailingV3:
     _enable_multi_tf = False
@@ -322,6 +555,19 @@ class _FailingV3:
 
     def predict(self, **_kwargs: object) -> dict[str, object]:
         raise RuntimeError("broken-v3")
+
+
+class _CompleteV3:
+    _enable_multi_tf = False
+    _enable_q_head = False
+
+    def predict(self, **_kwargs: object) -> dict[str, object]:
+        return {
+            "v3_v8_should_exit_prob": 0.7,
+            "v3_v8_profit_protect_prob": 0.4,
+            "v3_v8_family_argmax": 1,
+            "v3_v8_family_logit_max": 2.0,
+        }
 
 
 class _ExitMustNotRun:
@@ -357,7 +603,7 @@ def test_v3_failure_never_continues_into_exit_iql_zero_state(
     )
     exit_iql = _ExitMustNotRun()
     pipe = _pipeline(loader, v3=_FailingV3(), exit_iql=exit_iql)
-    pipe._last_augmented = pd.DataFrame(
+    pipe._last_exit_augmented = pd.DataFrame(
         {"atr_bps": [12.0]},
         index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
     )
@@ -376,10 +622,39 @@ def test_v3_failure_never_continues_into_exit_iql_zero_state(
     assert raised.value.reason == "v3_inference_failed"
     assert exit_iql.calls == 0
     assert trade.v3_updates == []
-    assert trade.updated_bar is not None
-    assert trade.updated_bar["bid"] == 2400.0
-    assert trade.updated_bar["ask"] == 2400.2
-    assert trade.updated_bar["m1_close"] == 2400.1
+    assert trade.updated_bar is None
+    assert trade.bars_in_trade == 0
+
+
+def test_exit_iql_failure_leaves_trade_state_byte_equivalent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    exact_time = pd.Timestamp("2026-07-16T12:06:00Z")
+    loader = SimpleNamespace(
+        _base28=pd.DataFrame({"x": [1.0]}, index=pd.DatetimeIndex([exact_time])),
+        cutoff_ts=pd.Timestamp("2026-07-16T12:00:00Z"),
+    )
+    exit_iql = _ExitMustNotRun()
+    pipe = _pipeline(loader, v3=_CompleteV3(), exit_iql=exit_iql)
+    pipe._last_exit_augmented = pd.DataFrame(
+        {"atr_bps": [12.0]},
+        index=pd.DatetimeIndex([pd.Timestamp("2026-07-16T12:00:00Z")]),
+    )
+    monkeypatch.setattr(pipe, "_refresh_m1_bar", lambda _now: _exact_m1_bar())
+    monkeypatch.setattr(pipe, "_refresh_exit_canonical", lambda _now: None)
+    trade = _FakeTrade()
+    before = deepcopy(trade.__dict__)
+
+    with pytest.raises(ExitDecisionUnavailable) as raised:
+        pipe.make_exit_decision(
+            trade,
+            pd.Timestamp("2026-07-16T12:07:00Z"),
+            bid=2400.3,
+            ask=2400.5,
+        )
+
+    assert raised.value.reason == "exit_iql_decision_failed"
+    assert trade.__dict__ == before
 
 
 def test_missing_canonical_state_is_unavailable_not_synthetic_hold(
@@ -389,7 +664,14 @@ def test_missing_canonical_state_is_unavailable_not_synthetic_hold(
     pipe = _pipeline(loader)
     trade = _FakeTrade()
     monkeypatch.setattr(pipe, "_refresh_m1_bar", lambda _now: _exact_m1_bar())
-    monkeypatch.setattr(pipe, "_refresh_exit_canonical", lambda _now: False)
+
+    def _canonical_unavailable(_now: pd.Timestamp) -> None:
+        raise ExitDecisionUnavailable(
+            "canonical_data_unavailable",
+            expected_m5="2026-07-16 12:00:00+00:00",
+        )
+
+    monkeypatch.setattr(pipe, "_refresh_exit_canonical", _canonical_unavailable)
 
     with pytest.raises(ExitDecisionUnavailable) as raised:
         pipe.make_exit_decision(
@@ -644,15 +926,21 @@ def _runtime_sizing_authority_for_broker_fact_tests():
                     "margin_rate": 0.05,
                 }
             }
-            ),
-            proof_json="{}",
-            joint_proof_json="{}",
-            content_hash_key=(),
+        ),
+        proof_json="{}",
+        joint_proof_json="{}",
+        active_exit_registry_projection_json="{}",
+        content_hash_key=(),
         file_stats=(),
     )
 
 
-def _broker_fact_client(*, hedging_enabled: bool, transaction_ids: tuple[str, str, str]):
+def _broker_fact_client(
+    *,
+    hedging_enabled: bool,
+    transaction_ids: tuple[str, str, str],
+    trades: list[dict] | None = None,
+):
     account_tx, instrument_tx, exposure_tx = transaction_ids
     return SimpleNamespace(
         get_account_summary=lambda: {
@@ -679,7 +967,7 @@ def _broker_fact_client(*, hedging_enabled: bool, transaction_ids: tuple[str, st
             "lastTransactionID": instrument_tx,
         },
         get_open_trades=lambda: {
-            "trades": [],
+            "trades": [] if trades is None else trades,
             "lastTransactionID": exposure_tx,
         },
     )
@@ -729,6 +1017,53 @@ def test_live_sizing_rejects_netting_or_torn_broker_snapshot(
         )
 
 
+def test_live_entry_reconciles_exact_broker_and_local_xau_trade_ids() -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    empty_client = _broker_fact_client(
+        hedging_enabled=True,
+        transaction_ids=("9001", "9001", "9001"),
+    )
+    assert runner.require_broker_xau_trade_reconciliation(
+        empty_client,
+        local_open_trades=[],
+        max_trades=1,
+        expected_exposure_transaction_id="9001",
+    ) == ()
+
+    broker_trade = {
+        "id": "77",
+        "instrument": "XAU_USD",
+        "currentUnits": "3",
+    }
+    orphan_client = _broker_fact_client(
+        hedging_enabled=True,
+        transaction_ids=("9001", "9001", "9001"),
+        trades=[broker_trade],
+    )
+    with pytest.raises(RuntimeError, match="broker/local XAU trade identity mismatch"):
+        runner.require_broker_xau_trade_reconciliation(
+            orphan_client,
+            local_open_trades=[],
+            max_trades=1,
+            expected_exposure_transaction_id="9001",
+        )
+    with pytest.raises(RuntimeError, match="at the admitted cap"):
+        runner.require_broker_xau_trade_reconciliation(
+            orphan_client,
+            local_open_trades=[SimpleNamespace(trade_id="77")],
+            max_trades=1,
+            expected_exposure_transaction_id="9001",
+        )
+    with pytest.raises(RuntimeError, match="exposure changed"):
+        runner.require_broker_xau_trade_reconciliation(
+            empty_client,
+            local_open_trades=[],
+            max_trades=1,
+            expected_exposure_transaction_id="9000",
+        )
+
+
 @pytest.mark.parametrize(
     "quote",
     [
@@ -750,3 +1085,280 @@ def test_quote_missing_time_or_valid_bid_ask_contract_fails_closed(quote: dict) 
             client,
             now_utc=pd.Timestamp("2026-07-16T12:00:30Z").to_pydatetime(),
         )
+
+
+def test_incremental_m1_union_rejects_canonical_live_price_conflict(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    collector_dir = tmp_path / "collector"
+    canonical_dir = tmp_path / "canonical"
+    canonical_year = canonical_dir / "year=2026"
+    collector_dir.mkdir()
+    canonical_year.mkdir(parents=True)
+    timestamp = pd.Timestamp("2026-07-16T12:00:00Z")
+    row = {
+        "time": timestamp,
+        "open": 2400.0,
+        "high": 2401.0,
+        "low": 2399.0,
+        "close": 2400.5,
+        "volume": 10.0,
+        "bid_open": 2399.9,
+        "bid_high": 2400.9,
+        "bid_low": 2398.9,
+        "bid_close": 2400.4,
+        "ask_open": 2400.1,
+        "ask_high": 2401.1,
+        "ask_low": 2399.1,
+        "ask_close": 2400.6,
+    }
+    collector_path = collector_dir / "xauusd_m1_20260716.parquet"
+    canonical_path = canonical_year / "part-000.parquet"
+    pd.DataFrame([row]).to_parquet(collector_path, index=False)
+    pd.DataFrame([row]).to_parquet(canonical_path, index=False)
+    monkeypatch.setattr(incremental, "COLLECTOR_DIR", collector_dir)
+    monkeypatch.setattr(incremental, "CANONICAL_M1_DIR", canonical_dir)
+
+    exact = incremental._load_m1_collector_for_window(timestamp, timestamp)
+    assert len(exact) == 1
+    conflicting = dict(row)
+    conflicting["ask_close"] = 2400.7
+    pd.DataFrame([conflicting]).to_parquet(canonical_path, index=False)
+    with pytest.raises(RuntimeError, match="canonical/live M1 source conflict"):
+        incremental._load_m1_collector_for_window(timestamp, timestamp)
+
+
+def test_incremental_cycle_retries_base34_after_prior_partial_advance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    cutoff = pd.Timestamp("2026-07-16T12:00:00Z")
+    observed: list[pd.Timestamp] = []
+    monkeypatch.setattr(
+        incremental,
+        "update_canonical_v3_incremental",
+        lambda: (0, cutoff),
+    )
+    monkeypatch.setattr(
+        incremental,
+        "update_base34_incremental",
+        lambda value: observed.append(value) or 0,
+    )
+
+    result = incremental.run_one_cycle()
+
+    assert observed == [cutoff]
+    assert result["cv3_appended"] == 0
+    assert result["base34_appended"] == 0
+
+
+@pytest.mark.parametrize("value", [None, np.nan, np.inf, True])
+def test_incremental_feature_append_rejects_soft_numeric_substitution(
+    value: object,
+) -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    with pytest.raises(RuntimeError):
+        incremental._exact_finite_number(value, context="UNIT_INCREMENTAL_FEATURE")
+
+
+@pytest.mark.parametrize(
+    ("incremental_columns", "expected_fragment"),
+    [
+        (["canonical_a"], "missing=['canonical_b']"),
+        (["canonical_a", "canonical_b", "unexpected"], "extra=['unexpected']"),
+    ],
+)
+def test_incremental_canonical_schema_rejects_missing_and_extra_fields(
+    incremental_columns: list[str],
+    expected_fragment: str,
+) -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    existing = pd.DataFrame({"canonical_a": [1.0], "canonical_b": [2.0]})
+    candidate = pd.DataFrame(
+        {column: [float(index)] for index, column in enumerate(incremental_columns)}
+    )
+
+    with pytest.raises(
+        RuntimeError, match="canonical_v3 incremental schema mismatch"
+    ) as raised:
+        incremental._align_exact_canonical_schema(existing, candidate)
+
+    assert expected_fragment in str(raised.value)
+
+
+def test_incremental_canonical_schema_preserves_existing_column_order() -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    existing = pd.DataFrame({"canonical_a": [1.0], "canonical_b": [2.0]})
+    candidate = pd.DataFrame({"canonical_b": [3.0], "canonical_a": [4.0]})
+
+    aligned = incremental._align_exact_canonical_schema(existing, candidate)
+
+    assert list(aligned.columns) == ["canonical_a", "canonical_b"]
+    assert aligned.iloc[0].to_dict() == {"canonical_a": 4.0, "canonical_b": 3.0}
+
+
+def test_base34_row_uses_explicit_owner_when_augmented_and_cv3_overlap() -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    closed_m5 = pd.Timestamp("2026-07-16T12:00:00Z")
+    timestamp = closed_m5 + pd.Timedelta(minutes=5)
+    cv3_row = pd.Series(
+        {
+            "H4_trend_sign_cat": 0.0,
+            "session_id": 0.0,
+            "canonical_only": 7.0,
+            "open": 2300.0,
+        },
+        name=closed_m5,
+    )
+    cv3_aug = pd.DataFrame(
+        {
+            "H4_trend_sign_cat": [2.0],
+            "session_id": [3.0],
+            "canonical_only": [99.0],
+        },
+        index=pd.DatetimeIndex([closed_m5]),
+    )
+    m1_row = pd.Series(
+        {
+            "open": 2400.0,
+            "high": 2401.0,
+            "low": 2399.0,
+            "close": 2400.5,
+            "volume": 10.0,
+        }
+    )
+
+    row = incremental._build_base34_owned_row(
+        timestamp=timestamp,
+        output_columns=[
+            "H4_trend_sign_cat",
+            "session_id",
+            "canonical_only",
+            "open",
+            "is_model_bar",
+        ],
+        cv3_row=cv3_row,
+        cv3_aug=cv3_aug,
+        m1_row=m1_row,
+        cv3_index=pd.DatetimeIndex([timestamp]),
+    )
+
+    assert row == {
+        "H4_trend_sign_cat": 2.0,
+        "session_id": 3.0,
+        "canonical_only": 7.0,
+        "open": 2400.0,
+        "is_model_bar": 1.0,
+    }
+
+
+def test_base34_augment_owned_field_never_falls_back_to_cv3() -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    closed_m5 = pd.Timestamp("2026-07-16T12:00:00Z")
+    timestamp = closed_m5 + pd.Timedelta(minutes=5)
+    cv3_row = pd.Series({"H4_trend_sign_cat": 0.0}, name=closed_m5)
+
+    with pytest.raises(RuntimeError, match="augment-owned column"):
+        incremental._build_base34_owned_row(
+            timestamp=timestamp,
+            output_columns=["H4_trend_sign_cat"],
+            cv3_row=cv3_row,
+            cv3_aug=pd.DataFrame(index=pd.DatetimeIndex([closed_m5])),
+            m1_row=pd.Series(dtype=float),
+            cv3_index=pd.DatetimeIndex([closed_m5]),
+        )
+
+
+@pytest.mark.parametrize(
+    ("volume", "error_code"),
+    [
+        (0.0, "PLUS5_VOLUME_INVALID"),
+        (np.nan, "PLUS5_SOURCE_NONFINITE"),
+    ],
+)
+def test_plus5_rejects_unobserved_volume_instead_of_using_one(
+    volume: float,
+    error_code: str,
+) -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    frame = pd.DataFrame(
+        {
+            "open": [2400.0, 2400.5],
+            "high": [2401.0, 2401.5],
+            "low": [2399.0, 2399.5],
+            "close": [2400.5, 2401.0],
+            "volume": [10.0, volume],
+        }
+    )
+
+    with pytest.raises(RuntimeError, match=error_code):
+        incremental._compute_plus5_features(frame)
+
+
+def test_plus5_rejects_missing_volume_source() -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+
+    frame = pd.DataFrame(
+        {
+            "open": [2400.0],
+            "high": [2401.0],
+            "low": [2399.0],
+            "close": [2400.5],
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="PLUS5_SOURCE_MISSING"):
+        incremental._compute_plus5_features(frame)
+
+
+def test_plus5_serve_owner_rejects_zero_volume_instead_of_using_one() -> None:
+    from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
+
+    frame = pd.DataFrame(
+        {
+            "open": [2400.0, 2400.5],
+            "high": [2401.0, 2401.5],
+            "low": [2399.0, 2399.5],
+            "close": [2400.5, 2401.0],
+            "volume": [10.0, 0.0],
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="PLUS5_VOLUME_INVALID"):
+        PrebuiltStateLoader()._augment_cv3_with_v1_legacy(frame)
+
+
+def test_plus5_build_and_serve_delegate_to_identical_formula_owner() -> None:
+    from gx1.execution import v12_canonical_incremental as incremental
+    from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
+    from gx1.features.basic_v1 import PLUS5_FEATURES
+
+    n = 64
+    close = 2400.0 + np.linspace(0.0, 3.0, n)
+    frame = pd.DataFrame(
+        {
+            "open": close - 0.1,
+            "high": close + 0.5,
+            "low": close - 0.5,
+            "close": close,
+            "volume": np.linspace(10.0, 100.0, n),
+        }
+    )
+
+    built = incremental._compute_plus5_features(frame)
+    served = PrebuiltStateLoader()._augment_cv3_with_v1_legacy(frame)
+
+    pd.testing.assert_frame_equal(
+        built[list(PLUS5_FEATURES)],
+        served[list(PLUS5_FEATURES)],
+    )

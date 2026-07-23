@@ -50,10 +50,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as exit_pipe_v1
-from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v2_m1 as exit_pipe_m1
-from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
-from gx1.scripts import materialize_build_exit_iql_v2 as v2_train
+from gx1.scripts import (  # noqa: E402
+    materialize_build_exit_iql_per_bar_dataset_v2_m1 as exit_pipe_m1,
+)
+from gx1.scripts import (  # noqa: E402
+    materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe,
+)
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate  # noqa: E402
+from gx1.scripts import materialize_build_exit_iql_v2 as v2_train  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -207,20 +211,56 @@ def _suffix_canonical(canonical: pd.DataFrame | None) -> pd.DataFrame | None:
 
 
 def _merge_asof_features(df: pd.DataFrame, feats: pd.DataFrame | None) -> pd.DataFrame:
-    """merge_asof df.bar_ts_ns_v1 ← feats._time_ns, direction backward."""
+    """Join the exact last-closed M5 state at each closed M1 decision."""
     if feats is None or len(feats) == 0:
-        return df
-    df_sorted = df.sort_values("bar_ts_ns_v1", kind="mergesort").reset_index(drop=True)
-    feats_sorted = feats.sort_values("_time_ns", kind="mergesort").reset_index(drop=True)
-    merged = pd.merge_asof(
-        df_sorted,
-        feats_sorted,
-        left_on="bar_ts_ns_v1",
-        right_on="_time_ns",
-        direction="backward",
+        raise RuntimeError("EXIT_IQL_M5_FEATURE_SOURCE_MISSING")
+    left = df.copy()
+    bar_ns = pd.to_numeric(
+        left["bar_ts_ns_v1"],
+        errors="raise",
+    ).to_numpy(dtype=np.int64)
+    minute_ns = 60 * 1_000_000_000
+    five_minutes_ns = 5 * minute_ns
+    decision_available_ns = bar_ns + minute_ns
+    left["_expected_m5_time_ns"] = (
+        (decision_available_ns // five_minutes_ns) * five_minutes_ns
+        - five_minutes_ns
     )
-    if "_time_ns" in merged.columns:
-        merged = merged.drop(columns=["_time_ns"])
+    right = feats.copy()
+    right["_time_ns"] = pd.to_numeric(
+        right["_time_ns"],
+        errors="raise",
+    ).astype(np.int64)
+    if right["_time_ns"].duplicated().any():
+        raise RuntimeError("EXIT_IQL_M5_FEATURE_SOURCE_DUPLICATE_TIME")
+    merged = left.merge(
+        right,
+        how="left",
+        left_on="_expected_m5_time_ns",
+        right_on="_time_ns",
+        validate="many_to_one",
+        indicator=True,
+    )
+    if not bool((merged["_merge"] == "both").all()):
+        missing = merged.loc[
+            merged["_merge"] != "both",
+            "_expected_m5_time_ns",
+        ].iloc[0]
+        raise RuntimeError(
+            "EXIT_IQL_M5_FEATURE_EXACT_TIME_MISSING: "
+            f"{pd.Timestamp(int(missing), tz='UTC')}"
+        )
+    feature_columns = [
+        column
+        for column in right.columns
+        if column != "_time_ns"
+    ]
+    numeric = merged[feature_columns].apply(pd.to_numeric, errors="coerce")
+    if not np.isfinite(numeric.to_numpy(dtype=np.float64)).all():
+        raise RuntimeError("EXIT_IQL_M5_FEATURE_NONFINITE")
+    merged = merged.drop(
+        columns=["_expected_m5_time_ns", "_time_ns", "_merge"]
+    )
     return merged
 
 
@@ -251,9 +291,13 @@ def load_per_bar_dataset_lazy_join(
             f"build Exit-IQL state on a ~63%-zero-filled matrix. Fix the canonical input.")
 
     aug64 = _compute_exit_aug64(canonical_path)
-    if aug64 is not None:
-        print(f"[{ACTION}] aug64: computed {len(NUMERIC_STATE_COLS_AUG64)} declared exit features "
-              f"on the M5 tape (one-truth helpers) — will merge_asof onto per-bar rows", flush=True)
+    if aug64 is None or len(aug64) == 0:
+        raise RuntimeError(
+            f"[{ACTION}] AUG64 feature source unavailable ({canonical_path}) — "
+            "refusing to build an incomplete Exit-IQL state."
+        )
+    print(f"[{ACTION}] aug64: computed {len(NUMERIC_STATE_COLS_AUG64)} declared exit features "
+          f"on the M5 tape (one-truth helpers) — will exact-join onto per-bar rows", flush=True)
 
     rng = np.random.default_rng(seed)
     per_file_target: int | None = None
@@ -263,7 +307,6 @@ def load_per_bar_dataset_lazy_join(
 
     parts: list[pd.DataFrame] = []
     weeks_with_chunk0 = 0
-    weeks_without_chunk0 = 0
     for p_idx, p in enumerate(parquets, start=1):
         df_p = pd.read_parquet(p)
         if len(df_p) == 0:
@@ -281,21 +324,21 @@ def load_per_bar_dataset_lazy_join(
             df_p = _merge_asof_features(df_p, chunk0_suf)
             weeks_with_chunk0 += 1
         else:
-            weeks_without_chunk0 += 1
-            for col in v2_train.NUMERIC_STATE_COLS_CHUNK0:
-                df_p[col] = np.nan
+            raise RuntimeError(
+                f"[{ACTION}] chunk_0 feature source unavailable for {week_name} — "
+                "refusing to manufacture an incomplete Exit-IQL state."
+            )
 
         if canonical_suf is not None:
             df_p = _merge_asof_features(df_p, canonical_suf)
-        if aug64 is not None:
-            df_p = _merge_asof_features(df_p, aug64)
+        df_p = _merge_asof_features(df_p, aug64)
 
         parts.append(df_p)
         if p_idx % 25 == 0 or p_idx == len(parquets):
             running = sum(len(part) for part in parts)
             print(f"[{ACTION}] [{p_idx}/{len(parquets)}] loaded weeks; running rows={running:,}", flush=True)
 
-    print(f"[{ACTION}] weeks with chunk_0: {weeks_with_chunk0}, without: {weeks_without_chunk0}", flush=True)
+    print(f"[{ACTION}] weeks with exact chunk_0: {weeks_with_chunk0}", flush=True)
     df = pd.concat(parts, ignore_index=True)
     if sample_n_rows is not None and len(df) > sample_n_rows:
         df = df.sample(n=sample_n_rows, random_state=seed).reset_index(drop=True)
@@ -663,6 +706,7 @@ def write_artifacts(
                 r = v2_train.evaluate_one_fold(
                     fold, X, R_by_variant[variant], oracle_action,
                     variant=variant, artifact_root=artifact_root,
+                    feature_names=feature_names,
                     sample_weights=_exit_sample_weights,
                     loss_mask=_exit_loss_mask,
                     init_q_state_dict=_init_q,
@@ -696,6 +740,9 @@ def write_artifacts(
         "n_rows_v1": int(len(df)),
         "n_features_v1": int(X.shape[1]),
         "feature_names_v1": feature_names,
+        "feature_names_sha256_v1": contract_gate.ordered_feature_names_sha256(
+            feature_names
+        ),
         "k_horizons_v1": K_HORIZONS,
         "k_primary_v1": K_PRIMARY,
         "n_actions_v1": v2_train.N_ACTIONS_EXIT,

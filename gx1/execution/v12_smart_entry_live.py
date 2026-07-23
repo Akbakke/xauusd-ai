@@ -66,6 +66,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_signal_contract,
 )
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES,
+    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES,
     MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION,
     MODEL_NATIVE_RUNTIME_POLICY,
     RETIRED_RUNTIME_EVIDENCE_FRAGMENTS,
@@ -191,6 +193,11 @@ MODEL_NATIVE_DECISION_HEAD_REQUIRED_FIELDS = frozenset(
         "p_flat_hier",
         "edge_score",
         "session_id",
+        "entry_vol_regime_id",
+        "entry_atr_bucket",
+        "entry_spread_bucket",
+        "entry_h4_trend_sign_cat",
+        "entry_trend_regime_id",
         *MODEL_NATIVE_FORWARD_PARITY_EVIDENCE_KEYS,
         *MODEL_NATIVE_DECISION_DIAGNOSTIC_KEYS,
     }
@@ -1654,6 +1661,49 @@ class SmartEntryLiveInference:
                     signal_names,
                     "trend.mtf_confluence_trend_direction_score",
                 )
+                ctx_cat_values = np.asarray(
+                    states["ctx_cat"][k],
+                    dtype=np.int64,
+                ).reshape(-1)
+                if ctx_cat_values.shape != (5,):
+                    raise RuntimeError(
+                        "[SMART_ENTRY] exact five-field ctx_cat state is required"
+                    )
+                entry_vol_regime_id = int(ctx_cat_values[1])
+                entry_atr_bucket = int(ctx_cat_values[2])
+                entry_spread_bucket = int(ctx_cat_values[3])
+                entry_h4_trend_sign_cat = int(ctx_cat_values[4])
+                trend_regime_values = np.asarray(
+                    states.get("entry_trend_regime_id"),
+                    dtype=np.int64,
+                ).reshape(-1)
+                if trend_regime_values.shape != (n,):
+                    raise RuntimeError(
+                        "[SMART_ENTRY] entry trend-regime state is incomplete"
+                    )
+                entry_trend_regime_id = int(trend_regime_values[k])
+                if entry_vol_regime_id not in range(
+                    len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)
+                ):
+                    raise RuntimeError(
+                        "[SMART_ENTRY] entry vol-regime category is invalid"
+                    )
+                if entry_h4_trend_sign_cat not in range(
+                    len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+                ):
+                    raise RuntimeError(
+                        "[SMART_ENTRY] entry H4 trend category is invalid"
+                    )
+                if (
+                    entry_atr_bucket not in range(5)
+                    or entry_spread_bucket not in range(5)
+                    or entry_trend_regime_id not in range(
+                        len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+                    )
+                ):
+                    raise RuntimeError(
+                        "[SMART_ENTRY] entry categorical evidence is invalid"
+                    )
                 res = {
                     "time": ts,
                     **fusion_evidence,
@@ -1675,6 +1725,11 @@ class SmartEntryLiveInference:
                     "p_long": p_long, "p_short": p_short, "p_flat": p_flat,
                     "edge_score": float(edge_score),
                     "session_id": int(states["ctx_cat"][k][0]),
+                    "entry_vol_regime_id": entry_vol_regime_id,
+                    "entry_atr_bucket": entry_atr_bucket,
+                    "entry_spread_bucket": entry_spread_bucket,
+                    "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
+                    "entry_trend_regime_id": entry_trend_regime_id,
                     "path_quality_pred": float(path_quality_raw[0]),
                     "path_quality": float(path_quality_raw[0]),
                     "bad_path_logit": float(bad_path_logit[0]),
@@ -1837,6 +1892,76 @@ class SmartEntryLiveInference:
                 f"in {sorted(SESSION_NAMES)}; got {head_out.get('session_id')!r}"
             )
         session = SESSION_NAMES[session_id]
+        entry_vol_regime_id_raw = _require_finite_vector(
+            head_out.get("entry_vol_regime_id"),
+            name="entry_vol_regime_id",
+            size=1,
+            context="decision",
+        )[0]
+        entry_vol_regime_id = int(entry_vol_regime_id_raw)
+        if (
+            float(entry_vol_regime_id_raw) != float(entry_vol_regime_id)
+            or entry_vol_regime_id not in range(
+                len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)
+            )
+        ):
+            raise RuntimeError(
+                "[SMART_ENTRY] entry_vol_regime_id is outside the exact "
+                "model-native category domain"
+            )
+        entry_h4_trend_sign_raw = _require_finite_vector(
+            head_out.get("entry_h4_trend_sign_cat"),
+            name="entry_h4_trend_sign_cat",
+            size=1,
+            context="decision",
+        )[0]
+        entry_h4_trend_sign_cat = int(entry_h4_trend_sign_raw)
+        if (
+            float(entry_h4_trend_sign_raw) != float(entry_h4_trend_sign_cat)
+            or entry_h4_trend_sign_cat not in range(
+                len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+            )
+        ):
+            raise RuntimeError(
+                "[SMART_ENTRY] entry_h4_trend_sign_cat is outside the exact "
+                "model-native category domain"
+            )
+        entry_atr_bucket_raw = _require_finite_vector(
+            head_out.get("entry_atr_bucket"),
+            name="entry_atr_bucket",
+            size=1,
+            context="decision",
+        )[0]
+        entry_atr_bucket = int(entry_atr_bucket_raw)
+        entry_spread_bucket_raw = _require_finite_vector(
+            head_out.get("entry_spread_bucket"),
+            name="entry_spread_bucket",
+            size=1,
+            context="decision",
+        )[0]
+        entry_spread_bucket = int(entry_spread_bucket_raw)
+        entry_trend_regime_id_raw = _require_finite_vector(
+            head_out.get("entry_trend_regime_id"),
+            name="entry_trend_regime_id",
+            size=1,
+            context="decision",
+        )[0]
+        entry_trend_regime_id = int(entry_trend_regime_id_raw)
+        if (
+            float(entry_atr_bucket_raw) != float(entry_atr_bucket)
+            or entry_atr_bucket not in range(5)
+            or float(entry_spread_bucket_raw) != float(entry_spread_bucket)
+            or entry_spread_bucket not in range(5)
+            or float(entry_trend_regime_id_raw)
+            != float(entry_trend_regime_id)
+            or entry_trend_regime_id not in range(
+                len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+            )
+        ):
+            raise RuntimeError(
+                "[SMART_ENTRY] entry bucket/trend evidence is outside its "
+                "exact model-native category domain"
+            )
         edge = float(max(direction_probs[0], direction_probs[1]) - direction_probs[2])
         selection_score = float(direction_probs[direction_index])
         atr_bps_value = float(atr_bps)
@@ -1864,6 +1989,17 @@ class SmartEntryLiveInference:
             "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
             "session_id": session_id,
             "session": session,
+            "entry_vol_regime_id": entry_vol_regime_id,
+            "entry_vol_regime": MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[
+                entry_vol_regime_id
+            ],
+            "entry_atr_bucket": entry_atr_bucket,
+            "entry_spread_bucket": entry_spread_bucket,
+            "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
+            "entry_trend_regime_id": entry_trend_regime_id,
+            "entry_trend_regime": MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES[
+                entry_trend_regime_id
+            ],
             "direction_logits": ssot["direction_logits"].tolist(),
             "direction_probs": direction_probs.tolist(),
             "model_direction_index": direction_index,
@@ -1915,6 +2051,13 @@ class SmartEntryLiveInference:
             "selection_score": selection_score,
             "session_id": session_id,
             "session": session,
+            "entry_vol_regime_id": entry_vol_regime_id,
+            "entry_vol_regime": snapshot["entry_vol_regime"],
+            "entry_atr_bucket": entry_atr_bucket,
+            "entry_spread_bucket": entry_spread_bucket,
+            "entry_h4_trend_sign_cat": entry_h4_trend_sign_cat,
+            "entry_trend_regime_id": entry_trend_regime_id,
+            "entry_trend_regime": snapshot["entry_trend_regime"],
             "p_long": float(direction_probs[0]),
             "p_short": float(direction_probs[1]),
             "p_flat": float(direction_probs[2]),

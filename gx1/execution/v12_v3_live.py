@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """V12 V3 v8 (exit transformer) live inference wrapper.
 
-V3 v8 is the per-M1 exit-signal transformer trained with EXIT_IO_V6_CTX_V3CANONICAL_M1L512
-(91 features × 512 M1-bars window). For each M1 bar during an open trade it
-produces 4 outputs that the Exit-IQL V12.1 state vector expects:
+V3 is the per-M1 exit-signal transformer served under an admitted V6, V7, or
+V8 feature contract (91, 155, or 173 features × 512 observed M1 bars). For
+each M1 bar during an open trade it produces 4 outputs that the Exit-IQL V12.1
+state vector expects:
 
     v3_v8_should_exit_prob       sigmoid(main head)         primary exit signal
     v3_v8_profit_protect_prob    sigmoid(profit-protect)
     v3_v8_family_argmax          argmax(4-class family head)
     v3_v8_family_logit_max       max(family logits)
 
-Input layout per the EXIT_IO_V6 contract (91 features):
+Shared input-prefix layout across the admitted contracts:
     0-6   :  XGB signal_bridge_v1 (7-dim)              — from XGB v5 at M5 bucket
-    7-89  :  Mix of canonical features + 19 trade-state slots that get OVERLAID
+    7-... :  Mix of canonical features + 19 trade-state slots that get OVERLAID
              for in-trade bars. Pre-trade bars (the 511 historical bars before
              this trade opened) have the 19 trade-state slots = 0 by training
              convention.
 
 This module:
   1. Loads V3 v8 from bundle (matches transformer_config.json)
-  2. Builds the (1, 512, 91) input matrix per inference:
+  2. Builds the exact contract-width input matrix per inference:
      - Reads BASE34 prebuilt (M1 cadence) for canonical + ctx columns
      - Runs XGB v5 on the unique M5 buckets in window → signal_bridge per bar
      - Applies trade-state overlay if a TradeState is provided
@@ -61,21 +62,12 @@ from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 
 LOG = logging.getLogger("v12_v3_live")
 
-# 2026-05-29: default V3 bundle is contract-driven via
-# gx1_guards.load_decision_artifact("v3_exit"). Env override stays for A/B.
-import os as _os
 def _resolve_default_v3_bundle() -> Path:
-    env_override = _os.environ.get("GX1_V3_BUNDLE_DIR")
-    if env_override:
-        return Path(env_override)
-    # FAIL-CLOSED (2026-06-03 audit): NO hardcoded fallback. A guard failure MUST
-    # propagate — never silently substitute the pre-COSTFIX EXIT_V9 bundle (it still
-    # exists on disk and would load as a wrong V6/91-dim model, the same silent-broken
-    # class as the V3-V6 hardcode that ran the whole COSTFIX period). load_decision_artifact
-    # raises ArtifactGuardError on any non-ACTIVE / missing / contract / non-XAU condition.
+    """Resolve the registry-bound V3 artifact with no live environment override."""
+
     from gx1_guards.artifacts import load_decision_artifact
+
     return Path(load_decision_artifact("v3_exit"))
-DEFAULT_BUNDLE_DIR = _resolve_default_v3_bundle()
 
 # One-truth: io_version → (features, count) so V6 and V7 bundles are both accepted.
 # V7 prefix is V6-identical so trade-state indices are stable across both.
@@ -85,7 +77,7 @@ SUPPORTED_V3_CONTRACTS: dict = {
     # V8 prefix is V7-identical (first 155) so trade-state indices stay stable across all three.
     V8_IO_VERSION: (list(V8_FEATURES), V8_FEATURE_COUNT),
 }
-WINDOW_LEN = 512   # 512 M1 bars (8.5 hours)
+WINDOW_LEN = 512   # 512 observed M1 bars (market gaps mean this is not always 8.5 wall-clock hours)
 
 # Indices of the 7 XGB-bridge features (positions 0..6 in the V6 contract)
 XGB_BRIDGE_NAMES = V6_FEATURES[:7]   # ['p_long','p_short','p_flat','p_hat','uncertainty_score','margin_top1_top2','entropy']
@@ -100,7 +92,97 @@ TRADE_STATE_FEATURE_NAMES = [
     "rolling_slope_since_entry", "atr_bps_now",
     "giveback_ratio", "giveback_acceleration",
 ]
-TRADE_STATE_INDICES = [V6_FEATURES.index(n) for n in TRADE_STATE_FEATURE_NAMES]
+
+
+def _v3_m1_window(
+    end_ts: pd.Timestamp,
+    base34_prebuilt: pd.DataFrame,
+) -> pd.DataFrame:
+    """Select the exact ordered 512-row M1 window used by V3.
+
+    The live caller must not sort, deduplicate, forward-fill, or substitute an
+    older endpoint. Any malformed index or missing decision row is evidence
+    that no V3 input exists for this cadence step.
+    """
+    if not isinstance(base34_prebuilt, pd.DataFrame) or base34_prebuilt.empty:
+        raise RuntimeError("V3_M1_SOURCE_EMPTY")
+    try:
+        observed_index = pd.to_datetime(
+            base34_prebuilt.index,
+            utc=True,
+            errors="coerce",
+        )
+    except Exception as exc:  # noqa: BLE001 - convert schema failure to contract evidence
+        raise RuntimeError("V3_M1_INDEX_INVALID") from exc
+    if (
+        observed_index.hasnans
+        or not observed_index.is_monotonic_increasing
+        or not observed_index.is_unique
+    ):
+        raise RuntimeError(
+            "V3_M1_INDEX_INVALID: "
+            f"has_nat={observed_index.hasnans} "
+            f"monotonic={observed_index.is_monotonic_increasing} "
+            f"unique={observed_index.is_unique}"
+        )
+
+    end_bucket = pd.Timestamp(end_ts)
+    end_bucket = (
+        end_bucket.tz_localize("UTC")
+        if end_bucket.tzinfo is None
+        else end_bucket.tz_convert("UTC")
+    ).floor("min")
+    matches = int(np.count_nonzero(observed_index == end_bucket))
+    if matches != 1:
+        raise RuntimeError(
+            "V3_M1_EXACT_ENDPOINT_MISSING"
+            if matches == 0
+            else "V3_M1_EXACT_ENDPOINT_DUPLICATE"
+        )
+
+    source = base34_prebuilt.copy(deep=False)
+    source.index = observed_index
+    win = source.loc[:end_bucket].tail(WINDOW_LEN)
+    if len(win) != WINDOW_LEN:
+        raise RuntimeError(
+            f"V3_M1_HISTORY_MISMATCH: observed={len(win)} required={WINDOW_LEN}"
+        )
+    if win.index[-1] != end_bucket:
+        raise RuntimeError(
+            f"V3_M1_ENDPOINT_MISMATCH: observed={win.index[-1]} expected={end_bucket}"
+        )
+    return win
+
+
+def _closed_m5_key_per_m1(m1_index: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Map M1 bar-start labels to the newest M5 row closed at M1 availability."""
+    return (
+        pd.DatetimeIndex(m1_index) + pd.Timedelta(minutes=1)
+    ).floor("5min") - pd.Timedelta(minutes=5)
+
+
+def required_closed_m5_keys_for_v3_window(
+    end_ts: pd.Timestamp,
+    base34_prebuilt: pd.DataFrame,
+) -> pd.DatetimeIndex:
+    """Return the exact ordered unique closed-M5 keys needed by a V3 window.
+
+    An M1 bar labelled ``T`` becomes available at ``T+1 minute``. Therefore its
+    newest admissible M5 feature row is
+    ``floor(T+1 minute, 5 minutes) - 5 minutes``. Mapping with ``floor(T, 5m)``
+    reads a forming M5 candle for four out of five M1 phases.
+    """
+    win = _v3_m1_window(end_ts, base34_prebuilt)
+    per_m1 = _closed_m5_key_per_m1(pd.DatetimeIndex(win.index))
+    required = pd.DatetimeIndex(per_m1.unique())
+    if (
+        required.empty
+        or required.hasnans
+        or not required.is_monotonic_increasing
+        or not required.is_unique
+    ):
+        raise RuntimeError("V3_REQUIRED_CLOSED_M5_KEYS_INVALID")
+    return required
 
 
 @dataclass
@@ -119,11 +201,18 @@ class V3LiveInference:
     # broke V3 inference for the entire COSTFIX live era when V7 was loaded).
     _features: list = field(default_factory=list)
     _feature_count: int = 0
-    _trade_state_indices: list = field(default_factory=list)
 
     @classmethod
-    def load(cls, bundle_dir: Path = DEFAULT_BUNDLE_DIR, device: str = "cpu") -> "V3LiveInference":
-        bundle_dir = Path(bundle_dir)
+    def load(
+        cls,
+        bundle_dir: Path | None = None,
+        device: str = "cpu",
+    ) -> "V3LiveInference":
+        bundle_dir = (
+            _resolve_default_v3_bundle()
+            if bundle_dir is None
+            else Path(bundle_dir)
+        )
         cfg_path = bundle_dir / "transformer_config.json"
         state_path = bundle_dir / "exit_transformer_v0.pt"
         if not cfg_path.exists():
@@ -176,7 +265,7 @@ class V3LiveInference:
                 h4_seq_len=int(mtf_cfg["h4_seq_len"]),
                 d1_seq_len=int(mtf_cfg["d1_seq_len"]),
             )
-            LOG.info(f"V3 bundle is multi-TF: M5/M15/H1/H4/D1 active")
+            LOG.info("V3 bundle is multi-TF: M5/M15/H1/H4/D1 active")
 
         # Phase 3b: bundle was distilled with enable_q_head=True iff the config
         # carries the flag. Falls back to state_dict probe for older bundles.
@@ -206,11 +295,6 @@ class V3LiveInference:
         # 2026-06-02 fix: store contract-aware feature list so build_window uses
         # V7 (155) when V7 bundle, V6 (91) when V6 bundle. Hardcoded V6 paths
         # silently failed for the entire COSTFIX live era.
-        _tsi = [
-            list(_expected_features).index(n)
-            for n in TRADE_STATE_FEATURE_NAMES
-            if n in _expected_features
-        ]
         return cls(
             bundle_dir=bundle_dir, device=device, _model=model,
             _enable_multi_tf=enable_mtf,
@@ -221,7 +305,6 @@ class V3LiveInference:
                             for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
             _features=list(_expected_features),
             _feature_count=int(_expected_count),
-            _trade_state_indices=_tsi,
         )
 
     @classmethod
@@ -238,7 +321,7 @@ class V3LiveInference:
         canonical_v3_window: pd.DataFrame | None = None,
         trade_overlay: dict[str, np.ndarray] | None = None,
     ) -> np.ndarray:
-        """Assemble the (512, 91) input matrix for V3 v8.
+        """Assemble the exact contract-width input matrix for V3.
 
         Args:
             end_ts: timestamp of the decision M1 bar (the LAST row in the window).
@@ -246,57 +329,109 @@ class V3LiveInference:
                 Must cover at least [end_ts - 511 min, end_ts].
             xgb_inferer: XGBLiveInference instance for computing signal_bridge per
                 unique M5 bucket in window.
-            canonical_v3_window: optional M5-cadence frame (subset of canonical_v3
-                prebuilt) covering the same time range. Used for canonical features
-                not in BASE34. If None, derived from base34's columns.
+            canonical_v3_window: M5-cadence frame containing every exact,
+                closed-M5 key required by the selected M1 window.
             trade_overlay: dict of 19 (window-len,) arrays with trade-state values
                 for in-trade portion of the window. If None, those features stay 0.
 
-        Returns: (512, 91) float32 numpy array.
+        Returns: (512, contract feature count) float32 numpy array.
         """
-        # Get the 512 M1 bars ending at end_ts
-        end_bucket = end_ts.floor("min")
-        win = base34_prebuilt.loc[:end_bucket].tail(WINDOW_LEN)
-        if len(win) < WINDOW_LEN:
-            raise RuntimeError(f"insufficient M1 history for V3 window: {len(win)} < {WINDOW_LEN}")
+        win = _v3_m1_window(end_ts, base34_prebuilt)
 
         # 2026-06-02 fix: use the contract's actual feature list (V6=91 or V7=155)
         # instead of hardcoded V6. Hardcoded V6 silently broke V7 inference for
         # the entire COSTFIX live era.
-        _feat_list = self._features if self._features else list(V6_FEATURES)
-        _feat_count = self._feature_count if self._feature_count else V6_FEATURE_COUNT
+        if not self._features or self._feature_count <= 0:
+            raise RuntimeError("V3_FEATURE_CONTRACT_UNINITIALIZED")
+        _feat_list = self._features
+        _feat_count = self._feature_count
+        if len(_feat_list) != _feat_count or len(set(_feat_list)) != _feat_count:
+            raise RuntimeError(
+                "V3_FEATURE_CONTRACT_INVALID: "
+                f"names={len(_feat_list)} unique={len(set(_feat_list))} "
+                f"count={_feat_count}"
+            )
+        if list(_feat_list[:7]) != list(XGB_BRIDGE_NAMES):
+            raise RuntimeError("V3_XGB_BRIDGE_PREFIX_INVALID")
+
+        if canonical_v3_window is None or not isinstance(canonical_v3_window, pd.DataFrame):
+            raise RuntimeError("V3_CANONICAL_WINDOW_REQUIRED")
+        if canonical_v3_window.empty:
+            raise RuntimeError("V3_CANONICAL_WINDOW_EMPTY")
+        try:
+            canonical_index = pd.to_datetime(
+                canonical_v3_window.index,
+                utc=True,
+                errors="coerce",
+            )
+        except Exception as exc:  # noqa: BLE001 - schema failure is contract evidence
+            raise RuntimeError("V3_CANONICAL_INDEX_INVALID") from exc
+        if (
+            canonical_index.hasnans
+            or not canonical_index.is_monotonic_increasing
+            or not canonical_index.is_unique
+        ):
+            raise RuntimeError(
+                "V3_CANONICAL_INDEX_INVALID: "
+                f"has_nat={canonical_index.hasnans} "
+                f"monotonic={canonical_index.is_monotonic_increasing} "
+                f"unique={canonical_index.is_unique}"
+            )
+        canonical = canonical_v3_window.copy(deep=False)
+        canonical.index = canonical_index
+
+        per_m1_closed_m5 = _closed_m5_key_per_m1(pd.DatetimeIndex(win.index))
+        required_m5 = pd.DatetimeIndex(per_m1_closed_m5.unique())
+        missing_m5 = required_m5.difference(canonical.index)
+        if len(missing_m5):
+            raise RuntimeError(
+                "V3_CANONICAL_CLOSED_M5_COVERAGE_MISSING: "
+                f"missing={len(missing_m5)} required={len(required_m5)} "
+                f"first_missing={missing_m5[0]}"
+            )
+
         mat = np.zeros((WINDOW_LEN, _feat_count), dtype=np.float32)
 
-        # Fill non-XGB features from base34 / canonical_v3 (skip indices 0-6 = XGB)
+        from gx1.features.volume_features import (
+            VOLUME_FEATURE_NAMES,
+            compute_volume_features,
+        )
+
+        trade_feature_names = set(TRADE_STATE_FEATURE_NAMES)
+        volume_feature_names = set(VOLUME_FEATURE_NAMES)
+
+        # Fill every active non-XGB feature from its exact M1 or closed-M5
+        # source. Trade-state slots and M1-native volume features have dedicated
+        # owners below. There is no missing-column or non-finite zero fill.
         for j, fname in enumerate(_feat_list):
             if j < 7:
                 continue  # XGB-bridge, filled below
+            if fname in trade_feature_names or fname in volume_feature_names:
+                continue
             if fname in win.columns:
-                mat[:, j] = pd.to_numeric(win[fname], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-            elif canonical_v3_window is not None and fname in canonical_v3_window.columns:
-                # Lazy-join from M5 (each M1 inherits its M5 bucket's value)
-                m1_buckets = win.index.floor("5min")
-                aligned = canonical_v3_window[fname].reindex(m1_buckets, method="ffill")
-                mat[:, j] = pd.to_numeric(aligned, errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-            # else: feature missing — leave at 0
-
-        # V1 / R10 (2026-06-04) fail-closed: under GX1_REGIME_V4 the EXIT_IO_V8 regime tail MUST be
-        # present on the cv3 window (PrebuiltStateLoader._augment_cv3_with_regime_v4 computes it). Never
-        # silently leave it at 0 — that is exactly the COSTFIX V6-hardcode silent-zero failure. Only the
-        # 16 REGIME_V4 feats are checked (other legitimate-absent 0-fills are by design).
-        if _os.environ.get("GX1_REGIME_V4", "0").strip().lower() in ("1", "true", "yes", "on"):
-            from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES as _RV4
-            _rv4_set = set(_RV4)
-            _src_cols = set(win.columns) | (
-                set(canonical_v3_window.columns) if canonical_v3_window is not None else set()
-            )
-            _rv4_missing = [f for f in _feat_list if f in _rv4_set and f not in _src_cols]
-            if _rv4_missing:
+                if list(win.columns).count(fname) != 1:
+                    raise RuntimeError(f"V3_M1_FEATURE_DUPLICATE: {fname}")
+                raw = win[fname]
+                source_name = "M1"
+            elif fname in canonical.columns:
+                if list(canonical.columns).count(fname) != 1:
+                    raise RuntimeError(f"V3_CANONICAL_FEATURE_DUPLICATE: {fname}")
+                raw = canonical.loc[per_m1_closed_m5, fname]
+                source_name = "closed-M5"
+            else:
+                raise RuntimeError(f"V3_ACTIVE_FEATURE_MISSING: {fname}")
+            try:
+                values = pd.to_numeric(raw, errors="raise").to_numpy(dtype=np.float64)
+            except (TypeError, ValueError, OverflowError) as exc:
                 raise RuntimeError(
-                    f"[V3_REGIME_V4_SILENT_ZERO] {len(_rv4_missing)} EXIT_IO_V8 REGIME_V4 cols absent from "
-                    f"the cv3 window at serve: {_rv4_missing[:5]} — loader regime augmenter did not run "
-                    f"(D1_dist / {{tf}}_*_v2 source cols missing?). Refusing to serve a zeroed regime tail."
+                    f"V3_ACTIVE_FEATURE_NOT_NUMERIC: {fname} source={source_name}"
+                ) from exc
+            if values.shape != (WINDOW_LEN,) or not np.isfinite(values).all():
+                raise RuntimeError(
+                    f"V3_ACTIVE_FEATURE_INVALID: {fname} source={source_name} "
+                    f"shape={values.shape}"
                 )
+            mat[:, j] = values.astype(np.float32)
 
         # V3 (2026-06-04 train==serve parity): compute the 4 volume features M1-NATIVE on the window's
         # raw M1 volume+close (constitution: exit is ALWAYS M1, never coarsen). The old serve path left
@@ -305,47 +440,75 @@ class V3LiveInference:
         # the base34 prebuilt carries raw `volume`+`close` (added by the canonical daemon; materializes at
         # the prebuilt rebuild). Missing raw inputs are handled by the explicit
         # V3 input contract below; they are not evidence that a deleted builder exists.
-        if "volume" in win.columns and ("close" in win.columns or "bid_close" in win.columns):
-            from gx1.features.volume_features import VOLUME_FEATURE_NAMES, compute_volume_features
+        active_volume_features = [name for name in VOLUME_FEATURE_NAMES if name in _feat_list]
+        if active_volume_features:
+            if "volume" not in win.columns:
+                raise RuntimeError("V3_VOLUME_SOURCE_MISSING: volume")
+            close_name = "close" if "close" in win.columns else "bid_close"
+            if close_name not in win.columns:
+                raise RuntimeError("V3_VOLUME_SOURCE_MISSING: close|bid_close")
+            if list(win.columns).count("volume") != 1 or list(win.columns).count(close_name) != 1:
+                raise RuntimeError("V3_VOLUME_SOURCE_DUPLICATE")
             _vw = pd.DataFrame({
-                "volume": pd.to_numeric(win["volume"], errors="coerce").to_numpy(),
-                "close": pd.to_numeric(
-                    win["close"] if "close" in win.columns else win["bid_close"], errors="coerce"
-                ).to_numpy(),
+                "volume": win["volume"].to_numpy(),
+                "close": win[close_name].to_numpy(),
             })
             _vf = compute_volume_features(_vw)
-            for _vn in VOLUME_FEATURE_NAMES:
-                if _vn in _feat_list:
-                    mat[:, _feat_list.index(_vn)] = np.asarray(_vf[_vn], dtype=np.float32)
+            for _vn in active_volume_features:
+                mat[:, _feat_list.index(_vn)] = np.asarray(_vf[_vn], dtype=np.float32)
 
-        # Fill XGB signal_bridge (positions 0-6) by running XGB on unique M5 buckets
-        m1_buckets = pd.DatetimeIndex(win.index.floor("5min"))
-        unique_buckets = m1_buckets.unique()
-        if canonical_v3_window is None:
-            raise RuntimeError("canonical_v3_window required for XGB inference")
+        # Run XGB on every exact closed-M5 key, in required order, then expand
+        # its bridge back to all 512 M1 rows. Partial output is never zero-filled.
+        m5_input = canonical.loc[required_m5]
+        xgb_out = xgb_inferer.predict(m5_input)
+        if not isinstance(xgb_out, dict) or "signal_bridge_v1" not in xgb_out:
+            raise RuntimeError("V3_XGB_BRIDGE_OUTPUT_MISSING")
+        try:
+            bridge = np.asarray(xgb_out["signal_bridge_v1"], dtype=np.float64)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise RuntimeError("V3_XGB_BRIDGE_OUTPUT_NOT_NUMERIC") from exc
+        if bridge.shape != (len(required_m5), 7) or not np.isfinite(bridge).all():
+            raise RuntimeError(
+                "V3_XGB_BRIDGE_OUTPUT_INVALID: "
+                f"shape={bridge.shape} expected=({len(required_m5)}, 7)"
+            )
+        bridge_positions = required_m5.get_indexer(per_m1_closed_m5)
+        if np.any(bridge_positions < 0):
+            raise RuntimeError("V3_XGB_BRIDGE_MAPPING_INCOMPLETE")
+        mat[:, 0:7] = bridge[bridge_positions].astype(np.float32)
 
-        m5_input = canonical_v3_window.loc[canonical_v3_window.index.isin(unique_buckets)]
-        if m5_input.empty:
-            LOG.warning("no M5 buckets available for XGB inference — XGB bridge will be 0")
-        else:
-            xgb_out = xgb_inferer.predict(m5_input)
-            bridge_by_ts = dict(zip(m5_input.index, xgb_out["signal_bridge_v1"]))
-            # Map each M1 to its M5 bucket's bridge
-            for i, bucket in enumerate(m1_buckets):
-                if bucket in bridge_by_ts:
-                    mat[i, 0:7] = bridge_by_ts[bucket]
-
-        # Apply trade overlay if provided. 2026-06-02 fix: use contract-aware
-        # trade-state indices (V6 vs V7 both have same 19 trade-state cols at
-        # same prefix positions, but explicit lookup is safer than assuming).
-        _ts_idx = self._trade_state_indices if self._trade_state_indices else TRADE_STATE_INDICES
+        # Apply the complete contract-owned trade overlay if provided.
+        active_trade_features = [
+            name for name in TRADE_STATE_FEATURE_NAMES if name in _feat_list
+        ]
         if trade_overlay is not None:
-            for j, fname in enumerate(TRADE_STATE_FEATURE_NAMES):
-                if fname in trade_overlay and j < len(_ts_idx):
-                    col_idx = _ts_idx[j]
-                    overlay_arr = np.asarray(trade_overlay[fname], dtype=np.float32)
-                    n_overlay = min(len(overlay_arr), WINDOW_LEN)
-                    mat[-n_overlay:, col_idx] = overlay_arr[-n_overlay:]
+            missing_overlay = [
+                name for name in active_trade_features if name not in trade_overlay
+            ]
+            if missing_overlay:
+                raise RuntimeError(
+                    f"V3_TRADE_OVERLAY_FEATURE_MISSING: {missing_overlay[:5]}"
+                )
+            for fname in active_trade_features:
+                try:
+                    overlay_arr = np.asarray(trade_overlay[fname], dtype=np.float64)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise RuntimeError(
+                        f"V3_TRADE_OVERLAY_NOT_NUMERIC: {fname}"
+                    ) from exc
+                if (
+                    overlay_arr.ndim != 1
+                    or not 1 <= len(overlay_arr) <= WINDOW_LEN
+                    or not np.isfinite(overlay_arr).all()
+                ):
+                    raise RuntimeError(
+                        f"V3_TRADE_OVERLAY_INVALID: {fname} shape={overlay_arr.shape}"
+                    )
+                col_idx = _feat_list.index(fname)
+                mat[-len(overlay_arr):, col_idx] = overlay_arr.astype(np.float32)
+
+        if not np.isfinite(mat).all():
+            raise RuntimeError("V3_INPUT_MATRIX_NONFINITE")
 
         return mat
 
@@ -354,14 +517,18 @@ class V3LiveInference:
     @torch.no_grad()
     def predict_from_matrix(self, window: np.ndarray,
                               multi_tf_windows: dict | None = None) -> dict[str, Any]:
-        """Forward V3 v8 on a (512, 91) input matrix. Returns 4 head outputs."""
+        """Forward V3 on an exact contract-width input matrix."""
         if self._model is None:
             raise RuntimeError("V3 v8 not loaded — call .load() first")
-        _expected_cnt = self._feature_count if self._feature_count else V6_FEATURE_COUNT
+        if not self._features or self._feature_count <= 0:
+            raise RuntimeError("V3 feature contract is uninitialized")
+        _expected_cnt = self._feature_count
         if window.shape != (WINDOW_LEN, _expected_cnt):
             raise RuntimeError(f"window shape {window.shape} != ({WINDOW_LEN}, {_expected_cnt})")
+        if not np.isfinite(window).all():
+            raise RuntimeError("V3 input window contains non-finite values")
 
-        x = torch.from_numpy(window).unsqueeze(0).to(self.device)   # (1, 512, 91)
+        x = torch.from_numpy(window).unsqueeze(0).to(self.device)
 
         # V12.2: build multi-TF kwargs if model needs them
         mtf_kwargs = {}

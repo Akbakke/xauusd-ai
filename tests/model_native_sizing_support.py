@@ -18,6 +18,7 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
     MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS,
+    active_exit_registry_projection,
     joint_exit_trace_sha256,
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
@@ -382,11 +383,17 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
     state.write_bytes(b"canonical sizing checkpoint")
     state_sha = _sha(state)
     direction_contract = model_direction_decision_contract_metadata()
+    run_lineage = {
+        "schema_version": "entry_model_native_training_run_lineage_v1",
+        "training_run_id": "UNIT_INITIAL_ADAPTATION_ADMISSION",
+        "dataset_run_id": "UNIT_DATASET_RUN_20260717",
+    }
     _write_json(
         source_bundle / "bundle_metadata.json",
         {
             "state_dict_sha256": state_sha,
             "direction_decision_contract": direction_contract,
+            "run_lineage": run_lineage,
         },
     )
     _write_json(
@@ -395,6 +402,7 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
             "model_path_relative": "model_state_dict.pt",
             "model_sha256": state_sha,
             "direction_decision_contract": direction_contract,
+            "run_lineage": run_lineage,
         },
     )
     write_bundle_commit_manifest(
@@ -599,9 +607,16 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
                 }
                 for role in ("xgb", "v3_exit", "exit_iql")
             },
+            "retired": {},
+            "history": [],
         },
     )
-    registry_sha = _sha(registry_path)
+    registry_projection = active_exit_registry_projection(
+        registry_path=registry_path.resolve(),
+        registry=json.loads(registry_path.read_text(encoding="utf-8")),
+        context="UNIT_ACTIVE_EXIT_REGISTRY_PROJECTION",
+    )
+    exit_authority_sha = registry_projection["projection_sha256"]
     source_rows_path = Path(
         evidence["oos_source"]["source_bindings"]["oos_rows"]["path"]
     )
@@ -609,11 +624,12 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
     rows["fact_provenance_mode"] = MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE
     directions = pd.to_numeric(rows["model_direction_index"]).astype(int)
     times = pd.to_datetime(rows["time"], utc=True)
+    rows["entry_fill_time"] = times + pd.Timedelta(minutes=5)
     rows["exit_replay_status"] = np.where(
         directions.isin([0, 1]), "EXIT_NOW", "FLAT_NO_ORDER"
     )
     rows["exit_time"] = [
-        (timestamp + pd.Timedelta(minutes=10)).isoformat()
+        (timestamp + pd.Timedelta(minutes=15)).isoformat()
         if direction in (0, 1)
         else None
         for timestamp, direction in zip(times, directions, strict=True)
@@ -622,14 +638,14 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
         directions.isin([0, 1]), "EXIT_IQL_ARGMAX", "MODEL_FLAT"
     )
     rows["exit_steps"] = np.where(directions.isin([0, 1]), 10, 0)
-    rows["active_exit_registry_sha256"] = registry_sha
+    rows["active_exit_authority_sha256"] = exit_authority_sha
     flat_mask = directions == 2
     rows.loc[flat_mask, "exit_bid"] = rows.loc[flat_mask, "entry_bid"]
     rows.loc[flat_mask, "exit_ask"] = rows.loc[flat_mask, "entry_ask"]
     trace_records: list[dict[str, Any]] = []
     for row_index, row in rows.loc[~flat_mask].iterrows():
         direction = int(row["model_direction_index"])
-        entry_time = pd.Timestamp(row["time"])
+        entry_time = pd.Timestamp(row["entry_fill_time"])
         for step in range(1, int(row["exit_steps"]) + 1):
             fraction = step / float(row["exit_steps"])
             bid = float(row["entry_bid"]) + fraction * (
@@ -662,7 +678,7 @@ def write_passing_joint_exit_sizing_proof(root: Path) -> dict[str, Any]:
                     "current_pnl_bps": current_pnl_bps,
                     "bid": bid,
                     "ask": ask,
-                    "active_exit_registry_sha256": registry_sha,
+                    "active_exit_authority_sha256": exit_authority_sha,
                 }
             )
     exit_trace_rows = pd.DataFrame(

@@ -32,6 +32,10 @@ import numpy as np
 import torch
 
 from gx1.scripts import exit_iql_multi_head_gpu_core_v1 as iql_core
+from gx1_guards.artifacts import (
+    exit_iql_ordered_feature_names_sha256,
+    require_exit_iql_summary_contract,
+)
 
 
 VALID_AGGREGATORS = ("mean", "max", "weighted")
@@ -40,12 +44,109 @@ ACTION_HOLD_ID = 0
 ACTION_EXIT_NOW_ID = 1
 ACTION_LABELS_EXIT = {ACTION_HOLD_ID: "HOLD", ACTION_EXIT_NOW_ID: "EXIT_NOW"}
 
-# Fail-closed feature-coverage guard derived from the active Exit checkpoint.
-# Trainer computes feature_stds = nanstd + 1e-6, so constant-in-training features
-# sit at ~1e-6; real-variance features are >= ~0.1. A real-variance feature
-# silently 0-filled at serve is the 2026-05-19 LONG-bias skew. std >= threshold
-# => REQUIRED at inference; derived per-bundle from the checkpoint (one truth).
-STD_REQUIRED_THRESHOLD = 1e-3
+
+def _checkpoint_float_vector(
+    raw: object,
+    *,
+    field_name: str,
+    state_dim: int,
+) -> np.ndarray:
+    if isinstance(raw, torch.Tensor):
+        raw = raw.detach().cpu().numpy()
+    try:
+        vector = np.asarray(raw, dtype=np.float32)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            f"Exit-IQL checkpoint {field_name} is not a float vector"
+        ) from exc
+    if vector.shape != (state_dim,):
+        raise RuntimeError(
+            f"Exit-IQL checkpoint {field_name} shape={vector.shape}, "
+            f"expected ({state_dim},)"
+        )
+    if not np.isfinite(vector).all():
+        raise RuntimeError(
+            f"Exit-IQL checkpoint {field_name} contains non-finite values"
+        )
+    return vector
+
+
+def require_exit_iql_checkpoint_binding(
+    ckpt: object,
+    *,
+    feature_names: list[str],
+    feature_names_sha256: str,
+    requested_variant: str,
+    requested_fold_id: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Bind checkpoint weights and normalization to one exact feature order."""
+
+    if not isinstance(ckpt, dict):
+        raise RuntimeError("Exit-IQL checkpoint must be a mapping")
+    if ckpt.get("schema_v1") != "MULTI_HEAD_EXIT_IQL_V2_CHECKPOINT":
+        raise RuntimeError(
+            f"unsupported checkpoint schema: {ckpt.get('schema_v1')!r}"
+        )
+    if ckpt.get("variant") != requested_variant:
+        raise RuntimeError(
+            "Exit-IQL checkpoint variant does not match the requested variant"
+        )
+    if ckpt.get("fold_id") != requested_fold_id:
+        raise RuntimeError(
+            "Exit-IQL checkpoint fold_id does not match the requested serving fold"
+        )
+
+    checkpoint_feature_names = ckpt.get("feature_names_v1")
+    if not isinstance(checkpoint_feature_names, list):
+        raise RuntimeError(
+            "Exit-IQL checkpoint lacks ordered feature_names_v1"
+        )
+    if checkpoint_feature_names != feature_names:
+        raise RuntimeError(
+            "Exit-IQL checkpoint feature_names_v1 differs from summary order"
+        )
+    checkpoint_hash = ckpt.get("feature_names_sha256_v1")
+    if (
+        not isinstance(checkpoint_hash, str)
+        or checkpoint_hash != checkpoint_hash.strip().lower()
+        or len(checkpoint_hash) != 64
+        or any(ch not in "0123456789abcdef" for ch in checkpoint_hash)
+    ):
+        raise RuntimeError(
+            "Exit-IQL checkpoint feature_names_sha256_v1 is not an exact SHA-256"
+        )
+    computed_hash = exit_iql_ordered_feature_names_sha256(
+        checkpoint_feature_names
+    )
+    if checkpoint_hash != computed_hash:
+        raise RuntimeError(
+            "Exit-IQL checkpoint ordered feature_names_v1 SHA-256 mismatch"
+        )
+    if checkpoint_hash != feature_names_sha256:
+        raise RuntimeError(
+            "Exit-IQL checkpoint feature hash differs from summary feature hash"
+        )
+
+    state_dim = ckpt.get("state_dim")
+    if type(state_dim) is not int or state_dim != len(feature_names):
+        raise RuntimeError(
+            "Exit-IQL checkpoint state_dim does not match bound feature_names_v1"
+        )
+    feature_means = _checkpoint_float_vector(
+        ckpt.get("feature_means"),
+        field_name="feature_means",
+        state_dim=state_dim,
+    )
+    feature_stds = _checkpoint_float_vector(
+        ckpt.get("feature_stds"),
+        field_name="feature_stds",
+        state_dim=state_dim,
+    )
+    if not bool((feature_stds > 0.0).all()):
+        raise RuntimeError(
+            "Exit-IQL checkpoint feature_stds must be strictly positive"
+        )
+    return feature_means, feature_stds
 
 
 @dataclass(frozen=True)
@@ -75,23 +176,22 @@ class ExitIQLV2Adapter:
     k_weights: np.ndarray | None
     artifact_root: Path
     exit_margin: float = 0.0  # V9 Issue 2: relax decision threshold (>0 fires more, <0 fires less)
-    strict_failclosed: bool = True  # raise (not 0-fill) if a train-variance feature is missing
-    warmup_grace_features: frozenset = frozenset()  # names demoted to warn-only (cold-start regime/MTF)
-    required_feature_names: frozenset = frozenset()  # derived in load(): std >= STD_REQUIRED_THRESHOLD
+    required_feature_names: frozenset = frozenset()
 
     @classmethod
     def load(
         cls, artifact_root: Path, *,
-        variant: str = "R_NET_REAL", fold_id: str = "FOLD_1",
+        fold_id: str,
+        variant: str = "R_NET_REAL",
         aggregator: str = DEFAULT_AGGREGATOR, beta: float = 1.0,
         k_weights: Sequence[float] | None = None,
         prefer_cuda: bool = True,
         exit_margin: float = 0.0,
-        strict_failclosed: bool = True,
-        warmup_grace_features: Sequence[str] | None = None,
     ) -> "ExitIQLV2Adapter":
         if aggregator not in VALID_AGGREGATORS:
             raise ValueError(f"aggregator {aggregator!r} not in {VALID_AGGREGATORS}")
+        if not isinstance(fold_id, str) or not fold_id or fold_id != fold_id.strip():
+            raise ValueError("fold_id must be one explicit exact serving fold")
         artifact_root = Path(artifact_root)
         summary_path = artifact_root / "summary_v1.json"
         ckpt_path = artifact_root / "trained_models_v1" / f"{variant}_{fold_id}.pt"
@@ -99,12 +199,20 @@ class ExitIQLV2Adapter:
             raise FileNotFoundError(f"summary missing: {summary_path}")
         if not ckpt_path.is_file():
             raise FileNotFoundError(f"checkpoint missing: {ckpt_path}")
-        summary = json.loads(summary_path.read_text())
-        feature_names = list(summary["feature_names_v1"])
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        feature_names, feature_names_sha256 = require_exit_iql_summary_contract(
+            summary,
+            context=f"Exit-IQL bundle {artifact_root}",
+        )
         device = torch.device("cuda") if (prefer_cuda and torch.cuda.is_available()) else torch.device("cpu")
         ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
-        if ckpt.get("schema_v1") not in (None, "MULTI_HEAD_EXIT_IQL_V2_CHECKPOINT"):
-            raise ValueError(f"unsupported checkpoint schema: {ckpt.get('schema_v1')}")
+        feature_means, feature_stds = require_exit_iql_checkpoint_binding(
+            ckpt,
+            feature_names=feature_names,
+            feature_names_sha256=feature_names_sha256,
+            requested_variant=variant,
+            requested_fold_id=fold_id,
+        )
         state_dim = int(ckpt["state_dim"])
         n_actions = int(ckpt["n_actions"])
         if n_actions != 2:
@@ -114,10 +222,6 @@ class ExitIQLV2Adapter:
         hidden_dim = int(ckpt.get("hidden_dim", 128))
         n_hidden = int(ckpt.get("n_hidden", 2))
         dropout = float(ckpt.get("dropout", iql_core.DEFAULT_DROPOUT))
-        if state_dim != len(feature_names):
-            raise RuntimeError(
-                f"state_dim mismatch: ckpt={state_dim} vs summary feature_names={len(feature_names)}"
-            )
         q_net = iql_core.MLP(state_dim, n_actions * n_k,
                              hidden_dim=hidden_dim, n_hidden=n_hidden, dropout=dropout).to(device)
         v_net = iql_core.MLP(state_dim, n_k,
@@ -126,8 +230,6 @@ class ExitIQLV2Adapter:
         v_net.load_state_dict(ckpt["v_state_dict"])
         q_net.eval()
         v_net.eval()
-        feature_means = np.asarray(ckpt["feature_means"], dtype=np.float32)
-        feature_stds = np.asarray(ckpt["feature_stds"], dtype=np.float32)
         model = iql_core.MultiHeadExitIQLModel(
             q_net=q_net, v_net=v_net,
             state_dim=state_dim, n_actions=n_actions, n_k=n_k,
@@ -137,11 +239,6 @@ class ExitIQLV2Adapter:
         kw = np.asarray(k_weights, dtype=np.float32) if k_weights is not None else None
         if aggregator == "weighted" and (kw is None or len(kw) != n_k):
             raise ValueError(f"weighted aggregator needs k_weights of length {n_k}")
-        # Derive REQUIRED features from the checkpoint's training stds (one truth).
-        required_feature_names = frozenset(
-            fn for fn, sd in zip(feature_names, feature_stds.tolist())
-            if float(sd) >= STD_REQUIRED_THRESHOLD
-        )
         return cls(
             model=model,
             feature_names=feature_names,
@@ -150,23 +247,25 @@ class ExitIQLV2Adapter:
             aggregator=aggregator, beta=float(beta), k_weights=kw,
             artifact_root=artifact_root,
             exit_margin=float(exit_margin),
-            strict_failclosed=bool(strict_failclosed),
-            warmup_grace_features=frozenset(warmup_grace_features or ()),
-            required_feature_names=required_feature_names,
+            required_feature_names=frozenset(feature_names),
         )
 
     def build_state_vector(self, bar_state: dict[str, Any]) -> np.ndarray:
         v = np.zeros(len(self.feature_names), dtype=np.float32)
         missing: list[str] = []
+        categorical_columns: set[str] = set()
+        matched_categorical_columns: set[str] = set()
         for i, fname in enumerate(self.feature_names):
             if "__" in fname:
                 cat_col, _, cat_val = fname.partition("__")
+                categorical_columns.add(cat_col)
                 runtime_val = bar_state.get(cat_col)
                 if runtime_val is None:
                     missing.append(fname)
                     continue
                 if str(runtime_val) == cat_val:
                     v[i] = 1.0
+                    matched_categorical_columns.add(cat_col)
             else:
                 raw = bar_state.get(fname)
                 if raw is None:
@@ -175,36 +274,25 @@ class ExitIQLV2Adapter:
                 try:
                     v[i] = float(raw)
                 except (TypeError, ValueError):
-                    v[i] = 0.0
-        # Fail-closed coverage guard (2026-06-04). A REQUIRED feature (real training
-        # variance, std >= STD_REQUIRED_THRESHOLD) missing at serve is the 2026-05-19
-        # LONG-bias skew → refuse to 0-fill. Constants / one-hots / dead-zero debt
-        # (std ~1e-6) stay warn-only. warmup_grace_features demotes named cold-start
-        # features to warn-only.
+                    missing.append(fname)
+                    continue
+                if not np.isfinite(v[i]):
+                    missing.append(fname)
+        for cat_col in categorical_columns - matched_categorical_columns:
+            if bar_state.get(cat_col) is not None:
+                missing.append(f"{cat_col}__<known-category-required>")
         if missing:
-            required_missing = [
-                f for f in missing
-                if f in self.required_feature_names and f not in self.warmup_grace_features
-            ]
-            if required_missing and self.strict_failclosed:
-                raise RuntimeError(
-                    f"[FEATURE_COVERAGE_FATAL] {len(required_missing)} required "
-                    f"(train-variance) feature(s) missing from bar_state — refusing to "
-                    f"0-fill (2026-05-19 skew guard): {required_missing[:20]}"
-                    + (f" (+{len(required_missing)-20} more)" if len(required_missing) > 20 else "")
-                    + " | pass strict_failclosed=False or add to warmup_grace_features to override."
+            unique_missing = list(dict.fromkeys(missing))
+            raise RuntimeError(
+                f"[FEATURE_COVERAGE_FATAL] {len(unique_missing)} model-bound "
+                "feature(s) are missing, non-numeric, or non-finite; refusing "
+                f"to manufacture state values: {unique_missing[:20]}"
+                + (
+                    f" (+{len(unique_missing)-20} more)"
+                    if len(unique_missing) > 20
+                    else ""
                 )
-            if not getattr(self, "_missing_warned_set", None) == tuple(missing):
-                import logging
-                n_miss = len(missing)
-                tot = len(self.feature_names)
-                head = ", ".join(missing[:10])
-                logging.getLogger("exit_iql_v2_adapter").warning(
-                    f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from bar_state "
-                    f"(0-fill; {len(required_missing)} required) — first 10: [{head}]"
-                    + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
-                )
-                self._missing_warned_set = tuple(missing)
+            )
         return v
 
     def predict(self, bar_states: list[dict[str, Any]]) -> list[ExitRecommendation]:
@@ -262,6 +350,9 @@ class ExitIQLV2Adapter:
             "variant_v1": self.variant, "fold_id_v1": self.fold_id,
             "aggregator_v1": self.aggregator, "beta_v1": self.beta,
             "feature_count_v1": len(self.feature_names),
+            "feature_names_sha256_v1": exit_iql_ordered_feature_names_sha256(
+                self.feature_names
+            ),
             "k_horizons_v1": list(self.model.k_horizons),
             "n_actions_v1": int(self.model.n_actions),
             "device_v1": str(self.model.device),

@@ -1097,3 +1097,122 @@ That remains a source P0; consumer hardening does not manufacture a safe
 completion path. Launch remains `BLOCK`. No rebuild, training, calibration,
 replay, paper/demo/live execution or promotion was run, and V24/V7 remain
 immutable failure evidence.
+
+## 2026-07-23 — transactional launch source P0 is closed; launch stays BLOCK
+
+The missing bounded authority now exists as
+`gx1/scripts/finalize_entry_model_native_launch_v1.py` with its exact
+transaction contract in
+`gx1/contracts/entry_model_native_launch_transaction_v1.py`. This is a
+genuinely separate transaction authority, not a minor-version copy or
+compatibility wrapper, and it is reachable only through the existing
+`scripts/entry_next_edge_control.sh model-native-finalize-launch` surface.
+The public CLI fixes the repository registry/state and canonical
+`GX1_DATA/reports/entry_model_native_launch_authority` roots.
+
+The finalizer cannot mint its own approval. A pre-existing one-time vedtak
+must bind the exact bundle commit, transaction ID, canonical targets,
+operating point and all prerequisite evidence. Exact same-byte/no-symlink
+reads, recursive active-Exit projection, TEST-replay portfolio-capacity proof,
+a stable process lock, registry compare-and-swap, local immutable backups and
+strict COMMIT/FAIL validation form one recoverable registry/state
+transaction. Partial replacement restores both original targets and publishes
+newer terminal FAIL evidence. Runtime revalidates the accepted lease before
+each new exposure.
+
+Read-only data inspection corrected the December-2024 boundary: canonical M5
+and live-prebuilt share 3,430 impossible-geometry rows, 2,799 on weekends.
+Clean M1 supports 5,757 rebuilt December M5 buckets and leaves 3,459 canonical
+rows without M1 backing. No canonical or live data were modified.
+
+Decision:
+
+- `remaining_source_p0=[]`; preserve all source repairs;
+- keep launch `BLOCK`: no accepted fresh dataset, model, bundle, replay,
+  lifecycle chain, real vedtak or launch transaction exists;
+- repair and prove canonical/live December-2024 parity before rebuild;
+- then rebuild and train from fresh XAU-only bytes, comparing a declared
+  full-history baseline with a TRAIN-only recent-regime challenger while
+  preserving final TEST;
+- extend the existing script/contract owner for minor changes. A new file is
+  permitted only for a genuinely new bounded authority and must remain routed
+  through the existing public control surface.
+
+## 2026-07-23 — adversarial Exit replay re-audit reopens one source P0
+
+The transaction mechanics above remain repaired, but the assumption that the
+joint Exit proof was model-produced was false. The existing sizing finalizer
+hashes the selected XGB/V3/Exit-IQL artifacts and validates caller-supplied
+replay/trace parquets; it never executes those models. A synthetic linear
+price trace could therefore satisfy the diagnostic schema without proving
+that the active Exit stack caused any action.
+
+Containment is now exact and fail-closed:
+
+- `entry_fill_time` is explicit and exactly decision T+5;
+- replay rows must extend the exact canonical OOS TEST rows;
+- every trace-step PnL is recomputed from bid/ask;
+- simultaneous exposure is fixed to one until shared
+  equity/margin/drawdown replay exists;
+- cached sizing authority rehashes every bound byte on every application;
+- runner admission reconciles exact broker/local XAU trade IDs and requires
+  the same exposure transaction snapshot immediately before a new order;
+- launch finalizer and runtime artifact guard reject caller-supplied Exit
+  replay before vedtak consumption or authority mutation.
+
+Decision:
+
+- `remaining_source_p0=["canonical_full_test_active_exit_replay_producer"]`;
+- reuse `V12Pipeline.make_exit_decision`; do not implement a second Exit
+  policy;
+- the producer must own full TEST iteration, complete frozen Entry snapshots,
+  T+5 fills, immutable M1/canonical/BASE28/MTF state, active model/config bytes
+  and complete per-M1 input/output/action traces;
+- fallback, floor-only approximation, missing bar/state and horizon-cap are
+  terminal red;
+- launch remains `BLOCK`; the repaired transaction finalizer must not be
+  confused with completed upstream evidence.
+
+## 2026-07-23 — full feature/Exit audit supersedes the single-P0 view
+
+Three parallel read-only audits traced the data/feature producer, model
+training and live inference/launch paths field by field. They proved that the
+old active Exit selection is not a valid incumbent: its per-bar data predate
+the exact T+5 fill, about 80% of sampled M1 rows join a still-forming M5 bar,
+the V3 trade overlay is shifted one M1 row, the fixed live M5 fetch leaves part
+of a real 512-M1 window zero-filled, and five M1 microfeatures use different
+train/serve formulas. TradeState also persisted partial transitions and lost
+cadence/deferral identity on restart.
+
+The Exit artifact contract was independently invalid. Its summary declares
+research-only/non-production, ordered feature names are not bound into the old
+checkpoints, and three folds have no explicit serving fold. The V3 lineage is
+not reproducible from its declared deleted input. No code-only waiver can
+rehabilitate these bytes.
+
+Decision:
+
+- keep Entry, candidate replay and all paper/demo/live launch `BLOCK`;
+- extend existing owners only; no minor-version or one-off scripts;
+- require exact T+5 fill, first closed fill-bar state with
+  `bars_in_trade=1`, exact last-closed-M5 joins and exact V3 overlay timestamps;
+- require full 512-M1-derived M5 coverage, complete finite feature state and
+  one shared M1 microfeature implementation;
+- stage M1→V3→Exit on a cloned TradeState, persist exact last M1 and
+  Strategy-F deferral, and commit only a complete decision;
+- require production flags, explicit serving fold, all ordered features and
+  summary↔checkpoint feature SHA before Exit load;
+- rebuild/rescore/retrain Exit after data/source repair; old outputs have zero
+  launch authority;
+- retain as open P0s: canonical active-Exit full-TEST producer, complete
+  canonical-v2 incremental state parity, atomic canonical/BASE generation
+  identity, canonical-M5/market-closure ownership, an observed per-bar
+  slippage source and reproducible V3 lineage;
+- close the formula/alignment P0 in source: PLUS5 ATR/ROC/VWAP and dependent
+  normalized VWAP have one shared owner, SMC consumes the published ATR, and
+  H1/H4 selects the state available at M5 decision time without an extra lag;
+- keep current prebuilts blocked: manifest-bound loader admission proves path,
+  SHA, rows and Arrow schema, and the still-running legacy updater has already
+  produced a canonical parquet whose bytes no longer match its manifest;
+- treat the 2,375 invalid prebuilt OHLC rows in late 2024 as a separate data
+  rebuild/quarantine blocker. No canonical/live data were modified.

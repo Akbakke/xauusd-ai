@@ -32,6 +32,7 @@ sources=(
   "$REPO/CLAUDE.md"
   "$REPO/DEVELOPMENT_NOTES.md"
   "$REPO/README.md"
+  "$REPO/GX1_PATHS.md"
   "$REPO/ROADMAP.md"
   "$REPO/SYSTEM_MAP.md"
   "$HANDOVER"
@@ -96,14 +97,22 @@ if (
     or repair.get("fresh_training_started") is not False
     or repair.get("empirical_direction_edge_proven") is not False
     or repair.get("remaining_source_p0")
-    != ["canonical_transactional_candidate_promotion_launch_finalizer"]
+    != [
+        "canonical_full_test_active_exit_replay_producer",
+        "active_exit_rebuild_rescore_retrain_on_exact_t_plus_5_causal_state",
+        "complete_canonical_v2_incremental_full_history_state_parity",
+        "atomic_canonical_base_generation_identity",
+        "canonical_m5_single_owner_and_market_closure_policy",
+        "observed_per_bar_slippage_source_contract",
+        "reproducible_v3_training_lineage",
+    ]
 ):
     raise SystemExit("FATAL: malformed source-repair checkpoint")
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1725
-    or verification.get("tests_passed") != 1720
+    or verification.get("tests_collected") != 1821
+    or verification.get("tests_passed") != 1816
     or verification.get("tests_skipped") != 5
     or verification.get("tests_failed") != 0
     or verification.get("changed_python_compile") != "PASS"

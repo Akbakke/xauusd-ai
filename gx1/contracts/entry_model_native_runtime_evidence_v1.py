@@ -32,7 +32,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 
 
 MODEL_NATIVE_RUNTIME_EVIDENCE_SCHEMA_VERSION = (
-    "entry_model_native_runtime_evidence_v2"
+    "entry_model_native_runtime_evidence_v3"
 )
 MODEL_NATIVE_RUNTIME_POLICY = "xau_seq513_model_native_direction_argmax_v2"
 MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC = 300.0
@@ -40,6 +40,18 @@ MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC = 90.0
 MODEL_DIRECTION_NAMES = ("LONG", "SHORT", "FLAT")
 PUBLIC_TRADE_FLAT_NAMES = ("TRADE", "FLAT")
 MODEL_NATIVE_SESSION_NAMES = ("ASIA", "EU", "OVERLAP", "US")
+MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES = (
+    "LOW",
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "EXTREME",
+)
+MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES = (
+    "TREND_DOWN",
+    "TREND_NEUTRAL",
+    "TREND_UP",
+)
 RETIRED_RUNTIME_EVIDENCE_FRAGMENTS = (
     "anchor",
     "sniper",
@@ -60,6 +72,13 @@ MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS = frozenset(
         "model_policy",
         "session_id",
         "session",
+        "entry_vol_regime_id",
+        "entry_vol_regime",
+        "entry_atr_bucket",
+        "entry_spread_bucket",
+        "entry_h4_trend_sign_cat",
+        "entry_trend_regime_id",
+        "entry_trend_regime",
         "direction_logits",
         "raw_direction_logits",
         "direction_probs",
@@ -343,6 +362,53 @@ def require_model_native_runtime_evidence(
         _fail(context, "session_id", "must be one of 0,1,2,3")
     if validated.get("session") != MODEL_NATIVE_SESSION_NAMES[session_id]:
         _fail(context, "session", "session_id/name mismatch")
+    entry_vol_regime_id = _exact_integer(
+        validated,
+        "entry_vol_regime_id",
+        context=context,
+    )
+    if entry_vol_regime_id not in range(len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)):
+        _fail(context, "entry_vol_regime_id", "must be one of 0,1,2,3,4")
+    if (
+        validated.get("entry_vol_regime")
+        != MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[entry_vol_regime_id]
+    ):
+        _fail(
+            context,
+            "entry_vol_regime",
+            "entry_vol_regime_id/name mismatch",
+        )
+    entry_h4_trend_sign_cat = _exact_integer(
+        validated,
+        "entry_h4_trend_sign_cat",
+        context=context,
+    )
+    if entry_h4_trend_sign_cat not in range(
+        len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+    ):
+        _fail(context, "entry_h4_trend_sign_cat", "must be one of 0,1,2")
+    for bucket_name in ("entry_atr_bucket", "entry_spread_bucket"):
+        bucket = _exact_integer(validated, bucket_name, context=context)
+        if bucket not in range(5):
+            _fail(context, bucket_name, "must be one of 0,1,2,3,4")
+    entry_trend_regime_id = _exact_integer(
+        validated,
+        "entry_trend_regime_id",
+        context=context,
+    )
+    if entry_trend_regime_id not in range(
+        len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)
+    ):
+        _fail(context, "entry_trend_regime_id", "must be one of 0,1,2")
+    if (
+        validated.get("entry_trend_regime")
+        != MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES[entry_trend_regime_id]
+    ):
+        _fail(
+            context,
+            "entry_trend_regime",
+            "entry_trend_regime_id/name mismatch",
+        )
 
     # Every exact raw tensor that enters the sole learned 96-wide direction
     # fusion is mandatory runtime evidence with its immutable width.  This is
@@ -893,6 +959,8 @@ __all__ = [
     "MODEL_NATIVE_DECISION_AVAILABILITY_LAG_SEC",
     "MODEL_NATIVE_MAX_ENTRY_SIGNAL_LATENCY_SEC",
     "MODEL_NATIVE_SESSION_NAMES",
+    "MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES",
+    "MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES",
     "MODEL_NATIVE_RUNTIME_EVIDENCE_REQUIRED_FIELDS",
     "MODEL_NATIVE_RUNTIME_EVIDENCE_OPTIONAL_TIMING_FIELDS",
     "RETIRED_RUNTIME_EVIDENCE_FRAGMENTS",

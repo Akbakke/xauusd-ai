@@ -55,7 +55,10 @@ from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
 from gx1.execution.v12_xgb_live import XGBLiveInference as ExitXGBLiveInference
 from gx1.execution.v12_model_native_state_live import SEQ_LEN_MODEL_NATIVE as ENTRY_SEQ_LEN
 from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference, let_winners_run_hold
-from gx1.execution.v12_v3_live import V3LiveInference
+from gx1.execution.v12_v3_live import (
+    V3LiveInference,
+    required_closed_m5_keys_for_v3_window,
+)
 from gx1.execution.v12_trade_state import TradeState
 
 LOG = logging.getLogger("v12_pipeline")
@@ -249,6 +252,11 @@ class V12Pipeline:
     # XGB remains available to exit/V3 only and never enters Entry direction.
     _last_augmented_bucket: pd.Timestamp | None = None
     _last_augmented: pd.DataFrame | None = None
+    # Exit/V3 has a 512-M1 contract and therefore a different closed-M5
+    # footprint from Entry's fixed 96-M5 window. Keep its cache independent so
+    # an Entry refresh can never masquerade as complete V3 canonical coverage.
+    _last_exit_augmented: pd.DataFrame | None = None
+    _last_exit_required_m5_keys: tuple[pd.Timestamp, ...] | None = None
     # Exact closed-M1 cache.  A cache hit is admitted only when its timestamp is
     # the unique expected bar for this cadence step; an older cached bar is never
     # a substitute for missing collector state.
@@ -543,55 +551,151 @@ class V12Pipeline:
         self._last_augmented_bucket = cur_bucket
         self._last_augmented = augmented
 
-    def _refresh_exit_canonical(self, now_minute: pd.Timestamp) -> bool:
-        """Refresh the Exit stack's augmented window from disk prebuilt.
+    def _refresh_exit_canonical(self, now_minute: pd.Timestamp) -> None:
+        """Load every exact closed-M5 row required by the active 512-M1 V3 window."""
+        now_ts = _utc_ts(now_minute)
+        decision_m1 = now_ts.floor("min") - pd.Timedelta(minutes=1)
 
-        This retains the separately admitted Exit stack's existing behavior and
-        configurable operational staleness cap. Entry must use the strict,
-        immutable ``_refresh_entry_canonical`` contract above.
-
-        Returns True if data available, False only if prebuilt is empty or
-        history insufficient (early-history edge cases).
-        """
         # Hot-reload prebuilts from disk if incremental updater extended them.
         # Invalidates cached window if cutoff advanced.
         if self.prebuilt_loader.refresh_if_changed():
             self._last_augmented_bucket = None
             self._last_augmented = None
-        cutoff = self.prebuilt_loader.cutoff_ts
-        # FAIL-CLOSED staleness cap (2026-06-03 audit): the clip below silently decides on
-        # stale features if the canonical-incremental daemon stalls/dies (now>cutoff frozen).
-        # Refuse model inference when the prebuilt is older than the cap. Live-only by construction:
-        # replay always has now<=cutoff so this never fires there.
-        import os as _os
-        _max_stale_min = float(_os.environ.get("GX1_MAX_PREBUILT_STALENESS_MIN", "30"))
-        if cutoff is not None and now_minute > cutoff:
-            _age_min = (now_minute - cutoff).total_seconds() / 60.0
+            self._last_exit_augmented = None
+            self._last_exit_required_m5_keys = None
+
+        base_m1 = getattr(self.prebuilt_loader, "_base28", None)
+        if base_m1 is None or not isinstance(base_m1, pd.DataFrame) or base_m1.empty:
+            raise ExitDecisionUnavailable(
+                "v3_base_m1_unavailable",
+                decision_m1=str(decision_m1),
+            )
+        try:
+            required_m5 = required_closed_m5_keys_for_v3_window(
+                decision_m1,
+                base_m1,
+            )
+        except Exception as exc:  # noqa: BLE001 - expose exact source-contract failure
+            raise ExitDecisionUnavailable(
+                "v3_m1_window_invalid",
+                decision_m1=str(decision_m1),
+                error_type=type(exc).__name__,
+                error=str(exc),
+            ) from exc
+        required_key_tuple = tuple(required_m5)
+        required_latest = required_m5[-1]
+
+        raw_cutoff = getattr(self.prebuilt_loader, "cutoff_ts", None)
+        if raw_cutoff is None:
+            raise ExitDecisionUnavailable(
+                "exit_canonical_cutoff_missing",
+                decision_m1=str(decision_m1),
+                required_latest_m5=str(required_latest),
+            )
+        try:
+            cutoff = _utc_ts(raw_cutoff)
+        except Exception as exc:  # noqa: BLE001 - structured contract evidence
+            raise ExitDecisionUnavailable(
+                "exit_canonical_cutoff_invalid",
+                decision_m1=str(decision_m1),
+                cutoff=repr(raw_cutoff),
+                error_type=type(exc).__name__,
+            ) from exc
+        if pd.isna(cutoff):
+            raise ExitDecisionUnavailable(
+                "exit_canonical_cutoff_invalid",
+                decision_m1=str(decision_m1),
+                cutoff=repr(raw_cutoff),
+            )
+
+        # Refuse model inference when the canonical daemon is stale. The
+        # additional exact-key gate below applies even while this operational
+        # age is still inside its configured cap.
+        _max_stale_min = float(os.environ.get("GX1_MAX_PREBUILT_STALENESS_MIN", "30"))
+        if now_ts > cutoff:
+            _age_min = (now_ts - cutoff).total_seconds() / 60.0
             if _age_min > _max_stale_min:
-                LOG.error(f"[PREBUILT_STALE] cutoff {cutoff} is {_age_min:.0f} min behind now "
-                          f"{now_minute} (> {_max_stale_min} cap) — MODEL UNAVAILABLE (canonical daemon stalled?)")
-                return False
-        # Clip to latest CLOSED M5 start. A wall-clock poll at 12:07 must not
-        # read the 12:05 row, which is unavailable until 12:10.
-        latest_closed_m5 = _latest_closed_m5_start(now_minute)
-        effective_ts = latest_closed_m5 if cutoff is None or latest_closed_m5 <= cutoff else cutoff
-        cur_bucket = effective_ts.floor("5min")
-        if self._last_augmented_bucket == cur_bucket and self._last_augmented is not None:
-            return True
+                raise ExitDecisionUnavailable(
+                    "exit_canonical_stale",
+                    now_minute=str(now_ts),
+                    decision_m1=str(decision_m1),
+                    canonical_cutoff=str(cutoff),
+                    canonical_cutoff_age_min=float(_age_min),
+                    canonical_cutoff_age_cap_min=float(_max_stale_min),
+                )
+        if cutoff < required_latest:
+            raise ExitDecisionUnavailable(
+                "exit_latest_required_closed_m5_unavailable",
+                now_minute=str(now_ts),
+                decision_m1=str(decision_m1),
+                canonical_cutoff=str(cutoff),
+                required_latest_m5=str(required_latest),
+            )
 
-        # Read 96-bar window directly from canonical_v3 + BASE28 prebuilts.
-        # Identical values to what V12 cascade trainings saw — no live recompute.
-        augmented = self.prebuilt_loader.get_window(effective_ts, n_bars=ENTRY_SEQ_LEN)
-        if augmented.empty:
-            LOG.warning(f"prebuilt empty for {effective_ts} (cutoff={cutoff}) — system not ready")
-            return False
-        if len(augmented) < ENTRY_SEQ_LEN:
-            LOG.warning(f"only {len(augmented)} bars (need {ENTRY_SEQ_LEN}) — early-history bar")
-            return False
+        if (
+            self._last_exit_required_m5_keys == required_key_tuple
+            and self._last_exit_augmented is not None
+        ):
+            return
 
-        self._last_augmented_bucket = cur_bucket
-        self._last_augmented = augmented
-        return True
+        try:
+            augmented = self.prebuilt_loader.get_window(
+                required_latest,
+                n_bars=len(required_m5),
+            )
+        except Exception as exc:  # noqa: BLE001 - structured contract evidence
+            raise ExitDecisionUnavailable(
+                "exit_canonical_window_read_failed",
+                decision_m1=str(decision_m1),
+                required_latest_m5=str(required_latest),
+                required_m5_bars=int(len(required_m5)),
+                error_type=type(exc).__name__,
+            ) from exc
+        if augmented is None or not isinstance(augmented, pd.DataFrame) or augmented.empty:
+            raise ExitDecisionUnavailable(
+                "exit_canonical_window_empty",
+                decision_m1=str(decision_m1),
+                required_latest_m5=str(required_latest),
+                required_m5_bars=int(len(required_m5)),
+            )
+        try:
+            observed_index = pd.to_datetime(
+                augmented.index,
+                utc=True,
+                errors="coerce",
+            )
+        except Exception as exc:  # noqa: BLE001 - structured contract evidence
+            raise ExitDecisionUnavailable(
+                "exit_canonical_index_invalid",
+                decision_m1=str(decision_m1),
+                error_type=type(exc).__name__,
+            ) from exc
+        if (
+            observed_index.hasnans
+            or not observed_index.is_monotonic_increasing
+            or not observed_index.is_unique
+        ):
+            raise ExitDecisionUnavailable(
+                "exit_canonical_index_invalid",
+                decision_m1=str(decision_m1),
+                has_nat=bool(observed_index.hasnans),
+                monotonic=bool(observed_index.is_monotonic_increasing),
+                unique=bool(observed_index.is_unique),
+            )
+        if not np.array_equal(observed_index.asi8, required_m5.asi8):
+            missing = required_m5.difference(observed_index)
+            unexpected = observed_index.difference(required_m5)
+            raise ExitDecisionUnavailable(
+                "exit_canonical_required_keys_mismatch",
+                decision_m1=str(decision_m1),
+                observed_m5_bars=int(len(observed_index)),
+                required_m5_bars=int(len(required_m5)),
+                missing_m5=[str(ts) for ts in missing[:5]],
+                unexpected_m5=[str(ts) for ts in unexpected[:5]],
+            )
+
+        self._last_exit_augmented = augmented
+        self._last_exit_required_m5_keys = required_key_tuple
 
     # ── entry decision ────────────────────────────────────────────────
 
@@ -878,7 +982,7 @@ class V12Pipeline:
                 )
 
         try:
-            canonical_ready = self._refresh_exit_canonical(now_ts)
+            self._refresh_exit_canonical(now_ts)
         except ExitDecisionUnavailable:
             raise
         except Exception as exc:  # noqa: BLE001 - structured no-decision evidence
@@ -889,16 +993,8 @@ class V12Pipeline:
                 decision_m1=str(m1_bar["time"]),
                 error_type=type(exc).__name__,
             ) from exc
-        if not canonical_ready:
-            raise ExitDecisionUnavailable(
-                "canonical_data_unavailable",
-                now_minute=str(now_ts),
-                expected_m5=str(_latest_closed_m5_start(now_ts)),
-                decision_m1=str(m1_bar["time"]),
-                cutoff=str(getattr(self.prebuilt_loader, "cutoff_ts", "")),
-            )
 
-        augmented = self._last_augmented
+        augmented = self._last_exit_augmented
         decision_m5, cv3_row = _exact_closed_m5_row(augmented, now_ts)
 
         # last_atr_bps = latest M5 atr (journal/diagnostic + from_dict backfill only).
@@ -954,22 +1050,39 @@ class V12Pipeline:
                 latest_observed_m1=str(valid_base_index.max()) if len(valid_base_index) else "",
             )
 
-        # Advance only from the authoritative closed bar.  The fresh quote above
-        # is risk telemetry; it must not become the model's M1 state.
-        trade.update_bar(
-            bid=float(m1_bar["bid_close"]),
-            ask=float(m1_bar["ask_close"]),
-            m1_close=authoritative_m1_close,
-            bid_high=float(m1_bar["bid_high"]),
-            bid_low=float(m1_bar["bid_low"]),
-            ask_high=float(m1_bar["ask_high"]),
-            ask_low=float(m1_bar["ask_low"]),
-        )
-        trade.last_atr_bps = canonical_atr_bps
+        # Stage the complete M1 -> V3 -> Exit-IQL transition on an exact clone.
+        # The caller-visible state is committed only after every input/output
+        # contract has passed, so an exception cannot persist a half-updated bar.
+        try:
+            working_trade = trade.clone_for_exit_decision()
+            working_trade.update_bar(
+                m1_bar_ts=pd.Timestamp(m1_bar["time"]),
+                bid=float(m1_bar["bid_close"]),
+                ask=float(m1_bar["ask_close"]),
+                m1_close=authoritative_m1_close,
+                bid_high=float(m1_bar["bid_high"]),
+                bid_low=float(m1_bar["bid_low"]),
+                ask_high=float(m1_bar["ask_high"]),
+                ask_low=float(m1_bar["ask_low"]),
+            )
+        except Exception as exc:  # noqa: BLE001 - structured no-decision evidence
+            raise ExitDecisionUnavailable(
+                "trade_state_m1_transition_invalid",
+                decision_m1=str(m1_bar["time"]),
+                prior_m1=str(getattr(trade, "last_processed_m1_ts", None)),
+                bars_in_trade=int(getattr(trade, "bars_in_trade", -1)),
+                error_type=type(exc).__name__,
+                error=str(exc),
+            ) from exc
+        working_trade.last_atr_bps = canonical_atr_bps
 
         # Run V3 v8 inference with trade-state overlay (B3 wire-up)
         try:
-            overlay = trade.build_v3_overlay() if trade.bars_in_trade > 0 else None
+            overlay = (
+                working_trade.build_v3_overlay()
+                if working_trade.bars_in_trade > 0
+                else None
+            )
             # V12.2: fetch multi-TF windows if V3 bundle requires them
             v3_mtf_windows = None
             if getattr(self.v3, "_enable_multi_tf", False):
@@ -1017,7 +1130,7 @@ class V12Pipeline:
         self._v3_fail_strikes = 0
         # Update running V3 statistics only after the complete output contract
         # has passed; partial/NaN output must not contaminate the next bar.
-        trade.update_v3(v3_v8_out)
+        working_trade.update_v3(v3_v8_out)
 
         # C1 fix 2026-05-19: training uses per-M1-bar (ask_high - bid_low)/mid bps
         # (typical 3-7 bps), live had been using canonical M5 ATR14 (10-50 bps).
@@ -1025,7 +1138,7 @@ class V12Pipeline:
         m1_atr_bps = float(m1_bar["atr_bps"])
         try:
             rec, bar_state = self.exit_iql.decide_for_trade(
-                trade,
+                working_trade,
                 cv3_row,
                 v3_v8_out=v3_v8_out,
                 current_m1_atr_bps_override=m1_atr_bps,
@@ -1053,7 +1166,7 @@ class V12Pipeline:
         # so the featurizer drops them (hence the benign [EXIT_IQL_V3_TRACKING_MISSING]
         # load warning) — train==serve holds. A future refit must define and prove
         # a new vedtak-gated dataset contract explicitly before consuming them.
-        bar_state.update(trade.build_v3_tracking_features())
+        bar_state.update(working_trade.build_v3_tracking_features())
         # Surface raw Exit-IQL Q-values for diagnostics (was None before, made
         # debugging premature exits impossible). q_per_action_v1 = [q_hold, q_exit].
         try:
@@ -1118,18 +1231,30 @@ class V12Pipeline:
         # LET-WINNERS-RUN overlay (default-OFF; ONE-TRUTH with the phase6 gate): suppress a profit-EXIT_NOW
         # while the trade is in profit AND still near its MFE peak, so a winner rides until a real trailing
         # giveback (Strategy-F) / hard-stop closes it — addresses the held_too_short continuation-miss leak.
-        if _action_id == 1 and let_winners_run_hold(float(trade.current_pnl_bps), float(trade.cum_mfe_bps)):
+        if _action_id == 1 and let_winners_run_hold(
+            float(working_trade.current_pnl_bps),
+            float(working_trade.cum_mfe_bps),
+        ):
             _action_label = "HOLD"
             _action_id = 0
             _decision_source = "LET_WINNERS_RUN"
-        if _EXIT_HARD_STOP_BPS > 0.0 and _action_id != 1 and float(trade.current_pnl_bps) <= -_EXIT_HARD_STOP_BPS:
+        if (
+            _EXIT_HARD_STOP_BPS > 0.0
+            and _action_id != 1
+            and float(working_trade.current_pnl_bps) <= -_EXIT_HARD_STOP_BPS
+        ):
             _action_label = "EXIT_NOW"
             _action_id = 1
             _decision_source = "HARD_MAE_STOP"
-            LOG.info(f"[HARD_MAE_STOP] {trade.side} trade_id={getattr(trade, 'trade_id', '?')} "
-                     f"pnl={trade.current_pnl_bps:+.1f}bps <= -{_EXIT_HARD_STOP_BPS:.0f} → force EXIT_NOW "
-                     f"(bars={trade.bars_in_trade}, mae={trade.cum_mae_bps:+.1f})")
-        return {
+            LOG.info(
+                f"[HARD_MAE_STOP] {working_trade.side} "
+                f"trade_id={getattr(working_trade, 'trade_id', '?')} "
+                f"pnl={working_trade.current_pnl_bps:+.1f}bps "
+                f"<= -{_EXIT_HARD_STOP_BPS:.0f} → force EXIT_NOW "
+                f"(bars={working_trade.bars_in_trade}, "
+                f"mae={working_trade.cum_mae_bps:+.1f})"
+            )
+        decision = {
             "action": _action_label,
             "action_id": _action_id,
             "decision_source": _decision_source,
@@ -1141,12 +1266,14 @@ class V12Pipeline:
             "q_exit": q_exit,
             "q_advantage": q_advantage,
             "bar_state": bar_state_clean,
-            "bars_in_trade": int(trade.bars_in_trade),
-            "current_pnl_bps": float(trade.current_pnl_bps),
-            "cum_mfe_bps": float(trade.cum_mfe_bps),
-            "cum_mae_bps": float(trade.cum_mae_bps),
+            "bars_in_trade": int(working_trade.bars_in_trade),
+            "current_pnl_bps": float(working_trade.current_pnl_bps),
+            "cum_mfe_bps": float(working_trade.cum_mfe_bps),
+            "cum_mae_bps": float(working_trade.cum_mae_bps),
             "stub": False,
         }
+        trade.commit_complete_exit_bar(working_trade)
+        return decision
 
 
 # Backwards-compat module-level callable so existing paper-runner code

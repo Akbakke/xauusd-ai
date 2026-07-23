@@ -76,18 +76,30 @@ specialist/family×TF minimum use. No checkpoint or bundle was written.
 
 The independent full-pipeline audit in
 `PIPELINE_AUDIT_XAU_20260723.md` found two P0s and multiple P1s. Source now
-repairs signed dip-MFE, selected-side bad-path symmetry, no-replacement
-sampling, bidirectional aux weighting, exact recipe/M5 authority, single-mode
-MTF caching, all-22-head checkpoint influence, forward-head bps units,
-grad-accum consumption and stale bundle-loader pass-throughs. V24/V7 remain
-immutable failure evidence because their bytes and training outcome predate
-those repairs. The remaining pre-rebuild architecture blockers are immutable
-TRAIN-fit normalization for raw 513+142 continuous inputs and true direct
-142+5 family-owned context routing; 60 continuous plus all five categorical
-fields currently reach global context/gates/FiLM but no claimed pre-cross
-specialist token. Atomic bundle publication and transactional launch/vedtak
-also remain open. No V8, rebuild, candidate or launch is allowed before those
-repairs and a fresh XAU-only dataset.
+repairs target/objective semantics,
+no-replacement sampling, conditional auxiliary evidence, exact recipe/M5/MTF
+identity, full-TRAIN normalization, direct 142+5 family ownership,
+all-22-head/26-group influence, atomic bundle/event publication, recursive
+active-Exit byte identity, identity-bound approval/vedtak, recoverable
+candidate-to-launch finalization, runtime lease rechecks and execution
+fail-close. The public finalizer serializes the canonical registry/state
+targets, requires a pre-existing one-time vedtak, binds the accepted bundle
+and exact single-exposure operating point, and either commits both targets or
+restores both with durable failure evidence.
+
+The adversarial re-audit proved that the existing joint Exit finalizer only
+validates caller-supplied replay/trace parquets; it does not run the active
+XGB→V3→Exit-IQL/Strategy-F chain. Those diagnostics have zero launch
+authority. Both the launch finalizer and runtime artifact guard reject them
+before activation. The later full feature/Exit audit also invalidates the
+retained Exit artifacts: old fill/M5/overlay timing is causal-wrong and the
+Exit-IQL bundle declares research-only/non-production with no bound feature
+order or serving fold. Open P0s now include the canonical full-TEST producer,
+causal Exit rebuild/rescore/retrain, complete incremental/full-history parity,
+atomic canonical/BASE generation, canonical-M5/closure ownership, unified
+ATR/ROC/VWAP semantics and reproducible V3 lineage. V24/V7 remain immutable
+failure evidence. Canonical/live December-2024 M5 parity and every fresh
+empirical dataset/model/edge gate also remain open.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the
@@ -360,6 +372,13 @@ artifacts and data. Never recursively scan `.venv`, `.git` or
 Do not create a parallel implementation when an active owner exists. If a new
 shared helper is truly necessary, move all consumers to it and delete the old
 owner in the same bounded change.
+
+Extend the existing script, contract or control route whenever the requested
+behavior belongs to its current responsibility. Do not create a new versioned
+script for a minor edit, compatibility spelling or local workaround. A new
+file is admissible only for a genuinely new, bounded authority/responsibility
+whose inclusion in an existing owner would mix contracts; document why it is
+new and route it through the existing public control surface.
 
 ## Cleanup discipline
 

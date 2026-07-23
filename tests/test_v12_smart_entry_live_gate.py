@@ -881,6 +881,11 @@ def _decision_head(
     return {
         "time": pd.Timestamp("2026-07-08T18:00:00Z"),
         "session_id": 0,  # ASIA is outside the legacy sessions=[US] gate.
+        "entry_vol_regime_id": 3,
+        "entry_atr_bucket": 4,
+        "entry_spread_bucket": 1,
+        "entry_h4_trend_sign_cat": 0,
+        "entry_trend_regime_id": 2,
         "raw_direction_logits": list(direction_logits),
         "direction_logits": list(direction_logits),
         "direction_probs": direction_probs,
@@ -1321,7 +1326,8 @@ def _forward_states() -> dict:
         "seq": np.zeros((1, 2, 1), dtype=np.float32),
         "snap": np.asarray([[0.4, 0.7, 0.2, 0.1, 0.05, 0.65]], dtype=np.float32),
         "ctx_cont": np.zeros((1, 1), dtype=np.float32),
-        "ctx_cat": np.zeros((1, 1), dtype=np.int64),
+        "ctx_cat": np.asarray([[0, 3, 4, 1, 0]], dtype=np.int64),
+        "entry_trend_regime_id": np.asarray([2], dtype=np.int64),
         "_evidence_names": evidence_names,
     }
 

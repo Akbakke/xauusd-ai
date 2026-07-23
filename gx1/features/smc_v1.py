@@ -106,17 +106,42 @@ def compute_smc_features(
 ) -> pd.DataFrame:
     """Compute SMC features. Returns DataFrame with 9 new columns indexed same as input.
 
-    Required columns on df: high, low, close (and atr if present — falls back to 1.0).
+    Required columns on df: high, low, close and atr. All are exact observed or
+    causally computed inputs; no ATR sentinel is permitted.
     """
     nb = len(df)
-    high = df[high_col].to_numpy(dtype=np.float64)
-    low = df[low_col].to_numpy(dtype=np.float64)
-    close = df[close_col].to_numpy(dtype=np.float64)
-    atr = (
-        df[atr_col].ffill().fillna(0.0).to_numpy(dtype=np.float64)
-        if atr_col in df.columns
-        else np.ones(nb, dtype=np.float64)
+    if nb == 0:
+        raise RuntimeError("[SMC_SOURCE_EMPTY] cannot produce SMC features from zero rows")
+    required = (high_col, low_col, close_col, atr_col)
+    missing = [column for column in required if column not in df.columns]
+    if missing:
+        raise RuntimeError(f"[SMC_SOURCE_MISSING] required columns missing: {missing}")
+    high = pd.to_numeric(df[high_col], errors="coerce").to_numpy(dtype=np.float64)
+    low = pd.to_numeric(df[low_col], errors="coerce").to_numpy(dtype=np.float64)
+    close = pd.to_numeric(df[close_col], errors="coerce").to_numpy(dtype=np.float64)
+    atr = pd.to_numeric(df[atr_col], errors="coerce").to_numpy(dtype=np.float64)
+    invalid_numeric = (
+        (~np.isfinite(high))
+        | (~np.isfinite(low))
+        | (~np.isfinite(close))
+        | (~np.isfinite(atr))
     )
+    if invalid_numeric.any():
+        raise RuntimeError(
+            "[SMC_SOURCE_NONFINITE] OHLC/ATR contains unavailable values: "
+            f"count={int(np.count_nonzero(invalid_numeric))}"
+        )
+    invalid_geometry = (
+        (high < low)
+        | (high < close)
+        | (low > close)
+        | (atr <= 0.0)
+    )
+    if invalid_geometry.any():
+        raise RuntimeError(
+            "[SMC_SOURCE_INVALID] OHLC geometry must be valid and ATR strictly "
+            f"positive: count={int(np.count_nonzero(invalid_geometry))}"
+        )
 
     # 1. Detect swing pivots (lookahead-safe via confirmation lag)
     sh_mask, sl_mask = _detect_swing_pivots(high, low, swing_lookback)
@@ -169,7 +194,7 @@ def compute_smc_features(
     last_sweep_at = -1
     bars_since_sweep = np.full(nb, 999, dtype=np.float32)
     for i in range(nb):
-        a = atr[i] if atr[i] > 1e-9 else 1e-6
+        a = atr[i]
         any_sweep = False
         if has_sh[i]:
             sh_price = last_sh_price[i]
@@ -210,7 +235,7 @@ def compute_smc_features(
         act_up = (-1, 0.0)            # active bullish reclaim: (reclaim_bar, strength)
         act_dn = (-1, 0.0)
         for i in range(nb):
-            a = atr[i] if atr[i] > 1e-9 else 1e-6
+            a = atr[i]
             if sweep_down[i] > 0.0 and has_sl[i]:
                 pend_dn = (i, float(last_sl_price[i]), min(float(sweep_size_atr[i]), SWEEP_CAP))
             if sweep_up[i] > 0.0 and has_sh[i]:
@@ -219,12 +244,14 @@ def compute_smc_features(
             if sb >= 0 and (i - sb) <= RECLAIM_WINDOW and close[i] > lvl and close[i] > open_[i]:
                 disp = min((close[i] - lvl) / a, DISP_CAP)
                 act_up = (i, wick * (1.0 + max(disp, 0.0)))
-                pend_dn = (-1, np.nan, 0.0); act_dn = (-1, 0.0)   # consumed + opposite invalidated
+                pend_dn = (-1, np.nan, 0.0)
+                act_dn = (-1, 0.0)  # consumed + opposite invalidated
             sb2, lvl2, wick2 = pend_up
             if sb2 >= 0 and (i - sb2) <= RECLAIM_WINDOW and close[i] < lvl2 and close[i] < open_[i]:
                 disp = min((lvl2 - close[i]) / a, DISP_CAP)
                 act_dn = (i, wick2 * (1.0 + max(disp, 0.0)))
-                pend_up = (-1, np.nan, 0.0); act_up = (-1, 0.0)
+                pend_up = (-1, np.nan, 0.0)
+                act_up = (-1, 0.0)
             rb, st = act_up
             if rb >= 0:
                 v = st * float(np.exp(-(i - rb) / DECAY_TAU))

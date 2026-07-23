@@ -9,9 +9,9 @@ Test C: Edge cases (warmup, bucket boundaries, data gaps)
 import numpy as np
 import pandas as pd
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
-from gx1.features.htf_aggregator import HTFAggregator, build_htf_from_m5
+from gx1.features.htf_aggregator import build_htf_from_m5
 from gx1.features.basic_v1 import _align_htf_to_m5_numpy
 
 
@@ -250,10 +250,10 @@ class TestHTFOHLCEquivalence:
 
 
 class TestHTFAlignmentEquivalence:
-    """Test B: Alignment-ekvivalens (searchsorted vs pandas reindex/ffill/shift)"""
+    """Test B: alignment at the M5 decision-available timestamp."""
     
     def test_h1_alignment_equivalence(self):
-        """Test H1 alignment matches pandas reindex/ffill/shift."""
+        """Test H1 alignment matches pandas at M5 close/decision time."""
         # Generate synthetic data
         timestamps_sec, open_arr, high_arr, low_arr, close_arr = generate_synthetic_m5_data(n_bars=288 * 3)
         
@@ -273,7 +273,7 @@ class TestHTFAlignmentEquivalence:
             h1_feature, h1_close_times, timestamps_sec, is_replay=False
         )
         
-        # Pandas oracle: reindex with ffill, then shift(1)
+        # Pandas oracle: an M5 row stamped t becomes decision-available at t+5.
         # Create Series indexed by HTF close times
         h1_feature_series = pd.Series(
             h1_feature,
@@ -281,16 +281,19 @@ class TestHTFAlignmentEquivalence:
         )
         
         # Reindex to M5 timestamps with forward-fill
-        m5_index = pd.to_datetime(timestamps_sec, unit='s', utc=True)
-        aligned_pandas = h1_feature_series.reindex(m5_index, method="ffill")
-        
-        # Shift(1): use previous M5 row's causal alignment. Warmup remains
-        # unavailable (NaN); it must never masquerade as neutral evidence.
-        aligned_pandas_shifted = aligned_pandas.shift(1)
+        decision_index = pd.to_datetime(
+            timestamps_sec + 5 * 60,
+            unit="s",
+            utc=True,
+        )
+        aligned_pandas = h1_feature_series.reindex(
+            decision_index,
+            method="ffill",
+        )
 
         np.testing.assert_allclose(
             aligned_numpy,
-            aligned_pandas_shifted.values,
+            aligned_pandas.values,
             rtol=0.0,
             atol=1e-6,
             equal_nan=True,
@@ -318,13 +321,20 @@ class TestHTFAlignmentEquivalence:
             h4_feature, h4_close_times, timestamps_sec, is_replay=False
         )
         
-        # Pandas oracle
+        # Pandas oracle at M5 close/decision time.
         h4_feature_series = pd.Series(
             h4_feature,
             index=pd.to_datetime(h4_close_times, unit='s', utc=True)
         )
-        m5_index = pd.to_datetime(timestamps_sec, unit='s', utc=True)
-        aligned_pandas = h4_feature_series.reindex(m5_index, method="ffill").shift(1)
+        decision_index = pd.to_datetime(
+            timestamps_sec + 5 * 60,
+            unit="s",
+            utc=True,
+        )
+        aligned_pandas = h4_feature_series.reindex(
+            decision_index,
+            method="ffill",
+        )
 
         np.testing.assert_allclose(
             aligned_numpy,
@@ -425,6 +435,37 @@ class TestHTFEdgeCases:
             # For exact match, we want index - 1
             exact_idx = np.searchsorted(h1_close_times, h1_close_times[0], side="right") - 1
             assert exact_idx == 0, f"M5 bar at exact close_time should map to HTF bar 0, got {exact_idx}"
+
+    def test_m5_bar_ending_on_h1_boundary_gets_newly_closed_h1_without_extra_lag(
+        self,
+    ):
+        start_ts = int(
+            datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp()
+        )
+        h1_close_times = np.asarray(
+            [start_ts + 3600, start_ts + 7200],
+            dtype=np.int64,
+        )
+        h1_values = np.asarray([11.0, 22.0], dtype=np.float64)
+        m5_open_times = np.asarray(
+            [
+                start_ts + 50 * 60,
+                start_ts + 55 * 60,
+                start_ts + 60 * 60,
+            ],
+            dtype=np.int64,
+        )
+
+        aligned = _align_htf_to_m5_numpy(
+            h1_values,
+            h1_close_times,
+            m5_open_times,
+            is_replay=False,
+        )
+
+        assert np.isnan(aligned[0])
+        assert aligned[1] == 11.0
+        assert aligned[2] == 11.0
     
     def test_bucket_boundary_before_close_time(self):
         """Test M5 bar just before HTF close_time."""

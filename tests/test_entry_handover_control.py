@@ -14,6 +14,7 @@ AUTHORITY_PATHS = (
     REPO / "CLAUDE.md",
     REPO / "DEVELOPMENT_NOTES.md",
     REPO / "README.md",
+    REPO / "GX1_PATHS.md",
     REPO / "ROADMAP.md",
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
@@ -47,6 +48,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-replay-trade-log",
     "model-native-replay-evidence",
     "model-native-replay-readiness",
+    "model-native-finalize-launch",
     "model-native-rebuild",
     "model-native-smoke-train",
     "model-native-candidate-train",
@@ -125,7 +127,13 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert repair["fresh_training_started"] is False
     assert repair["empirical_direction_edge_proven"] is False
     assert repair["remaining_source_p0"] == [
-        "canonical_transactional_candidate_promotion_launch_finalizer"
+        "canonical_full_test_active_exit_replay_producer",
+        "active_exit_rebuild_rescore_retrain_on_exact_t_plus_5_causal_state",
+        "complete_canonical_v2_incremental_full_history_state_parity",
+        "atomic_canonical_base_generation_identity",
+        "canonical_m5_single_owner_and_market_closure_policy",
+        "observed_per_bar_slippage_source_contract",
+        "reproducible_v3_training_lineage",
     ]
 
     terminal = state["accepted_dataset_terminal_evidence"]
@@ -201,6 +209,7 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert "V7 completed six full train/validation epochs" in blockers
     assert "source-repaired only" in blockers
     assert "transactional candidate/promotion/launch finalizer" in blockers
+    assert "canonical full-TEST active-Exit replay producer" in blockers
     assert "no canonical immutable" not in blockers
 
 

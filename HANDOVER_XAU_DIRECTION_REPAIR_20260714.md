@@ -47,15 +47,21 @@ P0/P1 findings are now source-repaired and regression-tested for:
 - recursive content manifests for the actual three selected Exit artifacts;
 - immutable launch approval bound to the complete launch-state hash and exact
   bundle commit, with no environment-string authority;
+- pre-existing identity-bound launch vedtak plus one canonical recoverable
+  registry/state transaction, exact COMMIT/FAIL recovery, lock/CAS and
+  replay-proven `max_trades` operating point;
 - unchanged launch/registry lease and freshness revalidation before every new
   exposure;
 - fail-closed missing broker trade identity; no opposite market-order close.
 
 No rebuild, training, calibration, replay or launch was run. V24/V7 predate
-all repairs and remain rejected. The remaining source P0 is one canonical
-transactional candidate→promotion→launch finalizer. Canonical/live
-December-2024 tape parity and every empirical dataset/model/edge gate are also
-still open.
+all repairs and remain rejected. The later audit also rejects the retained
+Exit artifacts and reopens incremental/full-history, atomic-generation,
+canonical-M5/closure, observed-slippage and V3-lineage P0s beside the
+canonical full-TEST producer. Formula and HTF alignment ownership is repaired
+in source. Caller-supplied replay diagnostics are blocked from launch.
+Canonical/live December-2024 tape parity and every empirical dataset/model/
+edge gate are also still open.
 
 ### 2026-07-22 V22/V23/V24 routing closure and current boundary
 
@@ -145,12 +151,20 @@ canonical report is `PIPELINE_AUDIT_XAU_20260723.md`. It proves two P0s:
 - all six signed spread-aware dip-MFE targets are clipped to zero, so V24 must
   be rebuilt.
 
-P1 findings include replacement sampling with only 62.13-62.64% unique-row
-coverage per epoch, bidirectional auxiliary targets with LONG-only weights,
-global path AUC leakage through tradable versus FLAT, incomplete active-head
-and evidence influence admission, unbound MTF/scaler identity,
-taxonomy-only context specialist routing, incompatible fusion units and no
-transactional identity-bound launch finalizer. V24/V7 may not be reused.
+At the audit boundary, P1 findings included replacement sampling with only
+62.13-62.64% unique-row coverage per epoch, bidirectional auxiliary targets
+with LONG-only weights, global path AUC leakage through tradable versus FLAT,
+incomplete active-head and evidence influence admission, unbound MTF/scaler
+identity, taxonomy-only context specialist routing, incompatible fusion units
+and no transactional identity-bound launch finalizer. All are now
+source-repaired; V24/V7 may not be reused.
+
+The later adversarial re-audit found a different P0 behind that finalizer:
+`finalize_joint_exit_sizing_proof` validates caller-created replay/trace
+parquets but never invokes the active Exit models. Exact active artifact hashes
+therefore did not prove causal model use. Production launch/runtime now rejects
+that diagnostic proof before vedtak consumption or target mutation. A real
+full-TEST producer around `V12Pipeline.make_exit_decision` remains required.
 
 No model has been accepted and the declared output bundle does not exist. Do not
 hand-author recipe/audit evidence, invoke owners out of band or treat dry-run
@@ -553,8 +567,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The settled post-V7 source-repair tree collected 1,725 tests on 2026-07-23:
-1,720 passed, five were explicitly skipped and zero failed. Changed Python
+The settled post-V7 source-repair tree collected 1,821 tests on 2026-07-23:
+1,816 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -627,10 +641,11 @@ preflight hashes; it cannot be used to resume or select partial artifacts. Read
    campaign is invalid for the active split because its TRAIN start differs;
    its scores and derived pre-EMA-mandatory manifest have no admission authority.
 2. `gx1/scripts/repair_m5_tape_dec2024_from_m1_v1.py` — event-local repair of
-   the Dec-2024 canonical M5 geometry defect (2375 impossible rows -> 0) from
+   the Dec-2024 canonical M5 geometry defect (3,430 impossible rows -> 0) from
    the clean canonical M1; convention proof (high/low EXACT vs M1 aggregation,
-   open/close boundary-tick tolerance documented); 5757 bars rebuilt, 3459
-   synthetic closed-market bars dropped; immutable REPAIR_MANIFEST.
+   open/close boundary-tick tolerance documented); 2,799 defect rows are
+   weekend rows, 5,757 M1-supported bars were rebuilt and 3,459 canonical
+   rows without M1 backing were dropped; immutable REPAIR_MANIFEST.
 3. Full source cascade rebuilt on the repaired tape: canonical_features_v2 ->
    cv3 -> cv3_modelrange (provenance sidecar) -> MULTI_TF_V2_CACHE ->
    FULL_PLUS_CTX. That campaign's 208-column surface is historical; the active
@@ -700,13 +715,26 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    V7 run. After an accepted future candidate exists, adaptation still
    requires fresh TEST evidence, settled zero-order broker shadow rows and
    paired incumbent/challenger lifecycle proof.
-2. Canonical M5 root AND live prebuilt still carry the Dec-2024 defect (only
-   the event copy is repaired) — separate decision; live Exit serves on it.
-3. Exit env-softeners (3 audit MEDIUMs), CI replacement, gx1/scripts sorting
-   and hashing-helper consolidation remain post-smoke backlog. The former ctx
-   v1/v3 builder dual-owner is resolved and V24 proves the data cascade; exact
-   train/serve empirical parity is still absent.
-4. Recent-regime handling is not yet empirical. Compare full-history baseline
+2. Canonical M5 root and live prebuilt still carry the Dec-2024 defect (only
+   the event copy is repaired): 3,430 impossible-geometry rows, including
+   2,799 weekend rows. Clean M1 supports 5,757 rebuilt December buckets and
+   leaves 3,459 canonical rows unbacked. The full active loader additionally
+   finds 2,375 invalid prebuilt OHLC rows from 2024-11-30 00:40Z through
+   2024-12-31 23:55Z. Repair/parity requires a separate data decision; no
+   canonical/live data were modified.
+3. The retained Exit chain is not an incumbent. Its old dataset uses pre-T+5
+   timing, lookahead M5 joins on about 80% of rows and a shifted V3 overlay;
+   its Exit-IQL summary is research-only/non-production, lacks checkpoint-bound
+   feature order and has no explicit serving fold. Runtime now blocks it.
+   Rebuild the per-bar dataset, rescore V3 and retrain Exit on the future
+   accepted seq513 Entry distribution.
+4. Source still needs complete canonical-v2 incremental/full-history parity,
+   one atomic canonical/BASE generation identity, one canonical-M5 owner with
+   explicit closure semantics, an observable per-bar slippage owner,
+   reproducible V3 lineage and the canonical active-Exit full-TEST producer.
+   ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment now
+   use shared code owners; unavailable execution cost fails closed.
+5. Recent-regime handling is not yet empirical. Compare full-history baseline
    with an immutable TRAIN-only recent-regime fine-tune/calibration challenger;
    June VAL selects, July TEST stays untouched until the declared final gate.
 
@@ -720,11 +748,14 @@ Ordered steps (each gate fail-closed; stop at first red):
    MTF bytes, complete TRAIN-fit normalization, 142+5 context ownership,
    all-head/group influence, 20-bps units, positive TF scales, atomic
    bundle/event publication, recursive active-Exit bytes, immutable approval,
+   identity-bound vedtak, transactional launch finalization, exact
+   single-exposure enforcement, broker/local XAU trade-ID reconciliation,
    runtime lease and missing-trade-ID fail-close. The alias set is dynamic;
    V24's count of 82 is fixture evidence only.
-3. Add the one public transactional candidate/promotion/launch finalizer with
-   durable terminal failure evidence. Consumer-side vedtak/state/bundle
-   binding and `.env` rejection are already repaired.
+3. Build the canonical full-TEST active-Exit producer. It must preserve the
+   complete Entry snapshot, bind SourceTape and canonical/BASE28/MTF state,
+   reuse the exact live per-bar primitive and emit its own rows/traces without
+   fallback or horizon-cap acceptance.
 4. Repair and prove canonical/live December-2024 M5 parity before a fresh
    rebuild.
 5. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/

@@ -21,6 +21,13 @@ git diff --check
 Also scan for deleted filenames, retired contract modes, fallback wording,
 mutable artifact selection and obsolete CLI arguments in active code.
 
+Prefer extension over proliferation. If behavior is already owned by an
+existing producer, verifier, contract or control command, change that owner
+and its tests. Do not add `*_vN+1.py`, a compatibility wrapper or a parallel
+one-off for a small change. Create a new file only for a genuinely new,
+single-purpose authority boundary, record why it is new, and expose it through
+the existing public control surface.
+
 Contract-source verification should inspect parsed imports and executable use
 from the canonical owner. A raw text search for duplicated mode/dimension/field
 literals is not a valid wiring check and can reject correctly centralized
@@ -55,13 +62,20 @@ runtime lease and missing-trade-ID execution path are source-repaired and
 regression-tested. The current-bar alias set is derived from actual ordered
 signals; V24's count of 82 is not a code constant.
 
-Do not infer dataset/model proof: V24/V7 predate the fixes. No rebuild or
-trainer run is admissible until the remaining source blockers have exact
-proof:
-
-- one transactional candidate/promotion/launch finalizer with terminal
-  failure evidence;
-- canonical/live tape parity for the known December-2024 defect.
+Do not infer dataset/model proof: V24/V7 predate the fixes. The audited source
+boundary, including the canonical transactional candidate/promotion/launch
+finalizer, is code-proven only. The finalizer must continue through the
+existing `entry_next_edge_control.sh` surface; it requires a pre-existing
+identity-bound vedtak, serializes canonical targets, proves the bundle,
+operating point and active-Exit bytes, and rolls both targets back with durable
+failure evidence on any partial error. It intentionally refuses the current
+caller-supplied joint Exit replay/trace diagnostics. A launch-admissible proof
+still needs one canonical producer that itself executes the exact active
+XGB→V3→Exit-IQL/Strategy-F chain over full TEST from hash-bound state and emits
+complete per-M1 evidence. No rebuild or trainer run is admissible until that
+source P0 and canonical/live tape parity for the known December-2024 defect
+have exact proof. No finalizer execution is admissible until fresh empirical
+artifacts satisfy every prerequisite.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean

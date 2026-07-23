@@ -15,10 +15,171 @@ import threading
 
 # FASE 1: Use PREBUILT-safe tripwire counter (does not import feature-building modules)
 from gx1.execution.feature_build_tripwires import bump_feature_build_call_count
+from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 
 # Legacy counter kept for backward compatibility (deprecated, use feature_build_tripwires)
 _basic_v1_call_lock = threading.Lock()
 _basic_v1_call_count = 0
+M5_DECISION_DELAY_SECONDS = 5 * 60
+
+BASIC_V1_EXECUTION_COST_FEATURES = (
+    "_v1_spread_p",
+    "_v1_slip_bps",
+    "_v1_spread_z",
+    "_v1_cost_bps_est",
+)
+PLUS5_FEATURES = (
+    "atr",
+    "std50",
+    "roc20",
+    "_v1_vwap_drift48",
+    "_v1h1_vwap_drift",
+)
+
+
+def compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
+    """One train/serve owner for the five historical PLUS5 model fields."""
+    required = ("open", "high", "low", "close", "volume")
+    missing = [column for column in required if column not in df.columns]
+    if missing:
+        raise RuntimeError(
+            f"[PLUS5_SOURCE_MISSING] required OHLCV columns missing: {missing}"
+        )
+    numeric = {
+        column: pd.to_numeric(df[column], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
+        for column in required
+    }
+    unavailable = {
+        column: int(np.count_nonzero(~np.isfinite(values)))
+        for column, values in numeric.items()
+        if not np.isfinite(values).all()
+    }
+    if unavailable:
+        raise RuntimeError(
+            f"[PLUS5_SOURCE_NONFINITE] unavailable OHLCV values: {unavailable}"
+        )
+    invalid_ohlc = (
+        (numeric["open"] <= 0.0)
+        | (numeric["high"] <= 0.0)
+        | (numeric["low"] <= 0.0)
+        | (numeric["close"] <= 0.0)
+        | (numeric["high"] < numeric["low"])
+        | (numeric["high"] < numeric["open"])
+        | (numeric["high"] < numeric["close"])
+        | (numeric["low"] > numeric["open"])
+        | (numeric["low"] > numeric["close"])
+    )
+    if invalid_ohlc.any():
+        raise RuntimeError(
+            "[PLUS5_OHLC_INVALID] prices must be positive with valid OHLC "
+            f"geometry; count={int(np.count_nonzero(invalid_ohlc))}"
+        )
+    invalid_volume = numeric["volume"] <= 0.0
+    if invalid_volume.any():
+        raise RuntimeError(
+            "[PLUS5_VOLUME_INVALID] volume must be observed and strictly positive; "
+            f"count={int(np.count_nonzero(invalid_volume))}"
+        )
+
+    out = df.copy()
+    close = pd.Series(numeric["close"], index=out.index)
+    high = pd.Series(numeric["high"], index=out.index)
+    low = pd.Series(numeric["low"], index=out.index)
+    volume = pd.Series(numeric["volume"], index=out.index)
+    pv = close * volume
+
+    pv_48 = pv.rolling(48, min_periods=1).sum()
+    volume_48 = volume.rolling(48, min_periods=1).sum()
+    vwap_48 = pv_48 / volume_48
+    out["_v1_vwap_drift48"] = ((close - vwap_48) / vwap_48).astype(
+        np.float32
+    )
+
+    pv_288 = pv.rolling(288, min_periods=12).sum()
+    volume_288 = volume.rolling(288, min_periods=12).sum()
+    vwap_288 = pv_288 / volume_288
+    out["_v1h1_vwap_drift"] = ((close - vwap_288) / vwap_288).astype(
+        np.float32
+    )
+
+    prev_close = close.shift(1)
+    true_range = pd.concat(
+        [
+            (high - low).abs(),
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    out["atr"] = true_range.ewm(alpha=1 / 14, adjust=False).mean().astype(
+        np.float32
+    )
+    returns = close.pct_change(fill_method=None)
+    out["std50"] = returns.rolling(50, min_periods=2).std().astype(np.float32)
+    out["roc20"] = close.pct_change(20, fill_method=None).astype(np.float32)
+    return out
+
+
+def _require_observed_execution_cost_inputs(df: pd.DataFrame) -> None:
+    """Materialize exact cost sources or fail before cost features are built.
+
+    Spread may be supplied directly or derived from an observed quote. There is
+    no canonical per-bar slippage producer, so callers must provide one instead
+    of relying on the retired 10 bps sentinel.
+    """
+    if "spread_pct" in df.columns:
+        spread_pct = pd.to_numeric(df["spread_pct"], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
+        if not np.isfinite(spread_pct).all() or np.any(spread_pct < 0.0):
+            raise RuntimeError(
+                "[BASIC_V1_SPREAD_SOURCE_INVALID] spread_pct must be finite and "
+                "non-negative on every row"
+            )
+    else:
+        spread_pct = derive_observed_spread_bps(df) / 1e4
+    df["spread_pct"] = spread_pct
+
+    if "slippage_bps" not in df.columns:
+        raise RuntimeError(
+            "[BASIC_V1_SLIPPAGE_SOURCE_MISSING] active execution-cost features "
+            f"{BASIC_V1_EXECUTION_COST_FEATURES!r} require observed per-bar "
+            "slippage_bps; canonical OHLCV/quote input has no slippage owner and "
+            "the retired 10 bps fallback is forbidden"
+        )
+    slippage_bps = pd.to_numeric(
+        df["slippage_bps"], errors="coerce"
+    ).to_numpy(dtype=np.float64)
+    if not np.isfinite(slippage_bps).all() or np.any(slippage_bps < 0.0):
+        raise RuntimeError(
+            "[BASIC_V1_SLIPPAGE_SOURCE_INVALID] slippage_bps must be finite and "
+            "non-negative on every row"
+        )
+    df["slippage_bps"] = slippage_bps
+
+
+def _validate_causal_feature_column(values: np.ndarray, *, name: str) -> np.ndarray:
+    """Preserve a causal NaN prefix, but reject all other unavailable output."""
+    array = np.asarray(values, dtype=np.float64)
+    if np.isinf(array).any():
+        raise RuntimeError(
+            f"[BASIC_V1_FEATURE_NONFINITE] {name} contains infinite values"
+        )
+    finite = np.isfinite(array)
+    if not finite.any():
+        raise RuntimeError(
+            f"[BASIC_V1_FEATURE_UNAVAILABLE] {name} has no finite observations"
+        )
+    first_finite = int(np.flatnonzero(finite)[0])
+    invalid_tail = ~finite[first_finite:]
+    if invalid_tail.any():
+        raise RuntimeError(
+            f"[BASIC_V1_FEATURE_NONFINITE_GAP] {name} has unavailable values "
+            "after causal warmup"
+        )
+    return array
 
 def get_basic_v1_call_count() -> int:
     """Get global count of build_basic_v1 calls (thread-safe). DEPRECATED: Use feature_build_tripwires.get_feature_build_call_count() instead."""
@@ -249,19 +410,19 @@ def _align_htf_to_m5_numpy(
     """
     Align HTF values to M5 timestamps using searchsorted (NO PANDAS).
     
-    For each M5 timestamp t:
-    - Find last completed HTF bar where htf_close_time <= t
+    For each M5 bar stamped at its open time t:
+    - Its decision becomes available at t + 5 minutes
+    - Find last completed HTF bar where htf_close_time <= decision_available
     - Use that HTF bar's value
-    - Shift(1): use previous bar's value
     
     Args:
         htf_values: HTF feature values (float64 array)
         htf_close_times: HTF bar close times (seconds since epoch, int64 array)
-        m5_timestamps: M5 timestamps (seconds since epoch, int64 array)
+        m5_timestamps: M5 bar-open timestamps (seconds since epoch, int64 array)
         is_replay: If True, hard fail on warmup not satisfied
     
     Returns:
-        Aligned values (float64 array), shifted by 1.  A strict historical
+        Decision-time-aligned values (float64 array). A strict historical
         warmup prefix remains NaN and must be trimmed before model input.
     """
     # PATCH: Per-call timing instrumentation (non-breaking)
@@ -272,9 +433,20 @@ def _align_htf_to_m5_numpy(
             "HTF alignment: No completed HTF bars available (warmup not satisfied)"
         )
     
-    # Use searchsorted to find last completed HTF bar for each M5 timestamp
-    # searchsorted(htf_close_times, t, side="right") - 1 gives last index where htf_close_times <= t
-    indices = np.searchsorted(htf_close_times, m5_timestamps, side="right") - 1
+    decision_available = (
+        np.asarray(m5_timestamps, dtype=np.int64) + M5_DECISION_DELAY_SECONDS
+    )
+    # The HTF bar ending exactly when this M5 bar closes is observable for the
+    # decision. Selecting at the bar-open key and shifting a row delayed it by
+    # an extra M5 bar and made the legacy H1/H4 state stale at every boundary.
+    indices = (
+        np.searchsorted(
+            htf_close_times,
+            decision_available,
+            side="right",
+        )
+        - 1
+    )
     
     # NEW: Track htf_align_idx_min for telemetry (harness-only, replay mode)
     if is_replay:
@@ -312,7 +484,6 @@ def _align_htf_to_m5_numpy(
             if not hasattr(_align_htf_to_m5_numpy, "_align_warn_count"):
                 _align_htf_to_m5_numpy._align_warn_count = 0  # type: ignore
             _align_htf_to_m5_numpy._align_warn_count += 1  # type: ignore
-            warn_count = _align_htf_to_m5_numpy._align_warn_count  # type: ignore
             
             # Try to increment runner's counter (if available via context)
             try:
@@ -333,12 +504,6 @@ def _align_htf_to_m5_numpy(
     aligned = np.full(len(m5_timestamps), np.nan, dtype=np.float64)
     valid_mask = indices >= 0
     aligned[valid_mask] = htf_values[indices[valid_mask]]
-
-    # Shift(1): move all values one position forward; the first row and the
-    # warmup boundary remain explicitly unavailable.
-    shifted = np.full(len(aligned), np.nan, dtype=np.float64)
-    if len(aligned) > 1:
-        shifted[1:] = aligned[:-1]
     
     # PATCH: Record per-call timing (non-breaking)
     t_align_call_end = time.perf_counter()
@@ -347,7 +512,7 @@ def _align_htf_to_m5_numpy(
         perf_add("feat.htf_align.call_total", t_align_call_end - t_align_call_start)
         perf_add("feat.htf_align.call_count", 1.0)
     
-    return shifted
+    return aligned
 
 def _true_range(high, low, close):
     """
@@ -396,12 +561,7 @@ def _parkinson_sigma(high, low):
     # x^2
     x_sq = x * x
     
-    # Rolling mean w20: use NumPy rolling
-    from gx1.features.rolling_np import rolling_mean_w48
-    from gx1.utils.perf_timer import perf_add, perf_inc
-    
-    # rolling_mean_w48 is for w48, but we need w20 - use timed_rolling fallback or create w20 version
-    # For now, use timed_rolling which will use pandas fallback but is timed
+    # Rolling mean w20 uses the timed rolling owner.
     from gx1.features.rolling_timer import timed_rolling
     x_sq_series = pd.Series(x_sq, index=high.index if hasattr(high, 'index') else range(len(x_sq)))
     x_sq_mean = timed_rolling(x_sq_series, 20, "mean", min_periods=10)
@@ -497,7 +657,8 @@ def add_session_features(df, tz_offset_minutes=0):
 
 def build_basic_v1(df):
     """
-    Forventer kolonner: ts, open, high, low, close, (valgfritt: vwap, spread_pct, slippage_bps)
+    Forventer kolonner: ts, open, high, low, close og observerbar slippage_bps.
+    Spread krever spread_pct, spread_bps, bid_close+ask_close eller spread+close.
     Bruker kun fortid: shift(1) og ruller bakover.
     Returnerer df med nye _v1_* features; originalkolonner beholdes.
     
@@ -552,10 +713,6 @@ def build_basic_v1(df):
     from gx1.utils.perf_timer import perf_add
     t_start = time.perf_counter()
     
-    # Instrumentering
-    n_pandas_ops = 0
-    n_numpy_ops = 0
-    
     # Del 4: Log numpy rolling activation once per call
     use_np_rolling = os.getenv("GX1_FEATURE_USE_NP_ROLLING") == "1"
     if use_np_rolling:
@@ -567,8 +724,9 @@ def build_basic_v1(df):
     
     # DEL 2: Dtype validation - hard fail in replay mode
     is_replay = os.getenv("GX1_REPLAY", "0") == "1"
-    for c in ["open","high","low","close"]:
-        if c not in df: raise ValueError(f"Column '{c}' missing for basic_v1 features")
+    for c in ["open", "high", "low", "close"]:
+        if c not in df:
+            raise ValueError(f"Column '{c}' missing for basic_v1 features")
         # Check dtype
         if df[c].dtype not in [np.float32, np.float64]:
             if is_replay:
@@ -586,6 +744,9 @@ def build_basic_v1(df):
             # Ensure float64 (not float32) for consistency
             df[c] = df[c].astype(np.float64)
 
+    _require_observed_execution_cost_inputs(df)
+    plus5 = compute_plus5_features(df)
+
     # --- Momentum (laggede avkastninger) ---
     # Del: Time returns_and_vol block
     t_returns_start = time.perf_counter()
@@ -602,28 +763,26 @@ def build_basic_v1(df):
     # Use NumPy pct_change for ret1 (k=1)
     close_array = df["close"].to_numpy(dtype=np.float64)
     ret1_array = pct_change_np(close_array, k=1)
-    # Replace NaN with 0.0 using NumPy
-    ret1_array = np.nan_to_num(ret1_array, nan=0.0, posinf=0.0, neginf=0.0)
     ret1 = pd.Series(ret1_array, index=df.index, dtype=np.float64)
     
     # Use NumPy pct_change for k in [3,5,8,12,24]
     for k in [3,5,8,12,24]:
         rk_array = pct_change_np(close_array, k=k)
-        # Shift(1): move values forward, first becomes 0.0
+        # Shift(1): unavailable history remains a causal NaN prefix.
         rk_shifted = np.roll(rk_array, 1)
-        rk_shifted[0] = 0.0
+        rk_shifted[0] = np.nan
         df[f"_v1_r{k}"] = rk_shifted
     
     # Shift(1) for ret1
     ret1_shifted = np.roll(ret1_array, 1)
-    ret1_shifted[0] = 0.0
+    ret1_shifted[0] = np.nan
     df["_v1_r1"] = ret1_shifted
     
     # Z-score and shift(1)
     ret1_z = _zscore(ret1, 48)
     ret1_z_arr = ret1_z.to_numpy(dtype=np.float64) if hasattr(ret1_z, 'to_numpy') else np.asarray(ret1_z, dtype=np.float64)
     ret1_z_shifted = np.roll(ret1_z_arr, 1)
-    ret1_z_shifted[0] = 0.0
+    ret1_z_shifted[0] = np.nan
     df["_v1_r48_z"] = ret1_z_shifted
     t_returns_end = time.perf_counter()
     perf_add("feat.basic_v1.returns_and_vol", t_returns_end - t_returns_start)
@@ -730,23 +889,12 @@ def build_basic_v1(df):
     ema_diff_shifted[0] = ema_diff[0] if len(ema_diff) > 0 else 0.0
     df["_v1_ema_diff"] = ema_diff_shifted
 
-    # VWAP drift (fallback hvis vwap mangler)
-    if "vwap" in df:
-        vwap = df["vwap"].to_numpy(dtype=np.float64)
-    else:
-        # grov vwap-proxy med HLC3
-        high_arr = df["high"].to_numpy(dtype=np.float64)
-        low_arr = df["low"].to_numpy(dtype=np.float64)
-        close_arr = df["close"].to_numpy(dtype=np.float64)
-        vwap = (high_arr + low_arr + close_arr) / 3.0
-    vwap_series = pd.Series(vwap, index=df.index)
-    vwap_roll = _roll(vwap_series, 48, "mean")
-    close_arr = df["close"].to_numpy(dtype=np.float64)
-    vwap_roll_arr = vwap_roll.to_numpy(dtype=np.float64) if hasattr(vwap_roll, 'to_numpy') else np.asarray(vwap_roll, dtype=np.float64)
-    vwap_drift = close_arr - vwap_roll_arr
-    vwap_drift_shifted = np.roll(vwap_drift, 1)
-    vwap_drift_shifted[0] = vwap_drift[0] if len(vwap_drift) > 0 else 0.0
-    df["_v1_vwap_drift48"] = vwap_drift_shifted
+    # Shared PLUS5 owner: normalized volume-VWAP fraction. The dependent
+    # _v1_int_vwap_h1 interaction below therefore sees the exact field later
+    # published to the models.
+    df["_v1_vwap_drift48"] = plus5["_v1_vwap_drift48"].to_numpy(
+        dtype=np.float64
+    )
     t_trend_end = time.perf_counter()
     perf_add("feat.basic_v1.trend_ema", t_trend_end - t_trend_start)
 
@@ -780,7 +928,7 @@ def build_basic_v1(df):
     rsi_z = _zscore(rsi_series, 48)
     rsi_z_arr = rsi_z.to_numpy(dtype=np.float64) if hasattr(rsi_z, 'to_numpy') else np.asarray(rsi_z, dtype=np.float64)
     rsi_z_shifted = np.roll(rsi_z_arr, 1)
-    rsi_z_shifted[0] = 0.0
+    rsi_z_shifted[0] = np.nan
     df["_v1_rsi14_z"] = rsi_z_shifted
     
     # RSI2 and RSI14 (raw, for mini-featurepack)
@@ -923,7 +1071,7 @@ def build_basic_v1(df):
     adr20_arr = adr20.to_numpy(dtype=np.float64) if hasattr(adr20, 'to_numpy') else np.asarray(adr20, dtype=np.float64)
     range_adr = range_arr / (adr20_arr + 1e-12)
     range_adr_shifted = np.roll(range_adr, 1)
-    range_adr_shifted[0] = 0.0
+    range_adr_shifted[0] = np.nan
     df["_v1_range_adr"] = range_adr_shifted
     t_range_end = time.perf_counter()
     perf_add("feat.basic_v1.range_features", t_range_end - t_range_start)
@@ -931,21 +1079,15 @@ def build_basic_v1(df):
     # --- Kost-proxies ---
     # DEL 2: Replace .shift(), .astype() with NumPy
     n = len(df)
-    if "spread_pct" in df:
-        spread_pct_arr = df["spread_pct"].to_numpy(dtype=np.float64)
-        spread_bps = spread_pct_arr * 1e4
-        spread_bps_shifted = np.roll(spread_bps, 1)
-        spread_bps_shifted[0] = 12.0  # fallback for first element
-        df["_v1_spread_p"] = spread_bps_shifted
-    else:
-        df["_v1_spread_p"] = np.full(n, 12.0, dtype=np.float64)  # konservativt
-    if "slippage_bps" in df:
-        slip_bps_arr = df["slippage_bps"].to_numpy(dtype=np.float64)
-        slip_bps_shifted = np.roll(slip_bps_arr, 1)
-        slip_bps_shifted[0] = 10.0  # fallback for first element
-        df["_v1_slip_bps"] = slip_bps_shifted
-    else:
-        df["_v1_slip_bps"] = np.full(n, 10.0, dtype=np.float64)
+    spread_pct_arr = df["spread_pct"].to_numpy(dtype=np.float64)
+    spread_bps = spread_pct_arr * 1e4
+    spread_bps_shifted = np.roll(spread_bps, 1)
+    spread_bps_shifted[0] = np.nan
+    df["_v1_spread_p"] = spread_bps_shifted
+    slip_bps_arr = df["slippage_bps"].to_numpy(dtype=np.float64)
+    slip_bps_shifted = np.roll(slip_bps_arr, 1)
+    slip_bps_shifted[0] = np.nan
+    df["_v1_slip_bps"] = slip_bps_shifted
 
     # --- Session ---
     if "ts" in df:
@@ -1079,9 +1221,6 @@ def build_basic_v1(df):
                 h1_ema12_arr = h1_ema12.to_numpy(dtype=np.float64)
                 h1_ema26_arr = h1_ema26.to_numpy(dtype=np.float64)
                 
-                h1_vwap = (h1_high + h1_low + h1_close) / 3.0
-                h1_vwap_series = pd.Series(h1_vwap, index=pd.to_datetime(h1_ts, unit='s', utc=True))
-                
                 h1_tr = _true_range(
                     pd.Series(h1_high, index=pd.to_datetime(h1_ts, unit='s', utc=True)),
                     pd.Series(h1_low, index=pd.to_datetime(h1_ts, unit='s', utc=True)),
@@ -1113,13 +1252,6 @@ def build_basic_v1(df):
                 h1_ema_diff_htf = h1_ema12_arr - h1_ema26_arr
                 df["_v1h1_ema_diff"] = _align_htf_to_m5_numpy(
                     h1_ema_diff_htf, h1_close_times, m5_timestamps_sec, is_replay
-                )
-
-                h1_vwap_roll = _roll(h1_vwap_series, 48, "mean")
-                h1_vwap_roll_arr = h1_vwap_roll.to_numpy(dtype=np.float64)
-                h1_vwap_drift_htf = h1_close - h1_vwap_roll_arr
-                df["_v1h1_vwap_drift"] = _align_htf_to_m5_numpy(
-                    h1_vwap_drift_htf, h1_close_times, m5_timestamps_sec, is_replay
                 )
 
                 df["_v1h1_atr"] = _align_htf_to_m5_numpy(
@@ -1210,6 +1342,11 @@ def build_basic_v1(df):
                 )
         except Exception as e:
             raise RuntimeError("H4 feature construction failed closed") from e
+    # Historical name retained by the model contract; its actual one-truth
+    # definition is the normalized rolling-288 M5 volume-VWAP drift.
+    df["_v1h1_vwap_drift"] = plus5["_v1h1_vwap_drift"].to_numpy(
+        dtype=np.float64
+    )
     t_htf_end = time.perf_counter()
     perf_add("feat.basic_v1.htf_features", t_htf_end - t_htf_start)
     
@@ -1243,51 +1380,42 @@ def build_basic_v1(df):
     df["_v1_range_z"] = range_z_shifted
     
     # Spread z-score (rullende z for robusthet)
-    if "spread_pct" in df.columns:
-        sp_arr = df["spread_pct"].to_numpy(dtype=np.float64)
-        # Sjekk om spread varierer (ikke konstant) - use NumPy std
-        sp_std_val = np.std(sp_arr)
-        if sp_std_val > 1e-6:
-            # Rolling mean/std w144: use timed_rolling (will use pandas fallback but timed)
-            from gx1.features.rolling_timer import timed_rolling
-            sp_series = pd.Series(sp_arr, index=df.index)
-            sp_mean_roll = timed_rolling(sp_series, 144, "mean", min_periods=72)
-            sp_std_roll = timed_rolling(sp_series, 144, "std", min_periods=72, ddof=0)
-            sp_mean_arr = sp_mean_roll.to_numpy(dtype=np.float64) if hasattr(sp_mean_roll, 'to_numpy') else np.asarray(sp_mean_roll, dtype=np.float64)
-            sp_std_arr = sp_std_roll.to_numpy(dtype=np.float64) if hasattr(sp_std_roll, 'to_numpy') else np.asarray(sp_std_roll, dtype=np.float64)
-            sp_std_arr = sp_std_arr + 1e-12
-            spread_z = (sp_arr - sp_mean_arr) / sp_std_arr
-            spread_z_shifted = np.roll(spread_z, 1)
-            spread_z_shifted[0] = 0.0
-            spread_z_shifted = np.nan_to_num(spread_z_shifted, nan=0.0)
-            df["_v1_spread_z"] = spread_z_shifted
-        else:
-            # Spread er konstant, bruk range_z i stedet eller sett til 0
-            df["_v1_spread_z"] = np.zeros(len(df), dtype=np.float64)
-        
-        # Kost-estimat (bruk faktisk spread + slippage hvis tilgjengelig)
-        spread_bps = sp_arr * 1e4
-        spread_bps_shifted = np.roll(spread_bps, 1)
-        spread_bps_shifted[0] = 12.0
-        spread_bps_shifted = np.nan_to_num(spread_bps_shifted, nan=12.0)
-        if "slippage_bps" in df.columns:
-            slip_bps_arr = df["slippage_bps"].to_numpy(dtype=np.float64)
-            slip_bps_shifted = np.roll(slip_bps_arr, 1)
-            slip_bps_shifted[0] = 10.0
-            slip_bps_shifted = np.nan_to_num(slip_bps_shifted, nan=10.0)
-        else:
-            slip_bps_shifted = np.full(len(df), 10.0, dtype=np.float64)
-        df["_v1_cost_bps_est"] = spread_bps_shifted + slip_bps_shifted
+    sp_arr = df["spread_pct"].to_numpy(dtype=np.float64)
+    # Sjekk om spread varierer (ikke konstant) - use NumPy std
+    sp_std_val = np.std(sp_arr)
+    if sp_std_val > 1e-6:
+        # Rolling mean/std w144: use timed_rolling (will use pandas fallback but timed)
+        from gx1.features.rolling_timer import timed_rolling
+        sp_series = pd.Series(sp_arr, index=df.index)
+        sp_mean_roll = timed_rolling(sp_series, 144, "mean", min_periods=72)
+        sp_std_roll = timed_rolling(sp_series, 144, "std", min_periods=72, ddof=0)
+        sp_mean_arr = sp_mean_roll.to_numpy(dtype=np.float64) if hasattr(sp_mean_roll, 'to_numpy') else np.asarray(sp_mean_roll, dtype=np.float64)
+        sp_std_arr = sp_std_roll.to_numpy(dtype=np.float64) if hasattr(sp_std_roll, 'to_numpy') else np.asarray(sp_std_roll, dtype=np.float64)
+        sp_std_arr = sp_std_arr + 1e-12
+        spread_z = (sp_arr - sp_mean_arr) / sp_std_arr
+        spread_z_shifted = np.roll(spread_z, 1)
+        spread_z_shifted[0] = np.nan
+        df["_v1_spread_z"] = spread_z_shifted
     else:
-        n = len(df)
-        df["_v1_spread_z"] = np.zeros(n, dtype=np.float64)
-        df["_v1_cost_bps_est"] = np.full(n, 22.0, dtype=np.float64)  # fallback
+        # Constant observed spread has a defined zero z-score after the first
+        # causally unavailable bar.
+        spread_z_shifted = np.zeros(len(df), dtype=np.float64)
+        spread_z_shifted[0] = np.nan
+        df["_v1_spread_z"] = spread_z_shifted
+
+    # Kost-estimat (observerbar spread + observerbar slippage).
+    spread_bps = sp_arr * 1e4
+    spread_bps_shifted = np.roll(spread_bps, 1)
+    spread_bps_shifted[0] = np.nan
+    slip_bps_arr = df["slippage_bps"].to_numpy(dtype=np.float64)
+    slip_bps_shifted = np.roll(slip_bps_arr, 1)
+    slip_bps_shifted[0] = np.nan
+    df["_v1_cost_bps_est"] = spread_bps_shifted + slip_bps_shifted
     
     # Kurtosis av returer (vol-form)
     # Del: Time misc_roll block (includes quantiles, rolling operations)
     t_misc_roll_start = time.perf_counter()
     from gx1.features.rolling_timer import timed_rolling
-    from gx1.features.pandas_ops_timer import timed_pandas_rolling
     from gx1.utils.perf_timer import perf_add  # perf_inc already imported above in this fn (F811 fix)
     # DEL 2: Replace .pct_change(), .fillna() with NumPy
     close_arr = df["close"].to_numpy(dtype=np.float64)
@@ -1425,9 +1553,8 @@ def build_basic_v1(df):
         # atr_pct = atr14 / close
         atr_pct_arr = safe_div(atr14_arr, close_arr)
         
-        # rng = high - low (set 0 to nan equivalent by using mask)
+        # rng = high - low
         rng_arr = high_arr - low_arr
-        rng_arr_zero_mask = (rng_arr == 0.0)
         
         # rng_z = _zscore(rng, 48) - but _zscore returns Series, so we need to handle this
         # Convert to Series temporarily for _zscore, then back to array
@@ -1663,17 +1790,14 @@ def build_basic_v1(df):
     t_comp3_end = time.perf_counter()
     perf_add("feat.basic_v1.comp3_ratio", t_comp3_end - t_comp3_start)
     
-    # Rydd NaNs
+    # Preserve causal warmup. Never convert missing/non-finite model evidence
+    # into a live zero signal.
     # Del: Time final_pack block (df operations, cleanup)
     t_final_start = time.perf_counter()
     newcols = [c for c in df.columns if c.startswith("_v1")]
-    # DEL 2: Replace .replace(), .fillna() with NumPy
     for col in newcols:
         col_arr = df[col].to_numpy(dtype=np.float64)
-        # Replace inf/-inf with NaN, then NaN with 0.0
-        col_arr = np.where(np.isinf(col_arr), np.nan, col_arr)
-        col_arr = np.nan_to_num(col_arr, nan=0.0, posinf=0.0, neginf=0.0)
-        df[col] = col_arr
+        df[col] = _validate_causal_feature_column(col_arr, name=col)
     t_final_end = time.perf_counter()
     perf_add("feat.basic_v1.final_pack", t_final_end - t_final_start)
     

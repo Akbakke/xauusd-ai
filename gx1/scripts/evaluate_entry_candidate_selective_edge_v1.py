@@ -30,6 +30,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
 )
+from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
+    MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES,
+    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES,
+)
 from gx1.contracts.entry_model_native_direction_evidence_fusion_v1 import (
     INPUTS as DIRECTION_EVIDENCE_INPUTS,
 )
@@ -1116,9 +1120,9 @@ def _predict_bundle(
                         f"{model_name}/{split}: dataset lacks required target evidence: "
                         f"{missing_targets}"
                     )
-                if ctx_cat.ndim != 2 or ctx_cat.shape[1] < 2:
+                if ctx_cat.ndim != 2 or ctx_cat.shape[1] != 5:
                     raise RuntimeError(
-                        f"{model_name}/{split}: ctx_cat lacks session/vol-regime columns"
+                        f"{model_name}/{split}: ctx_cat is not the exact five-field contract"
                     )
                 session_ids = ctx_cat[:, 0].astype(np.int64)
                 unknown_sessions = sorted(set(session_ids) - set(SESSION_NAMES))
@@ -1127,7 +1131,61 @@ def _predict_bundle(
                         f"{model_name}/{split}: unknown session ids {unknown_sessions}"
                     )
                 frame["session"] = [SESSION_NAMES[int(x)] for x in session_ids]
-                frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]]
+                vol_regime_ids = ctx_cat[:, 1].astype(np.int64)
+                h4_trend_ids = ctx_cat[:, 4].astype(np.int64)
+                if "trend_regime_id" not in frame.columns:
+                    raise RuntimeError(
+                        f"{model_name}/{split}: exact entry trend_regime_id is missing"
+                    )
+                trend_regime_numeric = pd.to_numeric(
+                    frame["trend_regime_id"],
+                    errors="coerce",
+                ).to_numpy(dtype=np.float64)
+                if (
+                    not np.isfinite(trend_regime_numeric).all()
+                    or not np.array_equal(
+                        trend_regime_numeric,
+                        trend_regime_numeric.astype(np.int64),
+                    )
+                ):
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid entry trend_regime_id"
+                    )
+                trend_regime_ids = trend_regime_numeric.astype(np.int64)
+                if not np.isin(
+                    vol_regime_ids,
+                    np.arange(len(MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES)),
+                ).all():
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid entry vol-regime ids"
+                    )
+                if not np.isin(
+                    h4_trend_ids,
+                    np.arange(len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)),
+                ).all():
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid entry H4-trend ids"
+                    )
+                if not np.isin(
+                    trend_regime_ids,
+                    np.arange(len(MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES)),
+                ).all():
+                    raise RuntimeError(
+                        f"{model_name}/{split}: invalid entry trend-regime ids"
+                    )
+                frame["vol_regime_id"] = vol_regime_ids
+                frame["vol_regime"] = [
+                    MODEL_NATIVE_ENTRY_VOL_REGIME_NAMES[int(value)]
+                    for value in vol_regime_ids
+                ]
+                frame["atr_bucket"] = ctx_cat[:, 2].astype(np.int64)
+                frame["spread_bucket"] = ctx_cat[:, 3].astype(np.int64)
+                frame["H4_trend_sign_cat"] = h4_trend_ids
+                frame["trend_regime_id"] = trend_regime_ids
+                frame["trend_regime"] = [
+                    MODEL_NATIVE_ENTRY_TREND_REGIME_NAMES[int(value)]
+                    for value in trend_regime_ids
+                ]
                 direction_ids = frame["pred_direction"].to_numpy(dtype=np.int64)
                 if not set(direction_ids).issubset(SIDE_NAMES):
                     raise RuntimeError(
@@ -1145,7 +1203,13 @@ def _predict_bundle(
                     "trade_side",
                     "side",
                     "session",
+                    "vol_regime_id",
                     "vol_regime",
+                    "atr_bucket",
+                    "spread_bucket",
+                    "H4_trend_sign_cat",
+                    "trend_regime_id",
+                    "trend_regime",
                     "edge_score",
                     "p_long",
                     "p_short",

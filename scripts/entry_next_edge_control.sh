@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # Single control surface for immutable model-native Entry seq513 work.
-# Direction launch, promotion, shadow, live trading, and mutable Exit evidence
-# remain unavailable here.
+# Direction launch is exposed only through the exact transactional finalizer.
+# Direct promotion, shadow/live start and mutable Exit evidence remain
+# unavailable here.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd -P)"
@@ -33,6 +34,7 @@ Model-native seq513 evidence:
   model-native-replay-trade-log
   model-native-replay-evidence
   model-native-replay-readiness
+  model-native-finalize-launch --accepted-bundle-dir <dir> --sizing-adoption-json <event> --joint-exit-proof-json <event> --sizing-runtime-parity-json <event> --serve-parity-json <event> --direction-pocket-json <event> --adaptation-lifecycle-json <event> --launch-vedtak-json <canonical-immutable-event> --transaction-id <id> --max-trades <n>
 
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-rebuild --run-id <id> <all other explicit rebuild arguments>
@@ -41,9 +43,10 @@ Immutable run-lineage execution (evidence gates remain authoritative):
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
 soft failure flags, feature-mask ablations, alternate contract modes, and
-secondary direction paths are rejected. Entry direction launch, promotion,
-shadow, and live trading are not exposed. Exit evidence remains unavailable
-until its producers publish immutable, explicitly bound events.
+secondary direction paths are rejected. Entry launch is available only through
+the complete transactional finalizer; direct promotion, shadow and live start
+remain unavailable. Exit evidence remains unavailable until its producers
+publish immutable, explicitly bound events.
 EOF
 }
 
@@ -526,6 +529,24 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
+    ;;
+
+  model-native-finalize-launch)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --accepted-bundle-dir \
+      --sizing-adoption-json \
+      --joint-exit-proof-json \
+      --sizing-runtime-parity-json \
+      --serve-parity-json \
+      --direction-pocket-json \
+      --adaptation-lifecycle-json \
+      --launch-vedtak-json \
+      --transaction-id \
+      --max-trades; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.finalize_entry_model_native_launch_v1 "$@"
     ;;
 
   train|retrain|promote|pin|shadow|live|start-live|start-shadow|preview-shadow|verify-shadow)

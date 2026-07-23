@@ -18,7 +18,7 @@ Modus operandi:
 
 Run (live demo on OANDA practice):
     PYTHONPATH=/home/andre2/src/GX1_ENGINE python3 \\
-        gx1/execution/v12_paper_runner.py --max-trades 5
+        gx1/execution/v12_paper_runner.py --max-trades 1
 
 We trade year-round, all sessions (Asia included): session, structure, trend,
 liquidity, volatility, momentum, price action, path quality, and utility are
@@ -630,6 +630,82 @@ def learned_sizing_runtime_constraints(
         "exposure_last_transaction_id": transaction_ids["exposure"],
         "fact_provenance_mode": "broker_live",
     }
+
+
+def require_broker_xau_trade_reconciliation(
+    client: OandaClient,
+    *,
+    local_open_trades: list[TradeState],
+    max_trades: int,
+    expected_exposure_transaction_id: str,
+) -> tuple[str, ...]:
+    """Require exact broker/local XAU trade identity immediately before order."""
+
+    if isinstance(max_trades, bool) or not isinstance(max_trades, int) or max_trades != 1:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] only max_trades=1 is proven"
+        )
+    payload = client.get_open_trades()
+    transaction_id = (
+        payload.get("lastTransactionID") if isinstance(payload, dict) else None
+    )
+    rows = payload.get("trades") if isinstance(payload, dict) else None
+    if (
+        not isinstance(transaction_id, str)
+        or not transaction_id.strip()
+        or transaction_id.strip() != str(expected_exposure_transaction_id).strip()
+        or not isinstance(rows, list)
+    ):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker exposure changed "
+            "between sizing and order admission"
+        )
+    broker_ids: list[str] = []
+    for row in rows:
+        if not isinstance(row, dict) or row.get("instrument") != INSTRUMENT:
+            continue
+        trade_id = str(row.get("id") or "").strip()
+        try:
+            units_float = float(row["currentUnits"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ModelNativeSizingUnavailable(
+                "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker XAU trade is malformed"
+            ) from exc
+        if (
+            not trade_id
+            or not math.isfinite(units_float)
+            or units_float == 0.0
+            or units_float != int(units_float)
+        ):
+            raise ModelNativeSizingUnavailable(
+                "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker XAU trade identity "
+                "or units are invalid"
+            )
+        broker_ids.append(trade_id)
+    if len(broker_ids) != len(set(broker_ids)):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] duplicate broker XAU trade ID"
+        )
+    local_ids: list[str] = []
+    for trade in local_open_trades:
+        trade_id = str(getattr(trade, "trade_id", "") or "").strip()
+        if not trade_id:
+            raise ModelNativeSizingUnavailable(
+                "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] local open trade lacks "
+                "broker trade identity"
+            )
+        local_ids.append(trade_id)
+    if len(local_ids) != len(set(local_ids)) or set(local_ids) != set(broker_ids):
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker/local XAU trade "
+            "identity mismatch"
+        )
+    if len(broker_ids) >= max_trades:
+        raise ModelNativeSizingUnavailable(
+            "[V12_PAPER_RUNNER_SIZING_UNAVAILABLE] broker XAU trade count is "
+            "at the admitted cap"
+        )
+    return tuple(sorted(broker_ids))
 
 
 def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
@@ -1514,6 +1590,26 @@ def main() -> int:
                     open_trades.append(new_trade)
                     LOG.info(f"[DRY] virtual trade opened  side={side}  id={virtual_id}")
                 else:
+                    try:
+                        require_broker_xau_trade_reconciliation(
+                            client,
+                            local_open_trades=open_trades,
+                            max_trades=args.max_trades,
+                            expected_exposure_transaction_id=sizing_constraints[
+                                "exposure_last_transaction_id"
+                            ],
+                        )
+                    except ModelNativeSizingUnavailable as exc:
+                        event["order_status"] = "BROKER_TRADE_COUNT_UNAVAILABLE_NO_ORDER"
+                        event["broker_trade_count_evidence"] = str(exc)
+                        log_journal_event(
+                            daily_journal_path(args.journal_suffix),
+                            event,
+                        )
+                        last_decision_minute = current_minute
+                        consecutive_errors = 0
+                        time.sleep(args.poll_seconds)
+                        continue
                     order_result = attempt_market_entry(client, side, units=trade_units)
                     event["order_status"] = order_result["status"]
                     event["order_details"] = order_result

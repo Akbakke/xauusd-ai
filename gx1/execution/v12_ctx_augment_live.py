@@ -74,6 +74,7 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_state_v2 import causal_vol_regime_bucket
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
+from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
@@ -267,21 +268,21 @@ def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
     """Mutates cv3: atr_bps, spread_bps."""
     # atr_bps = canonical_v2 atr / mid * 1e4. canonical_v3 has _v1_atr14 (not 'atr', which was pruned).
     atr_col = "_v1_atr14" if "_v1_atr14" in cv3.columns else "atr"
-    if atr_col in cv3.columns and "close" in cv3.columns:
-        atr = cv3[atr_col].astype(float).to_numpy()
-        mid = cv3["close"].astype(float).to_numpy()
-        cv3["atr_bps"] = (atr / np.maximum(mid, ATR_EPS)) * 1e4
-    else:
-        cv3["atr_bps"] = 0.0
-    # spread_bps = (ask - bid) / bid * 1e4
-    if "bid_close" in cv3.columns and "ask_close" in cv3.columns:
-        bid = cv3["bid_close"].astype(float).to_numpy()
-        ask = cv3["ask_close"].astype(float).to_numpy()
-        spread_bps = (ask - bid) / np.maximum(bid, ATR_EPS) * 1e4
-        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
-        cv3["spread_bps"] = np.maximum(spread_bps, 0.0)
-    else:
-        cv3["spread_bps"] = 0.0
+    missing = [name for name in (atr_col, "close") if name not in cv3.columns]
+    if missing:
+        raise RuntimeError(
+            f"[LIVE_CTX_ATR_SOURCE_MISSING] required columns missing: {missing}"
+        )
+    atr = pd.to_numeric(cv3[atr_col], errors="coerce").to_numpy(dtype=np.float64)
+    mid = pd.to_numeric(cv3["close"], errors="coerce").to_numpy(dtype=np.float64)
+    invalid = (~np.isfinite(atr)) | (~np.isfinite(mid)) | (atr < 0.0) | (mid <= 0.0)
+    if invalid.any():
+        raise RuntimeError(
+            "[LIVE_CTX_ATR_SOURCE_INVALID] ATR/close must be finite with ATR >= 0 "
+            f"and close > 0: count={int(np.count_nonzero(invalid))}"
+        )
+    cv3["atr_bps"] = (atr / mid) * 1e4
+    cv3["spread_bps"] = derive_observed_spread_bps(cv3)
 
 
 def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:

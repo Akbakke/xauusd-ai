@@ -35,6 +35,7 @@ Usage:
     exit_iql = ExitIQLLiveInference.load_default()
     # On each new M1 bar while a trade is open:
     trade.update_bar(
+        m1_bar_ts=closed_m1_bar_ts,
         bid=bid,
         ask=ask,
         m1_close=m1_close,
@@ -47,6 +48,8 @@ Usage:
         trade,
         canonical_v3_row=augmented_cv3.iloc[-1],
         v3_v8_out=v3_v8_out,
+        current_m1_atr_bps_override=exact_m1_atr_bps,
+        now_minute=closed_m1_bar_time,
     )
     if rec.action_id_v1 == 1:  # EXIT_NOW
         ...
@@ -73,7 +76,10 @@ from gx1.runtime.exit_decider_v12_adapter import (
     ExitDeciderV12Adapter,
     ExitDeciderV12Recommendation,
 )
-from gx1.execution.v12_trade_state import TradeState
+from gx1.execution.v12_trade_state import (
+    TradeState,
+    require_model_native_entry_snapshot,
+)
 
 
 REQUIRED_V3_STATE_FEATURES = (
@@ -375,9 +381,6 @@ DEFAULT_FOLD = "FOLD_1"
 DEFAULT_AGGREGATOR = "max"
 # (V3 fail-safe override fully REMOVED 2026-06-13 — never helped, fired 0/977; exit = Exit-IQL argmax + Strategy-F.)
 
-SESSION_ID_TO_LABEL = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-
-
 def _exit_rec_with_distilled_q(rec, v3_v8_out: dict[str, float]):
     """Rebuild ExitDeciderV12Recommendation using V3 distilled q_head.
 
@@ -461,9 +464,17 @@ class ExitIQLLiveInference:
                 contract_entry=entry,
             )
             bundle_dir = bundle_dir if bundle_dir is not None else Path(entry["path"])
-            variant = variant if variant is not None else entry.get("active_variant", DEFAULT_VARIANT)
-            fold_id = fold_id if fold_id is not None else entry.get("active_folds", [DEFAULT_FOLD])[0]
-            aggregator = aggregator if aggregator is not None else entry.get("active_aggregator", DEFAULT_AGGREGATOR)
+            variant = (
+                variant if variant is not None else entry["active_variant"]
+            )
+            fold_id = (
+                fold_id if fold_id is not None else entry["serving_fold"]
+            )
+            aggregator = (
+                aggregator
+                if aggregator is not None
+                else entry["active_aggregator"]
+            )
         # V3 fail-safe override REMOVED 2026-06-13 (was retired/disabled since the V12.2 cement,
         # fired 0/977 on May/June). The exit is the Exit-IQL argmax + the Strategy-F overlay below.
         decider = ExitDeciderV12Adapter.load(
@@ -485,20 +496,10 @@ class ExitIQLLiveInference:
         v3_block_keys = set(REQUIRED_V3_STATE_FEATURES)
         missing_v3 = v3_block_keys - feat_set
         if missing_v3:
-            LOG.warning(
-                f"[EXIT_IQL_V3_BLOCK_PARTIAL] adapter feature_names missing {len(missing_v3)} "
-                f"of {len(v3_block_keys)} V3-block features: {sorted(missing_v3)[:5]}. "
-                f"Bar-state will write them but adapter will ignore them — train/serve OK "
-                f"as long as this is intentional. Verify bundle's training-time V3 schema."
-            )
-        v3_track_keys = {"v3_max_prob_in_trade_v1", "v3_consecutive_exits_v1",
-                          "v3_total_exit_decisions_v1", "v3_signal_acceleration_v1"}
-        missing_track = v3_track_keys - feat_set
-        if missing_track == v3_track_keys:
-            LOG.warning(
-                "[EXIT_IQL_V3_TRACKING_MISSING] none of the V3-tracking features "
-                "(v3_max_prob_in_trade_v1 etc.) are in adapter — bundle was trained "
-                "without V3 tracking. Check materialize_build_exit_iql_v3_m1 version."
+            raise RuntimeError(
+                "[EXIT_IQL_V3_BLOCK_PARTIAL] adapter feature_names omit "
+                f"{len(missing_v3)} of {len(v3_block_keys)} mandatory V3 features: "
+                f"{sorted(missing_v3)}"
             )
         return cls(decider=decider, feature_names=feature_names)
 
@@ -535,20 +536,22 @@ class ExitIQLLiveInference:
         # 12 unsuffixed candidate-context features (NUMERIC_STATE_COLS_CANDIDATE
         # in materialize_build_exit_iql_v2.py:122-134). These were silent 0-fills
         # in live before 2026-05-19.
-        s = trade.v10_snapshot
-        dp = s.get("direction_probs", [0.0, 0.0, 0.0])
-        p_long_e = float(dp[0] if hasattr(dp, "__len__") else 0.0)
-        p_short_e = float(dp[1] if hasattr(dp, "__len__") and len(dp) > 1 else 0.0)
-        p_flat_e = float(dp[2] if hasattr(dp, "__len__") and len(dp) > 2 else 0.0)
+        s = require_model_native_entry_snapshot(trade.v10_snapshot)
+        dp = s["direction_probs"]
+        p_long_e = float(dp[0])
+        p_short_e = float(dp[1])
+        p_flat_e = float(dp[2])
         p_hat_e = max(p_long_e, p_short_e, p_flat_e)
         sorted_probs = sorted([p_long_e, p_short_e, p_flat_e], reverse=True)
         margin_e = sorted_probs[0] - sorted_probs[1]
         uncertainty_e = 1.0 - p_hat_e
-        # atr_bps at entry — fallback to last_atr_bps if v10_snapshot lacks entry atr
-        atr_bps_entry = float(s.get("atr_bps", trade.last_atr_bps or 0.0))
+        atr_bps_entry = float(s["atr_bps"])
+        decision_ts = pd.Timestamp(s["decision_ts"])
+        if decision_ts.tz is None or str(decision_ts.tz) != "UTC":
+            raise RuntimeError("EXIT_IQL_ENTRY_DECISION_TIME_NOT_UTC")
         bar_state.update({
-            "weekday_utc": float(trade.entry_ts.dayofweek),
-            "hour_utc": float(trade.entry_ts.hour),
+            "weekday_utc": float(decision_ts.dayofweek),
+            "hour_utc": float(decision_ts.hour),
             "atr_bps": atr_bps_entry,
             "p_long": p_long_e,
             "p_short": p_short_e,
@@ -556,9 +559,9 @@ class ExitIQLLiveInference:
             "p_hat": p_hat_e,
             "margin": margin_e,
             "uncertainty_score": uncertainty_e,
-            "tradable_prob": float(s.get("tradable_prob", 0.0)),
-            "mfe_first_n_pred": float(s.get("mfe_first_n", 0.0)),
-            "path_quality_pred": float(s.get("path_quality", 0.0)),
+            "tradable_prob": float(s["tradable_prob"]),
+            "mfe_first_n_pred": float(s["mfe_first_n"]),
+            "path_quality_pred": float(s["path_quality"]),
         })
         # Exact V3 v8 state. The active pipeline validates the richer output
         # contract before this call; direct callers still fail closed instead
@@ -581,95 +584,59 @@ class ExitIQLLiveInference:
             raise RuntimeError(f"EXIT_IQL_V3_STATE_NONFINITE: {invalid_v3}")
         v3_block = v3_v8_out
         bar_state.update({k: float(v) for k, v in v3_block.items()})
-        # V3-tracking running stats — Exit-IQL training expects 7 features:
-        # v3_should_exit_decision_v1, v3_decision_confidence_v1,
-        # v3_max_prob_in_trade_v1, v3_consecutive_exits_v1,
-        # v3_signal_acceleration_v1, v3_total_exit_decisions_v1,
-        # v3_max_consecutive_exits_v1. Without this call they were 0-filled
-        # at decision time (fixed 2026-05-19).
-        bar_state.update(trade.build_v3_tracking_features())
         # Side one-hot
         bar_state.update(trade.build_side_one_hot())
         # current_atr_bps
-        # current_atr_bps_v1 = per-M1-bar (ask_high-bid_low)/mid bps (training:
-        # materialize_build_exit_iql_per_bar_dataset_v1.py:215-217). Falls back
-        # to canonical M5 ATR14 only when M1 reader unavailable (init / disk error).
-        if current_m1_atr_bps_override is not None and current_m1_atr_bps_override > 0:
-            bar_state["current_atr_bps_v1"] = float(current_m1_atr_bps_override)
-        else:
-            bar_state["current_atr_bps_v1"] = float(canonical_v3_row.get("atr_bps", 0.0) or 0.0)
+        # current_atr_bps_v1 must be the exact per-M1-bar
+        # (ask_high-bid_low)/mid bps used by training. M5 ATR substitution is
+        # distribution-changing and therefore forbidden.
+        try:
+            current_atr_bps = float(current_m1_atr_bps_override)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("EXIT_IQL_M1_ATR_MISSING") from exc
+        if not np.isfinite(current_atr_bps) or current_atr_bps <= 0.0:
+            raise RuntimeError("EXIT_IQL_M1_ATR_INVALID")
+        bar_state["current_atr_bps_v1"] = current_atr_bps
 
-        # m5_phase one-hots (from canonical_v3). Audit H3 2026-05-19: log a
-        # one-time warning if none of the 5 phases are set — indicates the
-        # prebuilt was built without the m5_phase augmenter and Exit-IQL is
-        # seeing a constant 0-vector for these features.
-        phase_sum = 0.0
         # EX1 (2026-06-04 train==serve parity): the per-bar TRAINER encodes m5_phase = minute%5
         # (compute_m5_phase_index — XGB-refresh STALENESS). The old serve read canonical_v3_row['m5_phase_{p}']
         # = cv3's minute//12 HOUR-segment bucket (materialize_build_canonical_features_v1) — a DIFFERENT
-        # formula, and both have variance so the fail-closed coverage guard never caught it. Compute minute%5
-        # from the live M1 bar ts when available; fall back to the cv3 col only if now_minute is absent.
-        if now_minute is not None:
-            from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import compute_m5_phase_onehot
-            _m5_oh = compute_m5_phase_onehot(now_minute)
-            for p in range(5):
-                bar_state[f"m5_phase_{p}_v1"] = float(_m5_oh[p])
-            phase_sum = 1.0
-        else:
-            # 2026-06-11: now_minute absent → fall back to the cv3 minute//12 m5_phase cols, which use a
-            # DIFFERENT formula than the trainer's minute%5 (train≠serve on the phase block). Keep the fallback
-            # for live stability (don't halt a trade) but WARN LOUD once so it is visible, not silent.
-            if not getattr(self, "_m5_phase_fallback_warned", False):
-                import logging as _l
-                _l.getLogger("exit_iql_live").warning(
-                    "[M5_PHASE_FALLBACK] now_minute absent → using cv3 minute//12 m5_phase cols (WRONG formula "
-                    "vs trainer minute%5; train!=serve on the phase block). Pass now_minute for every live exit decision."
-                )
-                self._m5_phase_fallback_warned = True
-            for p in range(5):
-                col = f"m5_phase_{p}"
-                val = float(canonical_v3_row.get(col, 0.0) or 0.0)
-                bar_state[f"m5_phase_{p}_v1"] = val
-                phase_sum += val
-        if phase_sum < 1e-6 and not getattr(self, "_m5_phase_warned", False):
-            import logging as _l
-            _l.getLogger("exit_iql_live").warning(
-                "[M5_PHASE_MISSING] no now_minute and canonical_v3_row has no m5_phase_{0..4} cols — "
-                "Exit-IQL bar_state's 5 phase one-hots are all 0. Pass now_minute (the live M1 bar ts)."
-            )
-            self._m5_phase_warned = True
+        # formula, and both have variance. Exact M1 time is mandatory.
+        if now_minute is None:
+            raise RuntimeError("EXIT_IQL_M1_PHASE_TIME_MISSING")
+        parsed_now = pd.Timestamp(now_minute)
+        if parsed_now.tz is None or str(parsed_now.tz) != "UTC":
+            raise RuntimeError("EXIT_IQL_M1_PHASE_TIME_NOT_UTC")
+        from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
+            compute_m5_phase_onehot,
+        )
 
-        # Categorical one-hots (matches training labels)
-        sid = int(canonical_v3_row.get("session_id", 0) or 0)
-        sess_label = SESSION_ID_TO_LABEL.get(sid, "ASIA")
+        m5_onehot = compute_m5_phase_onehot(parsed_now)
+        for phase in range(5):
+            bar_state[f"m5_phase_{phase}_v1"] = float(m5_onehot[phase])
+
+        # Exit training carries these categorical coordinates from the
+        # candidate row, so live must keep their exact entry-time values frozen
+        # for the whole trade. Current-bar session/regime substitution is a
+        # train/serve semantic mismatch.
+        sess_label = str(s["session"])
         bar_state[f"session_{sess_label}"] = 1.0
         # Set zeros for other sessions
-        for s in ("ASIA", "EU", "OVERLAP", "US"):
-            bar_state.setdefault(f"session_{s}", 0.0)
-        # vol_regime / trend_regime — real per-bar regime when GX1_REGIME_V4=1 (gap-register H6,
-        # exit side: Exit-IQL was regime-blind via these const placeholders).
-        # Per-bar regime comes from canonical_v3_row (Exit is always M1).
-        if os.environ.get("GX1_REGIME_V4", "0") == "1":
-            # NaN-safe coercion (2026-06-13 audit): the old `... or 1` / `... or 2`
-            # truthiness-coerced a VALID id 0 to the default — trend_regime_id=0
-            # (TREND_DOWN) became NEUTRAL and vol_regime_id=0 (LOW, ~20% of bars)
-            # became MEDIUM, so TREND_DOWN + vol_regime_LOW could NEVER be emitted
-            # live on the EXIT side (~20% of in-trade M1 bars got the WRONG regime
-            # one-hot — a silent train≠serve skew). Same bug the entry side fixed
-            # 2026-06-11; this is the exit-side twin the entry fix missed. Mirror it.
-            _tr_raw = canonical_v3_row.get("trend_regime_id")
-            _tr = int(_tr_raw) if _tr_raw is not None and np.isfinite(_tr_raw) else 1
-            _vr_raw = canonical_v3_row.get("vol_regime_id")
-            _vr = int(_vr_raw) if _vr_raw is not None and np.isfinite(_vr_raw) else 2
-            _vl = {0: "LOW", 1: "LOW", 2: "MEDIUM", 3: "HIGH", 4: "EXTREME"}.get(_vr, "MEDIUM")
-            _tl = {0: "TREND_DOWN", 1: "TREND_NEUTRAL", 2: "TREND_UP"}.get(_tr, "TREND_NEUTRAL")
-            for _v in ("LOW", "MEDIUM", "HIGH", "EXTREME"):
-                bar_state[f"vol_regime_{_v}"] = 1.0 if _vl == _v else 0.0
-            for _v in ("TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"):
-                bar_state[f"trend_regime_{_v}"] = 1.0 if _tl == _v else 0.0
-        else:
-            bar_state["vol_regime_MEDIUM"] = 1.0
-            bar_state["trend_regime_TREND_NEUTRAL"] = 1.0
+        for session_name in ("ASIA", "EU", "OVERLAP", "US"):
+            bar_state.setdefault(f"session_{session_name}", 0.0)
+        # The Exit training rows carry vol/trend labels from the Entry
+        # candidate. Keep those exact frozen coordinates while current-bar
+        # regime features remain available separately through canonical state.
+        if os.environ.get("GX1_REGIME_V4") != "1":
+            raise RuntimeError("EXIT_IQL_REGIME_V4_NOT_PINNED")
+        vol_label = str(s["entry_vol_regime"])
+        trend_label = str(s["entry_trend_regime"])
+        for label in ("LOW", "MEDIUM", "HIGH", "EXTREME"):
+            bar_state[f"vol_regime_{label}"] = 1.0 if vol_label == label else 0.0
+        for label in ("TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"):
+            bar_state[f"trend_regime_{label}"] = (
+                1.0 if trend_label == label else 0.0
+            )
         bar_state["decision_reason_v2_inference_batch"] = 1.0
 
         # Canonical_v3 + augment features under the _canon_v1 suffix only.
@@ -682,9 +649,9 @@ class ExitIQLLiveInference:
                 continue
             try:
                 v = float(val)
-                if not np.isfinite(v):
-                    v = 0.0
             except (TypeError, ValueError):
+                continue
+            if not np.isfinite(v):
                 continue
             canon_key = f"{col}_canon_v1"
             if canon_key not in bar_state:
@@ -698,6 +665,28 @@ class ExitIQLLiveInference:
             # more-specific bare key (trade-state / candidate feats) set earlier.
             if col not in bar_state:
                 bar_state[col] = v
+
+        required_features = tuple(getattr(self, "feature_names", ()))
+        missing_features = [
+            name for name in required_features if name not in bar_state
+        ]
+        invalid_features: list[str] = []
+        for name in required_features:
+            if name not in bar_state:
+                continue
+            try:
+                value = float(bar_state[name])
+            except (TypeError, ValueError):
+                invalid_features.append(name)
+                continue
+            if not np.isfinite(value):
+                invalid_features.append(name)
+        if missing_features or invalid_features:
+            raise RuntimeError(
+                "EXIT_IQL_REQUIRED_FEATURE_CONTRACT_INVALID: "
+                f"missing={missing_features[:20]} "
+                f"nonfinite={invalid_features[:20]}"
+            )
 
         return bar_state
 

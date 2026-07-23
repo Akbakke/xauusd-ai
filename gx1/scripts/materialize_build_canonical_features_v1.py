@@ -38,7 +38,6 @@ import json
 import os
 import sys
 import time as _time
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -52,7 +51,11 @@ if str(REPO_ROOT) not in sys.path:
 # Disable feature-build timeout (1s default is for replay; we need batch)
 os.environ.setdefault("FEATURE_BUILD_TIMEOUT_MS", "600000")
 
-from gx1.features.basic_v1 import build_basic_v1
+from gx1.features.basic_v1 import (
+    PLUS5_FEATURES,
+    build_basic_v1,
+    compute_plus5_features,
+)
 from gx1.features.feature_state import FeatureState
 from gx1.utils.feature_context import set_feature_state
 from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
@@ -85,7 +88,6 @@ HIGH_LEVEL_FEATURE_SPECS = {
 }
 
 
-_stamp = contract_gate._stamp
 _utc_now = contract_gate._utc_now
 _jsonable = contract_gate._jsonable
 _write_json = contract_gate._write_json
@@ -136,23 +138,27 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     high_pc = (df["high"] - df["close"].shift(1)).abs()
     low_pc = (df["low"] - df["close"].shift(1)).abs()
     tr = pd.concat([high_low, high_pc, low_pc], axis=1).max(axis=1)
-    df["atr"] = tr.rolling(14, min_periods=1).mean().astype(np.float32)
     df["atr50"] = tr.rolling(50, min_periods=1).mean().astype(np.float32)
     atr50_mean = df["atr50"].rolling(50, min_periods=10).mean()
     atr50_std = df["atr50"].rolling(50, min_periods=10).std().clip(lower=1e-9)
     df["atr_z"] = ((df["atr50"] - atr50_mean) / atr50_std).astype(np.float32)
-    df["std50"] = df["close"].pct_change().rolling(50, min_periods=10).std().astype(np.float32)
 
     # Returns
     close = df["close"]
     df["ret_1"] = (close.pct_change(1) * 10000.0).astype(np.float32)
     df["ret_5"] = (close.pct_change(5) * 10000.0).astype(np.float32)
     df["ret_20"] = (close.pct_change(20) * 10000.0).astype(np.float32)
-    df["roc20"] = (close.pct_change(20) * 10000.0).astype(np.float32)
     df["roc100"] = (close.pct_change(100) * 10000.0).astype(np.float32)
 
     # Realized vol (bps)
-    rvol_window = lambda w: close.pct_change().rolling(w, min_periods=max(2, w // 4)).std() * 10000.0 * np.sqrt(w)
+    def rvol_window(window: int) -> pd.Series:
+        return (
+            close.pct_change()
+            .rolling(window, min_periods=max(2, window // 4))
+            .std()
+            * 10000.0
+            * np.sqrt(window)
+        )
     df["rvol_20"] = rvol_window(20).astype(np.float32)
     df["rvol_60"] = rvol_window(60).astype(np.float32)
 
@@ -167,6 +173,18 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     # vol_ratio: rvol_20 / rvol_60
     df["vol_ratio"] = (df["rvol_20"] / df["rvol_60"].clip(lower=1e-6)).astype(np.float32)
 
+    plus5 = compute_plus5_features(df)
+    for feature in PLUS5_FEATURES:
+        df[feature] = plus5[feature]
+    if "_v1h1_ema_diff" in df.columns:
+        from gx1.features.array_utils import safe_clip, safe_mul
+
+        df["_v1_int_vwap_h1"] = safe_clip(
+            safe_mul(
+                df["_v1_vwap_drift48"].to_numpy(dtype=np.float64),
+                df["_v1h1_ema_diff"].to_numpy(dtype=np.float64),
+            )
+        )
     return df
 
 
@@ -210,7 +228,7 @@ def write_artifacts(
     m5_tape_root: Path = DEFAULT_M5_TAPE_ROOT,
     built_at_utc: str | None = None,
 ) -> dict[str, Any]:
-    timestamp = built_at_utc or _stamp()
+    timestamp = built_at_utc or _utc_now()
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -241,7 +259,7 @@ def write_artifacts(
         "layer_name": "CANONICAL_FEATURES_V1_SUMMARY",
         "action_v1": ACTION,
         "out_path_v1": str(out_path),
-        "built_at_utc_v1": _utc_now(),
+        "built_at_utc_v1": timestamp,
         "m5_tape_root_v1": str(m5_tape_root),
         "m5_bars_loaded_v1": int(len(m5)),
         "m5_date_range_v1": [str(m5["time"].min()), str(m5["time"].max())],

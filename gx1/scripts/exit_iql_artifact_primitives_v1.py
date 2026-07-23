@@ -87,6 +87,18 @@ def _file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def ordered_feature_names_sha256(feature_names: Sequence[str]) -> str:
+    """Canonical SHA-256 for an ordered model-input feature list."""
+
+    return hashlib.sha256(
+        json.dumps(
+            list(feature_names),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 def _python_manifest() -> dict[str, Any]:
     try:
         freeze = subprocess.check_output([sys.executable, "-m", "pip", "freeze"], text=True).splitlines()

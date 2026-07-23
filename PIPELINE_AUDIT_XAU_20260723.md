@@ -74,26 +74,88 @@ not rehabilitate V24/V7 and are not empirical edge evidence:
 - stale bundle-loader scaler/feature compatibility arguments and metadata are
   removed and explicitly rejected.
 
-Still open before any rebuild/training:
+The transactional launch boundary is now repaired. Its producer is
+`gx1/scripts/finalize_entry_model_native_launch_v1.py`, routed through the
+existing public control surface. It requires a pre-existing identity-bound
+vedtak, serializes canonical registry/state targets under one lock/CAS
+boundary, and publishes exact COMMIT or restorative terminal FAIL evidence.
+It cannot create empirical authority.
 
-- one canonical transactional candidate/promotion/launch finalizer. The
-  consumers now reject soft approval, mutable bundle content, expired evidence
-  and mid-process authority changes, but no producer yet validates the entire
-  candidate chain and publishes the activating state as one recoverable
-  transaction;
-- repair/parity of the canonical/live December-2024 M5 tape.
+The adversarial replay re-audit first found the canonical producer P0: the joint
+Exit finalizer accepts replay and per-M1 trace parquets from a caller and never
+runs the byte-bound XGB→V3→Exit-IQL/Strategy-F artifacts. It therefore cannot
+prove that the active models caused the actions. The launch finalizer and
+runtime guard now reject this evidence before activation. The missing
+canonical full-TEST producer must reuse `V12Pipeline.make_exit_decision`,
+preserve the complete Entry snapshot, bind SourceTape plus
+canonical/BASE28/MTF state, and emit its own traces with zero fallback or
+horizon-cap pass. The later second-audit section below supersedes the
+single-P0 count.
+
+Also open before any rebuild/training: repair and exact parity proof for the
+canonical/live December-2024 M5 tape. Read-only inspection found 3,430
+impossible-geometry rows in both copies, 2,799 on weekends; clean M1 supports
+5,757 rebuilt December buckets and leaves 3,459 canonical rows unbacked.
 
 Still empirically unproved after source repair: a fresh dataset, trained
 checkpoint, calibrated LONG/SHORT/FLAT predictions, untouched OOS direction
 edge, train==serve parity, replay, sizing/Exit performance and live-like
 precision. V24/V7 predate these contracts.
 
-Repository verification after the repairs collected 1,725 tests: 1,720
-passed, five were explicitly skipped and zero failed. Changed Python sources
-and tests compile and pass Ruff (excluding the repository's intentional
-import-bootstrap `E402` pattern); JSON, shell syntax, diff hygiene, handover
-self-check and the exact forbidden-instrument scan are green. These results
-prove source contracts, not a trading edge.
+The 1,725/1,720/5 repository result below was the first repair checkpoint. It
+is historical and was superseded when the second audit added new contracts and
+tests; the final current count belongs in the launch-state verification block.
+These results prove source contracts, not a trading edge.
+
+## Second audit correction — Exit and incremental chain
+
+The later field-by-field audit proved that the retained Exit chain cannot be
+used as a live incumbent:
+
+- the old per-bar builder anchored near T+1 and emitted its first state at
+  T+2/T+3 rather than using the exact T+5 fill and the closed fill-bar;
+- the old lazy join used the M5 row carrying the same start label as the M1
+  row. On four of five M1 phases that M5 bar was still forming; an empirical
+  sample measured 80.026% exposed rows;
+- V3 scoring placed the first trade-state overlay on the fill row one bar
+  before the corresponding per-bar state;
+- a fixed 96-M5 fetch covered only 96 of 104 M5 buckets in an observed
+  512-M1 window, leaving 36 M1 rows with zero-filled canonical/XGB state;
+- five active M1 microfeatures used simple returns/std live but log
+  returns/RMS in training;
+- TradeState mutated before V3/Exit validation, did not persist its last M1
+  identity and lost Strategy-F deferral state across restart;
+- the retained Exit-IQL summary declares `research_only_v1=true` and
+  `iql_production_allowed_v1=false`; ordered feature names were not
+  checkpoint-bound and the registry selected the first of three folds
+  implicitly;
+- the retained V3 training manifest points at an absent source dataset, and
+  the old Exit policy was trained on an older Entry candidate distribution.
+
+Source now repairs the timing, exact M5 join, exact overlay mapping, full
+512-M1 coverage, microfeature parity, transactional/persisted TradeState,
+Entry-frozen regime/session evidence, explicit serving fold, complete feature
+coverage and ordered summary/checkpoint SHA. The old artifacts remain
+invalid—they must be rebuilt, rescored and retrained on the repaired substrate.
+
+The data/feature producer audit also found hidden sentinels, overlapping
+feature owners, HTF availability errors, bounded-history state resets and
+non-transactional lineage. Exact schema and BASE ownership, full-history
+BASE augmentation and M5 decision-time HTF alignment are repaired in source.
+Still open are complete canonical-v2 incremental state equivalence, one atomic
+canonical/BASE generation pointer, a single canonical-M5 owner with explicit
+market-closure semantics, an observable per-bar slippage owner and
+reproducible V3 lineage. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and
+published SMC ATR now use one formula path; H1/H4 aligns to M5
+decision-availability without the old extra lag. Full-loader execution is
+independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
+00:40Z and 2024-12-31 23:55Z.
+
+The final merged source tree collected 1,821 tests: 1,816 passed, five were
+explicitly skipped and zero failed. The manifest-bound loader also correctly
+rejects the current live canonical parquet: the legacy updater changed its
+bytes without advancing the canonical manifest SHA. This is fail-closed
+evidence, not live readiness.
 
 ## V7 terminal result
 
@@ -319,27 +381,28 @@ rejects source-build fallback. Its schema binds source M5, the exact ten
 arrays, file sizes/hashes, feature order, the 11-file inventory and one cache
 identity; the trainer reuses only those verified bytes.
 
-## P1 — launch authority has no safe completion path
+## P1 — launch authority safe completion path — source repaired
 
-The current control surface intentionally rejects promote/pin/shadow/live, but
-there is no canonical transactional finalizer that can later validate a full
-candidate chain and atomically update both launch authority and artifact
-registry.
+The current control surface still rejects direct promote/pin/shadow/live. The
+canonical transactional finalizer updates launch authority plus artifact
+registry as one recoverable transaction only after every upstream authority
+passes. Its explicit active-Exit producer gate currently blocks.
 
 The former nonempty `GX1_SMART_LAUNCH_VEDTAK` pass-through is now removed from
 both shell launcher and runner. Artifact validation requires the newest exact
 approval event, complete launch-state payload hash and bundle-commit hash.
 Runtime revalidates the unchanged authority lease before each new exposure.
-The remaining gap is producer-side transactional promotion/finalization.
-
-Required repair:
-
-- one public promotion/launch finalizer that validates the newest immutable
-  bundle, serve, sizing, Exit, replay, shadow and lifecycle evidence;
-- atomic registry/state update with a terminal failure event on partial error;
-- explicit one-time vedtak ID/hash bound to that launch event (consumer side
-  is repaired);
-- `.env` may not supply launch authority (repaired).
+The producer now requires a separately pre-existing one-time vedtak bound to
+the exact bundle, transaction, targets, operating point and six prerequisite
+evidence identities. Same-byte/no-symlink reads, a stable process lock,
+compare-and-swap, immutable target-local backups and strict COMMIT/FAIL
+recovery close hash/reopen, concurrency and partial-replacement gaps. The
+public CLI owns canonical roots, and `.env` cannot supply launch authority.
+Isolated transaction-mechanics tests prove commit, tamper rejection, exact
+`ALLOW`, decoy Exit rejection, single-exposure enforcement,
+partial-replacement rollback, strict recovery events and idempotent completed
+retry. The synthetic upstream fixture is explicitly bypassed only inside those
+transaction tests; production rejects it.
 
 ## P2 cleanup and quality findings
 
@@ -399,9 +462,10 @@ Required repair:
 1. Record V7 and this audit as immutable failure evidence.
 2. Preserve the completed source repairs for both P0s, sampling, auxiliary
    semantics, normalization, context routing, MTF binding, all-head influence,
-   atomic bundle/event publication, Exit-byte binding and runtime fail-close.
-3. Implement the transactional promotion/launch finalizer and identity-bound
-   vedtak.
+   atomic bundle/event publication, Exit-byte binding, transactional launch
+   finalization and runtime fail-close.
+3. Build and prove the canonical full-TEST active-Exit replay producer. It
+   must own the rows/traces rather than validate caller-created parquets.
 4. Repair and prove canonical/live December-2024 tape parity.
 5. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
    readiness and trainability audit.

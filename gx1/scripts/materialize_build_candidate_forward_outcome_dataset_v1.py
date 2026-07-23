@@ -69,7 +69,6 @@ import hashlib
 import json
 import os
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +79,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate  # noqa: E402
 
 
 ACTION = "BUILD_CANDIDATE_FORWARD_OUTCOME_DATASET_V1"
@@ -130,7 +129,12 @@ CANDIDATE_FEATURE_COLS = [
     "tradable_prob",
     "mfe_first_n_pred",
     "path_quality_pred",
+    "vol_regime_id",
     "vol_regime",
+    "atr_bucket",
+    "spread_bucket",
+    "H4_trend_sign_cat",
+    "trend_regime_id",
     "trend_regime",
     "decision_reason",  # flat_dominant / flat_veto / pre_quality / ...
     "accepted",
@@ -354,10 +358,6 @@ def compute_outcomes_for_window(
         ask_open, ask_high, ask_low, ask_close,
         side,
     )
-
-    # Cumulative max over peak; cumulative min over trough; argmax of cum_max.
-    cum_max_peak = np.maximum.accumulate(peak)
-    cum_min_trough = np.minimum.accumulate(trough)
 
     for K in K_HORIZONS:
         K_eff = min(K, n_avail)

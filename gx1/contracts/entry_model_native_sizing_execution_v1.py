@@ -11,7 +11,10 @@ fail closed.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+import os
+import stat
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -34,24 +37,90 @@ from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
 
 
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION = (
-    "entry_model_native_joint_exit_sizing_proof_v2"
+    "entry_model_native_joint_exit_sizing_proof_v4"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX = (
     "ENTRY_MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT = (
-    "full_candidate_test_exact_active_exit_chain_to_exit_now_v2"
+    "full_candidate_test_exact_active_exit_chain_to_exit_now_v4"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE = (
     "canonical_oos_reference"
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES = 128
 MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE = 32
+# The admitted OOS rows use one canonical account scenario per independent
+# decision. They do not replay shared equity, margin, exposure or drawdown
+# across overlapping trades. Until an exact shared-portfolio producer exists,
+# only one simultaneous exposure is provable.
+MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES = 1
 MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES = (
     "xgb",
     "v3_exit",
     "exit_iql",
 )
+_ACTIVE_EXIT_REGISTRY_PROJECTION_KEYS = frozenset(
+    {
+        "path",
+        "schema_version",
+        "project",
+        "active_exit_entries",
+        "projection_sha256",
+    }
+)
+
+
+def _canonical_sha256(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def active_exit_registry_projection(
+    *,
+    registry_path: Path,
+    registry: Mapping[str, Any],
+    context: str,
+) -> dict[str, Any]:
+    """Bind only Exit-owned registry authority, never unrelated Entry rows."""
+
+    path = Path(registry_path).expanduser()
+    if not path.is_absolute() or path.is_symlink():
+        _fail(context, "artifact registry path must be absolute and non-symlinked")
+    if (
+        registry.get("schema_version") != "gx1_artifact_selection_v2"
+        or registry.get("project") != "XAUUSD"
+        or not isinstance(registry.get("active"), Mapping)
+    ):
+        _fail(context, "artifact registry is not the XAUUSD active authority")
+    active = registry["active"]
+    entries = {
+        role: active.get(role)
+        for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
+    }
+    if any(not isinstance(value, Mapping) for value in entries.values()):
+        _fail(context, "artifact registry lacks the exact active Exit roles")
+    canonical_entries = {
+        role: dict(entries[role])
+        for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
+    }
+    payload = {
+        "schema_version": "gx1_artifact_selection_v2",
+        "project": "XAUUSD",
+        "active_exit_entries": canonical_entries,
+    }
+    return {
+        "path": str(path.resolve()),
+        **payload,
+        "projection_sha256": _canonical_sha256(payload),
+    }
 
 
 def active_exit_artifact_manifests(
@@ -85,11 +154,29 @@ def active_exit_artifact_manifests(
                     f"active Exit role {role} contains a non-regular path: {path}",
                 )
             relative = "." if path == root else path.relative_to(root).as_posix()
+            before = path.stat()
+            digest = sha256_file(path)
+            observed = path.stat()
+            if (
+                before.st_dev,
+                before.st_ino,
+                before.st_size,
+                before.st_mtime_ns,
+            ) != (
+                observed.st_dev,
+                observed.st_ino,
+                observed.st_size,
+                observed.st_mtime_ns,
+            ):
+                _fail(
+                    context,
+                    f"active Exit role {role} changed while hashing: {path}",
+                )
             files.append(
                 {
                     "relative_path": relative,
-                    "sha256": sha256_file(path),
-                    "size_bytes": int(path.stat().st_size),
+                    "sha256": digest,
+                    "size_bytes": int(observed.st_size),
                 }
             )
         if not files:
@@ -115,12 +202,13 @@ def active_exit_artifact_manifests(
     return manifests
 MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS = frozenset(
     {
+        "entry_fill_time",
         "exit_replay_status",
         "exit_time",
         "exit_reason",
         "exit_steps",
         "exit_trace_sha256",
-        "active_exit_registry_sha256",
+        "active_exit_authority_sha256",
     }
 )
 MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS = frozenset(
@@ -138,7 +226,7 @@ MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS = frozenset(
         "current_pnl_bps",
         "bid",
         "ask",
-        "active_exit_registry_sha256",
+        "active_exit_authority_sha256",
     }
 )
 MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION = (
@@ -236,8 +324,7 @@ _PROOF_KEYS = frozenset(
         "oos_proof_artifact",
         "evaluation_bundle",
         "test_prediction_provenance",
-        "artifact_registry",
-        "active_exit_entries",
+        "active_exit_registry_projection",
         "active_exit_artifact_manifests",
         "replay_rows",
         "exit_trace_rows",
@@ -318,6 +405,120 @@ def _json_file(path: Path, *, context: str) -> dict[str, Any]:
     return value
 
 
+def _read_bound_regular_file_bytes(
+    binding: Mapping[str, Any],
+    *,
+    path_key: str,
+    context: str,
+) -> bytes:
+    """Read and hash one exact regular-file inode without path reopen races."""
+
+    path = Path(str(binding.get(path_key) or "")).expanduser()
+    expected_sha = _sha(binding.get("sha256"), context=f"{context}.sha256")
+    if not path.is_absolute():
+        _fail(context, "bound path must be absolute")
+    flags = os.O_RDONLY
+    if hasattr(os, "O_CLOEXEC"):
+        flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise ModelNativeSizingExecutionContractError(
+            f"[{context}_INVALID] bound file cannot be opened exactly: {path}"
+        ) from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode):
+            _fail(context, f"bound path is not a regular file: {path}")
+        chunks: list[bytes] = []
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        after = os.fstat(fd)
+    finally:
+        os.close(fd)
+    identity_before = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+    )
+    identity_after = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    )
+    if identity_before != identity_after:
+        _fail(context, f"bound file changed while being read: {path}")
+    try:
+        path_state = os.lstat(path)
+    except OSError as exc:
+        raise ModelNativeSizingExecutionContractError(
+            f"[{context}_INVALID] bound path disappeared after read: {path}"
+        ) from exc
+    if (
+        stat.S_ISLNK(path_state.st_mode)
+        or not stat.S_ISREG(path_state.st_mode)
+        or path_state.st_dev != after.st_dev
+        or path_state.st_ino != after.st_ino
+    ):
+        _fail(context, f"bound path identity changed while being read: {path}")
+    payload = b"".join(chunks)
+    if len(payload) != after.st_size:
+        _fail(context, f"bound file size changed while being read: {path}")
+    if hashlib.sha256(payload).hexdigest() != expected_sha:
+        _fail(context, f"bound file hash mismatch: {path}")
+    return payload
+
+
+def _read_bound_json_exact(
+    binding: Mapping[str, Any],
+    *,
+    context: str,
+) -> dict[str, Any]:
+    payload = _read_bound_regular_file_bytes(
+        binding,
+        path_key="json_path",
+        context=context,
+    )
+    try:
+        value = json.loads(payload)
+    except Exception as exc:
+        raise ModelNativeSizingExecutionContractError(
+            f"[{context}_INVALID] bound JSON is unreadable"
+        ) from exc
+    if not isinstance(value, dict):
+        _fail(context, "bound JSON root is not an object")
+    return value
+
+
+def read_bound_parquet_exact(
+    binding: Mapping[str, Any],
+    *,
+    context: str,
+) -> pd.DataFrame:
+    """Parse parquet from the exact bytes that satisfy its SHA-256 binding."""
+
+    payload = _read_bound_regular_file_bytes(
+        binding,
+        path_key="path",
+        context=context,
+    )
+    try:
+        return pd.read_parquet(io.BytesIO(payload))
+    except Exception as exc:
+        raise ModelNativeSizingExecutionContractError(
+            f"[{context}_INVALID] bound parquet is unreadable"
+        ) from exc
+
+
 def _source_binding(
     value: Mapping[str, Any] | Any,
     *,
@@ -361,8 +562,8 @@ def joint_exit_trace_sha256(frame: pd.DataFrame, *, context: str) -> str:
         records.append(
             {
                 "action_id": int(row["action_id"]),
-                "active_exit_registry_sha256": str(
-                    row["active_exit_registry_sha256"]
+                "active_exit_authority_sha256": str(
+                    row["active_exit_authority_sha256"]
                 ).lower(),
                 "ask": float(row["ask"]),
                 "bar_time": pd.Timestamp(row["bar_time"]).isoformat(),
@@ -388,7 +589,7 @@ def recompute_joint_exit_replay_coverage(
     frame: pd.DataFrame,
     *,
     exit_trace_rows: pd.DataFrame,
-    registry_sha256: str,
+    exit_authority_sha256: str,
     context: str,
 ) -> dict[str, Any]:
     """Recompute strict full-TEST active-Exit trace coverage from row evidence."""
@@ -443,20 +644,23 @@ def recompute_joint_exit_replay_coverage(
     trace_hashes = frame["exit_trace_sha256"].astype(str).str.lower().tolist()
     for index, value in enumerate(trace_hashes):
         _sha(value, context=f"{context}.exit_trace_sha256[{index}]")
-    expected_registry_sha = _sha(registry_sha256, context=f"{context}.registry_sha")
-    if set(frame["active_exit_registry_sha256"].astype(str).str.lower()) != {
-        expected_registry_sha
+    expected_exit_authority_sha = _sha(
+        exit_authority_sha256,
+        context=f"{context}.exit_authority_sha",
+    )
+    if set(frame["active_exit_authority_sha256"].astype(str).str.lower()) != {
+        expected_exit_authority_sha
     }:
-        _fail(context, "row registry identity differs from proof registry")
+        _fail(context, "row Exit authority differs from proof projection")
     if set(exit_trace_rows.columns) != set(MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS):
         _fail(context, "Exit trace row columns mismatch")
     if exit_trace_rows.empty:
         _fail(context, "active Exit trace artifact is empty")
     trace_registry = set(
-        exit_trace_rows["active_exit_registry_sha256"].astype(str).str.lower()
+        exit_trace_rows["active_exit_authority_sha256"].astype(str).str.lower()
     )
-    if trace_registry != {expected_registry_sha}:
-        _fail(context, "Exit trace registry identity differs from proof registry")
+    if trace_registry != {expected_exit_authority_sha}:
+        _fail(context, "Exit trace authority differs from proof projection")
     replay_ids = frame["reference_row_id"].astype(str)
     if replay_ids.duplicated().any():
         _fail(context, "replay reference_row_id must be unique")
@@ -482,7 +686,16 @@ def recompute_joint_exit_replay_coverage(
         expected_steps = np.arange(1, int(replay_row["exit_steps"]) + 1)
         if not np.array_equal(steps_observed, expected_steps):
             _fail(context, f"{reference_row_id} Exit trace steps are not contiguous")
-        entry_time = pd.Timestamp(replay_row["time"])
+        decision_time = pd.Timestamp(replay_row["time"])
+        entry_time = pd.Timestamp(replay_row["entry_fill_time"])
+        if (
+            pd.isna(entry_time)
+            or entry_time != decision_time + pd.Timedelta(minutes=5)
+        ):
+            _fail(
+                context,
+                "joint Exit entry_fill_time must be exactly decision time + 5m",
+            )
         trace_entry_times = pd.to_datetime(trace["entry_time"], utc=True, errors="coerce")
         bar_times = pd.to_datetime(trace["bar_time"], utc=True, errors="coerce")
         if (
@@ -526,6 +739,20 @@ def recompute_joint_exit_replay_coverage(
         ):
             _fail(context, f"{reference_row_id} Exit trace prices are invalid")
         direction = int(replay_row["model_direction_index"])
+        expected_trace_pnl = (
+            (bid - float(replay_row["entry_ask"]))
+            / float(replay_row["entry_ask"])
+            * 10_000.0
+            if direction == 0
+            else (float(replay_row["entry_bid"]) - ask)
+            / float(replay_row["entry_bid"])
+            * 10_000.0
+        )
+        if not np.allclose(pnl, expected_trace_pnl, rtol=0.0, atol=1e-9):
+            _fail(
+                context,
+                f"{reference_row_id} trace PnL differs from per-step bid/ask",
+            )
         expected_final_pnl = (
             (float(bid[-1]) - float(replay_row["entry_ask"]))
             / float(replay_row["entry_ask"])
@@ -576,6 +803,174 @@ def recompute_joint_exit_replay_coverage(
     }
 
 
+def require_joint_replay_extends_canonical_oos_rows(
+    *,
+    canonical_oos_rows: pd.DataFrame,
+    replay_rows: pd.DataFrame,
+    context: str,
+) -> None:
+    """Require replay rows to be exact canonical OOS rows plus Exit fields."""
+
+    expected_columns = (
+        MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS
+        | MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS
+    )
+    if set(canonical_oos_rows.columns) != set(
+        MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS
+    ):
+        _fail(context, "canonical OOS row columns mismatch")
+    if set(replay_rows.columns) != set(expected_columns):
+        _fail(context, "joint replay row columns mismatch")
+    ordered = sorted(MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS)
+    canonical = canonical_oos_rows.loc[:, ordered].reset_index(drop=True)
+    observed = replay_rows.loc[:, ordered].reset_index(drop=True)
+    if not canonical.equals(observed):
+        _fail(
+            context,
+            "joint replay rows differ from the exact canonical OOS TEST rows",
+        )
+
+
+def require_joint_exit_portfolio_capacity(
+    proof: Mapping[str, Any],
+    *,
+    max_trades: int,
+    context: str,
+) -> dict[str, Any]:
+    """Prove the only admitted single-exposure cap over full TEST decisions."""
+
+    if (
+        proof.get("schema_version")
+        != MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION
+    ):
+        _fail(context, "joint Exit proof schema mismatch")
+    if (
+        isinstance(max_trades, bool)
+        or not isinstance(max_trades, int)
+        or not 1 <= max_trades <= MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES
+    ):
+        _fail(
+            context,
+            "max_trades is outside the portfolio replay contract "
+            f"1..{MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES}",
+        )
+    replay_binding = _source_binding(
+        proof.get("replay_rows"),
+        context=f"{context}.replay_rows",
+        verify_file=True,
+    )
+    frame = read_bound_parquet_exact(
+        replay_binding,
+        context=f"{context}.replay_rows_exact",
+    )
+    if set(frame.columns) != set(MODEL_NATIVE_JOINT_EXIT_SIZING_ROW_COLUMNS):
+        _fail(context, "joint Exit portfolio replay columns mismatch")
+    decisions = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+    times = pd.to_datetime(frame["entry_fill_time"], utc=True, errors="coerce")
+    if (
+        decisions.isna().any()
+        or times.isna().any()
+        or not bool((times == decisions + pd.Timedelta(minutes=5)).all())
+    ):
+        _fail(context, "portfolio replay entry_fill_time is not exact T+5")
+    exits = pd.to_datetime(frame["exit_time"], utc=True, errors="coerce")
+    directions = _strict_directions(frame, context=f"{context}.directions")
+    authorized = frame["authorized_order"].to_numpy(dtype=bool)
+    active_exits: list[pd.Timestamp] = []
+    admitted: list[int] = []
+    blocked = 0
+    peak = 0
+    for index, entry_time in enumerate(times):
+        active_exits = [exit_time for exit_time in active_exits if exit_time > entry_time]
+        if directions[index] == 2 or not authorized[index]:
+            continue
+        exit_time = exits.iloc[index]
+        if pd.isna(exit_time) or exit_time <= entry_time:
+            _fail(context, "portfolio trade lacks a valid active-Exit time")
+        if len(active_exits) >= max_trades:
+            blocked += 1
+            continue
+        active_exits.append(exit_time)
+        admitted.append(index)
+        peak = max(peak, len(active_exits))
+    if len(admitted) < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES:
+        _fail(context, "portfolio cap leaves insufficient admitted TEST trades")
+    admitted_directions = directions[np.asarray(admitted, dtype=np.int64)]
+    long_count = int(np.count_nonzero(admitted_directions == 0))
+    short_count = int(np.count_nonzero(admitted_directions == 1))
+    if (
+        min(long_count, short_count)
+        < MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE
+    ):
+        _fail(context, "portfolio cap leaves insufficient LONG/SHORT support")
+    selected = frame.iloc[admitted]
+    selected_directions = admitted_directions
+    entry_bid = pd.to_numeric(selected["entry_bid"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
+    entry_ask = pd.to_numeric(selected["entry_ask"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
+    exit_bid = pd.to_numeric(selected["exit_bid"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
+    exit_ask = pd.to_numeric(selected["exit_ask"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
+    pnl = np.where(
+        selected_directions == 0,
+        (exit_bid - entry_ask) / entry_ask * 10_000.0,
+        (entry_bid - exit_ask) / entry_bid * 10_000.0,
+    )
+    if not np.isfinite(pnl).all():
+        _fail(context, "portfolio replay produced non-finite PnL")
+    mean_total = float(np.mean(pnl))
+    mean_long = float(np.mean(pnl[selected_directions == 0]))
+    mean_short = float(np.mean(pnl[selected_directions == 1]))
+    if min(mean_total, mean_long, mean_short) <= 0.0:
+        _fail(context, "portfolio-cap TEST utility is not positive on both sides")
+    admitted_ids = selected["reference_row_id"].astype(str).tolist()
+    return {
+        "contract": "full_test_single_exposure_active_exit_capacity_v2",
+        "max_trades": max_trades,
+        "eligible_trade_rows": int(
+            np.count_nonzero((directions != 2) & authorized)
+        ),
+        "admitted_trade_rows": len(admitted),
+        "capacity_blocked_rows": blocked,
+        "admitted_long_rows": long_count,
+        "admitted_short_rows": short_count,
+        "peak_concurrent_trades": peak,
+        "mean_realized_pnl_bps": mean_total,
+        "mean_long_realized_pnl_bps": mean_long,
+        "mean_short_realized_pnl_bps": mean_short,
+        "admitted_reference_row_ids_sha256": hashlib.sha256(
+            json.dumps(admitted_ids, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    }
+
+
+def require_canonical_active_exit_replay_launch_authority(
+    proof: Mapping[str, Any],
+    *,
+    context: str,
+) -> None:
+    """Fail closed until one producer runs the exact active Exit stack.
+
+    The current joint-proof finalizer validates caller-supplied replay and
+    trace parquets. It does not itself run XGB -> V3 -> Exit-IQL/Strategy-F
+    against hash-bound M1/prebuilt state, so those rows have diagnostic value
+    only and can never authorize launch.
+    """
+
+    del proof
+    _fail(
+        context,
+        "canonical active Exit replay producer is absent; caller-supplied "
+        "replay/trace rows have zero launch authority",
+    )
+
+
 def load_bound_joint_exit_sizing_proof(
     binding: Mapping[str, Any] | Any,
     *,
@@ -593,7 +988,9 @@ def load_bound_joint_exit_sizing_proof(
         )
         path = Path(canonical_binding["json_path"])
         observed = _exact_keys(
-            _json_file(path, context=context), _PROOF_KEYS, context=context
+            _read_bound_json_exact(canonical_binding, context=f"{context}.event"),
+            _PROOF_KEYS,
+            context=context,
         )
         if observed["schema_version"] != MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION:
             _fail(context, "schema_version mismatch")
@@ -630,22 +1027,28 @@ def load_bound_joint_exit_sizing_proof(
             != proof["test_prediction_provenance"]
         ):
             _fail(context, "joint proof lineage differs from canonical OOS proof")
-        registry_binding = _source_binding(
-            observed["artifact_registry"],
-            context=f"{context}.artifact_registry",
-            verify_file=verify_source_files,
+        registry_projection = _exact_keys(
+            observed["active_exit_registry_projection"],
+            _ACTIVE_EXIT_REGISTRY_PROJECTION_KEYS,
+            context=f"{context}.active_exit_registry_projection",
         )
+        registry_path = Path(
+            str(registry_projection.get("path") or "")
+        ).expanduser()
+        if not registry_path.is_absolute() or registry_path.is_symlink():
+            _fail(context, "artifact registry projection path is invalid")
         registry = _json_file(
-            Path(registry_binding["path"]), context=f"{context}.artifact_registry"
+            registry_path,
+            context=f"{context}.active_exit_registry_projection",
         )
-        active = registry.get("active")
-        if registry.get("project") != "XAUUSD" or not isinstance(active, dict):
-            _fail(context, "artifact registry is not the XAUUSD active authority")
-        expected_exit_entries = {
-            role: active.get(role) for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
-        }
-        if any(not isinstance(value, dict) for value in expected_exit_entries.values()):
-            _fail(context, "artifact registry lacks the exact active Exit roles")
+        expected_projection = active_exit_registry_projection(
+            registry_path=registry_path,
+            registry=registry,
+            context=f"{context}.active_exit_registry_projection",
+        )
+        if registry_projection != expected_projection:
+            _fail(context, "active Exit registry projection changed")
+        expected_exit_entries = registry_projection["active_exit_entries"]
         for role, entry in expected_exit_entries.items():
             if entry.get("status") != "ACTIVE" or entry.get("in_sample_only") is not False:
                 _fail(context, f"active Exit role {role} is not execution-admissible")
@@ -654,8 +1057,6 @@ def load_bound_joint_exit_sizing_proof(
                 verify_source_files and not role_path.resolve().exists()
             ):
                 _fail(context, f"active Exit role {role} path is invalid")
-        if observed["active_exit_entries"] != expected_exit_entries:
-            _fail(context, "active Exit entries differ from bound registry")
         expected_exit_manifests = active_exit_artifact_manifests(
             expected_exit_entries,
             context=f"{context}.active_exit_artifact_manifests",
@@ -672,12 +1073,32 @@ def load_bound_joint_exit_sizing_proof(
             context=f"{context}.exit_trace_rows",
             verify_file=verify_source_files,
         )
-        replay_rows = pd.read_parquet(Path(replay_binding["path"]))
-        exit_trace_rows = pd.read_parquet(Path(trace_binding["path"]))
+        replay_rows = read_bound_parquet_exact(
+            replay_binding,
+            context=f"{context}.replay_rows_exact",
+        )
+        exit_trace_rows = read_bound_parquet_exact(
+            trace_binding,
+            context=f"{context}.exit_trace_rows_exact",
+        )
+        canonical_oos_binding = _source_binding(
+            proof["source_bindings"]["oos_rows"],
+            context=f"{context}.canonical_oos_rows",
+            verify_file=verify_source_files,
+        )
+        canonical_oos_rows = read_bound_parquet_exact(
+            canonical_oos_binding,
+            context=f"{context}.canonical_oos_rows_exact",
+        )
+        require_joint_replay_extends_canonical_oos_rows(
+            canonical_oos_rows=canonical_oos_rows,
+            replay_rows=replay_rows,
+            context=f"{context}.canonical_oos_identity",
+        )
         coverage = recompute_joint_exit_replay_coverage(
             replay_rows,
             exit_trace_rows=exit_trace_rows,
-            registry_sha256=registry_binding["sha256"],
+            exit_authority_sha256=registry_projection["projection_sha256"],
             context=f"{context}.coverage",
         )
         if _exact_keys(
@@ -886,7 +1307,7 @@ def load_bound_runtime_sizing_parity(
         )
         path = Path(canonical_binding["json_path"])
         observed = _exact_keys(
-            _json_file(path, context=context),
+            _read_bound_json_exact(canonical_binding, context=f"{context}.event"),
             _RUNTIME_PARITY_EVENT_KEYS,
             context=context,
         )
@@ -938,7 +1359,10 @@ def load_bound_runtime_sizing_parity(
             context=f"{context}.observations",
             verify_file=verify_source_files,
         )
-        frame = pd.read_parquet(Path(observations["path"]))
+        frame = read_bound_parquet_exact(
+            observations,
+            context=f"{context}.observations_exact",
+        )
         coverage = recompute_runtime_sizing_parity_coverage(
             frame,
             calibration=calibration,
@@ -964,6 +1388,7 @@ __all__ = [
     "MODEL_NATIVE_JOINT_EXIT_SIZING_EXTRA_COLUMNS",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_MIN_TRADES_PER_SIDE",
+    "MODEL_NATIVE_JOINT_EXIT_MAX_LIVE_TRADES",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_EVENT_PREFIX",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_PROOF_SCHEMA_VERSION",
     "MODEL_NATIVE_JOINT_EXIT_SIZING_REPLAY_CONTRACT",
@@ -977,9 +1402,13 @@ __all__ = [
     "MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION",
     "ModelNativeSizingExecutionContractError",
     "active_exit_artifact_manifests",
+    "active_exit_registry_projection",
     "joint_exit_trace_sha256",
     "load_bound_joint_exit_sizing_proof",
     "load_bound_runtime_sizing_parity",
     "recompute_joint_exit_replay_coverage",
+    "require_canonical_active_exit_replay_launch_authority",
+    "require_joint_exit_portfolio_capacity",
+    "require_joint_replay_extends_canonical_oos_rows",
     "recompute_runtime_sizing_parity_coverage",
 ]

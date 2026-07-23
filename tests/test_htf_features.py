@@ -67,6 +67,33 @@ def test_validate_m5_input_rejects_non_datetime_index() -> None:
         htf._validate_m5_input(df)
 
 
+def test_vectorized_htf_alignment_uses_m5_decision_availability_time() -> None:
+    target = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2026-01-06T12:05:00Z"),
+            pd.Timestamp("2026-01-06T12:10:00Z"),
+            pd.Timestamp("2026-01-06T12:15:00Z"),
+        ]
+    )
+    htf_values = pd.Series(
+        [1.0, 2.0],
+        index=pd.DatetimeIndex(
+            [
+                pd.Timestamp("2026-01-06T11:45:00Z"),
+                pd.Timestamp("2026-01-06T12:00:00Z"),
+            ]
+        ),
+    )
+
+    aligned = htf._align_last_closed_tape(
+        target,
+        htf_values,
+        pd.Timedelta(minutes=15),
+    )
+
+    assert aligned.tolist() == [1.0, 2.0, 2.0]
+
+
 # ---------------------------------------------------------------------------
 # Warmup tests (insufficient → None)
 # ---------------------------------------------------------------------------

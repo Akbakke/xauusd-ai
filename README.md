@@ -50,11 +50,19 @@ side-correct bad-path gradients, no-replacement sampling, bidirectional
 auxiliary weighting and conditional skill, all-head/group influence,
 full-TRAIN immutable normalization, exact 142+5 context ownership, complete
 MTF cache bytes, atomic bundle/event publication, active-Exit byte identity,
-immutable launch approval, runtime lease rechecks and fail-closed close
-identity. These code proofs do not rehabilitate V24/V7. The remaining source
-P0 is the transactional candidate→promotion→launch finalizer; canonical/live
-December-2024 tape parity and every empirical model/edge gate also remain
-open. No new dataset rebuild or training run has been started.
+immutable launch approval, recoverable candidate-to-launch finalization,
+runtime lease rechecks, broker/local trade-ID reconciliation and fail-closed
+close identity. The finalizer consumes a pre-existing identity-bound vedtak,
+one accepted bundle commit, exact canonical registry/state targets and the
+active-Exit projection; partial failure restores both targets and terminalizes
+red. It cannot accept caller-supplied Exit replay diagnostics. The second
+audit invalidates the retained Exit artifacts on timing, feature-order,
+serving-fold and production-admission grounds. Remaining source P0s cover the
+canonical full-TEST producer, causal Exit rebuild/rescore/retrain,
+incremental/full-history and atomic-generation parity, canonical-M5 closure
+ownership, unified ATR/ROC/VWAP semantics and reproducible V3 lineage. These
+code proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity
+and every empirical model/edge gate remain open.
 
 A report-only abstention metadata check is
 `BLOCK_ABSTENTION_EMPIRICAL_GATE`: its balanced FLAT-label counts and positive

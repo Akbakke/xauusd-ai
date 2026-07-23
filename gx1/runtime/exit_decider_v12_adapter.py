@@ -24,11 +24,9 @@ The override threshold is configurable (default 0.95). Setting it to None
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-import numpy as np
 
 from gx1.runtime.exit_iql_v2_adapter import ExitIQLV2Adapter, ExitRecommendation
 
@@ -61,8 +59,8 @@ class ExitDeciderV12Adapter:
         cls,
         artifact_root: Path,
         *,
+        fold_id: str,
         variant: str = "R_V12",
-        fold_id: str = "FOLD_1",
         aggregator: str | None = None,
         prefer_cuda: bool = True,
     ) -> "ExitDeciderV12Adapter":

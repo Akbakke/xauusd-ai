@@ -76,9 +76,12 @@ from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_SIZING_RUNTIME_PARITY_CONTRACT,
     MODEL_NATIVE_SIZING_RUNTIME_PARITY_SCHEMA_VERSION,
     active_exit_artifact_manifests,
+    active_exit_registry_projection,
     load_bound_joint_exit_sizing_proof,
     load_bound_runtime_sizing_parity,
+    read_bound_parquet_exact,
     recompute_joint_exit_replay_coverage,
+    require_joint_replay_extends_canonical_oos_rows,
     recompute_runtime_sizing_parity_coverage,
 )
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
@@ -1093,10 +1096,19 @@ def finalize_joint_exit_sizing_proof(
             context="joint active-Exit trace rows",
         )
     )
-    registry_binding = _source_binding(artifact_registry_path)
+    registry_path = Path(artifact_registry_path).expanduser()
+    if (
+        not registry_path.is_absolute()
+        or registry_path.is_symlink()
+        or not registry_path.is_file()
+    ):
+        raise SizingFinalizationError(
+            "artifact registry must be an explicit absolute regular file"
+        )
+    registry_path = registry_path.resolve()
     try:
         registry = json.loads(
-            Path(registry_binding["path"]).read_text(encoding="utf-8")
+            registry_path.read_text(encoding="utf-8")
         )
     except Exception as exc:
         raise SizingFinalizationError("artifact registry is unreadable") from exc
@@ -1108,6 +1120,11 @@ def finalize_joint_exit_sizing_proof(
     active_exit_entries = {
         role: active.get(role) for role in MODEL_NATIVE_JOINT_EXIT_SIZING_ACTIVE_ROLES
     }
+    registry_projection = active_exit_registry_projection(
+        registry_path=registry_path,
+        registry=registry,
+        context="SIZING_JOINT_EXIT_REGISTRY_PROJECTION",
+    )
     for role, entry in active_exit_entries.items():
         if (
             not isinstance(entry, dict)
@@ -1127,12 +1144,27 @@ def finalize_joint_exit_sizing_proof(
         context="SIZING_JOINT_EXIT_ACTIVE_ARTIFACTS",
     )
 
-    replay_rows = pd.read_parquet(replay_rows_path)
-    exit_trace_rows = pd.read_parquet(exit_trace_rows_path)
+    replay_rows = read_bound_parquet_exact(
+        replay_binding,
+        context="SIZING_JOINT_EXIT_REPLAY_ROWS_EXACT",
+    )
+    exit_trace_rows = read_bound_parquet_exact(
+        exit_trace_binding,
+        context="SIZING_JOINT_EXIT_TRACE_ROWS_EXACT",
+    )
+    canonical_oos_rows = read_bound_parquet_exact(
+        proof["source_bindings"]["oos_rows"],
+        context="SIZING_JOINT_EXIT_CANONICAL_OOS_ROWS_EXACT",
+    )
+    require_joint_replay_extends_canonical_oos_rows(
+        canonical_oos_rows=canonical_oos_rows,
+        replay_rows=replay_rows,
+        context="SIZING_JOINT_EXIT_CANONICAL_OOS_IDENTITY",
+    )
     coverage = recompute_joint_exit_replay_coverage(
         replay_rows,
         exit_trace_rows=exit_trace_rows,
-        registry_sha256=registry_binding["sha256"],
+        exit_authority_sha256=registry_projection["projection_sha256"],
         context="SIZING_JOINT_EXIT_COVERAGE",
     )
     recomputed = recompute_sizing_oos_evidence(
@@ -1168,8 +1200,7 @@ def finalize_joint_exit_sizing_proof(
         "oos_proof_artifact": proof_binding,
         "evaluation_bundle": proof["evaluation_bundle"],
         "test_prediction_provenance": proof["test_prediction_provenance"],
-        "artifact_registry": registry_binding,
-        "active_exit_entries": active_exit_entries,
+        "active_exit_registry_projection": registry_projection,
         "active_exit_artifact_manifests": exit_artifact_manifests,
         "replay_rows": replay_binding,
         "exit_trace_rows": exit_trace_binding,
@@ -1346,7 +1377,10 @@ def finalize_runtime_sizing_parity(
         observations_path,
         context="runtime sizing observations",
     )
-    observations = pd.read_parquet(observations_path)
+    observations = read_bound_parquet_exact(
+        observations_binding,
+        context="SIZING_RUNTIME_PARITY_OBSERVATIONS_EXACT",
+    )
     if "time" not in observations:
         raise SizingFinalizationError("runtime sizing observations lack time")
     observation_times = pd.to_datetime(

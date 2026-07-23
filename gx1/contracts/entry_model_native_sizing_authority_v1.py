@@ -41,6 +41,7 @@ from gx1.contracts.immutable_event_authority_v1 import (
 )
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     ModelNativeSizingExecutionContractError,
+    active_exit_registry_projection,
     load_bound_joint_exit_sizing_proof,
 )
 from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
@@ -191,6 +192,7 @@ class ValidatedLearnedSizingAuthority:
     calibration_json: str
     proof_json: str
     joint_proof_json: str
+    active_exit_registry_projection_json: str
     content_hash_key: tuple[tuple[str, str, str], ...]
     file_stats: tuple[tuple[str, int, int, int, int], ...]
 
@@ -213,6 +215,10 @@ class ValidatedLearnedSizingAuthority:
     @property
     def joint_proof(self) -> dict[str, Any]:
         return json.loads(self.joint_proof_json)
+
+    @property
+    def active_exit_registry_projection(self) -> dict[str, Any]:
+        return json.loads(self.active_exit_registry_projection_json)
 
 
 _VALIDATED_CACHE: dict[tuple[str, str], ValidatedLearnedSizingAuthority] = {}
@@ -348,11 +354,6 @@ def _snapshot_file_specs(
             "joint_exit_trace_rows",
             str(joint_proof["exit_trace_rows"]["path"]),
             str(joint_proof["exit_trace_rows"]["sha256"]),
-        ),
-        (
-            "joint_exit_artifact_registry",
-            str(joint_proof["artifact_registry"]["path"]),
-            str(joint_proof["artifact_registry"]["sha256"]),
         ),
     ]
     for role, manifest in joint_proof[
@@ -499,14 +500,35 @@ def _capture_file_stats(
     specs: tuple[tuple[str, str, str], ...], *, context: str
 ) -> tuple[tuple[str, int, int, int, int], ...]:
     rows: list[tuple[str, int, int, int, int]] = []
-    for _label, path_raw, _sha in specs:
+    for label, path_raw, expected_sha in specs:
         path = Path(path_raw)
         try:
-            stat = path.stat()
+            before = path.stat()
+            observed_sha = sha256_file(path)
+            observed = path.stat()
         except OSError as exc:
             _fail(context, f"validated sizing file disappeared: {path}: {exc}")
+        before_identity = (
+            int(before.st_dev),
+            int(before.st_ino),
+            int(before.st_size),
+            int(before.st_mtime_ns),
+        )
+        observed_identity = (
+            int(observed.st_dev),
+            int(observed.st_ino),
+            int(observed.st_size),
+            int(observed.st_mtime_ns),
+        )
+        if before_identity != observed_identity:
+            _fail(context, f"validated sizing file changed while hashing: {path}")
+        if observed_sha != expected_sha:
+            _fail(
+                context,
+                f"validated sizing file hash changed before snapshot: {label}",
+            )
         rows.append(
-            (str(path), int(stat.st_dev), int(stat.st_ino), int(stat.st_size), int(stat.st_mtime_ns))
+            (str(path), *observed_identity)
         )
     return tuple(sorted(set(rows)))
 
@@ -514,20 +536,28 @@ def _capture_file_stats(
 def _require_snapshot_unchanged(
     snapshot: ValidatedLearnedSizingAuthority, *, context: str
 ) -> None:
-    for path_raw, device, inode, size, mtime_ns in snapshot.file_stats:
-        path = Path(path_raw)
-        try:
-            stat = path.stat()
-        except OSError as exc:
-            _fail(context, f"validated sizing file missing after startup: {path}: {exc}")
-        observed = (
-            int(stat.st_dev),
-            int(stat.st_ino),
-            int(stat.st_size),
-            int(stat.st_mtime_ns),
-        )
-        if observed != (device, inode, size, mtime_ns):
-            _fail(context, f"validated sizing file changed after startup: {path}")
+    # Stat identity is only an optimization hint, never content authority.
+    # Rehash every bound byte on each application so an in-place same-size
+    # mutation with a restored mtime cannot survive the validated cache.
+    observed_stats = _capture_file_stats(
+        snapshot.content_hash_key,
+        context=f"{context}.cached_content_recheck",
+    )
+    if observed_stats != snapshot.file_stats:
+        _fail(context, "validated sizing file identity changed after startup")
+    expected_exit_projection = snapshot.active_exit_registry_projection
+    registry_path = Path(str(expected_exit_projection.get("path") or ""))
+    registry = _json_object(
+        registry_path,
+        context=f"{context}.active_exit_registry_projection",
+    )
+    observed_exit_projection = active_exit_registry_projection(
+        registry_path=registry_path,
+        registry=registry,
+        context=f"{context}.active_exit_registry_projection",
+    )
+    if observed_exit_projection != expected_exit_projection:
+        _fail(context, "validated active Exit registry projection changed")
     specs = {label: Path(path) for label, path, _sha in snapshot.content_hash_key}
     for label, prefix in (
         ("adoption", _ADOPTION_EVENT_PREFIX),
@@ -935,6 +965,10 @@ def _validate_learned_sizing_authority_snapshot(
         joint_proof_json=_canonical_json(
             joint_proof, context=f"{context}.joint_exit_sizing_proof"
         ),
+        active_exit_registry_projection_json=_canonical_json(
+            joint_proof["active_exit_registry_projection"],
+            context=f"{context}.active_exit_registry_projection",
+        ),
         content_hash_key=specs,
         file_stats=_capture_file_stats(specs, context=f"{context}.snapshot"),
     )
@@ -945,10 +979,10 @@ def prepare_model_native_sizing_authority(
     *,
     context: str,
 ) -> ValidatedLearnedSizingAuthority:
-    """Verify once per unique adoption hash and then perform O(files) stat checks.
+    """Verify once per adoption hash and rehash every bound byte before reuse.
 
-    A file-stat change taints that adoption for the rest of the process.  It is
-    never silently reloaded or re-authorized after mutation.
+    Any identity or content change taints that adoption for the rest of the
+    process. It is never silently reloaded or re-authorized after mutation.
     """
 
     authority = require_model_native_sizing_authority_contract(

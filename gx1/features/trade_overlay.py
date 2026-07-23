@@ -40,6 +40,65 @@ N_OVERLAY_COLS = 19
 assert len(OVERLAY_COL_NAMES) == N_OVERLAY_COLS
 
 
+def compute_m1_micro_feature_arrays(
+    close_mid: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return the one-truth M1 log-return/RMS-volatility feature arrays.
+
+    The five outputs are aligned to ``close_mid`` and correspond to the
+    5/15/60-bar log returns plus the 15/60-bar root-mean-square log returns,
+    all in bps. Structural warm-up values are zero in both train and serve.
+    """
+
+    close = np.asarray(close_mid, dtype=np.float64)
+    if close.ndim != 1:
+        raise ValueError("M1 micro-feature close input must be one-dimensional")
+    if not np.isfinite(close).all() or np.any(close <= 0.0):
+        raise ValueError("M1 micro-feature close input must be finite and positive")
+    n = len(close)
+    if n == 0:
+        empty = np.empty(0, dtype=np.float32)
+        return empty, empty, empty, empty, empty
+
+    log_close = np.log(close)
+
+    def _rolling_return_bps(lag: int) -> np.ndarray:
+        out = np.zeros(n, dtype=np.float32)
+        if n > lag:
+            out[lag:] = (
+                (log_close[lag:] - log_close[:-lag]) * 10_000.0
+            ).astype(np.float32)
+        return out
+
+    bar_log_ret_bps = np.zeros(n, dtype=np.float64)
+    if n > 1:
+        bar_log_ret_bps[1:] = np.diff(log_close) * 10_000.0
+
+    def _rolling_rms_bps(window: int) -> np.ndarray:
+        out = np.zeros(n, dtype=np.float32)
+        if n < 2:
+            return out
+        squared = bar_log_ret_bps * bar_log_ret_bps
+        cumulative = np.concatenate(([0.0], np.cumsum(squared)))
+        for index in range(n):
+            left = max(0, index - window + 1)
+            count = index - left + 1
+            if count >= 2:
+                mean_square = (
+                    cumulative[index + 1] - cumulative[left]
+                ) / count
+                out[index] = float(np.sqrt(max(mean_square, 0.0)))
+        return out
+
+    return (
+        _rolling_return_bps(5),
+        _rolling_return_bps(15),
+        _rolling_return_bps(60),
+        _rolling_rms_bps(15),
+        _rolling_rms_bps(60),
+    )
+
+
 def compute_trade_overlay(
     peak: np.ndarray,
     trough: np.ndarray,
@@ -57,7 +116,36 @@ def compute_trade_overlay(
     trough = np.asarray(trough, dtype=np.float64)
     cur_pnl = np.asarray(cur_pnl, dtype=np.float64)
     atr_bps = np.asarray(atr_bps, dtype=np.float64)
+    if any(array.ndim != 1 for array in (peak, trough, cur_pnl, atr_bps)):
+        raise ValueError("trade-overlay inputs must be one-dimensional")
     n = len(cur_pnl)
+    if any(len(array) != n for array in (peak, trough, atr_bps)):
+        raise ValueError("trade-overlay input lengths must match")
+    if (
+        not all(
+            np.isfinite(array).all()
+            for array in (peak, trough, cur_pnl, atr_bps)
+        )
+        or np.any(atr_bps <= 0.0)
+        or np.any(peak < trough)
+        or np.any(cur_pnl > peak)
+        or np.any(cur_pnl < trough)
+    ):
+        raise ValueError("trade-overlay input values are invalid")
+    required_entry_fields = {
+        "p_long_entry",
+        "p_hat_entry",
+        "uncertainty_entry",
+        "entropy_entry",
+        "margin_entry",
+    }
+    if not isinstance(entry_snap, dict) or set(entry_snap) != required_entry_fields:
+        raise ValueError("trade-overlay entry snapshot exact schema mismatch")
+    entry_values = {
+        name: float(entry_snap[name]) for name in required_entry_fields
+    }
+    if not all(np.isfinite(value) for value in entry_values.values()):
+        raise ValueError("trade-overlay entry snapshot must be finite")
     overlay = np.zeros((n, N_OVERLAY_COLS), dtype=np.float32)
     if n == 0:
         return overlay
@@ -116,18 +204,18 @@ def compute_trade_overlay(
                 rolling_slope[i] = (m * _cum_xy[i] - sum_x * _cum_y[i]) / denom
 
     # cols 0-4 entry-snapshot (broadcast), order per train v2.py:518-522
-    overlay[:, 0] = float(entry_snap.get("p_long_entry", 0.0))
-    overlay[:, 1] = float(entry_snap.get("p_hat_entry", 0.0))
-    overlay[:, 2] = float(entry_snap.get("uncertainty_entry", 0.0))
-    overlay[:, 3] = float(entry_snap.get("entropy_entry", 0.0))
-    overlay[:, 4] = float(entry_snap.get("margin_entry", 0.0))
+    overlay[:, 0] = entry_values["p_long_entry"]
+    overlay[:, 1] = entry_values["p_hat_entry"]
+    overlay[:, 2] = entry_values["uncertainty_entry"]
+    overlay[:, 3] = entry_values["entropy_entry"]
+    overlay[:, 4] = entry_values["margin_entry"]
     # cols 5-18 per-bar trade-state, order per train v2.py:523-536
     overlay[:, 5] = cur_pnl
     overlay[:, 6] = cum_peak
     overlay[:, 7] = cum_trough
     overlay[:, 8] = cum_peak - cur_pnl                         # dd_from_mfe_bps
     overlay[:, 9] = cum_peak - cur_pnl                         # distance_from_peak (synonym)
-    overlay[:, 10] = np.arange(n, dtype=np.float64)            # bars_held (0-based!)
+    overlay[:, 10] = np.arange(1, n + 1, dtype=np.float64)     # bars_held (one-based)
     overlay[:, 11] = np.arange(n, dtype=np.float64) - arg_peak.astype(np.float64)  # time_since_mfe
     overlay[:, 12] = mfe_decay
     overlay[:, 13] = pnl_vel

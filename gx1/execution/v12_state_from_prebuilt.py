@@ -48,12 +48,16 @@ that exist in both prebuilts (i.e. before the staleness cutoff).
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 # ONE-TRUTH REGIME_V4 per-TF V2 mtf scalar projection (5-TF/9-feat). Shared with the
 # canonical_incremental daemon + build so the live serve, the daemon-maintained BASE34,
@@ -63,6 +67,7 @@ from gx1.features.htf_features import (
     REGIME_V4_V2_MTF_TFS,
     REGIME_V4_V2_MTF_SKIP,
 )
+from gx1.features.basic_v1 import compute_plus5_features
 
 LOG = logging.getLogger("v12_state_from_prebuilt")
 
@@ -118,23 +123,290 @@ CANONICAL_V3_PREBUILT = Path(
 BASE28_MANIFEST_PATH = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
 )
+CANONICAL_V3_MANIFEST_PATH = (
+    CANONICAL_V3_PREBUILT.parent / "CURRENT_MANIFEST.json"
+)
 
 
-def _resolve_base28_parquet() -> Path:
-    """Read the manifest to find the current authoritative BASE28 parquet path."""
-    import json
-    m = json.loads(BASE28_MANIFEST_PATH.read_text())
-    return Path(m["parquet_path"])
+class PrebuiltIdentityError(RuntimeError):
+    """A CURRENT_MANIFEST or its exact parquet identity is invalid."""
+
+
+@dataclass(frozen=True)
+class _PrebuiltManifestBinding:
+    label: str
+    manifest_path: Path
+    manifest_sha256: str
+    parquet_path: Path
+    parquet_sha256: str
+    rows: int
+    cols_total: int
+
+
+@dataclass(frozen=True)
+class _VerifiedPrebuilt:
+    binding: _PrebuiltManifestBinding
+    file_stamp: tuple[int, int, int, int]
+    arrow_schema: tuple[tuple[str, str, bool], ...]
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _file_stamp(path: Path, *, label: str) -> tuple[int, int, int, int]:
+    if path.is_symlink() or not path.is_file():
+        raise PrebuiltIdentityError(
+            f"{label}_PARQUET_NOT_REGULAR_FILE: {path}"
+        )
+    stat = path.stat()
+    return (
+        int(stat.st_ino),
+        int(stat.st_size),
+        int(stat.st_mtime_ns),
+        int(stat.st_ctime_ns),
+    )
+
+
+def _strict_positive_int(value: object, *, field_name: str, label: str) -> int:
+    if isinstance(value, bool):
+        raise PrebuiltIdentityError(f"{label}_MANIFEST_{field_name.upper()}_INVALID")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise PrebuiltIdentityError(
+            f"{label}_MANIFEST_{field_name.upper()}_INVALID"
+        ) from exc
+    if parsed <= 0 or parsed != value:
+        raise PrebuiltIdentityError(f"{label}_MANIFEST_{field_name.upper()}_INVALID")
+    return parsed
+
+
+def _read_prebuilt_manifest(
+    manifest_path: Path,
+    *,
+    label: str,
+    expected_path: Path | None = None,
+) -> _PrebuiltManifestBinding:
+    """Read one stable CURRENT_MANIFEST with no path or field fallback."""
+    manifest_path = Path(manifest_path)
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise PrebuiltIdentityError(
+            f"{label}_CURRENT_MANIFEST_NOT_REGULAR_FILE: {manifest_path}"
+        )
+    before = _file_stamp(manifest_path, label=f"{label}_MANIFEST")
+    raw = manifest_path.read_bytes()
+    after = _file_stamp(manifest_path, label=f"{label}_MANIFEST")
+    if before != after:
+        raise PrebuiltIdentityError(f"{label}_CURRENT_MANIFEST_CHANGED_DURING_READ")
+    try:
+        manifest = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PrebuiltIdentityError(
+            f"{label}_CURRENT_MANIFEST_JSON_INVALID"
+        ) from exc
+    if not isinstance(manifest, dict):
+        raise PrebuiltIdentityError(f"{label}_CURRENT_MANIFEST_ROOT_INVALID")
+
+    required = ("parquet_path", "parquet_sha256", "rows", "cols_total")
+    missing = [name for name in required if name not in manifest]
+    if missing:
+        raise PrebuiltIdentityError(
+            f"{label}_CURRENT_MANIFEST_FIELDS_MISSING: {missing}"
+        )
+
+    raw_path = manifest["parquet_path"]
+    if not isinstance(raw_path, str) or not raw_path or raw_path.strip() != raw_path:
+        raise PrebuiltIdentityError(f"{label}_MANIFEST_PARQUET_PATH_INVALID")
+    declared_path = Path(raw_path)
+    if not declared_path.is_absolute():
+        raise PrebuiltIdentityError(f"{label}_MANIFEST_PARQUET_PATH_NOT_ABSOLUTE")
+    try:
+        resolved_path = declared_path.resolve(strict=True)
+    except OSError as exc:
+        raise PrebuiltIdentityError(
+            f"{label}_MANIFEST_PARQUET_PATH_MISSING: {declared_path}"
+        ) from exc
+    if declared_path != resolved_path or declared_path.is_symlink():
+        raise PrebuiltIdentityError(
+            f"{label}_MANIFEST_PARQUET_PATH_NOT_EXACT: "
+            f"declared={declared_path} resolved={resolved_path}"
+        )
+    if expected_path is not None:
+        try:
+            expected_resolved = Path(expected_path).resolve(strict=True)
+        except OSError as exc:
+            raise PrebuiltIdentityError(
+                f"{label}_EXPECTED_PARQUET_PATH_MISSING: {expected_path}"
+            ) from exc
+        if expected_resolved != resolved_path:
+            raise PrebuiltIdentityError(
+                f"{label}_MANIFEST_PARQUET_PATH_MISMATCH: "
+                f"manifest={resolved_path} expected={expected_resolved}"
+            )
+
+    parquet_sha256 = manifest["parquet_sha256"]
+    if (
+        not isinstance(parquet_sha256, str)
+        or len(parquet_sha256) != 64
+        or parquet_sha256.lower() != parquet_sha256
+        or any(char not in "0123456789abcdef" for char in parquet_sha256)
+    ):
+        raise PrebuiltIdentityError(f"{label}_MANIFEST_PARQUET_SHA256_INVALID")
+
+    return _PrebuiltManifestBinding(
+        label=label,
+        manifest_path=manifest_path.resolve(strict=True),
+        manifest_sha256=hashlib.sha256(raw).hexdigest(),
+        parquet_path=resolved_path,
+        parquet_sha256=parquet_sha256,
+        rows=_strict_positive_int(manifest["rows"], field_name="rows", label=label),
+        cols_total=_strict_positive_int(
+            manifest["cols_total"],
+            field_name="cols_total",
+            label=label,
+        ),
+    )
+
+
+def _verify_prebuilt(
+    binding: _PrebuiltManifestBinding,
+    *,
+    expected_schema: tuple[tuple[str, str, bool], ...] | None = None,
+) -> _VerifiedPrebuilt:
+    """Verify exact bytes, Parquet row count and immutable physical schema."""
+    before = _file_stamp(binding.parquet_path, label=binding.label)
+    observed_sha = _sha256_file(binding.parquet_path)
+    if observed_sha != binding.parquet_sha256:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_SHA256_MISMATCH: "
+            f"observed={observed_sha} expected={binding.parquet_sha256}"
+        )
+    try:
+        parquet = pq.ParquetFile(binding.parquet_path)
+        observed_rows = int(parquet.metadata.num_rows)
+        schema = parquet.schema_arrow
+    except Exception as exc:  # noqa: BLE001 - normalize format/schema failure
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_METADATA_INVALID"
+        ) from exc
+    arrow_schema = tuple(
+        (str(item.name), str(item.type), bool(item.nullable))
+        for item in schema
+    )
+    names = [name for name, _dtype, _nullable in arrow_schema]
+    if len(names) != len(set(names)):
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_SCHEMA_DUPLICATE_COLUMNS"
+        )
+    # Both admitted producers persist one timestamp carrier in addition to the
+    # manifest's feature-column count: canonical-v3 writes `time` as a column;
+    # BASE28 writes its DatetimeIndex into the parquet schema.
+    if len(arrow_schema) != binding.cols_total + 1:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_SCHEMA_COUNT_MISMATCH: "
+            f"physical={len(arrow_schema)} manifest_features={binding.cols_total}"
+        )
+    if observed_rows != binding.rows:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_ROWS_MISMATCH: "
+            f"observed={observed_rows} expected={binding.rows}"
+        )
+    if expected_schema is not None and arrow_schema != expected_schema:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_SCHEMA_IDENTITY_MISMATCH"
+        )
+    after = _file_stamp(binding.parquet_path, label=binding.label)
+    if before != after:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_CHANGED_DURING_VERIFICATION"
+        )
+    return _VerifiedPrebuilt(
+        binding=binding,
+        file_stamp=after,
+        arrow_schema=arrow_schema,
+    )
+
+
+def _load_verified_prebuilt(
+    binding: _PrebuiltManifestBinding,
+    *,
+    expected_schema: tuple[tuple[str, str, bool], ...] | None = None,
+) -> tuple[pd.DataFrame, _VerifiedPrebuilt]:
+    verified = _verify_prebuilt(binding, expected_schema=expected_schema)
+    try:
+        frame = pd.read_parquet(binding.parquet_path)
+    except Exception as exc:  # noqa: BLE001 - normalize read failure
+        raise PrebuiltIdentityError(f"{binding.label}_PARQUET_READ_FAILED") from exc
+    if _file_stamp(binding.parquet_path, label=binding.label) != verified.file_stamp:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_CHANGED_DURING_LOAD"
+        )
+    if "time" in frame.columns:
+        if isinstance(frame.index, pd.DatetimeIndex):
+            raise PrebuiltIdentityError(
+                f"{binding.label}_PARQUET_TIMESTAMP_AMBIGUOUS"
+            )
+        frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+        frame = frame.set_index("time")
+    elif isinstance(frame.index, pd.DatetimeIndex):
+        frame.index = pd.to_datetime(frame.index, utc=True, errors="coerce")
+    else:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_TIMESTAMP_SCHEMA_MISSING"
+        )
+    if (
+        frame.index.hasnans
+        or not frame.index.is_monotonic_increasing
+        or not frame.index.is_unique
+    ):
+        raise PrebuiltIdentityError(
+            f"{binding.label}_PARQUET_TIMESTAMP_INDEX_INVALID"
+        )
+    if len(frame) != binding.rows or len(frame.columns) != binding.cols_total:
+        raise PrebuiltIdentityError(
+            f"{binding.label}_LOADED_SHAPE_MISMATCH: "
+            f"observed={frame.shape} "
+            f"expected=({binding.rows}, {binding.cols_total})"
+        )
+    return frame, verified
 
 
 @dataclass
 class PrebuiltStateLoader:
-    canonical_v3_path: Path = CANONICAL_V3_PREBUILT
-    base28_path: Path | None = None    # resolved from manifest if None
+    canonical_v3_manifest_path: Path = CANONICAL_V3_MANIFEST_PATH
+    base28_manifest_path: Path = BASE28_MANIFEST_PATH
+    # Optional caller pins are assertions against CURRENT_MANIFEST, never
+    # alternate paths. On success both fields become the exact manifest paths.
+    canonical_v3_path: Path | None = None
+    base28_path: Path | None = None
     _cv3: pd.DataFrame | None = field(default=None, init=False)
     _base28: pd.DataFrame | None = field(default=None, init=False)
     _last_ts: pd.Timestamp | None = field(default=None, init=False)
-    # mtime tracking for incremental-updater hot-reload
+    _cv3_binding: _PrebuiltManifestBinding | None = field(default=None, init=False)
+    _base28_binding: _PrebuiltManifestBinding | None = field(default=None, init=False)
+    _cv3_source_schema: tuple[tuple[str, str, bool], ...] | None = field(
+        default=None,
+        init=False,
+    )
+    _base28_source_schema: tuple[tuple[str, str, bool], ...] | None = field(
+        default=None,
+        init=False,
+    )
+    _cv3_file_stamp: tuple[int, int, int, int] | None = field(
+        default=None,
+        init=False,
+    )
+    _base28_file_stamp: tuple[int, int, int, int] | None = field(
+        default=None,
+        init=False,
+    )
+    # Retained for diagnostics used elsewhere; identity decisions use the
+    # nanosecond/inode/size/ctime stamps above.
     _cv3_mtime: float = field(default=0.0, init=False)
     _base28_mtime: float = field(default=0.0, init=False)
     # 2026-06-01: async refresh — background thread runs the full 5-augmenter
@@ -144,56 +416,93 @@ class PrebuiltStateLoader:
     # assignment is atomic under the GIL, so reader sees old or new — never half).
     _refresh_thread: threading.Thread | None = field(default=None, init=False)
     _refresh_enabled: bool = field(default=True, init=False)
+    # An async error invalidates the old snapshot. Every public read and future
+    # refresh raises until a fresh process completes load() successfully.
+    _refresh_error: RuntimeError | None = field(default=None, init=False)
+
+    def _raise_refresh_error(self) -> None:
+        if self._refresh_error is not None:
+            raise PrebuiltIdentityError(
+                f"PREBUILT_REFRESH_LATCHED: {self._refresh_error}"
+            ) from self._refresh_error
+
+    def _admit_current_refresh_pair(
+        self,
+    ) -> tuple[_VerifiedPrebuilt, _VerifiedPrebuilt, bool, bool] | None:
+        cv3_binding = _read_prebuilt_manifest(
+            self.canonical_v3_manifest_path,
+            label="CANONICAL_V3",
+        )
+        base28_binding = _read_prebuilt_manifest(
+            self.base28_manifest_path,
+            label="BASE28",
+        )
+        cv3_stamp = _file_stamp(cv3_binding.parquet_path, label="CANONICAL_V3")
+        base28_stamp = _file_stamp(base28_binding.parquet_path, label="BASE28")
+        cv3_advanced = (
+            cv3_binding != self._cv3_binding
+            or cv3_stamp != self._cv3_file_stamp
+        )
+        b28_advanced = (
+            base28_binding != self._base28_binding
+            or base28_stamp != self._base28_file_stamp
+        )
+        if not (cv3_advanced or b28_advanced):
+            return None
+
+        # Validate the complete pair before starting expensive asynchronous
+        # augmentation. This catches a parquet replacement whose CURRENT_MANIFEST
+        # was not atomically advanced, including the historical cv3 updater bug.
+        cv3_verified = _verify_prebuilt(
+            cv3_binding,
+            expected_schema=self._cv3_source_schema,
+        )
+        base28_verified = _verify_prebuilt(
+            base28_binding,
+            expected_schema=self._base28_source_schema,
+        )
+        return cv3_verified, base28_verified, cv3_advanced, b28_advanced
 
     def refresh_if_changed(self) -> bool:
-        """Non-blocking: if cv3 / BASE28 mtime advanced and no refresh is in
-        progress, schedule a BACKGROUND thread to read + augment + atomic-swap.
-        Returns True only on the cycle that starts the refresh (so the caller
-        can log it); main loop ignores return value either way.
+        """Verify CURRENT_MANIFEST identity and schedule an exact joint refresh.
 
-        Pre-2026-06-01 this was synchronous and blocked the M1 exit-path 3-7 min
-        every M5 close. New behaviour: M1 polls continue serving exit decisions
-        from the current (slightly stale) cv3 while the new augmented cv3 is
-        built in the background. cv3 m5_phase staleness during refresh is
-        acceptable for exit context (V3 + M1 is primary; cv3 features are
-        secondary asof-fill). Entry decisions are per M5 — the 3-7 min refresh
-        fits inside one M5 cycle.
+        A missing/invalid manifest, path, hash, row count, or schema raises
+        synchronously. Background failures are latched and invalidate reads;
+        stale in-memory state is never treated as an admissible fallback.
         """
-        # Quick check: is anything new on disk?
-        try:
-            cv3_mt = self.canonical_v3_path.stat().st_mtime
-        except Exception:
-            return False
-        b28_path = self.base28_path
-        b28_mt_disk = 0.0
-        if b28_path is not None:
-            try:
-                # Manifest may rotate to a new path.
-                try:
-                    current_path = _resolve_base28_parquet()
-                except Exception:
-                    current_path = b28_path
-                if current_path is not None:
-                    b28_path = current_path
-                    b28_mt_disk = b28_path.stat().st_mtime
-            except Exception:
-                b28_mt_disk = 0.0
+        self._raise_refresh_error()
+        if self._cv3_binding is None or self._base28_binding is None:
+            raise PrebuiltIdentityError(
+                "PREBUILT_BINDINGS_UNINITIALIZED: call load() first"
+            )
 
-        cv3_advanced = cv3_mt > self._cv3_mtime + 0.01
-        b28_advanced = (b28_mt_disk > self._base28_mtime + 0.01) if (b28_path is not None) else False
-        if not (cv3_advanced or b28_advanced):
-            return False
-
-        # If a refresh is already in flight, let it finish.
+        # If a verified refresh is already in flight, let it finish. Its final
+        # identity recheck either swaps the pair or latches an error.
         if self._refresh_thread is not None and self._refresh_thread.is_alive():
             return False
         if not self._refresh_enabled:
             return False
 
+        try:
+            admission = self._admit_current_refresh_pair()
+        except PrebuiltIdentityError as exc:
+            self._refresh_error = RuntimeError(
+                f"PREBUILT_REFRESH_IDENTITY_FAILED: {exc}"
+            )
+            raise
+        if admission is None:
+            return False
+        cv3_verified, base28_verified, cv3_advanced, b28_advanced = admission
+
         # Schedule background refresh.
         t = threading.Thread(
             target=self._async_full_refresh,
-            args=(cv3_mt, b28_path, b28_mt_disk, cv3_advanced, b28_advanced),
+            args=(
+                cv3_verified,
+                base28_verified,
+                cv3_advanced,
+                b28_advanced,
+            ),
             daemon=True,
             name="cv3_async_refresh",
         )
@@ -201,9 +510,13 @@ class PrebuiltStateLoader:
         t.start()
         return True
 
-    def _async_full_refresh(self, cv3_mt: float, b28_path: Path | None,
-                             b28_mt_disk: float, cv3_advanced: bool,
-                             b28_advanced: bool) -> None:
+    def _async_full_refresh(
+        self,
+        cv3_verified: _VerifiedPrebuilt,
+        base28_verified: _VerifiedPrebuilt,
+        cv3_advanced: bool,
+        b28_advanced: bool,
+    ) -> None:
         """Background-thread worker: read new cv3 / BASE28 from disk, run all
         5 augmenters on a LOCAL DataFrame, then atomically swap into self.
 
@@ -215,20 +528,25 @@ class PrebuiltStateLoader:
             # --- cv3 ---
             new_cv3 = self._cv3
             if cv3_advanced:
-                df = pd.read_parquet(self.canonical_v3_path)
-                if "time" in df.columns:
-                    df["time"] = pd.to_datetime(df["time"], utc=True)
-                    df = df.set_index("time")
-                new_cv3 = df.sort_index()
+                new_cv3, loaded_cv3 = _load_verified_prebuilt(
+                    cv3_verified.binding,
+                    expected_schema=self._cv3_source_schema,
+                )
+                if loaded_cv3 != cv3_verified:
+                    raise PrebuiltIdentityError(
+                        "CANONICAL_V3_CHANGED_AFTER_REFRESH_ADMISSION"
+                    )
             # --- base28 ---
             new_b28 = self._base28
-            if b28_advanced and b28_path is not None:
-                df = pd.read_parquet(b28_path)
-                if not isinstance(df.index, pd.DatetimeIndex):
-                    if "time" in df.columns:
-                        df["time"] = pd.to_datetime(df["time"], utc=True)
-                        df = df.set_index("time")
-                new_b28 = df.sort_index()
+            if b28_advanced:
+                new_b28, loaded_base28 = _load_verified_prebuilt(
+                    base28_verified.binding,
+                    expected_schema=self._base28_source_schema,
+                )
+                if loaded_base28 != base28_verified:
+                    raise PrebuiltIdentityError(
+                        "BASE28_CHANGED_AFTER_REFRESH_ADMISSION"
+                    )
 
             # --- augment local cv3 (does NOT touch self._cv3 yet) ---
             # 2026-06-01: PARALLEL via multiprocessing for V2 mtf + GROUP-A.
@@ -302,15 +620,52 @@ class PrebuiltStateLoader:
                         "multi-TF refresh failed; aborting cv3 swap to avoid new-cv3/stale-mtf split-brain"
                     ) from exc
 
+            # CURRENT_MANIFEST and both parquet files must still be the exact
+            # pair admitted before the thread began. A producer advance during
+            # augmentation cannot be combined with this older local snapshot.
+            final_cv3_binding = _read_prebuilt_manifest(
+                self.canonical_v3_manifest_path,
+                label="CANONICAL_V3",
+            )
+            final_base28_binding = _read_prebuilt_manifest(
+                self.base28_manifest_path,
+                label="BASE28",
+            )
+            if final_cv3_binding != cv3_verified.binding:
+                raise PrebuiltIdentityError(
+                    "CANONICAL_V3_CURRENT_MANIFEST_CHANGED_DURING_REFRESH"
+                )
+            if final_base28_binding != base28_verified.binding:
+                raise PrebuiltIdentityError(
+                    "BASE28_CURRENT_MANIFEST_CHANGED_DURING_REFRESH"
+                )
+            if (
+                _file_stamp(final_cv3_binding.parquet_path, label="CANONICAL_V3")
+                != cv3_verified.file_stamp
+            ):
+                raise PrebuiltIdentityError(
+                    "CANONICAL_V3_PARQUET_CHANGED_DURING_REFRESH"
+                )
+            if (
+                _file_stamp(final_base28_binding.parquet_path, label="BASE28")
+                != base28_verified.file_stamp
+            ):
+                raise PrebuiltIdentityError(
+                    "BASE28_PARQUET_CHANGED_DURING_REFRESH"
+                )
+
             # --- atomic swap (single attribute assignments are GIL-atomic) ---
             old_cutoff = self._cv3.index[-1] if self._cv3 is not None else None
             self._cv3 = new_cv3
-            if cv3_advanced:
-                self._cv3_mtime = cv3_mt
-            if b28_advanced and b28_path is not None:
-                self._base28 = new_b28
-                self.base28_path = b28_path
-                self._base28_mtime = b28_mt_disk
+            self._base28 = new_b28
+            self.canonical_v3_path = cv3_verified.binding.parquet_path
+            self.base28_path = base28_verified.binding.parquet_path
+            self._cv3_binding = cv3_verified.binding
+            self._base28_binding = base28_verified.binding
+            self._cv3_file_stamp = cv3_verified.file_stamp
+            self._base28_file_stamp = base28_verified.file_stamp
+            self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
+            self._base28_mtime = base28_verified.file_stamp[2] / 1_000_000_000.0
             self._last_ts = new_last_ts
             if new_mtf_bundle is not None:
                 self._multi_tf_feats = new_mtf_bundle["feats"]
@@ -322,37 +677,69 @@ class PrebuiltStateLoader:
             LOG.info(f"[async-refresh] cv3 cutoff {old_cutoff} → {new_cutoff} "
                      f"(took {took_sec:.1f}s, main loop never blocked)")
         except Exception as exc:
-            LOG.warning(f"async cv3 refresh failed: {exc}")
+            failure = RuntimeError(
+                f"PREBUILT_ASYNC_REFRESH_FAILED: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            self._refresh_error = failure
+            LOG.exception("async prebuilt refresh failed closed; old state invalidated")
 
     def load(self) -> None:
-        """Load the canonical_v3 + BASE28 prebuilts (the ONE-truth split path).
-        BASE28 is resolved FRESH from its manifest; the 5 augmenters then run on
-        cv3. (The unguarded JOINED single-file fast-path was removed 2026-06-05 —
-        see the note at BASE28_MANIFEST_PATH.)"""
+        """Load the exact CURRENT_MANIFEST-bound canonical-v3 + BASE28 pair."""
+        cv3_binding = _read_prebuilt_manifest(
+            self.canonical_v3_manifest_path,
+            label="CANONICAL_V3",
+            expected_path=self.canonical_v3_path,
+        )
+        base28_binding = _read_prebuilt_manifest(
+            self.base28_manifest_path,
+            label="BASE28",
+            expected_path=self.base28_path,
+        )
+        cv3, cv3_verified = _load_verified_prebuilt(cv3_binding)
+        base28, base28_verified = _load_verified_prebuilt(base28_binding)
+        if (
+            _read_prebuilt_manifest(
+                self.canonical_v3_manifest_path,
+                label="CANONICAL_V3",
+            )
+            != cv3_binding
+            or _read_prebuilt_manifest(
+                self.base28_manifest_path,
+                label="BASE28",
+            )
+            != base28_binding
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_CURRENT_MANIFEST_CHANGED_DURING_INITIAL_LOAD"
+            )
+        if (
+            _file_stamp(cv3_binding.parquet_path, label="CANONICAL_V3")
+            != cv3_verified.file_stamp
+            or _file_stamp(base28_binding.parquet_path, label="BASE28")
+            != base28_verified.file_stamp
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PARQUET_CHANGED_DURING_INITIAL_LOAD"
+            )
 
-        if self.base28_path is None:
-            self.base28_path = _resolve_base28_parquet()
-
-        LOG.info(f"loading canonical_v3 prebuilt: {self.canonical_v3_path.name}")
-        cv3 = pd.read_parquet(self.canonical_v3_path)
-        if "time" in cv3.columns:
-            cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
-            cv3 = cv3.set_index("time")
-        cv3 = cv3.sort_index()
+        LOG.info(f"loading canonical_v3 prebuilt: {cv3_binding.parquet_path.name}")
         self._cv3 = cv3
-        self._cv3_mtime = self.canonical_v3_path.stat().st_mtime
+        self.canonical_v3_path = cv3_binding.parquet_path
+        self._cv3_binding = cv3_binding
+        self._cv3_source_schema = cv3_verified.arrow_schema
+        self._cv3_file_stamp = cv3_verified.file_stamp
+        self._cv3_mtime = cv3_verified.file_stamp[2] / 1_000_000_000.0
         LOG.info(f"  canonical_v3: {len(cv3):,} rows × {len(cv3.columns)} cols  "
                   f"range {cv3.index[0]} → {cv3.index[-1]}")
 
-        LOG.info(f"loading BASE28 prebuilt: {self.base28_path.name}")
-        base28 = pd.read_parquet(self.base28_path)
-        if not isinstance(base28.index, pd.DatetimeIndex):
-            if "time" in base28.columns:
-                base28["time"] = pd.to_datetime(base28["time"], utc=True)
-                base28 = base28.set_index("time")
-        base28 = base28.sort_index()
+        LOG.info(f"loading BASE28 prebuilt: {base28_binding.parquet_path.name}")
         self._base28 = base28
-        self._base28_mtime = self.base28_path.stat().st_mtime
+        self.base28_path = base28_binding.parquet_path
+        self._base28_binding = base28_binding
+        self._base28_source_schema = base28_verified.arrow_schema
+        self._base28_file_stamp = base28_verified.file_stamp
+        self._base28_mtime = base28_verified.file_stamp[2] / 1_000_000_000.0
         LOG.info(f"  BASE28: {len(base28):,} rows × {len(base28.columns)} cols  "
                   f"range {base28.index[0]} → {base28.index[-1]}")
 
@@ -363,6 +750,7 @@ class PrebuiltStateLoader:
         self._augment_cv3_with_group_a_and_dip_struct()
         self._augment_cv3_with_v1_legacy()
         self._augment_cv3_with_regime_v4()  # after v2_mtf sources; immutable active transform
+        self._refresh_error = None
 
     # ── V2 multi-TF scalar augmentation (XGB v7 base80) ───────────────
     # XGB v7 expects 31 V2-suffixed columns per row (M15/H1/H4/D1 × 7-8 each).
@@ -504,54 +892,8 @@ class PrebuiltStateLoader:
         LOG.info(f"augmenting canonical_v3 with {len(self._V1_LEGACY_FEATURES)} "
                  f"legacy canonical_v1 features (atr/std50/roc20/vwap_drifts)")
 
-        close = cv3["close"].astype(np.float64)
-        high = cv3["high"].astype(np.float64)
-        low = cv3["low"].astype(np.float64)
-        volume = cv3["volume"].astype(np.float64).clip(lower=0.0)
-        # Tiny-volume safety: where volume is zero, fall back to a constant 1.0
-        # so VWAP becomes a simple mean (the v1 canonical pipeline did the same).
-        vol_safe = volume.where(volume > 0.0, 1.0)
-
-        # ATR14 (Wilder-smoothed TR over high/low/prev_close).
-        prev_close = close.shift(1)
-        tr = pd.concat([
-            (high - low).abs(),
-            (high - prev_close).abs(),
-            (low - prev_close).abs(),
-        ], axis=1).max(axis=1)
-        legacy_cols = {
-            "atr": tr.ewm(alpha=1.0 / 14.0, adjust=False).mean().bfill().astype(np.float32),
-        }
-
-        # E2 (2026-06-04 train==serve parity): std50 / _v1_vwap_drift48 / _v1h1_vwap_drift MUST equal the
-        # BUILD truth (v12_canonical_incremental._compute_plus5_features).
-        # The old serve math diverged (std50 min_periods 10 vs 2; vwap48 /close vs /vwap48 + min_periods 12
-        # vs 1; h1 calendar-resample vs rolling-288) -> a retrain on the PLUS5 parquet would learn values
-        # serve could not reproduce. Byte-aligned to the build formulas below (atr + roc20 already matched).
-        rets = close.pct_change()
-        legacy_cols["std50"] = rets.rolling(50, min_periods=2).std().fillna(0.0).astype(np.float32)
-
-        # 20-bar rate-of-change (close[t] / close[t-20] - 1).
-        legacy_cols["roc20"] = close.pct_change(20).fillna(0.0).astype(np.float32)
-
-        # _v1_vwap_drift48: M5 48-period VWAP drift = (close - vwap48) / vwap48 (build def, min_periods=1).
-        pv48 = (close * vol_safe).rolling(48, min_periods=1).sum()
-        vv48 = vol_safe.rolling(48, min_periods=1).sum()
-        vwap48 = pv48 / vv48.replace(0, 1.0)
-        legacy_cols["_v1_vwap_drift48"] = (
-            (close - vwap48) / vwap48.replace(0, 1.0)
-        ).fillna(0.0).astype(np.float32)
-
-        # _v1h1_vwap_drift: H1 VWAP drift = (close - vwap_288) / vwap_288, rolling 288 M5 (=24 H1),
-        # min_periods=12 (build def — NOT a calendar resample). fillna(0) only touches the <12-bar warmup
-        # (training-excluded, never hit live with a full window) -> decision-parity with build.
-        pv_h1 = (close * vol_safe).rolling(288, min_periods=12).sum()
-        v_h1 = vol_safe.rolling(288, min_periods=12).sum()
-        vwap_h1 = pv_h1 / v_h1.replace(0, 1.0)
-        legacy_cols["_v1h1_vwap_drift"] = (
-            (close - vwap_h1) / vwap_h1.replace(0, 1.0)
-        ).fillna(0.0).astype(np.float32)
-        new_cols = pd.DataFrame(legacy_cols, index=cv3.index)
+        plus5 = compute_plus5_features(cv3)
+        new_cols = plus5[list(self._V1_LEGACY_FEATURES)].copy()
         existing = [c for c in new_cols.columns if c in cv3.columns]
         if existing:
             cv3 = cv3.drop(columns=existing)
@@ -630,6 +972,7 @@ class PrebuiltStateLoader:
     @property
     def cutoff_ts(self) -> pd.Timestamp:
         """Latest M5 bar timestamp available in BOTH prebuilts (joint coverage)."""
+        self._raise_refresh_error()
         if self._last_ts is None:
             raise RuntimeError("loader not initialized — call .load() first")
         return self._last_ts
@@ -641,6 +984,7 @@ class PrebuiltStateLoader:
         Latest row is the decision bar (at end_ts.floor('5min')).
         Empty DataFrame if `end_ts` is past the prebuilt coverage.
         """
+        self._raise_refresh_error()
         if self._cv3 is None or self._base28 is None:
             raise RuntimeError("loader not initialized — call .load() first")
 
@@ -653,10 +997,6 @@ class PrebuiltStateLoader:
         cv3_win = self._cv3.loc[:end_bucket].tail(n_bars)
         if cv3_win.empty:
             return pd.DataFrame()
-
-        # Joined-prebuilt path: all features already in cv3_win
-        if self._base28 is None:
-            return cv3_win
 
         # Join BASE28 augmented columns at exact timestamps. Missing timestamps
         # are unavailable evidence; they may not be reconstructed from a later
@@ -697,6 +1037,7 @@ class PrebuiltStateLoader:
         cv3 + multi_tf together (fixes CRITICAL race that produced silent V10
         feature mismatch during cv3 swap window).
         """
+        self._raise_refresh_error()
         source = cv3 if cv3 is not None else self._cv3
         if source is None:
             raise RuntimeError("call .load() before .build_multi_tf_features()")
@@ -739,6 +1080,7 @@ class PrebuiltStateLoader:
         Each is (n_bars, n_features) float32. Zero-padded at start if warmup unmet.
 
         Empty dict if multi-TF features aren't built (caller falls back to v3 path)."""
+        self._raise_refresh_error()
         if self._multi_tf_feats is None:
             return {}
         from gx1.features.htf_features import get_last_n_at_or_before

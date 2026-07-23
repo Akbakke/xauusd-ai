@@ -48,16 +48,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.policy.exit_transformer_v0 import ExitTransformerV0
-from gx1.exits.contracts.exit_io_v1_ctx36 import compute_feature_names_hash
-from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
+from gx1.policy.exit_transformer_v0 import ExitTransformerV0  # noqa: E402
+from gx1.exits.contracts.exit_io_v1_ctx36 import compute_feature_names_hash  # noqa: E402
+from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (  # noqa: E402
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES as V6_FEATURES,
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT as V6_FEATURE_COUNT,
 )
 # V7 contract (extension of V6; first 91 features identical to V6).
 # 2026-05-28: scorer extended to accept both V6 (91) and V7 (155) bundles.
 # Auto-detected from cfg["exit_ml_io_version"] in load_v3_v8_model.
-from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
+from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (  # noqa: E402
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES as V7_FEATURES,
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT as V7_FEATURE_COUNT,
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION as V7_IO_VERSION,
@@ -65,7 +65,7 @@ from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
 # V8 contract (extension of V7; +18 REGIME_V4 feats -> 173). 2026-06-05 (fase2b): scorer extended to
 # accept the regime V3 model so its output can be scored into the Exit-IQL per-bar state — without this
 # load_v3_v8_model RAISES on EXIT_IO_V8 io_version and regime/dip never reaches the exit policy.
-from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
+from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (  # noqa: E402
     EXIT_IO_V8_REGIME_M1L512_FEATURES as V8_FEATURES,
     EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT as V8_FEATURE_COUNT,
     EXIT_IO_V8_REGIME_M1L512_IO_VERSION as V8_IO_VERSION,
@@ -233,12 +233,40 @@ def build_overlay_for_trade(trade_rows: pd.DataFrame) -> np.ndarray:
 
     Each row in the overlay is the 19-dim trade-state vector at that bar.
     """
+    required_columns = {
+        "bar_idx_v1",
+        "bar_ts_ns_v1",
+        "bars_in_trade_v1",
+        "entry_fill_ts_ns_v1",
+        *PER_BAR_COL_BY_V6.values(),
+    }
+    missing = sorted(required_columns - set(trade_rows.columns))
+    if missing:
+        raise RuntimeError(
+            f"[V3_SCORE_OVERLAY_FIELDS_MISSING] required columns absent: {missing}"
+        )
     sorted_rows = trade_rows.sort_values("bar_idx_v1")
-    overlay = np.zeros((len(sorted_rows), len(TRADE_STATE_FEATURE_NAMES_V6)), dtype=np.float32)
+    bar_indices = pd.to_numeric(sorted_rows["bar_idx_v1"], errors="coerce")
+    if (
+        bar_indices.isna().any()
+        or not np.equal(bar_indices.to_numpy(), np.floor(bar_indices.to_numpy())).all()
+        or bar_indices.duplicated().any()
+    ):
+        raise RuntimeError("[V3_SCORE_OVERLAY_BAR_INDEX_INVALID]")
+    overlay = np.empty(
+        (len(sorted_rows), len(TRADE_STATE_FEATURE_NAMES_V6)),
+        dtype=np.float32,
+    )
     for j, v6_name in enumerate(TRADE_STATE_FEATURE_NAMES_V6):
         col = PER_BAR_COL_BY_V6[v6_name]
-        if col in sorted_rows.columns:
-            overlay[:, j] = pd.to_numeric(sorted_rows[col], errors="coerce").fillna(0.0).to_numpy()
+        values = pd.to_numeric(sorted_rows[col], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
+        if not np.isfinite(values).all():
+            raise RuntimeError(
+                f"[V3_SCORE_OVERLAY_NONFINITE] feature={col}"
+            )
+        overlay[:, j] = values
     return overlay, sorted_rows
 
 
@@ -266,10 +294,18 @@ def score_week(
     out_family = np.full(n_rows, -1, dtype=np.int64)
     out_family_max = np.full(n_rows, np.nan, dtype=np.float32)
 
-    bar_ts_ns = pd.to_numeric(df["bar_ts_ns_v1"], errors="coerce").fillna(0).astype("int64").to_numpy()
-    m1_idx_now = np.searchsorted(m1_time_ns, bar_ts_ns, side="right") - 1
-    bars_in_trade = pd.to_numeric(df["bars_in_trade_v1"], errors="coerce").fillna(0).astype("int64").to_numpy()
-
+    bar_ts_numeric = pd.to_numeric(df["bar_ts_ns_v1"], errors="coerce")
+    if bar_ts_numeric.isna().any():
+        raise RuntimeError("[V3_SCORE_M1_TIME_INVALID] non-numeric bar timestamp")
+    bar_ts_ns = bar_ts_numeric.astype("int64").to_numpy()
+    m1_idx_now = np.searchsorted(m1_time_ns, bar_ts_ns, side="left")
+    if (
+        (m1_idx_now >= len(m1_time_ns)).any()
+        or not np.array_equal(m1_time_ns[m1_idx_now], bar_ts_ns)
+    ):
+        raise RuntimeError(
+            "[V3_SCORE_M1_TIME_MISSING] every overlay row requires an exact M1 key"
+        )
     n_skipped_oob = 0
     n_trades = 0
     grouped = df.groupby("candidate_uid", sort=False)
@@ -369,27 +405,44 @@ def score_week(
         n_trades += 1
         overlay, sorted_rows = build_overlay_for_trade(trade_rows)
         sorted_indices = sorted_rows.index.to_numpy()  # absolute df indices
-        sorted_bars_in_trade = pd.to_numeric(
+        bars_in_trade_numeric = pd.to_numeric(
             sorted_rows["bars_in_trade_v1"], errors="coerce"
-        ).fillna(0).astype("int64").to_numpy()
-        sorted_m1_idx = m1_idx_now[sorted_indices]
-        # m1_idx of trade entry = m1_idx_now - bars_in_trade (per row, but constant per trade if data clean)
-        s_t_arr = sorted_m1_idx - sorted_bars_in_trade  # candidate s_t per row
-        # HIGH-1 guard (2026-06-08 multi-agent audit): s_t = m1_idx_now - bars_in_trade is the
-        # trade-entry index and MUST be IDENTICAL for every bar of the trade. If the per-bar grid
-        # and the V3-dataset m1 grid disagree (gap/dup dedup mismatch), the old median silently
-        # mis-aligned the 19 trade-state overlay cols into the WRONG window rows -> poisons the
-        # v3_v8_* features feeding Exit-IQL. Fail LOUD instead of silent-misalign.
-        _s_t_lo, _s_t_hi = int(s_t_arr.min()), int(s_t_arr.max())
-        if _s_t_hi != _s_t_lo:
+        )
+        if (
+            bars_in_trade_numeric.isna().any()
+            or not np.equal(
+                bars_in_trade_numeric.to_numpy(),
+                np.floor(bars_in_trade_numeric.to_numpy()),
+            ).all()
+            or (bars_in_trade_numeric <= 0).any()
+        ):
             raise RuntimeError(
-                f"[V3_SCORE_OVERLAY_MISALIGN] cand={cand_uid}: trade-entry index s_t not constant "
-                f"across the trade (min={_s_t_lo} max={_s_t_hi} spread={_s_t_hi - _s_t_lo}; "
-                f"n_bars={len(s_t_arr)}). per-bar m1 grid vs V3-dataset m1 grid disagree — refusing "
-                f"to silent-misalign the trade-state overlay. Rebuild per-bar + V3-dataset from the "
-                f"SAME M1 tape, or carry the builder's explicit overlay_start_row."
+                f"[V3_SCORE_BARS_IN_TRADE_INVALID] cand={cand_uid}"
             )
-        s_t = _s_t_lo
+        sorted_bars_in_trade = bars_in_trade_numeric.astype("int64").to_numpy()
+        sorted_m1_idx = m1_idx_now[sorted_indices]
+        fill_times = pd.to_numeric(
+            sorted_rows["entry_fill_ts_ns_v1"],
+            errors="coerce",
+        )
+        if fill_times.isna().any() or fill_times.nunique() != 1:
+            raise RuntimeError(
+                f"[V3_SCORE_ENTRY_FILL_INVALID] cand={cand_uid}: exact fill time absent"
+            )
+        fill_time_ns = int(fill_times.iloc[0])
+        fill_idx = int(np.searchsorted(m1_time_ns, fill_time_ns, side="left"))
+        if (
+            fill_idx >= len(m1_time_ns)
+            or int(m1_time_ns[fill_idx]) != fill_time_ns
+            or not np.array_equal(
+                sorted_m1_idx - fill_idx,
+                sorted_bars_in_trade - 1,
+            )
+        ):
+            raise RuntimeError(
+                f"[V3_SCORE_OVERLAY_MISALIGN] cand={cand_uid}: fill/bar offsets "
+                "differ from exact M1 indices"
+            )
 
         for i_in_trade, abs_idx in enumerate(sorted_indices):
             mi = int(sorted_m1_idx[i_in_trade])
@@ -400,18 +453,18 @@ def score_week(
             win_end = mi + 1
             io = np.array(m1_feature_matrix[win_start:win_end], dtype=np.float32, copy=True)
 
-            # Apply overlay for in-trade bars in this window
-            in_trade_start_in_win = max(0, s_t - win_start)
-            in_trade_end_in_win = min(WINDOW_LEN, s_t + i_in_trade + 1 - win_start + 1)  # exclusive
-            n_in_trade = max(0, in_trade_end_in_win - in_trade_start_in_win)
-            if n_in_trade > 0:
-                overlay_start_row = max(0, win_start - s_t)
-                slice_end = overlay_start_row + n_in_trade
-                slice_end = min(slice_end, len(overlay))
-                actual_n = slice_end - overlay_start_row
-                if actual_n > 0:
-                    io[in_trade_start_in_win: in_trade_start_in_win + actual_n,
-                       TRADE_STATE_V6_INDICES] = overlay[overlay_start_row: overlay_start_row + actual_n]
+            # Apply each materialized trade-state row to its exact current M1
+            # row. Entry-fill and unsampled M1 rows remain untouched; no
+            # inferred offset or older-row as-of is admissible.
+            prior_m1_indices = sorted_m1_idx[: i_in_trade + 1]
+            in_window = prior_m1_indices >= win_start
+            overlay_rows = np.flatnonzero(in_window)
+            window_rows = prior_m1_indices[in_window] - win_start
+            if len(window_rows):
+                io[
+                    window_rows[:, None],
+                    np.asarray(TRADE_STATE_V6_INDICES)[None, :],
+                ] = overlay[overlay_rows]
 
             pending_x.append(io)
             pending_idx.append(int(abs_idx))
@@ -542,7 +595,9 @@ def main() -> None:
             else:
                 mtf_feats = build_multi_tf_per_bar_features(m5)
             del m5
-            import gc; gc.collect()
+            import gc
+
+            gc.collect()
         else:
             raise RuntimeError(
                 "[score_v3_v8] V3 bundle is multi-TF — pass --multi-tf-v2-cache "

@@ -79,12 +79,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
+from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (  # noqa: E402
     compute_m5_phase_index,
 )
-from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
-from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
-from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as v1_pipe
+from gx1.features.trade_overlay import (  # noqa: E402
+    compute_m1_micro_feature_arrays,
+)
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate  # noqa: E402
+from gx1.scripts import (  # noqa: E402
+    materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe,
+)
+from gx1.scripts import (  # noqa: E402
+    materialize_build_exit_iql_per_bar_dataset_v1 as v1_pipe,
+)
 
 
 ACTION = "BUILD_EXIT_IQL_PER_BAR_DATASET_V2_M1"
@@ -137,54 +144,9 @@ _write_json = contract_gate._write_json
 def _compute_m1_micro_features(
     bar_close_mid: np.ndarray,  # mid close per M1 bar
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Cheap M1-resolution micro features that V10/V3 chunk_0 cannot see.
+    """Compatibility wrapper around the shared train/serve feature owner."""
 
-    Returns arrays aligned to bar_close_mid:
-      r5, r15, r60, vol15, vol60
-    where r{N} is N-bar log-return in bps and vol{N} is realized vol of
-    bar-to-bar returns over last N M1 bars (in bps).
-    """
-    n = len(bar_close_mid)
-    if n == 0:
-        empty = np.empty(0, dtype=np.float32)
-        return empty, empty, empty, empty, empty
-
-    safe = np.maximum(bar_close_mid, 1e-6)
-    log_close = np.log(safe)
-
-    def _rolling_return_bps(lag: int) -> np.ndarray:
-        out = np.zeros(n, dtype=np.float32)
-        if n > lag:
-            out[lag:] = ((log_close[lag:] - log_close[:-lag]) * 10000.0).astype(np.float32)
-        return out
-
-    r5 = _rolling_return_bps(5)
-    r15 = _rolling_return_bps(15)
-    r60 = _rolling_return_bps(60)
-
-    bar_log_ret = np.zeros(n, dtype=np.float64)
-    if n > 1:
-        bar_log_ret[1:] = log_close[1:] - log_close[:-1]
-    bar_log_ret_bps = bar_log_ret * 10000.0
-
-    def _rolling_vol_bps(window: int) -> np.ndarray:
-        out = np.zeros(n, dtype=np.float32)
-        if n < 2:
-            return out
-        sq = bar_log_ret_bps * bar_log_ret_bps
-        cum = np.concatenate(([0.0], np.cumsum(sq)))
-        for i in range(n):
-            lo = max(0, i - window + 1)
-            count = i - lo + 1
-            if count < 2:
-                continue
-            mean_sq = (cum[i + 1] - cum[lo]) / count
-            out[i] = float(np.sqrt(max(mean_sq, 0.0)))
-        return out
-
-    vol15 = _rolling_vol_bps(15)
-    vol60 = _rolling_vol_bps(60)
-    return r5, r15, r60, vol15, vol60
+    return compute_m1_micro_feature_arrays(bar_close_mid)
 
 
 def emit_per_bar_rows_m1(
@@ -286,9 +248,10 @@ def emit_per_bar_rows_m1(
     m1_r5, m1_r15, m1_r60, m1_vol15, m1_vol60 = _compute_m1_micro_features(bar_close_mid)
 
     rows: list[dict[str, Any]] = []
-    last_t = min(n_avail, max_bars_per_trade + 1)
-    # Skip t=0 (entry M1 bar — no exit decision yet); start from t=1.
-    for t in range(1, last_t, bar_stride):
+    last_t = min(n_avail, max_bars_per_trade)
+    # The fill occurs at the open of t=0.  Its close becomes available one
+    # minute later, which is the first live Exit decision and bars_in_trade=1.
+    for t in range(0, last_t, bar_stride):
         remaining_peak = peak[t + 1: t + 1 + max(k_horizons)]
         n_remaining = len(remaining_peak)
         if n_remaining == 0:
@@ -316,12 +279,13 @@ def emit_per_bar_rows_m1(
             "run_id": candidate_row.get("run_id"),
             "candidate_uid": candidate_row.get("candidate_uid"),
             "decision_ts_utc": candidate_row.get("decision_ts_utc"),
+            "entry_fill_ts_ns_v1": int(bar_times_ns[0]),
             "side_v1": side,
-            "bar_idx_v1": int(t),
+            "bar_idx_v1": int(t + 1),
             # Anchor timestamp — trainer uses this for asof-join to chunk_0 + canonical.
             "bar_ts_ns_v1": int(bar_ts_ns),
             # Per-bar trade state
-            "bars_in_trade_v1": int(t),
+            "bars_in_trade_v1": int(t + 1),
             "current_unrealized_pnl_bps_v1": float(cur_pnl[t]),
             "current_mfe_bps_v1": float(cum_peak[t]),
             "current_mae_bps_v1": float(cum_trough[t]),
@@ -377,6 +341,24 @@ def _file_sha256(path: Path) -> str:
 
 
 DEFAULT_CANDIDATES_PER_BATCH = 50  # streaming-write batch size — peak RAM ~700 MB
+ENTRY_DECISION_TO_FILL_LAG_NS = 5 * 60 * 1_000_000_000
+
+
+def require_exact_entry_fill_index(
+    m1_time_ns: np.ndarray,
+    decision_ts_ns: int,
+) -> int:
+    """Resolve the exact decision T+5 M1 fill row without older/newer as-of."""
+
+    fill_ts_ns = int(decision_ts_ns + ENTRY_DECISION_TO_FILL_LAG_NS)
+    index = int(np.searchsorted(m1_time_ns, fill_ts_ns, side="left"))
+    if index >= len(m1_time_ns) or int(m1_time_ns[index]) != fill_ts_ns:
+        raise RuntimeError(
+            "EXIT_IQL_ENTRY_FILL_M1_MISSING: "
+            f"decision={pd.Timestamp(decision_ts_ns, tz='UTC')} "
+            f"expected_fill={pd.Timestamp(fill_ts_ns, tz='UTC')}"
+        )
+    return index
 
 
 def _rows_to_table(rows: list[dict[str, Any]], schema: pa.Schema | None) -> pa.Table:
@@ -476,10 +458,10 @@ def process_week_m1(
                     continue
                 side = "long" if (candidate_row.get("p_long") or 0) >= (candidate_row.get("p_short") or 0) else "short"
 
-            idx_start = int(np.searchsorted(m1_time_ns, ts_ns, side="right"))
-            if idx_start >= n_m1:
+            if int(ts_ns + ENTRY_DECISION_TO_FILL_LAG_NS) > int(m1_time_ns[-1]):
                 stats["skipped_decision_past_tape_end"] += 1
                 continue
+            idx_start = require_exact_entry_fill_index(m1_time_ns, ts_ns)
             s_t, e_t, _ = fwd_pipe.slice_forward_window(
                 m1_time_ns, n_m1, idx_start, max_bars_per_trade + max(K_HORIZONS_EXIT_M1) + 1, max_gap_ns,
             )

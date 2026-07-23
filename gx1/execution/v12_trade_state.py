@@ -24,6 +24,7 @@ Usage:
     )
     # Each M1 bar after entry:
     trade.update_bar(
+        m1_bar_ts=closed_m1_bar_ts,
         bid=4686.0,
         ask=4686.5,
         m1_close=4686.25,
@@ -44,6 +45,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from copy import deepcopy
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -60,7 +62,11 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     require_model_native_sizing_application_record,
 )
-from gx1.features.trade_overlay import OVERLAY_COL_NAMES, compute_trade_overlay
+from gx1.features.trade_overlay import (
+    OVERLAY_COL_NAMES,
+    compute_m1_micro_feature_arrays,
+    compute_trade_overlay,
+)
 
 LOG = logging.getLogger("v12_trade_state")
 
@@ -68,7 +74,7 @@ SIDE_LONG = "long"
 SIDE_SHORT = "short"
 SIDES = (SIDE_LONG, SIDE_SHORT)
 
-PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v2"
+PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v3"
 TRADE_STATE_SIZING_EXECUTION_EVIDENCE_SCHEMA_VERSION = (
     "trade_state_sizing_execution_evidence_v1"
 )
@@ -87,6 +93,8 @@ _PERSISTED_TRADE_STATE_FIELDS = frozenset(
         "units",
         "sizing_execution_evidence",
         "bars_in_trade",
+        "last_processed_m1_ts",
+        "sf_defer_state_v1",
         "current_bid",
         "current_ask",
         "current_pnl_bps",
@@ -266,7 +274,7 @@ def _finite_persisted_history(
 
 def _validate_persisted_trade_state_payload(
     payload: dict[str, Any],
-) -> tuple[pd.Timestamp, dict[str, Any]]:
+) -> tuple[pd.Timestamp, dict[str, Any], pd.Timestamp | None]:
     """Validate the exact JSON persistence contract without filling any field."""
 
     if not isinstance(payload, dict):
@@ -361,6 +369,60 @@ def _validate_persisted_trade_state_payload(
         units=persisted_units,
     )
     bars_in_trade = _nonnegative_persisted_integer(payload, "bars_in_trade")
+    raw_last_processed = payload["last_processed_m1_ts"]
+    if raw_last_processed is None:
+        last_processed_m1_ts = None
+    elif isinstance(raw_last_processed, str) and raw_last_processed.strip():
+        try:
+            last_processed_m1_ts = pd.Timestamp(raw_last_processed)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "persisted trade state last_processed_m1_ts must be ISO UTC"
+            ) from exc
+        if (
+            pd.isna(last_processed_m1_ts)
+            or last_processed_m1_ts.tzinfo is None
+            or last_processed_m1_ts.utcoffset() is None
+            or last_processed_m1_ts.utcoffset().total_seconds() != 0.0
+            or last_processed_m1_ts != last_processed_m1_ts.floor("min")
+        ):
+            raise ValueError(
+                "persisted trade state last_processed_m1_ts must be an exact UTC minute"
+            )
+        last_processed_m1_ts = last_processed_m1_ts.tz_convert("UTC")
+    else:
+        raise ValueError(
+            "persisted trade state last_processed_m1_ts must be ISO UTC or null"
+        )
+    if (bars_in_trade == 0) != (last_processed_m1_ts is None):
+        raise ValueError(
+            "persisted trade state last_processed_m1_ts/bar count mismatch"
+        )
+    if last_processed_m1_ts is not None:
+        expected_last_processed = entry_ts.floor("min") + pd.Timedelta(
+            minutes=bars_in_trade - 1
+        )
+        if last_processed_m1_ts != expected_last_processed:
+            raise ValueError(
+                "persisted trade state M1 cadence is not contiguous from entry"
+            )
+    defer_state = payload["sf_defer_state_v1"]
+    if not isinstance(defer_state, dict) or set(defer_state) not in (
+        set(),
+        {"sf_first_veto_bar"},
+    ):
+        raise ValueError("persisted trade state Strategy-F defer schema mismatch")
+    if defer_state:
+        first_veto = defer_state["sf_first_veto_bar"]
+        if (
+            isinstance(first_veto, bool)
+            or not isinstance(first_veto, int)
+            or first_veto < 0
+            or first_veto > bars_in_trade
+        ):
+            raise ValueError(
+                "persisted trade state Strategy-F first veto bar is invalid"
+            )
     bars_since_mfe_peak = _nonnegative_persisted_integer(
         payload, "bars_since_mfe_peak"
     )
@@ -477,7 +539,7 @@ def _validate_persisted_trade_state_payload(
             "persisted trade state V3 probability/consecutive counter mismatch"
         )
 
-    return entry_ts, snapshot
+    return entry_ts, snapshot, last_processed_m1_ts
 
 
 @dataclass
@@ -501,6 +563,8 @@ class TradeState:
 
     # Running state (updated per M1 bar)
     bars_in_trade: int = 0
+    last_processed_m1_ts: pd.Timestamp | None = None
+    sf_defer_state_v1: dict[str, int] = field(default_factory=dict)
     current_bid: float = 0.0
     current_ask: float = 0.0
     current_pnl_bps: float = 0.0         # bid/ask asymmetric
@@ -703,6 +767,7 @@ class TradeState:
         self, bid: float, ask: float, m1_close: float,
         bid_high: float, bid_low: float,
         ask_high: float, ask_low: float,
+        m1_bar_ts: pd.Timestamp,
     ) -> None:
         """Advance trade state by one CLOSED M1 bar.
 
@@ -713,6 +778,28 @@ class TradeState:
         the V4 one-truth V3-overlay basis used by the train builder; a close-only
         substitute is not a valid Exit-IQL state.
         """
+        parsed_m1_bar_ts = pd.Timestamp(m1_bar_ts)
+        if (
+            pd.isna(parsed_m1_bar_ts)
+            or parsed_m1_bar_ts.tzinfo is None
+            or parsed_m1_bar_ts.utcoffset() is None
+            or parsed_m1_bar_ts.utcoffset().total_seconds() != 0.0
+            or parsed_m1_bar_ts != parsed_m1_bar_ts.floor("min")
+        ):
+            raise ValueError("closed M1 timestamp must be an exact UTC minute")
+        parsed_m1_bar_ts = parsed_m1_bar_ts.tz_convert("UTC")
+        expected_m1_bar_ts = (
+            self.entry_ts.floor("min")
+            if self.last_processed_m1_ts is None
+            else self.last_processed_m1_ts + pd.Timedelta(minutes=1)
+        )
+        if parsed_m1_bar_ts != expected_m1_bar_ts:
+            raise ValueError(
+                "closed M1 cadence gap/duplicate: "
+                f"expected={expected_m1_bar_ts.isoformat()} "
+                f"observed={parsed_m1_bar_ts.isoformat()}"
+            )
+
         raw_values = {
             "bid": bid,
             "ask": ask,
@@ -790,12 +877,21 @@ class TradeState:
         self.peak_history.append(float(peak))
         self.trough_history.append(float(trough))
         self.atr_bps_history.append(float(atr))
+        self.last_processed_m1_ts = parsed_m1_bar_ts
 
     def update_v3(self, v3_v8_out: dict | None) -> None:
         """Update V3 v8 running stats from latest V3 inference output."""
-        if not v3_v8_out:
-            return
-        prob = float(v3_v8_out.get("v3_v8_should_exit_prob", 0.0))
+        if (
+            not isinstance(v3_v8_out, dict)
+            or "v3_v8_should_exit_prob" not in v3_v8_out
+        ):
+            raise ValueError("V3 running-state update requires exact exit probability")
+        try:
+            prob = float(v3_v8_out["v3_v8_should_exit_prob"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("V3 exit probability must be numeric") from exc
+        if not np.isfinite(prob) or not 0.0 <= prob <= 1.0:
+            raise ValueError("V3 exit probability must be finite within [0,1]")
         self.v3_signal_acceleration = prob - self.v3_last_prob
         self.v3_last_prob = prob
         if prob > self.v3_max_prob_in_trade:
@@ -811,31 +907,26 @@ class TradeState:
     # ── feature construction ────────────────────────────────────────
 
     def _rolling_return_bps(self, n: int) -> float:
-        """M1 close return over EXACTLY n bars (bps).
+        """M1 log return from the shared train/serve feature owner."""
 
-        Returns 0.0 if fewer than (n+1) bars are available — matches training
-        convention where partial-window features were 0-filled at trade start.
-        (Audit H2 2026-05-19: previously returned a SHORTER-lookback value
-        silently, e.g. ``m1_last_60bar_return_bps_v1`` was actually a 2-bar
-        return early in trade, diverging from training data.)
-        """
-        if len(self.m1_returns_window) < n + 1:
-            return 0.0
-        prev = self.m1_returns_window[-(n + 1)]
-        cur = self.m1_returns_window[-1]
-        if prev <= 0:
-            return 0.0
-        return (cur - prev) / prev * 10000.0
+        arrays = compute_m1_micro_feature_arrays(
+            np.asarray(self.m1_returns_window, dtype=np.float64)
+        )
+        index = {5: 0, 15: 1, 60: 2}.get(n)
+        if index is None:
+            raise ValueError(f"unsupported M1 return horizon: {n}")
+        return float(arrays[index][-1]) if len(arrays[index]) else 0.0
 
     def _rolling_vol_bps(self, n: int) -> float:
-        """Std of M1 close-to-close returns (bps) over last n bars."""
-        if len(self.m1_returns_window) < 3:
-            return 0.0
-        arr = np.array(list(self.m1_returns_window)[-(n + 1):], dtype=np.float64)
-        if len(arr) < 3:
-            return 0.0
-        rets = np.diff(arr) / arr[:-1] * 10000.0
-        return float(rets.std())
+        """M1 RMS log-return volatility from the shared feature owner."""
+
+        arrays = compute_m1_micro_feature_arrays(
+            np.asarray(self.m1_returns_window, dtype=np.float64)
+        )
+        index = {15: 3, 60: 4}.get(n)
+        if index is None:
+            raise ValueError(f"unsupported M1 volatility horizon: {n}")
+        return float(arrays[index][-1]) if len(arrays[index]) else 0.0
 
     def build_trade_state_features(self) -> dict[str, float]:
         """The ~13 per-bar trade-state features Exit-IQL V12.1 expects."""
@@ -1061,6 +1152,12 @@ class TradeState:
                 self.sizing_execution_evidence
             ),
             "bars_in_trade": self.bars_in_trade,
+            "last_processed_m1_ts": (
+                self.last_processed_m1_ts.isoformat()
+                if self.last_processed_m1_ts is not None
+                else None
+            ),
+            "sf_defer_state_v1": dict(self.sf_defer_state_v1),
             "current_bid": self.current_bid,
             "current_ask": self.current_ask,
             "current_pnl_bps": self.current_pnl_bps,
@@ -1093,7 +1190,9 @@ class TradeState:
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "TradeState":
         """Rehydrate only an exact versioned state; never fill missing evidence."""
-        entry_ts, snapshot = _validate_persisted_trade_state_payload(d)
+        entry_ts, snapshot, last_processed_m1_ts = (
+            _validate_persisted_trade_state_payload(d)
+        )
         t = cls(
             entry_ts=entry_ts,
             side=d["side"],
@@ -1105,6 +1204,8 @@ class TradeState:
             units=d["units"],
             sizing_execution_evidence=dict(d["sizing_execution_evidence"]),
             bars_in_trade=d["bars_in_trade"],
+            last_processed_m1_ts=last_processed_m1_ts,
+            sf_defer_state_v1=dict(d["sf_defer_state_v1"]),
             current_bid=float(d["current_bid"]),
             current_ask=float(d["current_ask"]),
             current_pnl_bps=float(d["current_pnl_bps"]),
@@ -1127,6 +1228,46 @@ class TradeState:
         t.trough_history.extend(float(v) for v in d["trough_history"])
         t.atr_bps_history.extend(float(v) for v in d["atr_bps_history"])
         return t
+
+    def clone_for_exit_decision(self) -> "TradeState":
+        """Return an exact detached copy used for transactional inference."""
+
+        return self.from_dict(self.to_dict())
+
+    def commit_complete_exit_bar(self, staged: "TradeState") -> None:
+        """Atomically adopt one fully validated staged M1/Exit transition."""
+
+        if not isinstance(staged, TradeState):
+            raise TypeError("staged exit state must be TradeState")
+        staged_payload = staged.to_dict()
+        immutable_fields = (
+            "entry_ts",
+            "side",
+            "entry_bid",
+            "entry_ask",
+            "entry_spread_bps",
+            "v10_snapshot",
+            "trade_id",
+            "units",
+            "sizing_execution_evidence",
+        )
+        current_payload = self.to_dict()
+        if any(
+            staged_payload[field_name] != current_payload[field_name]
+            for field_name in immutable_fields
+        ):
+            raise ValueError("staged exit state changed immutable trade identity")
+        if staged.bars_in_trade != self.bars_in_trade + 1:
+            raise ValueError("staged exit state must contain exactly one new M1 bar")
+        expected_ts = (
+            self.entry_ts.floor("min")
+            if self.last_processed_m1_ts is None
+            else self.last_processed_m1_ts + pd.Timedelta(minutes=1)
+        )
+        if staged.last_processed_m1_ts != expected_ts:
+            raise ValueError("staged exit state M1 timestamp is not the next bar")
+        self.__dict__.clear()
+        self.__dict__.update(deepcopy(staged.__dict__))
 
     def save(self, path: Path) -> None:
         """Atomically write trade state to disk (so an interrupted write can't corrupt).

@@ -52,11 +52,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from sklearn.model_selection import GroupShuffleSplit, StratifiedShuffleSplit
+from sklearn.model_selection import (  # noqa: E402
+    GroupShuffleSplit,
+    StratifiedShuffleSplit,
+)
 
-from gx1.scripts import exit_iql_multi_head_gpu_core_v1 as iql_core
-from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate
-from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as exit_pipe
+from gx1.scripts import exit_iql_multi_head_gpu_core_v1 as iql_core  # noqa: E402
+from gx1.scripts import exit_iql_artifact_primitives_v1 as contract_gate  # noqa: E402
+from gx1.scripts import (  # noqa: E402
+    materialize_build_exit_iql_per_bar_dataset_v1 as exit_pipe,
+)
 
 
 ACTION = "BUILD_EXIT_IQL_V2"
@@ -264,15 +269,15 @@ V2_DROP_FEATURES_EXIT = (
     "m1_realized_vol_15bar_bps_v1", "hold_horizon_pred", "forward_bars_remaining_v1",
     "direction_logit_short", "pnl_acceleration_v1", "p_hat", "m5_phase_4_v1",
     "direction_logit_long", "giveback_acceleration_v1", "bar_return_bps_v1",
-    "v3_signal_acceleration_v1", "m1_last_5bar_return_bps_v1", "current_atr_bps_v1",
+    "m1_last_5bar_return_bps_v1", "current_atr_bps_v1",
     "m5_phase_2_v1", "pnl_velocity_v1", "entropy_entry_v1",
-    "v3_max_consecutive_exits_v1", "m5_phase_1_v1", "tradable_prob",
-    "m5_phase_0_v1", "m5_phase_3_v1", "v3_consecutive_exits_v1",
+    "m5_phase_1_v1", "tradable_prob",
+    "m5_phase_0_v1", "m5_phase_3_v1",
     "v3_v8_family_argmax", "uncertainty_score", "weekday_utc",
     "v12_capital_cost_bps_v1", "v10_p_long_at_entry_v1", "accepted",
     "p_long_entry_v1", "uncertainty_entry_v1", "margin_entry_v1",
     "v10_path_quality_at_entry_v1", "v10_path_quality_std_at_entry_v1",
-    "v3_should_exit_decision_v1", "v10_position_size_at_entry_v1",
+    "v10_position_size_at_entry_v1",
     "v10_mfe_pred_at_entry_v1", "v10_tf_agreement_at_entry_v1",
     "v10_hold_horizon_at_entry_v1", "v10_p_short_at_entry_v1", "p_hat_entry_v1",
     # giveback_ratio_v1 — kept (high importance per FI)
@@ -838,7 +843,7 @@ def evaluate_one_fold(
     fold: dict[str, np.ndarray],
     X: np.ndarray, R: np.ndarray, oracle_action: np.ndarray,
     *,
-    variant: str, artifact_root: Path,
+    variant: str, artifact_root: Path, feature_names: list[str],
     sample_weights: np.ndarray | None = None,   # EXIT-8 part 2: per-row weights (full-dataset)
     loss_mask: np.ndarray | None = None,        # EXIT-9: (n, n_actions*n_K) full-dataset Q-loss mask
     init_q_state_dict: dict | None = None,      # WARM-START init (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707); None = cold = bit-parity
@@ -910,6 +915,14 @@ def evaluate_one_fold(
     model_dir = artifact_root / "trained_models_v1"
     model_dir.mkdir(exist_ok=True)
     model_path = model_dir / f"{variant}_{fold_id_v1}.pt"
+    feature_names_sha256 = contract_gate.ordered_feature_names_sha256(
+        feature_names
+    )
+    if model.state_dim != len(feature_names):
+        raise RuntimeError(
+            "EXIT_IQL_CHECKPOINT_FEATURE_DIM_MISMATCH: "
+            f"model={model.state_dim} feature_names={len(feature_names)}"
+        )
     torch.save({
         "q_state_dict": model.q_net.state_dict(),
         "v_state_dict": model.v_net.state_dict(),
@@ -923,6 +936,8 @@ def evaluate_one_fold(
         "dropout": iql_core.DEFAULT_DROPOUT,
         "schema_v1": "MULTI_HEAD_EXIT_IQL_V2_CHECKPOINT",
         "action_labels": ACTION_LABELS_EXIT,
+        "feature_names_v1": list(feature_names),
+        "feature_names_sha256_v1": feature_names_sha256,
     }, model_path)
 
     return {
@@ -1073,6 +1088,7 @@ def write_artifacts(
         for fold in folds:
             r = evaluate_one_fold(fold, X, R_by_variant[variant], oracle_action,
                                   variant=variant, artifact_root=artifact_root,
+                                  feature_names=feature_names,
                                   sample_weights=_exit_sample_weights,
                                   loss_mask=_exit_loss_mask)
             per_fold_results.append(r)
@@ -1094,6 +1110,9 @@ def write_artifacts(
         "n_rows_v1": int(len(df)),
         "n_features_v1": int(X.shape[1]),
         "feature_names_v1": feature_names,
+        "feature_names_sha256_v1": contract_gate.ordered_feature_names_sha256(
+            feature_names
+        ),
         "k_horizons_v1": K_HORIZONS,
         "k_primary_v1": K_PRIMARY,
         "n_actions_v1": N_ACTIONS_EXIT,

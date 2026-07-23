@@ -607,6 +607,7 @@ class ModelNativeStateBuilder:
           snap     (n, 513)     float32
           ctx_cont (n, 142)     float32
           ctx_cat  (n, 5)       int64
+          entry_trend_regime_id (n,) int64
           times    list[pd.Timestamp]
         Mirrors build_dataset_canonical's emission exactly:
         seq = sig_mat[i-95:i+1]; snap = sig_mat[i] (builder line 3024-3026).
@@ -679,6 +680,29 @@ class ModelNativeStateBuilder:
         ctx_cat_mat = (
             frame[list(MODEL_NATIVE_CTX_CAT_FIELDS)].astype(np.int64).to_numpy()
         )
+        if "trend_regime_id" not in frame.columns:
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] exact entry trend_regime_id is missing"
+            )
+        trend_regime_numeric = pd.to_numeric(
+            frame["trend_regime_id"],
+            errors="coerce",
+        ).to_numpy(dtype=np.float64)
+        if (
+            not np.isfinite(trend_regime_numeric).all()
+            or not np.array_equal(
+                trend_regime_numeric,
+                trend_regime_numeric.astype(np.int64),
+            )
+            or not np.isin(
+                trend_regime_numeric.astype(np.int64),
+                (0, 1, 2),
+            ).all()
+        ):
+            raise RuntimeError(
+                "[MODEL_NATIVE_STATE] entry trend_regime_id is outside 0,1,2"
+            )
+        trend_regime_mat = trend_regime_numeric.astype(np.int64)
 
         n = len(idxs)
         seq = np.empty(
@@ -687,11 +711,13 @@ class ModelNativeStateBuilder:
         snap = np.empty((n, SIGNAL_DIM_MODEL_NATIVE), dtype=np.float32)
         ctx_cont = np.empty((n, CTX_CONT_DIM_MODEL_NATIVE), dtype=np.float32)
         ctx_cat = np.empty((n, CTX_CAT_DIM_MODEL_NATIVE), dtype=np.int64)
+        entry_trend_regime_id = np.empty(n, dtype=np.int64)
         for k, i in enumerate(idxs):
             seq[k] = sig_mat[i - (SEQ_LEN_MODEL_NATIVE - 1) : i + 1]
             snap[k] = sig_mat[i]
             ctx_cont[k] = ctx_cont_mat[i]
             ctx_cat[k] = ctx_cat_mat[i]
+            entry_trend_regime_id[k] = trend_regime_mat[i]
         if (
             not np.isfinite(seq).all()
             or not np.isfinite(snap).all()
@@ -705,6 +731,7 @@ class ModelNativeStateBuilder:
             "snap": snap,
             "ctx_cont": ctx_cont,
             "ctx_cat": ctx_cat,
+            "entry_trend_regime_id": entry_trend_regime_id,
             "times": [pd.Timestamp(t) for t in times],
         }
 

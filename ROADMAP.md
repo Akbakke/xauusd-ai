@@ -88,40 +88,65 @@ The full audit in `PIPELINE_AUDIT_XAU_20260723.md` proves two P0s and multiple
 P1s: signed dip-MFE clipping, selected-side bad-path LONG bias, replacement
 sampling with only about 62% unique-row coverage, mismatched bidirectional aux
 weights/metrics, partial checkpoint admission, incomplete MTF/scaler/context/
-fusion identity and missing transactional launch authority. V21/V22/
-V23 large rejected split parquets have been removed while their small terminal
-and audit evidence remains. No bundle, candidate, untouched OOS edge or launch
-evidence exists.
+fusion identity and missing transactional launch authority at the audited
+boundary. V21/V22/V23 large rejected split parquets have been removed while
+their small terminal and audit evidence remains. No bundle, candidate,
+untouched OOS edge or launch evidence exists.
 
 The target/objective, sampler, conditional metrics, checkpoint influence,
 complete physical-TRAIN normalization, all-147 context ownership, exact
 five-timeframe cache bytes, positive TF scales, atomic bundle/event
 publication, recursive active-Exit artifact identity, immutable approval,
-runtime lease recheck and missing-trade-ID close path are now source-repaired
-with regression proof. V24/V7 predate every one of these changes. No fresh
-artifact or edge result exists.
+identity-bound one-time vedtak, recoverable transactional launch finalization,
+single-exposure enforcement, runtime lease recheck, broker/local XAU trade-ID
+reconciliation and missing-trade-ID close path are now source-repaired with
+regression proof. The finalizer uses the existing control surface and
+canonical targets; it cannot create its own vedtak or accept alternate
+authority roots. The re-audit found that the joint Exit finalizer does not run
+the active models: it validates caller-supplied parquets. Launch/runtime now
+reject that evidence outright, but a canonical full-TEST active-Exit producer
+remains source P0. V24/V7 predate every one of these changes. No fresh artifact
+or edge result exists.
 
 ## Ordered gates
 
 1. Preserve V24/V7 as immutable failure evidence. Do not rerun, patch data in
    place or promote any output.
-2. Preserve all completed source repairs: both P0s, no-replacement sampling,
+2. Preserve completed source repairs: no-replacement sampling,
    bidirectional/conditional auxiliary evidence, exact recipe/M5/MTF bytes,
    complete TRAIN-fit normalization, 142+5 context ownership, all-head/group
    influence, atomic bundle/event publication, active-Exit byte identity,
-   immutable approval, runtime lease and execution fail-close.
-3. Implement the one remaining source P0: a canonical transactional
-   candidate/promotion/launch finalizer with terminal failure evidence. The
-   existing consumer contract already rejects `.env` authority and requires
-   the exact one-time approval/state/bundle binding.
-4. Repair and prove canonical/live December-2024 M5 parity.
-5. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
+   immutable approval/vedtak, transactional launch finalization, portfolio
+   cap fail-close, broker/local trade reconciliation, runtime lease and
+   execution fail-close, exact T+5/closed-M5 Exit timing, full V3 window
+   coverage, transactional TradeState and production-only Exit loading.
+3. Finish the still-open producer contracts: complete canonical-v2
+   incremental/full-history parity, atomic canonical/BASE generation
+   identity, one canonical-M5 owner plus closure policy, one observable
+   per-bar slippage source and reproducible V3 lineage. ATR/ROC/VWAP,
+   dependent normalized VWAP, SMC ATR and H1/H4 alignment already use their
+   shared source owners and must not be forked again.
+4. Rebuild the per-bar Exit substrate at exact T+5, rescore V3 on exact row
+   overlays and retrain Exit with checkpoint-bound features and one explicit
+   serving fold. The retained research-only/non-production bundle is not an
+   incumbent.
+5. Build one canonical full-TEST producer around the existing exact
+   `V12Pipeline.make_exit_decision` primitive. It must preserve the complete
+   Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind all
+   canonical/BASE28/MTF inputs and active Exit bytes, and emit its own complete
+   per-M1 actions/states/prices with zero fallback or horizon-cap pass.
+6. Repair and prove canonical/live December-2024 M5 parity. The read-only
+   audit found 3,430 impossible-geometry rows in both canonical M5 and
+   live-prebuilt, including 2,799 weekend rows; the clean M1 supports 5,757
+   rebuilt December buckets and leaves 3,459 canonical rows unbacked. The
+   full loader also blocks on 2,375 invalid late-2024 prebuilt OHLC rows.
+7. Rebuild fresh XAU-only splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.
-6. Train/evaluate a candidate only if smoke evidence is green; require OOS
+8. Train/evaluate a candidate only if smoke evidence is green; require OOS
    calibration, support, costs, TOP/BOTTOM timing, Q/V/Advantage, specialist,
    context and timeframe influence evidence.
-7. Require candidate replay, exact serve parity, learned-sizing adoption with
+9. Require candidate replay, exact serve parity, learned-sizing adoption with
    the active Exit stack, zero-order runtime parity, then the immutable
    adaptation/shadow lifecycle. Any missing or newer-red event remains BLOCK.
 

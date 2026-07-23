@@ -76,3 +76,9 @@ documentation and code together.
     immutable one-time approval bound to the complete launch-state hash and
     exact bundle commit, plus a runtime lease recheck before every new
     exposure. Missing broker trade identity never permits a counter-order.
+22. Build on the existing script/contract owner for changes within its
+    responsibility. Do not create a new version or parallel script for a minor
+    edit, compatibility alias or workaround. New files require a genuinely
+    new bounded authority that cannot live in the existing owner without
+    mixing contracts, and must be wired through the existing public control
+    surface.

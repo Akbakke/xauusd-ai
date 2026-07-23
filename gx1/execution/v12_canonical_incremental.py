@@ -43,15 +43,29 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyarrow.parquet as pq
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5
-from gx1.scripts.materialize_build_canonical_features_v2 import build_canonical_v2
-from gx1.scripts.materialize_canonical_v3_augment import (
+from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5  # noqa: E402
+from gx1.features.htf_features import (  # noqa: E402
+    REGIME_V4_V2_MTF_PER_TF,
+    REGIME_V4_V2_MTF_SKIP,
+    REGIME_V4_V2_MTF_TFS,
+)
+from gx1.features.basic_v1 import (  # noqa: E402
+    PLUS5_FEATURES,
+    compute_plus5_features,
+)
+from gx1.features.micro_structure_v1 import MICRO_FEATURE_NAMES_V1  # noqa: E402
+from gx1.features.regime_v4_features import REGIME_V4_DERIVED_COLS  # noqa: E402
+from gx1.features.swing_structure_v1 import SWING_FEATURE_NAMES_V1  # noqa: E402
+from gx1.features.volume_features import VOLUME_FEATURE_NAMES  # noqa: E402
+from gx1.scripts.materialize_build_canonical_features_v2 import (  # noqa: E402
+    build_canonical_v2,
+)
+from gx1.scripts.materialize_canonical_v3_augment import (  # noqa: E402
     DROP_COLUMNS,
     add_cyclic_time_features,
     add_smc_premium_state_interaction,
@@ -74,51 +88,149 @@ WARMUP_DAYS = 30   # enough for ATR14, EMA200, RSI, etc. to stabilize
 
 # PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
 # was trained on real values.  This function is the retained computation source.
-PLUS5_FEATURES = ("atr", "std50", "roc20", "_v1_vwap_drift48", "_v1h1_vwap_drift")
+BASE34_RAW_M1_OWNED_COLUMNS = ("open", "high", "low", "close", "volume")
+_BASE34_V2_MTF_OWNED_COLUMNS = tuple(
+    f"{timeframe}_{live_fragment}_v2"
+    for timeframe in REGIME_V4_V2_MTF_TFS
+    for live_fragment, _source_column in REGIME_V4_V2_MTF_PER_TF
+    if (timeframe, live_fragment) not in REGIME_V4_V2_MTF_SKIP
+)
+BASE34_AUGMENT_OWNED_COLUMNS = frozenset(
+    (
+        "atr_bps",
+        "spread_bps",
+        "session_id",
+        "is_ASIA",
+        "_v1_is_EU",
+        "_v1_is_US",
+        "minutes_since_session_open",
+        "minutes_to_next_session_boundary",
+        "session_change_flag",
+        "session_tradable",
+        "_v1_int_ema_us",
+        "_v1_int_range_us",
+        "_v1_int_slope_h1_us",
+        "trend_regime_id",
+        "vol_regime_id",
+        "atr_bucket",
+        "spread_bucket",
+        "D1_dist_from_ema200_atr",
+        "D1_atr_percentile_252",
+        "H1_range_compression_ratio",
+        "M15_range_compression_ratio",
+        "H4_trend_sign_cat",
+        *MICRO_FEATURE_NAMES_V1,
+        *SWING_FEATURE_NAMES_V1,
+        *VOLUME_FEATURE_NAMES,
+        *REGIME_V4_DERIVED_COLS,
+        *_BASE34_V2_MTF_OWNED_COLUMNS,
+    )
+)
+M1_MARKET_IDENTITY_COLUMNS = (
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "bid_open",
+    "bid_high",
+    "bid_low",
+    "bid_close",
+    "ask_open",
+    "ask_high",
+    "ask_low",
+    "ask_close",
+)
+
+
+def _exact_finite_number(value, *, context: str) -> float:
+    """Return one exact numeric feature value or fail the append cycle."""
+
+    if isinstance(value, (bool, np.bool_)):
+        raise RuntimeError(f"{context}: boolean is not numeric feature evidence")
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{context}: feature value is not numeric") from exc
+    if not np.isfinite(parsed):
+        raise RuntimeError(f"{context}: feature value is non-finite")
+    return parsed
+
+
+def _align_exact_canonical_schema(
+    existing: pd.DataFrame,
+    incremental: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return incremental columns in canonical order or reject any schema drift."""
+
+    existing_columns = list(existing.columns)
+    incremental_columns = list(incremental.columns)
+    if len(existing_columns) != len(set(existing_columns)):
+        raise RuntimeError("canonical_v3 existing schema contains duplicate columns")
+    if len(incremental_columns) != len(set(incremental_columns)):
+        raise RuntimeError("canonical_v3 incremental schema contains duplicate columns")
+    existing_set = set(existing_columns)
+    incremental_set = set(incremental_columns)
+    missing_columns = sorted(existing_set - incremental_set)
+    extra_columns = sorted(incremental_set - existing_set)
+    if missing_columns or extra_columns:
+        raise RuntimeError(
+            "canonical_v3 incremental schema mismatch: "
+            f"missing={missing_columns} extra={extra_columns}"
+        )
+    return incremental.loc[:, existing_columns]
+
+
+def _build_base34_owned_row(
+    *,
+    timestamp: pd.Timestamp,
+    output_columns: list[str],
+    cv3_row: pd.Series,
+    cv3_aug: pd.DataFrame,
+    m1_row: pd.Series,
+    cv3_index: pd.DatetimeIndex,
+) -> dict[str, float]:
+    """Build one BASE34 row from one unambiguous producer per column."""
+
+    if len(output_columns) != len(set(output_columns)):
+        raise RuntimeError("BASE34 output schema contains duplicate columns")
+    augmented_timestamp = cv3_row.name
+    row_data: dict[str, float] = {}
+    for column in output_columns:
+        if column in BASE34_RAW_M1_OWNED_COLUMNS:
+            if column not in m1_row.index:
+                raise RuntimeError(f"BASE34 exact M1 source lacks {column}")
+            value = m1_row[column]
+            context = f"BASE34 {timestamp} M1.{column}"
+        elif column == "is_model_bar":
+            row_data[column] = float(timestamp in cv3_index)
+            continue
+        elif column in BASE34_AUGMENT_OWNED_COLUMNS:
+            if column not in cv3_aug.columns:
+                raise RuntimeError(
+                    f"BASE34 augment-owned column {column!r} lacks its exact producer"
+                )
+            if augmented_timestamp not in cv3_aug.index:
+                raise RuntimeError(
+                    "BASE34 augmented source lacks exact closed M5 state at "
+                    f"{augmented_timestamp}"
+                )
+            value = cv3_aug.at[augmented_timestamp, column]
+            context = f"BASE34 {timestamp} augmented.{column}"
+        elif column in cv3_row.index:
+            value = cv3_row[column]
+            context = f"BASE34 {timestamp} canonical_v3.{column}"
+        else:
+            raise RuntimeError(
+                f"BASE34 column {column!r} has no exact current-bar producer"
+            )
+        row_data[column] = _exact_finite_number(value, context=context)
+    return row_data
 
 
 def _compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute the 5 PLUS5 features on an OHLCV DataFrame in place and return it.
-
-    Expects columns: open, high, low, close, volume. DataFrame may be time-indexed
-    or have a 'time' column; output preserves whichever input had.
-    """
-    out = df.copy()
-    close = pd.to_numeric(out["close"], errors="coerce").astype(np.float64)
-    high = pd.to_numeric(out["high"], errors="coerce").astype(np.float64)
-    low = pd.to_numeric(out["low"], errors="coerce").astype(np.float64)
-    volume = pd.to_numeric(out["volume"], errors="coerce").fillna(0).astype(np.float64).replace(0, 1.0)
-    pv = close * volume
-
-    # 1. _v1_vwap_drift48: M5 48-period VWAP drift
-    pv_48 = pv.rolling(48, min_periods=1).sum()
-    v_48 = volume.rolling(48, min_periods=1).sum()
-    vwap48 = pv_48 / v_48.replace(0, 1.0)
-    out["_v1_vwap_drift48"] = ((close - vwap48) / vwap48.replace(0, 1.0)).astype(np.float32)
-
-    # 2. _v1h1_vwap_drift: H1 VWAP drift (24 H1 bars ≈ 288 M5 bars)
-    pv_h1 = pv.rolling(288, min_periods=12).sum()
-    v_h1 = volume.rolling(288, min_periods=12).sum()
-    vwap_h1 = pv_h1 / v_h1.replace(0, 1.0)
-    out["_v1h1_vwap_drift"] = ((close - vwap_h1) / vwap_h1.replace(0, 1.0)).astype(np.float32)
-
-    # 3. atr: Wilder M5 14-period ATR (EWMA alpha=1/14)
-    prev_close = close.shift(1).fillna(close)
-    tr = pd.concat([
-        (high - low).abs(),
-        (high - prev_close).abs(),
-        (low - prev_close).abs(),
-    ], axis=1).max(axis=1)
-    out["atr"] = tr.ewm(alpha=1/14, adjust=False).mean().astype(np.float32)
-
-    # 4. std50: rolling std of M5 close-to-close returns
-    rets = close.pct_change().fillna(0.0)
-    out["std50"] = rets.rolling(50, min_periods=2).std().fillna(0.0).astype(np.float32)
-
-    # 5. roc20: 20-period rate of change of close
-    out["roc20"] = close.pct_change(20).fillna(0.0).astype(np.float32)
-
-    return out
+    """Compatibility call-site delegating to the basic_v1 PLUS5 owner."""
+    return compute_plus5_features(df)
 
 
 def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
@@ -147,11 +259,11 @@ def _load_m1_collector_for_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) 
     for fp in sorted(COLLECTOR_DIR.glob("xauusd_m1_*.parquet")):
         try:
             df = pd.read_parquet(fp)
-        except Exception:
-            continue
+        except Exception as exc:
+            raise RuntimeError(f"live M1 source is unreadable: {fp}") from exc
         df = _coerce_time_col(df)
         if df is None:
-            continue
+            raise RuntimeError(f"live M1 source lacks exact time: {fp}")
         df["time"] = pd.to_datetime(df["time"], utc=True)
         sub = df[(df["time"] >= start_ts) & (df["time"] <= end_ts)]
         if len(sub) > 0:
@@ -162,20 +274,55 @@ def _load_m1_collector_for_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) 
             continue
         try:
             df = pd.read_parquet(fp)
-        except Exception:
-            continue
+        except Exception as exc:
+            raise RuntimeError(f"canonical M1 source is unreadable: {fp}") from exc
         df = _coerce_time_col(df)
         if df is None:
-            continue
+            raise RuntimeError(f"canonical M1 source lacks exact time: {fp}")
         df["time"] = pd.to_datetime(df["time"], utc=True)
         sub = df[(df["time"] >= start_ts) & (df["time"] <= end_ts)]
         if len(sub) > 0:
             parts.append(sub)
     if not parts:
         return pd.DataFrame()
-    return (pd.concat(parts, ignore_index=True)
-            .drop_duplicates(subset=["time"], keep="last")
-            .sort_values("time").reset_index(drop=True))
+    combined = pd.concat(parts, ignore_index=True)
+    duplicate_rows = combined[combined.duplicated(subset=["time"], keep=False)]
+    identity_columns = [
+        column
+        for column in M1_MARKET_IDENTITY_COLUMNS
+        if column in combined.columns
+    ]
+    if len(duplicate_rows) and not identity_columns:
+        raise RuntimeError("overlapping M1 sources lack market identity columns")
+    if len(duplicate_rows):
+        numeric_identity = duplicate_rows[identity_columns].apply(
+            pd.to_numeric,
+            errors="coerce",
+        )
+        if not np.isfinite(
+            numeric_identity.to_numpy(dtype=np.float64)
+        ).all():
+            raise RuntimeError("overlapping M1 source has non-finite market values")
+        distinct = (
+            pd.concat(
+                [duplicate_rows[["time"]].reset_index(drop=True), numeric_identity.reset_index(drop=True)],
+                axis=1,
+            )
+            .groupby("time", sort=False)[identity_columns]
+            .nunique(dropna=False)
+        )
+        conflicts = distinct.columns[(distinct > 1).any(axis=0)].tolist()
+        if conflicts:
+            first_conflict = distinct.index[(distinct[conflicts] > 1).any(axis=1)][0]
+            raise RuntimeError(
+                "canonical/live M1 source conflict at "
+                f"{first_conflict}: columns={conflicts}"
+            )
+    return (
+        combined.drop_duplicates(subset=["time"], keep="last")
+        .sort_values("time")
+        .reset_index(drop=True)
+    )
 
 
 def _apply_canonical_v3_augment(v2: pd.DataFrame) -> pd.DataFrame:
@@ -198,8 +345,9 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     """
     # Load existing prebuilt (full file — ~200 MB, ~1 sec)
     if not CANONICAL_V3_PREBUILT.exists():
-        LOG.error(f"canonical_v3 prebuilt missing: {CANONICAL_V3_PREBUILT}")
-        return 0, None
+        raise RuntimeError(
+            f"canonical_v3 prebuilt missing: {CANONICAL_V3_PREBUILT}"
+        )
     t0 = _time.perf_counter()
     cv3 = pd.read_parquet(CANONICAL_V3_PREBUILT)
     if "time" in cv3.columns:
@@ -213,7 +361,7 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     warmup_start = last_in_prebuilt - pd.Timedelta(days=WARMUP_DAYS)
     m1 = _load_m1_collector_for_window(warmup_start, now_ts)
     if m1.empty:
-        return 0, last_in_prebuilt
+        raise RuntimeError("canonical/live M1 union is empty for the append window")
 
     # Aggregate to M5
     m5 = m1_to_m5(m1)
@@ -241,7 +389,7 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     # and merge into v3_new by index. Uses m5 which has OHLCV pre-augment.
     plus5_df = _compute_plus5_features(m5[["open", "high", "low", "close", "volume"]])
     for c in PLUS5_FEATURES:
-        v3_new[c] = plus5_df[c].reindex(v3_new.index).astype(np.float32).fillna(0.0)
+        v3_new[c] = plus5_df[c].reindex(v3_new.index).astype(np.float32)
     # Phase 0a/C3 (2026-06-04): recompute the 5 HTF cols FRESH via the ONE-TRUTH
     # build_htf_tape (same math as the offline ctx builder) instead of letting the
     # BASE34 append forward-fill a FROZEN value (the H4-sign freeze: stale '2 bull' vs
@@ -250,7 +398,8 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     # then assign to v3_new by index. These 5 cols PERSIST only once cv3's schema carries
     # them (one-shot backfill); pre-backfill the column-alignment below silently drops
     # them (safe no-op). A compute hiccup must NOT break the live append (that would
-    # stale the whole pipeline) -> log loud + fall back to the prior forward-fill.
+    # stale the whole pipeline) is forbidden: stale HTF state must stop the
+    # append so runtime freshness fails closed.
     try:
         from gx1.features.htf_features import build_htf_tape, HTF_TAPE_COLUMNS
         _ohlc = ["open", "high", "low", "close"]
@@ -261,9 +410,9 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
             for c in HTF_TAPE_COLUMNS:
                 v3_new[c] = _htf[c].reindex(v3_new.index)
         else:
-            LOG.error("[C3_HTF] cv3 lacks OHLC — HTF recompute skipped (stale forward-fill remains)")
-    except Exception as _htf_err:  # never crash the daemon append on an HTF hiccup
-        LOG.error(f"[C3_HTF] HTF recompute FAILED ({_htf_err}); HTF left to forward-fill fallback")
+            raise RuntimeError("[C3_HTF] cv3 lacks exact OHLC")
+    except Exception as _htf_err:
+        raise RuntimeError("[C3_HTF] exact HTF recompute failed") from _htf_err
     # D1-EWM CONVERGENCE (2026-06-13, LANE B): build_canonical_v2 above ran on a WARMUP_DAYS-day
     # slice, so its D1 EWM features (d1_rsi14/d1_ema_slope_20 — both in the live XGB v3 contract,
     # consumed every M5 bar) seed UN-converged (up to ~15 RSI pts off at the tail; train uses
@@ -286,23 +435,33 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
                 if _c in v3_new.columns:
                     v3_new[_c] = _merged[_c].to_numpy()
         else:
-            LOG.error("[D1_CONVERGE] cv3 lacks OHLC — D1 full-history recompute skipped (30d warmup remains)")
-    except Exception as _d1err:  # never crash the daemon append on a D1 hiccup
-        LOG.error(f"[D1_CONVERGE] full-history D1 recompute FAILED ({_d1err}); WARMUP_DAYS D1 retained")
+            raise RuntimeError("[D1_CONVERGE] cv3 lacks exact OHLC")
+    except Exception as _d1err:
+        raise RuntimeError(
+            "[D1_CONVERGE] full-history D1 recompute failed"
+        ) from _d1err
     # Take only the new bars
     v3_new = v3_new[v3_new.index > last_in_prebuilt]
     if v3_new.empty:
         LOG.warning("v3 augment produced no new rows")
         return 0, last_in_prebuilt
 
-    # Align columns with existing prebuilt (any missing → 0, any extra → drop).
+    # Align columns with the existing immutable schema. Missing values cannot
+    # be manufactured as zeros because every field can influence the models.
     # PLUS5 cols are added to v3_new above; they will survive the alignment if
     # cv3 has them (after one-shot backfill).
-    cv3_cols = list(cv3.columns)
-    for c in cv3_cols:
-        if c not in v3_new.columns:
-            v3_new[c] = 0.0
-    v3_new = v3_new[cv3_cols]
+    v3_new = _align_exact_canonical_schema(cv3, v3_new)
+    numeric = v3_new.apply(pd.to_numeric, errors="coerce")
+    invalid_columns = [
+        column
+        for column in numeric.columns
+        if not np.isfinite(numeric[column].to_numpy(dtype=np.float64)).all()
+    ]
+    if invalid_columns:
+        raise RuntimeError(
+            "canonical_v3 incremental output contains non-finite features: "
+            f"{invalid_columns}"
+        )
 
     # Concat + atomic write
     cv3_extended = pd.concat([cv3, v3_new])
@@ -322,13 +481,11 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
 def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     """Extend BASE34 prebuilt (M1 cadence) with new bars up to new_cutoff."""
     if not BASE34_MANIFEST.exists():
-        LOG.error(f"BASE34 manifest missing: {BASE34_MANIFEST}")
-        return 0
+        raise RuntimeError(f"BASE34 manifest missing: {BASE34_MANIFEST}")
     manifest = json.loads(BASE34_MANIFEST.read_text())
     base34_path = Path(manifest["parquet_path"])
     if not base34_path.exists():
-        LOG.error(f"BASE34 file missing: {base34_path}")
-        return 0
+        raise RuntimeError(f"BASE34 file missing: {base34_path}")
 
     t0 = _time.perf_counter()
     base34 = pd.read_parquet(base34_path)
@@ -348,12 +505,12 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     end_ts = new_cutoff + pd.Timedelta(minutes=5)
     m1 = _load_m1_collector_for_window(start_ts, end_ts)
     if m1.empty:
-        return 0
+        raise RuntimeError("BASE34 append lacks exact M1 source rows")
     m1["time"] = pd.to_datetime(m1["time"], utc=True)
     m1 = m1.set_index("time").sort_index()
     new_m1 = m1[(m1.index > last_in_base34) & (m1.index <= end_ts)]
     if new_m1.empty:
-        return 0
+        raise RuntimeError("BASE34 append has no new M1 rows for advanced cv3 cutoff")
 
     # Use the LATEST M5-aligned feature values from canonical_v3 as the
     # ffill-source for each new M1 bar (no lookahead — uses just-closed
@@ -368,12 +525,12 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     # swing/micro flags + is_model_bar) used to be COPY-FORWARDED from the last base34 row on every
     # append → ALL of them froze from 2026-05-25 18:25 (session pinned US, atr_bps 5.348, vol MEDIUM,
     # trend NEUTRAL — journal-confirmed all the way into the live entry/exit state vectors). They are
-    # now RECOMPUTED per cycle via the ONE-TRUTH live augmenter (v12_ctx_augment_live.
-    # augment_canonical_v3 — the docstring's step-4 intent, never implemented), on a trailing cv3
-    # window long enough for the percentile features (D1_atr_percentile_252 needs ~1y of D1).
+    # now RECOMPUTED per cycle via the ONE-TRUTH live augmenter
+    # (v12_ctx_augment_live.augment_canonical_v3). Full canonical history is
+    # mandatory: bounded windows reset EWM, swing/BOS/CHOCH, regime-age and D1
+    # trend-age state and are not state-equivalent to training.
     from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
-    AUG_WINDOW_DAYS = 420
-    cv3_win = cv3.loc[cv3.index >= (new_cutoff - pd.Timedelta(days=AUG_WINDOW_DAYS))].copy()
+    cv3_win = cv3.copy()
     # REGIME_V4 (2026-06-13 cutover): attach the per-TF V2 multi-TF scalars REGIME_V4 needs as
     # inputs (R1/R2/R3) BEFORE augment, via the ONE-TRUTH helper shared with serve + build. Without
     # this, augment_canonical_v3's REGIME_V4 block (GX1_REGIME_V4=1) is fail-closed-missing and the
@@ -384,11 +541,10 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     attach_default_regime_v4_v2_scalars(cv3_win)
     _m5_cols = [c for c in ("open", "high", "low", "close", "volume") if c in cv3_win.columns]
     cv3_aug = augment_canonical_v3(cv3_win, cv3_win[_m5_cols].copy())
-    _carry_warned: set = set()
-
     # For each new M1 bar, find the most-recent CLOSED M5 bucket
     new_m1_rows = []
     base34_cols = list(base34.columns)
+    output_columns = list(dict.fromkeys([*base34_cols, *BASE34_RAW_M1_OWNED_COLUMNS]))
     for ts in new_m1.index:
         m5_floor = ts.floor("5min")
         # The "last closed M5 bar" = the one strictly BEFORE this M1's bucket
@@ -396,39 +552,22 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
         closed_m5 = m5_floor - pd.Timedelta(minutes=5)
         if closed_m5 in cv3.index:
             cv3_row = cv3.loc[closed_m5]
-        elif len(cv3.loc[:closed_m5]) > 0:
-            cv3_row = cv3.loc[:closed_m5].iloc[-1]
         else:
-            continue
-        # Build a new BASE34-cadence row matching the column schema
-        row_data = {}
-        for c in base34_cols:
-            if c in cv3.columns:
-                row_data[c] = float(cv3_row[c]) if pd.notna(cv3_row[c]) else 0.0
-            elif c == "is_model_bar":
-                # marker for source M5 model-bar timestamps (extension builder: index.isin(model bars))
-                row_data[c] = float(ts in cv3.index)
-            elif c in cv3_aug.columns:
-                # recomputed ctx value at the SAME last-closed M5 bar the cv3 features come from
-                _v = cv3_aug.at[cv3_row.name, c] if cv3_row.name in cv3_aug.index else np.nan
-                row_data[c] = float(_v) if pd.notna(_v) else 0.0
-            else:
-                # genuinely underivable column — carry last value, but LOUDLY (rule 9:
-                # never a silent freeze again)
-                if c not in _carry_warned:
-                    LOG.warning(f"[BASE34] column '{c}' not in cv3 and not produced by the ctx "
-                                f"augmenter — carrying last value (FROZEN). Fix the wiring.")
-                    _carry_warned.add(c)
-                row_data[c] = float(base34[c].iloc[-1]) if c in base34.columns and pd.notna(base34[c].iloc[-1]) else 0.0
-        # V3-producer (2026-06-05): carry the RAW M1 OHLCV onto each base34 row (M1-NATIVE, NOT M5-ffilled).
-        # base34 today holds only M5-derived features ffilled onto M1; the exit V3 transformer needs raw M1
-        # volume/close (V3-consume: M1-native vol features, build_window) + high/low (V4: intrabar-high MFE).
-        # Additive cols (downstream consumers read by name, ignore extras); the full-history rebuild adds them
-        # to ALL rows so the interim NaN on pre-existing rows resolves at rebuild.
-        for _oc in ("open", "high", "low", "close", "volume"):
-            if _oc in new_m1.columns:
-                _ov = new_m1.loc[ts, _oc]
-                row_data[_oc] = float(_ov) if pd.notna(_ov) else 0.0
+            raise RuntimeError(
+                f"BASE34 append lacks exact closed M5 state at {closed_m5}"
+            )
+        # Every field has exactly one owner. Raw OHLCV comes from M1, recomputed
+        # context/HTF/regime fields come from the augmenter even when a stale
+        # column with the same name exists in cv3, and all remaining fields come
+        # from canonical_v3.
+        row_data = _build_base34_owned_row(
+            timestamp=ts,
+            output_columns=output_columns,
+            cv3_row=cv3_row,
+            cv3_aug=cv3_aug,
+            m1_row=new_m1.loc[ts],
+            cv3_index=cv3.index,
+        )
         new_m1_rows.append((ts, row_data))
 
     if not new_m1_rows:
@@ -449,7 +588,9 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     manifest["rows"] = len(extended)
     manifest["created_utc"] = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     manifest["note"] = f"incremental update: +{len(new_df)} M1 bars"
-    BASE34_MANIFEST.write_text(json.dumps(manifest, indent=2))
+    manifest_tmp = BASE34_MANIFEST.with_suffix(".json.tmp")
+    manifest_tmp.write_text(json.dumps(manifest, indent=2) + "\n")
+    os.replace(manifest_tmp, BASE34_MANIFEST)
 
     elapsed = _time.perf_counter() - t0
     LOG.info(f"BASE34 extended +{len(new_df)} M1 rows in {elapsed*1000:.0f} ms  "
@@ -462,7 +603,7 @@ def run_one_cycle() -> dict:
     t0 = _time.perf_counter()
     n_cv3, new_cv3_cutoff = update_canonical_v3_incremental()
     n_base34 = 0
-    if n_cv3 > 0 and new_cv3_cutoff is not None:
+    if new_cv3_cutoff is not None:
         n_base34 = update_base34_incremental(new_cv3_cutoff)
     elapsed = _time.perf_counter() - t0
     return {
@@ -487,7 +628,8 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
         cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
         cv3 = cv3.set_index("time")
     cv3 = cv3.sort_index()
-    win = cv3.loc[cv3.index >= (since_ts - pd.Timedelta(days=420))].copy()
+    # Backfill must use the same full-history state as normal append.
+    win = cv3.copy()
     # REGIME_V4: same ONE-TRUTH per-TF V2 scalar attach as the live append path, so the backfill
     # recomputes the 52 regime cols (not just the legacy ctx) when GX1_REGIME_V4=1.
     from gx1.features.htf_features import attach_default_regime_v4_v2_scalars
@@ -503,11 +645,27 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
     closed_ns = (base34.index[mask].floor("5min") - pd.Timedelta(minutes=5)).asi8
     aug_idx = np.searchsorted(cv3_aug.index.asi8, closed_ns, side="right") - 1
     valid = aug_idx >= 0
+    if not bool(valid.all()):
+        raise RuntimeError(
+            "BASE34 backfill lacks exact prior augmented M5 state for target rows"
+        )
     before = {c: int(base34.loc[mask, c].nunique()) for c in target[:6]}
     for c in target:
         vals = cv3_aug[c].to_numpy()[aug_idx]
-        vals = np.where(valid, vals, np.nan)
-        base34.loc[mask, c] = pd.Series(vals, index=base34.index[mask]).fillna(0.0).astype(np.float32)
+        try:
+            numeric = np.asarray(vals, dtype=np.float64)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"BASE34 backfill column {c!r} is not numeric"
+            ) from exc
+        if not np.isfinite(numeric).all():
+            raise RuntimeError(
+                f"BASE34 backfill column {c!r} contains non-finite evidence"
+            )
+        base34.loc[mask, c] = pd.Series(
+            numeric,
+            index=base34.index[mask],
+        ).astype(np.float32)
     if "is_model_bar" in base34.columns:
         base34.loc[mask, "is_model_bar"] = base34.index[mask].isin(cv3.index)
     after = {c: int(base34.loc[mask, c].nunique()) for c in target[:6]}
@@ -520,7 +678,9 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
     manifest["note"] = (manifest.get("note", "") +
                         f" | BACKFILL {datetime.now(timezone.utc):%Y-%m-%dT%H:%MZ}: recomputed "
                         f"{len(target)} frozen ctx cols for {n_rows} rows since {since_ts} (freeze fix).")
-    BASE34_MANIFEST.write_text(json.dumps(manifest, indent=2))
+    manifest_tmp = BASE34_MANIFEST.with_suffix(".json.tmp")
+    manifest_tmp.write_text(json.dumps(manifest, indent=2) + "\n")
+    os.replace(manifest_tmp, BASE34_MANIFEST)
     return {"rows_backfilled": n_rows, "cols": len(target),
             "nunique_before_sample": before, "nunique_after_sample": after}
 

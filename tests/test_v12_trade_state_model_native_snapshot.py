@@ -23,6 +23,7 @@ from gx1.execution.v12_trade_state import (
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
 )
+from gx1.features.trade_overlay import compute_m1_micro_feature_arrays
 
 
 def _softmax(values: list[float]) -> list[float]:
@@ -55,6 +56,13 @@ def _snapshot() -> dict:
         "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
         "session_id": 2,
         "session": "OVERLAP",
+        "entry_vol_regime_id": 2,
+        "entry_vol_regime": "MEDIUM",
+        "entry_atr_bucket": 2,
+        "entry_spread_bucket": 1,
+        "entry_h4_trend_sign_cat": 2,
+        "entry_trend_regime_id": 1,
+        "entry_trend_regime": "TREND_NEUTRAL",
         "decision_available_ts": "2026-07-16T12:00:00+00:00",
         "entry_signal_latency_sec": 0.0,
         "context_cutoff_ts": "2026-07-16T11:55:00+00:00",
@@ -152,8 +160,11 @@ def _open(snapshot: dict | None = None) -> TradeState:
     )
 
 
-def _valid_closed_m1_bar() -> dict[str, float]:
+def _valid_closed_m1_bar(
+    timestamp: str = "2026-07-16T12:00:00Z",
+) -> dict[str, object]:
     return {
+        "m1_bar_ts": pd.Timestamp(timestamp),
         "bid": 3301.0,
         "ask": 3301.2,
         "m1_close": 3301.1,
@@ -292,6 +303,22 @@ def test_trade_state_update_bar_requires_all_bid_ask_ohlc_before_mutation() -> N
     assert trade.bars_in_trade == 0
     assert not trade.pnl_history
     assert not trade.peak_history
+
+
+def test_trade_state_rejects_duplicate_or_gapped_m1_before_mutation() -> None:
+    trade = _open()
+    trade.update_bar(**_valid_closed_m1_bar())
+    before = trade.to_dict()
+
+    with pytest.raises(ValueError, match="cadence gap/duplicate"):
+        trade.update_bar(**_valid_closed_m1_bar())
+    assert trade.to_dict() == before
+
+    with pytest.raises(ValueError, match="cadence gap/duplicate"):
+        trade.update_bar(
+            **_valid_closed_m1_bar("2026-07-16T12:02:00Z")
+        )
+    assert trade.to_dict() == before
 
 
 @pytest.mark.parametrize(
@@ -457,6 +484,7 @@ def test_trade_state_binds_bar_count_to_all_persisted_history_lengths() -> None:
     trade.update_bar(**_valid_closed_m1_bar())
     payload = trade.to_dict()
     payload["bars_in_trade"] = 2
+    payload["last_processed_m1_ts"] = "2026-07-16T12:01:00+00:00"
 
     with pytest.raises(ValueError, match="m1_returns_window length"):
         TradeState.from_dict(payload)
@@ -472,6 +500,10 @@ def test_trade_state_accepts_exact_deque_maxlen_truncation() -> None:
     trade.update_bar(**_valid_closed_m1_bar())
     payload = trade.to_dict()
     payload["bars_in_trade"] = TRAJECTORY_HISTORY_MAXLEN + 1
+    payload["last_processed_m1_ts"] = (
+        pd.Timestamp("2026-07-16T12:00:00Z")
+        + pd.Timedelta(minutes=TRAJECTORY_HISTORY_MAXLEN)
+    ).isoformat()
     payload["m1_returns_window"] = (
         payload["m1_returns_window"] * M1_RETURNS_WINDOW_MAXLEN
     )
@@ -566,6 +598,46 @@ def test_trade_state_rejects_intrabar_order_or_close_outside_excursion() -> None
     payload["pnl_history"][0] = payload["peak_history"][0] + 0.1
     with pytest.raises(ValueError, match="intrabar histories are invalid"):
         TradeState.from_dict(payload)
+
+
+def test_trade_state_m1_micro_features_match_shared_training_owner() -> None:
+    trade = _open()
+    closes = 2000.0 * np.exp(
+        np.sin(np.arange(90, dtype=np.float64) / 7.0) * 0.001
+    )
+    trade.m1_returns_window.extend(closes)
+    expected = compute_m1_micro_feature_arrays(
+        np.asarray(trade.m1_returns_window, dtype=np.float64)
+    )
+
+    actual = trade.build_trade_state_features()
+
+    assert actual["m1_last_5bar_return_bps_v1"] == pytest.approx(expected[0][-1])
+    assert actual["m1_last_15bar_return_bps_v1"] == pytest.approx(expected[1][-1])
+    assert actual["m1_last_60bar_return_bps_v1"] == pytest.approx(expected[2][-1])
+    assert actual["m1_realized_vol_15bar_bps_v1"] == pytest.approx(expected[3][-1])
+    assert actual["m1_realized_vol_60bar_bps_v1"] == pytest.approx(expected[4][-1])
+
+
+def test_trade_state_persists_strategy_f_deferral_and_transactional_commit() -> None:
+    trade = _open()
+    staged = trade.clone_for_exit_decision()
+    staged.update_bar(**_valid_closed_m1_bar())
+    staged.update_v3({"v3_v8_should_exit_prob": 0.8})
+    staged.sf_defer_state_v1["sf_first_veto_bar"] = 1
+    assert staged.build_v3_overlay()["bars_held"].tolist() == [1.0]
+
+    assert trade.bars_in_trade == 0
+    assert trade.sf_defer_state_v1 == {}
+
+    trade.commit_complete_exit_bar(staged)
+    restored = TradeState.from_dict(trade.to_dict())
+
+    assert restored.last_processed_m1_ts == pd.Timestamp(
+        "2026-07-16T12:00:00Z"
+    )
+    assert restored.sf_defer_state_v1 == {"sf_first_veto_bar": 1}
+    assert restored.v3_last_prob == pytest.approx(0.8)
 
 
 def test_trade_state_load_all_requires_filename_identity_and_sorts(tmp_path: Path) -> None:

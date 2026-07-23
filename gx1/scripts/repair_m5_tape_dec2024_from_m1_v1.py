@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Repair the Dec-2024 M5 canonical tape segment from the clean canonical M1 tape.
 
-Verified defect (2026-07-18): the canonical M5 bid/ask tape carries 3430 rows
-with impossible OHLC geometry (close outside [low, high] across mid/bid/ask
-surfaces), all inside 2024-11-30 -> 2024-12-31; ~77% are closed-market
-Saturday/Sunday bars with zero canonical-M1 backing. Canonical M1 is geometry
-clean for all seven years, so M1 is the deeper source of truth.
+Verified defect (read-only recount 2026-07-23): the canonical M5 bid/ask tape
+carries 3430 rows with impossible OHLC geometry (close outside [low, high]
+across mid/bid/ask surfaces), all inside 2024-11-30 -> 2024-12-31. Exactly
+2799 are Saturday/Sunday rows. The clean canonical M1 supports 5757 rebuilt
+M5 buckets in the December window and leaves 3459 canonical M5 rows without
+M1 backing. Canonical M1 is geometry-clean, so it is the deeper source of
+truth for the event-local repair.
 
 This tool writes an EVENT-LOCAL repaired copy of the tape root. It never
 touches the canonical tape, the live prebuilt or anything outside --out-root.

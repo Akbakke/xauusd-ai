@@ -361,12 +361,15 @@ decision, supporting heads, target/outcome alignment and a unit-normalized
 price-path outcome. It is an offline direction diagnostic with
 `position_size_applied=false`, not an order or capital simulation. Executable
 learned sizing must be proven separately against its OOS controls, the exact
-adopted active Exit replay and post-adoption runtime parity. The source
-contracts/finalizers now require a file-bound contiguous per-M1 Exit trace,
-row-recomputed bid/ask results, exact registry identity, a recursive
-path/size/SHA inventory of every regular file under all three active Exit
-artifacts, adopted bundle hashes and fresh broker-shadow parity with zero
-orders. No current real chain has passed, so capital authority remains
+adopted active Exit replay and post-adoption runtime parity. The diagnostic
+contracts now require a file-bound contiguous per-M1 Exit trace,
+row-recomputed bid/ask results, exact canonical OOS row identity, exact
+registry identity, a recursive path/size/SHA inventory of every regular file
+under all three active Exit artifacts, adopted bundle hashes and fresh
+broker-shadow parity with zero orders. The current joint finalizer validates
+caller-supplied trace bytes instead of running the models, so the launch and
+runtime guards explicitly reject it. No current real chain has passed, so
+capital authority remains
 `BLOCK`; live/paper emits `NO_ORDER` whenever that sizing authority is missing
 or red.
 
@@ -393,9 +396,28 @@ bundle, serve gates, joint Exit proof, sizing runtime parity and the newest
 immutable one-time launch approval. The approval binds the complete
 launch-state payload and exact bundle commit; environment text is not
 authority. The runner binds a startup lease and revalidates unchanged
-launch/registry bytes and all freshness gates before every new exposure. No
-real lifecycle chain or canonical transactional launch finalizer exists;
-current launch remains `BLOCK`.
+launch/registry bytes and all freshness gates before every new exposure.
+
+`gx1/scripts/finalize_entry_model_native_launch_v1.py` is the one canonical
+candidate→launch transaction producer, reached only through
+`scripts/entry_next_edge_control.sh model-native-finalize-launch`. It accepts
+no caller-selected registry, state or event roots. It requires a pre-existing
+identity-bound vedtak, validates the exact accepted bundle/commit and
+serve/sizing/lifecycle prerequisites, derives an exact active-Exit projection,
+and binds the same single-exposure operating point into registry and state.
+`gx1/contracts/entry_model_native_launch_transaction_v1.py` owns the exact
+COMMIT/FAIL shape, target hashes, local immutable backups and recovery rules.
+A stable cross-process lock plus registry compare-and-swap serializes writers;
+both target replacements are post-validated, and any partial error restores
+both pre-transaction bytes before publishing terminal FAIL. A newer malformed
+or red event blocks older green evidence. This closes the audited source
+transaction gap but creates no artifact or launch authority by itself.
+`require_canonical_active_exit_replay_launch_authority` blocks before vedtak
+consumption or target mutation because the present joint Exit rows are
+caller-supplied. The remaining producer must reuse
+`V12Pipeline.make_exit_decision` over full TEST with the complete frozen Entry
+snapshot and hash-bound M1/canonical/BASE28/MTF state. Current launch remains
+`BLOCK`.
 
 ## Evidence retention and cleanup ownership
 
@@ -451,11 +473,23 @@ context, invokes a bridge or translates the failure to synthetic `FLAT`.
 
 ## Exit boundary
 
-Exit is separately retained. Active Exit V3/Exit-IQL may still consume its
-contracted XGB state. Entry's removal of XGB anchors and Entry-IQL does not
-authorize changing Exit math, M1 cadence, artifacts or operating point.
-Shared offline primitives must have neutral or Exit-owned names and must not
-resurrect an Entry-IQL authority.
+Exit is separate from Entry, but the retained June/July Exit selection is no
+longer admissible. Its Exit-IQL summary is explicitly research-only and
+non-production, the registry has no unique serving fold, and its checkpoints
+lack the newly required ordered-feature binding. Runtime therefore fails
+closed before loading it. The old per-bar substrate is also causally invalid:
+fill/first-state timing predates the exact T+5 contract, four of five M1 phases
+joined a not-yet-closed M5 row, and V3 trade overlay was written one M1 row
+early. Rebuild, exact V3 rescore and Exit retraining are mandatory.
+
+The repaired live path derives every required closed-M5 key from the actual
+512-M1 window, requires complete unique finite canonical/XGB coverage, stages
+the entire M1→V3→Exit transition on a cloned TradeState and commits only after
+the complete decision validates. Persisted state binds the exact last M1,
+rejects duplicate/gapped cadence and preserves Strategy-F deferral. The five
+M1 microfeatures share one log-return/RMS-volatility owner between train and
+serve. No partial state, zero-filled model input, implicit fold or
+environment-selected V3 artifact is admissible.
 
 The retained V3 XGB bridge is an Exit-only owner of real ordered 7/41-field
 validation for two active Exit consumers. Its import and order checks fail
@@ -506,8 +540,14 @@ Current facts:
   bad-path LONG bias, signed dip-MFE corruption, replacement-sampler coverage
   loss, auxiliary target/weight/metric mismatches, partial checkpoint
   admission and incomplete MTF/scaler/context/fusion/launch contracts. All
-  listed faults except the transactional launch producer are now
-  source-repaired; V24/V7 remain rejected;
+  first-wave faults and records the later Exit/incremental re-audit. Several
+  first-wave faults are source-repaired. ATR/ROC/VWAP, dependent normalized
+  VWAP, published SMC ATR and H1/H4 decision-time alignment now have shared
+  owners; missing spread/slippage evidence has no sentinel path. Full-history
+  incremental equivalence, atomic canonical/BASE generation identity,
+  canonical-M5 ownership, an observed per-bar slippage owner and a canonical
+  active-Exit replay producer remain open; V24/V7 and the old Exit artifacts
+  remain rejected;
 - rejected V21/V22/V23 large split parquets are deleted; their terminal,
   manifest and audit evidence is retained;
 - zero-reachability Entry adapters, critics, duplicate journal schemas,
@@ -622,9 +662,10 @@ family×TF-porter. Ingen bundle ble skrevet.
 Neste pil er ikke ny trening. Bevar de ferdige source-reparasjonene for
 target/objective, sampling, conditional metrics, alle-heads/influence,
 MTF/normalisering/context/fusion, bundle/event-atomisitet, Exit-bytebinding og
-runtime fail-close. Den transaksjonelle launch-produsenten og canonical/live
-Dec-2024-paritet gjenstår. Deretter kreves en helt fersk XAU-only rebuild og
-alle audits på nytt.
+transaksjonell launch samt runtime fail-close. Først må én canonical full-TEST
+producer kjøre den faktiske aktive Exit-kjeden og emittere egne spor; deretter
+gjenstår canonical/live Dec-2024-paritet. Så kreves en helt fersk XAU-only
+rebuild og alle audits på nytt.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)
@@ -673,9 +714,11 @@ GX1_V10_MULTI_TF_V2_CACHE_DIR) · ~2330 smart-context · ~2337 ctx-komplett-sjek
   nestede vinduet og ga derfor falsk GREEN. Forsøkene er terminert/ugyldige;
   schema-v2 `CHAIN_STATUS.json` er nå terminal `RED` med årsak
   `FEATURE_RANKING_TRAIN_WINDOW_MISMATCH` og bundne hasher.
-- Des-2024-tapedefekten (2375 M5-rader, close utenfor [low, high], syntetiske
-  helgebarer) finnes FORTSATT i kanonisk M5-rot og live-prebuilt; kun
-  event-kopien er reparert. Kanonisk/live-reparasjon er en egen åpen beslutning.
+- Des-2024-tapedefekten finnes FORTSATT i kanonisk M5-rot og live-prebuilt:
+  3 430 rader har umulig OHLC-geometri og 2 799 av dem er helgerader. Ren M1
+  støtter 5 757 rebuildede desember-bøtter; 3 459 kanoniske M5-rader mangler
+  M1-backing. Kun event-kopien er reparert. Ingen canonical/live-data ble
+  endret; reparasjon og paritetsbevis er en egen åpen beslutning.
 - Skall-cwd kan resettes mellom kall: alltid `cd /home/andre2/src/GX1_ENGINE &&`
   først (rg gir ellers stille tomme treff); capped_run arver cwd og
   `python -m gx1...` krever repo-cwd.
@@ -712,9 +755,15 @@ is V24 fixture evidence, not a hard-coded architecture constant.
 
 Bundle/event publication, recursive active-Exit byte identity, structured
 launch approval, per-entry runtime lease recheck and missing-trade-ID close
-behavior are source-repaired. The remaining source P0 is one transactional
-candidate→promotion→launch producer; empirical dataset/model/edge proof and
-canonical/live December-2024 tape parity also remain absent.
+behavior are source-repaired. The transactional candidate→promotion→launch
+producer, identity-bound vedtak and exact target transaction/recovery are
+source-repaired too. A hard launch/runtime barrier gives caller-supplied Exit
+replay diagnostics zero authority. The later Exit/incremental audit reopens
+causal Exit rebuild/rescore/retrain, incremental/full-history state, atomic
+generation, canonical-M5/closure, observed-slippage and V3-lineage P0s beside
+the canonical full-TEST producer. Formula and HTF decision-alignment ownership
+is repaired. Empirical dataset/model/edge proof and canonical/live
+December-2024 tape parity also remain absent.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

@@ -18,6 +18,7 @@ import math
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -56,6 +57,113 @@ def _find_cv3_prebuilt() -> str | None:
         "/home/andre2/GX1_DATA/**/xauusd_m5_CANONICAL_V3_2020_2026.parquet", recursive=True
     )
     return hits[0] if hits else None
+
+
+def test_exit_training_requires_exact_t_plus_five_fill_row() -> None:
+    from gx1.scripts.materialize_build_exit_iql_per_bar_dataset_v2_m1 import (
+        require_exact_entry_fill_index,
+    )
+
+    decision = pd.Timestamp("2026-01-06T12:00:00Z").value
+    exact = np.asarray(
+        [
+            pd.Timestamp("2026-01-06T12:04:00Z").value,
+            pd.Timestamp("2026-01-06T12:05:00Z").value,
+            pd.Timestamp("2026-01-06T12:06:00Z").value,
+        ],
+        dtype=np.int64,
+    )
+    assert require_exact_entry_fill_index(exact, decision) == 1
+    with pytest.raises(RuntimeError, match="EXIT_IQL_ENTRY_FILL_M1_MISSING"):
+        require_exact_entry_fill_index(exact[[0, 2]], decision)
+
+
+def test_exit_training_first_decision_is_t_plus_five_bar_after_close() -> None:
+    from gx1.scripts.materialize_build_exit_iql_per_bar_dataset_v2_m1 import (
+        emit_per_bar_rows_m1,
+    )
+
+    fill = pd.Timestamp("2026-01-06T12:05:00Z")
+    times = pd.date_range(fill, periods=4, freq="min").astype("int64").to_numpy()
+    bid_open = np.asarray([2000.0, 2000.1, 2000.2, 2000.3])
+    bid_high = bid_open + 0.2
+    bid_low = bid_open - 0.2
+    bid_close = bid_open + 0.1
+    ask_open = bid_open + 0.2
+    ask_high = bid_high + 0.2
+    ask_low = bid_low + 0.2
+    ask_close = bid_close + 0.2
+
+    rows = emit_per_bar_rows_m1(
+        {
+            "candidate_uid": "candidate-1",
+            "decision_ts_utc": "2026-01-06T12:00:00Z",
+            "p_long": 0.8,
+            "p_short": 0.1,
+            "p_flat": 0.1,
+            "p_hat": 0.8,
+            "uncertainty_score": 0.2,
+            "margin": 0.7,
+        },
+        bid_open,
+        bid_high,
+        bid_low,
+        bid_close,
+        ask_open,
+        ask_high,
+        ask_low,
+        ask_close,
+        times,
+        side="long",
+        bar_stride=1,
+        max_bars_per_trade=3,
+        k_horizons=[1],
+    )
+
+    assert rows[0]["entry_fill_ts_ns_v1"] == fill.value
+    assert rows[0]["bar_ts_ns_v1"] == fill.value
+    assert rows[0]["bars_in_trade_v1"] == 1
+    assert rows[0]["bar_idx_v1"] == 1
+
+
+def test_exit_lazy_join_uses_exact_last_closed_m5_for_each_m1() -> None:
+    from gx1.scripts.materialize_build_exit_iql_v3_m1 import (
+        _merge_asof_features,
+    )
+
+    bars = pd.to_datetime(
+        [
+            "2026-01-06T00:00:00Z",
+            "2026-01-06T00:03:00Z",
+            "2026-01-06T00:04:00Z",
+            "2026-01-06T00:08:00Z",
+            "2026-01-06T00:09:00Z",
+        ],
+        utc=True,
+    )
+    frame = pd.DataFrame(
+        {"bar_ts_ns_v1": bars.astype("int64")}
+    )
+    m5_times = pd.to_datetime(
+        [
+            "2026-01-05T23:55:00Z",
+            "2026-01-06T00:00:00Z",
+            "2026-01-06T00:05:00Z",
+        ],
+        utc=True,
+    )
+    features = pd.DataFrame(
+        {
+            "_time_ns": m5_times.astype("int64"),
+            "sentinel_canon_v1": [1.0, 2.0, 3.0],
+        }
+    )
+
+    merged = _merge_asof_features(frame, features)
+
+    assert merged["sentinel_canon_v1"].tolist() == [1.0, 1.0, 2.0, 2.0, 3.0]
+    with pytest.raises(RuntimeError, match="EXACT_TIME_MISSING"):
+        _merge_asof_features(frame, features.iloc[1:].copy())
 
 
 def _project_state_entry(role: str) -> dict:
@@ -97,6 +205,13 @@ def _complete_entry_snapshot() -> dict:
         "model_policy": MODEL_NATIVE_RUNTIME_POLICY,
         "session_id": 1,
         "session": "EU",
+        "entry_vol_regime_id": 3,
+        "entry_vol_regime": "HIGH",
+        "entry_atr_bucket": 4,
+        "entry_spread_bucket": 1,
+        "entry_h4_trend_sign_cat": 0,
+        "entry_trend_regime_id": 2,
+        "entry_trend_regime": "TREND_UP",
         "decision_available_ts": "2026-01-06T11:30:00+00:00",
         "entry_signal_latency_sec": 0.0,
         "context_cutoff_ts": "2026-01-06T11:25:00+00:00",
@@ -226,7 +341,7 @@ def _unresolved_required(required: set, emitted: set) -> list:
     return miss
 
 
-def test_exit_builder_emits_all_required():
+def test_exit_builder_emits_all_required(monkeypatch: pytest.MonkeyPatch):
     required, _ = _load_required(EXIT_BUNDLE, "R_NET_REAL", "FOLD_1")
     assert required, "exit REQUIRED set should be non-empty"
     cv3 = _find_cv3_prebuilt()
@@ -248,7 +363,15 @@ def test_exit_builder_emits_all_required():
         normalization_contract="unit_normalized_direction_exit_research_v1",
     )
     inst = object.__new__(ExitIQLLiveInference)
-    bs = ExitIQLLiveInference.build_bar_state(inst, trade, row, _complete_v3_state())
+    monkeypatch.setenv("GX1_REGIME_V4", "1")
+    bs = ExitIQLLiveInference.build_bar_state(
+        inst,
+        trade,
+        row,
+        _complete_v3_state(),
+        current_m1_atr_bps_override=4.2,
+        now_minute=pd.Timestamp("2026-01-06 12:00:00", tz="UTC"),
+    )
     missing = _unresolved_required(required, set(bs.keys()))
     assert not missing, (
         f"exit build_bar_state omits {len(missing)} REQUIRED feature(s) → strict "
@@ -272,6 +395,65 @@ def test_exit_builder_rejects_missing_v3_state_instead_of_zero_filling() -> None
 
     with pytest.raises(RuntimeError, match="EXIT_IQL_V3_STATE_MISSING"):
         ExitIQLLiveInference.build_bar_state(inst, trade, pd.Series(dtype=float), None)
+
+
+def test_exit_builder_requires_exact_m1_and_freezes_entry_regimes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference
+    from gx1.execution.v12_trade_state import TradeState
+
+    trade = TradeState.open_unit_normalized_research(
+        entry_ts=pd.Timestamp("2026-01-06 11:30:00", tz="UTC"),
+        side="long",
+        entry_bid=2000.0,
+        entry_ask=2000.2,
+        v10_snapshot=_complete_entry_snapshot(),
+        normalization_contract="unit_normalized_direction_exit_research_v1",
+    )
+    inst = object.__new__(ExitIQLLiveInference)
+    row = pd.Series(
+        {
+            "session_id": 0,
+            "trend_regime_id": 0,
+            "vol_regime_id": 0,
+        }
+    )
+    v3_state = _complete_v3_state()
+    with pytest.raises(RuntimeError, match="EXIT_IQL_M1_ATR_MISSING"):
+        ExitIQLLiveInference.build_bar_state(inst, trade, row, v3_state)
+    with pytest.raises(RuntimeError, match="EXIT_IQL_M1_PHASE_TIME_MISSING"):
+        ExitIQLLiveInference.build_bar_state(
+            inst,
+            trade,
+            row,
+            v3_state,
+            current_m1_atr_bps_override=4.2,
+        )
+    with pytest.raises(RuntimeError, match="EXIT_IQL_REGIME_V4_NOT_PINNED"):
+        ExitIQLLiveInference.build_bar_state(
+            inst,
+            trade,
+            row,
+            v3_state,
+            current_m1_atr_bps_override=4.2,
+            now_minute=pd.Timestamp("2026-01-06 12:00:00", tz="UTC"),
+        )
+    monkeypatch.setenv("GX1_REGIME_V4", "1")
+    bar_state = ExitIQLLiveInference.build_bar_state(
+        inst,
+        trade,
+        row,
+        v3_state,
+        current_m1_atr_bps_override=4.2,
+        now_minute=pd.Timestamp("2026-01-06 12:00:00", tz="UTC"),
+    )
+    assert bar_state["session_EU"] == 1.0
+    assert bar_state["session_ASIA"] == 0.0
+    assert bar_state["vol_regime_HIGH"] == 1.0
+    assert bar_state["vol_regime_LOW"] == 0.0
+    assert bar_state["trend_regime_TREND_UP"] == 1.0
+    assert bar_state["trend_regime_TREND_DOWN"] == 0.0
 
 
 @pytest.mark.skipif(
@@ -299,9 +481,9 @@ def test_active_exit_live_loader_emits_all_required():
     bundle = Path(entry["path"])
     exit_iql = ExitIQLLiveInference.load(
         bundle_dir=bundle,
-        variant=entry.get("active_variant") or "R_NET_REAL",
-        fold_id=(entry.get("active_folds") or ["FOLD_1"])[0],
-        aggregator=entry.get("active_aggregator") or "max",
+        variant=entry["active_variant"],
+        fold_id=entry["serving_fold"],
+        aggregator=entry["active_aggregator"],
         prefer_cuda=False,
     )
     row = loader._cv3.iloc[-1].copy()
@@ -317,6 +499,7 @@ def test_active_exit_live_loader_emits_all_required():
         normalization_contract="unit_normalized_direction_exit_research_v1",
     )
     trade.update_bar(
+        m1_bar_ts=trade.entry_ts,
         bid=3301.0,
         ask=3301.2,
         m1_close=3301.1,
