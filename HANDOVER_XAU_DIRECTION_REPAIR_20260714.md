@@ -61,6 +61,11 @@ identity, native-M5 closure/schema/hash ownership, the non-observable
 slippage-feature leak and reproducible XGB-bound V3 lineage. Historical Exit
 now consumes hash-bound closed-M1 rows through the same pipeline seam used by
 live collection. Formula and HTF alignment ownership is also repaired.
+The existing OANDA M5 owner now also owns the missing immutable source-bundle
+producer: exact 15-day-or-smaller MBA requests, retained response evidence,
+literal complete-only rederivation, streamed year parquets, clean source
+inventory, full source↔parquet proof and atomic no-replace publication through
+`model-native-native-m5-source`. It has not been executed.
 Caller-supplied replay diagnostics remain blocked from launch. The exact V3
 training-dataset writer/event is now code-proven in the existing owner; it
 accepts no caller-built matrix, overlay or record members and publishes
@@ -69,7 +74,7 @@ canonical active-Exit full-TEST producer: it owns the TEST rows, exact T+5
 fills and per-M1 `make_exit_decision` traces, emits explicit FLAT no-order
 evidence and binds every input/artifact/source/output byte in replay v7.
 A fresh dataset on compliant inputs, fresh XGB/V3/Exit artifacts, native-M5
-materialization/pair bootstrap,
+production and the still-missing complete native→canonical-v3/BASE28 bootstrap,
 canonical/live December-2024 tape parity, execution of that producer on the
 fresh chain and every empirical dataset/model/edge gate are still open.
 
@@ -596,8 +601,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The settled post-V7 source-repair tree collected 1,883 tests on 2026-07-23:
-1,878 passed, five were explicitly skipped and zero failed. Changed Python
+The native-M5 producer checkpoint collected 1,895 tests on 2026-07-24:
+1,890 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -762,10 +767,14 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    enforces one native-M5 closure/schema/hash owner and binds V3 lineage to the
    exact XGB bridge identity. No causal observed-slippage source exists, so
    slippage-derived decision fields were removed instead of synthesized.
+   The same existing native-M5 owner now implements immutable source
+   production and independent source-response↔parquet rederivation; only its
+   execution is still open.
    The exact V3 training-dataset producer/event is now implemented in the
    existing owner. The canonical active-Exit full-TEST producer is now also
    implemented in the existing sizing/replay owner. Remaining work is
-   compliant data/pair materialization, fresh XGB/V3/Exit artifacts and an
+   native source execution, a complete initial pair build (not a copy of the
+   invalid old pair), fresh XGB/V3/Exit artifacts and an
    actual full-TEST producer run over those accepted bytes.
    ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment use
    shared code owners; unavailable required inputs fail closed.

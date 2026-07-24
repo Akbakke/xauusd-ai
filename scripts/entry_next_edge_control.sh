@@ -18,6 +18,7 @@ Model-native seq513 evidence:
   handover
   model-native-state
   model-native-state-selftest
+  model-native-native-m5-source --vedtak <id> --start-utc <M5 UTC> --end-utc <exclusive M5 UTC> --chunk-days <1..15> --out-root <new-dir>
   model-native-rebuild-preflight
   model-native-post-rebuild-readiness
   model-native-foundation-feature-audit
@@ -134,6 +135,27 @@ case "$cmd" in
   model-native-state-selftest)
     reject_non_authoritative_args "$@"
     exec "$PY" -m gx1.scripts.verify_entry_foundation_state_v1 --selftest "$@"
+    ;;
+
+  model-native-native-m5-source)
+    reject_non_authoritative_args "$@"
+    reject_flags "$cmd" \
+      --instrument \
+      --granularity \
+      --repair-mode \
+      --raw-in \
+      --raw-out \
+      --dukascopy-enabled \
+      --dukascopy-disabled
+    for flag in \
+      --vedtak \
+      --start-utc \
+      --end-utc \
+      --chunk-days \
+      --out-root; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda "$@"
     ;;
 
   model-native-rebuild-preflight)

@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-07-23T23:39:20Z",
+  "updated_utc": "2026-07-24T00:19:48Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260722_V24",
   "latest_terminal_event_decision": "GREEN",
@@ -67,6 +67,7 @@
       "atomic_canonical_v3_base28_pair_generation",
       "complete_native_m5_full_history_canonical_v2_recompute",
       "canonical_m5_native_owner_closure_hash_schema_contract",
+      "immutable_native_oanda_m5_source_bundle_producer",
       "noncausal_slippage_feature_removal",
       "honest_session_volatility_pressure_semantics",
       "bundle_owned_exact_order_xgb_contract",
@@ -93,7 +94,7 @@
     ],
     "remaining_source_p0": [
       "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
-      "native_oanda_m5_materialization_and_atomic_pair_bootstrap"
+      "execute_native_oanda_m5_materialization_and_complete_atomic_pair_bootstrap"
     ],
     "remaining_source_data_parity": [
       "canonical_and_live_december_2024_m5_tape_parity"
@@ -110,9 +111,9 @@
       "canonical_or_live_data_modified": false
     },
     "repository_verification": {
-      "verified_utc": "2026-07-23T23:39:20Z",
-      "tests_collected": 1885,
-      "tests_passed": 1880,
+      "verified_utc": "2026-07-24T00:19:48Z",
+      "tests_collected": 1895,
+      "tests_passed": 1890,
       "tests_skipped": 5,
       "tests_failed": 0,
       "changed_python_compile": "PASS",
@@ -446,7 +447,7 @@
     "The post-V7 target/objective, sampler, conditional-metric, full-head/group-influence, normalization, context-routing, MTF, bundle/event-publication, Exit-byte, launch approval/vedtak, transactional finalizer/recovery, single-exposure, broker/local trade-ID, runtime-lease and missing-trade-ID faults are source-repaired only. V24/V7 predate them and no fresh artifacts prove the repairs empirically.",
     "The caller-parquet joint Exit finalizer remains diagnostic-only and launch/runtime reject it. The existing sizing/replay owner now has a canonical full-TEST producer that derives canonical OOS/runtime-head rows, emits explicit FLAT no-order evidence, runs every LONG/SHORT row through V12Pipeline.make_exit_decision to actual EXIT_NOW and binds SourceTape, frozen pair, active Exit artifacts, transitive source and exact replay/trace outputs. It has not run on a compliant fresh artifact chain and grants no current launch authority.",
     "The retained Exit artifacts are invalid as a live incumbent. Their per-bar state predates exact T+5 fill, about 80% of old M1 rows join a still-forming M5 row, V3 overlay is shifted one M1 row, and the retained Exit-IQL summary is research-only/non-production with no checkpoint-bound feature order or explicit serving fold. Source now blocks them; rebuild, V3 rescore and Exit retraining are mandatory.",
-    "Source now recomputes canonical-v2 over complete verified native-M5 history and publishes canonical-v3/BASE28 through one immutable atomic pair generation. Native-M5 closure/schema/hash ownership and shared ATR/ROC/VWAP semantics are code-proven, but current canonical M5 data fail the new native-source contract and no compliant pair has been bootstrapped.",
+    "Source now recomputes canonical-v2 over complete verified native-M5 history and publishes canonical-v3/BASE28 through one immutable atomic pair generation. The existing OANDA owner now also code-proves immutable native-M5 source production from retained complete-only MBA responses, streamed year partitions, clean source inventory, independent source-to-parquet rederivation and atomic no-replace publication through model-native-native-m5-source. It has not run; current canonical M5 data fail the contract, and no complete initial native-to-canonical-v3/BASE28 bootstrap is exposed or materialized.",
     "The retained V3 artifact is rejected because its declared training dataset is absent and it predates the exact XGB bridge lineage. New V3 lineage and the exact model-native V3 dataset writer/event are reproducible, XGB-bound and code-proven in the existing owner, but no fresh dataset or 79-field XGB/V3/Exit artifact chain has been built.",
     "Canonical and live December-2024 M5 tape parity remains unproved. Read-only inspection found the same 3,430 impossible-geometry rows in both copies, including 2,799 weekend rows; clean M1 supports 5,757 rebuilt December buckets and leaves 3,459 canonical rows unbacked. Only the rejected event-local repair exists and no canonical/live data were modified.",
     "No immutable TRAIN-only recent-regime challenger has been compared with the full-history baseline while preserving July TEST for one final untouched evaluation.",

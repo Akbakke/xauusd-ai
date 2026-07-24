@@ -136,7 +136,11 @@ artifact was created.
    coverage, transactional TradeState and production-only Exit loading.
 3. Preserve the closed source contracts: canonical-v2 recomputes over complete
    verified native-M5 history; canonical-v3/BASE28 shares one atomic immutable
-   generation identity; native-M5 has one closure/schema/hash owner; V3
+   generation identity; native-M5 has one closure/schema/hash owner and one
+   immutable OANDA producer in that existing owner. The producer retains exact
+   source responses, rederives complete-only rows, streams year output and
+   atomically publishes without replacement through
+   `model-native-native-m5-source`; V3
    lineage binds the exact XGB bridge; and non-observable slippage-derived
    decision fields stay removed. ATR/ROC/VWAP, dependent normalized VWAP, SMC
    ATR and H1/H4 alignment use shared source owners and must not be forked.
@@ -152,13 +156,16 @@ artifact was created.
    complete Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind
    canonical/BASE28/MTF state, active Exit/source/output bytes, emit explicit
    FLAT no-order rows and reject fallback or horizon-cap completion.
-6. Repair and prove canonical/live December-2024 M5 parity. The read-only
+6. Execute the native OANDA M5 producer into a fresh immutable root and prove
+   its retained source responses rederive the December-2024 window with zero
+   impossible geometry. The prior read-only
    audit found 3,430 impossible-geometry rows in both canonical M5 and
    live-prebuilt, including 2,799 weekend rows; the clean M1 supports 5,757
    rebuilt December buckets and leaves 3,459 canonical rows unbacked. The
    full loader also blocks on 2,375 invalid late-2024 prebuilt OHLC rows.
-7. Materialize compliant native-M5 state and bootstrap one atomic frozen
-   canonical-v3/BASE28 pair from the repaired source.
+7. Close the still-missing complete native→canonical-v3/BASE28 bootstrap and
+   publish one atomic frozen pair from that admitted source. Copying the
+   invalid old pair into a new generation is not a bootstrap.
 8. Rebuild fresh XAU-only Entry splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.

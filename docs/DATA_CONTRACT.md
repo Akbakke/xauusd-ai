@@ -19,6 +19,22 @@ Required price columns are `open`, `high`, `low`, `close`, `volume`, the four
 non-finite prices, duplicates, non-monotonic timestamps or unexplained grid
 gaps fail. Mid-only substitution is forbidden.
 
+Canonical native M5 has one producer:
+`gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_m5_snapshot`,
+routed as `model-native-native-m5-source`. It accepts an explicit immutable
+output root, vedtak and left-closed/right-open M5 interval. Requests are
+OANDA-only `MBA`, at most 15 days/4,320 grid slots per call; fixed request
+sleep is absent because the shared client owns retry, `Retry-After` and
+exponential backoff. Every normalized response is retained as deterministic
+gzip evidence. Only source rows with literal `complete=true` enter the
+strict 14-column Arrow surface; source absence is closure evidence and is
+never filled. A v2 manifest binds the request closure, response chunks,
+clean Git/source inventory, typed row digest, each year hash/count/bounds and
+the final absolute root. Source and parquet rows are independently rederived
+with a byte-identical streamed digest before a hidden directory is fsynced
+and atomically published without replacement. The retired direct year-file
+merge and alternate-provider repair modes do not exist.
+
 The current-data rebuild never edits a running collector or canonical tape.
 It snapshots the exact collector parquet bytes into one fresh event, rejects
 conflicting duplicate timestamps, proves finite OHLC/bid-ask geometry, builds

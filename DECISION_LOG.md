@@ -1288,3 +1288,42 @@ Decision:
 - keep launch `BLOCK`: no accepted fresh Entry or causal production Exit chain
   exists, current native-M5/pair data are noncompliant and the canonical/live
   December-2024 parity issue remains unresolved.
+
+## 2026-07-24 — native OANDA M5 producer completed and made efficient
+
+Audit found that the declared native-M5 owner was only a validator contract.
+The actual script still mutated one current-year parquet in place, silently
+continued after failed request chunks, could return empty success, exposed an
+alternate-provider repair path, wrote no canonical manifest and had no atomic
+root publication. No process, systemd unit, cron entry or repository caller
+used those legacy modes.
+
+Decision:
+
+- extend `gx1/scripts/backfill_xauusd_m5_from_oanda.py`; do not add another
+  backfill script;
+- remove direct canonical-year mutation, gap-repair, alternate-provider,
+  synthesis and empty-success behavior;
+- retain each normalized OANDA MBA response as deterministic compressed
+  evidence and admit only literal `complete=true` XAU_USD M5 rows;
+- require exact UTC/M5 ordering, positive finite MBA geometry, integer
+  non-negative volume, strict 14-column Arrow schema and source-defined market
+  closure;
+- bind request closure, response chunks, clean Git/source inventory, typed row
+  digest and every year hash/count/bounds in
+  `xau_canonical_m5_source_v2`;
+- independently stream-rederive source and parquet digests before fsynced
+  atomic no-replace publication;
+- use at most 15 days/4,320 M5 slots per request and no fixed sleep; the shared
+  OANDA client remains the sole retry/429/backoff owner;
+- vectorize the stable typed-row digest byte-identically and stream both
+  producer output and validator state, avoiding multiple full-history frame
+  copies;
+- expose only `model-native-native-m5-source` with explicit vedtak, interval,
+  chunk size and fresh absolute output root;
+- keep launch `BLOCK` and do not run the external-data operation in this
+  checkpoint;
+- record the next seam honestly: `v12_canonical_incremental` can extend or
+  copy an already admitted pair, but no complete initial
+  native→canonical-v3/BASE28 builder is yet exposed. Copying the invalid old
+  pair is not a compliant bootstrap.

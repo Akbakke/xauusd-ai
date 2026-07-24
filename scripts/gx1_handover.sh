@@ -101,15 +101,15 @@ if (
     or repair.get("remaining_source_p0")
     != [
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
-        "native_oanda_m5_materialization_and_atomic_pair_bootstrap",
+        "execute_native_oanda_m5_materialization_and_complete_atomic_pair_bootstrap",
     ]
 ):
     raise SystemExit("FATAL: malformed source-repair checkpoint")
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1885
-    or verification.get("tests_passed") != 1880
+    or verification.get("tests_collected") != 1895
+    or verification.get("tests_passed") != 1890
     or verification.get("tests_skipped") != 5
     or verification.get("tests_failed") != 0
     or verification.get("changed_python_compile") != "PASS"

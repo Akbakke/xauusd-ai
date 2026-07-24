@@ -74,10 +74,20 @@ the same existing sizing/replay owner now executes the exact active
 XGB→V3→Exit-IQL/Strategy-F chain over full TEST, emits complete per-M1 evidence
 and cross-binds every input, active artifact and output byte. Missing cadence,
 state, model decisions or source exhaustion are terminal; there is no horizon
-substitution. No rebuild or trainer run is admissible until canonical/live
-tape parity for the known December-2024 defect and compliant native-M5/pair
-inputs have exact proof. No producer/finalizer execution is admissible until
+substitution. No rebuild or trainer run is admissible until a production
+native-M5 bundle proves the known December-2024 defect absent and a complete
+native→canonical-v3/BASE28 bootstrap has exact proof. No producer/finalizer
+execution is admissible until
 fresh empirical artifacts satisfy every prerequisite.
+
+Native OANDA M5 production belongs to the existing
+`backfill_xauusd_m5_from_oanda.py` owner and the
+`model-native-native-m5-source` control route. It publishes one immutable v2
+bundle from retained complete-only MBA responses with streamed year output and
+atomic no-replace visibility. Do not reintroduce direct canonical-year merges,
+alternate-provider repair, fixed request sleeps or a parallel backfill script.
+Production execution and the complete initial native→canonical-v3/BASE28
+bootstrap remain separate blocked operations.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean

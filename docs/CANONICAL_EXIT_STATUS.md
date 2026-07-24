@@ -39,7 +39,9 @@ fills. Its canonical operation owns every TEST row, explicit FLAT no-order
 result and LONG/SHORT per-M1 decision trace, while binding the exact runtime
 heads, SourceTape, frozen pair, active artifacts, source closure and outputs.
 
-Still required are a compliant native OANDA M5 materialization, pair bootstrap,
+The immutable native OANDA M5 producer is now code-proven in the existing
+owner but has not run. Still required are its explicit production run, a
+complete native→canonical-v3/BASE28 bootstrap,
 a fresh model-native V3 dataset produced by the now code-proven exact
 writer/event, a fresh 79-field Exit-XGB, V3 rescore/retrain, production
 Exit-IQL retrain, and execution of the code-proven canonical full-TEST

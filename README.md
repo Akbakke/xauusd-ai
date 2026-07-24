@@ -69,9 +69,13 @@ The existing sizing/replay owner now also runs every canonical TEST row through
 LONG/SHORT per-M1 traces, and binds predictions, tape, frozen pair, active Exit
 bytes, producer source and published outputs in replay schema v7.
 Caller-supplied replay remains diagnostic-only. Current data/artifacts predate
-these contracts; the remaining gates are compliant native-M5/pair
-materialization, a fresh 79-field XGB→V3→Exit-IQL chain and execution of the
-producer on those fresh bytes. These code
+these contracts. The existing OANDA M5 owner now publishes one immutable v2
+source bundle from retained complete-only MBA responses through the
+`model-native-native-m5-source` route; it uses streamed 15-day-or-smaller
+requests and atomic no-replace publication, but has not been executed. The
+remaining gates are that native-M5 production, a complete
+native→canonical-v3/BASE28 bootstrap, a fresh 79-field XGB→V3→Exit-IQL chain
+and execution of the full-TEST producer on those fresh bytes. These code
 proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity and
 every empirical model/edge gate remain open.
 

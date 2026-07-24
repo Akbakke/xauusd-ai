@@ -34,6 +34,7 @@ RETAINED_CONTROL_ROUTES = {
     "handover",
     "model-native-state",
     "model-native-state-selftest",
+    "model-native-native-m5-source",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
     "model-native-foundation-feature-audit",
@@ -132,7 +133,7 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert repair["empirical_direction_edge_proven"] is False
     assert repair["remaining_source_p0"] == [
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
-        "native_oanda_m5_materialization_and_atomic_pair_bootstrap",
+        "execute_native_oanda_m5_materialization_and_complete_atomic_pair_bootstrap",
     ]
 
     terminal = state["accepted_dataset_terminal_evidence"]

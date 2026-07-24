@@ -12,10 +12,6 @@ import pytest
 from gx1.contracts.xau_tape_provenance_v1 import (
     BASE_REPAIR_METHOD,
     BASE_REPAIR_SCHEMA,
-    CANONICAL_M5_CLOSURE_CONTRACT,
-    CANONICAL_M5_PRODUCER_OWNER,
-    CANONICAL_M5_REQUIRED_COLUMNS,
-    CANONICAL_M5_SOURCE_SCHEMA,
     XAU_INSTRUMENT,
     canonical_xau_source_descriptor_v1,
 )
@@ -25,6 +21,9 @@ from gx1.scripts.materialize_current_m5_snapshot_v1 import (
     SCHEMA_VERSION,
     _filter_supported_m5_buckets,
     run,
+)
+from tests.test_oanda_backfill_vedtak_gate import (
+    materialize_native_m5_test_bundle,
 )
 
 
@@ -78,7 +77,7 @@ def test_canonical_m5_descriptor_rejects_ambiguous_legacy_manifest(
 
     with pytest.raises(
         RuntimeError,
-        match="XAU_CANONICAL_M5_SOURCE_POLICY_MISMATCH",
+        match="XAU_CANONICAL_M5_MANIFEST_SCHEMA_INVALID",
     ):
         canonical_xau_source_descriptor_v1(root.resolve(), timeframe="M5")
 
@@ -87,41 +86,20 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     canonical_sources = {}
     for key, timeframe in (("m5", "M5"), ("m1", "M1")):
         canonical_root = tmp_path / f"canonical_{key}"
-        canonical_root.mkdir()
+        if timeframe == "M5":
+            materialize_native_m5_test_bundle(canonical_root)
+        else:
+            canonical_root.mkdir()
         manifest = {
             "instrument": "XAUUSD",
             "timeframe": timeframe,
             "out_root": str(canonical_root.resolve()),
         }
-        if timeframe == "M5":
-            part = canonical_root / "year=2026" / "part-000.parquet"
-            part.parent.mkdir()
-            _m1().iloc[[0]].loc[
-                :, list(CANONICAL_M5_REQUIRED_COLUMNS)
-            ].to_parquet(part, index=False)
-            manifest.update(
-                {
-                    "schema_version": CANONICAL_M5_SOURCE_SCHEMA,
-                    "producer_owner": CANONICAL_M5_PRODUCER_OWNER,
-                    "source_kind": "oanda_native_mba_candles",
-                    "source_granularity": "M5",
-                    "prices": "MBA",
-                    "timestamp_semantics": "bar_start_utc",
-                    "bar_duration_seconds": 300,
-                    "decision_available_offset_seconds": 300,
-                    "completion_field": "complete",
-                    "completion_value": True,
-                    "market_closure_contract": CANONICAL_M5_CLOSURE_CONTRACT,
-                    "schema_required_cols": list(CANONICAL_M5_REQUIRED_COLUMNS),
-                    "schema_optional_cols": [],
-                    "year_sha256": {"year=2026": _sha(part)},
-                    "year_rows": {"year=2026": 1},
-                }
+        if timeframe != "M5":
+            (canonical_root / "MANIFEST.json").write_text(
+                json.dumps(manifest),
+                encoding="utf-8",
             )
-        (canonical_root / "MANIFEST.json").write_text(
-            json.dumps(manifest),
-            encoding="utf-8",
-        )
         canonical_sources[key] = canonical_xau_source_descriptor_v1(
             canonical_root.resolve(),
             timeframe=timeframe,

@@ -154,13 +154,16 @@ evaluation-only. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and published
 SMC ATR use one formula path; H1/H4 aligns to M5 decision-availability without
 the old extra lag. The existing V3 owner now contains the exact model-native
 dataset writer/event and proves it with an end-to-end atomic-publication test.
-Still open are a fresh V3 dataset on compliant inputs, the canonical
-active-Exit full-TEST producer, fresh artifact rebuilds and
-materialization/bootstrap on a valid native-M5 root. Full-loader execution is
+The existing OANDA M5 owner now also contains the immutable native-source
+producer, including retained source responses, complete-only rederivation,
+streamed year output and atomic no-replace publication. Still open are
+execution of that producer, a complete initial native→canonical-v3/BASE28
+bootstrap, a fresh V3 dataset on compliant inputs, execution of the canonical
+active-Exit full-TEST producer and fresh artifact rebuilds. Full-loader execution is
 independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
 00:40Z and 2024-12-31 23:55Z.
 
-The final merged source tree collected 1,883 tests: 1,878 passed, five were
+The 2026-07-24 native-M5 producer checkpoint collected 1,895 tests: 1,890 passed, five were
 explicitly skipped and zero failed. The manifest-bound loader also correctly
 rejects the current live canonical parquet: the legacy updater changed its
 bytes without advancing the canonical manifest SHA. This is fail-closed
