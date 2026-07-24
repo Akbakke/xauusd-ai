@@ -588,10 +588,12 @@ def add_session_features(df, tz_offset_minutes=0):
                 # Convert to DatetimeIndex if not already
                 idx = pd.DatetimeIndex(idx)
     else:
-        # No timestamp available - return df unchanged (should not happen in normal flow)
-        df["is_EU"] = 0
-        df["is_US"] = 0
-        return df
+        # No timestamp source: synthetic zero sessions are a forbidden
+        # decision input, so this fails closed instead of degrading.
+        raise RuntimeError(
+            "[SESSION_TIME_SOURCE_MISSING] add_session_features requires a "
+            "DatetimeIndex or 'ts' column"
+        )
     
     # Del 2: Session inference (SSoT)
     from gx1.time.session_detector import (
@@ -1063,19 +1065,31 @@ def build_basic_v1(df):
     df["_v1_spread_p"] = spread_bps_shifted
 
     # --- Session ---
-    if "ts" in df:
-        df = add_session_features(df)
-        # DEL 2: Replace .shift(), .fillna() with NumPy
-        is_eu_arr = df["is_EU"].to_numpy(dtype=np.float64) if "is_EU" in df else np.zeros(n, dtype=np.float64)
-        is_us_arr = df["is_US"].to_numpy(dtype=np.float64) if "is_US" in df else np.zeros(n, dtype=np.float64)
-        is_eu_shifted = np.roll(is_eu_arr, 1)
-        is_eu_shifted[0] = 0.0
-        is_eu_shifted = np.nan_to_num(is_eu_shifted, nan=0.0)
-        df["_v1_is_EU"] = is_eu_shifted
-        is_us_shifted = np.roll(is_us_arr, 1)
-        is_us_shifted[0] = 0.0
-        is_us_shifted = np.nan_to_num(is_us_shifted, nan=0.0)
-        df["_v1_is_US"] = is_us_shifted
+    # Mandatory: `_v1_is_EU`/`_v1_is_US` feed interaction features and the
+    # required session-volatility-pressure block below. A frame without any
+    # exact time source cannot silently lose session evidence.
+    if not isinstance(df.index, pd.DatetimeIndex) and "ts" not in df.columns:
+        raise RuntimeError(
+            "[BASIC_V1_SESSION_TIME_SOURCE_MISSING] build_basic_v1 requires a "
+            "DatetimeIndex or exact 'ts' column for session features"
+        )
+    df = add_session_features(df)
+    if "is_EU" not in df.columns or "is_US" not in df.columns:
+        raise RuntimeError(
+            "[BASIC_V1_SESSION_FLAGS_MISSING] add_session_features did not "
+            "emit is_EU/is_US"
+        )
+    # DEL 2: Replace .shift(), .fillna() with NumPy
+    is_eu_arr = df["is_EU"].to_numpy(dtype=np.float64)
+    is_us_arr = df["is_US"].to_numpy(dtype=np.float64)
+    is_eu_shifted = np.roll(is_eu_arr, 1)
+    is_eu_shifted[0] = 0.0
+    is_eu_shifted = np.nan_to_num(is_eu_shifted, nan=0.0)
+    df["_v1_is_EU"] = is_eu_shifted
+    is_us_shifted = np.roll(is_us_arr, 1)
+    is_us_shifted[0] = 0.0
+    is_us_shifted = np.nan_to_num(is_us_shifted, nan=0.0)
+    df["_v1_is_US"] = is_us_shifted
 
     # --- HTF-kontekst (Multi-timeframe) ---
     # DEL 2: NumPy-only HTF aggregator (no pandas resample)

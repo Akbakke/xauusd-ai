@@ -116,3 +116,66 @@ def test_canonical_v3_manifest_records_source_v2_no_lookahead_provenance() -> No
     assert "source_v2_parquet_sha256" in text
     assert "source_v2_no_lookahead" in text
     assert "source_v2_htf_alignment_contract" in text
+
+
+def _native_m5_frame(start: str, periods: int) -> pd.DataFrame:
+    """Exact 14-column native MBA frame as produced by the strict M5 source."""
+    time = pd.date_range(start, periods=periods, freq="5min", tz="UTC")
+    close = 2400.0 + np.cumsum(np.sin(np.arange(periods) / 7.0))
+    high = close + 0.8
+    low = close - 0.8
+    open_ = close + 0.1
+    half_spread = 0.15
+    return pd.DataFrame(
+        {
+            "time": time,
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "bid_open": open_ - half_spread,
+            "bid_high": high - half_spread,
+            "bid_low": low - half_spread,
+            "bid_close": close - half_spread,
+            "ask_open": open_ + half_spread,
+            "ask_high": high + half_spread,
+            "ask_low": low + half_spread,
+            "ask_close": close + half_spread,
+            "volume": np.full(periods, 25, dtype=np.int64),
+        }
+    )
+
+
+def test_canonical_v2_native_frame_emits_mandatory_session_evidence() -> None:
+    # Regression for the 2026-07-24 pair-bootstrap RED: the chunked builder
+    # indexes the native frame by `time` (no `ts` column), and the old
+    # `if "ts" in df` guard silently skipped session features until the
+    # mandatory session-volatility-pressure block failed closed.
+    from gx1.scripts.materialize_build_canonical_features_v2 import (
+        build_canonical_v2,
+    )
+
+    # >= 288*20 rows so ADR20-backed features get at least one finite value.
+    m5 = _native_m5_frame("2026-01-05T00:00:00Z", periods=21 * 288)
+    v2 = build_canonical_v2(m5)
+
+    for column in ("_v1_is_EU", "_v1_is_US", "_v1_session_volatility_pressure"):
+        assert column in v2.columns, column
+    is_us = v2["_v1_is_US"].to_numpy(dtype=np.float64)
+    assert np.isfinite(is_us).all()
+    assert is_us.max() == 1.0 and is_us.min() == 0.0
+    pressure = v2["_v1_session_volatility_pressure"].to_numpy(dtype=np.float64)
+    assert np.isfinite(pressure[288:]).any()
+    assert (pressure[np.isfinite(pressure)] > 0.0).all()
+
+
+def test_add_session_features_without_time_source_fails_closed() -> None:
+    from gx1.features.basic_v1 import add_session_features
+
+    frame = pd.DataFrame({"close": [1.0, 2.0, 3.0]})
+    try:
+        add_session_features(frame)
+    except RuntimeError as exc:
+        assert "SESSION_TIME_SOURCE_MISSING" in str(exc)
+    else:
+        raise AssertionError("expected SESSION_TIME_SOURCE_MISSING")
