@@ -97,7 +97,24 @@ _PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
 # PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
 # was trained on real values.  This function is the retained computation source.
-BASE34_RAW_M1_OWNED_COLUMNS = ("open", "high", "low", "close", "volume")
+M1_MARKET_IDENTITY_COLUMNS = (
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "bid_open",
+    "bid_high",
+    "bid_low",
+    "bid_close",
+    "ask_open",
+    "ask_high",
+    "ask_low",
+    "ask_close",
+)
+# BASE28 is the M1-cadence lane.  Every observable M1 market field is therefore
+# owned by native M1, never by a broadcast closed-M5 row with the same name.
+BASE34_RAW_M1_OWNED_COLUMNS = M1_MARKET_IDENTITY_COLUMNS
 _BASE34_V2_MTF_OWNED_COLUMNS = tuple(
     f"{timeframe}_{live_fragment}_v2"
     for timeframe in REGIME_V4_V2_MTF_TFS
@@ -135,35 +152,6 @@ BASE34_AUGMENT_OWNED_COLUMNS = frozenset(
         *_BASE34_V2_MTF_OWNED_COLUMNS,
     )
 )
-M1_MARKET_IDENTITY_COLUMNS = (
-    "open",
-    "high",
-    "low",
-    "close",
-    "volume",
-    "bid_open",
-    "bid_high",
-    "bid_low",
-    "bid_close",
-    "ask_open",
-    "ask_high",
-    "ask_low",
-    "ask_close",
-)
-
-
-def _exact_finite_number(value, *, context: str) -> float:
-    """Return one exact numeric feature value or fail the append cycle."""
-
-    if isinstance(value, (bool, np.bool_)):
-        raise RuntimeError(f"{context}: boolean is not numeric feature evidence")
-    try:
-        parsed = float(value)
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError(f"{context}: feature value is not numeric") from exc
-    if not np.isfinite(parsed):
-        raise RuntimeError(f"{context}: feature value is non-finite")
-    return parsed
 
 
 def _align_exact_canonical_schema(
@@ -190,51 +178,88 @@ def _align_exact_canonical_schema(
     return incremental.loc[:, existing_columns]
 
 
-def _build_base34_owned_row(
+def _build_base34_owned_frame(
     *,
-    timestamp: pd.Timestamp,
     output_columns: list[str],
-    cv3_row: pd.Series,
+    cv3: pd.DataFrame,
     cv3_aug: pd.DataFrame,
-    m1_row: pd.Series,
-    cv3_index: pd.DatetimeIndex,
-) -> dict[str, float]:
-    """Build one BASE34 row from one unambiguous producer per column."""
+    m1: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build an M1-cadence BASE28 frame from one exact owner per column.
+
+    The mapping is vectorized because a full-history bootstrap contains
+    millions of M1 rows.  It retains the same fail-closed ownership semantics
+    as the former per-row loop while avoiding Python work per row and field.
+    """
 
     if len(output_columns) != len(set(output_columns)):
         raise RuntimeError("BASE34 output schema contains duplicate columns")
-    augmented_timestamp = cv3_row.name
-    row_data: dict[str, float] = {}
+    for label, frame in (("M1", m1), ("canonical_v3", cv3), ("augmented", cv3_aug)):
+        if (
+            not isinstance(frame.index, pd.DatetimeIndex)
+            or frame.index.hasnans
+            or not frame.index.is_unique
+            or not frame.index.is_monotonic_increasing
+        ):
+            raise RuntimeError(f"BASE34 {label} index is not exact chronological UTC")
+    closed_keys = closed_m5_start_for_m1_bar_labels(m1.index)
+    missing_canonical = closed_keys[~closed_keys.isin(cv3.index)]
+    if len(missing_canonical):
+        raise RuntimeError(
+            "BASE34 append lacks exact closed M5 state at "
+            f"{missing_canonical[0]}"
+        )
+    missing_augmented = closed_keys[~closed_keys.isin(cv3_aug.index)]
+    if len(missing_augmented):
+        raise RuntimeError(
+            "BASE34 augmented source lacks exact closed M5 state at "
+            f"{missing_augmented[0]}"
+        )
+
+    canonical_aligned = cv3.loc[closed_keys].copy(deep=False)
+    canonical_aligned.index = m1.index
+    augmented_aligned = cv3_aug.loc[closed_keys].copy(deep=False)
+    augmented_aligned.index = m1.index
+    output: dict[str, np.ndarray] = {}
     for column in output_columns:
         if column in BASE34_RAW_M1_OWNED_COLUMNS:
-            if column not in m1_row.index:
+            if column not in m1.columns:
                 raise RuntimeError(f"BASE34 exact M1 source lacks {column}")
-            value = m1_row[column]
-            context = f"BASE34 {timestamp} M1.{column}"
+            source = m1[column]
+            context = f"BASE34 M1.{column}"
         elif column == "is_model_bar":
-            row_data[column] = float(timestamp in cv3_index)
+            # An M1 row labelled xx:04/09/... closes at xx:05/10/... and is
+            # the first row that can observe the just-completed M5 bucket.
+            output[column] = (m1.index.minute.to_numpy() % 5 == 4).astype(
+                np.float64
+            )
             continue
         elif column in BASE34_AUGMENT_OWNED_COLUMNS:
-            if column not in cv3_aug.columns:
+            if column not in augmented_aligned.columns:
                 raise RuntimeError(
                     f"BASE34 augment-owned column {column!r} lacks its exact producer"
                 )
-            if augmented_timestamp not in cv3_aug.index:
-                raise RuntimeError(
-                    "BASE34 augmented source lacks exact closed M5 state at "
-                    f"{augmented_timestamp}"
-                )
-            value = cv3_aug.at[augmented_timestamp, column]
-            context = f"BASE34 {timestamp} augmented.{column}"
-        elif column in cv3_row.index:
-            value = cv3_row[column]
-            context = f"BASE34 {timestamp} canonical_v3.{column}"
+            source = augmented_aligned[column]
+            context = f"BASE34 augmented.{column}"
+        elif column in canonical_aligned.columns:
+            source = canonical_aligned[column]
+            context = f"BASE34 canonical_v3.{column}"
         else:
             raise RuntimeError(
                 f"BASE34 column {column!r} has no exact current-bar producer"
             )
-        row_data[column] = _exact_finite_number(value, context=context)
-    return row_data
+        if pd.api.types.is_bool_dtype(source.dtype):
+            raise RuntimeError(f"{context}: boolean is not numeric feature evidence")
+        try:
+            values = pd.to_numeric(source, errors="raise").to_numpy(
+                dtype=np.float64
+            )
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(f"{context}: feature value is not numeric") from exc
+        if values.shape != (len(m1),) or not np.isfinite(values).all():
+            raise RuntimeError(f"{context}: feature value is non-finite")
+        output[column] = values
+    return pd.DataFrame(output, index=m1.index)
 
 
 def _compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -944,39 +969,19 @@ def update_base34_incremental(
     attach_default_regime_v4_v2_scalars(cv3_win)
     _m5_cols = [c for c in ("open", "high", "low", "close", "volume") if c in cv3_win.columns]
     cv3_aug = augment_canonical_v3(cv3_win, cv3_win[_m5_cols].copy())
-    # For each new M1 bar, find the most-recent CLOSED M5 bucket
-    new_m1_rows = []
     base34_cols = list(base34.columns)
     output_columns = list(dict.fromkeys([*base34_cols, *BASE34_RAW_M1_OWNED_COLUMNS]))
-    for ts in new_m1.index:
-        closed_m5 = closed_m5_start_for_m1_bar_labels(
-            pd.DatetimeIndex([ts])
-        )[0]
-        if closed_m5 in cv3.index:
-            cv3_row = cv3.loc[closed_m5]
-        else:
-            raise RuntimeError(
-                f"BASE34 append lacks exact closed M5 state at {closed_m5}"
-            )
-        # Every field has exactly one owner. Raw OHLCV comes from M1, recomputed
-        # context/HTF/regime fields come from the augmenter even when a stale
-        # column with the same name exists in cv3, and all remaining fields come
-        # from canonical_v3.
-        row_data = _build_base34_owned_row(
-            timestamp=ts,
-            output_columns=output_columns,
-            cv3_row=cv3_row,
-            cv3_aug=cv3_aug,
-            m1_row=new_m1.loc[ts],
-            cv3_index=cv3.index,
-        )
-        new_m1_rows.append((ts, row_data))
-
-    if not new_m1_rows:
-        return 0
-
-    new_df = pd.DataFrame([d for _, d in new_m1_rows],
-                            index=pd.DatetimeIndex([t for t, _ in new_m1_rows], name="time"))
+    # Every field has exactly one owner. Native M1 owns all 13 observable M1
+    # market values, recomputed context/HTF/regime fields come from the
+    # augmenter even when a stale column with the same name exists in cv3, and
+    # all remaining fields come from canonical_v3.
+    new_df = _build_base34_owned_frame(
+        output_columns=output_columns,
+        cv3=cv3,
+        cv3_aug=cv3_aug,
+        m1=new_m1,
+    )
+    new_df.index.name = "time"
     extended = pd.concat([base34, new_df])
 
     _write_candidate_parquet(extended, output_path, index=True)

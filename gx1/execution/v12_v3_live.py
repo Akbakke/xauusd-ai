@@ -52,6 +52,9 @@ from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
     EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT as V8_FEATURE_COUNT,
     EXIT_IO_V8_REGIME_M1L512_IO_VERSION as V8_IO_VERSION,
 )
+from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
+    EXIT_IO_V3_CTX36_M1L512_PHASE5_EXTRA_FEATURES as M5_PHASE_FEATURE_NAMES,
+)
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 from gx1.exits.contracts.registry import get_exit_io_contract
 from gx1.exits.training.thin_record_dataset import (
@@ -255,12 +258,19 @@ def build_v3_base_feature_rows(
     filled = np.zeros(len(feature_names), dtype=bool)
     trade_feature_names = set(TRADE_STATE_FEATURE_NAMES)
     volume_feature_names = set(VOLUME_FEATURE_NAMES)
+    phase_feature_names = set(M5_PHASE_FEATURE_NAMES)
+    phase_per_m1 = target.index.minute.to_numpy(dtype=np.int64) % 5
 
     matrix[:, :7] = 0.0
     filled[:7] = True
     for column_index, feature_name in enumerate(feature_names[7:], start=7):
         if feature_name in trade_feature_names:
             matrix[:, column_index] = 0.0
+            filled[column_index] = True
+            continue
+        if feature_name in phase_feature_names:
+            phase = int(feature_name.rsplit("_", 1)[1])
+            matrix[:, column_index] = (phase_per_m1 == phase).astype(np.float32)
             filled[column_index] = True
             continue
         if feature_name in volume_feature_names:

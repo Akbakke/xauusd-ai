@@ -416,6 +416,38 @@ def test_closed_m5_mapping_is_exact_for_all_five_m1_phases() -> None:
     assert observed.equals(expected)
 
 
+def test_v3_phase_is_owned_by_exact_m1_timestamp_not_broadcast_prebuilt() -> None:
+    labels = pd.date_range("2026-07-16T12:00:00Z", periods=5, freq="min")
+    target = pd.DataFrame(
+        {
+            # A broad historical BASE28 could carry the wrong, M5-broadcast
+            # phase.  The serving owner must ignore it.
+            **{f"m5_phase_{phase}": np.ones(5) for phase in range(5)},
+        },
+        index=labels,
+    )
+    required_m5 = (
+        labels + pd.Timedelta(minutes=1)
+    ).floor("5min") - pd.Timedelta(minutes=5)
+    canonical = pd.DataFrame(
+        {
+            **{f"m5_phase_{phase}": np.ones(2) for phase in range(5)},
+        },
+        index=pd.DatetimeIndex(required_m5.unique()),
+    )
+    features = [*XGB_BRIDGE_NAMES, *(f"m5_phase_{phase}" for phase in range(5))]
+
+    matrix = build_v3_base_feature_rows(
+        target_m1=target,
+        volume_history_m1=target,
+        canonical_v3=canonical,
+        xgb_inferer=_ExactBridge(),
+        feature_names=features,
+    )
+
+    np.testing.assert_array_equal(matrix[:, 7:], np.eye(5, dtype=np.float32))
+
+
 def test_shared_v3_builder_requires_volume_prefix_and_is_chunk_invariant() -> None:
     from gx1.features.volume_features import (
         VOLUME_FEATURE_NAMES,
@@ -1593,16 +1625,6 @@ def test_incremental_rejects_prebuilt_from_different_m5_market_bytes() -> None:
         incremental._require_existing_cv3_market_identity(mismatched, source)
 
 
-@pytest.mark.parametrize("value", [None, np.nan, np.inf, True])
-def test_incremental_feature_append_rejects_soft_numeric_substitution(
-    value: object,
-) -> None:
-    from gx1.execution import v12_canonical_incremental as incremental
-
-    with pytest.raises(RuntimeError):
-        incremental._exact_finite_number(value, context="UNIT_INCREMENTAL_FEATURE")
-
-
 @pytest.mark.parametrize(
     ("incremental_columns", "expected_fragment"),
     [
@@ -1641,19 +1663,19 @@ def test_incremental_canonical_schema_preserves_existing_column_order() -> None:
     assert aligned.iloc[0].to_dict() == {"canonical_a": 4.0, "canonical_b": 3.0}
 
 
-def test_base34_row_uses_explicit_owner_when_augmented_and_cv3_overlap() -> None:
+def test_base34_frame_uses_explicit_owner_when_sources_overlap() -> None:
     from gx1.execution import v12_canonical_incremental as incremental
 
     closed_m5 = pd.Timestamp("2026-07-16T12:00:00Z")
-    timestamp = closed_m5 + pd.Timedelta(minutes=5)
-    cv3_row = pd.Series(
+    timestamp = closed_m5 + pd.Timedelta(minutes=4)
+    cv3 = pd.DataFrame(
         {
-            "H4_trend_sign_cat": 0.0,
-            "session_id": 0.0,
-            "canonical_only": 7.0,
-            "open": 2300.0,
+            "H4_trend_sign_cat": [0.0],
+            "session_id": [0.0],
+            "canonical_only": [7.0],
+            "open": [2300.0],
         },
-        name=closed_m5,
+        index=pd.DatetimeIndex([closed_m5]),
     )
     cv3_aug = pd.DataFrame(
         {
@@ -1663,36 +1685,36 @@ def test_base34_row_uses_explicit_owner_when_augmented_and_cv3_overlap() -> None
         },
         index=pd.DatetimeIndex([closed_m5]),
     )
-    m1_row = pd.Series(
+    m1 = pd.DataFrame(
         {
-            "open": 2400.0,
-            "high": 2401.0,
-            "low": 2399.0,
-            "close": 2400.5,
-            "volume": 10.0,
-        }
+            column: [2400.0 + offset]
+            for offset, column in enumerate(
+                incremental.M1_MARKET_IDENTITY_COLUMNS
+            )
+        },
+        index=pd.DatetimeIndex([timestamp]),
     )
 
-    row = incremental._build_base34_owned_row(
-        timestamp=timestamp,
+    frame = incremental._build_base34_owned_frame(
         output_columns=[
             "H4_trend_sign_cat",
             "session_id",
             "canonical_only",
             "open",
+            "bid_close",
             "is_model_bar",
         ],
-        cv3_row=cv3_row,
+        cv3=cv3,
         cv3_aug=cv3_aug,
-        m1_row=m1_row,
-        cv3_index=pd.DatetimeIndex([timestamp]),
+        m1=m1,
     )
 
-    assert row == {
+    assert frame.iloc[0].to_dict() == {
         "H4_trend_sign_cat": 2.0,
         "session_id": 3.0,
         "canonical_only": 7.0,
         "open": 2400.0,
+        "bid_close": m1.iloc[0]["bid_close"],
         "is_model_bar": 1.0,
     }
 
@@ -1701,17 +1723,18 @@ def test_base34_augment_owned_field_never_falls_back_to_cv3() -> None:
     from gx1.execution import v12_canonical_incremental as incremental
 
     closed_m5 = pd.Timestamp("2026-07-16T12:00:00Z")
-    timestamp = closed_m5 + pd.Timedelta(minutes=5)
-    cv3_row = pd.Series({"H4_trend_sign_cat": 0.0}, name=closed_m5)
+    timestamp = closed_m5 + pd.Timedelta(minutes=4)
+    cv3 = pd.DataFrame(
+        {"H4_trend_sign_cat": [0.0]},
+        index=pd.DatetimeIndex([closed_m5]),
+    )
 
     with pytest.raises(RuntimeError, match="augment-owned column"):
-        incremental._build_base34_owned_row(
-            timestamp=timestamp,
+        incremental._build_base34_owned_frame(
             output_columns=["H4_trend_sign_cat"],
-            cv3_row=cv3_row,
+            cv3=cv3,
             cv3_aug=pd.DataFrame(index=pd.DatetimeIndex([closed_m5])),
-            m1_row=pd.Series(dtype=float),
-            cv3_index=pd.DatetimeIndex([closed_m5]),
+            m1=pd.DataFrame(index=pd.DatetimeIndex([timestamp])),
         )
 
 
