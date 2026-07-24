@@ -316,6 +316,39 @@ class V12Pipeline:
         t0 = time.perf_counter()
         loader = PrebuiltStateLoader()
         loader.load()
+        # The Exit feature surface requires the immutable TRAIN-only rank
+        # reference (sole owner of atr_bucket/spread_bucket). It resolves from
+        # the same explicit artifact registry as the Exit artifacts; a missing
+        # or hashless entry fails closed before any model loads.
+        from gx1_guards.artifacts import ArtifactGuardError, load_decision_entry
+        from gx1.contracts.entry_model_native_state_v2 import (
+            load_train_rank_reference_v2,
+        )
+
+        try:
+            rank_entry = load_decision_entry("train_rank_reference")
+        except ArtifactGuardError as exc:
+            raise RuntimeError(
+                "EXIT_TRAIN_RANK_REFERENCE_REGISTRY_ENTRY_INVALID: the "
+                "artifact registry must declare one ACTIVE "
+                "'train_rank_reference' entry with path+sha256 before live "
+                f"Exit serving: {exc}"
+            ) from exc
+        rank_sha = str(rank_entry.get("sha256") or "").strip().lower()
+        if len(rank_sha) != 64 or any(
+            char not in "0123456789abcdef" for char in rank_sha
+        ):
+            raise RuntimeError(
+                "EXIT_TRAIN_RANK_REFERENCE_REGISTRY_SHA256_INVALID: the "
+                "'train_rank_reference' registry entry must carry the exact "
+                "npz sha256"
+            )
+        loader.attach_train_rank_reference(
+            load_train_rank_reference_v2(
+                Path(rank_entry["path"]),
+                expected_sha256=rank_sha,
+            )
+        )
         exit_xgb = ExitXGBLiveInference.load_default()
         from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference, assert_smart_serving_gate
         assert_smart_serving_gate()
@@ -357,12 +390,15 @@ class V12Pipeline:
         prebuilt_pair_manifest_path: Path,
         prebuilt_generation_root: Path,
         closed_m1_provider: ClosedM1StateProvider,
+        train_rank_reference: object,
         device: str = "cpu",
     ) -> "V12Pipeline":
         """Load the exact active Exit stack without loading Smart Entry.
 
         This is the pre-adoption historical replay factory.  It pins one
-        immutable prebuilt pair, one SourceTape provider and the registry's
+        immutable prebuilt pair, one SourceTape provider, one immutable
+        TRAIN-only rank reference (mandatory owner of the exact
+        ``atr_bucket``/``spread_bucket`` Exit inputs) and the registry's
         XGB/V3/Exit-IQL roles.  Mutable prebuilt refresh and Entry serving are
         deliberately absent.
         """
@@ -372,6 +408,9 @@ class V12Pipeline:
         from gx1.contracts.entry_model_native_sizing_execution_v1 import (
             active_exit_registry_projection,
         )
+        from gx1.contracts.entry_model_native_state_v2 import (
+            TrainRankReferenceV2,
+        )
         from gx1.execution.model_native_entry_replay_v1 import SourceTape
         from gx1.execution.v12_exit_iql_live import (
             assert_exit_env_matches_contract,
@@ -380,6 +419,11 @@ class V12Pipeline:
         if not isinstance(closed_m1_provider, SourceTape):
             raise RuntimeError(
                 "ACTIVE_EXIT_REPLAY_REQUIRES_EXACT_SOURCE_TAPE"
+            )
+        if not isinstance(train_rank_reference, TrainRankReferenceV2):
+            raise RuntimeError(
+                "ACTIVE_EXIT_REPLAY_TRAIN_RANK_REFERENCE_INVALID: one loaded "
+                "immutable TrainRankReferenceV2 is mandatory"
             )
         registry_path = Path(artifact_registry_path).expanduser()
         if (
@@ -407,6 +451,7 @@ class V12Pipeline:
             generation_root=Path(prebuilt_generation_root),
         )
         loader.load_frozen_pair()
+        loader.attach_train_rank_reference(train_rank_reference)
         exit_xgb = ExitXGBLiveInference.load(
             Path(str(entries["xgb"]["path"]))
         )
@@ -736,6 +781,15 @@ class V12Pipeline:
 
     def _refresh_exit_canonical(self, now_minute: pd.Timestamp) -> None:
         """Load every exact closed-M5 row required by the active 512-M1 V3 window."""
+        # Explicit precondition, not an incidental KeyError inside XGB: the
+        # exit canonical is only usable when the loader carries the immutable
+        # TRAIN-rank reference that owns atr_bucket/spread_bucket.
+        if not self.prebuilt_loader.train_rank_reference_attached():
+            raise RuntimeError(
+                "EXIT_TRAIN_RANK_REFERENCE_UNBOUND: the prebuilt loader has "
+                "no attached immutable TRAIN-rank reference; the exact "
+                "atr_bucket/spread_bucket Exit inputs cannot exist"
+            )
         now_ts = _utc_ts(now_minute)
         decision_m1 = now_ts.floor("min") - pd.Timedelta(minutes=1)
 

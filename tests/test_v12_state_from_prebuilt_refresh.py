@@ -641,3 +641,251 @@ def test_copy_bootstrap_and_loop_control_are_removed() -> None:
         incremental.bootstrap_prebuilt_pair
     )
     assert "--loop" not in source
+
+
+# ── Immutable TRAIN-rank reference binding (Exit bucket ownership) ──────
+
+
+def _rank_frames(
+    *,
+    atr_offset: float = 0.0,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    canonical, base28 = _frames()
+    canonical["atr_bps"] = np.asarray(
+        [10.5 + atr_offset, 11.1 + atr_offset, 12.4 + atr_offset],
+        dtype=np.float64,
+    )
+    canonical["spread_bps"] = np.asarray(
+        [1.2 + atr_offset, 1.4 + atr_offset, 1.9 + atr_offset],
+        dtype=np.float64,
+    )
+    return canonical, base28
+
+
+def _rank_prebuilt_fixture(tmp_path: Path) -> dict[str, Path | str]:
+    generation_root = tmp_path / "generations"
+    pair_manifest = tmp_path / "CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json"
+    canonical, base28 = _rank_frames()
+    staging_dir = incremental._candidate_staging_path(generation_root)
+    _write_staged_pair(staging_dir, canonical, base28)
+    generation_id = incremental._publish_prebuilt_pair_generation(
+        staging_dir,
+        pair_manifest_path=pair_manifest,
+        generation_root=generation_root,
+        expected_pair_generation_id=None,
+        expected_manifest_sha256=None,
+        lineage_contract=_lineage(),
+        created_utc="2026-07-23T00:00:00Z",
+    )
+    binding = read_prebuilt_pair_manifest(
+        pair_manifest,
+        generation_root=generation_root,
+    )
+    return {
+        "generation_root": generation_root,
+        "pair_manifest": pair_manifest,
+        "generation_id": generation_id,
+        "cv3": binding.canonical_v3.parquet_path,
+        "base28": binding.base28.parquet_path,
+    }
+
+
+def _test_rank_reference(tmp_path: Path):
+    from tests.model_native_rank_reference_support import (
+        materialize_test_rank_reference,
+    )
+
+    _source, reference = materialize_test_rank_reference(
+        tmp_path / "rank_reference",
+        run_id="UNIT_PREBUILT_RANK_REFERENCE",
+        history_start="2026-07-01T00:00:00Z",
+        fit_start="2026-07-02T00:00:00Z",
+        fit_end="2026-07-03T00:00:00Z",
+    )
+    return reference
+
+
+def test_attach_train_rank_reference_derives_exact_buckets_and_binds_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.contracts.entry_model_native_state_v2 import (
+        bucket_against_train_reference,
+        train_rank_reference_identity_v2,
+    )
+
+    paths = _rank_prebuilt_fixture(tmp_path)
+    _disable_augmenters(monkeypatch)
+    reference = _test_rank_reference(tmp_path)
+    loader = _loader(paths)
+    loader.load_frozen_pair()
+
+    assert loader.train_rank_reference_attached() is False
+    with pytest.raises(
+        RuntimeError,
+        match="PREBUILT_TRAIN_RANK_REFERENCE_UNBOUND",
+    ):
+        loader.train_rank_reference_binding()
+
+    loader.attach_train_rank_reference(reference)
+
+    assert loader.train_rank_reference_attached() is True
+    cv3 = loader._cv3
+    assert cv3 is not None
+    expected_atr = bucket_against_train_reference(
+        cv3["atr_bps"].to_numpy(dtype=float),
+        reference.atr_bps_sorted,
+    )
+    expected_spread = bucket_against_train_reference(
+        cv3["spread_bps"].to_numpy(dtype=float),
+        reference.spread_bps_sorted,
+    )
+    assert cv3["atr_bucket"].dtype == np.int64
+    assert cv3["spread_bucket"].dtype == np.int64
+    assert np.array_equal(cv3["atr_bucket"].to_numpy(), expected_atr)
+    assert np.array_equal(cv3["spread_bucket"].to_numpy(), expected_spread)
+    assert loader.train_rank_reference_binding() == (
+        train_rank_reference_identity_v2(reference)
+    )
+
+
+def test_attach_requires_load_and_rejects_double_attach_and_wrong_sha(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.contracts.entry_model_native_state_v2 import (
+        load_train_rank_reference_v2,
+    )
+
+    paths = _rank_prebuilt_fixture(tmp_path)
+    _disable_augmenters(monkeypatch)
+    reference = _test_rank_reference(tmp_path)
+
+    unloaded = _loader(paths)
+    with pytest.raises(
+        RuntimeError,
+        match="PREBUILT_TRAIN_RANK_REFERENCE_REQUIRES_LOAD",
+    ):
+        unloaded.attach_train_rank_reference(reference)
+
+    with pytest.raises(
+        RuntimeError,
+        match="PREBUILT_TRAIN_RANK_REFERENCE_TYPE_INVALID",
+    ):
+        _loader(paths).attach_train_rank_reference(object())
+
+    with pytest.raises(
+        RuntimeError,
+        match="MODEL_NATIVE_TRAIN_RANK_REFERENCE_SHA_MISMATCH",
+    ):
+        load_train_rank_reference_v2(
+            reference.path,
+            expected_sha256="0" * 64,
+        )
+
+    loader = _loader(paths)
+    loader.load_frozen_pair()
+    loader.attach_train_rank_reference(reference)
+    with pytest.raises(
+        RuntimeError,
+        match="PREBUILT_TRAIN_RANK_REFERENCE_ALREADY_ATTACHED",
+    ):
+        loader.attach_train_rank_reference(reference)
+
+
+def test_async_refresh_rederives_buckets_before_swap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import concurrent.futures
+
+    from gx1.contracts.entry_model_native_state_v2 import (
+        bucket_against_train_reference,
+    )
+
+    paths = _rank_prebuilt_fixture(tmp_path)
+    _disable_augmenters(monkeypatch)
+    reference = _test_rank_reference(tmp_path)
+    loader = _loader(paths)
+    loader.load()
+    loader.attach_train_rank_reference(reference)
+    assert "atr_bucket" in loader._cv3.columns
+
+    canonical, base28 = _rank_frames(atr_offset=5.0)
+    _publish_next_pair(paths, canonical=canonical, base28=base28)
+
+    class _InlineThread:
+        def __init__(self, *, target, args, **_kwargs) -> None:
+            self._target = target
+            self._args = args
+
+        def start(self) -> None:
+            self._target(*self._args)
+
+        def is_alive(self) -> bool:
+            return False
+
+    monkeypatch.setattr(state_module.threading, "Thread", _InlineThread)
+
+    # Run the exact refresh orchestration inline: same code path, but the two
+    # heavy parallel augmenters are no-op'd (their real outputs are covered by
+    # dedicated feature tests) and the pool executes in-process.
+    class _InlineFuture:
+        def __init__(self, value: pd.DataFrame) -> None:
+            self._value = value
+
+        def result(self, timeout: float | None = None) -> pd.DataFrame:
+            return self._value
+
+    class _InlinePool:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self) -> "_InlinePool":
+            return self
+
+        def __exit__(self, *exc: object) -> bool:
+            return False
+
+        def submit(self, fn, *args):
+            return _InlineFuture(fn(*args))
+
+    monkeypatch.setattr(
+        concurrent.futures,
+        "ProcessPoolExecutor",
+        _InlinePool,
+    )
+    monkeypatch.setattr(
+        state_module,
+        "_mp_v2_mtf_worker",
+        lambda cv3: cv3.iloc[:, :0].copy(),
+    )
+    monkeypatch.setattr(
+        state_module,
+        "_mp_group_a_worker",
+        lambda cv3: cv3.iloc[:, :0].copy(),
+    )
+
+    assert loader.refresh_if_changed() is True
+    assert loader._refresh_error is None
+
+    cv3 = loader._cv3
+    assert cv3 is not None
+    assert "atr_bucket" in cv3.columns and "spread_bucket" in cv3.columns
+    assert np.array_equal(
+        cv3["atr_bucket"].to_numpy(),
+        bucket_against_train_reference(
+            cv3["atr_bps"].to_numpy(dtype=float),
+            reference.atr_bps_sorted,
+        ),
+    )
+    assert np.array_equal(
+        cv3["spread_bucket"].to_numpy(),
+        bucket_against_train_reference(
+            cv3["spread_bps"].to_numpy(dtype=float),
+            reference.spread_bps_sorted,
+        ),
+    )
+    # The refreshed frame is the newly published generation, not the old one.
+    assert float(cv3["atr_bps"].iloc[0]) == 15.5
+    assert loader.train_rank_reference_attached() is True

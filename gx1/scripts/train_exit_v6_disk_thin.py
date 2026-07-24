@@ -954,6 +954,9 @@ def main() -> None:
         "dataset_inventory_sha256": _canonical_sha256(dataset_inventory),
         "m5_prebuilt": m5_prebuilt_binding,
         "xgb_bridge_source": dataset_manifest["xgb_bridge_source_v1"],
+        # Verbatim copy of the dataset's immutable TRAIN-rank identity so a
+        # fresh Exit bundle binds the exact atr_bucket/spread_bucket owner.
+        "train_rank_reference": dataset_manifest["train_rank_reference_v1"],
         "source_code_files": source_code_inventory,
         "source_code_inventory_sha256": _canonical_sha256(
             source_code_inventory

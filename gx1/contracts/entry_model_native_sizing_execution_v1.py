@@ -83,6 +83,7 @@ _CANONICAL_ACTIVE_EXIT_REPLAY_PRODUCER_KEYS = frozenset(
         "failures",
         "source_tape",
         "prebuilt_pair",
+        "train_rank_reference",
         "runtime_predictions",
         "prediction_report_artifact",
         "prediction_provenance",
@@ -1452,6 +1453,18 @@ def require_canonical_active_exit_replay_producer_evidence(
     )
     if evidence["prebuilt_pair"] != frozen_pair:
         _fail(context, "prebuilt pair evidence is noncanonical")
+    from gx1.contracts.entry_model_native_state_v2 import (
+        require_train_rank_reference_identity_v2,
+    )
+
+    try:
+        require_train_rank_reference_identity_v2(
+            evidence["train_rank_reference"],
+            context=f"{context}.train_rank_reference",
+            verify_artifact=verify_source_files,
+        )
+    except RuntimeError as exc:
+        _fail(context, f"train rank reference identity invalid: {exc}")
     raw_sources = evidence["producer_source_files"]
     if not isinstance(raw_sources, list):
         _fail(context, "producer source inventory is invalid")

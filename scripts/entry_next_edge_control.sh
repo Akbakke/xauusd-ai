@@ -37,8 +37,8 @@ Model-native seq513 evidence:
   model-native-replay-trade-log
   model-native-replay-evidence
   model-native-replay-readiness
-  model-native-v3-exit-dataset --run-id <id> --prediction-parquet <file> --prediction-report-json <event> --entry-bundle-dir <dir> --entry-dataset-dir <dir> --source-tape-parquet <file> --xgb-bundle-dir <dir> --prebuilt-pair-manifest <file> --prebuilt-generation-root <dir> --expected-model <name> --expected-splits <train,val,test> --out-dir <new-dir>
-  model-native-canonical-active-exit-replay --calibration <event> --proof <event> --artifact-registry <json> --source-tape <parquet> --prebuilt-pair-manifest <json> --prebuilt-generation-root <dir> --authority-root <dir> [--device cpu|cuda]
+  model-native-v3-exit-dataset --run-id <id> --prediction-parquet <file> --prediction-report-json <event> --entry-bundle-dir <dir> --entry-dataset-dir <dir> --source-tape-parquet <file> --xgb-bundle-dir <dir> --prebuilt-pair-manifest <file> --prebuilt-generation-root <dir> --train-rank-reference-npz <file> --train-rank-reference-sha256 <sha256> --expected-model <name> --expected-splits <train,val,test> --out-dir <new-dir>
+  model-native-canonical-active-exit-replay --calibration <event> --proof <event> --artifact-registry <json> --source-tape <parquet> --prebuilt-pair-manifest <json> --prebuilt-generation-root <dir> --train-rank-reference-npz <file> --train-rank-reference-sha256 <sha256> --authority-root <dir> [--device cpu|cuda]
   model-native-finalize-launch --accepted-bundle-dir <dir> --sizing-adoption-json <event> --joint-exit-proof-json <event> --sizing-runtime-parity-json <event> --serve-parity-json <event> --direction-pocket-json <event> --adaptation-lifecycle-json <event> --launch-vedtak-json <canonical-immutable-event> --transaction-id <id> --max-trades <n>
 
 Immutable run-lineage execution (evidence gates remain authoritative):
@@ -596,6 +596,8 @@ case "$cmd" in
       --xgb-bundle-dir \
       --prebuilt-pair-manifest \
       --prebuilt-generation-root \
+      --train-rank-reference-npz \
+      --train-rank-reference-sha256 \
       --expected-model \
       --expected-splits \
       --out-dir; do
@@ -614,6 +616,8 @@ case "$cmd" in
       --source-tape \
       --prebuilt-pair-manifest \
       --prebuilt-generation-root \
+      --train-rank-reference-npz \
+      --train-rank-reference-sha256 \
       --authority-root; do
       require_flag "$cmd" "$flag" "$@"
     done

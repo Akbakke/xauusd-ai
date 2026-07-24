@@ -52,9 +52,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+
+if TYPE_CHECKING:  # runtime imports stay lazy to keep loader startup light
+    from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
 
 # ONE-TRUTH REGIME_V4 per-TF V2 mtf scalar projection (5-TF/9-feat). Shared with the
 # canonical_incremental daemon + build so the live serve, the daemon-maintained BASE34,
@@ -915,6 +920,91 @@ class PrebuiltStateLoader:
     # An async error invalidates the old snapshot. Every public read and future
     # refresh raises until a fresh process completes load() successfully.
     _refresh_error: RuntimeError | None = field(default=None, init=False)
+    # One immutable TRAIN-only rank reference bound by the consuming Exit
+    # contract. TRAIN-fit state is deliberately outside the persisted pair;
+    # the exact bucket fields exist only after an explicit attach.
+    _train_rank_reference: "TrainRankReferenceV2 | None" = field(
+        default=None,
+        init=False,
+    )
+
+    # ── TRAIN-rank reference binding (Exit-chain bucket ownership) ────
+    def attach_train_rank_reference(self, reference: "TrainRankReferenceV2") -> None:
+        """Bind one immutable TRAIN-rank reference and derive the exact
+        ``atr_bucket``/``spread_bucket`` fields on the loaded canonical frame.
+
+        The persisted pair is model-agnostic by contract (bucket fields are
+        forbidden on disk and validated at admission, before this call). The
+        derivation reuses the single formula owner
+        ``bucket_against_train_reference``; a second attach — same or different
+        bytes — is a wiring error and fails closed.
+        """
+
+        from gx1.contracts.entry_model_native_state_v2 import (
+            TrainRankReferenceV2,
+        )
+
+        if not isinstance(reference, TrainRankReferenceV2):
+            raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_TYPE_INVALID")
+        self._raise_refresh_error()
+        if self._cv3 is None:
+            raise RuntimeError(
+                "PREBUILT_TRAIN_RANK_REFERENCE_REQUIRES_LOAD: "
+                "call load() or load_frozen_pair() first"
+            )
+        if self._train_rank_reference is not None:
+            raise RuntimeError(
+                "PREBUILT_TRAIN_RANK_REFERENCE_ALREADY_ATTACHED: "
+                f"bound_sha256={self._train_rank_reference.sha256} "
+                f"offered_sha256={reference.sha256}"
+            )
+        self._derive_train_rank_buckets(self._cv3, reference=reference)
+        self._train_rank_reference = reference
+
+    def _derive_train_rank_buckets(
+        self,
+        cv3: pd.DataFrame,
+        *,
+        reference: "TrainRankReferenceV2",
+    ) -> pd.DataFrame:
+        """Derive both bucket fields in place via the one formula owner."""
+
+        from gx1.contracts.entry_model_native_state_v2 import (
+            bucket_against_train_reference,
+        )
+
+        missing = [
+            name for name in ("atr_bps", "spread_bps") if name not in cv3.columns
+        ]
+        if missing:
+            raise RuntimeError(
+                f"PREBUILT_TRAIN_RANK_SOURCE_FIELDS_MISSING: {missing}"
+            )
+        cv3["atr_bucket"] = bucket_against_train_reference(
+            cv3["atr_bps"].to_numpy(dtype=float),
+            reference.atr_bps_sorted,
+        )
+        cv3["spread_bucket"] = bucket_against_train_reference(
+            cv3["spread_bps"].to_numpy(dtype=float),
+            reference.spread_bps_sorted,
+        )
+        return cv3
+
+    def train_rank_reference_attached(self) -> bool:
+        """True only when one immutable reference is bound to this loader."""
+
+        return self._train_rank_reference is not None
+
+    def train_rank_reference_binding(self) -> dict[str, object]:
+        """Exact bindable identity of the attached reference (fail-closed)."""
+
+        from gx1.contracts.entry_model_native_state_v2 import (
+            train_rank_reference_identity_v2,
+        )
+
+        if self._train_rank_reference is None:
+            raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_UNBOUND")
+        return train_rank_reference_identity_v2(self._train_rank_reference)
 
     def _raise_refresh_error(self) -> None:
         if self._refresh_error is not None:
@@ -1072,7 +1162,12 @@ class PrebuiltStateLoader:
             # admissible train≠serve substitute.
             if new_cv3 is not None and (cv3_advanced or b28_advanced):
                 t_aug = pd.Timestamp.utcnow()
-                _require_persisted_model_agnostic_canonical(new_cv3)
+                if cv3_advanced:
+                    # The persisted-surface proof applies to the freshly loaded
+                    # bytes. On a BASE28-only advance, new_cv3 is the already
+                    # admitted in-memory frame, which legitimately carries the
+                    # attached TRAIN-rank bucket fields.
+                    _require_persisted_model_agnostic_canonical(new_cv3)
                 # Fast augmenters in main thread (~3s total)
                 new_cv3 = self._augment_cv3_with_volume_features(new_cv3)
                 new_cv3 = self._augment_cv3_with_v1_legacy(new_cv3)
@@ -1103,6 +1198,15 @@ class PrebuiltStateLoader:
                     raise RuntimeError(
                         "parallel augment failed; refusing a second transform path"
                     ) from exc
+                # A freshly loaded persisted cv3 is model-agnostic by contract.
+                # When one immutable TRAIN-rank reference is attached, the
+                # exact bucket fields must be re-derived BEFORE the atomic
+                # swap so live never loses them on a refresh cycle.
+                if cv3_advanced and self._train_rank_reference is not None:
+                    new_cv3 = self._derive_train_rank_buckets(
+                        new_cv3,
+                        reference=self._train_rank_reference,
+                    )
 
                 aug_took = (pd.Timestamp.utcnow() - t_aug).total_seconds()
                 LOG.info(

@@ -64,7 +64,22 @@ def _canonical_sha256(value: object) -> str:
 
 
 def _write_dataset(root: Path, **semantic_updates: object) -> Path:
+    from gx1.contracts.entry_model_native_state_v2 import (
+        train_rank_reference_identity_v2,
+    )
+    from tests.model_native_rank_reference_support import (
+        materialize_test_rank_reference,
+    )
+
     root.mkdir(parents=True)
+    _rank_source, rank_reference = materialize_test_rank_reference(
+        root / "rank_reference",
+        run_id="UNIT_MODEL_NATIVE_V3_RANK",
+        history_start="2026-07-01T00:00:00Z",
+        fit_start="2026-07-02T00:00:00Z",
+        fit_end="2026-07-03T00:00:00Z",
+    )
+    rank_identity = train_rank_reference_identity_v2(rank_reference)
     xgb_bundle = root / "xgb_bundle"
     xgb_bundle.mkdir()
     (xgb_bundle / "model.joblib").write_bytes(b"unit-xgb")
@@ -372,6 +387,10 @@ def _write_dataset(root: Path, **semantic_updates: object) -> Path:
             state_path.resolve(),
             context="UNIT_PRODUCER_INPUT[entry_model_state]",
         ),
+        "train_rank_reference": v3_regular_file_binding(
+            rank_reference.path,
+            context="UNIT_PRODUCER_INPUT[train_rank_reference]",
+        ),
     }
     producer_root = root / "producer_inputs"
     producer_root.mkdir()
@@ -402,6 +421,7 @@ def _write_dataset(root: Path, **semantic_updates: object) -> Path:
             producer_sources
         ),
         "xgb_bridge_source_v1": xgb_identity,
+        "train_rank_reference_v1": rank_identity,
         "prediction_model_v1": "candidate",
         "prediction_splits_v1": ["train"],
         "prediction_rows_v1": 2,
@@ -552,6 +572,13 @@ def _write_bundle(tmp_path: Path) -> tuple[Path, dict, Path]:
                 json.loads(
                     (dataset / "manifest.json").read_text(encoding="utf-8")
                 )["xgb_bridge_source_v1"]
+            )
+        ),
+        "train_rank_reference": json.loads(
+            json.dumps(
+                json.loads(
+                    (dataset / "manifest.json").read_text(encoding="utf-8")
+                )["train_rank_reference_v1"]
             )
         ),
         "source_code_files": source_inventory,
@@ -812,6 +839,18 @@ def test_authoritative_v3_dataset_producer_owns_feature_and_record_build(
         "frozen_pair_frames",
         lambda _self: (canonical_v3, base_m1, prebuilt_identity),
     )
+
+    observed_attach: list[object] = []
+
+    def _unit_attach(self: object, reference: object) -> None:
+        observed_attach.append(reference)
+        self._train_rank_reference = reference
+
+    monkeypatch.setattr(
+        prebuilt_module.PrebuiltStateLoader,
+        "attach_train_rank_reference",
+        _unit_attach,
+    )
     fake_xgb = type(
         "UnitXGB",
         (),
@@ -878,6 +917,7 @@ def test_authoritative_v3_dataset_producer_owns_feature_and_record_build(
         ),
     )
 
+    rank_block = fixture_manifest["train_rank_reference_v1"]
     output = tmp_path / "materialized_v3"
     producer_args = {
         "run_id": "UNIT_PRODUCER_V3",
@@ -889,10 +929,37 @@ def test_authoritative_v3_dataset_producer_owns_feature_and_record_build(
         "xgb_bundle_dir": Path(xgb_identity["bundle_root"]),
         "prebuilt_pair_manifest_path": prebuilt_manifest,
         "prebuilt_generation_root": tmp_path.resolve(),
+        "train_rank_reference_npz": Path(rank_block["path"]),
+        "train_rank_reference_sha256": rank_block["sha256"],
         "expected_model": "candidate",
         "expected_splits": ["train"],
         "chunk_rows": 512,
     }
+
+    # The immutable TRAIN-rank reference is a mandatory producer input:
+    # omitting it is a signature error, never a default.
+    with pytest.raises(TypeError):
+        materialize_authoritative_v3_training_dataset(
+            output_dir=(tmp_path / "rejected_missing_rank").resolve(),
+            **{
+                key: value
+                for key, value in producer_args.items()
+                if not key.startswith("train_rank_reference")
+            },
+        )
+    with pytest.raises(
+        RuntimeError,
+        match="MODEL_NATIVE_TRAIN_RANK_REFERENCE_SHA_MISMATCH",
+    ):
+        materialize_authoritative_v3_training_dataset(
+            output_dir=(tmp_path / "rejected_rank_sha").resolve(),
+            **{
+                **producer_args,
+                "train_rank_reference_sha256": "0" * 64,
+            },
+        )
+    assert observed_attach == []
+
     destination, manifest, inventory = (
         materialize_authoritative_v3_training_dataset(
             output_dir=output.resolve(),
@@ -901,6 +968,17 @@ def test_authoritative_v3_dataset_producer_owns_feature_and_record_build(
     )
 
     assert destination == output.resolve()
+    assert len(observed_attach) == 1
+    assert observed_attach[0].sha256 == rank_block["sha256"]
+    assert manifest["train_rank_reference_v1"] == rank_block
+    produced_event = json.loads(
+        (destination / "producer_event.json").read_text(encoding="utf-8")
+    )
+    assert produced_event["train_rank_reference_v1"] == rank_block
+    assert (
+        manifest["producer_inputs_v1"]["train_rank_reference"]["sha256"]
+        == rank_block["sha256"]
+    )
     assert manifest["direction_counts_v1"] == {
         "LONG": 1,
         "SHORT": 1,
@@ -996,6 +1074,64 @@ def test_v3_dataset_rehashes_every_bound_producer_input(
     )
 
     with pytest.raises(RuntimeError, match="file bytes differ"):
+        require_authoritative_v3_training_dataset(dataset.resolve())
+
+
+def test_v3_dataset_requires_train_rank_reference_block(
+    tmp_path: Path,
+) -> None:
+    dataset = _write_dataset(tmp_path / "dataset")
+    manifest_path = dataset / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    del manifest["train_rank_reference_v1"]
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="V3_TRAINING_DATASET_MANIFEST_FIELDS_INVALID",
+    ):
+        require_authoritative_v3_training_dataset(dataset.resolve())
+
+
+def test_v3_dataset_rejects_forged_train_rank_reference_identity(
+    tmp_path: Path,
+) -> None:
+    dataset = _write_dataset(tmp_path / "dataset")
+    manifest_path = dataset / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    forged = dict(manifest["train_rank_reference_v1"])
+    forged["sha256"] = "0" * 64
+    manifest["train_rank_reference_v1"] = forged
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="TRAIN_RANK_REFERENCE"):
+        require_authoritative_v3_training_dataset(dataset.resolve())
+
+
+def test_v3_dataset_rejects_train_rank_fit_window_forgery(
+    tmp_path: Path,
+) -> None:
+    dataset = _write_dataset(tmp_path / "dataset")
+    manifest_path = dataset / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    forged = dict(manifest["train_rank_reference_v1"])
+    forged["fit_row_count"] = int(forged["fit_row_count"]) + 1
+    manifest["train_rank_reference_v1"] = forged
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="stored identity differs from the loaded reference bytes",
+    ):
         require_authoritative_v3_training_dataset(dataset.resolve())
 
 
@@ -1115,6 +1251,49 @@ def test_v3_lineage_rehashes_xgb_bridge_source_bytes(
     )
 
     with pytest.raises(RuntimeError, match="XGB_BRIDGE_SOURCE"):
+        require_reproducible_v3_training_lineage(
+            bundle_dir=bundle.resolve(),
+            config=config,
+            state_path=state_path.resolve(),
+        )
+
+
+def test_v3_lineage_requires_verbatim_train_rank_reference_copy(
+    tmp_path: Path,
+) -> None:
+    bundle, config, state_path = _write_bundle(tmp_path)
+    manifest_path = bundle / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    forged = json.loads(json.dumps(manifest))
+    forged["training_lineage_v1"]["train_rank_reference"] = dict(
+        forged["training_lineage_v1"]["train_rank_reference"],
+        fit_row_count=999,
+    )
+    manifest_path.write_text(
+        json.dumps(forged, sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="stored identity differs from the loaded reference bytes",
+    ):
+        require_reproducible_v3_training_lineage(
+            bundle_dir=bundle.resolve(),
+            config=config,
+            state_path=state_path.resolve(),
+        )
+
+    dropped = json.loads(json.dumps(manifest))
+    del dropped["training_lineage_v1"]["train_rank_reference"]
+    manifest_path.write_text(
+        json.dumps(dropped, sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="V3_TRAINING_LINEAGE_MISSING_OR_NONCANONICAL",
+    ):
         require_reproducible_v3_training_lineage(
             bundle_dir=bundle.resolve(),
             config=config,

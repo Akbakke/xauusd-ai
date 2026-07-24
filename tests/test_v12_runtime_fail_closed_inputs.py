@@ -35,6 +35,16 @@ def test_active_exit_replay_factory_has_no_smart_entry_or_mutable_provider() -> 
     assert "SmartEntry" not in source
     assert "load_default" not in source
     assert "load_frozen_pair" in source
+    assert "attach_train_rank_reference" in source
+    # The immutable TRAIN-rank reference kwarg is mandatory — omitting it is
+    # a signature error, never a default.
+    with pytest.raises(TypeError):
+        V12Pipeline.load_active_exit_replay(
+            artifact_registry_path=Path("/missing/registry.json"),
+            prebuilt_pair_manifest_path=Path("/missing/pair.json"),
+            prebuilt_generation_root=Path("/missing/generations"),
+            closed_m1_provider=SimpleNamespace(),
+        )
     with pytest.raises(
         RuntimeError,
         match="REQUIRES_EXACT_SOURCE_TAPE",
@@ -44,6 +54,46 @@ def test_active_exit_replay_factory_has_no_smart_entry_or_mutable_provider() -> 
             prebuilt_pair_manifest_path=Path("/missing/pair.json"),
             prebuilt_generation_root=Path("/missing/generations"),
             closed_m1_provider=SimpleNamespace(),
+            train_rank_reference=SimpleNamespace(),
+        )
+
+
+def test_active_exit_replay_rejects_non_reference_train_rank_object() -> None:
+    import hashlib
+
+    from gx1.execution.model_native_entry_replay_v1 import SourceTape
+
+    times = pd.date_range("2026-07-08T09:00:00Z", periods=4, freq="min")
+    ordinal = np.arange(len(times), dtype=np.float64)
+    bid_open = 3300.0 + ordinal * 0.01
+    bid_close = bid_open + 0.005
+    ask_open = bid_open + 0.2
+    ask_close = bid_close + 0.2
+    tape = SourceTape(
+        source_path=Path("/tmp/unit-source-tape.parquet"),
+        source_sha256=hashlib.sha256(b"unit-source-tape").hexdigest(),
+        source_size_bytes=1,
+        times=times.to_numpy(),
+        index=pd.Index(times),
+        bid_open=bid_open,
+        ask_open=ask_open,
+        bid_close=bid_close,
+        ask_close=ask_close,
+        bid_high=np.maximum(bid_open, bid_close) + 0.1,
+        bid_low=np.minimum(bid_open, bid_close) - 0.1,
+        ask_high=np.maximum(ask_open, ask_close) + 0.1,
+        ask_low=np.minimum(ask_open, ask_close) - 0.1,
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="ACTIVE_EXIT_REPLAY_TRAIN_RANK_REFERENCE_INVALID",
+    ):
+        V12Pipeline.load_active_exit_replay(
+            artifact_registry_path=Path("/missing/registry.json"),
+            prebuilt_pair_manifest_path=Path("/missing/pair.json"),
+            prebuilt_generation_root=Path("/missing/generations"),
+            closed_m1_provider=tape,
+            train_rank_reference=SimpleNamespace(),
         )
 
 
@@ -261,14 +311,19 @@ class _CanonicalLoader:
         window: pd.DataFrame,
         *,
         base_m1: pd.DataFrame | None = None,
+        rank_attached: bool = True,
     ) -> None:
         self.cutoff_ts = cutoff
         self.window = window
         self._base28 = base_m1
+        self._rank_attached = rank_attached
         self.requested: list[tuple[pd.Timestamp, int]] = []
 
     def refresh_if_changed(self) -> bool:
         return False
+
+    def train_rank_reference_attached(self) -> bool:
+        return self._rank_attached
 
     def get_window(self, end_ts: pd.Timestamp, *, n_bars: int) -> pd.DataFrame:
         self.requested.append((end_ts, n_bars))
@@ -320,6 +375,32 @@ def test_entry_canonical_freshness_is_fixed_and_ignores_exit_staleness_env(
     assert exit_raised.value.reason == "exit_latest_required_closed_m5_unavailable"
     assert exit_raised.value.evidence["required_latest_m5"] == "2026-07-16 12:00:00+00:00"
     assert loader.requested == []
+
+
+def test_exit_canonical_requires_attached_train_rank_reference() -> None:
+    now = pd.Timestamp("2026-07-16T12:07:00Z")
+    decision_m1 = now - pd.Timedelta(minutes=1)
+    base_m1 = _v3_m1_source(str(decision_m1))
+    required_m5 = required_closed_m5_keys_for_v3_window(decision_m1, base_m1)
+    canonical = pd.DataFrame(
+        {"atr_bps": np.full(len(required_m5), 12.0)},
+        index=required_m5,
+    )
+    loader = _CanonicalLoader(
+        required_m5[-1],
+        canonical,
+        base_m1=base_m1,
+        rank_attached=False,
+    )
+    pipe = _pipeline(loader)
+
+    with pytest.raises(
+        RuntimeError,
+        match="EXIT_TRAIN_RANK_REFERENCE_UNBOUND",
+    ):
+        pipe._refresh_exit_canonical(now)
+    assert loader.requested == []
+    assert pipe._last_exit_augmented is None
 
 
 def test_exit_canonical_window_is_derived_from_exact_512_m1_coverage() -> None:

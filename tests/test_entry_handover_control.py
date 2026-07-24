@@ -4,7 +4,9 @@ import subprocess
 from pathlib import Path
 
 
-REPO = Path("/home/andre2/src/GX1_ENGINE")
+# One truth: test the checked-out tree these tests live in (worktrees
+# included), never a hardcoded absolute clone path.
+REPO = Path(__file__).resolve().parents[1]
 HANDOVER = REPO / "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 HANDOVER_VIEWER = REPO / "scripts/gx1_handover.sh"
 CONTROL = REPO / "scripts/entry_next_edge_control.sh"
@@ -252,9 +254,20 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     )
 
     assert result.returncode == 0
+    # The viewer deliberately pins one repository root inside its own source.
+    # Recompute the fingerprint against exactly that root (path bytes are part
+    # of the hash), so this test stays exact when run from a worktree checkout.
+    viewer_repo = Path(
+        next(
+            line.split("=", 1)[1].strip()
+            for line in HANDOVER_VIEWER.read_text(encoding="utf-8").splitlines()
+            if line.startswith("REPO=")
+        )
+    )
     digest = hashlib.sha256()
     digest.update(b"gx1-takeover-authority-v1\0")
-    for index, path in enumerate(AUTHORITY_PATHS):
+    for index, authority_path in enumerate(AUTHORITY_PATHS):
+        path = viewer_repo / authority_path.relative_to(REPO)
         path_bytes = str(path).encode("utf-8")
         payload = path.read_bytes()
         digest.update(index.to_bytes(4, "big"))
@@ -420,6 +433,8 @@ def test_v3_dataset_route_extends_existing_owner_with_explicit_inputs() -> None:
         "--xgb-bundle-dir",
         "--prebuilt-pair-manifest",
         "--prebuilt-generation-root",
+        "--train-rank-reference-npz",
+        "--train-rank-reference-sha256",
         "--expected-model",
         "--expected-splits",
         "--out-dir",
@@ -427,6 +442,28 @@ def test_v3_dataset_route_extends_existing_owner_with_explicit_inputs() -> None:
         assert flag in route
     assert "gx1_capped_run.sh" in route
     assert "-m gx1.exits.training.thin_record_dataset materialize" in route
+
+
+def test_canonical_active_exit_replay_route_requires_exact_bound_inputs() -> None:
+    source = CONTROL.read_text(encoding="utf-8")
+    route = source.split(
+        "  model-native-canonical-active-exit-replay)", 1
+    )[1].split("    ;;", 1)[0]
+
+    for flag in (
+        "--calibration",
+        "--proof",
+        "--artifact-registry",
+        "--source-tape",
+        "--prebuilt-pair-manifest",
+        "--prebuilt-generation-root",
+        "--train-rank-reference-npz",
+        "--train-rank-reference-sha256",
+        "--authority-root",
+    ):
+        assert flag in route
+    assert "gx1_capped_run.sh" in route
+    assert "produce-canonical-joint-exit-proof" in route
 
 
 def test_rebuild_preflight_route_requires_the_exact_rebuild_wrapper_inputs() -> None:

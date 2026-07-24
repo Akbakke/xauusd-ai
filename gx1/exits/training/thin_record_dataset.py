@@ -102,6 +102,7 @@ V3_TRAINING_PRODUCER_INPUT_NAMES = frozenset(
         "canonical_v3",
         "base_m1",
         "prebuilt_pair_manifest",
+        "train_rank_reference",
     }
 )
 V3_XGB_BRIDGE_SOURCE_SCHEMA_VERSION = "exit_xgb_bridge_source_identity_v1"
@@ -224,6 +225,7 @@ _V3_LINEAGE_KEYS = frozenset(
         "dataset_inventory_sha256",
         "m5_prebuilt",
         "xgb_bridge_source",
+        "train_rank_reference",
         "source_code_files",
         "source_code_inventory_sha256",
         "split_uid_sha256",
@@ -267,6 +269,7 @@ _V3_DATASET_MANIFEST_KEYS = frozenset(
         "producer_source_files_v1",
         "producer_source_inventory_sha256_v1",
         "xgb_bridge_source_v1",
+        "train_rank_reference_v1",
         "prediction_model_v1",
         "prediction_splits_v1",
         "prediction_rows_v1",
@@ -630,6 +633,41 @@ def _require_v3_producer_inputs(
     return inputs
 
 
+def _require_v3_train_rank_reference(
+    manifest: Mapping[str, Any],
+    *,
+    producer_inputs: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Require one exact bound TRAIN-rank identity on the dataset manifest.
+
+    A dataset without this block never admits training: the Exit feature
+    surface (``atr_bucket``/``spread_bucket``) is derived only against one
+    immutable TRAIN-only reference and its identity must survive verbatim into
+    trainer/bundle lineage.
+    """
+
+    from gx1.contracts.entry_model_native_state_v2 import (
+        require_train_rank_reference_identity_v2,
+    )
+
+    if "train_rank_reference_v1" not in manifest:
+        raise RuntimeError("V3_TRAINING_TRAIN_RANK_REFERENCE_MISSING")
+    block = require_train_rank_reference_identity_v2(
+        manifest["train_rank_reference_v1"],
+        context="V3_TRAINING_TRAIN_RANK_REFERENCE",
+        verify_artifact=True,
+    )
+    binding = producer_inputs["train_rank_reference"]
+    if (
+        block["path"] != binding["path"]
+        or block["sha256"] != binding["sha256"]
+    ):
+        raise RuntimeError(
+            "V3_TRAINING_TRAIN_RANK_REFERENCE_BINDING_MISMATCH"
+        )
+    return block
+
+
 def build_v3_producer_source_inventory(
     repo_root: Path,
 ) -> list[dict[str, Any]]:
@@ -927,6 +965,7 @@ def _require_v3_dataset_producer_event(
         "producer_source_files_v1",
         "producer_source_inventory_sha256_v1",
         "xgb_bridge_source_v1",
+        "train_rank_reference_v1",
         "prediction_model_v1",
         "prediction_splits_v1",
         "prediction_rows_v1",
@@ -983,6 +1022,7 @@ def _require_v3_dataset_producer_event(
         "input_dim",
         "window_len",
         "feature_names_hash",
+        "train_rank_reference_v1",
         "prediction_model_v1",
         "prediction_splits_v1",
         "prediction_rows_v1",
@@ -1596,6 +1636,10 @@ def require_authoritative_v3_training_dataset(
     ):
         raise RuntimeError("V3_TRAINING_DATASET_PRODUCER_IDENTITY_INVALID")
     producer_inputs = _require_v3_producer_inputs(manifest)
+    _require_v3_train_rank_reference(
+        manifest,
+        producer_inputs=producer_inputs,
+    )
     producer_sources = _require_v3_producer_source_inventory(manifest)
     prediction_summary = _prediction_input_summary(producer_inputs)
     files = manifest.get("files")
@@ -1765,6 +1809,17 @@ def require_reproducible_v3_training_lineage(
     )
     if dataset_manifest.get("xgb_bridge_source_v1") != xgb_bridge_source:
         raise RuntimeError("V3_TRAINING_XGB_BRIDGE_SOURCE_MISMATCH")
+    from gx1.contracts.entry_model_native_state_v2 import (
+        require_train_rank_reference_identity_v2,
+    )
+
+    train_rank_reference = require_train_rank_reference_identity_v2(
+        lineage["train_rank_reference"],
+        context="V3_TRAINING_LINEAGE_TRAIN_RANK_REFERENCE",
+        verify_artifact=True,
+    )
+    if dataset_manifest.get("train_rank_reference_v1") != train_rank_reference:
+        raise RuntimeError("V3_TRAINING_TRAIN_RANK_REFERENCE_MISMATCH")
 
     m5_prebuilt = _require_v3_regular_file_binding(
         lineage["m5_prebuilt"],
@@ -2215,6 +2270,7 @@ def _producer_input_bindings(
     entry_bundle_dir: Path,
     source_tape_binding: Mapping[str, Any],
     prebuilt_identity: Mapping[str, Any],
+    train_rank_reference: Any,
 ) -> dict[str, dict[str, Any]]:
     canonical = prebuilt_identity.get("canonical_v3")
     base = prebuilt_identity.get("base28")
@@ -2231,6 +2287,7 @@ def _producer_input_bindings(
         "prebuilt_pair_manifest": Path(
             str(prebuilt_identity.get("manifest_path") or "")
         ),
+        "train_rank_reference": Path(train_rank_reference.path),
     }
     if set(paths) != set(V3_TRAINING_PRODUCER_INPUT_NAMES):
         raise RuntimeError("V3_TRAINING_PRODUCER_INPUT_SET_INTERNAL_ERROR")
@@ -2257,6 +2314,12 @@ def _producer_input_bindings(
         raise RuntimeError("V3_TRAINING_PREBUILT_MANIFEST_IDENTITY_MISMATCH")
     if bindings["source_tape"] != dict(source_tape_binding):
         raise RuntimeError("V3_TRAINING_SOURCE_TAPE_IDENTITY_MISMATCH")
+    if bindings["train_rank_reference"]["sha256"] != str(
+        train_rank_reference.sha256
+    ):
+        raise RuntimeError(
+            "V3_TRAINING_TRAIN_RANK_REFERENCE_IDENTITY_MISMATCH"
+        )
     return bindings
 
 
@@ -2272,6 +2335,8 @@ def materialize_authoritative_v3_training_dataset(
     xgb_bundle_dir: Path,
     prebuilt_pair_manifest_path: Path,
     prebuilt_generation_root: Path,
+    train_rank_reference_npz: Path,
+    train_rank_reference_sha256: str,
     expected_model: str,
     expected_splits: Sequence[str],
     chunk_rows: int = 50_000,
@@ -2281,10 +2346,17 @@ def materialize_authoritative_v3_training_dataset(
     Market features are derived only through the serving-owned frozen prebuilt
     loader, Exit-XGB bridge and ``build_v3_base_feature_rows``.  The caller
     supplies artifact identities, never a feature matrix, overlay or record.
+    The immutable TRAIN-only rank reference is mandatory: it is the sole
+    owner of the ``atr_bucket``/``spread_bucket`` Exit inputs and its exact
+    identity is bound into the producer event and dataset manifest.
     """
 
     from gx1.contracts.entry_model_native_bundle_commit_v1 import (
         publish_bundle_directory_noreplace,
+    )
+    from gx1.contracts.entry_model_native_state_v2 import (
+        load_train_rank_reference_v2,
+        train_rank_reference_identity_v2,
     )
     from gx1.execution.model_native_entry_replay_v1 import SourceTape
     from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
@@ -2344,12 +2416,26 @@ def materialize_authoritative_v3_training_dataset(
     ):
         raise RuntimeError("V3_TRAINING_PREDICTION_ROLE_MISMATCH")
 
+    rank_reference = load_train_rank_reference_v2(
+        Path(train_rank_reference_npz),
+        expected_sha256=_exact_sha256(
+            train_rank_reference_sha256,
+            context="V3_TRAINING_TRAIN_RANK_REFERENCE_SHA256",
+        ),
+    )
     tape = SourceTape.load(Path(source_tape_path))
     loader = PrebuiltStateLoader(
         pair_manifest_path=Path(prebuilt_pair_manifest_path),
         generation_root=Path(prebuilt_generation_root),
     )
     loader.load_frozen_pair()
+    # Bind the immutable TRAIN-rank reference BEFORE reading the frozen frames
+    # so the exact bucket fields exist on the same canonical object the Exit
+    # XGB bridge consumes. The persisted pair was already proven bucket-free.
+    loader.attach_train_rank_reference(rank_reference)
+    train_rank_block = loader.train_rank_reference_binding()
+    if train_rank_block != train_rank_reference_identity_v2(rank_reference):
+        raise RuntimeError("V3_TRAINING_TRAIN_RANK_REFERENCE_BINDING_DRIFT")
     canonical_v3, base_m1, prebuilt_identity = loader.frozen_pair_frames()
     xgb = XGBLiveInference.load(Path(xgb_bundle_dir))
     xgb_identity = require_v3_xgb_bridge_source_identity(
@@ -2361,6 +2447,7 @@ def materialize_authoritative_v3_training_dataset(
         entry_bundle_dir=Path(entry_bundle_dir).expanduser().resolve(),
         source_tape_binding=tape.source_binding,
         prebuilt_identity=prebuilt_identity,
+        train_rank_reference=rank_reference,
     )
     prediction_summary = _prediction_input_summary(producer_inputs)
     if (
@@ -2550,6 +2637,7 @@ def materialize_authoritative_v3_training_dataset(
                 producer_sources
             ),
             "xgb_bridge_source_v1": xgb_identity,
+            "train_rank_reference_v1": train_rank_block,
             "prediction_model_v1": model_name,
             "prediction_splits_v1": split_names,
             "prediction_rows_v1": prediction_summary["rows"],
@@ -2907,6 +2995,8 @@ def _build_materializer_parser() -> argparse.ArgumentParser:
     parser.add_argument("--xgb-bundle-dir", required=True)
     parser.add_argument("--prebuilt-pair-manifest", required=True)
     parser.add_argument("--prebuilt-generation-root", required=True)
+    parser.add_argument("--train-rank-reference-npz", required=True)
+    parser.add_argument("--train-rank-reference-sha256", required=True)
     parser.add_argument("--expected-model", required=True)
     parser.add_argument("--expected-splits", required=True)
     parser.add_argument("--out-dir", required=True)
@@ -2937,6 +3027,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             prebuilt_generation_root=Path(
                 args.prebuilt_generation_root
             ),
+            train_rank_reference_npz=Path(args.train_rank_reference_npz),
+            train_rank_reference_sha256=str(args.train_rank_reference_sha256),
             expected_model=str(args.expected_model),
             expected_splits=expected_splits,
             chunk_rows=int(args.chunk_rows),

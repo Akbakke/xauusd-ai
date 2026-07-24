@@ -69,21 +69,41 @@ def _frozen_pair_identity(
 
 
 class _FrozenPairStub:
-    def __init__(self, identity: dict[str, object]) -> None:
+    def __init__(
+        self,
+        identity: dict[str, object],
+        *,
+        train_rank_binding: dict[str, object] | None = None,
+    ) -> None:
         self._identity = identity
+        self._train_rank_binding = train_rank_binding
 
     def frozen_pair_frames(
         self,
     ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, object]]:
         return pd.DataFrame(), pd.DataFrame(), dict(self._identity)
 
+    def train_rank_reference_binding(self) -> dict[str, object]:
+        if self._train_rank_binding is None:
+            raise RuntimeError("PREBUILT_TRAIN_RANK_REFERENCE_UNBOUND")
+        return dict(self._train_rank_binding)
+
 
 class _CanonicalActiveExitStub:
     """Exercise the producer loop while isolating heavyweight model loading."""
 
-    def __init__(self, *, tape: object, identity: dict[str, object]) -> None:
+    def __init__(
+        self,
+        *,
+        tape: object,
+        identity: dict[str, object],
+        train_rank_binding: dict[str, object] | None = None,
+    ) -> None:
         self._tape = tape
-        self.prebuilt_loader = _FrozenPairStub(identity)
+        self.prebuilt_loader = _FrozenPairStub(
+            identity,
+            train_rank_binding=train_rank_binding,
+        )
 
     def make_exit_decision(
         self,
@@ -600,16 +620,39 @@ def test_canonical_active_exit_producer_owns_every_full_test_trace(
     generation_root = Path(prebuilt["generation_root"]).resolve()
     identity = _frozen_pair_identity(pair_manifest, generation_root)
 
+    from gx1.contracts.entry_model_native_state_v2 import (
+        train_rank_reference_identity_v2,
+    )
+    from tests.model_native_rank_reference_support import (
+        materialize_test_rank_reference,
+    )
+
+    _rank_source, rank_reference = materialize_test_rank_reference(
+        tmp_path / "rank_reference",
+        run_id="UNIT_ACTIVE_EXIT_RANK",
+        history_start="2026-07-01T00:00:00Z",
+        fit_start="2026-07-02T00:00:00Z",
+        fit_end="2026-07-03T00:00:00Z",
+    )
+    rank_identity = train_rank_reference_identity_v2(rank_reference)
+
+    observed_rank_references: list[object] = []
+
     def load_stub(
         cls: type[V12Pipeline],
         *,
         closed_m1_provider: object,
+        train_rank_reference: object,
         **_kwargs: object,
     ) -> _CanonicalActiveExitStub:
         del cls
+        observed_rank_references.append(train_rank_reference)
         return _CanonicalActiveExitStub(
             tape=closed_m1_provider,
             identity=identity,
+            train_rank_binding=train_rank_reference_identity_v2(
+                train_rank_reference
+            ),
         )
 
     monkeypatch.setattr(
@@ -617,6 +660,20 @@ def test_canonical_active_exit_producer_owns_every_full_test_trace(
         "load_active_exit_replay",
         classmethod(load_stub),
     )
+    with pytest.raises(TypeError):
+        produce_canonical_active_exit_joint_sizing_proof(
+            calibration_path=Path(
+                evidence["calibration_artifact"]["json_path"]
+            ),
+            proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
+            artifact_registry_path=Path(evidence["artifact_registry_path"]),
+            source_tape_path=Path(
+                evidence["oos_source"]["source_tape"]["path"]
+            ),
+            prebuilt_pair_manifest_path=pair_manifest,
+            prebuilt_generation_root=generation_root,
+            authority_root=Path(evidence["authority_root"]),
+        )
     proof_path, proof = produce_canonical_active_exit_joint_sizing_proof(
         calibration_path=Path(evidence["calibration_artifact"]["json_path"]),
         proof_path=Path(evidence["oos_proof_artifact"]["json_path"]),
@@ -624,6 +681,8 @@ def test_canonical_active_exit_producer_owns_every_full_test_trace(
         source_tape_path=Path(evidence["oos_source"]["source_tape"]["path"]),
         prebuilt_pair_manifest_path=pair_manifest,
         prebuilt_generation_root=generation_root,
+        train_rank_reference_npz=rank_reference.path,
+        train_rank_reference_sha256=rank_reference.sha256,
         authority_root=Path(evidence["authority_root"]),
     )
 
@@ -631,6 +690,9 @@ def test_canonical_active_exit_producer_owns_every_full_test_trace(
     assert proof["decision"] == "PASS"
     producer = proof["canonical_active_exit_replay_producer"]
     assert producer["decision"] == "PASS"
+    assert producer["train_rank_reference"] == rank_identity
+    assert len(observed_rank_references) == 1
+    assert observed_rank_references[0].sha256 == rank_reference.sha256
     assert producer["rows"] == 360
     assert producer["trade_rows"] == 300
     assert producer["trace_rows"] == 1_500
@@ -680,6 +742,33 @@ def test_canonical_active_exit_producer_owns_every_full_test_trace(
         require_canonical_active_exit_replay_launch_authority(
             forged_tape,
             context="UNIT_FORGED_CANONICAL_ACTIVE_EXIT_TAPE",
+        )
+    forged_rank = dict(proof)
+    forged_rank["canonical_active_exit_replay_producer"] = dict(producer)
+    forged_rank["canonical_active_exit_replay_producer"][
+        "train_rank_reference"
+    ] = dict(rank_identity, sha256="0" * 64)
+    with pytest.raises(
+        ModelNativeSizingExecutionContractError,
+        match="train rank reference identity invalid",
+    ):
+        require_canonical_active_exit_replay_launch_authority(
+            forged_rank,
+            context="UNIT_FORGED_CANONICAL_ACTIVE_EXIT_RANK",
+        )
+    dropped_rank = dict(proof)
+    dropped_rank["canonical_active_exit_replay_producer"] = {
+        key: value
+        for key, value in producer.items()
+        if key != "train_rank_reference"
+    }
+    with pytest.raises(
+        ModelNativeSizingExecutionContractError,
+        match="missing=\\['train_rank_reference'\\]",
+    ):
+        require_canonical_active_exit_replay_launch_authority(
+            dropped_rank,
+            context="UNIT_DROPPED_CANONICAL_ACTIVE_EXIT_RANK",
         )
 
     loaded, _ = load_bound_joint_exit_sizing_proof(

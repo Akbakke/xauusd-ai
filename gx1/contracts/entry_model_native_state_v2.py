@@ -189,6 +189,82 @@ class TrainRankReferenceV2:
     spread_bps_sorted: np.ndarray
 
 
+# One-truth evidence projection of an immutable TRAIN-rank reference.  The
+# Exit chain (dataset producer_event/manifest, joint replay proof, trainer
+# bundle lineage and the live loader binding accessor) must all bind this
+# exact block; adding a second projection shape is forbidden.
+MODEL_NATIVE_TRAIN_RANK_IDENTITY_KEYS = frozenset(
+    {
+        "path",
+        "sha256",
+        "sidecar_sha256",
+        "fit_start_utc",
+        "fit_end_utc",
+        "fit_row_count",
+    }
+)
+
+
+def train_rank_reference_identity_v2(
+    reference: TrainRankReferenceV2,
+) -> dict[str, Any]:
+    """Project one loaded reference into its exact bindable identity block."""
+
+    if not isinstance(reference, TrainRankReferenceV2):
+        raise RuntimeError("MODEL_NATIVE_TRAIN_RANK_IDENTITY_SOURCE_INVALID")
+    return {
+        "path": str(reference.path),
+        "sha256": str(reference.sha256),
+        "sidecar_sha256": str(reference.sidecar_sha256),
+        "fit_start_utc": reference.fit_start_utc.isoformat(),
+        "fit_end_utc": reference.fit_end_utc.isoformat(),
+        "fit_row_count": int(reference.fit_row_count),
+    }
+
+
+def require_train_rank_reference_identity_v2(
+    value: object,
+    *,
+    context: str,
+    verify_artifact: bool,
+) -> dict[str, Any]:
+    """Fail closed unless ``value`` is one exact bound rank-reference identity.
+
+    ``verify_artifact=True`` reloads the named npz/sidecar bytes through the
+    strict loader and requires the stored block to match them bit-exactly.
+    """
+
+    if not isinstance(value, Mapping) or set(value) != set(
+        MODEL_NATIVE_TRAIN_RANK_IDENTITY_KEYS
+    ):
+        raise RuntimeError(f"{context}: exact train-rank identity keys required")
+    block = dict(value)
+    sha = str(block.get("sha256") or "").strip().lower()
+    sidecar_sha = str(block.get("sidecar_sha256") or "").strip().lower()
+    for name, digest in (("sha256", sha), ("sidecar_sha256", sidecar_sha)):
+        if len(digest) != 64 or any(
+            char not in "0123456789abcdef" for char in digest
+        ):
+            raise RuntimeError(f"{context}: {name} is not an exact SHA-256")
+    path = Path(str(block.get("path") or "")).expanduser()
+    if not str(block.get("path") or "") or not path.is_absolute():
+        raise RuntimeError(f"{context}: path must be explicit and absolute")
+    fit_start = parse_utc(block.get("fit_start_utc"), field=f"{context}.fit_start_utc")
+    fit_end = parse_utc(block.get("fit_end_utc"), field=f"{context}.fit_end_utc")
+    if fit_end < fit_start:
+        raise RuntimeError(f"{context}: fit window is inverted")
+    row_count = block.get("fit_row_count")
+    if isinstance(row_count, bool) or not isinstance(row_count, int) or row_count <= 0:
+        raise RuntimeError(f"{context}: fit_row_count must be a positive integer")
+    if verify_artifact:
+        reference = load_train_rank_reference_v2(path, expected_sha256=sha)
+        if block != train_rank_reference_identity_v2(reference):
+            raise RuntimeError(
+                f"{context}: stored identity differs from the loaded reference bytes"
+            )
+    return block
+
+
 def load_train_rank_reference_v2(
     path: Path,
     *,

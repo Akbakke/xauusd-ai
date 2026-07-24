@@ -1281,17 +1281,26 @@ def produce_canonical_active_exit_joint_sizing_proof(
     source_tape_path: Path,
     prebuilt_pair_manifest_path: Path,
     prebuilt_generation_root: Path,
+    train_rank_reference_npz: Path,
+    train_rank_reference_sha256: str,
     authority_root: Path,
     device: str = "cpu",
 ) -> tuple[Path, dict[str, Any]]:
     """Run every canonical TEST row through the exact active Exit stack.
 
     The producer owns replay/trace construction. It has no caller parameters
-    for rows, actions, fills, reasons, matrices or horizon caps.
+    for rows, actions, fills, reasons, matrices or horizon caps.  The
+    immutable TRAIN-only rank reference is mandatory: the active Exit stack
+    derives ``atr_bucket``/``spread_bucket`` only against it and its exact
+    identity is bound into the replay-proof producer evidence.
     """
 
     from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
         decode_model_native_runtime_head_evidence,
+    )
+    from gx1.contracts.entry_model_native_state_v2 import (
+        load_train_rank_reference_v2,
+        train_rank_reference_identity_v2,
     )
     from gx1.execution.model_native_entry_replay_v1 import SourceTape
     from gx1.execution.v12_pipeline import V12Pipeline
@@ -1304,6 +1313,18 @@ def produce_canonical_active_exit_joint_sizing_proof(
         raise SizingFinalizationError(
             "canonical active-Exit device must be exactly cpu or cuda"
         )
+    rank_sha = str(train_rank_reference_sha256 or "").strip().lower()
+    if len(rank_sha) != 64 or any(
+        char not in "0123456789abcdef" for char in rank_sha
+    ):
+        raise SizingFinalizationError(
+            "canonical active-Exit --train-rank-reference-sha256 must be an "
+            "exact SHA-256"
+        )
+    train_rank_reference = load_train_rank_reference_v2(
+        Path(train_rank_reference_npz),
+        expected_sha256=rank_sha,
+    )
     _require_stage_path(calibration_path, authority_root, "calibration")
     _require_stage_path(proof_path, authority_root, "proof")
     calibration, calibration_binding = load_bound_sizing_calibration(
@@ -1456,8 +1477,17 @@ def produce_canonical_active_exit_joint_sizing_proof(
         prebuilt_pair_manifest_path=pair_manifest_path,
         prebuilt_generation_root=generation_root,
         closed_m1_provider=tape,
+        train_rank_reference=train_rank_reference,
         device=str(device),
     )
+    train_rank_binding = pipeline.prebuilt_loader.train_rank_reference_binding()
+    if train_rank_binding != train_rank_reference_identity_v2(
+        train_rank_reference
+    ):
+        raise SizingFinalizationError(
+            "canonical active-Exit train-rank binding differs from the "
+            "loaded reference"
+        )
     _canonical, _base_m1, prebuilt_identity = (
         pipeline.prebuilt_loader.frozen_pair_frames()
     )
@@ -1744,6 +1774,7 @@ def produce_canonical_active_exit_joint_sizing_proof(
         "failures": [],
         "source_tape": _source_binding(tape.source_path),
         "prebuilt_pair": prebuilt_envelope,
+        "train_rank_reference": train_rank_binding,
         "runtime_predictions": prediction_binding,
         "prediction_report_artifact": report_binding,
         "prediction_provenance": provenance,
@@ -2048,6 +2079,12 @@ def _parser() -> argparse.ArgumentParser:
     canonical_joint.add_argument(
         "--prebuilt-generation-root", type=Path, required=True
     )
+    canonical_joint.add_argument(
+        "--train-rank-reference-npz", type=Path, required=True
+    )
+    canonical_joint.add_argument(
+        "--train-rank-reference-sha256", required=True
+    )
     canonical_joint.add_argument("--authority-root", type=Path, required=True)
     canonical_joint.add_argument(
         "--device",
@@ -2129,6 +2166,8 @@ def main() -> int:
             source_tape_path=args.source_tape,
             prebuilt_pair_manifest_path=args.prebuilt_pair_manifest,
             prebuilt_generation_root=args.prebuilt_generation_root,
+            train_rank_reference_npz=args.train_rank_reference_npz,
+            train_rank_reference_sha256=str(args.train_rank_reference_sha256),
             authority_root=args.authority_root,
             device=str(args.device),
         )
