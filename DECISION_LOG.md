@@ -1405,3 +1405,86 @@ Decision:
   or live operation was executed. Exit dataset/bundle/replay/live still need
   one exact bound TRAIN-rank identity and all historical Exit artifacts remain
   invalid.
+
+## 2026-07-24 — native production executed, first pair generation, exit rank binding
+
+Both strict native source routes ran for real under vedtak
+`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`. The accepted roots cover
+`[2019-01-01, 2026-07-24T12:00)` and were produced from clean commit
+`1751c931`: `XAU_M1_NATIVE_2019_20260724_V2` (2,652,244 rows, 921 chunks)
+and `XAU_M5_NATIVE_2019_20260724_V2` (535,978 rows, 185 chunks). The
+first 2020-11-01 roots are superseded diagnostics only: the live D1
+convergence floors (`D1_PCTL252_MIN_BARS=270`, `D1_EMA200_MIN_BARS=220`)
+make a 2020-11 start structurally unable to warm the pair before the
+2021 model range.
+
+The first full-history executions exposed real latent defects behind the
+new fail-closed validators, each repaired at its exact owner:
+
+- `build_basic_v1` silently skipped session features without a `ts`
+  column, then the mandatory session-volatility-pressure block failed on
+  missing `_v1_is_US`. Session evidence is now mandatory with an exact
+  time-source requirement; `add_session_features` no longer emits
+  synthetic zero sessions.
+- The candle-share block masked zero range to NaN; 102 real quiet-tape
+  bars produced mid-series gaps. Zero-range bars now yield exact-zero
+  body/wick shares; non-degenerate bars are bit-identical.
+- Cross-TF momentum required finite H1 ATR everywhere in the legacy
+  zero-warmup convention; it now carries exactly one leading NaN prefix
+  for the causal trim owner and fails closed on interior gaps.
+- The pair Group-A attach ran without `context_m5`, so 60-D1 liquidity
+  and trailing-1yr state would rebuild from the trim boundary — the
+  exact V11 failure mode. The attach now receives the full native
+  prehistory.
+- The per-candidate Group-A emission has its own convergence warmup at
+  the context boundary (whole-row NaN via `CausalContextWarmupError`);
+  the bootstrap now trims exactly the attached columns through the
+  shared trim owner before the immutable all-column finiteness gate.
+
+A 135,000-row real-data probe validated the repaired chain end to end,
+and the full run published the first immutable pair generation
+`077e5419…` from commit `aaeb0f82`: 468,267 canonical rows and 2,326,495
+BASE28 rows covering 2019-12-15T23:00 through 2026-07-24T11:55, 67,711
+warmup rows trimmed, `rank_fit_fields_absent=true`, full causal timing
+contract and both native manifests hash-bound, at the canonical serving
+pointer and generation root.
+
+The exit chain now binds one immutable TRAIN-rank identity end to end:
+one identity projection and fail-closed validator in the state-contract
+owner; `PrebuiltStateLoader.attach_train_rank_reference` derives
+`atr_bucket`/`spread_bucket` through the single formula owner and
+re-derives them on every async refresh before the atomic swap; the V3
+exit dataset producer and `produce-canonical-joint-exit-proof` take
+mandatory `--train-rank-reference-npz`/`--train-rank-reference-sha256`
+and bind the identity into manifest, producer event and replay-v7
+evidence; `load_active_exit_replay` requires the loaded reference,
+`load_default` requires an ACTIVE `train_rank_reference` registry entry,
+and the per-M1 exit canonical fails `EXIT_TRAIN_RANK_REFERENCE_UNBOUND`
+when unbound; the exit trainer copies the block verbatim into bundle
+lineage. The registry intentionally has no such entry yet, so live stays
+fail-closed.
+
+Operational record: the producer's clean-repository contract correctly
+aborted three runs (an in-repo harness worktree surfaced through
+`--untracked-files=all`, now excluded via repo-local `.git/info/exclude`;
+one commit landed during a running production and tripped
+`REPOSITORY_COMMIT_CHANGED_BEFORE_PUBLISH`). Source edits land between
+productions, never during. The full test suite is green at `aaeb0f82`.
+
+Decision:
+
+- the 2019 native roots and pair generation `077e5419…` are the only
+  current pair inputs; the 2020-11 roots are superseded diagnostics and
+  may be deleted only under an explicit cleanup decision;
+- fresh XGB/V3/Exit-IQL artifacts remain open, not failed: no XGB
+  trainer exists in the repository, and V3 dataset production requires
+  accepted Entry prediction evidence;
+- the Entry rebuild source cascade still reads the old canonical roots
+  carrying the December-2024 defect; rewiring it to the fresh native
+  roots supersedes that repair and is the recommended next decision;
+- the legacy `gx1-canonical-incremental` daemon still runs pre-removal
+  loop code whose output is already blocked by manifest admission;
+  stopping it is an operator action
+  (`sudo systemctl disable --now gx1-canonical-incremental.service`);
+- launch remains `BLOCK`; nothing here is model, edge or launch
+  evidence.

@@ -834,13 +834,19 @@ order, while timestamp phase and volume transforms are derived causally at the
 training/serve boundary. The complete snapshot-driven
 native→canonical-v3/raw-BASE28 producer now exists in that same pair owner and
 is routed as `model-native-canonical-pair`; it accepts no old-pair copy and
-binds native/source/code/formula/timing/schema/coverage lineage. Still open are
-a fresh V3 dataset on compliant inputs, execution of the canonical active-Exit
-full-TEST loop/event, fresh XGB/V3/Exit artifacts, native-M1/M5 and pair
-production, and one TRAIN-only immutable rank identity bound through every
-Entry/Exit dataset, bundle, replay and live consumer,
-empirical dataset/model/edge proof and canonical/live December-2024 tape
-parity.
+binds native/source/code/formula/timing/schema/coverage lineage. Native M1/M5
+production and the first pair generation (`077e5419…`, 2019-roots, 2026-07-24)
+are executed; the exit-chain TRAIN-rank identity binding is source-complete
+(loader attach + bucket derivation, V3 dataset and joint-replay routes take
+mandatory `--train-rank-reference-npz`/`--train-rank-reference-sha256`, live
+requires an ACTIVE `train_rank_reference` registry entry, trainer copies the
+block into bundle lineage). Still open are producing the immutable TRAIN-only
+rank reference and executing the bound routes, a fresh V3 dataset on accepted
+Entry prediction evidence, execution of the canonical active-Exit full-TEST
+loop/event, fresh XGB/V3/Exit artifacts (no XGB trainer exists in the
+repository), empirical dataset/model/edge proof, and the Entry-cascade
+decision to rewire its source from the December-2024-defective old canonical
+roots to the fresh native roots.
 
 Update this map whenever ownership or the active call graph changes. Remove
 obsolete facts instead of appending a second historical architecture.

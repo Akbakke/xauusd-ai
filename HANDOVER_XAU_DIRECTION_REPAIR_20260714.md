@@ -66,7 +66,17 @@ native-M1/M5 source-bundle producer: fixed three-day M1 and 15-day M5 MBA
 requests, retained response evidence, literal complete-only rederivation,
 streamed year parquets, clean source inventory, full source↔parquet proof and
 atomic no-replace publication through `model-native-native-m1-source` or
-`model-native-native-m5-source`. Neither has been executed.
+`model-native-native-m5-source`. Both executed on 2026-07-24 under vedtak
+`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`: the accepted 2019-01-01→2026-07-24
+roots are `XAU_M1_NATIVE_2019_20260724_V2` (2,652,244 rows) and
+`XAU_M5_NATIVE_2019_20260724_V2` (535,978 rows); the shorter 2020-11 roots are
+superseded diagnostics (the 270-bar D1 percentile floor cannot warm from a
+2020-11 start). The first immutable pair generation `077e5419…` is published
+at the canonical pointer: 468,267 canonical / 2,326,495 BASE28 rows from
+2019-12-15T23:00, produced by commit `aaeb0f82` after five real full-history
+fail-closed findings were repaired (mandatory session time source, exact-zero
+candle shares on zero-range bars, H1-ATR NaN-warmup carry in cross-TF
+momentum, full-prehistory Group-A context and Group-A candidate warmup trim).
 Caller-supplied replay diagnostics remain blocked from launch. The exact V3
 training-dataset writer/event is now code-proven in the existing owner; it
 accepts no caller-built matrix, overlay or record members and publishes
@@ -74,11 +84,15 @@ atomically. The existing sizing/replay owner now also code-proves the
 canonical active-Exit full-TEST producer: it owns the TEST rows, exact T+5
 fills and per-M1 `make_exit_decision` traces, emits explicit FLAT no-order
 evidence and binds every input/artifact/source/output byte in replay v7.
-A fresh dataset on compliant inputs, fresh XGB/V3/Exit artifacts, native-M1/M5
-production, execution of the now code-proven complete
-native→canonical-v3/raw-BASE28 bootstrap and immutable TRAIN-only rank binding,
-canonical/live December-2024 tape parity, execution of that producer on the
-fresh chain and every empirical dataset/model/edge gate are still open.
+Native-M1/M5 production and the first native→canonical-v3/raw-BASE28 pair
+generation are now executed, and the exit-chain TRAIN-rank identity binding
+(dataset, replay proof, live loader/registry and trainer bundle lineage) is
+source-complete. Still open: producing the immutable TRAIN-only rank
+reference itself and running the bound exit routes with it, fresh XGB (no
+trainer exists in the repository) → V3 → Exit-IQL artifacts on accepted Entry
+prediction evidence, the full-TEST producer run, the Entry-cascade decision to
+rewire its source from the December-2024-defective old canonical roots to the
+fresh native roots, and every empirical dataset/model/edge gate.
 
 The latest data/training/inference re-audit is also source-closed for the
 shared last-closed-M5 key, complete 95-row volume history, exact XGB sessions
@@ -774,7 +788,8 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    The same existing historical OANDA owner now implements immutable M1 and
    M5 source production and independent source-response↔parquet rederivation.
    M1 has a fixed three-day policy and M5 a fixed 15-day policy; both cap each
-   request at 4,320 theoretical slots. Both production executions are open.
+   request at 4,320 theoretical slots. Both productions executed 2026-07-24
+   (2019-roots) and the first pair generation `077e5419…` is published.
    BASE28 is now narrowed to the exact 13 physical native-M1 market fields in
    source order. Phase and volume transforms are derived causally; the model
    bar is M1 phase 4. Broad canonical/M5 duplicate ownership was removed.
@@ -819,11 +834,15 @@ Ordered steps (each gate fail-closed; stop at first red):
    Entry snapshot, bind SourceTape, canonical/BASE28/MTF state, active Exit and
    producer/output bytes, reuse the exact live per-bar primitive, emit FLAT as
    no order and reject fallback or horizon-cap acceptance.
-5. With explicit data authority, publish strict immutable native M1 and M5
-   roots, then execute `model-native-canonical-pair` for one
-   native→canonical-v3/raw-BASE28 generation and bind a separate immutable
-   TRAIN-only ATR/spread rank reference through every consumer. Repair and prove
-   canonical/live December-2024 M5 parity before a fresh rebuild.
+5. DONE 2026-07-24: strict immutable native M1/M5 roots published
+   (2019-01-01→2026-07-24 under `XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`) and
+   `model-native-canonical-pair` executed — pair generation `077e5419…` is the
+   current serving identity. The exit-chain rank-identity BINDING is
+   source-complete; producing the immutable TRAIN-only rank reference and
+   running the bound routes with it remains open. December-2024 parity of the
+   OLD canonical roots is superseded for the pair; the Entry cascade still
+   reads those roots, so rewire it to the fresh native roots (recommended) or
+   repair the old roots before a fresh rebuild.
 6. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
    readiness/trainability audit, then materialize a new recipe only from those
    new immutable bytes.

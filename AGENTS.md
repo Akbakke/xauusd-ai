@@ -102,21 +102,26 @@ Exit-IQL bundle declares research-only/non-production with no bound feature
 order or serving fold. Source now has one atomic canonical/BASE generation,
 full-history native-M5 recomputation, one shared M1/M5 ownership/closure contract,
 causal spread-only features, reproducible V3 lineage including XGB identity,
-the exact 173-field V3 writer and the full-TEST Exit producer. Current data do
-not satisfy the strict M1/M5 contract and no pair has been bootstrapped. The
-existing historical OANDA owner now has one immutable v3 source-bundle
+the exact 173-field V3 writer and the full-TEST Exit producer. The
+existing historical OANDA owner has one immutable v3 source-bundle
 operation for both native M1 and M5: fixed three-day M1 or 15-day M5 MBA
 requests (4,320 theoretical slots), retained compressed source responses,
 complete-only rederivation, streamed year partitions, clean-code inventory and
 atomic no-replace publication through `model-native-native-m1-source` or
-`model-native-native-m5-source`. Neither has been executed on production data.
-Open gates are native M1/M5 execution, an independently complete
-native→canonical-v3/raw-BASE28 bootstrap plus an immutable TRAIN-only rank
-reference, and a fresh 79-field
-XGB→V3→Exit-IQL rebuild/rescore/retrain and execution of the producer on those
-fresh bytes. V24/V7 remain immutable failure evidence.
-Canonical/live December-2024 M5 parity and every fresh empirical
-dataset/model/edge gate also remain open.
+`model-native-native-m5-source`. Both executed on 2026-07-24 under vedtak
+`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1` with 2019-01-01→2026-07-24 roots, and
+the first immutable pair generation `077e5419…` (468,267 canonical /
+2,326,495 BASE28 rows from 2019-12-15) is the current serving identity. The
+exit chain binds one immutable TRAIN-rank identity end to end (dataset,
+replay proof, live loader/registry, trainer lineage); the registry has no
+`train_rank_reference` entry yet, so live remains fail-closed. Open gates are
+producing the immutable TRAIN-only rank reference and executing the bound
+exit routes, a fresh 79-field XGB→V3→Exit-IQL rebuild/rescore/retrain (no XGB
+trainer exists; V3 requires accepted Entry prediction evidence) and the
+full-TEST producer run. V24/V7 remain immutable failure evidence. The Entry
+rebuild cascade still reads the old canonical roots with the December-2024
+defect; rewiring it to the fresh native roots is the recommended open
+decision. Every fresh empirical dataset/model/edge gate also remains open.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

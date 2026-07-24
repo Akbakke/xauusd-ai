@@ -52,9 +52,12 @@ previously missing immutable source producer: fixed three-day M1 and 15-day M5
 MBA requests, retained normalized source responses, literal complete-only row derivation,
 streamed yearly parquet, clean Git/source inventory, full source↔parquet
 rederivation and atomic no-replace publication. It is exposed only as
-`model-native-native-m1-source` or `model-native-native-m5-source` and has not
-been executed. M1 uses fixed three-day chunks and M5 fixed 15-day chunks; both
-are capped at 4,320 theoretical slots and callers cannot override the policy.
+`model-native-native-m1-source` or `model-native-native-m5-source`; both
+executed on 2026-07-24 (2019-01-01→2026-07-24 roots under vedtak
+`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`) and the first pair generation
+`077e5419…` is published at the canonical pointer. M1 uses fixed three-day
+chunks and M5 fixed 15-day chunks; both are capped at 4,320 theoretical slots
+and callers cannot override the policy.
 Non-causal `_v1_slip_bps` and
 `_v1_cost_bps_est` are removed; realized slippage remains execution/evaluation
 evidence, while observed spread keeps its honest name. The saturated
@@ -388,13 +391,15 @@ Do not rerun V7 or reuse V24. Preserve the completed target/objective,
 sampling, conditional-metric, normalization, context-routing, MTF,
 all-head/group-influence, atomic-publication, Exit-byte, transactional launch
 and runtime fail-close repairs, including the exact V3 storage, calibration
-support, runtime-head V3 and replay-v7 contracts. Preserve both completed
-canonical producers in the existing V3 dataset and sizing/replay owners, then
-materialize the code-proven native OANDA M1 and M5 bundles, prove the
-December-2024 window against their retained responses, run the code-proven
-native→canonical-v3/raw-BASE28 bootstrap, and close the immutable TRAIN-only
-ATR/spread rank binding across Entry and Exit. Only then rebuild fresh XAU-only splits
-and rerun every dataset/readiness audit before binding a new smoke recipe.
+support, runtime-head V3 and replay-v7 contracts. The native OANDA M1/M5
+bundles are materialized (2019-roots, 2026-07-24), the
+native→canonical-v3/raw-BASE28 bootstrap has published generation
+`077e5419…`, and the exit-chain TRAIN-rank identity binding is
+source-complete. Next: produce the immutable TRAIN-only rank reference and
+execute the bound exit routes, decide the Entry-cascade rewiring to the fresh
+native roots (the old canonical roots still carry the December-2024 defect),
+then rebuild fresh XAU-only splits and rerun every dataset/readiness audit
+before binding a new smoke recipe.
 
 After a new smoke passes, compare a declared full-history baseline with a
 TRAIN-only recent-regime challenger, select/calibrate without touching the
