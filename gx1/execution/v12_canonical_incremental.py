@@ -617,6 +617,10 @@ def _build_model_agnostic_canonical(
         ],
     )
     multi_tf = build_multi_tf_per_bar_features_v2(canonical)
+    # Group-A long-memory state (60-D1 liquidity, trailing-1yr ATR
+    # percentiles, pivots) must see the full causal native prehistory, not the
+    # warmup-trimmed decision slice — resetting it at the trim boundary was
+    # the exact V11 failure mode.
     canonical = attach_group_a_dip_struct_ctx_columns_parallel(
         canonical,
         multi_tf=multi_tf,
@@ -624,6 +628,7 @@ def _build_model_agnostic_canonical(
         workers=workers,
         checkpoint_dir=checkpoint_dir,
         checkpoint_key=checkpoint_key,
+        context_m5=indexed_m5[["open", "high", "low", "close"]],
     )
     canonical = canonical.drop(
         columns=[
