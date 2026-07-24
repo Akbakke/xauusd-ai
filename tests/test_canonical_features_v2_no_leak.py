@@ -157,7 +157,23 @@ def test_canonical_v2_native_frame_emits_mandatory_session_evidence() -> None:
 
     # >= 288*20 rows so ADR20-backed features get at least one finite value.
     m5 = _native_m5_frame("2026-01-05T00:00:00Z", periods=21 * 288)
+    # Real quiet-tape bars have high == low == open == close (102 such bars in
+    # the 2020-2026 native M5). They must yield exact zero body/wick shares,
+    # not mid-series NaN gaps.
+    for degenerate in (700, 1500):
+        px = float(m5.loc[degenerate, "close"])
+        for col in ("open", "high", "low", "close"):
+            m5.loc[degenerate, col] = px
+        for col in ("bid_open", "bid_high", "bid_low", "bid_close"):
+            m5.loc[degenerate, col] = px - 0.15
+        for col in ("ask_open", "ask_high", "ask_low", "ask_close"):
+            m5.loc[degenerate, col] = px + 0.15
     v2 = build_canonical_v2(m5)
+    for column in ("_v1_body_tr", "_v1_upper_tr", "_v1_lower_tr", "_v1_wick_imbalance"):
+        values = v2[column].to_numpy(dtype=np.float64)
+        assert np.isfinite(values).all(), column
+        for degenerate in (700, 1500):
+            assert values[degenerate + 1] == 0.0, (column, degenerate)
 
     for column in ("_v1_is_EU", "_v1_is_US", "_v1_session_volatility_pressure"):
         assert column in v2.columns, column

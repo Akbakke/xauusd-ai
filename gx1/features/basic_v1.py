@@ -997,27 +997,28 @@ def build_basic_v1(df):
     
     body = np.abs(close_arr - open_arr)
     range_arr = high_arr - low_arr
-    # Replace 0 with NaN: use mask
-    range_arr_safe = range_arr.copy()
-    range_arr_safe[range_arr_safe == 0.0] = np.nan
-    
+    # A real zero-range bar (high == low on quiet holiday tape) has exactly
+    # zero body and zero wicks, so 0/eps = 0.0 is the honest defined value.
+    # Masking zero range to NaN created mid-series non-finite gaps that the
+    # causal output validator rejects.
+
     # Max/min of open and close
     open_close_max = np.maximum(open_arr, close_arr)
     open_close_min = np.minimum(open_arr, close_arr)
     upper = np.clip(high_arr - open_close_max, 0, np.inf)
     lower = np.clip(open_close_min - low_arr, 0, np.inf)
 
-    body_tr = body / (range_arr_safe + 1e-12)
+    body_tr = body / (range_arr + 1e-12)
     body_tr_shifted = np.roll(body_tr, 1)
     body_tr_shifted[0] = 0.0
     df["_v1_body_tr"] = body_tr_shifted
     
-    upper_tr = upper / (range_arr_safe + 1e-12)
+    upper_tr = upper / (range_arr + 1e-12)
     upper_tr_shifted = np.roll(upper_tr, 1)
     upper_tr_shifted[0] = 0.0
     df["_v1_upper_tr"] = upper_tr_shifted
     
-    lower_tr = lower / (range_arr_safe + 1e-12)
+    lower_tr = lower / (range_arr + 1e-12)
     lower_tr_shifted = np.roll(lower_tr, 1)
     lower_tr_shifted[0] = 0.0
     df["_v1_lower_tr"] = lower_tr_shifted
@@ -1026,8 +1027,7 @@ def build_basic_v1(df):
     # Upper wick vs lower wick imbalance
     wick_upper = upper
     wick_lower = lower
-    range_safe = range_arr_safe.copy()
-    wick_imbalance = (wick_upper - wick_lower) / (range_safe + 1e-12)
+    wick_imbalance = (wick_upper - wick_lower) / (range_arr + 1e-12)
     wick_imbalance_shifted = np.roll(wick_imbalance, 1)
     wick_imbalance_shifted[0] = 0.0
     wick_imbalance_shifted = np.nan_to_num(wick_imbalance_shifted, nan=0.0)
