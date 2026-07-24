@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 from pathlib import Path
 
@@ -69,10 +70,68 @@ def _frames(
         }
     )
     base28 = pd.DataFrame(
-        {"atr_bps": np.array([10.0, 11.0, 12.0], dtype=np.float32)},
+        {
+            name: np.asarray(
+                [2400.0 + offset, 2401.0 + offset, 2402.0 + offset],
+                dtype=np.float64,
+            )
+            for offset, name in enumerate(incremental.RAW_BASE28_COLUMNS)
+        },
         index=index.rename("time"),
     )
     return canonical, base28
+
+
+def _lineage() -> dict[str, object]:
+    source_files = [{"path": "fixture.py", "sha256": "1" * 64}]
+    inventory_sha = hashlib.sha256(
+        json.dumps(
+            source_files,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+    def native(timeframe: str) -> dict[str, object]:
+        return {
+            "root": f"/fixture/{timeframe.lower()}",
+            "manifest_sha256": "2" * 64,
+            "instrument": "XAU_USD",
+            "timeframe": timeframe,
+            "explicit_vedtak_id": "FIXTURE_VEDTAK_001",
+            "source_environment": "practice",
+            "source_base_url": "https://api-fxpractice.oanda.com/v3",
+            "requested_start_utc": "2026-07-16T00:00:00+00:00",
+            "requested_end_utc_exclusive": "2026-07-17T00:00:00+00:00",
+            "row_count": 3,
+            "time_min_utc": "2026-07-16T12:00:00+00:00",
+            "time_max_utc": "2026-07-16T12:10:00+00:00",
+            "canonical_rows_sha256": "3" * 64,
+            "producer_git_commit": "4" * 40,
+            "producer_source_inventory_sha256": "5" * 64,
+            "manifest_payload_sha256": "6" * 64,
+        }
+
+    return {
+        "schema_version": state_module.PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION,
+        "explicit_vedtak_id": "FIXTURE_VEDTAK_001",
+        "producer_owner": "fixture",
+        "producer_git_commit": "7" * 40,
+        "producer_repository_clean": True,
+        "producer_source_files": source_files,
+        "producer_source_inventory_sha256": inventory_sha,
+        "native_sources": {"m1": native("M1"), "m5": native("M5")},
+        "derivation_contract": {
+            "raw_base28_columns": list(incremental.RAW_BASE28_COLUMNS),
+            "rank_fit_fields_absent": True,
+            "m5_phase_owned_by_m1_time": True,
+            "formula_contract": {"fixture": "v1"},
+            "timing_contract": {"fixture": "v1"},
+        },
+        "coverage": {"fixture_rows": 3},
+        "parent_pair_generation_id": None,
+    }
 
 
 def _write_staged_pair(
@@ -86,9 +145,9 @@ def _write_staged_pair(
         index=False,
     )
     incremental._write_candidate_parquet(
-        base28,
+        base28.reset_index(),
         staging_dir / incremental.PAIR_BASE28_FILENAME,
-        index=True,
+        index=False,
     )
 
 
@@ -104,6 +163,7 @@ def _prebuilt_fixture(tmp_path: Path) -> dict[str, Path | str]:
         generation_root=generation_root,
         expected_pair_generation_id=None,
         expected_manifest_sha256=None,
+        lineage_contract=_lineage(),
         created_utc="2026-07-23T00:00:00Z",
     )
     binding = read_prebuilt_pair_manifest(
@@ -140,6 +200,7 @@ def _publish_next_pair(
             generation_root=generation_root,
             expected_pair_generation_id=current.pair_generation_id,
             expected_manifest_sha256=current.manifest_sha256,
+            lineage_contract=_lineage(),
             created_utc="2026-07-23T00:05:00Z",
         )
     finally:
@@ -164,6 +225,11 @@ def _disable_augmenters(monkeypatch: pytest.MonkeyPatch) -> None:
         "_augment_cv3_with_regime_v4",
     ):
         monkeypatch.setattr(PrebuiltStateLoader, name, _identity)
+    monkeypatch.setattr(
+        state_module,
+        "_require_persisted_model_agnostic_canonical",
+        lambda _frame: None,
+    )
 
 
 def _loader(paths: dict[str, Path | str]) -> PrebuiltStateLoader:
@@ -194,7 +260,7 @@ def test_initial_load_is_bound_to_one_atomic_pair_generation(
     assert loader._cv3_binding.parquet_sha256 == _sha256(Path(paths["cv3"]))
     assert loader._base28_binding.parquet_sha256 == _sha256(Path(paths["base28"]))
     assert loader._cv3 is not None and loader._cv3.shape == (3, 2)
-    assert loader._base28 is not None and loader._base28.shape == (3, 1)
+    assert loader._base28 is not None and loader._base28.shape == (3, 13)
 
 
 def test_frozen_pair_load_disables_refresh_and_returns_exact_identity(
@@ -213,6 +279,15 @@ def test_frozen_pair_load_disables_refresh_and_returns_exact_identity(
     )
     assert identity["canonical_v3"]["sha256"] == _sha256(Path(paths["cv3"]))
     assert identity["base28"]["sha256"] == _sha256(Path(paths["base28"]))
+    assert identity["lineage"] == _lineage()
+    assert identity["lineage_sha256"] == hashlib.sha256(
+        json.dumps(
+            _lineage(),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
     assert identity["refresh_enabled"] is False
     assert loader._refresh_enabled is False
     assert loader.refresh_if_changed() is False
@@ -422,6 +497,7 @@ def test_pointer_replace_failure_never_serves_torn_pair(
                 generation_root=generation_root,
                 expected_pair_generation_id=current.pair_generation_id,
                 expected_manifest_sha256=current.manifest_sha256,
+                lineage_contract=_lineage(),
             )
     finally:
         incremental._discard_pair_staging_dir(
@@ -443,89 +519,92 @@ def test_pointer_replace_failure_never_serves_torn_pair(
     assert not list(tmp_path.glob(f".{manifest_path.name}.*.tmp"))
 
 
-def test_cycle_failure_cleans_staging_and_keeps_previous_pointer(
+def test_bootstrap_is_native_derived_and_one_time(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    paths = _prebuilt_fixture(tmp_path)
-    manifest_path = Path(paths["pair_manifest"])
-    generation_root = Path(paths["generation_root"])
-    previous_bytes = manifest_path.read_bytes()
-
-    def _canonical_candidate(*, source_path: Path, output_path: Path):
-        incremental._copy_candidate_parquet(source_path, output_path)
-        return 1, pd.Timestamp("2026-07-16T12:15:00Z")
-
-    def _base_failure(*_args, **_kwargs):
-        raise RuntimeError("simulated BASE28 computation failure")
-
-    monkeypatch.setattr(
-        incremental,
-        "update_canonical_v3_incremental",
-        _canonical_candidate,
-    )
-    monkeypatch.setattr(incremental, "update_base34_incremental", _base_failure)
-
-    with pytest.raises(RuntimeError, match="simulated BASE28 computation failure"):
-        incremental.run_one_cycle(
-            pair_manifest_path=manifest_path,
-            generation_root=generation_root,
-        )
-
-    assert manifest_path.read_bytes() == previous_bytes
-    assert not list(generation_root.glob(".staging-*"))
-
-
-def test_cycle_noop_does_not_call_base_or_leave_staging(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    paths = _prebuilt_fixture(tmp_path)
-    manifest_path = Path(paths["pair_manifest"])
-    generation_root = Path(paths["generation_root"])
-    current = read_prebuilt_pair_manifest(
-        manifest_path,
-        generation_root=generation_root,
-    )
-    monkeypatch.setattr(
-        incremental,
-        "update_canonical_v3_incremental",
-        lambda **_kwargs: (0, pd.Timestamp("2026-07-16T12:10:00Z")),
-    )
-
-    def _unexpected_base(*_args, **_kwargs):
-        raise AssertionError("BASE28 must not run when canonical has no new rows")
-
-    monkeypatch.setattr(
-        incremental,
-        "update_base34_incremental",
-        _unexpected_base,
-    )
-
-    result = incremental.run_one_cycle(
-        pair_manifest_path=manifest_path,
-        generation_root=generation_root,
-    )
-
-    assert result["pair_published"] is False
-    assert result["pair_generation_id"] == current.pair_generation_id
-    assert not list(generation_root.glob(".staging-*"))
-
-
-def test_bootstrap_is_explicit_one_time_pair_control_route(tmp_path: Path) -> None:
-    canonical, base28 = _frames()
-    canonical_source = tmp_path / "source-canonical.parquet"
-    base28_source = tmp_path / "source-base28.parquet"
-    canonical.to_parquet(canonical_source, index=False)
-    base28.to_parquet(base28_source, index=True)
     generation_root = tmp_path / "generations"
     pair_manifest = tmp_path / "pair.json"
+    checkpoint = tmp_path / "checkpoints"
+    native_lineage = _lineage()["native_sources"]
+    descriptors: dict[str, dict[str, object]] = {}
+    for label in ("m1", "m5"):
+        descriptor = dict(native_lineage[label])
+        descriptor.update(
+            {
+                "manifest_path": f"/fixture/{label}/MANIFEST.json",
+                "year_sha256": {"year=2026": "8" * 64},
+                "year_rows": {"year=2026": 6 if label == "m1" else 2},
+            }
+        )
+        descriptors[label] = descriptor
+    descriptors["m1"]["row_count"] = 6
+    descriptors["m5"]["row_count"] = 2
+
+    m1_times = pd.date_range("2026-07-16T12:04:00Z", periods=6, freq="min")
+    native_m1 = pd.DataFrame(
+        {
+            "time": m1_times,
+            **{
+                name: np.asarray(
+                    [2400.0 + offset + row for row in range(6)],
+                    dtype=np.float64,
+                )
+                for offset, name in enumerate(incremental.RAW_BASE28_COLUMNS)
+            },
+        }
+    )
+    native_m5 = pd.DataFrame(
+        {
+            "time": pd.DatetimeIndex(
+                ["2026-07-16T12:00:00Z", "2026-07-16T12:05:00Z"]
+            )
+        }
+    )
+    canonical = pd.DataFrame(
+        {
+            "open": [2400.0, 2401.0],
+            "signal": [1.0, 2.0],
+        },
+        index=pd.DatetimeIndex(native_m5["time"], name="time"),
+    )
+
+    monkeypatch.setattr(
+        incremental,
+        "_clean_repository_commit",
+        lambda _root: "7" * 40,
+    )
+    monkeypatch.setattr(
+        incremental,
+        "canonical_xau_source_descriptor_v1",
+        lambda _root, *, timeframe: descriptors[timeframe.lower()],
+    )
+    monkeypatch.setattr(
+        incremental,
+        "_load_native_source_frame",
+        lambda _descriptor, *, timeframe: (
+            native_m1.copy() if timeframe == "M1" else native_m5.copy()
+        ),
+    )
+    monkeypatch.setattr(
+        incremental,
+        "_build_model_agnostic_canonical",
+        lambda *_args, **_kwargs: canonical.copy(),
+    )
+    monkeypatch.setattr(
+        incremental,
+        "_pair_producer_source_inventory",
+        lambda _root: [{"path": "fixture.py", "sha256": "1" * 64}],
+    )
 
     generation_id = incremental.bootstrap_prebuilt_pair(
-        canonical_v3_path=canonical_source,
-        base28_path=base28_source,
+        native_m1_root=tmp_path / "native-m1",
+        native_m5_root=tmp_path / "native-m5",
+        vedtak_id="FIXTURE_VEDTAK_001",
+        checkpoint_dir=checkpoint,
         pair_manifest_path=pair_manifest,
         generation_root=generation_root,
+        repo_root=REPO,
     )
     admitted = read_prebuilt_pair_manifest(
         pair_manifest,
@@ -533,25 +612,32 @@ def test_bootstrap_is_explicit_one_time_pair_control_route(tmp_path: Path) -> No
     )
 
     assert admitted.pair_generation_id == generation_id
+    assert tuple(admitted.base28.arrow_schema[index][0] for index in range(1, 14)) == (
+        incremental.RAW_BASE28_COLUMNS
+    )
+    assert admitted.lineage["native_sources"]["m1"]["timeframe"] == "M1"
     with pytest.raises(RuntimeError, match="active pointer already exists"):
         incremental.bootstrap_prebuilt_pair(
-            canonical_v3_path=canonical_source,
-            base28_path=base28_source,
+            native_m1_root=tmp_path / "native-m1",
+            native_m5_root=tmp_path / "native-m5",
+            vedtak_id="FIXTURE_VEDTAK_001",
+            checkpoint_dir=checkpoint,
             pair_manifest_path=pair_manifest,
             generation_root=generation_root,
+            repo_root=REPO,
         )
     assert not list(generation_root.glob(".staging-*"))
 
 
-def test_regular_cycle_requires_existing_atomic_pair_pointer(tmp_path: Path) -> None:
-    generation_root = tmp_path / "generations"
-    generation_root.mkdir()
+def test_copy_bootstrap_and_loop_control_are_removed() -> None:
+    source = (REPO / "gx1/execution/v12_canonical_incremental.py").read_text(
+        encoding="utf-8"
+    )
 
-    with pytest.raises(
-        PrebuiltIdentityError,
-        match="PREBUILT_PAIR_MANIFEST_NOT_REGULAR_FILE",
-    ):
-        incremental.run_one_cycle(
-            pair_manifest_path=tmp_path / "missing-pair.json",
-            generation_root=generation_root,
-        )
+    parameters = inspect.signature(incremental.bootstrap_prebuilt_pair).parameters
+    assert "canonical_v3_path" not in parameters
+    assert "base28_path" not in parameters
+    assert "_copy_candidate_parquet" not in inspect.getsource(
+        incremental.bootstrap_prebuilt_pair
+    )
+    assert "--loop" not in source

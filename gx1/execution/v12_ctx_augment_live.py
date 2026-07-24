@@ -62,7 +62,8 @@ Features added (32 total):
     - retracement_from_last_impulse        # 0..1 retracement
 
 The local volatility regime is causal over a fixed 288-bar window. Absolute
-ATR and spread buckets require frozen training edges; missing edges fail closed.
+ATR and spread buckets require an explicit immutable TRAIN-only rank reference;
+there is no global edge file or frame-relative fallback.
 """
 
 from __future__ import annotations
@@ -72,14 +73,19 @@ import logging
 import numpy as np
 import pandas as pd
 
-from gx1.contracts.entry_model_native_state_v2 import causal_vol_regime_bucket
+from gx1.contracts.entry_model_native_state_v2 import (
+    TrainRankReferenceV2,
+    bucket_against_train_reference,
+    causal_vol_regime_bucket,
+    compute_causal_market_rank_inputs,
+)
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
-from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
     SWING_LOOKBACK_V1,
     compute_swing_structure_features,
 )
+from gx1.time.session_detector import m5_decision_availability
 from gx1.time.session_detector import (
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
@@ -146,91 +152,40 @@ def _align_last_closed(
     return aligned
 
 
-def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
-    """0..4 bucket via percentile rank across the input array.
-
-    WARNING — FRAME-DEPENDENT: this ranks RELATIVE to whatever array it is handed (no fixed bin
-    edges), so the SAME atr_bps lands in different buckets depending on the window. The BUILD ranks
-    over full history; the daemon ranked over a trailing 420d window -> ~31% of live appends got a
-    wrong-by-one vol bucket the IQL one-hots act on (2026-06-13 audit). Prefer _digitize_bucket_0_4
-    against FROZEN full-history edges (frame-invariant); this rank path is the fail-soft fallback.
-    """
-    x = np.asarray(x, dtype=float)
-    x = np.where(np.isfinite(x), x, np.nan)
-    s = pd.Series(x)
-    q = s.rank(pct=True, method="average").to_numpy(dtype=float)
-    if not np.isfinite(q).any():
-        return np.full(len(x), int(fallback), dtype=np.int64)
-    b = np.clip(q * 5.0, 0.0, 4.99).astype(np.int64)
-    b = np.where(np.isfinite(b), b, int(fallback)).astype(np.int64)
-    return b
-
-
-# Frozen full-history bucket EDGES (2026-06-13 audit fix): digitizing atr_bps/spread_bps against
-# fixed quantile edges make atr_bucket/spread_bucket FRAME-INVARIANT, so the daemon
-# (any window), the entry serve (augment_canonical_v3), the exit (base34), and the build all produce
-# the IDENTICAL bucket = training. Edges live next to the cv3 prebuilt; regenerated at each cement/
-# cutover (gx1.scripts.write_regime_bucket_edges). Verified: digitize == full-history rank at 100%.
-REGIME_BUCKET_EDGES_PATH = "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/regime_bucket_edges_v1.json"
-_REGIME_EDGES_CACHE: dict | None = None
-_REGIME_EDGES_MTIME: float | None = None
-
-
-def _load_regime_bucket_edges() -> dict | None:
-    """Load the frozen bucket edges JSON (cached, mtime-invalidated). None if absent."""
-    global _REGIME_EDGES_CACHE, _REGIME_EDGES_MTIME
-    import os as _os
-    import json as _json
-
-    try:
-        mt = _os.stat(REGIME_BUCKET_EDGES_PATH).st_mtime
-    except OSError:
-        return None
-    if _REGIME_EDGES_CACHE is None or mt != _REGIME_EDGES_MTIME:
-        with open(REGIME_BUCKET_EDGES_PATH) as _fh:
-            _REGIME_EDGES_CACHE = _json.load(_fh)
-        _REGIME_EDGES_MTIME = mt
-    return _REGIME_EDGES_CACHE
-
-
-def _digitize_bucket_0_4(x: np.ndarray, edges, fallback: int) -> np.ndarray:
-    """0..4 bucket by digitizing against FROZEN edges [q20,q40,q60,q80] — frame-invariant."""
-    x = np.asarray(x, dtype=float)
-    e = np.asarray(edges, dtype=float)
-    b = np.clip(np.digitize(x, e, right=False), 0, 4).astype(np.int64)
-    return np.where(np.isfinite(x), b, int(fallback)).astype(np.int64)
-
-
 # ── per-feature-group computations ────────────────────────────────────────
 
 
 def _add_session_features(cv3: pd.DataFrame) -> None:
     """Mutates cv3: adds session_id, is_ASIA, _v1_is_EU, _v1_is_US,
-    minutes_since/to, session_change_flag, session_tradable."""
-    idx = cv3.index
-    cv3["session_id"] = get_session_id_vectorized(idx).astype(np.int64)
+    minutes_since/to, session_change_flag, session_tradable.
+
+    The input is M5-cadence canonical state labelled by bar start.  Session
+    evidence describes the decision instant when that row closes, ``T+5min``.
+    """
+    idx = m5_decision_availability(cv3.index)
+    session_id = get_session_id_vectorized(idx).to_numpy(dtype=np.int64)
+    cv3["session_id"] = session_id
     cv3["is_ASIA"] = (cv3["session_id"] == 0).astype(np.int64)
-    cv3["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
-        idx
-    ).astype(np.float32)
+    cv3["minutes_since_session_open"] = (
+        get_session_minutes_since_open_vectorized(idx)
+        .to_numpy(dtype=np.float32)
+    )
     cv3["minutes_to_next_session_boundary"] = (
-        get_session_minutes_to_next_boundary_vectorized(idx).astype(np.float32)
+        get_session_minutes_to_next_boundary_vectorized(idx)
+        .to_numpy(dtype=np.float32)
     )
     sess_tag = get_session_vectorized(idx)
     cv3["session_change_flag"] = (
-        (sess_tag != sess_tag.shift(1)).fillna(False).astype(np.int64)
+        sess_tag.ne(sess_tag.shift(1)).to_numpy(dtype=np.int64)
     )
     cv3["session_tradable"] = (cv3["session_id"] != 0).astype(np.int64)
-    # _v1_is_EU / _v1_is_US: shifted by 1 bar (no-lookahead). Same convention
-    # as basic_v1.py:984/988.
+    # Session membership is calendar evidence known at the decision instant;
+    # shifting it would make these two fields disagree with session_id for one
+    # complete M5 bar at every boundary.
     is_eu = (sess_tag == "EU").astype(np.float64)
     is_us = (sess_tag == "US").astype(np.float64)
-    is_eu_shifted = np.roll(is_eu.to_numpy(), 1)
-    is_eu_shifted[0] = 0.0
-    is_us_shifted = np.roll(is_us.to_numpy(), 1)
-    is_us_shifted[0] = 0.0
-    cv3["_v1_is_EU"] = is_eu_shifted
-    cv3["_v1_is_US"] = is_us_shifted
+    cv3["_v1_is_EU"] = is_eu.to_numpy(dtype=np.float64)
+    cv3["_v1_is_US"] = is_us.to_numpy(dtype=np.float64)
 
 
 def _add_session_interactions(cv3: pd.DataFrame) -> None:
@@ -265,24 +220,14 @@ def _add_session_interactions(cv3: pd.DataFrame) -> None:
 
 
 def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
-    """Mutates cv3: atr_bps, spread_bps."""
-    # atr_bps = canonical_v2 atr / mid * 1e4. canonical_v3 has _v1_atr14 (not 'atr', which was pruned).
-    atr_col = "_v1_atr14" if "_v1_atr14" in cv3.columns else "atr"
-    missing = [name for name in (atr_col, "close") if name not in cv3.columns]
-    if missing:
-        raise RuntimeError(
-            f"[LIVE_CTX_ATR_SOURCE_MISSING] required columns missing: {missing}"
-        )
-    atr = pd.to_numeric(cv3[atr_col], errors="coerce").to_numpy(dtype=np.float64)
-    mid = pd.to_numeric(cv3["close"], errors="coerce").to_numpy(dtype=np.float64)
-    invalid = (~np.isfinite(atr)) | (~np.isfinite(mid)) | (atr < 0.0) | (mid <= 0.0)
-    if invalid.any():
-        raise RuntimeError(
-            "[LIVE_CTX_ATR_SOURCE_INVALID] ATR/close must be finite with ATR >= 0 "
-            f"and close > 0: count={int(np.count_nonzero(invalid))}"
-        )
-    cv3["atr_bps"] = (atr / mid) * 1e4
-    cv3["spread_bps"] = derive_observed_spread_bps(cv3)
+    """Mutate ``cv3`` with the shared model-native ATR/spread formula."""
+
+    derived = compute_causal_market_rank_inputs(cv3)
+    # ``atr`` is an existing canonical Wilder-ATR feature.  The rank contract
+    # uses a distinct simple TR14 formula; only its normalized rank input is
+    # shared here, otherwise unrelated model evidence silently changes meaning.
+    for name in ("atr_bps", "spread_bps"):
+        cv3[name] = derived[name].to_numpy(dtype=np.float64)
 
 
 def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
@@ -426,7 +371,11 @@ def _add_swing_features(cv3: pd.DataFrame) -> None:
         cv3[_name] = _arr
 
 
-def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
+def _add_regime_categoricals(
+    cv3: pd.DataFrame,
+    *,
+    rank_reference: TrainRankReferenceV2 | None = None,
+) -> None:
     """Mutates cv3: trend_regime_id, vol_regime_id, atr_bucket, spread_bucket."""
     # The legacy categorical has one immutable source: exact D1 distance. The
     # price-vs-EMA signal remains separate continuous model evidence.
@@ -450,34 +399,36 @@ def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
     )
     cv3["trend_regime_id"] = trend
     # vol_regime_id is a distinct causal local-volatility coordinate. Absolute
-    # ATR/spread buckets use frozen training edges and cannot fall back to a
-    # frame-relative distribution at serve time.
-    # 2026-06-13 audit FIX: digitize against FROZEN full-history edges (frame-invariant, so daemon /
-    # entry-serve / exit / build all agree = training) instead of a frame-relative percentile rank
-    # (which made the daemon's 420d window disagree with full-history training on ~31% of appends).
-    _edges = _load_regime_bucket_edges()
+    # ATR/spread buckets belong only to an explicit immutable TRAIN reference.
+    # A model-agnostic canonical build intentionally omits those two fields.
     if "atr_bps" not in cv3.columns or "spread_bps" not in cv3.columns:
         raise RuntimeError("[REGIME] exact atr_bps/spread_bps sources missing")
-    if not _edges or not _edges.get("atr_bps_edges") or not _edges.get(
-        "spread_bps_edges"
-    ):
-        raise RuntimeError(
-            "[REGIME] frozen ATR/spread bucket edges are required; live fallback forbidden"
-        )
     _av = cv3["atr_bps"].to_numpy(dtype=float)
     _sv = cv3["spread_bps"].to_numpy(dtype=float)
     vol = causal_vol_regime_bucket(_av)
-    atr = _digitize_bucket_0_4(_av, _edges["atr_bps_edges"], fallback=2)
-    sp = _digitize_bucket_0_4(_sv, _edges["spread_bps_edges"], fallback=0)
     cv3["vol_regime_id"] = vol.astype(np.int64)
-    cv3["atr_bucket"] = atr.astype(np.int64)
-    cv3["spread_bucket"] = sp.astype(np.int64)
+    cv3.drop(columns=["atr_bucket", "spread_bucket"], errors="ignore", inplace=True)
+    if rank_reference is None:
+        return
+    cv3["atr_bucket"] = bucket_against_train_reference(
+        _av,
+        rank_reference.atr_bps_sorted,
+    )
+    cv3["spread_bucket"] = bucket_against_train_reference(
+        _sv,
+        rank_reference.spread_bps_sorted,
+    )
 
 
 # ── public API ────────────────────────────────────────────────────────────
 
 
-def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame:
+def _augment_canonical_v3(
+    cv3: pd.DataFrame,
+    df_m5: pd.DataFrame,
+    *,
+    rank_reference: TrainRankReferenceV2 | None,
+) -> pd.DataFrame:
     """Add the 32 ctx-cont / ctx-cat / session / interaction / swing features
     on top of a canonical_v3 DataFrame.
 
@@ -501,7 +452,7 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
     _add_htf_features(out, df_m5)
     _add_micro_features(out)
     _add_swing_features(out)
-    _add_regime_categoricals(out)
+    _add_regime_categoricals(out, rank_reference=rank_reference)
     # Volume / order-flow per-bar features — SAME helper the V10 builder uses, so
     # the seq's vol_z_20/vol_ratio_5_20/vol_pct_96/signed_vol_z_20 are identical
     # train↔serve. Computed on the full `out` frame (full history) so trailing
@@ -537,4 +488,46 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
     )
     out["trend_regime_id"] = out["trend_regime_id"].astype(np.int64)
     out["H4_trend_sign_cat"] = out["H4_trend_sign_cat"].astype(np.int64)
+    return out
+
+
+def augment_canonical_v3_model_agnostic(
+    cv3: pd.DataFrame,
+    df_m5: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build causal shared context without dataset-fitted bucket categories."""
+
+    out = _augment_canonical_v3(
+        cv3,
+        df_m5,
+        rank_reference=None,
+    )
+    forbidden = sorted({"atr_bucket", "spread_bucket"} & set(out.columns))
+    if forbidden:
+        raise RuntimeError(
+            f"[MODEL_AGNOSTIC_CANONICAL] TRAIN-fit fields leaked into raw state: {forbidden}"
+        )
+    return out
+
+
+def augment_canonical_v3(
+    cv3: pd.DataFrame,
+    df_m5: pd.DataFrame,
+    *,
+    rank_reference: TrainRankReferenceV2,
+) -> pd.DataFrame:
+    """Build the complete causal context under one exact TRAIN reference."""
+
+    if not isinstance(rank_reference, TrainRankReferenceV2):
+        raise RuntimeError(
+            "[CANONICAL_CTX_TRAIN_RANK_REQUIRED] explicit immutable reference required"
+        )
+    out = _augment_canonical_v3(
+        cv3,
+        df_m5,
+        rank_reference=rank_reference,
+    )
+    missing = sorted({"atr_bucket", "spread_bucket"} - set(out.columns))
+    if missing:
+        raise RuntimeError(f"[CANONICAL_CTX_TRAIN_RANK_OUTPUT_MISSING] {missing}")
     return out

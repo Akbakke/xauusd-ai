@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""V12 state loader — reads features DIRECTLY from disk prebuilts.
+"""V12 state loader for one immutable canonical-v3/raw-M1 pair generation.
 
-This module replaces v12_canonical_live.py + v12_ctx_augment_live.py.
-Those tried to RECOMPUTE features from raw M1 data, which subtly diverged
-from training-time distributions (different M5 aggregation, different
-rolling-window percentiles for buckets, different bid/ask handling).
+The loader admits one atomic, hash-bound pair:
 
-The correct architecture: use the EXACT same prebuilt files the cemented
-V12.1.1 models were trained on. By construction, live state = batch state,
-so XGB / V10 / Entry-IQL / Exit-IQL inference reproduces Phase 6 backtest
-output exactly.
+* canonical-v3 is the persisted model-agnostic M5 feature surface;
+* BASE28 is only the 13 physical non-time native M1 fields.
+
+It never treats an old augmented BASE file or mutable parquet path as
+authority. TRAIN-fit state such as ATR/spread ranks is deliberately outside
+the pair and must be supplied and bound by the consuming dataset/model
+contract. A complete v2 canonical already contains every model-agnostic
+derived field, so compatibility augmenters become verified no-ops instead of
+recomputing full history during load/refresh.
 
 Architecture:
     The updater computes both candidate artifacts without touching active state,
@@ -17,28 +19,24 @@ Architecture:
         CANONICAL_V3_BASE28_CURRENT_PAIR_MANIFEST.json
 
     Live (every M1 tick):
-        - Look up the latest closed M5 bar in canonical_v3 prebuilt
-        - Join with BASE28 augmented features at the same timestamp
-        - Result: 92-feature XGB input identical to training distribution
+        - map M1 decision availability to the exact latest closed M5 bar;
+        - read persisted canonical context and exact native M1 market data;
+        - let the admitted model contract derive/bind consumer-owned state.
 
 The two artifacts in every admitted pair generation:
 
-  canonical_v3 prebuilt (M5 cadence, 112 cols):
+  canonical_v3 prebuilt (M5 cadence):
     Path: CANONICAL_V3_BASE28_GENERATIONS/<pair_generation_id>/
             canonical_v3.parquet
-    Contains: M5 OHLC + 84 canonical_v2 features + 4 cyclic + smc_premium_state
-              + m5h1_momentum  (108 features + time + open/high/low/close/volume)
+    Contains: the complete model-agnostic canonical feature surface.
     Built by: materialize_build_canonical_features_v2.py
               + materialize_canonical_v3_augment.py
 
-  BASE28 / BASE34 artifact (M1 cadence, including augmented context):
+  BASE28 artifact (M1 cadence):
     Path: CANONICAL_V3_BASE28_GENERATIONS/<pair_generation_id>/
             base28.parquet
-    Contains: 32 augmented features (atr_bps, session_id, regime/bucket,
-              HTF, micro_momentum, swing, _v1_is_EU/US, _v1_int_*_us, etc.)
-    Built by: add_ctx_cont_columns_to_prebuilt.py
-
-Together they provide all 92 features the cemented XGB v5 needs.
+    Contains: exactly the 13 native M1 market fields, in source order.
+    Built by: v12_canonical_incremental.py from an immutable native M1 snapshot.
 
 The pair pointer, artifact hashes, row counts and physical Arrow schemas are
 one fail-closed serving contract. Individual legacy manifests and direct
@@ -66,7 +64,10 @@ from gx1.features.htf_features import (
     REGIME_V4_V2_MTF_TFS,
     REGIME_V4_V2_MTF_SKIP,
 )
-from gx1.features.basic_v1 import compute_plus5_features
+from gx1.features.basic_v1 import PLUS5_FEATURES, compute_plus5_features
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_REQUIRED_COLUMNS,
+)
 
 LOG = logging.getLogger("v12_state_from_prebuilt")
 
@@ -110,7 +111,21 @@ def _mp_group_a_worker(cv3: pd.DataFrame) -> pd.DataFrame:
         raise RuntimeError(f"parallel group-A worker output missing: {missing}")
     return augmented[expected].copy()
 
-PREBUILT_PAIR_SCHEMA_VERSION = "gx1_canonical_v3_base28_pair_generation_v1"
+PREBUILT_PAIR_SCHEMA_VERSION = "gx1_canonical_v3_raw_base28_pair_generation_v2"
+PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION = "gx1_native_pair_lineage_v1"
+RAW_BASE28_COLUMNS = tuple(CANONICAL_NATIVE_REQUIRED_COLUMNS[1:])
+PAIR_FORBIDDEN_CANONICAL_FIELDS = frozenset(
+    {
+        "atr_bucket",
+        "spread_bucket",
+        "is_model_bar",
+        "m5_phase_0",
+        "m5_phase_1",
+        "m5_phase_2",
+        "m5_phase_3",
+        "m5_phase_4",
+    }
+)
 PREBUILT_PAIR_ROOT = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_BASE28_GENERATIONS"
 )
@@ -140,6 +155,7 @@ class _PrebuiltPairBinding:
     manifest_path: Path
     manifest_sha256: str
     pair_generation_id: str
+    lineage: dict[str, object]
     canonical_v3: _PrebuiltManifestBinding
     base28: _PrebuiltManifestBinding
 
@@ -197,11 +213,175 @@ def _sha256_json(payload: object) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _valid_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and value.lower() == value
+        and not any(char not in "0123456789abcdef" for char in value)
+    )
+
+
+def validate_prebuilt_pair_lineage(
+    raw: object,
+) -> dict[str, object]:
+    """Validate the source/formula envelope included in pair identity."""
+
+    if not isinstance(raw, dict):
+        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_INVALID")
+    required = {
+        "schema_version",
+        "explicit_vedtak_id",
+        "producer_owner",
+        "producer_git_commit",
+        "producer_repository_clean",
+        "producer_source_files",
+        "producer_source_inventory_sha256",
+        "native_sources",
+        "derivation_contract",
+        "coverage",
+        "parent_pair_generation_id",
+    }
+    if set(raw) != required:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_FIELDS_INVALID")
+    if raw["schema_version"] != PREBUILT_PAIR_LINEAGE_SCHEMA_VERSION:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_SCHEMA_INVALID")
+    for name in ("explicit_vedtak_id", "producer_owner"):
+        value = raw[name]
+        if not isinstance(value, str) or not value or value.strip() != value:
+            raise PrebuiltIdentityError(
+                f"PREBUILT_PAIR_LINEAGE_{name.upper()}_INVALID"
+            )
+    commit = raw["producer_git_commit"]
+    if (
+        not isinstance(commit, str)
+        or len(commit) != 40
+        or any(char not in "0123456789abcdef" for char in commit)
+    ):
+        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_GIT_COMMIT_INVALID")
+    if raw["producer_repository_clean"] is not True:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_LINEAGE_DIRTY_REPOSITORY")
+    source_files = raw["producer_source_files"]
+    if not isinstance(source_files, list) or not source_files:
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_LINEAGE_SOURCE_FILES_INVALID"
+        )
+    previous_path = ""
+    for item in source_files:
+        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_LINEAGE_SOURCE_FILE_INVALID"
+            )
+        path = item["path"]
+        if (
+            not isinstance(path, str)
+            or not path
+            or path <= previous_path
+            or not _valid_sha256(item["sha256"])
+        ):
+            raise PrebuiltIdentityError(
+                "PREBUILT_PAIR_LINEAGE_SOURCE_FILE_INVALID"
+            )
+        previous_path = path
+    if (
+        not _valid_sha256(raw["producer_source_inventory_sha256"])
+        or raw["producer_source_inventory_sha256"] != _sha256_json(source_files)
+    ):
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_LINEAGE_SOURCE_INVENTORY_MISMATCH"
+        )
+    native = raw["native_sources"]
+    if not isinstance(native, dict) or set(native) != {"m1", "m5"}:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_NATIVE_SOURCES_INVALID")
+    mandatory_native = {
+        "root",
+        "manifest_sha256",
+        "instrument",
+        "timeframe",
+        "explicit_vedtak_id",
+        "source_environment",
+        "source_base_url",
+        "requested_start_utc",
+        "requested_end_utc_exclusive",
+        "row_count",
+        "time_min_utc",
+        "time_max_utc",
+        "canonical_rows_sha256",
+        "producer_git_commit",
+        "producer_source_inventory_sha256",
+        "manifest_payload_sha256",
+    }
+    for label, timeframe in (("m1", "M1"), ("m5", "M5")):
+        descriptor = native[label]
+        if (
+            not isinstance(descriptor, dict)
+            or not mandatory_native.issubset(descriptor)
+            or descriptor.get("instrument") != "XAU_USD"
+            or descriptor.get("timeframe") != timeframe
+            or descriptor.get("explicit_vedtak_id") != raw["explicit_vedtak_id"]
+        ):
+            raise PrebuiltIdentityError(
+                f"PREBUILT_PAIR_NATIVE_{timeframe}_DESCRIPTOR_INVALID"
+            )
+        for digest_field in (
+            "manifest_sha256",
+            "canonical_rows_sha256",
+            "producer_source_inventory_sha256",
+            "manifest_payload_sha256",
+        ):
+            if not _valid_sha256(descriptor.get(digest_field)):
+                raise PrebuiltIdentityError(
+                    f"PREBUILT_PAIR_NATIVE_{timeframe}_{digest_field.upper()}_INVALID"
+                )
+        if (
+            not isinstance(descriptor.get("row_count"), int)
+            or isinstance(descriptor.get("row_count"), bool)
+            or descriptor["row_count"] <= 0
+        ):
+            raise PrebuiltIdentityError(
+                f"PREBUILT_PAIR_NATIVE_{timeframe}_ROWS_INVALID"
+            )
+    for shared_field in (
+        "source_environment",
+        "source_base_url",
+        "requested_start_utc",
+        "requested_end_utc_exclusive",
+    ):
+        if native["m1"].get(shared_field) != native["m5"].get(shared_field):
+            raise PrebuiltIdentityError(
+                f"PREBUILT_PAIR_NATIVE_SOURCE_{shared_field.upper()}_MISMATCH"
+            )
+    derivation = raw["derivation_contract"]
+    if (
+        not isinstance(derivation, dict)
+        or derivation.get("raw_base28_columns") != list(RAW_BASE28_COLUMNS)
+        or derivation.get("rank_fit_fields_absent") is not True
+        or derivation.get("m5_phase_owned_by_m1_time") is not True
+        or not isinstance(derivation.get("formula_contract"), dict)
+        or not derivation["formula_contract"]
+        or not isinstance(derivation.get("timing_contract"), dict)
+        or not derivation["timing_contract"]
+    ):
+        raise PrebuiltIdentityError(
+            "PREBUILT_PAIR_DERIVATION_CONTRACT_INVALID"
+        )
+    coverage = raw["coverage"]
+    if not isinstance(coverage, dict) or not coverage:
+        raise PrebuiltIdentityError("PREBUILT_PAIR_COVERAGE_INVALID")
+    parent = raw["parent_pair_generation_id"]
+    if parent is not None and not _valid_sha256(parent):
+        raise PrebuiltIdentityError("PREBUILT_PAIR_PARENT_ID_INVALID")
+    # Break references to caller-owned mutable nested objects.
+    return json.loads(json.dumps(raw, sort_keys=True))
+
+
 def _artifact_generation_identity(
     artifacts: dict[str, dict[str, object]],
+    lineage: dict[str, object],
 ) -> dict[str, object]:
     return {
         "schema_version": PREBUILT_PAIR_SCHEMA_VERSION,
+        "lineage": lineage,
         "artifacts": {
             label: {
                 "parquet_sha256": artifacts[label]["parquet_sha256"],
@@ -216,6 +396,8 @@ def _artifact_generation_identity(
 
 def pair_generation_id_for_artifacts(
     artifacts: dict[str, dict[str, object]],
+    *,
+    lineage: dict[str, object],
 ) -> str:
     """Return the only pair generation id.
 
@@ -224,7 +406,10 @@ def pair_generation_id_for_artifacts(
     feature-column count and full Arrow schema. Paths and wall-clock time are
     excluded, so identity means content contract rather than publication site.
     """
-    return _sha256_json(_artifact_generation_identity(artifacts))
+    validated_lineage = validate_prebuilt_pair_lineage(lineage)
+    return _sha256_json(
+        _artifact_generation_identity(artifacts, validated_lineage)
+    )
 
 
 def inspect_prebuilt_artifact(path: Path, *, label: str) -> dict[str, object]:
@@ -355,6 +540,22 @@ def _parse_pair_artifact(
         raise PrebuiltIdentityError(
             f"{label.upper()}_PAIR_ARROW_SCHEMA_DUPLICATE_COLUMNS"
         )
+    physical_names = [item[0] for item in parsed_schema]
+    if label == "base28":
+        expected_names = ["time", *RAW_BASE28_COLUMNS]
+        if physical_names != expected_names:
+            raise PrebuiltIdentityError(
+                "BASE28_RAW_SCHEMA_INVALID: "
+                f"observed={physical_names} expected={expected_names}"
+            )
+    else:
+        forbidden = sorted(
+            PAIR_FORBIDDEN_CANONICAL_FIELDS & set(physical_names)
+        )
+        if forbidden:
+            raise PrebuiltIdentityError(
+                f"CANONICAL_V3_DATASET_FIT_OR_M1_TIME_FIELDS_FORBIDDEN: {forbidden}"
+            )
     cols_total = _strict_positive_int(
         raw["cols_total"],
         field_name="cols_total",
@@ -405,6 +606,7 @@ def read_prebuilt_pair_manifest(
         "schema_version",
         "pair_generation_id",
         "created_utc",
+        "lineage",
         "artifacts",
     }:
         raise PrebuiltIdentityError("PREBUILT_PAIR_MANIFEST_FIELDS_INVALID")
@@ -446,8 +648,12 @@ def read_prebuilt_pair_manifest(
         "base28",
     }:
         raise PrebuiltIdentityError("PREBUILT_PAIR_ARTIFACT_SET_INVALID")
+    lineage = validate_prebuilt_pair_lineage(manifest["lineage"])
     try:
-        observed_generation_id = pair_generation_id_for_artifacts(artifacts)
+        observed_generation_id = pair_generation_id_for_artifacts(
+            artifacts,
+            lineage=lineage,
+        )
     except (KeyError, TypeError, ValueError) as exc:
         raise PrebuiltIdentityError(
             "PREBUILT_PAIR_ARTIFACT_IDENTITY_INVALID"
@@ -472,6 +678,7 @@ def read_prebuilt_pair_manifest(
         manifest_path=manifest_path.resolve(strict=True),
         manifest_sha256=hashlib.sha256(raw).hexdigest(),
         pair_generation_id=pair_generation_id,
+        lineage=lineage,
         canonical_v3=canonical,
         base28=base28,
     )
@@ -600,6 +807,70 @@ def _load_verified_prebuilt(
             f"expected=({binding.rows}, {binding.cols_total})"
         )
     return frame, verified
+
+
+def _require_persisted_model_agnostic_canonical(
+    frame: pd.DataFrame,
+) -> None:
+    """Prove that pair-v2 already contains the shared deterministic surface."""
+
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
+        MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+        MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+        MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
+        MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
+    )
+    from gx1.features.regime_v4_features import (
+        REGIME_V4_DERIVED_COLS,
+        REGIME_V4_SOURCE_COLS,
+    )
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+
+    required = {
+        *CANONICAL_NATIVE_REQUIRED_COLUMNS[1:],
+        *PLUS5_FEATURES,
+        *VOLUME_FEATURE_NAMES,
+        *MODEL_NATIVE_CTX_CONT_MICRO_FIELDS,
+        *MODEL_NATIVE_CTX_CONT_SWING_FIELDS,
+        *MODEL_NATIVE_CTX_CONT_SESSION_FIELDS,
+        *MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS,
+        *MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS,
+        *REGIME_V4_SOURCE_COLS,
+        *REGIME_V4_DERIVED_COLS,
+        "session_id",
+        "trend_regime_id",
+        "vol_regime_id",
+        "H4_trend_sign_cat",
+        "atr_bps",
+        "spread_bps",
+        *(
+            f"{timeframe}_{live_fragment}_v2"
+            for timeframe in REGIME_V4_V2_MTF_TFS
+            for live_fragment, _source_column in REGIME_V4_V2_MTF_PER_TF
+            if (timeframe, live_fragment) not in REGIME_V4_V2_MTF_SKIP
+        ),
+    }
+    missing = sorted(required - set(frame.columns))
+    if missing:
+        raise PrebuiltIdentityError(
+            f"CANONICAL_V3_PERSISTED_MODEL_AGNOSTIC_FIELDS_MISSING: {missing}"
+        )
+    forbidden = sorted(
+        {"atr_bucket", "spread_bucket"} & set(frame.columns)
+    )
+    if forbidden:
+        raise PrebuiltIdentityError(
+            f"CANONICAL_V3_TRAIN_FIT_FIELDS_FORBIDDEN: {forbidden}"
+        )
+    numeric = frame.loc[:, sorted(required)].apply(
+        pd.to_numeric,
+        errors="coerce",
+    )
+    if not np.isfinite(numeric.to_numpy(dtype=np.float64)).all():
+        raise PrebuiltIdentityError(
+            "CANONICAL_V3_PERSISTED_MODEL_AGNOSTIC_NONFINITE"
+        )
 
 
 @dataclass
@@ -801,6 +1072,7 @@ class PrebuiltStateLoader:
             # admissible train≠serve substitute.
             if new_cv3 is not None and (cv3_advanced or b28_advanced):
                 t_aug = pd.Timestamp.utcnow()
+                _require_persisted_model_agnostic_canonical(new_cv3)
                 # Fast augmenters in main thread (~3s total)
                 new_cv3 = self._augment_cv3_with_volume_features(new_cv3)
                 new_cv3 = self._augment_cv3_with_v1_legacy(new_cv3)
@@ -973,6 +1245,7 @@ class PrebuiltStateLoader:
         LOG.info(f"  BASE28: {len(base28):,} rows × {len(base28.columns)} cols  "
                   f"range {base28.index[0]} → {base28.index[-1]}")
 
+        _require_persisted_model_agnostic_canonical(cv3)
         self._last_ts = min(cv3.index[-1], base28.index[-1])
         LOG.info(f"  effective live cutoff (min of both): {self._last_ts}")
         self._augment_cv3_with_volume_features()
@@ -1035,6 +1308,8 @@ class PrebuiltStateLoader:
             "manifest_path": str(binding.manifest_path),
             "manifest_sha256": binding.manifest_sha256,
             "pair_generation_id": binding.pair_generation_id,
+            "lineage": binding.lineage,
+            "lineage_sha256": _sha256_json(binding.lineage),
             "canonical_v3": {
                 "path": str(binding.canonical_v3.parquet_path),
                 "sha256": binding.canonical_v3.parquet_sha256,
@@ -1086,23 +1361,28 @@ class PrebuiltStateLoader:
         if target is None:
             raise RuntimeError("REGIME_V4 augmentation requires a loaded canonical_v3 frame")
         from gx1.features.regime_v4_features import (
+            REGIME_V4_DERIVED_COLS as _REGIME_V4_DERIVED,
+            REGIME_V4_SOURCE_COLS as _REGIME_V4_SOURCE,
             add_regime_v4_features as _add_rv4,
         )
-        # D1_dist_from_ema200_atr is the ONLY REGIME_V4 source not emitted by _augment_cv3_with_v2_mtf_scalars
-        # (which supplies the 12 {tf}_*_v2). Join it from base28 (capital-D1) by timestamp before computing.
-        if self._base28 is None or "D1_dist_from_ema200_atr" not in self._base28.columns:
-            raise RuntimeError(
-                "[REGIME_V4_SERVE] D1_dist_from_ema200_atr missing from base28 — cannot compute the "
-                "EXIT_IO_V8 REGIME_V4 tail at serve (would be train!=serve). Provide it on the prebuilt."
-            )
-        source = self._base28["D1_dist_from_ema200_atr"]
-        missing_index = target.index[~target.index.isin(source.index)]
-        if len(missing_index):
-            raise RuntimeError(
-                "[REGIME_V4_SERVE] exact D1 distance timestamps missing: "
-                f"count={len(missing_index)} first={missing_index[0]}"
-            )
-        target["D1_dist_from_ema200_atr"] = source.loc[target.index]
+        if set(_REGIME_V4_DERIVED).issubset(target.columns) and set(
+            _REGIME_V4_SOURCE
+        ).issubset(target.columns):
+            return target
+        # Raw BASE28 is M1 market identity only and may never own derived D1
+        # state. A v2 pair persists this field on canonical. Retained direct
+        # helper callers may derive it from the same full canonical M5 history.
+        if "D1_dist_from_ema200_atr" not in target.columns:
+            from gx1.execution.v12_ctx_augment_live import _add_htf_features
+
+            required = ("open", "high", "low", "close", "volume")
+            missing = [name for name in required if name not in target.columns]
+            if missing:
+                raise RuntimeError(
+                    "[REGIME_V4_SERVE] canonical D1 source unavailable: "
+                    f"{missing}"
+                )
+            _add_htf_features(target, target.loc[:, list(required)])
         # add_regime_v4_features needs time-ascending order (shift/run-length); cv3 is sorted at load.
         _add_rv4(target)  # in-place; one-truth; raises on any missing {tf}_*_v2 source col
         if in_place:
@@ -1129,6 +1409,9 @@ class PrebuiltStateLoader:
             MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
             MODEL_NATIVE_CTX_CONT_DIP_STRUCT_FIELDS as _DIP_STRUCT,
         )
+        expected = list(_GROUP_A) + list(_DIP_STRUCT)
+        if set(expected).issubset(target.columns):
+            return target
         missing_ohlc = [c for c in ("open", "high", "low", "close", "volume") if c not in target.columns]
         if missing_ohlc:
             raise RuntimeError(
@@ -1183,6 +1466,8 @@ class PrebuiltStateLoader:
         if target is None:
             raise RuntimeError("legacy feature augmentation requires a loaded canonical_v3 frame")
         cv3 = target
+        if set(self._V1_LEGACY_FEATURES).issubset(cv3.columns):
+            return cv3
         missing_ohlcv = [
             c for c in ("open", "high", "low", "close", "volume") if c not in cv3.columns
         ]
@@ -1214,6 +1499,8 @@ class PrebuiltStateLoader:
         from gx1.features.volume_features import (
             compute_volume_features, VOLUME_FEATURE_NAMES,
         )
+        if set(VOLUME_FEATURE_NAMES).issubset(target.columns):
+            return target
         if "volume" not in target.columns or "close" not in target.columns:
             raise RuntimeError("volume augmentation requires exact volume and close sources")
         LOG.info(f"augmenting canonical_v3 with {len(VOLUME_FEATURE_NAMES)} "
@@ -1237,6 +1524,9 @@ class PrebuiltStateLoader:
             raise RuntimeError("V2 MTF augmentation requires a loaded canonical_v3 frame")
         from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars
         cv3 = target
+        expected = self._expected_v2_mtf_columns()
+        if set(expected).issubset(cv3.columns):
+            return cv3
         ohlc = ["open", "high", "low", "close"]
         missing_ohlcv = [c for c in (*ohlc, "volume") if c not in cv3.columns]
         if missing_ohlcv:
@@ -1256,7 +1546,6 @@ class PrebuiltStateLoader:
         _v2cols = attach_v2_mtf_per_bar_scalars(
             m5_df, cv3_ts_ns, self._V2_MTF_PER_TF, self._V2_MTF_TFS, self._V2_MTF_SKIP,
         )
-        expected = self._expected_v2_mtf_columns()
         missing = [name for name in expected if name not in _v2cols]
         if missing:
             raise RuntimeError(f"V2 MTF feature owner output incomplete: {missing}")

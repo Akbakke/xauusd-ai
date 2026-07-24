@@ -36,6 +36,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from gx1.time.session_detector import m5_decision_availability
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -62,7 +64,11 @@ DROP_COLUMNS = [b for _, b in PAIRS_TO_PRUNE]
 
 
 def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Add 4 cyclic time features derived from the DatetimeIndex (or 'time' column)."""
+    """Add cyclic features for the M5 row's observable decision time.
+
+    Canonical rows are labelled by M5 bar start.  Their contents become known
+    five minutes later, so hour/day boundaries must use ``label + 5min``.
+    """
     if isinstance(df.index, pd.DatetimeIndex):
         ts = df.index
     elif "time" in df.columns:
@@ -72,8 +78,9 @@ def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
         ts = pd.DatetimeIndex(pd.to_datetime(df["time"], utc=True))
     else:
         raise RuntimeError("[canonical_v3] no DatetimeIndex or 'time' column found")
-    hour = ts.hour.to_numpy(dtype=np.float32)
-    dow = ts.dayofweek.to_numpy(dtype=np.float32)
+    decision_ts = m5_decision_availability(ts)
+    hour = decision_ts.hour.to_numpy(dtype=np.float32)
+    dow = decision_ts.dayofweek.to_numpy(dtype=np.float32)
     df = df.copy()
     df["hour_sin"] = np.sin(2 * np.pi * hour / 24).astype(np.float32)
     df["hour_cos"] = np.cos(2 * np.pi * hour / 24).astype(np.float32)
@@ -205,11 +212,11 @@ def main() -> None:
 
     # Add new features
     df = add_cyclic_time_features(df)
-    print(f"[canonical_v3] +4 cyclic time features (hour_sin/cos, dow_sin/cos)", flush=True)
+    print("[canonical_v3] +4 cyclic time features (hour_sin/cos, dow_sin/cos)", flush=True)
     df = add_smc_premium_state_interaction(df)
-    print(f"[canonical_v3] +1 smc_premium_state interaction", flush=True)
+    print("[canonical_v3] +1 smc_premium_state interaction", flush=True)
     df = add_cross_tf_momentum(df)
-    print(f"[canonical_v3] +1 m5h1_momentum cross-TF feature", flush=True)
+    print("[canonical_v3] +1 m5h1_momentum cross-TF feature", flush=True)
 
     n_out = len(df.columns)
     print(f"[canonical_v3] output: {df.shape[0]:,} rows × {n_out} columns "

@@ -1940,7 +1940,10 @@ def build_dataset_canonical(
     invalid_session_ids = sorted(set(session_id.tolist()) - {0, 1, 2, 3})
     if invalid_session_ids:
         raise RuntimeError(f"SESSION_ID_OUT_OF_CONTRACT: {invalid_session_ids}")
-    canonical_session_id = get_session_id_vectorized(ts).to_numpy(dtype=np.int32)
+    from gx1.time.session_detector import m5_decision_availability
+
+    decision_ts = m5_decision_availability(ts)
+    canonical_session_id = get_session_id_vectorized(decision_ts).to_numpy(dtype=np.int32)
     if not np.array_equal(session_id, canonical_session_id):
         mismatch = int(np.count_nonzero(session_id != canonical_session_id))
         raise RuntimeError(
@@ -1959,10 +1962,10 @@ def build_dataset_canonical(
     log.info("[SESSION_ID_DISTRIBUTION_PROOF] %s", _sess_counts.to_dict())
     df["is_ASIA"] = (canonical_session_id == 0).astype(np.int8)
     df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
-        ts
+        decision_ts
     ).astype(np.float32)
     df["minutes_to_next_session_boundary"] = (
-        get_session_minutes_to_next_boundary_vectorized(ts).astype(np.float32)
+        get_session_minutes_to_next_boundary_vectorized(decision_ts).astype(np.float32)
     )
     session_change = np.zeros(len(canonical_session_id), dtype=np.int8)
     if len(canonical_session_id) > 1:

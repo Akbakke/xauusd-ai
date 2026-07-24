@@ -1509,182 +1509,10 @@ def test_quote_missing_time_or_valid_bid_ask_contract_fails_closed(quote: dict) 
         )
 
 
-def test_incremental_m1_union_rejects_canonical_live_price_conflict(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_raw_base28_frame_contains_only_exact_native_m1_identity() -> None:
     from gx1.execution import v12_canonical_incremental as incremental
 
-    collector_dir = tmp_path / "collector"
-    canonical_dir = tmp_path / "canonical"
-    canonical_year = canonical_dir / "year=2026"
-    collector_dir.mkdir()
-    canonical_year.mkdir(parents=True)
-    timestamp = pd.Timestamp("2026-07-16T12:00:00Z")
-    row = {
-        "time": timestamp,
-        "open": 2400.0,
-        "high": 2401.0,
-        "low": 2399.0,
-        "close": 2400.5,
-        "volume": 10.0,
-        "bid_open": 2399.9,
-        "bid_high": 2400.9,
-        "bid_low": 2398.9,
-        "bid_close": 2400.4,
-        "ask_open": 2400.1,
-        "ask_high": 2401.1,
-        "ask_low": 2399.1,
-        "ask_close": 2400.6,
-    }
-    collector_path = collector_dir / "xauusd_m1_20260716.parquet"
-    canonical_path = canonical_year / "part-000.parquet"
-    pd.DataFrame([row]).to_parquet(collector_path, index=False)
-    pd.DataFrame([row]).to_parquet(canonical_path, index=False)
-    monkeypatch.setattr(incremental, "COLLECTOR_DIR", collector_dir)
-    monkeypatch.setattr(incremental, "CANONICAL_M1_DIR", canonical_dir)
-
-    exact = incremental._load_m1_collector_for_window(timestamp, timestamp)
-    assert len(exact) == 1
-    conflicting = dict(row)
-    conflicting["ask_close"] = 2400.7
-    pd.DataFrame([conflicting]).to_parquet(canonical_path, index=False)
-    with pytest.raises(RuntimeError, match="canonical/live M1 source conflict"):
-        incremental._load_m1_collector_for_window(timestamp, timestamp)
-
-
-def test_incremental_canonical_m5_uses_full_native_history_and_closed_cutoff(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from gx1.execution import v12_canonical_incremental as incremental
-
-    root = tmp_path / "canonical_m5"
-    part = root / "year=2026" / "part-000.parquet"
-    part.parent.mkdir(parents=True)
-    times = pd.date_range("2026-07-16T12:00:00Z", periods=3, freq="5min")
-    rows = []
-    for offset, timestamp in enumerate(times):
-        bid = 2400.0 + offset
-        ask = bid + 0.2
-        rows.append(
-            {
-                "time": timestamp,
-                "open": (bid + ask) / 2,
-                "high": (bid + ask) / 2 + 0.5,
-                "low": (bid + ask) / 2 - 0.5,
-                "close": (bid + ask) / 2,
-                "bid_open": bid,
-                "bid_high": bid + 0.5,
-                "bid_low": bid - 0.5,
-                "bid_close": bid,
-                "ask_open": ask,
-                "ask_high": ask + 0.5,
-                "ask_low": ask - 0.5,
-                "ask_close": ask,
-                "volume": 10.0 + offset,
-            }
-        )
-    pd.DataFrame(rows).to_parquet(part, index=False)
-    monkeypatch.setattr(incremental, "CANONICAL_M5_DIR", root)
-    monkeypatch.setattr(
-        incremental,
-        "canonical_xau_source_descriptor_v1",
-        lambda *_args, **_kwargs: {"source_granularity": "M5"},
-    )
-
-    loaded = incremental._load_full_canonical_m5(
-        pd.Timestamp("2026-07-16T12:10:00Z")
-    )
-
-    assert list(loaded.index) == list(times[:2])
-    assert list(loaded.columns) == list(
-        incremental.CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]
-    )
-
-
-def test_incremental_rejects_prebuilt_from_different_m5_market_bytes() -> None:
-    from gx1.execution import v12_canonical_incremental as incremental
-
-    index = pd.date_range("2026-07-16T12:00:00Z", periods=2, freq="5min")
-    source = pd.DataFrame(
-        {
-            "open": [2400.0, 2401.0],
-            "high": [2401.0, 2402.0],
-            "low": [2399.0, 2400.0],
-            "close": [2400.5, 2401.5],
-            "volume": [10.0, 11.0],
-        },
-        index=index,
-    )
-    incremental._require_existing_cv3_market_identity(source.copy(), source)
-    mismatched = source.copy()
-    mismatched.loc[index[-1], "close"] += 0.01
-
-    with pytest.raises(RuntimeError, match="market identity mismatch"):
-        incremental._require_existing_cv3_market_identity(mismatched, source)
-
-
-@pytest.mark.parametrize(
-    ("incremental_columns", "expected_fragment"),
-    [
-        (["canonical_a"], "missing=['canonical_b']"),
-        (["canonical_a", "canonical_b", "unexpected"], "extra=['unexpected']"),
-    ],
-)
-def test_incremental_canonical_schema_rejects_missing_and_extra_fields(
-    incremental_columns: list[str],
-    expected_fragment: str,
-) -> None:
-    from gx1.execution import v12_canonical_incremental as incremental
-
-    existing = pd.DataFrame({"canonical_a": [1.0], "canonical_b": [2.0]})
-    candidate = pd.DataFrame(
-        {column: [float(index)] for index, column in enumerate(incremental_columns)}
-    )
-
-    with pytest.raises(
-        RuntimeError, match="canonical_v3 incremental schema mismatch"
-    ) as raised:
-        incremental._align_exact_canonical_schema(existing, candidate)
-
-    assert expected_fragment in str(raised.value)
-
-
-def test_incremental_canonical_schema_preserves_existing_column_order() -> None:
-    from gx1.execution import v12_canonical_incremental as incremental
-
-    existing = pd.DataFrame({"canonical_a": [1.0], "canonical_b": [2.0]})
-    candidate = pd.DataFrame({"canonical_b": [3.0], "canonical_a": [4.0]})
-
-    aligned = incremental._align_exact_canonical_schema(existing, candidate)
-
-    assert list(aligned.columns) == ["canonical_a", "canonical_b"]
-    assert aligned.iloc[0].to_dict() == {"canonical_a": 4.0, "canonical_b": 3.0}
-
-
-def test_base34_frame_uses_explicit_owner_when_sources_overlap() -> None:
-    from gx1.execution import v12_canonical_incremental as incremental
-
-    closed_m5 = pd.Timestamp("2026-07-16T12:00:00Z")
-    timestamp = closed_m5 + pd.Timedelta(minutes=4)
-    cv3 = pd.DataFrame(
-        {
-            "H4_trend_sign_cat": [0.0],
-            "session_id": [0.0],
-            "canonical_only": [7.0],
-            "open": [2300.0],
-        },
-        index=pd.DatetimeIndex([closed_m5]),
-    )
-    cv3_aug = pd.DataFrame(
-        {
-            "H4_trend_sign_cat": [2.0],
-            "session_id": [3.0],
-            "canonical_only": [99.0],
-        },
-        index=pd.DatetimeIndex([closed_m5]),
-    )
+    timestamp = pd.Timestamp("2026-07-16T12:04:00Z")
     m1 = pd.DataFrame(
         {
             column: [2400.0 + offset]
@@ -1695,47 +1523,31 @@ def test_base34_frame_uses_explicit_owner_when_sources_overlap() -> None:
         index=pd.DatetimeIndex([timestamp]),
     )
 
-    frame = incremental._build_base34_owned_frame(
-        output_columns=[
-            "H4_trend_sign_cat",
-            "session_id",
-            "canonical_only",
-            "open",
-            "bid_close",
-            "is_model_bar",
-        ],
-        cv3=cv3,
-        cv3_aug=cv3_aug,
-        m1=m1,
+    m1["stale_context"] = 999.0
+    frame = incremental._build_raw_base28_owned_frame(m1)
+
+    assert tuple(frame.columns) == incremental.RAW_BASE28_COLUMNS
+    pd.testing.assert_frame_equal(
+        frame,
+        m1.loc[:, list(incremental.RAW_BASE28_COLUMNS)].rename_axis("time"),
     )
 
-    assert frame.iloc[0].to_dict() == {
-        "H4_trend_sign_cat": 2.0,
-        "session_id": 3.0,
-        "canonical_only": 7.0,
-        "open": 2400.0,
-        "bid_close": m1.iloc[0]["bid_close"],
-        "is_model_bar": 1.0,
-    }
 
-
-def test_base34_augment_owned_field_never_falls_back_to_cv3() -> None:
+def test_raw_base28_rejects_missing_native_m1_field() -> None:
     from gx1.execution import v12_canonical_incremental as incremental
 
-    closed_m5 = pd.Timestamp("2026-07-16T12:00:00Z")
-    timestamp = closed_m5 + pd.Timedelta(minutes=4)
-    cv3 = pd.DataFrame(
-        {"H4_trend_sign_cat": [0.0]},
-        index=pd.DatetimeIndex([closed_m5]),
+    timestamp = pd.Timestamp("2026-07-16T12:04:00Z")
+    m1 = pd.DataFrame(
+        {
+            column: [2400.0 + offset]
+            for offset, column in enumerate(incremental.RAW_BASE28_COLUMNS)
+            if column != "ask_close"
+        },
+        index=pd.DatetimeIndex([timestamp]),
     )
 
-    with pytest.raises(RuntimeError, match="augment-owned column"):
-        incremental._build_base34_owned_frame(
-            output_columns=["H4_trend_sign_cat"],
-            cv3=cv3,
-            cv3_aug=pd.DataFrame(index=pd.DatetimeIndex([closed_m5])),
-            m1=pd.DataFrame(index=pd.DatetimeIndex([timestamp])),
-        )
+    with pytest.raises(RuntimeError, match="RAW_BASE28_M1_FIELDS_MISSING"):
+        incremental._build_raw_base28_owned_frame(m1)
 
 
 @pytest.mark.parametrize(

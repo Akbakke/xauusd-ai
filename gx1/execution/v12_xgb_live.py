@@ -272,7 +272,11 @@ class XGBLiveInference:
                 raise RuntimeError("XGB_SESSION_TIMESTAMP_MISSING")
             if pd.DatetimeIndex(timestamps).hasnans:
                 raise RuntimeError("XGB_SESSION_TIMESTAMP_INVALID")
-            sessions = get_session_vectorized(timestamps).to_numpy(dtype=object)
+            from gx1.time.session_detector import m5_decision_availability
+
+            sessions = get_session_vectorized(
+                m5_decision_availability(timestamps)
+            ).to_numpy(dtype=object)
             if (
                 sessions.shape != (len(augmented_cv3_row),)
                 or not set(sessions.tolist()).issubset(SESSION_NAMES)

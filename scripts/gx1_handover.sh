@@ -102,16 +102,16 @@ if (
     != [
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
         "execute_strict_native_oanda_m1_and_m5_materialization",
-        "complete_native_to_canonical_v3_raw_base28_atomic_pair_bootstrap",
-        "publish_and_bind_immutable_train_only_atr_spread_rank_reference",
+        "execute_native_to_canonical_v3_raw_base28_atomic_pair_bootstrap",
+        "bind_immutable_train_only_atr_spread_rank_through_entry_and_exit",
     ]
 ):
     raise SystemExit("FATAL: malformed source-repair checkpoint")
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1899
-    or verification.get("tests_passed") != 1894
+    or verification.get("tests_collected") != 1898
+    or verification.get("tests_passed") != 1893
     or verification.get("tests_skipped") != 5
     or verification.get("tests_failed") != 0
     or verification.get("changed_python_compile") != "PASS"

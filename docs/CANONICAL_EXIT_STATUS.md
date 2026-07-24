@@ -1,6 +1,6 @@
 # Canonical Exit status
 
-Updated 2026-07-23.
+Updated 2026-07-24.
 
 Status: **BLOCK**. `PROJECT_STATE_artifacts.json` still records the historical
 XGB, V3 and Exit-IQL selections, but `ACTIVE` there is not current production
@@ -39,10 +39,13 @@ fills. Its canonical operation owns every TEST row, explicit FLAT no-order
 result and LONG/SHORT per-M1 decision trace, while binding the exact runtime
 heads, SourceTape, frozen pair, active artifacts, source closure and outputs.
 
-The immutable native OANDA M1/M5 producer is now code-proven in the existing
-historical owner but has not run. Still required are explicit production runs
-for both timeframes, a complete native→canonical-v3/raw-BASE28 bootstrap, a
-separate immutable TRAIN-only rank reference,
+The immutable native OANDA M1/M5 producer and the snapshot-driven
+native→canonical-v3/raw-BASE28 pair producer are now code-proven in their
+existing owners but have not run. The pair route binds native/source/code/
+formula/timing lineage and publishes raw BASE28 with exactly 13 native M1
+fields; it cannot copy an old prebuilt. Still required are explicit production
+runs for both timeframes, execution of the pair route, a separate immutable
+TRAIN-only rank reference bound through XGB/V3/Exit dataset, bundle, replay and live,
 a fresh model-native V3 dataset produced by the now code-proven exact
 writer/event, a fresh 79-field Exit-XGB, V3 rescore/retrain, production
 Exit-IQL retrain, and execution of the code-proven canonical full-TEST

@@ -74,9 +74,14 @@ v3 native M1 or M5 source bundles from retained complete-only MBA responses
 through the `model-native-native-m1-source` and
 `model-native-native-m5-source` routes. It uses fixed three-day M1 and 15-day
 M5 chunks with the same 4,320-slot cap and atomic no-replace publication, but
-neither route has been executed. The remaining gates are native M1/M5
-production, a complete native→canonical-v3/raw-BASE28 bootstrap, a separate
-immutable TRAIN-only rank reference for learned bucket transforms, and a
+neither route has been executed. The existing pair owner now code-proves the
+complete immutable native→canonical-v3/raw-BASE28 bootstrap behind
+`model-native-canonical-pair`; no production pair was built. It publishes
+exactly 13 native M1 fields in raw BASE28, binds native/source/code/formula
+lineage, uses M5 close (`T+5`) for HTF/session/cyclic availability and avoids
+recomputing persisted canonical features during normal load/refresh. The
+remaining gates are native M1/M5 production, execution of that pair route, a
+separate immutable TRAIN-only rank reference bound across Entry and Exit, and a
 fresh 79-field XGB→V3→Exit-IQL chain
 and execution of the full-TEST producer on those fresh bytes. These code
 proofs do not rehabilitate V24/V7. Canonical/live December-2024 M5 parity and

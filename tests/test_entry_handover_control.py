@@ -36,6 +36,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-state-selftest",
     "model-native-native-m5-source",
     "model-native-native-m1-source",
+    "model-native-canonical-pair",
     "model-native-rebuild-preflight",
     "model-native-post-rebuild-readiness",
     "model-native-foundation-feature-audit",
@@ -135,8 +136,8 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert repair["remaining_source_p0"] == [
         "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
         "execute_strict_native_oanda_m1_and_m5_materialization",
-        "complete_native_to_canonical_v3_raw_base28_atomic_pair_bootstrap",
-        "publish_and_bind_immutable_train_only_atr_spread_rank_reference",
+        "execute_native_to_canonical_v3_raw_base28_atomic_pair_bootstrap",
+        "bind_immutable_train_only_atr_spread_rank_through_entry_and_exit",
     ]
 
     terminal = state["accepted_dataset_terminal_evidence"]

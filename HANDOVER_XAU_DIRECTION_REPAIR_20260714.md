@@ -1,6 +1,6 @@
 # XAUUSD model-native direction handover
 
-Updated 2026-07-23. This is the only GX1 handover document. Run
+Updated 2026-07-24. This is the only GX1 handover document. Run
 `bash scripts/gx1_handover.sh` once for the compact repository/launch/process
 snapshot, `--check` on continuations, and `--verbose` only when the full
 document must be printed again.
@@ -75,8 +75,8 @@ canonical active-Exit full-TEST producer: it owns the TEST rows, exact T+5
 fills and per-M1 `make_exit_decision` traces, emits explicit FLAT no-order
 evidence and binds every input/artifact/source/output byte in replay v7.
 A fresh dataset on compliant inputs, fresh XGB/V3/Exit artifacts, native-M1/M5
-production, the still-missing complete native→canonical-v3/raw-BASE28
-bootstrap and immutable TRAIN-only rank reference,
+production, execution of the now code-proven complete
+native→canonical-v3/raw-BASE28 bootstrap and immutable TRAIN-only rank binding,
 canonical/live December-2024 tape parity, execution of that producer on the
 fresh chain and every empirical dataset/model/edge gate are still open.
 
@@ -526,8 +526,10 @@ to `FLAT`, a cached decision or backlog execution.
   dataset build proof, model-native state contract and every split manifest
   bind that exact ID; a missing, placeholder or mismatched ID fails before the
   dataset builder writes. The current accepted state/rank artifact schemas are
-  `model_native_state_contract_v4` and
-  `model_native_train_rank_reference_v4`; older artifacts cannot pass.
+  `model_native_state_contract_v6` and
+  `model_native_train_rank_reference_v5`; older payload schemas cannot pass.
+  The rebuild driver's retained output filename still ends in
+  `model_native_train_rank_reference_v4.npz`; filename is not schema authority.
 - Closed the July-19 feature-ranking lineage gap: preflight, wrapper and builder
   require explicitly named ranking/manifest artifacts and revalidate their
   run ID, source hash and exact TRAIN start/end. A manifest ranked on a
@@ -603,8 +605,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The native-M1/M5 and Base-routing checkpoint collected 1,899 tests on
-2026-07-24: 1,894 passed, five were explicitly skipped and zero failed. Changed Python
+The native-M1/M5, raw-pair and feature-efficiency checkpoint collected 1,898
+tests on 2026-07-24: 1,893 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -651,7 +653,7 @@ current lane):
 - tape root: same dir, `cv3/`
 - REJECTED and must be reproduced fresh under the new vedtak: the old
   `smart520_rank_reference_*.npz` (schema v1; the contract requires
-  `model_native_train_rank_reference_v4`) and the 520-wide dataset
+  `model_native_train_rank_reference_v5`) and the 520-wide dataset
   (7 constant neutral-XGB bridge fields).
 
 ## 2026-07-18/19 campaign handover (vedtak XAU_SEQ513_REBUILD_20260718_V1)
@@ -778,10 +780,14 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    bar is M1 phase 4. Broad canonical/M5 duplicate ownership was removed.
    The exact V3 training-dataset producer/event is now implemented in the
    existing owner. The canonical active-Exit full-TEST producer is now also
-   implemented in the existing sizing/replay owner. Remaining work is
-   native M1/M5 source execution, a complete initial raw pair build (not a copy
-   of the invalid old pair), a separately bound immutable TRAIN-only ATR/spread
-   rank reference, fresh XGB/V3/Exit artifacts and an
+   implemented in the existing sizing/replay owner. The existing pair owner
+   now also implements a snapshot-driven native→canonical-v3/raw-BASE28 build,
+   exposed through `model-native-canonical-pair`; it admits no caller-prebuilt
+   copy and binds the two native manifests, source/code inventory, formula,
+   timing, coverage and exact output schemas. Remaining work is native M1/M5
+   source execution, execution of that initial pair build, a separately bound
+   immutable TRAIN-only ATR/spread rank reference across every Entry/Exit
+   consumer, fresh XGB/V3/Exit artifacts and an
    actual full-TEST producer run over those accepted bytes.
    ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment use
    shared code owners; unavailable required inputs fail closed.
@@ -814,8 +820,9 @@ Ordered steps (each gate fail-closed; stop at first red):
    producer/output bytes, reuse the exact live per-bar primitive, emit FLAT as
    no order and reject fallback or horizon-cap acceptance.
 5. With explicit data authority, publish strict immutable native M1 and M5
-   roots, then build one native→canonical-v3/raw-BASE28 generation and a
-   separate immutable TRAIN-only ATR/spread rank reference. Repair and prove
+   roots, then execute `model-native-canonical-pair` for one
+   native→canonical-v3/raw-BASE28 generation and bind a separate immutable
+   TRAIN-only ATR/spread rank reference through every consumer. Repair and prove
    canonical/live December-2024 M5 parity before a fresh rebuild.
 6. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
    readiness/trainability audit, then materialize a new recipe only from those

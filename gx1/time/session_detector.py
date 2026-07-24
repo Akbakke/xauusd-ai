@@ -37,6 +37,36 @@ SESSION_BOUNDARIES = {
 # Canonical session_id mapping (observerable context)
 SESSION_ID_MAP = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
 SESSION_ID_INV = {v: k for k, v in SESSION_ID_MAP.items()}
+M5_BAR_DURATION = pd.Timedelta(minutes=5)
+
+
+def m5_decision_availability(
+    bar_start_timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray],
+) -> pd.DatetimeIndex:
+    """Return exact UTC availability times for M5 bar-start labels.
+
+    This is the shared clock contract for canonical M5 evidence.  A row
+    labelled ``T`` contains the completed bar ``[T,T+5min)`` and may first be
+    used at ``T+5min``.  Market gaps are allowed; malformed, unordered, or
+    off-grid labels are not.
+    """
+
+    try:
+        labels = pd.DatetimeIndex(
+            pd.to_datetime(bar_start_timestamps, utc=True, errors="raise")
+        )
+    except Exception as exc:
+        raise RuntimeError("M5_DECISION_BAR_LABEL_INVALID") from exc
+    if (
+        labels.hasnans
+        or labels.has_duplicates
+        or not labels.is_monotonic_increasing
+    ):
+        raise RuntimeError("M5_DECISION_BAR_LABEL_ORDER_INVALID")
+    grid_ns = int(M5_BAR_DURATION.value)
+    if len(labels) and np.any(labels.asi8 % grid_ns != 0):
+        raise RuntimeError("M5_DECISION_BAR_LABEL_OFF_GRID")
+    return labels.tz_convert("UTC") + M5_BAR_DURATION
 
 
 def _as_datetime_series(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]) -> pd.Series:

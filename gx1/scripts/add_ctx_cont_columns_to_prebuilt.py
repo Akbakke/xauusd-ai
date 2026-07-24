@@ -50,7 +50,11 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS,
     MODEL_NATIVE_PREBUILT_CTX_CONT_FIELDS,
 )
-from gx1.contracts.entry_model_native_state_v2 import causal_vol_regime_bucket
+from gx1.contracts.entry_model_native_state_v2 import (
+    bucket_against_train_reference,
+    causal_vol_regime_bucket,
+    load_train_rank_reference_v2,
+)
 from gx1.features.micro_structure_v1 import compute_micro_structure_features
 from gx1.features.swing_structure_v1 import (
     SWING_ATR_PERIOD_V1,
@@ -249,20 +253,6 @@ def _derive_spread_bps_from_available(df: pd.DataFrame) -> np.ndarray:
     return derive_observed_spread_bps(df)
 
 
-def _rank_bucket_0_4(x: np.ndarray) -> np.ndarray:
-    """Return deterministic finite 0..4 percentile-rank buckets or fail."""
-
-    x = np.asarray(x, dtype=float)
-    if x.ndim != 1 or len(x) == 0:
-        raise RuntimeError(f"CTX_RANK_BUCKET_SHAPE_INVALID: {x.shape}")
-    if not np.isfinite(x).all():
-        raise RuntimeError("CTX_RANK_BUCKET_SOURCE_NONFINITE")
-    qv = pd.Series(x).rank(pct=True, method="average").to_numpy(dtype=float)
-    if not np.isfinite(qv).all():
-        raise RuntimeError("CTX_RANK_BUCKET_OUTPUT_NONFINITE")
-    return np.clip(qv * 5.0, 0.0, 4.99).astype(np.int64)
-
-
 # ---------------------------------------------------------------------
 # Builder
 # ---------------------------------------------------------------------
@@ -274,6 +264,7 @@ def run_add_ctx_cont_columns(
     output_parquet: Path,
     tape_root: Optional[Path] = None,
     diagnostics_path: Optional[Path] = None,
+    rank_reference_path: Path | None = None,
 ) -> None:
     """
     Build ctx_cont / ctx_cat columns into prebuilt parquet.
@@ -293,6 +284,11 @@ def run_add_ctx_cont_columns(
     prebuilt_path = Path(prebuilt_path).resolve()
     output_parquet = Path(output_parquet).resolve()
     raw_m5_paths = [Path(p).resolve() for p in (raw_m5_paths or [])]
+    if rank_reference_path is None:
+        raise RuntimeError(
+            "[CTX_TRAIN_RANK_REQUIRED] explicit immutable TRAIN reference required"
+        )
+    rank_reference = load_train_rank_reference_v2(rank_reference_path)
     if not prebuilt_path.exists():
         raise RuntimeError(f"[CTX_INPUT_FAIL] prebuilt not found: {prebuilt_path}")
     if not raw_m5_paths:
@@ -549,17 +545,24 @@ def run_add_ctx_cont_columns(
     # CAT: 5/6 dims, deterministic, int, no NaN
     # ------------------------------------------------------------
     ts = df_pre.index
+    from gx1.time.session_detector import m5_decision_availability
+
+    decision_ts = m5_decision_availability(ts)
 
     # session_id: 0=ASIA, 1=EU, 2=OVERLAP, 3=US (SSoT)
-    df_pre["session_id"] = get_session_id_vectorized(ts).astype(np.int64)
+    df_pre["session_id"] = get_session_id_vectorized(decision_ts).to_numpy(
+        dtype=np.int64
+    )
     df_pre["is_ASIA"] = (df_pre["session_id"] == 0).astype(np.int64)
 
     # Session timing features (observerable context)
     df_pre["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
-        ts
-    ).astype(np.float32)
+        decision_ts
+    ).to_numpy(dtype=np.float32)
     df_pre["minutes_to_next_session_boundary"] = (
-        get_session_minutes_to_next_boundary_vectorized(ts).astype(np.float32)
+        get_session_minutes_to_next_boundary_vectorized(decision_ts).to_numpy(
+            dtype=np.float32
+        )
     )
     # Session change flag (1 if session changes vs previous bar)
     session_id = df_pre["session_id"].to_numpy(dtype=np.int64)
@@ -585,12 +588,18 @@ def run_add_ctx_cont_columns(
     # ATR rank, while atr_bucket is the absolute source-history ATR quintile.
     atr_bps_values = df_pre["atr_bps"].to_numpy(dtype=float)
     vol_regime_id = causal_vol_regime_bucket(atr_bps_values)
-    atr_bucket = _rank_bucket_0_4(atr_bps_values)
+    atr_bucket = bucket_against_train_reference(
+        atr_bps_values,
+        rank_reference.atr_bps_sorted,
+    )
     df_pre["vol_regime_id"] = vol_regime_id.astype(np.int64)
     df_pre["atr_bucket"] = atr_bucket.astype(np.int64)
 
-    # spread_bucket: 0..4 from spread_bps percentile rank
-    spread_bucket = _rank_bucket_0_4(df_pre["spread_bps"].to_numpy(dtype=float))
+    # spread_bucket: exact immutable TRAIN-only ECDF.
+    spread_bucket = bucket_against_train_reference(
+        df_pre["spread_bps"].to_numpy(dtype=float),
+        rank_reference.spread_bps_sorted,
+    )
     df_pre["spread_bucket"] = spread_bucket.astype(np.int64)
 
     # H4_trend_sign_cat (optional): sign(mid - ema50) on H4, mapped to {0,1,2} for {-1,0,+1}
@@ -765,6 +774,9 @@ def run_add_ctx_cont_columns(
                     "ctx_contract_missing": [],
                     "n_rows": int(len(df_pre)),
                     "tape_root": str(tape_root) if tape_root is not None else None,
+                    "rank_reference_npz": str(rank_reference.path),
+                    "rank_reference_npz_sha256": rank_reference.sha256,
+                    "rank_reference_sidecar_sha256": rank_reference.sidecar_sha256,
                 },
                 indent=2,
             ),
@@ -803,6 +815,9 @@ def run_add_ctx_cont_columns(
         "regime_v4_emitted": bool(
             _regime_v4_emitted
         ),  # parquet carries the 16 REGIME_V4 cols (see diagnostics note)
+        "rank_reference_npz": str(rank_reference.path),
+        "rank_reference_npz_sha256": rank_reference.sha256,
+        "rank_reference_sidecar_sha256": rank_reference.sidecar_sha256,
         "no_fallback_enforced": True,
     }
     manifest_path.write_text(json.dumps(manifest_obj, indent=2), encoding="utf-8")
@@ -850,6 +865,12 @@ def main() -> int:
         required=True,
         help="Mandatory canonical tape root for exact micro/swing features.",
     )
+    ap.add_argument(
+        "--rank-reference",
+        type=Path,
+        required=True,
+        help="Exact immutable TRAIN-only model-native rank reference NPZ.",
+    )
     args = ap.parse_args()
 
     raw = args.raw_m5_parquet
@@ -873,6 +894,7 @@ def main() -> int:
             output_parquet=args.output_parquet,
             tape_root=args.tape_root,
             diagnostics_path=diag,
+            rank_reference_path=args.rank_reference,
         )
     except Exception as e:
         print(f"[add_ctx_cont_columns] {e}", file=sys.stderr)

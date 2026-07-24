@@ -185,7 +185,10 @@ def _require_model_native_entry_context_frame(
         get_session_vectorized,
     )
 
-    labels = get_session_vectorized(times)
+    from gx1.time.session_detector import m5_decision_availability
+
+    decision_times = m5_decision_availability(times)
+    labels = get_session_vectorized(decision_times)
     if labels.isna().any() or not labels.isin(tuple(SESSION_ID_MAP)).all():
         raise RuntimeError(
             "[MODEL_NATIVE_ENTRY_CONTEXT_NO_DIRECTION] "
@@ -226,10 +229,10 @@ def _require_model_native_entry_context_frame(
     expected_session_values = {
         "is_ASIA": (expected_session == SESSION_ID_MAP["ASIA"]).astype(np.float64),
         "minutes_since_session_open": get_session_minutes_since_open_vectorized(
-            times
+            decision_times
         ).to_numpy(dtype=np.float64),
         "minutes_to_next_session_boundary": (
-            get_session_minutes_to_next_boundary_vectorized(times).to_numpy(
+            get_session_minutes_to_next_boundary_vectorized(decision_times).to_numpy(
                 dtype=np.float64
             )
         ),

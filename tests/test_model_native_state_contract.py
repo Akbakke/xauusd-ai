@@ -154,6 +154,39 @@ def _valid_entry_context_frame() -> pd.DataFrame:
     return frame.reset_index(drop=True)
 
 
+def test_session_context_switches_at_m5_decision_boundary_without_extra_lag() -> None:
+    labels = pd.date_range(
+        "2026-07-01T06:50:00Z",
+        periods=3,
+        freq="5min",
+    )
+    frame = pd.DataFrame(index=labels)
+    _add_session_features(frame)
+
+    assert frame["session_id"].tolist() == [0, 1, 1]
+    assert frame["session_change_flag"].tolist() == [1, 1, 0]
+    assert frame["minutes_since_session_open"].tolist() == [535.0, 0.0, 5.0]
+    assert frame["minutes_to_next_session_boundary"].tolist() == [
+        5.0,
+        300.0,
+        295.0,
+    ]
+    assert frame["_v1_is_EU"].tolist() == [0.0, 1.0, 1.0]
+
+
+def test_session_context_is_append_stable() -> None:
+    labels = pd.date_range(
+        "2026-07-01T06:30:00Z",
+        periods=12,
+        freq="5min",
+    )
+    prefix = pd.DataFrame(index=labels[:8])
+    full = pd.DataFrame(index=labels)
+    _add_session_features(prefix)
+    _add_session_features(full)
+    pd.testing.assert_frame_equal(prefix, full.iloc[:8])
+
+
 def test_model_native_entry_context_accepts_exact_categorical_session_frame() -> None:
     _require_model_native_entry_context_frame(
         _valid_entry_context_frame(),
@@ -198,7 +231,7 @@ def test_model_native_entry_boundary_rejects_missing_context_before_feature_buil
         ("is_ASIA", np.nan, "missing/non-finite"),
         ("minutes_since_session_open", np.nan, "missing/non-finite"),
         ("minutes_to_next_session_boundary", -1, "disagrees with UTC-derived"),
-        ("session_change_flag", 1, "disagrees with UTC-derived"),
+        ("session_change_flag", 0, "disagrees with UTC-derived"),
         ("session_tradable", 2, "outside semantic domain"),
     ],
 )
@@ -224,7 +257,7 @@ def test_model_native_entry_boundary_never_turns_unknown_session_into_asia(
     tmp_path: Path,
 ) -> None:
     frame = _valid_entry_context_frame()
-    # The final bar is OVERLAP.  Zero is in-domain, but accepting it would be
+    # The final bar becomes available at 16:00 UTC (US). Zero is in-domain, but accepting it would be
     # exactly the retired unknown-session -> ASIA soft fallback.
     frame.loc[frame.index[-1], "session_id"] = 0
     frame.loc[frame.index[-1], "is_ASIA"] = 1

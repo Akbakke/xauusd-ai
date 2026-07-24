@@ -1,6 +1,6 @@
 # GX1 project state
 
-Updated 2026-07-23.
+Updated 2026-07-24.
 
 ## Entry direction
 
@@ -87,13 +87,30 @@ the frozen pair, active Exit artifacts, transitive producer source and the
 exact immutable replay/trace files. The caller-parquet route remains
 diagnostic-only and cannot authorize launch.
 Current M1 and M5 data do not satisfy the strict v3 native-source manifest and
-no atomic pair has been bootstrapped. BASE28 is now contractually limited to
-the 13 native-M1 market fields; phase and volume transforms are derived
-causally. The remaining seam is not an alternate tape repair: execute both
-native producers, prove the December window, then provide a complete
-native→canonical-v3/raw-BASE28 bootstrap without copying the invalid old pair.
-ATR/spread rank buckets require a separate immutable reference fitted only on
-TRAIN and bound by dataset, bundle, replay and live. A fresh 79-field
+no compliant atomic pair has been produced. The existing pair owner now
+implements the complete snapshot-driven
+native-M1/M5→canonical-v3/raw-BASE28 bootstrap and exposes it as
+`model-native-canonical-pair`. It verifies both immutable native descriptors,
+their identical source interval/environment, clean producer commit/source
+inventory, exact derivation/timing contract and physical output schemas before
+atomic no-replace publication. BASE28 is exactly the 13 native-M1 market
+fields; phase, volume and model context are not duplicated into it.
+
+M5 feature availability is now uniformly evaluated at bar close (`T+5`):
+M15/H1/H4/D1 merges, cyclic time and session state share that decision
+timestamp. Persisted model-agnostic canonical fields are validated once and
+the loader's former full-history compatibility augmenters are no-ops when the
+complete surface is present. This removes roughly 17 seconds from repeated
+raw-BASE work and about 95 seconds from a measured complete-pair load/refresh
+without changing formulas.
+
+ATR/spread rank buckets remain a separate immutable TRAIN-fit reference. The
+mutable full-history rank path is removed; the measured old-vs-TRAIN category
+disagreement was 13.577428% for ATR and 30.579820% for spread. Entry has the
+exact reference transform, but rebuilt XGB→V3→Exit dataset, bundle, replay and
+live identities must still bind that same reference before their artifacts
+can be produced. Execute both native producers, prove the December window and
+run the new pair route only under explicit data authority. A fresh 79-field
 Exit-XGB, V3 rescore/retrain and
 production Exit-IQL retrain are mandatory before the producer can create real
 authority; no old role may be mixed in.
@@ -330,8 +347,8 @@ bundle or launch evidence.
 The current post-V7 source-repair tree completed repository-wide verification
 on 2026-07-24:
 
-- 1,899 tests collected;
-- 1,894 passed, five explicit skips and zero failures;
+- 1,898 tests collected;
+- 1,893 passed, five explicit skips and zero failures;
 - Python compilation for every changed Python source and test;
 - Ruff on every changed Python source and test, with only the repository's
   intentional import-bootstrap `E402` pattern excluded;
@@ -374,9 +391,9 @@ and runtime fail-close repairs, including the exact V3 storage, calibration
 support, runtime-head V3 and replay-v7 contracts. Preserve both completed
 canonical producers in the existing V3 dataset and sizing/replay owners, then
 materialize the code-proven native OANDA M1 and M5 bundles, prove the
-December-2024 window against their retained responses, and close the
-still-missing complete native→canonical-v3/raw-BASE28 bootstrap plus immutable
-TRAIN-only ATR/spread rank reference. Only then rebuild fresh XAU-only splits
+December-2024 window against their retained responses, run the code-proven
+native→canonical-v3/raw-BASE28 bootstrap, and close the immutable TRAIN-only
+ATR/spread rank binding across Entry and Exit. Only then rebuild fresh XAU-only splits
 and rerun every dataset/readiness audit before binding a new smoke recipe.
 
 After a new smoke passes, compare a declared full-history baseline with a

@@ -20,6 +20,7 @@ Model-native seq513 evidence:
   model-native-state-selftest
   model-native-native-m1-source --vedtak <id> --start-utc <M1 UTC> --end-utc <exclusive M1 UTC> --out-root <new-dir>
   model-native-native-m5-source --vedtak <id> --start-utc <M5 UTC> --end-utc <exclusive M5 UTC> --out-root <new-dir>
+  model-native-canonical-pair --native-m1-root <immutable-dir> --native-m5-root <immutable-dir> --vedtak <id> --checkpoint-dir <new-dir> --pair-manifest <new-json> --generation-root <dir> [--workers <n>]
   model-native-rebuild-preflight
   model-native-post-rebuild-readiness
   model-native-foundation-feature-audit
@@ -163,6 +164,27 @@ case "$cmd" in
     fi
     exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
       --timeframe M5 "$@"
+    ;;
+
+  model-native-canonical-pair)
+    reject_non_authoritative_args "$@"
+    reject_flags "$cmd" \
+      --loop \
+      --canonical-parquet \
+      --base28-parquet \
+      --raw-m1-parquet \
+      --raw-m5-parquet
+    for flag in \
+      --native-m1-root \
+      --native-m5-root \
+      --vedtak \
+      --checkpoint-dir \
+      --pair-manifest \
+      --generation-root; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 30G --swap 2G -- \
+      "$PY" -m gx1.execution.v12_canonical_incremental "$@"
     ;;
 
   model-native-rebuild-preflight)

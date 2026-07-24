@@ -1361,3 +1361,47 @@ Decision:
   and bind it through dataset, bundle, replay and live;
 - keep launch `BLOCK`. Neither strict native source route, the complete raw
   pair bootstrap nor any training/live operation was executed.
+
+## 2026-07-24 — make the raw pair path complete, causal and load-efficient
+
+The follow-up field/consumer audit proved four remaining mismatches:
+
+- M15/H1/H4/D1, cyclic and session features used the M5 bar-start label
+  instead of the decision-availability timestamp. At an M15/D1 boundary this
+  delayed newly closed evidence by one M5 bar;
+- Exit's mutable full-history bucket file disagreed with the exact TRAIN-only
+  ECDF on 13.577428% of ATR rows and 30.579820% of spread rows;
+- bootstrap copied caller-supplied prebuilts and its v1 pair manifest bound
+  output bytes/schema, but not the native inputs, formulas or producer source;
+- a complete persisted canonical surface was recomputed during every
+  load/refresh. Local measurements attributed roughly 17 seconds to repeated
+  raw-BASE augment work and roughly 95 seconds to compatibility augmentation.
+
+Decision:
+
+- extend `gx1.execution.v12_canonical_incremental`; do not create a replacement
+  builder. It now accepts only two immutable native snapshot roots plus an
+  explicit vedtak, rebuilds the complete model-agnostic canonical surface,
+  derives raw BASE28 as exactly the 13 native M1 fields, and publishes one
+  immutable atomic pair;
+- bind native manifest hashes, source environment/interval, clean commit,
+  producer source inventory, formula/timing declaration, coverage and output
+  schemas in pair manifest v2. Frozen-pair consumers expose the exact lineage
+  and its digest to downstream evidence;
+- expose the same owner as `model-native-canonical-pair` through the existing
+  capped control surface. Remove copy/bootstrap compatibility and daemon-loop
+  behavior;
+- use one shared M5 decision-availability function (`bar_start + 5 minutes`)
+  for HTF merges, cyclic features and sessions;
+- keep `atr` as the canonical Wilder ATR and `atr_bps` as the normalized
+  market value. Do not let context augmentation overwrite canonical `atr`;
+- make model-agnostic augmentation remove TRAIN buckets. Derive ATR/spread
+  buckets only from an explicit immutable `TrainRankReferenceV2`; delete the
+  obsolete mutable global bucket writer/reader;
+- validate the complete persisted canonical surface once. Compatibility
+  augmenters must return without recomputation when every required field is
+  already present;
+- keep launch `BLOCK`. No native source, pair, rank, dataset, training, replay
+  or live operation was executed. Exit dataset/bundle/replay/live still need
+  one exact bound TRAIN-rank identity and all historical Exit artifacts remain
+  invalid.

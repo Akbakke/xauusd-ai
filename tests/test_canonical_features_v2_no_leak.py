@@ -7,6 +7,7 @@ from gx1.scripts.materialize_build_canonical_features_v2 import (
     compute_m15_features,
     merge_asof_features,
 )
+from gx1.scripts.materialize_canonical_v3_augment import add_cyclic_time_features
 
 
 def _m5_frame(start: str, periods: int) -> pd.DataFrame:
@@ -46,18 +47,66 @@ def test_merge_asof_features_only_exposes_closed_htf_rows() -> None:
 
     merged = merge_asof_features(base, extra)
 
-    assert merged.loc[0:2, "m15_marker"].isna().all()
+    assert merged.loc[0:1, "m15_marker"].isna().all()
+    # The 00:10 M5 row closes at 00:15 and can immediately use the M15 row
+    # that also closed at 00:15. Waiting for the 00:15 label is one M5 stale.
+    assert merged.loc[2, "m15_marker"] == 1.0
     assert merged.loc[3, "m15_marker"] == 1.0
+
+
+def test_cyclic_clock_uses_m5_decision_availability_across_hour_and_day() -> None:
+    labels = pd.DatetimeIndex(
+        ["2026-07-23T12:55:00Z", "2026-07-23T23:55:00Z"]
+    )
+    observed = add_cyclic_time_features(pd.DataFrame(index=labels))
+    expected_hour = np.asarray([13.0, 0.0])
+    expected_dow = np.asarray([3.0, 4.0])
+
+    np.testing.assert_allclose(
+        observed["hour_sin"],
+        np.sin(2 * np.pi * expected_hour / 24),
+        rtol=0.0,
+        atol=1e-7,
+    )
+    np.testing.assert_allclose(
+        observed["dow_sin"],
+        np.sin(2 * np.pi * expected_dow / 7),
+        rtol=0.0,
+        atol=1e-7,
+    )
+
+
+def test_htf_and_cyclic_features_are_append_stable() -> None:
+    base = _m5_frame("2026-01-01T00:00:00Z", periods=8)
+    extra = pd.DataFrame(
+        {
+            "time": [pd.Timestamp("2026-01-01T00:15:00Z")],
+            "_time_ns": [pd.Timestamp("2026-01-01T00:15:00Z").value],
+            "m15_marker": [7.0],
+        }
+    )
+    prefix_merge = merge_asof_features(base.iloc[:5], extra)
+    full_merge = merge_asof_features(base, extra).iloc[:5]
+    pd.testing.assert_series_equal(
+        prefix_merge["m15_marker"],
+        full_merge["m15_marker"],
+    )
+    prefix_cycles = add_cyclic_time_features(
+        base.iloc[:5].set_index("time")
+    )
+    full_cycles = add_cyclic_time_features(base.set_index("time")).iloc[:5]
+    pd.testing.assert_frame_equal(prefix_cycles, full_cycles)
 
 
 def test_canonical_v2_summary_declares_no_lookahead_contract() -> None:
     repo = Path(__file__).resolve().parents[1]
     text = (repo / "gx1/scripts/materialize_build_canonical_features_v2.py").read_text(encoding="utf-8")
 
-    assert "canonical_features_v2_no_lookahead_close_time_20260713" in text
+    assert "canonical_features_v2_decision_availability_20260724" in text
     assert '"no_lookahead": True' in text
     assert '"d1_feature_time": "bar_close_time"' in text
     assert '"m15_feature_time": "bar_close_time"' in text
+    assert '"m5_decision_availability_shift": "5min"' in text
 
 
 def test_canonical_v3_manifest_records_source_v2_no_lookahead_provenance() -> None:

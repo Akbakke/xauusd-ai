@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -9,7 +11,11 @@ from gx1.features.basic_v1 import (
 )
 from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
 from gx1.features.smc_v1 import compute_smc_features
-from gx1.execution.v12_ctx_augment_live import _add_spread_atr_bps
+from gx1.contracts.entry_model_native_state_v2 import TrainRankReferenceV2
+from gx1.execution.v12_ctx_augment_live import (
+    _add_regime_categoricals,
+    _add_spread_atr_bps,
+)
 from gx1.scripts.materialize_build_canonical_features_v1 import add_high_level_basics
 
 
@@ -120,6 +126,8 @@ def test_live_ctx_rejects_negative_bid_ask_glitches() -> None:
     df = pd.DataFrame(
         {
             "_v1_atr14": [1.0, 1.0],
+            "high": [100.5, 100.5],
+            "low": [99.5, 99.5],
             "close": [100.0, 100.0],
             "bid_close": [100.0, 100.0],
             "ask_close": [100.1, 99.5],
@@ -139,11 +147,70 @@ def test_live_ctx_rejects_missing_atr_source_before_producing_features() -> None
         }
     )
 
-    with pytest.raises(RuntimeError, match="LIVE_CTX_ATR_SOURCE_MISSING"):
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_RANK_SOURCE_FIELDS_MISSING"):
         _add_spread_atr_bps(df)
 
-    assert "atr_bps" not in df.columns
-    assert "spread_bps" not in df.columns
+
+def test_live_ctx_rank_formula_does_not_overwrite_canonical_atr() -> None:
+    frame = pd.DataFrame(
+        {
+            "atr": [9.0, 10.0],
+            "high": [101.0, 102.0],
+            "low": [99.0, 100.0],
+            "close": [100.0, 101.0],
+            "bid_close": [99.9, 100.9],
+            "ask_close": [100.1, 101.1],
+        }
+    )
+
+    _add_spread_atr_bps(frame)
+
+    assert frame["atr"].tolist() == [9.0, 10.0]
+    assert np.isfinite(frame[["atr_bps", "spread_bps"]]).all().all()
+
+
+def test_regime_categories_omit_train_fit_buckets_without_reference() -> None:
+    frame = pd.DataFrame(
+        {
+            "D1_dist_from_ema200_atr": [-2.0, 0.0, 2.0],
+            "atr_bps": [1.0, 2.0, 3.0],
+            "spread_bps": [0.1, 0.2, 0.3],
+            "atr_bucket": [4, 4, 4],
+            "spread_bucket": [4, 4, 4],
+        }
+    )
+
+    _add_regime_categoricals(frame)
+
+    assert "atr_bucket" not in frame
+    assert "spread_bucket" not in frame
+    assert frame["trend_regime_id"].tolist() == [0, 1, 2]
+
+
+def test_regime_categories_use_one_explicit_train_reference() -> None:
+    reference = TrainRankReferenceV2(
+        path=Path("unused.npz"),
+        sha256="0" * 64,
+        sidecar_sha256="1" * 64,
+        sidecar={},
+        fit_start_utc=pd.Timestamp("2026-01-01T00:00:00Z"),
+        fit_end_utc=pd.Timestamp("2026-01-02T00:00:00Z"),
+        fit_row_count=5,
+        atr_bps_sorted=np.asarray([1, 2, 3, 4, 5], dtype=np.float64),
+        spread_bps_sorted=np.asarray([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float64),
+    )
+    frame = pd.DataFrame(
+        {
+            "D1_dist_from_ema200_atr": [-2.0, 0.0, 2.0],
+            "atr_bps": [1.0, 3.0, 5.0],
+            "spread_bps": [0.1, 0.3, 0.5],
+        }
+    )
+
+    _add_regime_categoricals(frame, rank_reference=reference)
+
+    assert frame["atr_bucket"].tolist() == [1, 3, 4]
+    assert frame["spread_bucket"].tolist() == [1, 3, 4]
 
 
 def test_basic_v1_spread_owner_does_not_require_slippage() -> None:

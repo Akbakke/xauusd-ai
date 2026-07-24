@@ -4,6 +4,27 @@ This is the current architecture map for XAUUSD Entry direction. Retired
 rule-gated, anchored and Entry-RL flows are not documented as alternatives
 because they have no Entry authority.
 
+The immutable data front end is:
+
+```text
+native OANDA M1 v3 + native OANDA M5 v3
+        |
+        v
+entry_next_edge_control.sh model-native-canonical-pair
+        |
+        +-- canonical-v3: persisted model-agnostic M5 feature surface
+        +-- raw BASE28: exactly 13 native M1 fields
+        +-- pair lineage: native/source/code/formula/timing/schema/coverage
+        |
+        v
+chronological split -> TRAIN-only rank reference -> Entry and Exit consumers
+```
+
+M5-derived evidence becomes available at `bar_start + 5 minutes`. The same
+decision timestamp owns HTF joins, cyclic time and session state. TRAIN-fit
+ATR/spread buckets are forbidden from the raw pair and mutable global bucket
+files have no authority.
+
 ## Decision flow
 
 ```text
@@ -627,7 +648,8 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
                 eksplisitt vindustrim og hashbundet provenance; 109 kol)
               └─ gx1.scripts.add_ctx_cont_columns_to_prebuilt
                     --prebuilt_parquet --output_parquet --raw_m5_parquet <7 år-parter>
-                    --tape-root  (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
+                    --tape-root --rank-reference <eksakt TRAIN-only NPZ>
+                    (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
                     → FULL_PLUS_CTX_v3src.parquet (188 kol; aktiv kontrakt) + manifester
 cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
         → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
@@ -640,6 +662,7 @@ FULL_PLUS + cache ─ scripts/run_seq513_rebuild_chain_v1.sh
       └─ materialize_model_native_train_rank_reference_v2
         --run-id --source-parquet --history-start --fit-start --fit-end --out
         → model_native_train_rank_reference_v4.npz + sidecar
+          (retained filename; payload schema model_native_train_rank_reference_v5)
       └─ materialize_entry_model_native_train_feature_ranker_v1
         --run-id --source-parquet --mtf-cache-dir --rank-reference-npz
         --history-start --train-start --train-end --out
@@ -808,11 +831,14 @@ training-dataset writer/event in the existing owner. Formula and HTF
 decision-alignment ownership is also repaired. BASE28 ownership is now exact:
 its 13 physical market fields come only from native M1 in canonical source
 order, while timestamp phase and volume transforms are derived causally at the
-training/serve boundary. Still open are a fresh V3
-dataset on compliant inputs, execution of the canonical active-Exit full-TEST
-loop/event, fresh XGB/V3/Exit artifacts, native-M1/M5 production, a complete
-native→canonical-v3/raw-BASE28 bootstrap, and a TRAIN-only immutable rank
-reference for regime buckets,
+training/serve boundary. The complete snapshot-driven
+native→canonical-v3/raw-BASE28 producer now exists in that same pair owner and
+is routed as `model-native-canonical-pair`; it accepts no old-pair copy and
+binds native/source/code/formula/timing/schema/coverage lineage. Still open are
+a fresh V3 dataset on compliant inputs, execution of the canonical active-Exit
+full-TEST loop/event, fresh XGB/V3/Exit artifacts, native-M1/M5 and pair
+production, and one TRAIN-only immutable rank identity bound through every
+Entry/Exit dataset, bundle, replay and live consumer,
 empirical dataset/model/edge proof and canonical/live December-2024 tape
 parity.
 

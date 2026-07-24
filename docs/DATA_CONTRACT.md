@@ -99,8 +99,8 @@ and explicit promotion; online/live weight mutation is forbidden.
 
 ## TRAIN-only state and common history
 
-`model_native_state_contract_v4` is the only accepted rank/history contract.
-It requires the exact `model_native_train_rank_reference_v4` payload, whose
+`model_native_state_contract_v6` is the only accepted rank/history contract.
+It requires the exact `model_native_train_rank_reference_v5` payload, whose
 NPZ and sidecar both bind the immutable Entry `--run-id`. The ID is lineage,
 not an approval gate.
 ATR and observed bid/ask spread are derived causally from raw prices. Their

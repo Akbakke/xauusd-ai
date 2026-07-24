@@ -27,8 +27,10 @@ from gx1.features.swing_structure_v1 import (
     compute_swing_structure_features,
 )
 from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+from gx1.contracts.entry_model_native_state_v2 import (
+    bucket_against_train_reference,
+)
 from gx1.scripts.add_ctx_cont_columns_to_prebuilt import (
-    _rank_bucket_0_4,
     get_prebuilt_ctx_contract_columns,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
@@ -179,9 +181,13 @@ def test_builder_artifact_field_owners_are_exact_and_disjoint() -> None:
     assert set(cv2_owned).isdisjoint(source_owned)
 
 
-def test_prebuilt_rank_bucket_has_no_missing_value_fallback() -> None:
-    observed = _rank_bucket_0_4(np.array([1.0, 2.0, 3.0]))
+def test_prebuilt_rank_bucket_uses_explicit_reference_without_missing_fallback() -> None:
+    reference = np.array([1.0, 2.0, 3.0])
+    observed = bucket_against_train_reference(
+        np.array([1.0, 2.0, 3.0]),
+        reference,
+    )
     assert observed.dtype == np.int64
     assert observed.tolist() == [1, 3, 4]
     with pytest.raises(RuntimeError, match="NONFINITE"):
-        _rank_bucket_0_4(np.array([1.0, np.nan]))
+        bucket_against_train_reference(np.array([1.0, np.nan]), reference)

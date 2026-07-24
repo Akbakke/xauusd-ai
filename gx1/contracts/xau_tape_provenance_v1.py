@@ -1025,6 +1025,9 @@ def _validate_canonical_native_source_contract_impl(
         raise RuntimeError("XAU_CANONICAL_M5_MANIFEST_PAYLOAD_HASH_MISMATCH")
     return {
         **exact,
+        "explicit_vedtak_id": vedtak,
+        "source_environment": environment,
+        "source_base_url": str(manifest["source_base_url"]),
         "schema_required_cols": list(CANONICAL_NATIVE_REQUIRED_COLUMNS),
         "schema_optional_cols": [],
         "request_chunk_days": policy["request_chunk_days"],

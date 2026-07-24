@@ -75,9 +75,10 @@ XGB→V3→Exit-IQL/Strategy-F chain over full TEST, emits complete per-M1 evide
 and cross-binds every input, active artifact and output byte. Missing cadence,
 state, model decisions or source exhaustion are terminal; there is no horizon
 substitution. No rebuild or trainer run is admissible until production
-native-M1 and M5 v3 bundles prove the known December-2024 defect absent and a
-complete native→canonical-v3/raw-BASE28 bootstrap plus immutable TRAIN-only
-rank reference has exact proof. No producer/finalizer
+native-M1 and M5 v3 bundles prove the known December-2024 defect absent, the
+existing `model-native-canonical-pair` route produces the code-proven
+native→canonical-v3/raw-BASE28 generation, and one immutable TRAIN-only rank
+identity is bound through Entry and Exit. No producer/finalizer
 execution is admissible until
 fresh empirical artifacts satisfy every prerequisite.
 

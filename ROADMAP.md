@@ -1,6 +1,6 @@
 # GX1 XAUUSD model-native roadmap
 
-Updated 2026-07-23. This is the execution roadmap, not launch authority.
+Updated 2026-07-24. This is the execution roadmap, not launch authority.
 PROJECT_STATE_xau_direction_launch.json remains BLOCK until every immutable
 empirical gate below passes for one exact bundle.
 
@@ -165,8 +165,8 @@ artifact was created.
    live-prebuilt, including 2,799 weekend rows; the clean M1 supports 5,757
    rebuilt December buckets and leaves 3,459 canonical rows unbacked. The
    full loader also blocks on 2,375 invalid late-2024 prebuilt OHLC rows.
-7. Close the still-missing complete native→canonical-v3/raw-BASE28 bootstrap
-   and publish one atomic frozen pair from those admitted sources. BASE28 must
+7. Execute the now code-proven `model-native-canonical-pair` route and publish
+   one atomic frozen pair from those admitted sources. BASE28 must
    contain only the exact 13 native-M1 market fields in source order; phase,
    volume transforms and TRAIN-fit buckets are not raw pair fields. Publish a
    separate immutable TRAIN-only rank reference for ATR/spread transforms and

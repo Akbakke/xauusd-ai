@@ -50,8 +50,10 @@ Alignment
 ---------
 D1/M15 features are computed on resampled OHLC, then shifted to the HTF bar
 close-time before pd.merge_asof(direction='backward'). This means each M5 bar
-gets the most recent fully closed D1/M15 value at-or-before its timestamp —
-same semantics as live runtime and no access to the still-forming HTF bar.
+gets the most recent fully closed D1/M15 value at-or-before its decision
+availability time.  An M5 row labelled ``T`` is observable at ``T + 5min``;
+using the bar-start label itself would add one unnecessary M5 of latency at
+every HTF boundary.
 
 Output
 ------
@@ -234,26 +236,38 @@ def merge_asof_features(
     extra: pd.DataFrame,
     *,
     base_time_col: str = "time",
+    base_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> pd.DataFrame:
-    """merge_asof base.time ← extra._time_ns, direction='backward'.
+    """Align closed HTF state to the M5 row's decision-availability time.
 
-    Returns base + extra's feature columns. extra must have _time_ns and the feature columns.
+    ``base.time`` is the M5 bar-start label.  The row is not observable until
+    ``base.time + base_bar_duration``.  ``extra._time_ns`` is already labelled
+    by HTF close time, so the as-of key must use the decision time rather than
+    the stale M5 label.
     """
     if extra is None or len(extra) == 0:
         return base
+    if not isinstance(base_bar_duration, pd.Timedelta) or base_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("canonical_v2 base_bar_duration must be a positive Timedelta")
     base_sorted = base.sort_values(base_time_col, kind="mergesort").reset_index(drop=True)
-    base_sorted["_base_time_ns"] = pd.to_datetime(base_sorted[base_time_col], utc=True).astype("int64")
+    decision_time = (
+        pd.to_datetime(base_sorted[base_time_col], utc=True) + base_bar_duration
+    )
+    base_sorted["_base_decision_time_ns"] = decision_time.astype("int64")
     extra_sorted = extra.sort_values("_time_ns", kind="mergesort").reset_index(drop=True)
     feat_cols = [c for c in extra_sorted.columns if c not in ("time", "_time_ns")]
 
     merged = pd.merge_asof(
         base_sorted,
         extra_sorted[["_time_ns"] + feat_cols],
-        left_on="_base_time_ns",
+        left_on="_base_decision_time_ns",
         right_on="_time_ns",
         direction="backward",
     )
-    merged = merged.drop(columns=["_base_time_ns", "_time_ns"], errors="ignore")
+    merged = merged.drop(
+        columns=["_base_decision_time_ns", "_time_ns"],
+        errors="ignore",
+    )
     return merged
 
 
@@ -332,9 +346,9 @@ def write_artifacts(
     summary = {
         "layer_name": "CANONICAL_FEATURES_V2_SUMMARY",
         "action_v1": ACTION,
-        "canonical_v2_builder_version": "canonical_features_v2_no_lookahead_close_time_20260713",
+        "canonical_v2_builder_version": "canonical_features_v2_decision_availability_20260724",
         "out_path_v1": str(out_path),
-        "built_at_utc_v1": _utc_now(),
+        "built_at_utc_v1": timestamp,
         "m5_tape_root_v1": str(m5_tape_root),
         "m5_bars_loaded_v1": int(len(m5)),
         "m5_date_range_v1": [str(m5["time"].min()), str(m5["time"].max())],
@@ -354,8 +368,11 @@ def write_artifacts(
             "m15_feature_time": "bar_close_time",
             "d1_bucket_start_shift": "1D",
             "m15_bucket_start_shift": "15min",
+            "m5_bar_label": "bar_start_time",
+            "m5_decision_availability_shift": "5min",
+            "merge_asof_left_key": "m5_bar_start_plus_5min",
             "merge_asof_direction": "backward",
-            "semantics": "M5 rows receive only fully closed D1/M15 feature rows at-or-before M5 time",
+            "semantics": "M5 rows receive only fully closed D1/M15 feature rows at-or-before M5 decision availability",
         },
         "research_only_v1": True,
     }

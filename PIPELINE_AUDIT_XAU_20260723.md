@@ -157,16 +157,19 @@ dataset writer/event and proves it with an end-to-end atomic-publication test.
 The existing historical OANDA owner now also contains the immutable native-M1/
 M5 source producer, including retained source responses, fixed three-day/
 15-day chunk policy, complete-only rederivation, streamed year output and
-atomic no-replace publication. Still open are execution of both routes, a
-complete initial native→canonical-v3/raw-BASE28 bootstrap, a separate
-immutable TRAIN-only rank reference, a fresh V3 dataset on compliant inputs,
+atomic no-replace publication. The existing pair owner now implements the
+complete initial native→canonical-v3/raw-BASE28 bootstrap, with exact native,
+code, formula, timing, schema and coverage lineage and no prebuilt-copy input.
+Still open are execution of all three data routes, a separate immutable
+TRAIN-only rank reference bound across every Exit consumer, a fresh V3 dataset on compliant inputs,
 execution of the canonical
 active-Exit full-TEST producer and fresh artifact rebuilds. Full-loader execution is
 independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
 00:40Z and 2024-12-31 23:55Z.
 
-The 2026-07-24 native-M1/M5 and Base-routing checkpoint collected 1,899 tests:
-1,894 passed, five were explicitly skipped and zero failed. The manifest-bound loader also correctly
+The 2026-07-24 native-M1/M5, raw-pair and feature-efficiency checkpoint
+collected 1,898 tests: 1,893 passed, five were explicitly skipped and zero
+failed. The manifest-bound loader also correctly
 rejects the current live canonical parquet: the legacy updater changed its
 bytes without advancing the canonical manifest SHA. This is fail-closed
 evidence, not live readiness.
@@ -532,7 +535,10 @@ transaction tests; production rejects it.
    the existing sizing/replay owner. It owns its rows/traces and cross-binds
    all producer inputs, active artifacts, transitive source and outputs;
    caller-created parquets remain diagnostic-only.
-5. Repair and prove canonical/live December-2024 tape parity.
+5. Repair and prove canonical/live December-2024 tape parity, execute strict
+   native M1/M5 production and then the code-proven
+   `model-native-canonical-pair` route. Bind the same immutable TRAIN-only
+   ATR/spread rank identity across dataset, bundle, replay and live.
 6. Rebuild a fresh XAU-only dataset. Re-run every liveness, target, specialist,
    readiness and trainability audit.
 7. Only then bind a new smoke recipe. Preserve the final TEST window for one
