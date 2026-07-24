@@ -114,14 +114,18 @@ the first immutable pair generation `077e5419…` (468,267 canonical /
 2,326,495 BASE28 rows from 2019-12-15) is the current serving identity. The
 exit chain binds one immutable TRAIN-rank identity end to end (dataset,
 replay proof, live loader/registry, trainer lineage); the registry has no
-`train_rank_reference` entry yet, so live remains fail-closed. Open gates are
-producing the immutable TRAIN-only rank reference and executing the bound
-exit routes, a fresh 79-field XGB→V3→Exit-IQL rebuild/rescore/retrain (no XGB
-trainer exists; V3 requires accepted Entry prediction evidence) and the
-full-TEST producer run. V24/V7 remain immutable failure evidence. The Entry
-rebuild cascade still reads the old canonical roots with the December-2024
-defect; rewiring it to the fresh native roots is the recommended open
-decision. Every fresh empirical dataset/model/edge gate also remains open.
+`train_rank_reference` entry yet, so live remains fail-closed. XGB is cut by
+user vedtak 2026-07-24: no trainer or fresh XGB artifact is ever built, and
+the successor Exit IO contract replaces the bridge evidence with the
+accepted Entry bundle's calibrated outputs; the current XGB surface remains
+only as the blocked historical stack until that successor lands. Open gates
+are producing the immutable TRAIN-only rank reference and executing the
+bound exit routes, the successor Exit IO contract plus fresh V3/Exit-IQL on
+accepted Entry prediction evidence, and the full-TEST producer run. V24/V7
+remain immutable failure evidence. The Entry seq513 chain now accepts an
+event-local strict native-v3 M5 tape (`m5_tape_native_v3`), superseding the
+December-2024 repair and collector-snapshot steps for new lineages. Every
+fresh empirical dataset/model/edge gate also remains open.
 
 ROADMAP.md is the current execution/takeover plan. Read it after this
 constitution; it records active rebuild incidents but never overrides the

@@ -16,6 +16,7 @@ import pandas as pd
 
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_SOURCE_SCHEMA,
     CURRENT_SNAPSHOT_SCHEMA,
     validate_xau_tape_provenance_v1,
 )
@@ -185,19 +186,43 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if out.parent != root or out.exists() or out.is_symlink():
         raise RuntimeError("SEQ513_SOURCE_PROOF_TARGET_NOT_FRESH_EVENT_LOCAL")
 
-    tape = root / "m5_tape_repaired_dec2024"
-    repair = _json(tape / "REPAIR_MANIFEST.json", label="REPAIR_MANIFEST")
+    tape_native = root / "m5_tape_native_v3"
+    tape_repaired = root / "m5_tape_repaired_dec2024"
+    if tape_native.exists() and tape_repaired.exists():
+        raise RuntimeError(
+            "SEQ513_SOURCE_TAPE_IDENTITY_AMBIGUOUS: both m5_tape_native_v3 "
+            "and m5_tape_repaired_dec2024 exist in the event root"
+        )
+    tape = tape_native if tape_native.exists() else tape_repaired
     tape_provenance = validate_xau_tape_provenance_v1(
         tape,
         expected_run_id=run_id,
         require_current=True,
     )
-    _same(repair.get("schema_version"), CURRENT_SNAPSHOT_SCHEMA, label="REPAIR_SCHEMA")
-    _same(
-        _utc(repair.get("last_complete_m5_utc"), label="REPAIR_LAST_COMPLETE_M5"),
-        expected_full_time_max,
-        label="REPAIR_LAST_COMPLETE_M5",
-    )
+    if tape_provenance.get("schema_version") == CANONICAL_NATIVE_SOURCE_SCHEMA:
+        _same(
+            _utc(
+                tape_provenance.get("time_max_utc"),
+                label="NATIVE_TAPE_LAST_COMPLETE_M5",
+            ),
+            expected_full_time_max,
+            label="NATIVE_TAPE_LAST_COMPLETE_M5",
+        )
+    else:
+        repair = _json(tape / "REPAIR_MANIFEST.json", label="REPAIR_MANIFEST")
+        _same(
+            repair.get("schema_version"),
+            CURRENT_SNAPSHOT_SCHEMA,
+            label="REPAIR_SCHEMA",
+        )
+        _same(
+            _utc(
+                repair.get("last_complete_m5_utc"),
+                label="REPAIR_LAST_COMPLETE_M5",
+            ),
+            expected_full_time_max,
+            label="REPAIR_LAST_COMPLETE_M5",
+        )
     tape_hashes = dict(tape_provenance["year_sha256"])
     year_numbers = sorted(int(key.split("=", 1)[1]) for key in tape_hashes)
 

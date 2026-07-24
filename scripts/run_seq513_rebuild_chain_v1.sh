@@ -137,7 +137,17 @@ fi
 SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
 CV2="$EVENT/canonical_features_v2.parquet"
 MTF="$EVENT/MULTI_TF_V2_CACHE"
-TAPE="$EVENT/m5_tape_repaired_dec2024"
+# Exactly one event-local tape identity: the strict native-v3 source root
+# (new lineages) or the legacy repaired current-snapshot tape (historical).
+TAPE_NATIVE="$EVENT/m5_tape_native_v3"
+TAPE_REPAIRED="$EVENT/m5_tape_repaired_dec2024"
+if [[ -d $TAPE_NATIVE && -d $TAPE_REPAIRED ]]; then
+  die_args "ambiguous tape identity: both m5_tape_native_v3 and m5_tape_repaired_dec2024 exist"
+elif [[ -d $TAPE_NATIVE ]]; then
+  TAPE="$TAPE_NATIVE"
+else
+  TAPE="$TAPE_REPAIRED"
+fi
 RANK_NPZ="$EVENT/model_native_train_rank_reference_v4.npz"
 OUTPUT="$EVENT/dataset/v10_seq513_dataset__HOLD_03B.parquet"
 AUDIT="$EVENT/audit"

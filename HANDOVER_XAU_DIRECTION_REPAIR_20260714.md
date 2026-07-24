@@ -87,12 +87,15 @@ evidence and binds every input/artifact/source/output byte in replay v7.
 Native-M1/M5 production and the first native→canonical-v3/raw-BASE28 pair
 generation are now executed, and the exit-chain TRAIN-rank identity binding
 (dataset, replay proof, live loader/registry and trainer bundle lineage) is
-source-complete. Still open: producing the immutable TRAIN-only rank
-reference itself and running the bound exit routes with it, fresh XGB (no
-trainer exists in the repository) → V3 → Exit-IQL artifacts on accepted Entry
-prediction evidence, the full-TEST producer run, the Entry-cascade decision to
-rewire its source from the December-2024-defective old canonical roots to the
-fresh native roots, and every empirical dataset/model/edge gate.
+source-complete. XGB is cut by user vedtak 2026-07-24: never rebuilt; the successor Exit IO
+contract replaces the bridge evidence with accepted Entry calibrated
+outputs. The seq513 chain now accepts an event-local strict native-v3 M5
+tape (`m5_tape_native_v3`), superseding the Dec-2024 repair and
+collector-snapshot steps for new lineages. Still open: producing the
+immutable TRAIN-only rank reference and running the bound exit routes with
+it, the successor Exit IO contract plus fresh V3/Exit-IQL on accepted Entry
+prediction evidence, the full-TEST producer run, and every empirical
+dataset/model/edge gate.
 
 The latest data/training/inference re-audit is also source-closed for the
 shared last-closed-M5 key, complete 95-row volume history, exact XGB sessions

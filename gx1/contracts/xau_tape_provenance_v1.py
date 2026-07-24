@@ -1300,6 +1300,40 @@ def validate_xau_tape_provenance_v1(
     if not run_id:
         raise RuntimeError("XAU_TAPE_EXPECTED_RUN_ID_MISSING")
     root = _root(tape_root, label="XAU_TAPE_ROOT")
+    if (
+        not (root / "REPAIR_MANIFEST.json").exists()
+        and (root / "MANIFEST.json").exists()
+    ):
+        # A strict native-v3 source root is complete tape provenance by
+        # construction: retained response evidence, source↔parquet identity,
+        # year hashes and market-closure semantics are all validated by the
+        # canonical descriptor. It has no repair lineage and no collector
+        # snapshot; run identity is bound by the consuming event, and
+        # currency is enforced downstream against its exact time_max_utc.
+        descriptor = canonical_xau_source_descriptor_v1(root, timeframe="M5")
+        return {
+            "schema_version": CANONICAL_NATIVE_SOURCE_SCHEMA,
+            "tape_root": str(root),
+            **{
+                key: descriptor[key]
+                for key in (
+                    "manifest_path",
+                    "manifest_sha256",
+                    "instrument",
+                    "timeframe",
+                    "explicit_vedtak_id",
+                    "requested_start_utc",
+                    "requested_end_utc_exclusive",
+                    "row_count",
+                    "time_min_utc",
+                    "time_max_utc",
+                    "canonical_rows_sha256",
+                    "producer_git_commit",
+                    "year_sha256",
+                    "year_rows",
+                )
+            },
+        }
     manifest_path = _path(root / "REPAIR_MANIFEST.json", label="XAU_TAPE_MANIFEST")
     manifest = _json(manifest_path, label="XAU_TAPE_MANIFEST")
     schema = manifest.get("schema_version")

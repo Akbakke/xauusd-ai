@@ -1488,3 +1488,44 @@ Decision:
   (`sudo systemctl disable --now gx1-canonical-incremental.service`);
 - launch remains `BLOCK`; nothing here is model, edge or launch
   evidence.
+
+## 2026-07-24 — XGB is cut; the Entry cascade accepts native tape
+
+User vedtak (explicit): XGB is cut entirely and will not be rebuilt. No XGB
+trainer is added. Entry-side XGB authority was already forbidden; the
+retained Exit-side XGB (79-field input, 7-dim bridge inside the V8 173-field
+matrix) will not be reproduced in the fresh Exit chain — the
+direction-probability evidence role moves to the accepted model-native Entry
+bundle's calibrated outputs when the successor Exit IO contract is defined.
+The current XGB runtime, contracts and registry entry remain only as the
+already-blocked historical serving surface and are deleted together with the
+V8 IO contract in the Exit-rebuild wave. "Fresh 79-field XGB
+rebuild/rescore" is removed from the open gates. The exit-chain TRAIN-rank
+binding stays: it guards the current fail-closed surface, and the successor
+Exit IO decision must re-evaluate the bucket need explicitly.
+
+The Entry seq513 chain now accepts a strict native-v3 M5 root as complete
+tape provenance. `validate_xau_tape_provenance_v1` dispatches on the actual
+manifest identity: `REPAIR_MANIFEST.json` keeps the exact legacy
+repair/current-snapshot branches, while a root with `MANIFEST.json` of
+schema `xau_canonical_native_source_v3` is validated through the full
+canonical descriptor (response evidence, source↔parquet identity, year
+hashes) and returns its hash-bound provenance; run identity is bound by the
+consuming event and currency is enforced against the exact `time_max_utc`.
+The source-cascade audit and the chain driver accept exactly one event-local
+tape identity — `m5_tape_native_v3` or the legacy
+`m5_tape_repaired_dec2024`; both present fails closed. New lineages produce
+a fresh native M5 root event-locally through the last closed bar, which
+supersedes both the December-2024 repair and the collector-snapshot step for
+Entry rebuilds. Historical events keep their legacy contracts unchanged.
+
+Decision:
+
+- no XGB trainer, rescore or fresh XGB artifact is ever built; the Exit
+  successor contract replaces the bridge evidence with accepted Entry
+  calibrated outputs;
+- next Entry lineages use an event-local native-v3 M5 tape; the old
+  canonical roots and the Dec-2024 repair path remain historical evidence
+  only;
+- launch remains `BLOCK`; this authorizes the next fresh rebuild lineage on
+  native tape but proves no dataset, model or edge.

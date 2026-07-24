@@ -513,3 +513,47 @@ def test_native_m1_streams_exact_policy_chunks_into_year_partitions(
     assert manifest["year_rows"] == {"year=2024": 1_441, "year=2025": 2_880}
     descriptor = canonical_xau_source_descriptor_v1(output, timeframe="M1")
     assert descriptor["canonical_rows_sha256"] == manifest["canonical_rows_sha256"]
+
+
+def test_native_root_is_accepted_as_current_tape_provenance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A strict native-v3 M5 root is complete tape provenance for the seq513
+    # source cascade: no repair lineage, no collector snapshot.
+    from gx1.contracts.xau_tape_provenance_v1 import (
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        validate_xau_tape_provenance_v1,
+    )
+
+    _allow_clean_repo(monkeypatch)
+    output = tmp_path / "m5_tape_native_v3"
+    manifest = canonical_backfill.materialize_native_xau_snapshot(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id="XAU_NATIVE_M5_TEST_002",
+        start_utc="2024-12-31T23:55:00Z",
+        end_utc="2025-01-01T00:10:00Z",
+        out_root=output,
+    )
+
+    provenance = validate_xau_tape_provenance_v1(
+        output,
+        expected_run_id="XAU_SEQ513_TEST_RUN_01",
+        require_current=True,
+    )
+
+    assert provenance["schema_version"] == CANONICAL_NATIVE_SOURCE_SCHEMA
+    assert provenance["tape_root"] == str(output)
+    assert provenance["explicit_vedtak_id"] == "XAU_NATIVE_M5_TEST_002"
+    assert provenance["year_sha256"] == manifest["year_sha256"]
+    assert provenance["time_max_utc"] == manifest["time_max_utc"]
+
+    empty = tmp_path / "no_manifests"
+    empty.mkdir()
+    with pytest.raises(RuntimeError, match="XAU_TAPE_MANIFEST"):
+        validate_xau_tape_provenance_v1(
+            empty,
+            expected_run_id="XAU_SEQ513_TEST_RUN_01",
+            require_current=True,
+        )
