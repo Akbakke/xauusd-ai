@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Publish one immutable native OANDA XAU_USD M5 source bundle.
+"""Publish one immutable native OANDA XAU_USD M1 or M5 source bundle.
 
-This is the sole canonical native-M5 producer.  It requests only OANDA
+This is the sole canonical native-M1/M5 producer.  It requests only OANDA
 ``complete=true`` MBA candles, preserves every normalized source response,
 re-derives every parquet row from those responses, validates the complete
 bundle while it is hidden, and atomically publishes without replacement.
@@ -36,20 +36,21 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     publish_bundle_directory_noreplace,
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
-    CANONICAL_M5_CLOSURE_CONTRACT,
-    CANONICAL_M5_PRODUCER_OWNER,
-    CANONICAL_M5_PRODUCER_SOURCE_FILES,
-    CANONICAL_M5_REQUEST_INTERVAL_SEMANTICS,
-    CANONICAL_M5_REQUIRED_COLUMNS,
-    CANONICAL_M5_SOURCE_CHUNK_SCHEMA,
-    CANONICAL_M5_SOURCE_RESPONSE_ENCODING,
-    CANONICAL_M5_SOURCE_SCHEMA,
+    CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    CANONICAL_NATIVE_PRODUCER_OWNER,
+    CANONICAL_NATIVE_PRODUCER_SOURCE_FILES,
+    CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS,
+    CANONICAL_NATIVE_REQUIRED_COLUMNS,
+    CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA,
+    CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING,
+    CANONICAL_NATIVE_SOURCE_SCHEMA,
     XAU_INSTRUMENT,
     canonical_json_sha256,
-    canonical_m5_frame_from_oanda_response,
-    canonical_m5_rows_bytes,
+    canonical_native_frame_from_oanda_response,
+    canonical_native_rows_bytes,
+    native_timeframe_policy,
     sha256_file,
-    validate_canonical_m5_source_bundle_v2,
+    validate_canonical_native_source_bundle_v3,
 )
 from gx1.execution.oanda_client import OandaClient, OandaClientConfig
 from gx1.execution.oanda_credentials import load_oanda_credentials
@@ -59,7 +60,6 @@ from gx1_guards.gates import require_retrain_vedtak
 
 log = logging.getLogger(__name__)
 INSTRUMENT = XAU_INSTRUMENT
-GRANULARITY = "M5"
 SOURCE_ENDPOINT = f"/instruments/{INSTRUMENT}/candles"
 _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 _PARQUET_SCHEMA = pa.schema(
@@ -67,7 +67,7 @@ _PARQUET_SCHEMA = pa.schema(
         pa.field("time", pa.timestamp("ns", tz="UTC"), nullable=False),
         *[
             pa.field(name, pa.float64(), nullable=False)
-            for name in CANONICAL_M5_REQUIRED_COLUMNS
+            for name in CANONICAL_NATIVE_REQUIRED_COLUMNS
             if name not in {"time", "volume"}
         ],
         pa.field("volume", pa.int64(), nullable=False),
@@ -112,20 +112,25 @@ def _fsync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
-def _utc_m5(raw: Any, *, label: str) -> pd.Timestamp:
+def _utc_native(
+    raw: Any,
+    *,
+    timeframe: str,
+    label: str,
+) -> pd.Timestamp:
+    normalized, policy = native_timeframe_policy(timeframe)
     try:
         value = pd.Timestamp(pd.to_datetime(raw, utc=True, errors="raise"))
     except Exception as exc:
-        raise RuntimeError(f"[NATIVE_M5_{label}_INVALID] {raw!r}") from exc
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_{label}_INVALID] {raw!r}"
+        ) from exc
     if pd.isna(value):
-        raise RuntimeError(f"[NATIVE_M5_{label}_INVALID] {raw!r}")
-    if (
-        value.second
-        or value.microsecond
-        or value.nanosecond
-        or value.minute % 5
-    ):
-        raise RuntimeError(f"[NATIVE_M5_{label}_NOT_M5_ALIGNED] {value}")
+        raise RuntimeError(f"[NATIVE_{normalized}_{label}_INVALID] {raw!r}")
+    if value.value % (policy["bar_seconds"] * 1_000_000_000) != 0:
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_{label}_NOT_{normalized}_ALIGNED] {value}"
+        )
     return value
 
 
@@ -133,7 +138,8 @@ def _request_timestamp(value: pd.Timestamp) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%S.000000000Z")
 
 
-def _require_clean_repository(repo_root: Path) -> str:
+def _require_clean_repository(repo_root: Path, *, timeframe: str) -> str:
+    normalized, _policy = native_timeframe_policy(timeframe)
     try:
         commit = subprocess.run(
             ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
@@ -155,28 +161,33 @@ def _require_clean_repository(repo_root: Path) -> str:
             text=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise RuntimeError("[NATIVE_M5_REPOSITORY_IDENTITY_UNAVAILABLE]") from exc
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_REPOSITORY_IDENTITY_UNAVAILABLE]"
+        ) from exc
     if _GIT_COMMIT_RE.fullmatch(commit) is None:
-        raise RuntimeError("[NATIVE_M5_REPOSITORY_COMMIT_INVALID]")
+        raise RuntimeError(f"[NATIVE_{normalized}_REPOSITORY_COMMIT_INVALID]")
     if status:
         raise RuntimeError(
-            "[NATIVE_M5_REPOSITORY_NOT_CLEAN] commit producer changes first"
+            f"[NATIVE_{normalized}_REPOSITORY_NOT_CLEAN] "
+            "commit producer changes first"
         )
     return commit
 
 
 def _snapshot_producer_sources(
     *,
+    timeframe: str,
     repo_root: Path,
     stage: Path,
 ) -> list[dict[str, Any]]:
+    normalized, _policy = native_timeframe_policy(timeframe)
     inventory: list[dict[str, Any]] = []
-    for relative_text in CANONICAL_M5_PRODUCER_SOURCE_FILES:
+    for relative_text in CANONICAL_NATIVE_PRODUCER_SOURCE_FILES:
         relative = Path(relative_text)
         source = repo_root / relative
         if source.is_symlink() or not source.is_file():
             raise RuntimeError(
-                f"[NATIVE_M5_PRODUCER_SOURCE_INVALID] {relative_text}"
+                f"[NATIVE_{normalized}_PRODUCER_SOURCE_INVALID] {relative_text}"
             )
         raw = source.read_bytes()
         destination = stage / "producer_source" / relative
@@ -197,9 +208,11 @@ def _snapshot_producer_sources(
 
 def _verify_producer_sources_unchanged(
     *,
+    timeframe: str,
     repo_root: Path,
     inventory: list[dict[str, Any]],
 ) -> None:
+    normalized, _policy = native_timeframe_policy(timeframe)
     for item in inventory:
         source = repo_root / str(item["repo_relative_path"])
         if (
@@ -209,14 +222,14 @@ def _verify_producer_sources_unchanged(
             or sha256_file(source) != item["sha256"]
         ):
             raise RuntimeError(
-                "[NATIVE_M5_PRODUCER_SOURCE_CHANGED_DURING_RUN] "
+                f"[NATIVE_{normalized}_PRODUCER_SOURCE_CHANGED_DURING_RUN] "
                 f"{item['repo_relative_path']}"
             )
 
 
 def _parquet_table(frame: pd.DataFrame) -> pa.Table:
     return pa.Table.from_pandas(
-        frame.loc[:, list(CANONICAL_M5_REQUIRED_COLUMNS)],
+        frame.loc[:, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)],
         schema=_PARQUET_SCHEMA,
         preserve_index=False,
         safe=True,
@@ -237,16 +250,18 @@ def _year_parquet_writer(path: Path) -> pq.ParquetWriter:
 def _source_chunk(
     *,
     client: OandaClient,
+    timeframe: str,
     stage: Path,
     sequence: int,
     start: pd.Timestamp,
     end: pd.Timestamp,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
+    normalized, _policy = native_timeframe_policy(timeframe)
     request = {
         "instrument": INSTRUMENT,
         "from": _request_timestamp(start),
         "to": _request_timestamp(end),
-        "granularity": GRANULARITY,
+        "granularity": normalized,
         "price": "MBA",
     }
     response = client._request(
@@ -260,9 +275,11 @@ def _source_chunk(
         },
     )
     if not isinstance(response, Mapping):
-        raise RuntimeError("[NATIVE_M5_OANDA_RESPONSE_OBJECT_REQUIRED]")
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_OANDA_RESPONSE_OBJECT_REQUIRED]"
+        )
     payload = {
-        "schema_version": CANONICAL_M5_SOURCE_CHUNK_SCHEMA,
+        "schema_version": CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA,
         "request": request,
         "response": dict(response),
     }
@@ -274,8 +291,9 @@ def _source_chunk(
     relative = Path("source_chunks") / f"chunk-{sequence:06d}.json.gz"
     destination = stage / relative
     _write_bytes_fsync(destination, encoded)
-    frame, stats = canonical_m5_frame_from_oanda_response(
+    frame, stats = canonical_native_frame_from_oanda_response(
         response,
+        timeframe=normalized,
         request_start=start,
         request_end=end,
     )
@@ -291,43 +309,59 @@ def _source_chunk(
     return frame, metadata
 
 
-def materialize_native_m5_snapshot(
+def materialize_native_xau_snapshot(
     *,
     client: OandaClient,
+    timeframe: str,
     vedtak_id: str,
     start_utc: Any,
     end_utc: Any,
     out_root: Path | str,
-    chunk_days: int = 15,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
     """Materialize and atomically publish one complete requested interval."""
 
+    normalized, policy = native_timeframe_policy(timeframe)
+    chunk_days = policy["request_chunk_days"]
     vedtak = require_retrain_vedtak(vedtak_id)
-    start = _utc_m5(start_utc, label="START_UTC")
-    end = _utc_m5(end_utc, label="END_UTC")
+    start = _utc_native(
+        start_utc,
+        timeframe=normalized,
+        label="START_UTC",
+    )
+    end = _utc_native(
+        end_utc,
+        timeframe=normalized,
+        label="END_UTC",
+    )
     if end <= start:
-        raise RuntimeError("[NATIVE_M5_INTERVAL_INVALID]")
-    latest_safe_end = pd.Timestamp.now(tz="UTC").floor("5min")
+        raise RuntimeError(f"[NATIVE_{normalized}_INTERVAL_INVALID]")
+    latest_safe_end = pd.Timestamp.now(tz="UTC").floor(
+        f"{policy['bar_seconds']}s"
+    )
     if end > latest_safe_end:
         raise RuntimeError(
-            "[NATIVE_M5_END_NOT_COMPLETE] "
+            f"[NATIVE_{normalized}_END_NOT_COMPLETE] "
             f"requested={end} latest_safe_exclusive_end={latest_safe_end}"
         )
-    if isinstance(chunk_days, bool) or not isinstance(chunk_days, int) or not 1 <= chunk_days <= 15:
-        raise RuntimeError("[NATIVE_M5_CHUNK_DAYS_INVALID]")
     output_arg = Path(out_root).expanduser()
     if not output_arg.is_absolute():
-        raise RuntimeError(f"[NATIVE_M5_OUTPUT_NOT_ABSOLUTE] {output_arg}")
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_OUTPUT_NOT_ABSOLUTE] {output_arg}"
+        )
     if output_arg.exists() or output_arg.is_symlink():
-        raise RuntimeError(f"[NATIVE_M5_IMMUTABLE_OUTPUT_EXISTS] {output_arg}")
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_IMMUTABLE_OUTPUT_EXISTS] {output_arg}"
+        )
     if (
         output_arg.parent.is_symlink()
         or not output_arg.parent.is_dir()
         or output_arg.parent.resolve() != output_arg.parent
         or output_arg.resolve(strict=False) != output_arg
     ):
-        raise RuntimeError(f"[NATIVE_M5_OUTPUT_PARENT_INVALID] {output_arg.parent}")
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_OUTPUT_PARENT_INVALID] {output_arg.parent}"
+        )
 
     repository = (
         Path(__file__).resolve().parents[2]
@@ -340,21 +374,30 @@ def materialize_native_m5_snapshot(
         or not repository.is_dir()
         or repository.resolve() != repository
     ):
-        raise RuntimeError(f"[NATIVE_M5_REPOSITORY_ROOT_INVALID] {repository}")
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_REPOSITORY_ROOT_INVALID] {repository}"
+        )
     if repository == output_arg or repository in output_arg.parents:
-        raise RuntimeError("[NATIVE_M5_OUTPUT_INSIDE_REPOSITORY_FORBIDDEN]")
-    initial_commit = _require_clean_repository(repository)
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_OUTPUT_INSIDE_REPOSITORY_FORBIDDEN]"
+        )
+    initial_commit = _require_clean_repository(
+        repository,
+        timeframe=normalized,
+    )
 
     environment = str(getattr(client, "env", "") or "")
     base_url = str(getattr(client, "base_url", "") or "")
     if environment not in {"practice", "live"}:
-        raise RuntimeError("[NATIVE_M5_OANDA_ENVIRONMENT_INVALID]")
+        raise RuntimeError(
+            f"[NATIVE_{normalized}_OANDA_ENVIRONMENT_INVALID]"
+        )
     expected_base_url = {
         "practice": "https://api-fxpractice.oanda.com/v3",
         "live": "https://api-fxtrade.oanda.com/v3",
     }[environment]
     if base_url != expected_base_url:
-        raise RuntimeError("[NATIVE_M5_OANDA_BASE_URL_INVALID]")
+        raise RuntimeError(f"[NATIVE_{normalized}_OANDA_BASE_URL_INVALID]")
 
     stage = Path(
         tempfile.mkdtemp(
@@ -365,6 +408,7 @@ def materialize_native_m5_snapshot(
     try:
         (stage / "source_chunks").mkdir()
         producer_sources = _snapshot_producer_sources(
+            timeframe=normalized,
             repo_root=repository,
             stage=stage,
         )
@@ -385,6 +429,7 @@ def materialize_native_m5_snapshot(
                 chunk_end = min(cursor + pd.Timedelta(days=chunk_days), end)
                 frame, metadata = _source_chunk(
                     client=client,
+                    timeframe=normalized,
                     stage=stage,
                     sequence=sequence,
                     start=cursor,
@@ -395,7 +440,7 @@ def materialize_native_m5_snapshot(
                     last = pd.Timestamp(frame["time"].iloc[-1])
                     if previous_complete is not None and first <= previous_complete:
                         raise RuntimeError(
-                            "[NATIVE_M5_CROSS_CHUNK_TIME_CONFLICT] "
+                            f"[NATIVE_{normalized}_CROSS_CHUNK_TIME_CONFLICT] "
                             f"previous={previous_complete} current={first}"
                         )
                     if complete_time_min is None:
@@ -403,7 +448,12 @@ def materialize_native_m5_snapshot(
                     complete_time_max = last.isoformat()
                     previous_complete = last
                     complete_rows += len(frame)
-                    source_digest.update(canonical_m5_rows_bytes(frame))
+                    source_digest.update(
+                        canonical_native_rows_bytes(
+                            frame,
+                            timeframe=normalized,
+                        )
+                    )
                     for year, year_frame in frame.groupby(
                         frame["time"].dt.year,
                         sort=True,
@@ -439,7 +489,9 @@ def materialize_native_m5_snapshot(
                 writer.close()
 
         if complete_rows <= 0 or complete_time_min is None or complete_time_max is None:
-            raise RuntimeError("[NATIVE_M5_COMPLETE_SOURCE_EMPTY]")
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_COMPLETE_SOURCE_EMPTY]"
+            )
         canonical_rows_sha = source_digest.hexdigest()
         year_sha256: dict[str, str] = {}
         for key, destination in sorted(year_destinations.items()):
@@ -450,10 +502,10 @@ def materialize_native_m5_snapshot(
                 os.close(descriptor)
             year_sha256[key] = sha256_file(destination)
         manifest: dict[str, Any] = {
-            "schema_version": CANONICAL_M5_SOURCE_SCHEMA,
-            "producer_owner": CANONICAL_M5_PRODUCER_OWNER,
+            "schema_version": CANONICAL_NATIVE_SOURCE_SCHEMA,
+            "producer_owner": CANONICAL_NATIVE_PRODUCER_OWNER,
             "instrument": INSTRUMENT,
-            "timeframe": GRANULARITY,
+            "timeframe": normalized,
             "out_root": str(output_arg),
             "explicit_vedtak_id": vedtak,
             "created_utc": datetime.now(timezone.utc).isoformat(),
@@ -461,20 +513,20 @@ def materialize_native_m5_snapshot(
             "source_environment": environment,
             "source_base_url": base_url,
             "source_endpoint": SOURCE_ENDPOINT,
-            "source_granularity": GRANULARITY,
+            "source_granularity": normalized,
             "prices": "MBA",
             "timestamp_semantics": "bar_start_utc",
-            "bar_duration_seconds": 300,
-            "decision_available_offset_seconds": 300,
+            "bar_duration_seconds": policy["bar_seconds"],
+            "decision_available_offset_seconds": policy["bar_seconds"],
             "completion_field": "complete",
             "completion_value": True,
-            "market_closure_contract": CANONICAL_M5_CLOSURE_CONTRACT,
-            "request_interval_semantics": CANONICAL_M5_REQUEST_INTERVAL_SEMANTICS,
+            "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+            "request_interval_semantics": CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS,
             "requested_start_utc": start.isoformat(),
             "requested_end_utc_exclusive": end.isoformat(),
             "request_chunk_days": chunk_days,
-            "source_response_encoding": CANONICAL_M5_SOURCE_RESPONSE_ENCODING,
-            "source_chunk_schema": CANONICAL_M5_SOURCE_CHUNK_SCHEMA,
+            "source_response_encoding": CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING,
+            "source_chunk_schema": CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA,
             "source_chunks": source_chunks,
             "source_chunks_sha256": canonical_json_sha256(source_chunks),
             "producer_git_commit": initial_commit,
@@ -489,7 +541,7 @@ def materialize_native_m5_snapshot(
                 "pyarrow": pa.__version__,
                 "python": sys.version.split()[0],
             },
-            "schema_required_cols": list(CANONICAL_M5_REQUIRED_COLUMNS),
+            "schema_required_cols": list(CANONICAL_NATIVE_REQUIRED_COLUMNS),
             "schema_optional_cols": [],
             "row_count": complete_rows,
             "time_min_utc": complete_time_min,
@@ -507,14 +559,21 @@ def materialize_native_m5_snapshot(
         for directory, _, _ in os.walk(stage, topdown=False):
             _fsync_directory(Path(directory))
 
-        validate_canonical_m5_source_bundle_v2(
+        validate_canonical_native_source_bundle_v3(
             stage,
+            timeframe=normalized,
             expected_declared_root=output_arg,
         )
-        final_commit = _require_clean_repository(repository)
+        final_commit = _require_clean_repository(
+            repository,
+            timeframe=normalized,
+        )
         if final_commit != initial_commit:
-            raise RuntimeError("[NATIVE_M5_REPOSITORY_COMMIT_CHANGED_BEFORE_PUBLISH]")
+            raise RuntimeError(
+                f"[NATIVE_{normalized}_REPOSITORY_COMMIT_CHANGED_BEFORE_PUBLISH]"
+            )
         _verify_producer_sources_unchanged(
+            timeframe=normalized,
             repo_root=repository,
             inventory=producer_sources,
         )
@@ -548,10 +607,13 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Explicit decision ID authorizing the external-data publication",
     )
+    parser.add_argument(
+        "--timeframe",
+        choices=tuple(sorted(("M1", "M5"))),
+    )
     parser.add_argument("--start-utc")
     parser.add_argument("--end-utc")
     parser.add_argument("--out-root", type=Path)
-    parser.add_argument("--chunk-days", type=int, default=15)
     return parser
 
 
@@ -564,6 +626,7 @@ def main() -> int:
     missing = [
         flag
         for flag, value in (
+            ("--timeframe", args.timeframe),
             ("--start-utc", args.start_utc),
             ("--end-utc", args.end_utc),
             ("--out-root", args.out_root),
@@ -574,13 +637,13 @@ def main() -> int:
         parser.error(f"the following arguments are required: {', '.join(missing)}")
     load_dotenv_if_present()
     client = _load_oanda_client()
-    report = materialize_native_m5_snapshot(
+    report = materialize_native_xau_snapshot(
         client=client,
+        timeframe=args.timeframe,
         vedtak_id=args.vedtak,
         start_utc=args.start_utc,
         end_utc=args.end_utc,
         out_root=args.out_root,
-        chunk_days=args.chunk_days,
     )
     print(json.dumps(report, indent=2, sort_keys=True, allow_nan=False))
     return 0

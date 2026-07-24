@@ -136,11 +136,12 @@ artifact was created.
    coverage, transactional TradeState and production-only Exit loading.
 3. Preserve the closed source contracts: canonical-v2 recomputes over complete
    verified native-M5 history; canonical-v3/BASE28 shares one atomic immutable
-   generation identity; native-M5 has one closure/schema/hash owner and one
-   immutable OANDA producer in that existing owner. The producer retains exact
-   source responses, rederives complete-only rows, streams year output and
-   atomically publishes without replacement through
-   `model-native-native-m5-source`; V3
+   generation identity; native M1 and M5 share one closure/schema/hash owner
+   and immutable OANDA producer in that existing historical owner. The
+   producer retains exact source responses, rederives complete-only rows,
+   streams year output and atomically publishes without replacement through
+   `model-native-native-m1-source` or `model-native-native-m5-source`; fixed
+   three-day M1 and 15-day M5 policy gives both a 4,320-slot request cap. V3
    lineage binds the exact XGB bridge; and non-observable slippage-derived
    decision fields stay removed. ATR/ROC/VWAP, dependent normalized VWAP, SMC
    ATR and H1/H4 alignment use shared source owners and must not be forked.
@@ -156,16 +157,21 @@ artifact was created.
    complete Entry snapshot, derive T+5 fill from hash-bound SourceTape, bind
    canonical/BASE28/MTF state, active Exit/source/output bytes, emit explicit
    FLAT no-order rows and reject fallback or horizon-cap completion.
-6. Execute the native OANDA M5 producer into a fresh immutable root and prove
-   its retained source responses rederive the December-2024 window with zero
+6. Execute the native OANDA M1 and M5 producer routes into separate fresh
+   immutable roots and prove their retained source responses rederive the
+   December-2024 window with zero
    impossible geometry. The prior read-only
    audit found 3,430 impossible-geometry rows in both canonical M5 and
    live-prebuilt, including 2,799 weekend rows; the clean M1 supports 5,757
    rebuilt December buckets and leaves 3,459 canonical rows unbacked. The
    full loader also blocks on 2,375 invalid late-2024 prebuilt OHLC rows.
-7. Close the still-missing complete native→canonical-v3/BASE28 bootstrap and
-   publish one atomic frozen pair from that admitted source. Copying the
-   invalid old pair into a new generation is not a bootstrap.
+7. Close the still-missing complete native→canonical-v3/raw-BASE28 bootstrap
+   and publish one atomic frozen pair from those admitted sources. BASE28 must
+   contain only the exact 13 native-M1 market fields in source order; phase,
+   volume transforms and TRAIN-fit buckets are not raw pair fields. Publish a
+   separate immutable TRAIN-only rank reference for ATR/spread transforms and
+   bind it through dataset, bundle, replay and live. Copying the invalid old
+   pair into a new generation is not a bootstrap.
 8. Rebuild fresh XAU-only Entry splits, rerun every dataset/readiness audit and only
    then bind a new recipe. Compare full-history training with a declared
    TRAIN-only recent-regime challenger while preserving the final TEST window.

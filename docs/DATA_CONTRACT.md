@@ -14,26 +14,44 @@ UTC. M1 is retained for exit and live-like fill/path reconstruction. M5 is the
 Entry decision grid. M15/H1/H4/D1 state must be derived leak-safely using only
 bars complete at the decision timestamp.
 
-Required price columns are `open`, `high`, `low`, `close`, `volume`, the four
-`bid_*` OHLC columns and the four `ask_*` OHLC columns. Missing bid/ask values,
+The exact physical native column order is `time`, `open`, `high`, `low`,
+`close`, `bid_open`, `bid_high`, `bid_low`, `bid_close`, `ask_open`,
+`ask_high`, `ask_low`, `ask_close`, `volume`. Missing bid/ask values,
 non-finite prices, duplicates, non-monotonic timestamps or unexplained grid
 gaps fail. Mid-only substitution is forbidden.
 
-Canonical native M5 has one producer:
-`gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_m5_snapshot`,
-routed as `model-native-native-m5-source`. It accepts an explicit immutable
-output root, vedtak and left-closed/right-open M5 interval. Requests are
-OANDA-only `MBA`, at most 15 days/4,320 grid slots per call; fixed request
-sleep is absent because the shared client owns retry, `Retry-After` and
-exponential backoff. Every normalized response is retained as deterministic
-gzip evidence. Only source rows with literal `complete=true` enter the
-strict 14-column Arrow surface; source absence is closure evidence and is
-never filled. A v2 manifest binds the request closure, response chunks,
-clean Git/source inventory, typed row digest, each year hash/count/bounds and
-the final absolute root. Source and parquet rows are independently rederived
-with a byte-identical streamed digest before a hidden directory is fsynced
-and atomically published without replacement. The retired direct year-file
-merge and alternate-provider repair modes do not exist.
+Canonical native M1 and M5 share one producer:
+`gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_xau_snapshot`,
+routed as `model-native-native-m1-source` or
+`model-native-native-m5-source`. It accepts an explicit immutable output root,
+vedtak, timeframe and left-closed/right-open interval. Policy is owned by the
+contract, not the caller: M1 uses fixed three-day chunks and M5 fixed 15-day
+chunks, each at most 4,320 theoretical grid slots. Requests are OANDA-only
+`MBA`; fixed request sleep is absent because the shared client owns retry,
+`Retry-After` and exponential backoff. Every normalized response is retained
+as deterministic gzip evidence. Only source rows with literal
+`complete=true` enter the strict 14-column Arrow surface; source absence is
+closure evidence and is never filled. A v3 manifest binds the exact
+timeframe policy, request closure, response chunks, clean Git/source
+inventory, typed row digest, each year hash/count/bounds and the final
+absolute root. Source and parquet rows are independently rederived with a
+byte-identical streamed digest before a hidden directory is fsynced and
+atomically published without replacement. Shallow legacy M1 manifests,
+native-M5 v2 manifests, direct year-file merge and alternate-provider repair
+cannot be admitted.
+
+Raw BASE28 may carry only the 13 non-time physical M1 fields in that exact
+native order. It may not carry broadcast M5 duplicates, canonical context,
+session/regime fields, phase indicators or derived volume fields. The five
+M1 phase indicators and four volume transforms are derived causally and
+identically at training and serve time. The model bar is phase 4: the first
+M1 timestamp whose decision availability can observe the just-closed M5 bar.
+
+`atr_bucket` and `spread_bucket` are TRAIN-fit transforms, not raw pair
+fields. A fresh dataset generation must bind a separate immutable rank
+reference fitted only on the complete physical TRAIN population. Dataset,
+bundle, replay and live must all bind and revalidate the same reference; the
+mutable global `regime_bucket_edges_v1.json` has no launch authority.
 
 The current-data rebuild never edits a running collector or canonical tape.
 It snapshots the exact collector parquet bytes into one fresh event, rejects

@@ -26,17 +26,17 @@ BASE_REPAIR_SCHEMA = "m5_tape_dec2024_repair_manifest_v2"
 CURRENT_SNAPSHOT_SCHEMA = "m5_tape_current_snapshot_v2"
 BASE_REPAIR_METHOD = "recompute_window_from_canonical_m1_drop_unbacked_bars"
 CURRENT_SNAPSHOT_METHOD = "immutable_live_collector_snapshot_exact_m5_overlap"
-CANONICAL_M5_SOURCE_SCHEMA = "xau_canonical_m5_source_v2"
-CANONICAL_M5_PRODUCER_OWNER = (
-    "gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_m5_snapshot"
+CANONICAL_NATIVE_SOURCE_SCHEMA = "xau_canonical_native_source_v3"
+CANONICAL_NATIVE_PRODUCER_OWNER = (
+    "gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_xau_snapshot"
 )
-CANONICAL_M5_CLOSURE_CONTRACT = (
+CANONICAL_NATIVE_CLOSURE_CONTRACT = (
     "oanda_complete_true_source_absence_no_synthesis_v1"
 )
-CANONICAL_M5_SOURCE_CHUNK_SCHEMA = "xau_oanda_native_m5_source_chunk_v1"
-CANONICAL_M5_SOURCE_RESPONSE_ENCODING = "canonical_json_utf8_gzip_mtime0"
-CANONICAL_M5_REQUEST_INTERVAL_SEMANTICS = "left_closed_right_open"
-CANONICAL_M5_PRODUCER_SOURCE_FILES = (
+CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA = "xau_oanda_native_source_chunk_v2"
+CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING = "canonical_json_utf8_gzip_mtime0"
+CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS = "left_closed_right_open"
+CANONICAL_NATIVE_PRODUCER_SOURCE_FILES = (
     "gx1/contracts/entry_model_native_bundle_commit_v1.py",
     "gx1/contracts/xau_tape_provenance_v1.py",
     "gx1/execution/oanda_client.py",
@@ -45,7 +45,7 @@ CANONICAL_M5_PRODUCER_SOURCE_FILES = (
     "gx1/utils/env_loader.py",
     "gx1_guards/gates.py",
 )
-CANONICAL_M5_REQUIRED_COLUMNS = (
+CANONICAL_NATIVE_REQUIRED_COLUMNS = (
     "time",
     "open",
     "high",
@@ -61,12 +61,36 @@ CANONICAL_M5_REQUIRED_COLUMNS = (
     "ask_close",
     "volume",
 )
-_CANONICAL_M5_PRICE_COLUMNS = tuple(
-    name for name in CANONICAL_M5_REQUIRED_COLUMNS if name not in {"time", "volume"}
+_CANONICAL_NATIVE_PRICE_COLUMNS = tuple(
+    name
+    for name in CANONICAL_NATIVE_REQUIRED_COLUMNS
+    if name not in {"time", "volume"}
 )
+NATIVE_TIMEFRAME_POLICY: dict[str, dict[str, int]] = {
+    "M1": {
+        "bar_seconds": 60,
+        "request_chunk_days": 3,
+        "max_theoretical_slots": 4_320,
+    },
+    "M5": {
+        "bar_seconds": 300,
+        "request_chunk_days": 15,
+        "max_theoretical_slots": 4_320,
+    },
+}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 _VEDTAK_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
+
+
+def native_timeframe_policy(timeframe: Any) -> tuple[str, dict[str, int]]:
+    normalized = str(timeframe or "").strip().upper()
+    if normalized not in NATIVE_TIMEFRAME_POLICY:
+        raise RuntimeError(
+            "XAU_CANONICAL_NATIVE_TIMEFRAME_UNSUPPORTED: "
+            f"observed={timeframe!r}"
+        )
+    return normalized, NATIVE_TIMEFRAME_POLICY[normalized]
 
 
 def _canonical_json_bytes(value: Any) -> bytes:
@@ -142,90 +166,100 @@ def _normalized_instrument(raw: Any) -> str:
     return XAU_INSTRUMENT
 
 
-def _utc_m5(raw: Any, *, label: str) -> pd.Timestamp:
+def _utc_native_bar(
+    raw: Any,
+    *,
+    timeframe: str,
+    label: str,
+) -> pd.Timestamp:
+    normalized, policy = native_timeframe_policy(timeframe)
+    prefix = f"XAU_CANONICAL_{normalized}"
     try:
         value = pd.Timestamp(pd.to_datetime(raw, utc=True, errors="raise"))
     except Exception as exc:
         raise RuntimeError(
-            f"XAU_CANONICAL_M5_{label}_TIMESTAMP_INVALID: {raw!r}"
+            f"{prefix}_{label}_TIMESTAMP_INVALID: {raw!r}"
         ) from exc
     if pd.isna(value):
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_TIMESTAMP_INVALID: {raw!r}")
-    if (
-        value.second != 0
-        or value.microsecond != 0
-        or value.nanosecond != 0
-        or value.minute % 5 != 0
-    ):
+        raise RuntimeError(f"{prefix}_{label}_TIMESTAMP_INVALID: {raw!r}")
+    if value.value % (policy["bar_seconds"] * 1_000_000_000) != 0:
         raise RuntimeError(
-            f"XAU_CANONICAL_M5_{label}_TIMESTAMP_NOT_M5_ALIGNED: {value}"
+            f"{prefix}_{label}_TIMESTAMP_NOT_{normalized}_ALIGNED: {value}"
         )
     return value
 
 
-def _source_float(raw: Any, *, label: str) -> float:
+def _source_float(raw: Any, *, timeframe: str, label: str) -> float:
+    normalized, _policy = native_timeframe_policy(timeframe)
+    prefix = f"XAU_CANONICAL_{normalized}"
     if isinstance(raw, bool):
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_PRICE_INVALID: {raw!r}")
+        raise RuntimeError(f"{prefix}_{label}_PRICE_INVALID: {raw!r}")
     try:
         value = float(raw)
     except (TypeError, ValueError) as exc:
-        raise RuntimeError(
-            f"XAU_CANONICAL_M5_{label}_PRICE_INVALID: {raw!r}"
-        ) from exc
+        raise RuntimeError(f"{prefix}_{label}_PRICE_INVALID: {raw!r}") from exc
     if not math.isfinite(value) or value <= 0.0:
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_PRICE_INVALID: {raw!r}")
+        raise RuntimeError(f"{prefix}_{label}_PRICE_INVALID: {raw!r}")
     return value
 
 
-def _source_volume(raw: Any) -> int:
+def _source_volume(raw: Any, *, timeframe: str) -> int:
+    normalized, _policy = native_timeframe_policy(timeframe)
     if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
-        raise RuntimeError(f"XAU_CANONICAL_M5_VOLUME_INVALID: {raw!r}")
+        raise RuntimeError(
+            f"XAU_CANONICAL_{normalized}_VOLUME_INVALID: {raw!r}"
+        )
     return int(raw)
 
 
-def _empty_canonical_m5_frame() -> pd.DataFrame:
+def _empty_canonical_native_frame() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "time": pd.Series([], dtype="datetime64[ns, UTC]"),
             **{
                 column: pd.Series([], dtype="float64")
-                for column in _CANONICAL_M5_PRICE_COLUMNS
+                for column in _CANONICAL_NATIVE_PRICE_COLUMNS
             },
             "volume": pd.Series([], dtype="int64"),
         }
-    ).loc[:, list(CANONICAL_M5_REQUIRED_COLUMNS)]
+    ).loc[:, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)]
 
 
-def _validate_canonical_m5_frame(
+def _validate_canonical_native_frame(
     frame: pd.DataFrame,
     *,
+    timeframe: str,
     label: str,
     allow_empty: bool,
 ) -> pd.DataFrame:
+    normalized, policy = native_timeframe_policy(timeframe)
+    prefix = f"XAU_CANONICAL_{normalized}"
     observed = list(frame.columns)
-    expected = list(CANONICAL_M5_REQUIRED_COLUMNS)
+    expected = list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
     if (
         observed != expected
         or len(observed) != len(set(observed))
     ):
         raise RuntimeError(
-            f"XAU_CANONICAL_M5_{label}_SCHEMA_MISMATCH: "
+            f"{prefix}_{label}_SCHEMA_MISMATCH: "
             f"expected={expected} observed={observed}"
         )
     out = frame.copy()
     out["time"] = pd.to_datetime(out["time"], utc=True, errors="coerce")
     if out["time"].isna().any():
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_TIME_INVALID")
+        raise RuntimeError(f"{prefix}_{label}_TIME_INVALID")
     if out.empty:
         if allow_empty:
-            return _empty_canonical_m5_frame()
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_EMPTY")
+            return _empty_canonical_native_frame()
+        raise RuntimeError(f"{prefix}_{label}_EMPTY")
     nanos = out["time"].astype("int64").to_numpy()
-    if (nanos % 300_000_000_000 != 0).any():
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_TIME_NOT_M5_ALIGNED")
+    if (nanos % (policy["bar_seconds"] * 1_000_000_000) != 0).any():
+        raise RuntimeError(
+            f"{prefix}_{label}_TIME_NOT_{normalized}_ALIGNED"
+        )
     if out["time"].duplicated().any() or not out["time"].is_monotonic_increasing:
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_TIME_ORDER_INVALID")
-    prices = out.loc[:, list(_CANONICAL_M5_PRICE_COLUMNS)].apply(
+        raise RuntimeError(f"{prefix}_{label}_TIME_ORDER_INVALID")
+    prices = out.loc[:, list(_CANONICAL_NATIVE_PRICE_COLUMNS)].apply(
         pd.to_numeric, errors="coerce"
     )
     price_values = prices.to_numpy(dtype="float64")
@@ -234,8 +268,8 @@ def _validate_canonical_m5_frame(
         or not math.isfinite(float(price_values.max()))
         or (price_values <= 0.0).any()
     ):
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_PRICE_INVALID")
-    out.loc[:, list(_CANONICAL_M5_PRICE_COLUMNS)] = prices
+        raise RuntimeError(f"{prefix}_{label}_PRICE_INVALID")
+    out.loc[:, list(_CANONICAL_NATIVE_PRICE_COLUMNS)] = prices
     volume_numeric = pd.to_numeric(out["volume"], errors="coerce")
     volume_values = volume_numeric.to_numpy(dtype="float64")
     if (
@@ -243,13 +277,13 @@ def _validate_canonical_m5_frame(
         or (volume_values < 0.0).any()
         or (volume_values != volume_values.astype("int64")).any()
     ):
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_VOLUME_INVALID")
+        raise RuntimeError(f"{prefix}_{label}_VOLUME_INVALID")
     out["volume"] = volume_values.astype("int64")
-    for prefix in ("", "bid_", "ask_"):
-        opened = out[f"{prefix}open"].to_numpy(dtype="float64")
-        high = out[f"{prefix}high"].to_numpy(dtype="float64")
-        low = out[f"{prefix}low"].to_numpy(dtype="float64")
-        closed = out[f"{prefix}close"].to_numpy(dtype="float64")
+    for price_prefix in ("", "bid_", "ask_"):
+        opened = out[f"{price_prefix}open"].to_numpy(dtype="float64")
+        high = out[f"{price_prefix}high"].to_numpy(dtype="float64")
+        low = out[f"{price_prefix}low"].to_numpy(dtype="float64")
+        closed = out[f"{price_prefix}close"].to_numpy(dtype="float64")
         if (
             (high < low).any()
             or (high < opened).any()
@@ -258,7 +292,7 @@ def _validate_canonical_m5_frame(
             or (low > closed).any()
         ):
             raise RuntimeError(
-                f"XAU_CANONICAL_M5_{label}_{prefix.upper()}OHLC_GEOMETRY_INVALID"
+                f"{prefix}_{label}_{price_prefix.upper()}OHLC_GEOMETRY_INVALID"
             )
     for suffix in ("open", "high", "low", "close"):
         if (
@@ -266,16 +300,21 @@ def _validate_canonical_m5_frame(
             < out[f"bid_{suffix}"].to_numpy(dtype="float64")
         ).any():
             raise RuntimeError(
-                f"XAU_CANONICAL_M5_{label}_BID_ASK_GEOMETRY_INVALID"
+                f"{prefix}_{label}_BID_ASK_GEOMETRY_INVALID"
             )
     return out.loc[:, expected]
 
 
-def canonical_m5_rows_bytes(frame: pd.DataFrame) -> bytes:
-    """Encode canonical typed rows with the stable v1 digest layout."""
+def canonical_native_rows_bytes(
+    frame: pd.DataFrame,
+    *,
+    timeframe: str,
+) -> bytes:
+    """Encode canonical typed rows with one stable cross-timeframe layout."""
 
-    checked = _validate_canonical_m5_frame(
+    checked = _validate_canonical_native_frame(
         frame,
+        timeframe=timeframe,
         label="ROW_DIGEST",
         allow_empty=True,
     )
@@ -292,39 +331,56 @@ def canonical_m5_rows_bytes(frame: pd.DataFrame) -> bytes:
     )
     records["time"] = checked["time"].astype("int64").to_numpy()
     records["prices"] = checked.loc[
-        :, list(_CANONICAL_M5_PRICE_COLUMNS)
+        :, list(_CANONICAL_NATIVE_PRICE_COLUMNS)
     ].to_numpy(dtype="float64")
     records["volume"] = checked["volume"].to_numpy(dtype="int64")
     return records.tobytes(order="C")
 
 
-def canonical_m5_rows_sha256(frame: pd.DataFrame) -> str:
+def canonical_native_rows_sha256(
+    frame: pd.DataFrame,
+    *,
+    timeframe: str,
+) -> str:
     """Hash canonical typed rows independently of parquet serialization."""
 
-    return hashlib.sha256(canonical_m5_rows_bytes(frame)).hexdigest()
+    return hashlib.sha256(
+        canonical_native_rows_bytes(frame, timeframe=timeframe)
+    ).hexdigest()
 
 
-def canonical_m5_frame_from_oanda_response(
+def canonical_native_frame_from_oanda_response(
     response: Mapping[str, Any],
     *,
+    timeframe: str,
     request_start: Any,
     request_end: Any,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Parse one native OANDA MBA response without synthesis or fallback."""
 
-    start = _utc_m5(request_start, label="REQUEST_START")
-    end = _utc_m5(request_end, label="REQUEST_END")
+    normalized, _policy = native_timeframe_policy(timeframe)
+    prefix = f"XAU_CANONICAL_{normalized}"
+    start = _utc_native_bar(
+        request_start,
+        timeframe=normalized,
+        label="REQUEST_START",
+    )
+    end = _utc_native_bar(
+        request_end,
+        timeframe=normalized,
+        label="REQUEST_END",
+    )
     if end <= start:
-        raise RuntimeError("XAU_CANONICAL_M5_REQUEST_INTERVAL_INVALID")
+        raise RuntimeError(f"{prefix}_REQUEST_INTERVAL_INVALID")
     if not isinstance(response, Mapping):
-        raise RuntimeError("XAU_CANONICAL_M5_SOURCE_RESPONSE_OBJECT_REQUIRED")
+        raise RuntimeError(f"{prefix}_SOURCE_RESPONSE_OBJECT_REQUIRED")
     if response.get("instrument") != XAU_INSTRUMENT:
-        raise RuntimeError("XAU_CANONICAL_M5_SOURCE_RESPONSE_INSTRUMENT_MISMATCH")
-    if response.get("granularity") != "M5":
-        raise RuntimeError("XAU_CANONICAL_M5_SOURCE_RESPONSE_GRANULARITY_MISMATCH")
+        raise RuntimeError(f"{prefix}_SOURCE_RESPONSE_INSTRUMENT_MISMATCH")
+    if response.get("granularity") != normalized:
+        raise RuntimeError(f"{prefix}_SOURCE_RESPONSE_GRANULARITY_MISMATCH")
     candles = response.get("candles")
     if not isinstance(candles, list):
-        raise RuntimeError("XAU_CANONICAL_M5_SOURCE_RESPONSE_CANDLES_INVALID")
+        raise RuntimeError(f"{prefix}_SOURCE_RESPONSE_CANDLES_INVALID")
 
     rows: list[dict[str, Any]] = []
     incomplete = 0
@@ -332,34 +388,39 @@ def canonical_m5_frame_from_oanda_response(
     for position, raw_candle in enumerate(candles):
         if not isinstance(raw_candle, Mapping):
             raise RuntimeError(
-                f"XAU_CANONICAL_M5_SOURCE_CANDLE_INVALID: position={position}"
+                f"{prefix}_SOURCE_CANDLE_INVALID: position={position}"
             )
         complete = raw_candle.get("complete")
         if not isinstance(complete, bool):
             raise RuntimeError(
-                f"XAU_CANONICAL_M5_SOURCE_COMPLETION_INVALID: position={position}"
+                f"{prefix}_SOURCE_COMPLETION_INVALID: position={position}"
             )
         if not complete:
             incomplete += 1
             continue
-        timestamp = _utc_m5(
+        timestamp = _utc_native_bar(
             raw_candle.get("time"),
+            timeframe=normalized,
             label=f"SOURCE_CANDLE_{position}",
         )
         if not start <= timestamp < end:
             raise RuntimeError(
-                "XAU_CANONICAL_M5_SOURCE_CANDLE_OUTSIDE_REQUEST: "
+                f"{prefix}_SOURCE_CANDLE_OUTSIDE_REQUEST: "
                 f"time={timestamp} start={start} end={end}"
             )
         if previous is not None and timestamp <= previous:
-            raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CANDLE_ORDER_INVALID")
+            raise RuntimeError(f"{prefix}_SOURCE_CANDLE_ORDER_INVALID")
         previous = timestamp
         parsed: dict[str, Any] = {"time": timestamp}
-        for source_name, prefix in (("mid", ""), ("bid", "bid_"), ("ask", "ask_")):
+        for source_name, price_prefix in (
+            ("mid", ""),
+            ("bid", "bid_"),
+            ("ask", "ask_"),
+        ):
             source = raw_candle.get(source_name)
             if not isinstance(source, Mapping):
                 raise RuntimeError(
-                    "XAU_CANONICAL_M5_SOURCE_PRICE_COMPONENT_MISSING: "
+                    f"{prefix}_SOURCE_PRICE_COMPONENT_MISSING: "
                     f"position={position} component={source_name}"
                 )
             for source_field, target_field in (
@@ -368,20 +429,25 @@ def canonical_m5_frame_from_oanda_response(
                 ("l", "low"),
                 ("c", "close"),
             ):
-                parsed[f"{prefix}{target_field}"] = _source_float(
+                parsed[f"{price_prefix}{target_field}"] = _source_float(
                     source.get(source_field),
+                    timeframe=normalized,
                     label=f"{source_name.upper()}_{source_field.upper()}",
                 )
-        parsed["volume"] = _source_volume(raw_candle.get("volume"))
+        parsed["volume"] = _source_volume(
+            raw_candle.get("volume"),
+            timeframe=normalized,
+        )
         rows.append(parsed)
 
     frame = (
-        pd.DataFrame(rows).loc[:, list(CANONICAL_M5_REQUIRED_COLUMNS)]
+        pd.DataFrame(rows).loc[:, list(CANONICAL_NATIVE_REQUIRED_COLUMNS)]
         if rows
-        else _empty_canonical_m5_frame()
+        else _empty_canonical_native_frame()
     )
-    frame = _validate_canonical_m5_frame(
+    frame = _validate_canonical_native_frame(
         frame,
+        timeframe=normalized,
         label="SOURCE_RESPONSE",
         allow_empty=True,
     )
@@ -395,12 +461,21 @@ def canonical_m5_frame_from_oanda_response(
         "last_complete_utc": (
             None if frame.empty else pd.Timestamp(frame["time"].iloc[-1]).isoformat()
         ),
-        "canonical_complete_rows_sha256": canonical_m5_rows_sha256(frame),
+        "canonical_complete_rows_sha256": canonical_native_rows_sha256(
+            frame,
+            timeframe=normalized,
+        ),
     }
     return frame, stats
 
 
-def _safe_relative_path(raw: Any, *, label: str) -> Path:
+def _safe_relative_path(
+    raw: Any,
+    *,
+    timeframe: str,
+    label: str,
+) -> Path:
+    normalized, _policy = native_timeframe_policy(timeframe)
     value = str(raw or "")
     path = Path(value)
     if (
@@ -410,53 +485,73 @@ def _safe_relative_path(raw: Any, *, label: str) -> Path:
         or "." in path.parts
         or str(path) != value
     ):
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_PATH_INVALID: {value!r}")
+        raise RuntimeError(
+            f"XAU_CANONICAL_{normalized}_{label}_PATH_INVALID: {value!r}"
+        )
     return path
 
 
-def _require_sha256(raw: Any, *, label: str) -> str:
+def _require_sha256(
+    raw: Any,
+    *,
+    timeframe: str,
+    label: str,
+) -> str:
+    normalized, _policy = native_timeframe_policy(timeframe)
     value = str(raw or "").lower()
     if _SHA256_RE.fullmatch(value) is None:
-        raise RuntimeError(f"XAU_CANONICAL_M5_{label}_SHA256_INVALID")
+        raise RuntimeError(
+            f"XAU_CANONICAL_{normalized}_{label}_SHA256_INVALID"
+        )
     return value
 
 
-def _decode_source_chunk(raw: bytes, *, path: Path) -> dict[str, Any]:
+def _decode_source_chunk(
+    raw: bytes,
+    *,
+    timeframe: str,
+    path: Path,
+) -> dict[str, Any]:
+    normalized, _policy = native_timeframe_policy(timeframe)
     try:
         value = json.loads(gzip.decompress(raw).decode("utf-8"))
     except Exception as exc:
         raise RuntimeError(
-            f"XAU_CANONICAL_M5_SOURCE_CHUNK_DECODE_INVALID: {path}"
+            f"XAU_CANONICAL_{normalized}_SOURCE_CHUNK_DECODE_INVALID: {path}"
         ) from exc
     if not isinstance(value, dict):
-        raise RuntimeError(f"XAU_CANONICAL_M5_SOURCE_CHUNK_OBJECT_REQUIRED: {path}")
+        raise RuntimeError(
+            f"XAU_CANONICAL_{normalized}_SOURCE_CHUNK_OBJECT_REQUIRED: {path}"
+        )
     return value
 
 
-def _validate_canonical_m5_source_contract(
+def _validate_canonical_native_source_contract_impl(
     root: Path,
     manifest: dict[str, Any],
     *,
+    timeframe: str,
     expected_declared_root: Path,
 ) -> dict[str, Any]:
-    """Require one hash-bound native-M5 owner and source-defined closure."""
+    """Require one hash-bound native owner and source-defined closure."""
 
+    normalized, policy = native_timeframe_policy(timeframe)
     exact = {
-        "schema_version": CANONICAL_M5_SOURCE_SCHEMA,
-        "producer_owner": CANONICAL_M5_PRODUCER_OWNER,
+        "schema_version": CANONICAL_NATIVE_SOURCE_SCHEMA,
+        "producer_owner": CANONICAL_NATIVE_PRODUCER_OWNER,
         "source_kind": "oanda_native_mba_candles",
         "source_endpoint": "/instruments/XAU_USD/candles",
-        "source_granularity": "M5",
+        "source_granularity": normalized,
         "prices": "MBA",
         "timestamp_semantics": "bar_start_utc",
-        "bar_duration_seconds": 300,
-        "decision_available_offset_seconds": 300,
+        "bar_duration_seconds": policy["bar_seconds"],
+        "decision_available_offset_seconds": policy["bar_seconds"],
         "completion_field": "complete",
         "completion_value": True,
-        "market_closure_contract": CANONICAL_M5_CLOSURE_CONTRACT,
-        "request_interval_semantics": CANONICAL_M5_REQUEST_INTERVAL_SEMANTICS,
-        "source_response_encoding": CANONICAL_M5_SOURCE_RESPONSE_ENCODING,
-        "source_chunk_schema": CANONICAL_M5_SOURCE_CHUNK_SCHEMA,
+        "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+        "request_interval_semantics": CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS,
+        "source_response_encoding": CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING,
+        "source_chunk_schema": CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA,
         "producer_repository_clean": True,
     }
     expected_keys = {
@@ -501,7 +596,10 @@ def _validate_canonical_m5_source_contract(
                 f"field={key!r} expected={expected!r} "
                 f"observed={manifest.get(key)!r}"
             )
-    if manifest.get("instrument") != XAU_INSTRUMENT or manifest.get("timeframe") != "M5":
+    if (
+        manifest.get("instrument") != XAU_INSTRUMENT
+        or manifest.get("timeframe") != normalized
+    ):
         raise RuntimeError("XAU_CANONICAL_M5_IDENTITY_MISMATCH")
     declared = Path(str(manifest.get("out_root") or "")).expanduser()
     if (
@@ -534,18 +632,20 @@ def _validate_canonical_m5_source_contract(
         or manifest.get("source_base_url") != base_url_by_environment[environment]
     ):
         raise RuntimeError("XAU_CANONICAL_M5_SOURCE_ENVIRONMENT_INVALID")
-    start = _utc_m5(
+    start = _utc_native_bar(
         manifest.get("requested_start_utc"),
+        timeframe=normalized,
         label="MANIFEST_REQUEST_START",
     )
-    end = _utc_m5(
+    end = _utc_native_bar(
         manifest.get("requested_end_utc_exclusive"),
+        timeframe=normalized,
         label="MANIFEST_REQUEST_END",
     )
     if end <= start:
         raise RuntimeError("XAU_CANONICAL_M5_REQUEST_INTERVAL_INVALID")
     chunk_days = manifest.get("request_chunk_days")
-    if isinstance(chunk_days, bool) or not isinstance(chunk_days, int) or not 1 <= chunk_days <= 15:
+    if chunk_days != policy["request_chunk_days"]:
         raise RuntimeError("XAU_CANONICAL_M5_REQUEST_CHUNK_DAYS_INVALID")
     commit = str(manifest.get("producer_git_commit") or "")
     if _GIT_COMMIT_RE.fullmatch(commit) is None:
@@ -558,7 +658,7 @@ def _validate_canonical_m5_source_contract(
     ):
         raise RuntimeError("XAU_CANONICAL_M5_RUNTIME_VERSIONS_INVALID")
     if manifest.get("schema_required_cols") != list(
-        CANONICAL_M5_REQUIRED_COLUMNS
+        CANONICAL_NATIVE_REQUIRED_COLUMNS
     ):
         raise RuntimeError("XAU_CANONICAL_M5_SCHEMA_CONTRACT_MISMATCH")
     if manifest.get("schema_optional_cols") != []:
@@ -579,7 +679,7 @@ def _validate_canonical_m5_source_contract(
     source_inventory = manifest.get("producer_source_files")
     if not isinstance(source_inventory, list):
         raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_INVENTORY_INVALID")
-    expected_source_paths = list(CANONICAL_M5_PRODUCER_SOURCE_FILES)
+    expected_source_paths = list(CANONICAL_NATIVE_PRODUCER_SOURCE_FILES)
     observed_source_paths: list[str] = []
     for item in source_inventory:
         if not isinstance(item, dict) or set(item) != {
@@ -592,11 +692,13 @@ def _validate_canonical_m5_source_contract(
         repo_relative = str(
             _safe_relative_path(
                 item.get("repo_relative_path"),
+                timeframe=normalized,
                 label="PRODUCER_REPO_SOURCE",
             )
         )
         snapshot_relative = _safe_relative_path(
             item.get("snapshot_relative_path"),
+            timeframe=normalized,
             label="PRODUCER_SNAPSHOT_SOURCE",
         )
         if snapshot_relative != Path("producer_source") / repo_relative:
@@ -606,7 +708,11 @@ def _validate_canonical_m5_source_contract(
             raise RuntimeError(
                 f"XAU_CANONICAL_M5_PRODUCER_SOURCE_MISSING: {source_path}"
             )
-        digest = _require_sha256(item.get("sha256"), label="PRODUCER_SOURCE")
+        digest = _require_sha256(
+            item.get("sha256"),
+            timeframe=normalized,
+            label="PRODUCER_SOURCE",
+        )
         size = item.get("size_bytes")
         if (
             isinstance(size, bool)
@@ -632,6 +738,7 @@ def _validate_canonical_m5_source_contract(
     if (
         _require_sha256(
             manifest.get("producer_source_inventory_sha256"),
+            timeframe=normalized,
             label="PRODUCER_SOURCE_INVENTORY",
         )
         != canonical_json_sha256(source_inventory)
@@ -644,6 +751,7 @@ def _validate_canonical_m5_source_contract(
     if (
         _require_sha256(
             manifest.get("source_chunks_sha256"),
+            timeframe=normalized,
             label="SOURCE_CHUNKS",
         )
         != canonical_json_sha256(source_chunks)
@@ -680,19 +788,26 @@ def _validate_canonical_m5_source_contract(
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_METADATA_INVALID")
         if metadata.get("sequence") != sequence:
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_SEQUENCE_INVALID")
-        chunk_start = _utc_m5(
+        chunk_start = _utc_native_bar(
             metadata.get("request_from_utc"),
+            timeframe=normalized,
             label=f"CHUNK_{sequence}_START",
         )
-        chunk_end = _utc_m5(
+        chunk_end = _utc_native_bar(
             metadata.get("request_to_utc_exclusive"),
+            timeframe=normalized,
             label=f"CHUNK_{sequence}_END",
         )
-        if chunk_start != cursor or chunk_end <= chunk_start or chunk_end > end:
+        expected_chunk_end = min(
+            chunk_start + pd.Timedelta(days=policy["request_chunk_days"]),
+            end,
+        )
+        if chunk_start != cursor or chunk_end != expected_chunk_end:
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_INTERVAL_INVALID")
         cursor = chunk_end
         relative = _safe_relative_path(
             metadata.get("relative_path"),
+            timeframe=normalized,
             label=f"CHUNK_{sequence}",
         )
         expected_relative = Path("source_chunks") / f"chunk-{sequence:06d}.json.gz"
@@ -700,7 +815,11 @@ def _validate_canonical_m5_source_contract(
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_PATH_MISMATCH")
         chunk_path = root / relative
         manifest_chunk_files.append(chunk_path)
-        digest = _require_sha256(metadata.get("sha256"), label=f"CHUNK_{sequence}")
+        digest = _require_sha256(
+            metadata.get("sha256"),
+            timeframe=normalized,
+            label=f"CHUNK_{sequence}",
+        )
         size = metadata.get("size_bytes")
         if (
             isinstance(size, bool)
@@ -716,24 +835,32 @@ def _validate_canonical_m5_source_contract(
             or hashlib.sha256(compressed).hexdigest() != digest
         ):
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_BINDING_MISMATCH")
-        payload = _decode_source_chunk(compressed, path=chunk_path)
+        payload = _decode_source_chunk(
+            compressed,
+            timeframe=normalized,
+            path=chunk_path,
+        )
         if set(payload) != {"schema_version", "request", "response"}:
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_PAYLOAD_SCHEMA_INVALID")
-        if payload.get("schema_version") != CANONICAL_M5_SOURCE_CHUNK_SCHEMA:
+        if (
+            payload.get("schema_version")
+            != CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA
+        ):
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_SCHEMA_MISMATCH")
         request = payload.get("request")
         expected_request = {
             "instrument": XAU_INSTRUMENT,
             "from": chunk_start.strftime("%Y-%m-%dT%H:%M:%S.000000000Z"),
             "to": chunk_end.strftime("%Y-%m-%dT%H:%M:%S.000000000Z"),
-            "granularity": "M5",
+            "granularity": normalized,
             "price": "MBA",
         }
         if request != expected_request:
             raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_REQUEST_MISMATCH")
         response = payload.get("response")
-        frame, stats = canonical_m5_frame_from_oanda_response(
+        frame, stats = canonical_native_frame_from_oanda_response(
             response,
+            timeframe=normalized,
             request_start=chunk_start,
             request_end=chunk_end,
         )
@@ -755,7 +882,12 @@ def _validate_canonical_m5_source_contract(
             source_time_max = last.isoformat()
             previous_source_time = last
             source_row_count += len(frame)
-            source_digest.update(canonical_m5_rows_bytes(frame))
+            source_digest.update(
+                canonical_native_rows_bytes(
+                    frame,
+                    timeframe=normalized,
+                )
+            )
     if cursor != end or manifest_chunk_files != actual_chunk_files:
         raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNK_CLOSURE_INVALID")
 
@@ -774,6 +906,7 @@ def _validate_canonical_m5_source_contract(
         or manifest.get("time_max_utc") != source_time_max
         or _require_sha256(
             manifest.get("canonical_rows_sha256"),
+            timeframe=normalized,
             label="CANONICAL_ROWS",
         )
         != source_rows_sha
@@ -820,7 +953,7 @@ def _validate_canonical_m5_source_contract(
             raise RuntimeError(
                 f"XAU_CANONICAL_M5_PARQUET_INVALID: {part}"
             ) from exc
-        if observed_columns != list(CANONICAL_M5_REQUIRED_COLUMNS):
+        if observed_columns != list(CANONICAL_NATIVE_REQUIRED_COLUMNS):
             raise RuntimeError(
                 "XAU_CANONICAL_M5_PARQUET_SCHEMA_MISMATCH: "
                 f"year={part.parent.name} observed={observed_columns}"
@@ -841,8 +974,9 @@ def _validate_canonical_m5_source_contract(
     parquet_row_count = 0
     previous_parquet_time: pd.Timestamp | None = None
     for part in actual_parts:
-        frame = _validate_canonical_m5_frame(
+        frame = _validate_canonical_native_frame(
             pd.read_parquet(part),
+            timeframe=normalized,
             label=f"PARQUET_{part.parent.name}",
             allow_empty=False,
         )
@@ -861,7 +995,12 @@ def _validate_canonical_m5_source_contract(
             raise RuntimeError("XAU_CANONICAL_M5_PARQUET_GLOBAL_ORDER_INVALID")
         previous_parquet_time = pd.Timestamp(frame["time"].iloc[-1])
         parquet_row_count += len(frame)
-        parquet_digest.update(canonical_m5_rows_bytes(frame))
+        parquet_digest.update(
+            canonical_native_rows_bytes(
+                frame,
+                timeframe=normalized,
+            )
+        )
     if (
         parquet_row_count != source_row_count
         or parquet_digest.hexdigest() != source_rows_sha
@@ -879,14 +1018,16 @@ def _validate_canonical_m5_source_contract(
     without_manifest_hash = dict(manifest)
     observed_manifest_hash = _require_sha256(
         without_manifest_hash.pop("manifest_payload_sha256", ""),
+        timeframe=normalized,
         label="MANIFEST_PAYLOAD",
     )
     if observed_manifest_hash != canonical_json_sha256(without_manifest_hash):
         raise RuntimeError("XAU_CANONICAL_M5_MANIFEST_PAYLOAD_HASH_MISMATCH")
     return {
         **exact,
-        "schema_required_cols": list(CANONICAL_M5_REQUIRED_COLUMNS),
+        "schema_required_cols": list(CANONICAL_NATIVE_REQUIRED_COLUMNS),
         "schema_optional_cols": [],
+        "request_chunk_days": policy["request_chunk_days"],
         "requested_start_utc": start.isoformat(),
         "requested_end_utc_exclusive": end.isoformat(),
         "row_count": source_row_count,
@@ -904,13 +1045,43 @@ def _validate_canonical_m5_source_contract(
     }
 
 
-def validate_canonical_m5_source_bundle_v2(
+def _validate_canonical_native_source_contract(
+    root: Path,
+    manifest: dict[str, Any],
+    *,
+    timeframe: str,
+    expected_declared_root: Path,
+) -> dict[str, Any]:
+    """Expose timeframe-exact errors while retaining M5 error compatibility."""
+
+    normalized, _policy = native_timeframe_policy(timeframe)
+    try:
+        return _validate_canonical_native_source_contract_impl(
+            root,
+            manifest,
+            timeframe=normalized,
+            expected_declared_root=expected_declared_root,
+        )
+    except RuntimeError as exc:
+        if normalized == "M5":
+            raise
+        message = str(exc).replace(
+            "XAU_CANONICAL_M5_",
+            f"XAU_CANONICAL_{normalized}_",
+        )
+        raise RuntimeError(message) from exc
+
+
+def validate_canonical_native_source_bundle_v3(
     physical_root: Path | str,
     *,
+    timeframe: str,
     expected_declared_root: Path | str,
 ) -> dict[str, Any]:
     """Validate a final bundle or its hidden pre-publication staging root."""
 
+    normalized, _policy = native_timeframe_policy(timeframe)
+    prefix = f"XAU_CANONICAL_{normalized}"
     physical_arg = Path(physical_root).expanduser()
     if (
         not physical_arg.is_absolute()
@@ -918,34 +1089,38 @@ def validate_canonical_m5_source_bundle_v2(
         or not physical_arg.is_dir()
     ):
         raise RuntimeError(
-            f"XAU_CANONICAL_M5_PHYSICAL_ROOT_INVALID: {physical_arg}"
+            f"{prefix}_PHYSICAL_ROOT_INVALID: {physical_arg}"
         )
     physical = physical_arg.resolve()
     if physical != physical_arg:
         raise RuntimeError(
-            "XAU_CANONICAL_M5_PHYSICAL_ROOT_NOT_CANONICAL: "
+            f"{prefix}_PHYSICAL_ROOT_NOT_CANONICAL: "
             f"raw={physical_arg} resolved={physical}"
         )
     declared_arg = Path(expected_declared_root).expanduser()
     if not declared_arg.is_absolute():
         raise RuntimeError(
-            f"XAU_CANONICAL_M5_EXPECTED_DECLARED_ROOT_NOT_ABSOLUTE: {declared_arg}"
+            f"{prefix}_EXPECTED_DECLARED_ROOT_NOT_ABSOLUTE: {declared_arg}"
         )
     declared = declared_arg.resolve(strict=False)
     if declared != declared_arg:
         raise RuntimeError(
-            "XAU_CANONICAL_M5_EXPECTED_DECLARED_ROOT_NOT_CANONICAL: "
+            f"{prefix}_EXPECTED_DECLARED_ROOT_NOT_CANONICAL: "
             f"raw={declared_arg} resolved={declared}"
         )
     manifest = _json(
         physical / "MANIFEST.json",
-        label="XAU_CANONICAL_M5_MANIFEST",
+        label=f"{prefix}_MANIFEST",
     )
-    if manifest.get("instrument") != XAU_INSTRUMENT or manifest.get("timeframe") != "M5":
-        raise RuntimeError("XAU_CANONICAL_M5_IDENTITY_MISMATCH")
-    return _validate_canonical_m5_source_contract(
+    if (
+        manifest.get("instrument") != XAU_INSTRUMENT
+        or manifest.get("timeframe") != normalized
+    ):
+        raise RuntimeError(f"{prefix}_IDENTITY_MISMATCH")
+    return _validate_canonical_native_source_contract(
         physical,
         manifest,
+        timeframe=normalized,
         expected_declared_root=declared,
     )
 
@@ -967,7 +1142,7 @@ def canonical_xau_source_descriptor_v1(
         label=f"XAU_CANONICAL_{timeframe.upper()}_MANIFEST",
     )
     instrument = _normalized_instrument(manifest.get("instrument"))
-    expected_timeframe = str(timeframe).strip().upper()
+    expected_timeframe, _policy = native_timeframe_policy(timeframe)
     observed_timeframe = str(manifest.get("timeframe") or "").strip().upper()
     if observed_timeframe != expected_timeframe:
         raise RuntimeError(
@@ -993,14 +1168,14 @@ def canonical_xau_source_descriptor_v1(
         "instrument_observed": str(manifest.get("instrument")),
         "timeframe": expected_timeframe,
     }
-    if expected_timeframe == "M5":
-        descriptor.update(
-            _validate_canonical_m5_source_contract(
-                canonical_root,
-                manifest,
-                expected_declared_root=canonical_root,
-            )
+    descriptor.update(
+        _validate_canonical_native_source_contract(
+            canonical_root,
+            manifest,
+            timeframe=expected_timeframe,
+            expected_declared_root=canonical_root,
         )
+    )
     return descriptor
 
 
@@ -1015,49 +1190,17 @@ def _validate_source_descriptor(
         raw.get("root"),
         timeframe=timeframe,
     )
-    keys = [
-        "root",
-        "manifest_path",
-        "manifest_sha256",
-        "instrument",
-        "instrument_observed",
-        "timeframe",
-    ]
-    if timeframe == "M5":
-        keys.extend(
-            [
-                "schema_version",
-                "producer_owner",
-                "source_kind",
-                "source_granularity",
-                "prices",
-                "timestamp_semantics",
-                "bar_duration_seconds",
-                "decision_available_offset_seconds",
-                "completion_field",
-                "completion_value",
-                "market_closure_contract",
-                "schema_required_cols",
-                "schema_optional_cols",
-                "requested_start_utc",
-                "requested_end_utc_exclusive",
-                "row_count",
-                "time_min_utc",
-                "time_max_utc",
-                "canonical_rows_sha256",
-                "source_chunks_sha256",
-                "producer_git_commit",
-                "producer_source_inventory_sha256",
-                "manifest_payload_sha256",
-                "year_sha256",
-                "year_rows",
-            ]
+    if set(raw) != set(observed):
+        raise RuntimeError(
+            f"XAU_TAPE_CANONICAL_{timeframe}_DESCRIPTOR_SCHEMA_MISMATCH: "
+            f"missing={sorted(set(observed) - set(raw))} "
+            f"extra={sorted(set(raw) - set(observed))}"
         )
-    for key in keys:
-        if raw.get(key) != observed[key]:
+    for key, observed_value in observed.items():
+        if raw.get(key) != observed_value:
             raise RuntimeError(
                 f"XAU_TAPE_CANONICAL_{timeframe}_{key.upper()}_MISMATCH: "
-                f"declared={raw.get(key)!r} observed={observed[key]!r}"
+                f"declared={raw.get(key)!r} observed={observed_value!r}"
             )
     return observed
 

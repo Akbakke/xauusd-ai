@@ -1327,3 +1327,37 @@ Decision:
   copy an already admitted pair, but no complete initial
   native→canonical-v3/BASE28 builder is yet exposed. Copying the invalid old
   pair is not a compliant bootstrap.
+
+## 2026-07-24 — unify native M1/M5 ownership and narrow BASE28
+
+A three-way pipeline audit found that M1 still had several mutable writers and
+a shallow descriptor while M5 alone had the strict source contract. It also
+found split feature authority: broad BASE28 duplicated closed-M5/canonical
+fields, consumers resolved duplicates differently, and the global
+`regime_bucket_edges_v1.json` was mutable, stale and not fitted only on TRAIN.
+
+Decision:
+
+- extend the same historical OANDA owner and source validator to strict native
+  M1 and M5 schema v3; do not create a second producer;
+- fix source policy at three days for M1 and 15 days for M5, each 4,320
+  theoretical slots, with no caller chunk or granularity override;
+- require exact 14-column physical order for both timeframes and validate both
+  descriptors through the complete response↔parquet rederivation contract;
+- expose the two fixed control routes `model-native-native-m1-source` and
+  `model-native-native-m5-source`;
+- remove the three unreachable mutable M1 writer sources
+  `materialize_backfill_xauusd_m1_2020_2024_v1.py`,
+  `materialize_backfill_xauusd_m1_repair_v1.py` and
+  `v12_backfill_to_present.py`; their history remains recoverable in Git;
+- make raw BASE28 own only the 13 physical native-M1 market fields in exact
+  source order; derive phase and volume transforms causally at train/serve;
+- derive `m5_phase_0..4` only from the real M1 timestamp and define phase 4 as
+  the first decision timestamp that can observe the just-closed M5 bar;
+- replace the per-row/per-field BASE routing loop with one vectorized frame
+  mapping; 100,000 rows × 54 fields measured about 0.033 seconds locally;
+- prohibit TRAIN-fit `atr_bucket` and `spread_bucket` from the raw pair. The
+  future builder must publish a separate immutable TRAIN-only rank reference
+  and bind it through dataset, bundle, replay and live;
+- keep launch `BLOCK`. Neither strict native source route, the complete raw
+  pair bootstrap nor any training/live operation was executed.

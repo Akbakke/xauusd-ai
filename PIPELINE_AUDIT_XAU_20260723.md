@@ -146,7 +146,7 @@ non-transactional lineage. Exact schema and BASE ownership, full-history
 BASE augmentation and M5 decision-time HTF alignment are repaired in source.
 The post-audit source checkpoint closes complete-history canonical-v2
 recomputation, one atomic immutable canonical-v3/BASE28 generation pointer,
-strict native-M5 market-closure/schema/hash ownership and reproducible V3
+strict native-M1/M5 market-closure/schema/hash ownership and reproducible V3
 lineage bound to the exact XGB bridge identity. Because no causal
 pre-decision slippage observation exists in the canonical tape, the
 slippage-derived decision fields were removed; explicit replay stress remains
@@ -154,17 +154,19 @@ evaluation-only. PLUS5 ATR/ROC/VWAP, dependent normalized VWAP and published
 SMC ATR use one formula path; H1/H4 aligns to M5 decision-availability without
 the old extra lag. The existing V3 owner now contains the exact model-native
 dataset writer/event and proves it with an end-to-end atomic-publication test.
-The existing OANDA M5 owner now also contains the immutable native-source
-producer, including retained source responses, complete-only rederivation,
-streamed year output and atomic no-replace publication. Still open are
-execution of that producer, a complete initial native→canonical-v3/BASE28
-bootstrap, a fresh V3 dataset on compliant inputs, execution of the canonical
+The existing historical OANDA owner now also contains the immutable native-M1/
+M5 source producer, including retained source responses, fixed three-day/
+15-day chunk policy, complete-only rederivation, streamed year output and
+atomic no-replace publication. Still open are execution of both routes, a
+complete initial native→canonical-v3/raw-BASE28 bootstrap, a separate
+immutable TRAIN-only rank reference, a fresh V3 dataset on compliant inputs,
+execution of the canonical
 active-Exit full-TEST producer and fresh artifact rebuilds. Full-loader execution is
 independently blocked by 2,375 invalid prebuilt OHLC rows between 2024-11-30
 00:40Z and 2024-12-31 23:55Z.
 
-The 2026-07-24 native-M5 producer checkpoint collected 1,895 tests: 1,890 passed, five were
-explicitly skipped and zero failed. The manifest-bound loader also correctly
+The 2026-07-24 native-M1/M5 and Base-routing checkpoint collected 1,899 tests:
+1,894 passed, five were explicitly skipped and zero failed. The manifest-bound loader also correctly
 rejects the current live canonical parquet: the legacy updater changed its
 bytes without advancing the canonical manifest SHA. This is fail-closed
 evidence, not live readiness.

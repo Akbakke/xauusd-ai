@@ -41,7 +41,7 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     V12_DIRECTION_UTILITY_PATH_WEIGHT,
 )
 from tests.test_oanda_backfill_vedtak_gate import (
-    materialize_native_m5_test_bundle,
+    materialize_native_xau_test_bundle,
 )
 
 
@@ -55,20 +55,10 @@ def _write_xau_tape(root: Path, *, instrument: str) -> Path:
     canonical_sources = {}
     for key, timeframe in (("m5", "M5"), ("m1", "M1")):
         canonical_root = root / f"canonical_{key}"
-        if timeframe == "M5":
-            materialize_native_m5_test_bundle(canonical_root)
-        else:
-            canonical_root.mkdir()
-        manifest = {
-            "instrument": "XAUUSD",
-            "timeframe": timeframe,
-            "out_root": str(canonical_root.resolve()),
-        }
-        if timeframe != "M5":
-            (canonical_root / "MANIFEST.json").write_text(
-                json.dumps(manifest),
-                encoding="utf-8",
-            )
+        materialize_native_xau_test_bundle(
+            canonical_root,
+            timeframe=timeframe,
+        )
         canonical_sources[key] = canonical_xau_source_descriptor_v1(
             canonical_root.resolve(), timeframe=timeframe
         )

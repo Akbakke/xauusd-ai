@@ -12,7 +12,10 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.xau_tape_provenance_v1 import (
-    canonical_m5_rows_bytes,
+    CANONICAL_NATIVE_REQUIRED_COLUMNS,
+    NATIVE_TIMEFRAME_POLICY,
+    canonical_native_frame_from_oanda_response,
+    canonical_native_rows_bytes,
     canonical_xau_source_descriptor_v1,
 )
 from gx1.scripts import backfill_xauusd_m5_bidask_2020_2025 as bounded_backfill
@@ -31,10 +34,14 @@ class _FakeOandaClient:
         fail: bool = False,
         incomplete_only: bool = False,
         bad_geometry: bool = False,
+        timeframe: str = "M5",
+        response_timeframe: str | None = None,
     ) -> None:
         self.fail = fail
         self.incomplete_only = incomplete_only
         self.bad_geometry = bad_geometry
+        self.timeframe = timeframe
+        self.response_timeframe = response_timeframe or timeframe
         self.requests: list[dict[str, Any]] = []
 
     def _request(
@@ -51,10 +58,11 @@ class _FakeOandaClient:
             raise RuntimeError("network unavailable")
         start = pd.Timestamp(params["from"])
         end = pd.Timestamp(params["to"])
+        bar_minutes = 1 if self.timeframe == "M1" else 5
         timestamps = pd.date_range(
             start,
-            end - pd.Timedelta(minutes=5),
-            freq="5min",
+            end - pd.Timedelta(minutes=bar_minutes),
+            freq=f"{bar_minutes}min",
         )
         candles = []
         for position, timestamp in enumerate(timestamps):
@@ -86,7 +94,7 @@ class _FakeOandaClient:
             )
         return {
             "instrument": "XAU_USD",
-            "granularity": "M5",
+            "granularity": self.response_timeframe,
             "candles": candles,
         }
 
@@ -95,23 +103,32 @@ def _allow_clean_repo(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         canonical_backfill,
         "_require_clean_repository",
-        lambda _root: "a" * 40,
+        lambda _root, *, timeframe: "a" * 40,
     )
 
 
-def materialize_native_m5_test_bundle(output: Path) -> dict[str, Any]:
-    """Build a real v2 native-M5 bundle for downstream provenance fixtures."""
+def materialize_native_xau_test_bundle(
+    output: Path,
+    *,
+    timeframe: str = "M5",
+) -> dict[str, Any]:
+    """Build a real strict native bundle for downstream provenance fixtures."""
 
     with mock.patch.object(
         canonical_backfill,
         "_require_clean_repository",
         return_value="a" * 40,
     ):
-        return canonical_backfill.materialize_native_m5_snapshot(
-            client=_FakeOandaClient(),
-            vedtak_id="XAU_NATIVE_M5_FIXTURE_V2",
+        bar_minutes = 1 if timeframe == "M1" else 5
+        return canonical_backfill.materialize_native_xau_snapshot(
+            client=_FakeOandaClient(timeframe=timeframe),
+            timeframe=timeframe,
+            vedtak_id=f"XAU_NATIVE_{timeframe}_FIXTURE_V3",
             start_utc="2026-01-01T00:00:00Z",
-            end_utc="2026-01-01T00:05:00Z",
+            end_utc=(
+                pd.Timestamp("2026-01-01T00:00:00Z")
+                + pd.Timedelta(minutes=bar_minutes)
+            ),
             out_root=output,
         )
 
@@ -172,31 +189,48 @@ def test_bounded_backfill_cannot_target_canonical_m5_root(
         )
 
 
-def test_native_m5_materialization_is_source_bound_and_atomic(
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+def test_native_materialization_is_source_bound_and_atomic(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    timeframe: str,
 ) -> None:
     _allow_clean_repo(monkeypatch)
-    output = tmp_path / "native_m5"
-    client = _FakeOandaClient()
+    output = tmp_path / f"native_{timeframe.lower()}"
+    client = _FakeOandaClient(timeframe=timeframe)
+    bar_minutes = 1 if timeframe == "M1" else 5
 
-    manifest = canonical_backfill.materialize_native_m5_snapshot(
+    manifest = canonical_backfill.materialize_native_xau_snapshot(
         client=client,
-        vedtak_id="XAU_NATIVE_M5_TEST_001",
-        start_utc="2024-12-31T23:55:00Z",
-        end_utc="2025-01-01T00:10:00Z",
+        timeframe=timeframe,
+        vedtak_id=f"XAU_NATIVE_{timeframe}_TEST_001",
+        start_utc="2024-12-31T23:59:00Z"
+        if timeframe == "M1"
+        else "2024-12-31T23:55:00Z",
+        end_utc="2025-01-01T00:02:00Z"
+        if timeframe == "M1"
+        else "2025-01-01T00:10:00Z",
         out_root=output,
-        chunk_days=1,
     )
 
     assert output.is_dir()
     assert manifest["row_count"] == 3
     assert manifest["year_rows"] == {"year=2024": 1, "year=2025": 2}
+    assert manifest["request_chunk_days"] == NATIVE_TIMEFRAME_POLICY[timeframe][
+        "request_chunk_days"
+    ]
+    assert manifest["schema_required_cols"] == list(
+        CANONICAL_NATIVE_REQUIRED_COLUMNS
+    )
     assert list(output.glob(".*.staging.*")) == []
     assert [request["params"]["price"] for request in client.requests] == ["MBA"]
-    descriptor = canonical_xau_source_descriptor_v1(output, timeframe="M5")
+    descriptor = canonical_xau_source_descriptor_v1(
+        output,
+        timeframe=timeframe,
+    )
     assert descriptor["row_count"] == 3
     assert descriptor["canonical_rows_sha256"] == manifest["canonical_rows_sha256"]
+    assert descriptor["bar_duration_seconds"] == bar_minutes * 60
 
     chunk_path = output / manifest["source_chunks"][0]["relative_path"]
     payload = json.loads(gzip.decompress(chunk_path.read_bytes()).decode("utf-8"))
@@ -204,7 +238,7 @@ def test_native_m5_materialization_is_source_bound_and_atomic(
     assert payload["response"]["candles"][0]["complete"] is True
 
 
-def test_native_m5_request_failure_publishes_nothing(
+def test_native_request_failure_publishes_nothing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -212,8 +246,9 @@ def test_native_m5_request_failure_publishes_nothing(
     output = tmp_path / "native_m5"
 
     with pytest.raises(RuntimeError, match="network unavailable"):
-        canonical_backfill.materialize_native_m5_snapshot(
+        canonical_backfill.materialize_native_xau_snapshot(
             client=_FakeOandaClient(fail=True),
+            timeframe="M5",
             vedtak_id="XAU_NATIVE_M5_TEST_002",
             start_utc="2024-12-31T23:55:00Z",
             end_utc="2025-01-01T00:10:00Z",
@@ -231,7 +266,7 @@ def test_native_m5_request_failure_publishes_nothing(
         (_FakeOandaClient(bad_geometry=True), "OHLC_GEOMETRY_INVALID"),
     ],
 )
-def test_native_m5_rejects_unproven_source_rows(
+def test_native_rejects_unproven_source_rows(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     client: _FakeOandaClient,
@@ -241,8 +276,9 @@ def test_native_m5_rejects_unproven_source_rows(
     output = tmp_path / f"native_m5_{error.lower()}"
 
     with pytest.raises(RuntimeError, match=error):
-        canonical_backfill.materialize_native_m5_snapshot(
+        canonical_backfill.materialize_native_xau_snapshot(
             client=client,
+            timeframe="M5",
             vedtak_id="XAU_NATIVE_M5_TEST_003",
             start_utc="2024-12-31T23:55:00Z",
             end_utc="2025-01-01T00:10:00Z",
@@ -252,7 +288,88 @@ def test_native_m5_rejects_unproven_source_rows(
     assert not output.exists()
 
 
-def test_native_m5_rejects_existing_output_before_request(
+@pytest.mark.parametrize(
+    ("timeframe", "start_utc", "error"),
+    [
+        ("M1", "2024-12-31T23:55:30Z", "START_UTC_NOT_M1_ALIGNED"),
+        ("M5", "2024-12-31T23:56:00Z", "START_UTC_NOT_M5_ALIGNED"),
+    ],
+)
+def test_native_rejects_misaligned_interval_before_request(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    timeframe: str,
+    start_utc: str,
+    error: str,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    client = _FakeOandaClient(timeframe=timeframe)
+
+    with pytest.raises(RuntimeError, match=error):
+        canonical_backfill.materialize_native_xau_snapshot(
+            client=client,
+            timeframe=timeframe,
+            vedtak_id=f"XAU_NATIVE_{timeframe}_ALIGNMENT_TEST",
+            start_utc=start_utc,
+            end_utc="2025-01-01T00:10:00Z",
+            out_root=tmp_path / f"native_{timeframe.lower()}",
+        )
+
+    assert client.requests == []
+
+
+def test_native_rejects_response_timeframe_substitution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    output = tmp_path / "native_m1"
+
+    with pytest.raises(
+        RuntimeError,
+        match="XAU_CANONICAL_M1_SOURCE_RESPONSE_GRANULARITY_MISMATCH",
+    ):
+        canonical_backfill.materialize_native_xau_snapshot(
+            client=_FakeOandaClient(
+                timeframe="M1",
+                response_timeframe="M5",
+            ),
+            timeframe="M1",
+            vedtak_id="XAU_NATIVE_M1_RESPONSE_TF_TEST",
+            start_utc="2025-01-01T00:00:00Z",
+            end_utc="2025-01-01T00:01:00Z",
+            out_root=output,
+        )
+
+    assert not output.exists()
+
+
+def test_native_parser_keeps_timeframe_identity_in_component_error() -> None:
+    response = _FakeOandaClient(timeframe="M1")._request(
+        "GET",
+        "/instruments/XAU_USD/candles",
+        params={
+            "from": "2025-01-01T00:00:00.000000000Z",
+            "to": "2025-01-01T00:01:00.000000000Z",
+            "granularity": "M1",
+            "price": "MBA",
+        },
+    )
+    del response["candles"][0]["bid"]
+
+    with pytest.raises(
+        RuntimeError,
+        match="XAU_CANONICAL_M1_SOURCE_PRICE_COMPONENT_MISSING",
+    ):
+        canonical_native_frame_from_oanda_response(
+            response,
+            timeframe="M1",
+            request_start="2025-01-01T00:00:00Z",
+            request_end="2025-01-01T00:01:00Z",
+        )
+
+
+def test_native_rejects_existing_output_before_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -262,8 +379,9 @@ def test_native_m5_rejects_existing_output_before_request(
     client = _FakeOandaClient()
 
     with pytest.raises(RuntimeError, match="IMMUTABLE_OUTPUT_EXISTS"):
-        canonical_backfill.materialize_native_m5_snapshot(
+        canonical_backfill.materialize_native_xau_snapshot(
             client=client,
+            timeframe="M5",
             vedtak_id="XAU_NATIVE_M5_TEST_004",
             start_utc="2024-12-31T23:55:00Z",
             end_utc="2025-01-01T00:10:00Z",
@@ -273,14 +391,15 @@ def test_native_m5_rejects_existing_output_before_request(
     assert client.requests == []
 
 
-def test_native_m5_source_tamper_is_detected(
+def test_native_source_tamper_is_detected(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _allow_clean_repo(monkeypatch)
     output = tmp_path / "native_m5"
-    manifest = canonical_backfill.materialize_native_m5_snapshot(
+    manifest = canonical_backfill.materialize_native_xau_snapshot(
         client=_FakeOandaClient(),
+        timeframe="M5",
         vedtak_id="XAU_NATIVE_M5_TEST_005",
         start_utc="2024-12-31T23:55:00Z",
         end_utc="2025-01-01T00:10:00Z",
@@ -293,7 +412,17 @@ def test_native_m5_source_tamper_is_detected(
         canonical_xau_source_descriptor_v1(output, timeframe="M5")
 
 
-def test_native_m5_removed_legacy_modes_are_not_parseable() -> None:
+def test_native_descriptor_rejects_cross_timeframe_admission(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "native_m1"
+    materialize_native_xau_test_bundle(output, timeframe="M1")
+
+    with pytest.raises(RuntimeError, match="XAU_CANONICAL_TIMEFRAME_MISMATCH"):
+        canonical_xau_source_descriptor_v1(output, timeframe="M5")
+
+
+def test_native_removed_legacy_modes_are_not_parseable() -> None:
     parser = canonical_backfill.build_parser()
 
     with pytest.raises(SystemExit) as exc_info:
@@ -301,6 +430,8 @@ def test_native_m5_removed_legacy_modes_are_not_parseable() -> None:
             [
                 "--vedtak",
                 "XAU_NATIVE_M5_TEST_006",
+                "--timeframe",
+                "M5",
                 "--repair-mode",
             ]
         )
@@ -308,7 +439,7 @@ def test_native_m5_removed_legacy_modes_are_not_parseable() -> None:
     assert exc_info.value.code == 2
 
 
-def test_native_m5_vectorized_row_encoding_is_byte_identical() -> None:
+def test_native_vectorized_row_encoding_is_byte_identical() -> None:
     client = _FakeOandaClient()
     response = client._request(
         "GET",
@@ -320,8 +451,9 @@ def test_native_m5_vectorized_row_encoding_is_byte_identical() -> None:
             "price": "MBA",
         },
     )
-    frame, _ = canonical_backfill.canonical_m5_frame_from_oanda_response(
+    frame, _ = canonical_native_frame_from_oanda_response(
         response,
+        timeframe="M5",
         request_start="2026-01-01T00:00:00Z",
         request_end="2026-01-01T00:10:00Z",
     )
@@ -335,36 +467,49 @@ def test_native_m5_vectorized_row_encoding_is_byte_identical() -> None:
         for row in frame.itertuples(index=False, name=None)
     )
 
-    assert canonical_m5_rows_bytes(frame) == reference
-
-
-def test_native_m5_default_chunk_is_max_safe_oanda_window() -> None:
-    args = canonical_backfill.build_parser().parse_args(
-        ["--vedtak", "XAU_NATIVE_M5_TEST_007"]
+    assert (
+        canonical_native_rows_bytes(frame, timeframe="M5")
+        == reference
     )
 
-    assert args.chunk_days == 15
+
+def test_native_chunk_policy_is_exact_4320_slot_window() -> None:
+    assert NATIVE_TIMEFRAME_POLICY == {
+        "M1": {
+            "bar_seconds": 60,
+            "request_chunk_days": 3,
+            "max_theoretical_slots": 4_320,
+        },
+        "M5": {
+            "bar_seconds": 300,
+            "request_chunk_days": 15,
+            "max_theoretical_slots": 4_320,
+        },
+    }
 
 
-def test_native_m5_streams_multiple_chunks_into_year_partitions(
+def test_native_m1_streams_exact_policy_chunks_into_year_partitions(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _allow_clean_repo(monkeypatch)
-    output = tmp_path / "native_m5_streamed"
-    client = _FakeOandaClient()
+    output = tmp_path / "native_m1_streamed"
+    client = _FakeOandaClient(timeframe="M1")
 
-    manifest = canonical_backfill.materialize_native_m5_snapshot(
+    manifest = canonical_backfill.materialize_native_xau_snapshot(
         client=client,
-        vedtak_id="XAU_NATIVE_M5_TEST_008",
-        start_utc="2024-12-31T00:00:00Z",
-        end_utc="2025-01-02T00:00:00Z",
+        timeframe="M1",
+        vedtak_id="XAU_NATIVE_M1_TEST_008",
+        start_utc="2024-12-30T23:59:00Z",
+        end_utc="2025-01-03T00:00:00Z",
         out_root=output,
-        chunk_days=1,
     )
 
     assert len(client.requests) == 2
-    assert manifest["row_count"] == 576
-    assert manifest["year_rows"] == {"year=2024": 288, "year=2025": 288}
-    descriptor = canonical_xau_source_descriptor_v1(output, timeframe="M5")
+    assert client.requests[0]["params"]["from"] == "2024-12-30T23:59:00.000000000Z"
+    assert client.requests[0]["params"]["to"] == "2025-01-02T23:59:00.000000000Z"
+    assert client.requests[1]["params"]["to"] == "2025-01-03T00:00:00.000000000Z"
+    assert manifest["row_count"] == 4_321
+    assert manifest["year_rows"] == {"year=2024": 1_441, "year=2025": 2_880}
+    descriptor = canonical_xau_source_descriptor_v1(output, timeframe="M1")
     assert descriptor["canonical_rows_sha256"] == manifest["canonical_rows_sha256"]

@@ -100,16 +100,19 @@ diagnostic-only. The later full feature/Exit audit also invalidates the
 retained Exit artifacts: old fill/M5/overlay timing is causal-wrong and the
 Exit-IQL bundle declares research-only/non-production with no bound feature
 order or serving fold. Source now has one atomic canonical/BASE generation,
-full-history native-M5 recomputation, one M5 ownership/closure contract,
+full-history native-M5 recomputation, one shared M1/M5 ownership/closure contract,
 causal spread-only features, reproducible V3 lineage including XGB identity,
 the exact 173-field V3 writer and the full-TEST Exit producer. Current data do
-not satisfy the new M5 contract and no pair has been bootstrapped. The existing
-OANDA M5 owner now has one immutable v2 source-bundle operation: exact
-15-day-or-smaller MBA requests, retained compressed source responses,
+not satisfy the strict M1/M5 contract and no pair has been bootstrapped. The
+existing historical OANDA owner now has one immutable v3 source-bundle
+operation for both native M1 and M5: fixed three-day M1 or 15-day M5 MBA
+requests (4,320 theoretical slots), retained compressed source responses,
 complete-only rederivation, streamed year partitions, clean-code inventory and
-atomic no-replace publication through `model-native-native-m5-source`. It has
-not been executed on production data. Open gates are native-M5 execution and
-an independently complete native→canonical-v3/BASE28 bootstrap, a fresh 79-field
+atomic no-replace publication through `model-native-native-m1-source` or
+`model-native-native-m5-source`. Neither has been executed on production data.
+Open gates are native M1/M5 execution, an independently complete
+native→canonical-v3/raw-BASE28 bootstrap plus an immutable TRAIN-only rank
+reference, and a fresh 79-field
 XGB→V3→Exit-IQL rebuild/rescore/retrain and execution of the producer on those
 fresh bytes. V24/V7 remain immutable failure evidence.
 Canonical/live December-2024 M5 parity and every fresh empirical

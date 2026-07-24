@@ -567,13 +567,16 @@ Current facts:
   owners. Canonical-v3 and BASE28 publish through one immutable, content-bound,
   atomic generation pointer; the updater recomputes canonical-v2 over the
   complete verified native-M5 history instead of resetting bounded state.
-  Native-M5 ownership now includes the actual immutable producer in the
-  existing OANDA owner, not only its validator: 15-day-or-smaller exact MBA
-  requests, retained response chunks, complete-only typed rederivation,
-  streamed year output, source/Git inventory and atomic no-replace
-  publication. Its route is `model-native-native-m5-source`; it has not run
-  on production data. Admission verifies closure, per-year SHA, row count and
-  exact Arrow schema. Realized slippage is removed from the causal feature contract
+  Native M1/M5 ownership now includes the actual immutable producer in the
+  existing historical OANDA owner, not only its validator: fixed three-day M1
+  or 15-day M5 exact MBA requests, retained response chunks, complete-only
+  typed rederivation, streamed year output, source/Git inventory and atomic
+  no-replace publication. Its fixed routes are
+  `model-native-native-m1-source` and `model-native-native-m5-source`; neither
+  has run on production data. Admission verifies closure, per-year SHA, row
+  count and exact Arrow schema. Raw BASE28 owns only the 13 native-M1 market
+  fields; phase/volume transforms are causal derivatives. Realized slippage
+  is removed from the causal feature contract
   because no pre-decision observable owner exists; replay stress remains an
   explicit evaluation input. XGB and V3 require bundle-owned exact feature
   contracts and one recursive, reproducible cross-role lineage identity. The
@@ -797,15 +800,19 @@ producer, identity-bound vedtak and exact target transaction/recovery are
 source-repaired too. A hard launch/runtime barrier gives caller-supplied Exit
 replay diagnostics zero authority. The later Exit/incremental audit led to
 source closure for atomic canonical-v3/BASE28 generations, complete-history
-canonical-v2 recomputation, strict native-M5 closure/schema/hash ownership and
-its immutable OANDA source-bundle producer,
+canonical-v2 recomputation, strict shared native-M1/M5
+closure/schema/hash ownership and its immutable OANDA source-bundle producer,
 removal of non-observable slippage features, reproducible XGB-bound V3 lineage,
 a hash-bound historical closed-M1 provider for Exit and the exact V3
 training-dataset writer/event in the existing owner. Formula and HTF
-decision-alignment ownership is also repaired. Still open are a fresh V3
+decision-alignment ownership is also repaired. BASE28 ownership is now exact:
+its 13 physical market fields come only from native M1 in canonical source
+order, while timestamp phase and volume transforms are derived causally at the
+training/serve boundary. Still open are a fresh V3
 dataset on compliant inputs, execution of the canonical active-Exit full-TEST
-loop/event, fresh XGB/V3/Exit artifacts, native-M5 production and a complete
-native→canonical-v3/BASE28 bootstrap,
+loop/event, fresh XGB/V3/Exit artifacts, native-M1/M5 production, a complete
+native→canonical-v3/raw-BASE28 bootstrap, and a TRAIN-only immutable rank
+reference for regime buckets,
 empirical dataset/model/edge proof and canonical/live December-2024 tape
 parity.
 

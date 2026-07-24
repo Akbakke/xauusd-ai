@@ -23,7 +23,7 @@ from gx1.scripts.materialize_current_m5_snapshot_v1 import (
     run,
 )
 from tests.test_oanda_backfill_vedtak_gate import (
-    materialize_native_m5_test_bundle,
+    materialize_native_xau_test_bundle,
 )
 
 
@@ -58,16 +58,18 @@ def _m1() -> pd.DataFrame:
     return frame.loc[:, ["time", *REQUIRED_COLUMNS]]
 
 
-def test_canonical_m5_descriptor_rejects_ambiguous_legacy_manifest(
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+def test_canonical_descriptor_rejects_ambiguous_legacy_manifest(
     tmp_path: Path,
+    timeframe: str,
 ) -> None:
-    root = tmp_path / "ambiguous_m5"
+    root = tmp_path / f"ambiguous_{timeframe.lower()}"
     root.mkdir()
     (root / "MANIFEST.json").write_text(
         json.dumps(
             {
                 "instrument": "XAUUSD",
-                "timeframe": "M5",
+                "timeframe": timeframe,
                 "out_root": str(root.resolve()),
                 "source_granularity": "M1",
             }
@@ -77,29 +79,22 @@ def test_canonical_m5_descriptor_rejects_ambiguous_legacy_manifest(
 
     with pytest.raises(
         RuntimeError,
-        match="XAU_CANONICAL_M5_MANIFEST_SCHEMA_INVALID",
+        match=f"XAU_CANONICAL_{timeframe}_MANIFEST_SCHEMA_INVALID",
     ):
-        canonical_xau_source_descriptor_v1(root.resolve(), timeframe="M5")
+        canonical_xau_source_descriptor_v1(
+            root.resolve(),
+            timeframe=timeframe,
+        )
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     canonical_sources = {}
     for key, timeframe in (("m5", "M5"), ("m1", "M1")):
         canonical_root = tmp_path / f"canonical_{key}"
-        if timeframe == "M5":
-            materialize_native_m5_test_bundle(canonical_root)
-        else:
-            canonical_root.mkdir()
-        manifest = {
-            "instrument": "XAUUSD",
-            "timeframe": timeframe,
-            "out_root": str(canonical_root.resolve()),
-        }
-        if timeframe != "M5":
-            (canonical_root / "MANIFEST.json").write_text(
-                json.dumps(manifest),
-                encoding="utf-8",
-            )
+        materialize_native_xau_test_bundle(
+            canonical_root,
+            timeframe=timeframe,
+        )
         canonical_sources[key] = canonical_xau_source_descriptor_v1(
             canonical_root.resolve(),
             timeframe=timeframe,

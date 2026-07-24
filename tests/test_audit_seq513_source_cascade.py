@@ -24,7 +24,7 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
     EXTRA_COLUMNS_FROM_CANONICAL_V2,
 )
 from tests.test_oanda_backfill_vedtak_gate import (
-    materialize_native_m5_test_bundle,
+    materialize_native_xau_test_bundle,
 )
 
 
@@ -46,20 +46,10 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     canonical_sources = {}
     for key, timeframe in (("m5", "M5"), ("m1", "M1")):
         canonical_root = tmp_path / f"canonical_{key}"
-        if timeframe == "M5":
-            materialize_native_m5_test_bundle(canonical_root)
-        else:
-            canonical_root.mkdir()
-        manifest = {
-            "instrument": "XAUUSD",
-            "timeframe": timeframe,
-            "out_root": str(canonical_root.resolve()),
-        }
-        if timeframe != "M5":
-            _write_json(
-                canonical_root / "MANIFEST.json",
-                manifest,
-            )
+        materialize_native_xau_test_bundle(
+            canonical_root,
+            timeframe=timeframe,
+        )
         canonical_sources[key] = canonical_xau_source_descriptor_v1(
             canonical_root.resolve(), timeframe=timeframe
         )

@@ -10,8 +10,6 @@ from gx1.scripts import exit_iql_artifact_primitives_v1 as gate
 
 
 EXIT_IQL_PRIMITIVE_CONSUMERS = (
-    "materialize_backfill_xauusd_m1_2020_2024_v1.py",
-    "materialize_backfill_xauusd_m1_repair_v1.py",
     "materialize_build_candidate_forward_outcome_dataset_v1.py",
     "materialize_build_canonical_features_v1.py",
     "materialize_build_canonical_features_v2.py",

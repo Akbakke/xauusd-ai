@@ -54,15 +54,18 @@ public launch route owns canonical repository
 registry/state targets and canonical
 `/home/andre2/GX1_DATA/reports/entry_model_native_launch_authority` evidence
 roots; callers may not substitute alternate roots. No new data/model or launch
-artifacts were written. The existing OANDA M5 owner now has the immutable
-`model-native-native-m5-source` publication route, but it has not been
-executed; a complete initial native→canonical-v3/BASE28 build remains missing.
+artifacts were written. The existing historical OANDA owner now has immutable
+`model-native-native-m1-source` and `model-native-native-m5-source`
+publication routes with one strict v3 schema and fixed 3-day/15-day chunk
+policy, but neither has been executed. A complete initial
+native→canonical-v3/raw-BASE28 build and immutable TRAIN-only rank reference
+remain missing.
 Caller-supplied joint Exit replay/trace parquets have
 zero launch authority; the retained Exit bundle is research-only and
 non-production. The canonical full-TEST producer is code-complete in the
 existing sizing owner and is routed through
 `model-native-canonical-active-exit-replay`, but it has not run on an accepted
-fresh chain. Causal Exit rebuild, native-M5 execution/pair bootstrap and canonical/live
+fresh chain. Causal Exit rebuild, native-M1/M5 execution/pair bootstrap and canonical/live
 December-2024 tape parity remain open.
 `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 

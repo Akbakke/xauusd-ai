@@ -18,7 +18,8 @@ Model-native seq513 evidence:
   handover
   model-native-state
   model-native-state-selftest
-  model-native-native-m5-source --vedtak <id> --start-utc <M5 UTC> --end-utc <exclusive M5 UTC> --chunk-days <1..15> --out-root <new-dir>
+  model-native-native-m1-source --vedtak <id> --start-utc <M1 UTC> --end-utc <exclusive M1 UTC> --out-root <new-dir>
+  model-native-native-m5-source --vedtak <id> --start-utc <M5 UTC> --end-utc <exclusive M5 UTC> --out-root <new-dir>
   model-native-rebuild-preflight
   model-native-post-rebuild-readiness
   model-native-foundation-feature-audit
@@ -137,11 +138,13 @@ case "$cmd" in
     exec "$PY" -m gx1.scripts.verify_entry_foundation_state_v1 --selftest "$@"
     ;;
 
-  model-native-native-m5-source)
+  model-native-native-m1-source|model-native-native-m5-source)
     reject_non_authoritative_args "$@"
     reject_flags "$cmd" \
+      --timeframe \
       --instrument \
       --granularity \
+      --chunk-days \
       --repair-mode \
       --raw-in \
       --raw-out \
@@ -151,11 +154,15 @@ case "$cmd" in
       --vedtak \
       --start-utc \
       --end-utc \
-      --chunk-days \
       --out-root; do
       require_flag "$cmd" "$flag" "$@"
     done
-    exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda "$@"
+    if [[ "$cmd" == "model-native-native-m1-source" ]]; then
+      exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
+        --timeframe M1 "$@"
+    fi
+    exec "$PY" -m gx1.scripts.backfill_xauusd_m5_from_oanda \
+      --timeframe M5 "$@"
     ;;
 
   model-native-rebuild-preflight)

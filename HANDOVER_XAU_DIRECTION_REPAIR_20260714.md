@@ -57,15 +57,16 @@ P0/P1 findings are now source-repaired and regression-tested for:
 No rebuild, training, calibration, replay or launch was run. V24/V7 predate
 all repairs and remain rejected. The post-audit source checkpoint closes
 bounded-history canonical state, atomic canonical-v3/BASE28 generation
-identity, native-M5 closure/schema/hash ownership, the non-observable
+identity, shared native-M1/M5 v3 closure/schema/hash ownership, the non-observable
 slippage-feature leak and reproducible XGB-bound V3 lineage. Historical Exit
 now consumes hash-bound closed-M1 rows through the same pipeline seam used by
 live collection. Formula and HTF alignment ownership is also repaired.
-The existing OANDA M5 owner now also owns the missing immutable source-bundle
-producer: exact 15-day-or-smaller MBA requests, retained response evidence,
-literal complete-only rederivation, streamed year parquets, clean source
-inventory, full source↔parquet proof and atomic no-replace publication through
-`model-native-native-m5-source`. It has not been executed.
+The existing historical OANDA owner now also owns the missing immutable
+native-M1/M5 source-bundle producer: fixed three-day M1 and 15-day M5 MBA
+requests, retained response evidence, literal complete-only rederivation,
+streamed year parquets, clean source inventory, full source↔parquet proof and
+atomic no-replace publication through `model-native-native-m1-source` or
+`model-native-native-m5-source`. Neither has been executed.
 Caller-supplied replay diagnostics remain blocked from launch. The exact V3
 training-dataset writer/event is now code-proven in the existing owner; it
 accepts no caller-built matrix, overlay or record members and publishes
@@ -73,8 +74,9 @@ atomically. The existing sizing/replay owner now also code-proves the
 canonical active-Exit full-TEST producer: it owns the TEST rows, exact T+5
 fills and per-M1 `make_exit_decision` traces, emits explicit FLAT no-order
 evidence and binds every input/artifact/source/output byte in replay v7.
-A fresh dataset on compliant inputs, fresh XGB/V3/Exit artifacts, native-M5
-production and the still-missing complete native→canonical-v3/BASE28 bootstrap,
+A fresh dataset on compliant inputs, fresh XGB/V3/Exit artifacts, native-M1/M5
+production, the still-missing complete native→canonical-v3/raw-BASE28
+bootstrap and immutable TRAIN-only rank reference,
 canonical/live December-2024 tape parity, execution of that producer on the
 fresh chain and every empirical dataset/model/edge gate are still open.
 
@@ -601,8 +603,8 @@ to `FLAT`, a cached decision or backlog execution.
   validation before side effects. The retired Entry-IQL artifact registry
   entry is now `path=null`, status `RETIRED_ARTIFACT_ABSENT`.
 
-The native-M5 producer checkpoint collected 1,895 tests on 2026-07-24:
-1,890 passed, five were explicitly skipped and zero failed. Changed Python
+The native-M1/M5 and Base-routing checkpoint collected 1,899 tests on
+2026-07-24: 1,894 passed, five were explicitly skipped and zero failed. Changed Python
 sources/tests compile and pass Ruff with the repository's intentional
 import-bootstrap `E402` pattern excluded. JSON parsing, shell syntax, diff
 hygiene, the handover self-check and the exact forbidden-instrument zero-scan
@@ -764,17 +766,22 @@ bind a ranking whose TRAIN start/end exactly equal `2021-03-16` and
    accepted seq513 Entry distribution.
 4. Source now recomputes canonical-v2 over the complete verified native-M5
    history, publishes canonical-v3/BASE28 as one atomic immutable generation,
-   enforces one native-M5 closure/schema/hash owner and binds V3 lineage to the
-   exact XGB bridge identity. No causal observed-slippage source exists, so
+   enforces one shared native-M1/M5 v3 closure/schema/hash owner and binds V3
+   lineage to the exact XGB bridge identity. No causal observed-slippage source exists, so
    slippage-derived decision fields were removed instead of synthesized.
-   The same existing native-M5 owner now implements immutable source
-   production and independent source-response↔parquet rederivation; only its
-   execution is still open.
+   The same existing historical OANDA owner now implements immutable M1 and
+   M5 source production and independent source-response↔parquet rederivation.
+   M1 has a fixed three-day policy and M5 a fixed 15-day policy; both cap each
+   request at 4,320 theoretical slots. Both production executions are open.
+   BASE28 is now narrowed to the exact 13 physical native-M1 market fields in
+   source order. Phase and volume transforms are derived causally; the model
+   bar is M1 phase 4. Broad canonical/M5 duplicate ownership was removed.
    The exact V3 training-dataset producer/event is now implemented in the
    existing owner. The canonical active-Exit full-TEST producer is now also
    implemented in the existing sizing/replay owner. Remaining work is
-   native source execution, a complete initial pair build (not a copy of the
-   invalid old pair), fresh XGB/V3/Exit artifacts and an
+   native M1/M5 source execution, a complete initial raw pair build (not a copy
+   of the invalid old pair), a separately bound immutable TRAIN-only ATR/spread
+   rank reference, fresh XGB/V3/Exit artifacts and an
    actual full-TEST producer run over those accepted bytes.
    ATR/ROC/VWAP, dependent normalized VWAP, SMC ATR and H1/H4 alignment use
    shared code owners; unavailable required inputs fail closed.
@@ -806,8 +813,10 @@ Ordered steps (each gate fail-closed; stop at first red):
    Entry snapshot, bind SourceTape, canonical/BASE28/MTF state, active Exit and
    producer/output bytes, reuse the exact live per-bar primitive, emit FLAT as
    no order and reject fallback or horizon-cap acceptance.
-5. Repair and prove canonical/live December-2024 M5 parity before a fresh
-   rebuild.
+5. With explicit data authority, publish strict immutable native M1 and M5
+   roots, then build one native→canonical-v3/raw-BASE28 generation and a
+   separate immutable TRAIN-only ATR/spread rank reference. Repair and prove
+   canonical/live December-2024 M5 parity before a fresh rebuild.
 6. Rebuild fresh XAU-only data, rerun every liveness/target/specialist/
    readiness/trainability audit, then materialize a new recipe only from those
    new immutable bytes.

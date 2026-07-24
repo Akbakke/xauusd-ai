@@ -47,7 +47,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from gx1.contracts.xau_tape_provenance_v1 import (  # noqa: E402
-    CANONICAL_M5_REQUIRED_COLUMNS,
+    CANONICAL_NATIVE_REQUIRED_COLUMNS,
     canonical_xau_source_descriptor_v1,
 )
 from gx1.execution.v12_state_from_prebuilt import (  # noqa: E402
@@ -97,21 +97,7 @@ _PAIR_STAGING_NAME = re.compile(r"\.staging-[0-9a-f]{32}\Z")
 
 # PLUS5: 5 features re-added on 2026-05-21 because the PLUS5 Entry-IQL ensemble
 # was trained on real values.  This function is the retained computation source.
-M1_MARKET_IDENTITY_COLUMNS = (
-    "open",
-    "high",
-    "low",
-    "close",
-    "volume",
-    "bid_open",
-    "bid_high",
-    "bid_low",
-    "bid_close",
-    "ask_open",
-    "ask_high",
-    "ask_low",
-    "ask_close",
-)
+M1_MARKET_IDENTITY_COLUMNS = CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]
 # BASE28 is the M1-cadence lane.  Every observable M1 market field is therefore
 # owned by native M1, never by a broadcast closed-M5 row with the same name.
 BASE34_RAW_M1_OWNED_COLUMNS = M1_MARKET_IDENTITY_COLUMNS
@@ -722,7 +708,7 @@ def _load_full_canonical_m5(end_ts: pd.Timestamp) -> pd.DataFrame:
     if not parts:
         raise RuntimeError("canonical native M5 source has no year partitions")
     frames: list[pd.DataFrame] = []
-    required = list(CANONICAL_M5_REQUIRED_COLUMNS)
+    required = list(CANONICAL_NATIVE_REQUIRED_COLUMNS)
     for path in parts:
         try:
             frame = pd.read_parquet(path, columns=required)

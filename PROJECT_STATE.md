@@ -46,13 +46,16 @@ non-production, so startup now blocks it.
 
 The current source checkpoint adds one immutable atomic canonical-v3/BASE28 pair
 generation, complete-history native-M5 recomputation, a strict native OANDA
-M5 owner/closure/hash/schema contract and reproducible V3 lineage including
+M1/M5 owner/closure/hash/schema contract and reproducible V3 lineage including
 the exact XGB bridge bytes. That same existing OANDA owner now contains the
-previously missing immutable source producer: 15-day-or-smaller MBA requests,
-retained normalized source responses, literal complete-only row derivation,
+previously missing immutable source producer: fixed three-day M1 and 15-day M5
+MBA requests, retained normalized source responses, literal complete-only row derivation,
 streamed yearly parquet, clean Git/source inventory, full source↔parquet
 rederivation and atomic no-replace publication. It is exposed only as
-`model-native-native-m5-source` and has not been executed. Non-causal `_v1_slip_bps` and
+`model-native-native-m1-source` or `model-native-native-m5-source` and has not
+been executed. M1 uses fixed three-day chunks and M5 fixed 15-day chunks; both
+are capped at 4,320 theoretical slots and callers cannot override the policy.
+Non-causal `_v1_slip_bps` and
 `_v1_cost_bps_est` are removed; realized slippage remains execution/evaluation
 evidence, while observed spread keeps its honest name. The saturated
 hand-written `_v1_cost_bps_dyn` fallback is replaced by a non-cost
@@ -83,11 +86,15 @@ contiguous M1 state until real `EXIT_NOW`. Replay schema v7 binds SourceTape,
 the frozen pair, active Exit artifacts, transitive producer source and the
 exact immutable replay/trace files. The caller-parquet route remains
 diagnostic-only and cannot authorize launch.
-Current M5 data do not satisfy the new native-source manifest and no atomic
-pair has been bootstrapped. The remaining seam is not an alternate M5 repair:
-execute the native producer, prove the December window, then provide a
-complete native→canonical-v3/BASE28 bootstrap without copying the invalid old
-pair. A fresh 79-field Exit-XGB, V3 rescore/retrain and
+Current M1 and M5 data do not satisfy the strict v3 native-source manifest and
+no atomic pair has been bootstrapped. BASE28 is now contractually limited to
+the 13 native-M1 market fields; phase and volume transforms are derived
+causally. The remaining seam is not an alternate tape repair: execute both
+native producers, prove the December window, then provide a complete
+native→canonical-v3/raw-BASE28 bootstrap without copying the invalid old pair.
+ATR/spread rank buckets require a separate immutable reference fitted only on
+TRAIN and bound by dataset, bundle, replay and live. A fresh 79-field
+Exit-XGB, V3 rescore/retrain and
 production Exit-IQL retrain are mandatory before the producer can create real
 authority; no old role may be mixed in.
 PLUS5 ATR/ROC/VWAP, dependent normalized VWAP, published SMC ATR and H1/H4
@@ -321,10 +328,10 @@ bundle or launch evidence.
 ## Verification state
 
 The current post-V7 source-repair tree completed repository-wide verification
-on 2026-07-23:
+on 2026-07-24:
 
-- 1,895 tests collected;
-- 1,890 passed, five explicit skips and zero failures;
+- 1,899 tests collected;
+- 1,894 passed, five explicit skips and zero failures;
 - Python compilation for every changed Python source and test;
 - Ruff on every changed Python source and test, with only the repository's
   intentional import-bootstrap `E402` pattern excluded;
@@ -366,9 +373,10 @@ all-head/group-influence, atomic-publication, Exit-byte, transactional launch
 and runtime fail-close repairs, including the exact V3 storage, calibration
 support, runtime-head V3 and replay-v7 contracts. Preserve both completed
 canonical producers in the existing V3 dataset and sizing/replay owners, then
-materialize the code-proven native OANDA M5 bundle, prove the December-2024
-window against its retained responses, and close the still-missing complete
-native→canonical-v3/BASE28 bootstrap. Only then rebuild fresh XAU-only splits
+materialize the code-proven native OANDA M1 and M5 bundles, prove the
+December-2024 window against their retained responses, and close the
+still-missing complete native→canonical-v3/raw-BASE28 bootstrap plus immutable
+TRAIN-only ATR/spread rank reference. Only then rebuild fresh XAU-only splits
 and rerun every dataset/readiness audit before binding a new smoke recipe.
 
 After a new smoke passes, compare a declared full-history baseline with a

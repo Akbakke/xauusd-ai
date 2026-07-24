@@ -1599,7 +1599,7 @@ def test_incremental_canonical_m5_uses_full_native_history_and_closed_cutoff(
 
     assert list(loaded.index) == list(times[:2])
     assert list(loaded.columns) == list(
-        incremental.CANONICAL_M5_REQUIRED_COLUMNS[1:]
+        incremental.CANONICAL_NATIVE_REQUIRED_COLUMNS[1:]
     )
 
 

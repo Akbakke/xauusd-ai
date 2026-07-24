@@ -82,10 +82,12 @@ documentation and code together.
     new bounded authority that cannot live in the existing owner without
     mixing contracts, and must be wired through the existing public control
     surface.
-23. Native canonical M5 has one OANDA-only immutable producer in the existing
-    backfill owner. It must retain exact response evidence, admit only literal
-    complete MBA candles, stream hash-bound year partitions, prove
-    source↔parquet identity and publish by atomic no-replace rename. Direct
-    year-file mutation, alternate-provider repair, synthesis and empty success
-    are forbidden. Production execution never implies that the separate
-    native→canonical-v3/BASE28 bootstrap exists.
+23. Native canonical M1 and M5 share one OANDA-only immutable producer in the
+    existing historical backfill owner. M1 uses fixed three-day chunks and M5
+    fixed 15-day chunks, each capped at 4,320 theoretical slots; callers own
+    neither cadence nor chunk size. The producer must retain exact response
+    evidence, admit only literal complete MBA candles, stream hash-bound year
+    partitions, prove source↔parquet identity and publish by atomic no-replace
+    rename. Direct year-file mutation, alternate-provider repair, synthesis
+    and empty success are forbidden. Production execution never implies that
+    the separate native→canonical-v3/BASE28 bootstrap exists.
