@@ -606,6 +606,7 @@ def _build_model_agnostic_canonical(
     )
     from gx1.scripts.augment_forward_outcome_v2 import (
         attach_group_a_dip_struct_ctx_columns_parallel,
+        trim_causal_context_warmup_prefix,
     )
 
     attach_default_regime_v4_v2_scalars(canonical)
@@ -621,6 +622,7 @@ def _build_model_agnostic_canonical(
     # percentiles, pivots) must see the full causal native prehistory, not the
     # warmup-trimmed decision slice — resetting it at the trim boundary was
     # the exact V11 failure mode.
+    pre_attach_columns = set(canonical.columns)
     canonical = attach_group_a_dip_struct_ctx_columns_parallel(
         canonical,
         multi_tf=multi_tf,
@@ -630,6 +632,15 @@ def _build_model_agnostic_canonical(
         checkpoint_key=checkpoint_key,
         context_m5=indexed_m5[["open", "high", "low", "close"]],
     )
+    # The per-candidate emission has its own causal warmup at the context
+    # boundary (per-TF multi-TF snapshot convergence raises
+    # CausalContextWarmupError as whole-row NaN). That warmup must be one
+    # contiguous prefix; the shared trim owner removes it and fails closed on
+    # any interior gap before the immutable all-column finiteness gate.
+    attached_columns = [
+        name for name in canonical.columns if name not in pre_attach_columns
+    ]
+    canonical = trim_causal_context_warmup_prefix(canonical, attached_columns)
     canonical = canonical.drop(
         columns=[
             name
