@@ -24,11 +24,27 @@ def test_cross_tf_momentum_treats_zero_h1_atr_as_unavailable_not_tiny() -> None:
     np.testing.assert_allclose(out[13:], np.full(7, 6.0), rtol=0.0, atol=0.0)
 
 
+def test_cross_tf_momentum_carries_causal_nan_warmup_prefix() -> None:
+    # Causal HTF construction emits a NaN warmup prefix (not neutral zero).
+    close = np.arange(20, dtype=np.float64) + 2_000.0
+    h1_atr = np.full(20, np.nan, dtype=np.float64)
+    h1_atr[13:] = 2.0
+
+    out = add_cross_tf_momentum(
+        pd.DataFrame({"close": close, "_v1h1_atr": h1_atr})
+    )["m5h1_momentum"].to_numpy(dtype=np.float64)
+
+    assert np.isnan(out[:13]).all()
+    assert np.isfinite(out[13:]).all()
+    np.testing.assert_allclose(out[13:], np.full(7, 6.0), rtol=0.0, atol=0.0)
+
+
 @pytest.mark.parametrize(
     "column,value,error",
     (
         ("_v1h1_atr", -1.0, "H1 ATR must be non-negative"),
-        ("close", np.nan, "close/H1 ATR must be finite"),
+        ("_v1h1_atr", np.nan, "non-finite values after causal warmup"),
+        ("close", np.nan, "close must be finite"),
     ),
 )
 def test_cross_tf_momentum_fails_closed_on_invalid_source(

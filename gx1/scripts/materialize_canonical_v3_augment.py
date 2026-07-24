@@ -134,21 +134,34 @@ def _atr_normalized_12bar_momentum(
 ) -> np.ndarray:
     """Return past-12-row price change scaled by aligned completed-H1 ATR.
 
-    A zero H1 ATR is an availability/warm-up state, not tiny volatility. Such
-    rows are exactly neutral rather than divided by an epsilon that would
-    fabricate million-scale momentum.
+    Causal HTF construction keeps the historical warmup prefix as NaN (it is
+    not a neutral zero), so exactly one leading non-finite H1-ATR prefix is
+    carried through as NaN for the downstream causal trim owner. Any
+    non-finite value after the first finite observation is a data gap and
+    fails closed. A finite zero H1 ATR is an availability state, not tiny
+    volatility: such rows are exactly neutral rather than divided by an
+    epsilon that would fabricate million-scale momentum.
     """
 
     if close.ndim != 1 or h1_atr.ndim != 1 or close.shape != h1_atr.shape:
         raise RuntimeError("[canonical_v3] close/H1 ATR shape mismatch")
-    if not np.isfinite(close).all() or not np.isfinite(h1_atr).all():
-        raise RuntimeError("[canonical_v3] close/H1 ATR must be finite")
-    if np.any(h1_atr < 0.0):
+    if not np.isfinite(close).all():
+        raise RuntimeError("[canonical_v3] close must be finite")
+    finite = np.isfinite(h1_atr)
+    if not finite.any():
+        raise RuntimeError("[canonical_v3] H1 ATR has no finite observations")
+    first_finite = int(np.flatnonzero(finite)[0])
+    if not finite[first_finite:].all():
+        raise RuntimeError(
+            "[canonical_v3] H1 ATR has non-finite values after causal warmup"
+        )
+    if np.any(h1_atr[first_finite:] < 0.0):
         raise RuntimeError("[canonical_v3] H1 ATR must be non-negative")
     delta_12 = close - np.roll(close, 12)
     delta_12[:12] = 0.0
     result = np.zeros_like(delta_12, dtype=np.float64)
-    np.divide(delta_12, h1_atr, out=result, where=h1_atr > 1e-6)
+    np.divide(delta_12, h1_atr, out=result, where=finite & (h1_atr > 1e-6))
+    result[:first_finite] = np.nan
     return result
 
 
