@@ -1607,3 +1607,47 @@ Decision:
   (hyperparameters are recipe values, not acceptance thresholds); rerunning
   the proven-red V8 recipe is forbidden waste.
 - No empirical acceptance threshold is changed. Launch remains `BLOCK`.
+
+## 2026-07-25 — V9 reproduces the collapse; the probe isolates the objective stack
+
+V9 changed exactly two recipe values from proven-red V8 — 25,000→50,000
+stratified rows and 8→12 epochs — with every other recipe value, objective
+weight and acceptance threshold identical. It reproduced the same
+class-degenerate failure: epochs 1 and 4 all FLAT, epochs 2/3/5 marginal side
+leakage, epoch 6 flipped to heavy SHORT with accuracy falling to 0.3017, 54
+slice failures, `best_epoch=-1`, hard-red stop at the same epoch-6 boundary
+and `TRAIN_FAIL_NO_BEST_STATE`. More data and longer training do not change
+the collapse mode.
+
+A scratchpad probe (zero authority, no event bytes) then isolated where the
+problem is not. A plain 256-128 MLP with unweighted cross-entropy, trained on
+the current-bar surface only — 513 snapshot plus 142 continuous context, no
+seq96 and none of the five MTF branches — reached VAL accuracy 0.4021 against
+the 0.3858 majority baseline with all three classes alive (prediction rates
+0.153/0.284/0.563, per-class recall 0.173/0.302/0.649) and tradable VAL AUC
+0.5833. Inverse-frequency class weighting made it worse (0.3547 and FLAT
+recall collapsing to 0.07), which is itself informative about aggressive
+rebalancing.
+
+Conclusion: the V26 substrate and the current-bar evidence support
+non-degenerate three-class output and carry a real tradability ranking. The
+full training objective — direction CE scale 4.0 competing with roughly
+fifteen slice/prior/margin/conviction penalties at weights 2.0-12.0, a
+transition cost matrix that prices LONG/SHORT→FLAT at 0.45 against
+FLAT→LONG/SHORT at 1.60, and prediction-balance class weights 1/1/4 favouring
+FLAT — does not converge to it. Two independent recipe points now support
+this, plus one contrasting probe.
+
+Decision:
+
+- V8 and V9 are immutable empirical failure evidence. Rerunning proven-red
+  recipe values is forbidden waste at roughly 1.5-3.5 GPU-hours per attempt.
+- The next attempt requires an explicit user decision, because both candidate
+  paths change something the operator owns: either separate the smoke gate
+  from the acceptance gate so smoke admits a checkpoint on liveness plus
+  non-degenerate class support while every acceptance threshold stays fixed at
+  candidate stage, or rebalance the smoke objective weights (recipe values,
+  never `ENTRY_CKPT_*`, slice policy or AUC floors) with the probe as the
+  documented rationale.
+- No empirical acceptance threshold is changed by this entry. Launch remains
+  `BLOCK`.
