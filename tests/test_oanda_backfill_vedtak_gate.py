@@ -111,6 +111,7 @@ def materialize_native_xau_test_bundle(
     output: Path,
     *,
     timeframe: str = "M5",
+    end_utc: str | pd.Timestamp | None = None,
 ) -> dict[str, Any]:
     """Build a real strict native bundle for downstream provenance fixtures."""
 
@@ -126,7 +127,9 @@ def materialize_native_xau_test_bundle(
             vedtak_id=f"XAU_NATIVE_{timeframe}_FIXTURE_V3",
             start_utc="2026-01-01T00:00:00Z",
             end_utc=(
-                pd.Timestamp("2026-01-01T00:00:00Z")
+                pd.Timestamp(end_utc)
+                if end_utc is not None
+                else pd.Timestamp("2026-01-01T00:00:00Z")
                 + pd.Timedelta(minutes=bar_minutes)
             ),
             out_root=output,

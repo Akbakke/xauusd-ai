@@ -225,6 +225,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     tape_hashes = dict(tape_provenance["year_sha256"])
     year_numbers = sorted(int(key.split("=", 1)[1]) for key in tape_hashes)
+    tape_manifest_name = (
+        "MANIFEST.json"
+        if tape_provenance.get("schema_version") == CANONICAL_NATIVE_SOURCE_SCHEMA
+        else "REPAIR_MANIFEST.json"
+    )
 
     cv2 = _regular(root / "canonical_features_v2.parquet", label="CV2")
     cv2_sha = _sha256_file(cv2)
@@ -366,7 +371,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "entry_run_id": run_id,
         "event_root": str(root),
         "artifacts": {
-            "repair_manifest_sha256": _sha256_file(tape / "REPAIR_MANIFEST.json"),
+            "tape_manifest_sha256": _sha256_file(tape / tape_manifest_name),
             "tape_year_sha256": tape_hashes,
             "canonical_v2_sha256": cv2_sha,
             "canonical_v2_summary_sha256": _sha256_file(root / "canonical_features_v2_summary.json"),

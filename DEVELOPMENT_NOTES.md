@@ -74,11 +74,13 @@ the same existing sizing/replay owner now executes the exact active
 XGB→V3→Exit-IQL/Strategy-F chain over full TEST, emits complete per-M1 evidence
 and cross-binds every input, active artifact and output byte. Missing cadence,
 state, model decisions or source exhaustion are terminal; there is no horizon
-substitution. No rebuild or trainer run is admissible until production
-native-M1 and M5 v3 bundles prove the known December-2024 defect absent, the
-existing `model-native-canonical-pair` route produces the code-proven
-native→canonical-v3/raw-BASE28 generation, and one immutable TRAIN-only rank
-identity is bound through Entry and Exit. No producer/finalizer
+substitution. The native-M1/M5 v3 bundles and pair generation
+`077e5419…` executed on 2026-07-24; per the XGB-cut vedtak the same day, the
+next fresh Entry rebuild lineage runs on an event-local strict native-v3 M5
+tape (`m5_tape_native_v3`), which supersedes the December-2024 repair and
+collector-snapshot steps for new lineages. The exit-chain TRAIN-rank identity
+binding is source-complete, but the immutable TRAIN-only rank reference and
+all exit-route executions remain open. No producer/finalizer
 execution is admissible until
 fresh empirical artifacts satisfy every prerequisite.
 
@@ -89,8 +91,10 @@ routes. It publishes immutable v3 bundles from retained complete-only MBA
 responses with fixed three-day M1 or 15-day M5 chunks, streamed year output
 and atomic no-replace visibility. Do not reintroduce direct canonical-year merges,
 alternate-provider repair, fixed request sleeps or a parallel backfill script.
-Production execution and the complete initial native→canonical-v3/BASE28
-bootstrap remain separate blocked operations.
+Both native routes and the initial native→canonical-v3/BASE28 bootstrap
+executed on 2026-07-24 under vedtak `XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`
+(pair generation `077e5419…`); any further production run still requires its
+own explicit vedtak and fresh immutable output root.
 
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean

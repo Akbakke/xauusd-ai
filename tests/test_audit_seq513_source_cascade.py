@@ -40,9 +40,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    root = tmp_path / "event"
-    root.mkdir()
+def _legacy_repaired_tape(tmp_path: Path, root: Path) -> Path:
     canonical_sources = {}
     for key, timeframe in (("m5", "M5"), ("m1", "M1")):
         canonical_root = tmp_path / f"canonical_{key}"
@@ -112,6 +110,26 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             "years": years,
         },
     )
+    return tape
+
+
+def _fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    tape_kind: str = "repaired",
+) -> Path:
+    root = tmp_path / "event"
+    root.mkdir()
+    if tape_kind == "native":
+        tape = root / "m5_tape_native_v3"
+        materialize_native_xau_test_bundle(
+            tape,
+            timeframe="M5",
+            end_utc="2026-01-01T00:10:00Z",
+        )
+    else:
+        tape = _legacy_repaired_tape(tmp_path, root)
 
     times = pd.date_range("2026-01-01T00:00:00Z", periods=2, freq="5min")
     cv2 = root / "canonical_features_v2.parquet"
@@ -199,8 +217,8 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         },
     )
     raw_paths = [
-        str((tape / f"year={year}" / "part-000.parquet").resolve())
-        for year in range(2020, 2027)
+        str((year_dir / "part-000.parquet").resolve())
+        for year_dir in sorted(tape.glob("year=*"))
     ]
     _write_json(
         root / "FULL_PLUS_CTX_v3src.ctx_diagnostics.json",
@@ -246,6 +264,26 @@ def test_source_cascade_audit_binds_every_stage_and_emits_pass(
     assert report["contracts"]["no_stale_self_paths"] is True
     assert report["contracts"]["required_history_start_covered"] is True
     assert report["contracts"]["full_numeric_feature_liveness"]["decision"] == "PASS"
+    assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
+    tape_manifest = root / "m5_tape_repaired_dec2024" / "REPAIR_MANIFEST.json"
+    assert report["artifacts"]["tape_manifest_sha256"] == _sha(tape_manifest)
+
+
+def test_source_cascade_audit_accepts_native_v3_tape_and_emits_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _fixture(tmp_path, monkeypatch, tape_kind="native")
+
+    report = audit.run(_args(root))
+
+    assert report["decision"] == "PASS"
+    assert report["entry_run_id"] == RUN_ID
+    assert (
+        report["contracts"]["xau_tape_provenance"]["schema_version"]
+        == "xau_canonical_native_source_v3"
+    )
+    tape_manifest = root / "m5_tape_native_v3" / "MANIFEST.json"
+    assert report["artifacts"]["tape_manifest_sha256"] == _sha(tape_manifest)
     assert json.loads((root / "SOURCE_CASCADE_PROOF.json").read_text()) == report
 
 
