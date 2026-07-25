@@ -22,6 +22,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
+    CTX_OWNED_SESSION_COLUMNS,
     ENTRY_DEAD_CONSTANT_COLUMNS,
     EXTRA_COLUMNS_FROM_CANONICAL_V2,
     SCHEMA_VERSION as MODELRANGE_SCHEMA,
@@ -29,13 +30,21 @@ from gx1.scripts.materialize_cv3_modelrange_v1 import (
 
 
 SCHEMA_VERSION = "seq513_source_cascade_proof_v5"
-EXPECTED_CV2_COLUMNS = 118
+# 2026-07-24 source decisions changed the canonical surface: the three
+# non-causal slippage/cost fields are removed, the session evidence block is
+# mandatory (nine add_session_features fields plus _v1_is_EU/_v1_is_US and
+# three _v1_int_*_us interactions), _v1_session_volatility_pressure replaces
+# _v1_cost_bps_dyn and observed spread keeps its honest name (spread_pct).
+EXPECTED_CV2_COLUMNS = 131
 # canonical-v3 computes this manifest count before surfacing the DatetimeIndex
-# as the plain `time` column.  The parquet is 113 wide; the manifest's
-# `cols_total` is therefore the exact 112 feature-column count.
-EXPECTED_CV3_MANIFEST_COLUMNS = 112
-EXPECTED_MODELRANGE_COLUMNS = 109
-EXPECTED_FULL_COLUMNS = 188
+# as the plain `time` column.  The parquet is 126 wide; the manifest's
+# `cols_total` is therefore the exact 125 feature-column count.
+EXPECTED_CV3_MANIFEST_COLUMNS = 125
+# Entry projection: 126 cv3 columns − 3 dead constants − 9 ctx-owned session
+# columns + exact canonical-v2 `atr` = 115.
+EXPECTED_MODELRANGE_COLUMNS = 115
+# FULL_PLUS = 115 modelrange columns + the exact 79-column Entry context set.
+EXPECTED_FULL_COLUMNS = 194
 EXPECTED_TFS = ("M5", "M15", "H1", "H4", "D1")
 
 
@@ -300,6 +309,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         modelrange_manifest.get("entry_dead_constant_columns_removed"),
         list(ENTRY_DEAD_CONSTANT_COLUMNS),
         label="MODELRANGE_DEAD_CONSTANT_COLUMNS_REMOVED",
+    )
+    _same(
+        modelrange_manifest.get("ctx_owned_session_columns_removed"),
+        list(CTX_OWNED_SESSION_COLUMNS),
+        label="MODELRANGE_CTX_OWNED_SESSION_COLUMNS_REMOVED",
     )
 
     mtf_root = root / "MULTI_TF_V2_CACHE"

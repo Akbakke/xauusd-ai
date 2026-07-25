@@ -20,6 +20,7 @@ from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.scripts import audit_seq513_source_cascade_v1 as audit
 from gx1.scripts.materialize_cv3_modelrange_v1 import SCHEMA_VERSION as MODELRANGE_SCHEMA
 from gx1.scripts.materialize_cv3_modelrange_v1 import (
+    CTX_OWNED_SESSION_COLUMNS,
     ENTRY_DEAD_CONSTANT_COLUMNS,
     EXTRA_COLUMNS_FROM_CANONICAL_V2,
 )
@@ -182,6 +183,9 @@ def _fixture(
             ),
             "entry_dead_constant_columns_removed": list(
                 ENTRY_DEAD_CONSTANT_COLUMNS
+            ),
+            "ctx_owned_session_columns_removed": list(
+                CTX_OWNED_SESSION_COLUMNS
             ),
         },
     )

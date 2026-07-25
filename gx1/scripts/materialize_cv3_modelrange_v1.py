@@ -3,7 +3,10 @@
 The active Entry source cascade needs the causal ``atr`` normalization source
 that canonical-v3 omits from its model feature surface. Ten retired duplicate/
 XGB-only columns are not restored, and three constant legacy spread/regime fields
-are removed from the Entry projection. This producer joins the one required
+are removed from the Entry projection. The nine mandatory ``add_session_features``
+columns are likewise removed from the Entry projection: the exact Entry context
+adder is their single downstream owner and a second source-borne copy would
+create a duplicate field owner. This producer joins the one required
 column from exact row-aligned canonical-v2 bytes, trims the declared causal
 history window, and binds every input/output byte plus the Entry run lineage in
 one immutable provenance sidecar. Existing outputs, symlinks, row-local joins
@@ -27,11 +30,11 @@ import pandas as pd
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
 
 
-SCHEMA_VERSION = "cv3_modelrange_provenance_v6"
+SCHEMA_VERSION = "cv3_modelrange_provenance_v7"
 PRODUCER = "gx1.scripts.materialize_cv3_modelrange_v1"
-PRODUCER_VERSION = "v5"
-EXPECTED_CV3_COLUMN_COUNT = 111
-EXPECTED_OUTPUT_COLUMN_COUNT = 109
+PRODUCER_VERSION = "v6"
+EXPECTED_CV3_COLUMN_COUNT = 126
+EXPECTED_OUTPUT_COLUMN_COUNT = 115
 DEFAULT_START_UTC = "2020-11-13T00:00:00Z"
 EXTRA_COLUMNS_FROM_CANONICAL_V2 = (
     "atr",
@@ -40,6 +43,21 @@ ENTRY_DEAD_CONSTANT_COLUMNS = (
     "_v1_atr_regime_id",
     "_v1_spread_p",
     "_v1_spread_z",
+)
+# The mandatory add_session_features block in canonical-v2/v3 exists for the
+# serving pair surface. Inside the Entry cascade these nine fields have exactly
+# one downstream owner (the exact Entry context adder), so the Entry projection
+# must not carry a second source-borne copy of them.
+CTX_OWNED_SESSION_COLUMNS = (
+    "is_ASIA",
+    "is_EU",
+    "is_OVERLAP",
+    "is_US",
+    "minutes_since_session_open",
+    "minutes_to_next_session_boundary",
+    "session_change_flag",
+    "session_id",
+    "session_tradable",
 )
 
 
@@ -152,6 +170,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     missing_dead = [name for name in ENTRY_DEAD_CONSTANT_COLUMNS if name not in cv3]
     if missing_dead:
         raise RuntimeError(f"CV3_MODELRANGE_DEAD_COLUMNS_MISSING: {missing_dead}")
+    missing_session = [name for name in CTX_OWNED_SESSION_COLUMNS if name not in cv3]
+    if missing_session:
+        raise RuntimeError(
+            f"CV3_MODELRANGE_SESSION_COLUMNS_MISSING: {missing_session}"
+        )
     missing = [name for name in EXTRA_COLUMNS_FROM_CANONICAL_V2 if name not in canonical_v2]
     collisions = [name for name in EXTRA_COLUMNS_FROM_CANONICAL_V2 if name in cv3]
     if missing:
@@ -163,7 +186,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise RuntimeError("CV3_MODELRANGE_SOURCE_TIME_ALIGNMENT_MISMATCH")
 
-    merged = cv3.drop(columns=list(ENTRY_DEAD_CONSTANT_COLUMNS)).copy()
+    merged = cv3.drop(
+        columns=list(ENTRY_DEAD_CONSTANT_COLUMNS) + list(CTX_OWNED_SESSION_COLUMNS)
+    ).copy()
     for name in EXTRA_COLUMNS_FROM_CANONICAL_V2:
         merged[name] = canonical_v2[name].to_numpy(copy=True)
     selected = merged.loc[(merged["time"] >= start) & (merged["time"] <= end)].copy()
@@ -202,6 +227,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "extra_columns_from_canonical_v2": list(EXTRA_COLUMNS_FROM_CANONICAL_V2),
         "entry_dead_constant_columns_removed": list(ENTRY_DEAD_CONSTANT_COLUMNS),
+        "ctx_owned_session_columns_removed": list(CTX_OWNED_SESSION_COLUMNS),
         "model_range": {"start_utc": start.isoformat(), "end_utc": end.isoformat()},
         "rows": int(len(selected)),
         "columns": int(len(selected.columns)),
