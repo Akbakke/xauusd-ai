@@ -569,11 +569,18 @@ def _verify_artifacts_and_load_mtf(
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_MTF_CACHE_IDENTITY_MISSING]"
         )
-    cache_source = Path(cache.m5_prebuilt_source)
+    # The verified V2 cache binds its own full-history canonical M5 source
+    # (the cascade-audited canonical-v3 parquet); m5_prebuilt is the separate
+    # model-range seq/snapshot source. Prove the cache against its own
+    # declared source bytes — equality with m5_prebuilt would force the
+    # five-timeframe surfaces onto the model-range-trimmed file.
+    cache_source = Path(str(cache.m5_prebuilt_source)).expanduser()
     m5_sha256 = _sha256_file(m5_prebuilt)
     if (
-        cache_source != m5_prebuilt
-        or cache.m5_prebuilt_source_sha256 != m5_sha256
+        not cache_source.is_absolute()
+        or not cache_source.is_file()
+        or cache_source.is_symlink()
+        or _sha256_file(cache_source) != cache.m5_prebuilt_source_sha256
         or tuple(cache) != EXPECTED_TFS
     ):
         raise RuntimeError(
