@@ -118,6 +118,31 @@ def test_robust_fit_preserves_binary_and_scales_large_and_sparse_fields() -> Non
     assert float(np.max(np.abs(transformed))) <= 12.0
 
 
+def test_sparse_burst_field_scale_escalates_to_satisfy_train_clip_cap() -> None:
+    # Sparse-event evidence: robust bulk at zero with a genuine informative
+    # tail. The IQR/MAD scale alone would clip far more than the exact 2%
+    # TRAIN cap; the fitted scale must escalate deterministically so the cap
+    # holds by construction without rewriting any value.
+    rng = np.random.default_rng(7)
+    values = np.zeros(10_000, dtype=np.float32)
+    burst = rng.uniform(0.5, 1.0, size=1_500).astype(np.float32)
+    values[:1_500] = burst
+    values[1_500] = 1.0
+    jitter = rng.uniform(1.0e-5, 2.0e-5, size=values.size).astype(np.float32)
+    matrix = (values + jitter).reshape(-1, 1)
+
+    fitted = fit_surface_normalization(
+        matrix,
+        surface="signal",
+        field_names=["sparse_burst"],
+    )
+    assert fitted["scale_source"][0].endswith("_clip_cap_quantile")
+    transformed = apply_surface_normalization(matrix, fitted)
+    clip_rate = float((np.abs(transformed) > 12.0).mean())
+    assert clip_rate <= 0.02
+    assert np.isfinite(transformed).all()
+
+
 def test_fit_rejects_nonfinite_and_constant_nonbinary_fields() -> None:
     with pytest.raises(RuntimeError, match="NONFINITE"):
         fit_surface_normalization(

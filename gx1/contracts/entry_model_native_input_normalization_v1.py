@@ -567,6 +567,31 @@ def fit_surface_normalization(
                     f"surface={surface} field={names[index]} "
                     f"center={field_center!r} scale={field_scale!r}"
                 )
+            # Sparse-event and heavy-tailed evidence families concentrate the
+            # robust bulk on one value, so an IQR/MAD scale can put the
+            # informative bursts beyond the clip boundary and reject the
+            # mandatory feature surface wholesale. When the fitted scale
+            # would clip more than the exact TRAIN cap, escalate it
+            # deterministically to the smallest scale whose TRAIN clip rate
+            # satisfies the cap by construction. The statistic is still
+            # fitted once on the complete physical TRAIN population and
+            # remains immutable bundle state; no value is rewritten.
+            deviations = np.abs(column - field_center)
+            implied_clip_rate = float(
+                (deviations > field_scale * CLIP_ABS).mean()
+            )
+            if implied_clip_rate > MAX_TRAIN_CLIP_RATE:
+                cap_scale = float(
+                    np.quantile(deviations, 1.0 - MAX_TRAIN_CLIP_RATE)
+                    / CLIP_ABS
+                ) * (1.0 + 1.0e-6)
+                if (
+                    np.isfinite(cap_scale)
+                    and cap_scale > field_scale
+                    and cap_scale > SCALE_FLOOR
+                ):
+                    field_scale = cap_scale
+                    source = f"{source}_clip_cap_quantile"
             center[index] = np.float32(field_center)
             scale[index] = np.float32(field_scale)
             scale_source[index] = source
