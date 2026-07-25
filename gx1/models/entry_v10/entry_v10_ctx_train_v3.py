@@ -84,6 +84,7 @@ from gx1.contracts.entry_model_native_offline_rl_v1 import (
     q_ranking_margin_loss,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
     MODEL_NATIVE_DIP_TARGET_COLUMNS,
     MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
@@ -419,10 +420,13 @@ _MODEL_NATIVE_UNIT_INTERVAL_TARGET_COLS = (
 # `mfe_first_n_bps` is intentionally absent: it is the selected-side,
 # spread-aware favorable excursion and remains signed when price never earns
 # back the entry spread.  MAE targets below are adverse magnitudes.
+# Spread-aware dip-MFE is a signed forward outcome and must stay signed
+# through validation and both losses (rule 16); only the dip-MAE half of the
+# dip surface is a non-negative adverse magnitude.
 _MODEL_NATIVE_NONNEGATIVE_TARGET_COLS = (
     "y_long_expected_mae_bps",
     "y_short_expected_mae_bps",
-) + _DIP_TARGET_COLS + _TAIL_RISK_TARGET_COLS + _VOL_FORECAST_TARGET_COLS
+) + tuple(MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS) + _TAIL_RISK_TARGET_COLS + _VOL_FORECAST_TARGET_COLS
 
 
 def _model_native_active_target_failures(
