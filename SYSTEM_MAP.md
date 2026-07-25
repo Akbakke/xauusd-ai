@@ -722,13 +722,22 @@ fullførte seks epoker før hard-red-stop. Accuracy toppet 0.403455 gjennom
 bad-path/survival AUC, seks cross-head-kollapser og sultede specialist-/
 family×TF-porter. Ingen bundle ble skrevet.
 
-Neste pil er ikke ny trening. Bevar de ferdige source-reparasjonene for
-target/objective, sampling, conditional metrics, alle-heads/influence,
-MTF/normalisering/context/fusion, bundle/event-atomisitet, Exit-bytebinding og
-transaksjonell launch samt runtime fail-close. Først må én canonical full-TEST
-producer kjøre den faktiske aktive Exit-kjeden og emittere egne spor; deretter
-gjenstår canonical/live Dec-2024-paritet. Så kreves en helt fersk XAU-only
-rebuild og alle audits på nytt.
+2026-07-25: den ferske XAU-only-rebuilden ER utført på native tape. V26
+kjørte hele kjeden GRØNN (fersk event-lokal native-v3 M5-tape → kaskade →
+kjede → alle audits → smoke-stige → immutabelt V8-recipe), og V8 fullførte
+seks epoker på det fullt reparerte substratet før hard-red-stoppen:
+`TRAIN_FAIL_NO_BEST_STATE` med total FLAT-kollaps (VAL 100 % FLAT fra epoke
+3, 58 slice-feil, path-aux på sjansenivå, sultet family×TF-gate). Sytten
+aldri-eksekverte post-audit-grenser ble reparert i eksisterende eiere
+underveis (DECISION_LOG 2026-07-25), inkludert: modelrange-projeksjonen
+ekskluderer de ni ctx-eide `add_session_features`-kolonnene (126→115+atr;
+FULL_PLUS er nå 194 kolonner), recipen binder MTF-cache-manifestet og
+emitterer cache-katalogen som validert env-rad, trener/normalisering beviser
+cachen mot dens egen deklarerte cv3-kilde, signert dip-MFE admitteres,
+klippe-cappen holdes ved eksakt skala-eskalering, og train/serve deler én
+identisk clamp. Neste smoke krever et nytt immutabelt recipe-vedtak
+(V7-æraens hyperparametre var stilt for rå unormaliserte input); ingen
+empirisk aksept-terskel endres.
 Håndskrevet JSON eller direkte scriptkall er fortsatt ikke tillatt.
 
 ### Kolonne-/feature-eierskap (base 34 + ctx 142)

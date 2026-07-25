@@ -1529,3 +1529,81 @@ Decision:
   only;
 - launch remains `BLOCK`; this authorizes the next fresh rebuild lineage on
   native tape but proves no dataset, model or edge.
+
+## 2026-07-25 — first native-tape lineage runs end to end; V8 is the honest FLAT-collapse verdict
+
+The XGB-cut vedtak's authorization was executed: V25 and V26 are the first
+Entry lineages on an event-local strict native-v3 M5 tape. Seventeen
+never-executed post-audit boundaries failed closed on first real contact and
+were repaired in their existing owners, each with regression tests:
+
+1. the cascade-audit report block hashed `REPAIR_MANIFEST.json`
+   unconditionally; it now binds the actual tape manifest and has a native
+   full-run test (`a406cdf7`);
+2. the Entry modelrange projection still pinned pre-07-24 widths; it now
+   admits the honest 126-column cv3, excludes the nine ctx-adder-owned
+   `add_session_features` columns (one-owner rule) and moves the audit
+   constants to 131/125/115/194 (`a3ee94ab`);
+3. the builder assigned the two session-minutes context fields by pandas
+   label alignment against a DatetimeIndex-keyed Series — all-NaN on the
+   window-filtered frame; assignment is positional and the nonfinite guard
+   now names offending columns (`fb033fbc`); V25's chain RED at this wall is
+   immutable failure evidence and its event root is retained;
+4. post-rebuild readiness pinned the legacy snapshot tape schema and
+   manifest-embedded run id; it now dispatches on the native identity exactly
+   like the chain driver and cascade audit (`ba345f09`);
+5. a WSL NTP step moved the clock ~25 s backward between stamp generation
+   and chain validation (the V15/V18 trap); chain launches now backdate the
+   ranking stamp by 60 s;
+6. the trainer demands `GX1_V10_MULTI_TF_V2_CACHE_DIR` but no owner in the
+   fail-closed environment pipeline supplied it; the launch contract now
+   binds `multi_tf_cache_manifest_json` as a common artifact and emits the
+   exact cache-directory row (`d84b9728`);
+7. the trainer ambient guard rejected that same row; it is a named runtime
+   identity beside the dataset rows (`62150a40`);
+8. + 10. the trainer and normalization fitter required cache source ==
+   `--m5-prebuilt-path`; the cascade-audited cache is built from
+   full-history canonical-v3, so both owners now prove the cache against its
+   own declared source bytes (`53ae4874`, `746c0ffd`);
+9. the trainer's active-target contract still listed the six dip-MFE targets
+   as non-negative and rejected exactly the signed evidence the P0 repair
+   preserves; only the dip-MAE half is non-negative (`f49876b8`);
+11.–13. the 2% TRAIN clip cap rejected 72 genuine sparse-burst/heavy-tail
+   fields on first data contact; scales now escalate deterministically to
+   the exact order statistic so the cap holds by construction, with the new
+   scale sources admitted by the same contract's validator
+   (`74898cf7`, `d632b26e`, plus allowlist);
+14.–15. specialist-keyed maps arrive alphabetized from sort_keys JSON
+   events; the context-routing validator returns canonical registry order
+   after proving content identity (`6273daed`);
+16.–17. the eval-mode zero-tolerance OOD raise contradicted the declared 2%
+   clip design; train and serve now apply the one identical clamp
+   (`4dbfbdc0`).
+
+V26 then ran green end to end: fresh native tape (536,086 rows,
+2019-01-01→2026-07-24T20:55), full source cascade PASS, chain terminal GREEN
+at the smoke gate, splits 369,303/5,904/4,776, post-rebuild readiness READY,
+foundation feature/target/specialist PASS with zero failures, smoke
+manifest/readiness/trainability READY, immutable V8 recipe PASS (162 env
+values, exact V7-era hyperparameters frozen for comparability).
+
+`XAU_SEQ513_SMOKE_20260725_V8` executed six full TRAIN/VAL epochs on the
+fully repaired substrate and stopped hard-red with
+`TRAIN_FAIL_NO_BEST_STATE`. The signature is total FLAT collapse: VAL
+prediction rates 0/0/100% from epoch 3 (epoch 2 briefly mixed direction),
+raw accuracy pinned at the 0.3858 FLAT label rate, 58 slice failures,
+path-auxiliary conditional AUC at chance with negative incremental lift,
+clean-edge~tradable Spearman +0.976 and a starved family×TF gate. No
+checkpoint or bundle was written.
+
+Decision:
+
+- V25 (chain RED) and V26/V8 are immutable evidence; V24/V7 remain
+  historical. The V26 dataset bytes stay GREEN for the next evidence gate;
+  they admit no model or launch.
+- The V8 hyperparameters were tuned for raw inputs spanning a 6.4-million×
+  scale range. On the normalized substrate they drive the optimizer into the
+  all-FLAT corner. A future smoke needs a new immutable recipe decision
+  (hyperparameters are recipe values, not acceptance thresholds); rerunning
+  the proven-red V8 recipe is forbidden waste.
+- No empirical acceptance threshold is changed. Launch remains `BLOCK`.

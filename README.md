@@ -6,7 +6,15 @@ stack and prove its edge through immutable out-of-sample contracts. Missing,
 stale or contradictory evidence blocks the system; there is no fallback
 direction policy.
 
-Current status: **BLOCKED FOR DATA/MODEL/EDGE/LAUNCH**. V24 rebuilt fresh XAU
+Current status: **BLOCKED FOR MODEL/EDGE/LAUNCH**. The current lineage is
+V26/V8 (2026-07-25): the first end-to-end dataset on an event-local strict
+native-v3 M5 tape is terminal GREEN with all audits PASS
+(369,303/5,904/4,776 rows through 2026-07-24T20:55), and its smoke training
+`XAU_SEQ513_SMOKE_20260725_V8` on the fully repaired substrate failed
+empirically with total FLAT collapse (`TRAIN_FAIL_NO_BEST_STATE`, no
+bundle). Seventeen never-executed post-audit boundaries were repaired in
+existing owners during that campaign; see DECISION_LOG 2026-07-25. The
+history below records the earlier V24/V7 boundary. V24 rebuilt fresh XAU
 source through
 `2026-07-22T12:05:00Z`, terminalized GREEN at the designed smoke gate and
 passed post-rebuild, full-input, pretrain, foundation-feature, all-46-target,

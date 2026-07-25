@@ -99,15 +99,15 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "Use this script only: scripts/gx1_handover.sh" in result.stdout
     assert "decision: BLOCK" in result.stdout
     assert "required_contract_mode: xau_seq513_model_native_direction_v4" in result.stdout
-    assert "dataset_event_id: XAU_SEQ513_REBUILD_20260722_V24" in result.stdout
+    assert "dataset_event_id: XAU_SEQ513_REBUILD_20260725_V26" in result.stdout
     assert (
-        "dataset_admission_stage: REJECTED_AFTER_V7_PIPELINE_AUDIT_REBUILD_REQUIRED"
+        "dataset_admission_stage: DATASET_BYTES_GREEN_SMOKE_MODEL_EMPIRICALLY_RED"
         in result.stdout
     )
     assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
     assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
     assert "smoke_recipe_evidence: VERIFIED decision=PASS env_count=162" in result.stdout
-    assert "source_commit=3712898531916374e67c9c4c58f9d9dc4e1995c3" in result.stdout
+    assert "source_commit=4dbfbdc0de68fc71212f214eb3c601a2b12500d1" in result.stdout
     assert "smoke_recipe_dry_run: PASS" in result.stdout
     assert "smoke_recipe_execution_state: TERMINAL_FAILED" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
@@ -117,29 +117,29 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert len(result.stdout.encode("utf-8")) < len(HANDOVER.read_bytes())
 
 
-def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
+def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
     state = json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
 
     assert state["decision"] == "BLOCK"
-    assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
+    assert state["latest_terminal_event_id"] == "XAU_SEQ513_REBUILD_20260725_V26"
     assert state["latest_terminal_event_decision"] == "GREEN"
-    assert state["dataset_event_id"] == "XAU_SEQ513_REBUILD_20260722_V24"
+    assert state["dataset_event_id"] == "XAU_SEQ513_REBUILD_20260725_V26"
     assert (
         state["dataset_admission_stage"]
-        == "REJECTED_AFTER_V7_PIPELINE_AUDIT_REBUILD_REQUIRED"
+        == "DATASET_BYTES_GREEN_SMOKE_MODEL_EMPIRICALLY_RED"
     )
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     repair = state["source_repair_checkpoint"]
     assert repair["status"] == "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
-    assert repair["fresh_rebuild_started"] is False
-    assert repair["fresh_training_started"] is False
+    assert repair["fresh_rebuild_started"] is True
+    assert repair["fresh_training_started"] is True
     assert repair["empirical_direction_edge_proven"] is False
     assert repair["remaining_source_p0"] == [
-        "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
-        "execute_strict_native_oanda_m1_and_m5_materialization",
-        "execute_native_to_canonical_v3_raw_base28_atomic_pair_bootstrap",
-        "bind_immutable_train_only_atr_spread_rank_through_entry_and_exit",
+        "produce_immutable_train_only_rank_reference_and_execute_bound_exit_routes",
+        "successor_exit_io_contract_replacing_xgb_bridge_with_accepted_entry_outputs",
+        "fresh_v3_and_exit_iql_on_accepted_entry_prediction_evidence",
+        "execute_canonical_full_test_active_exit_replay_on_accepted_chain",
     ]
 
     terminal = state["accepted_dataset_terminal_evidence"]
@@ -188,7 +188,7 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
     assert recipe_binding["out_bundle_present"] is False
     assert not Path(recipe_binding["out_bundle_dir"]).exists()
     failed = state["latest_failed_smoke_execution"]
-    assert failed["run_id"] == recipe_binding["run_id"] == "XAU_SEQ513_SMOKE_20260723_V7"
+    assert failed["run_id"] == recipe_binding["run_id"] == "XAU_SEQ513_SMOKE_20260725_V8"
     assert failed["dataset_run_id"] == recipe_binding["dataset_run_id"]
     assert failed["completed_utc"] == recipe_binding["execution_completed_utc"]
     assert failed["failure_code"] == recipe_binding["execution_failure_code"]
@@ -212,7 +212,7 @@ def test_launch_authority_binds_exact_current_v24_terminal_bytes() -> None:
 
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
-    assert "V7 completed six full train/validation epochs" in blockers
+    assert "V8 completed six full train/validation epochs" in blockers
     assert "source-repaired only" in blockers
     assert "transactional finalizer/recovery" in blockers
     assert "existing sizing/replay owner now has a canonical full-TEST producer" in blockers

@@ -1,15 +1,26 @@
 # GX1 project state
 
-Updated 2026-07-24.
+Updated 2026-07-25.
 
 ## Entry direction
 
 Status: **BLOCK**.
 
-GX1 has no currently admitted Entry dataset or model. V24/V7 are immutable
-failure evidence after the post-execution audit found signed target corruption
-and active training-objective mismatches. There is no prediction evidence,
-accepted bundle or launch authority. Paper, demo and live Entry trading remain
+The current immutable lineage is V26/V8 (2026-07-25). V26 is the first
+dataset built end to end on an event-local strict native-v3 M5 tape
+(2019-01-01→2026-07-24T20:55): chain terminal GREEN, splits
+369,303/5,904/4,776, exhaustive liveness/pretrain/readiness and
+feature/target/specialist audits all PASS with zero failures. Its exact
+bytes remain admitted to the next evidence gate. Smoke training
+`XAU_SEQ513_SMOKE_20260725_V8` — the first ever on the fully repaired
+substrate (signed targets, symmetric penalties, no-replacement sampling,
+complete TRAIN-fit normalization) — executed six epochs under the frozen
+V7-era hyperparameters and ended `TRAIN_FAIL_NO_BEST_STATE` with a total
+FLAT-collapse signature; no checkpoint or bundle exists. Seventeen
+never-executed post-audit boundaries were repaired in their existing owners
+during the campaign (DECISION_LOG 2026-07-25). V25 is chain-RED failure
+evidence; V24/V7 are historical. There is no prediction evidence, accepted
+bundle or launch authority. Paper, demo and live Entry trading remain
 closed. The absence of model/edge proof means no direction and no order; it
 must never become a guessed direction, synthetic FLAT, cached decision or
 manual overlay.
@@ -387,7 +398,11 @@ retired Entry-IQL registry record has `path=null` and status
 
 ## Next admissible milestone
 
-Do not rerun V7 or reuse V24. Preserve the completed target/objective,
+Do not rerun the proven-red V8 recipe. The V26 dataset bytes are admitted
+evidence for the next gate; the next smoke attempt requires a new immutable
+recipe decision whose hyperparameters are chosen for the normalized input
+landscape (recipe values, never acceptance thresholds — every direction,
+slice, auxiliary and gate floor stays fixed). Do not rerun V7 or reuse V24. Preserve the completed target/objective,
 sampling, conditional-metric, normalization, context-routing, MTF,
 all-head/group-influence, atomic-publication, Exit-byte, transactional launch
 and runtime fail-close repairs, including the exact V3 storage, calibration

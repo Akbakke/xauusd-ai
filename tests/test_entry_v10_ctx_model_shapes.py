@@ -471,7 +471,11 @@ def test_input_normalization_buffers_are_persistent_and_hash_bound() -> None:
         model.require_input_normalization_state()
 
 
-def test_input_normalization_fails_closed_on_eval_ood_but_clips_during_train() -> None:
+def test_input_normalization_applies_one_identical_clip_in_train_and_eval() -> None:
+    # Clipping at the exact boundary IS the declared handling: the fit
+    # contract caps TRAIN clipping at 2%, so beyond-boundary rows
+    # legitimately occur in every split and at serve. Train and eval must
+    # apply the one identical clamp.
     model = _make_model()
     center = model.input_norm_signal_center
     scale = model.input_norm_signal_scale
@@ -479,12 +483,13 @@ def test_input_normalization_fails_closed_on_eval_ood_but_clips_during_train() -
     raw[..., 0] = center[0] + scale[0] * 13.0
 
     model.eval()
-    with pytest.raises(RuntimeError, match="RUNTIME_OOD"):
-        model._normalize_input_surface(raw, surface="signal")
+    normalized_eval = model._normalize_input_surface(raw, surface="signal")
+    assert float(normalized_eval[..., 0].item()) == 12.0
 
     model.train()
-    normalized = model._normalize_input_surface(raw, surface="signal")
-    assert float(normalized[..., 0].item()) == 12.0
+    normalized_train = model._normalize_input_surface(raw, surface="signal")
+    assert float(normalized_train[..., 0].item()) == 12.0
+    assert torch.equal(normalized_eval, normalized_train)
 
 
 @pytest.mark.parametrize(

@@ -19,10 +19,32 @@ selection, mutable-latest evidence or soft compatibility path.
 
 ## Current terminal status
 
-**BLOCK FOR DATA/MODEL/EDGE/LAUNCH.** V24/V7 are immutable failure evidence
-for `xau_seq513_model_native_direction_v4`. There is no currently admitted
-dataset, trained model, accepted bundle or empirical direction-edge proof.
-Candidate, replay, paper/demo/live and promotion remain closed.
+**BLOCK FOR MODEL/EDGE/LAUNCH.** V26/V8 (2026-07-25) are the current
+immutable lineage: the V26 dataset — the first built end to end on an
+event-local strict native-v3 M5 tape — is terminal GREEN with every
+dataset/readiness audit PASS, and its exact bytes remain admitted to the
+next evidence gate. Smoke training `XAU_SEQ513_SMOKE_20260725_V8` on the
+fully repaired substrate ended `TRAIN_FAIL_NO_BEST_STATE` with a total
+FLAT-collapse signature (VAL 100% FLAT from epoch 3, 58 slice failures,
+path auxiliaries at chance, starved family×TF gate); no checkpoint or
+bundle exists. V25 is chain-RED failure evidence at the builder session
+wall; V24/V7 are historical failure evidence. Seventeen never-executed
+post-audit boundaries were repaired in their existing owners during this
+first native-lineage campaign (see DECISION_LOG 2026-07-25). The V8
+hyperparameters are the V7-era values tuned for raw un-normalized inputs;
+a future smoke requires a new immutable recipe decision, and no empirical
+acceptance threshold changes. There is no trained model, accepted bundle
+or empirical direction-edge proof. Candidate, replay, paper/demo/live and
+promotion remain closed.
+
+### 2026-07-25 native-lineage campaign (V25/V26/V8)
+
+See DECISION_LOG 2026-07-25 for the complete wall-by-wall record and
+commits. Summary: native M5 tape produced per lineage under the run vedtak;
+source cascade, chain, post-rebuild readiness, foundation audits and the
+smoke ladder all GREEN on V26; V8 executed six epochs and is empirically
+red. `PROJECT_STATE_xau_direction_launch.json` binds the exact V26/V8
+evidence.
 
 ### 2026-07-23 post-V7 full-pipeline source repair
 

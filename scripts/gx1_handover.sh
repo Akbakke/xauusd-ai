@@ -95,15 +95,15 @@ repair = state.get("source_repair_checkpoint")
 if (
     not isinstance(repair, dict)
     or repair.get("status") != "CODE_PROVEN_EMPIRICALLY_UNPROVEN"
-    or repair.get("fresh_rebuild_started") is not False
-    or repair.get("fresh_training_started") is not False
+    or repair.get("fresh_rebuild_started") is not True
+    or repair.get("fresh_training_started") is not True
     or repair.get("empirical_direction_edge_proven") is not False
     or repair.get("remaining_source_p0")
     != [
-        "fresh_exit_xgb_base79_v3_exit_iql_rebuild_rescore_retrain",
-        "execute_strict_native_oanda_m1_and_m5_materialization",
-        "execute_native_to_canonical_v3_raw_base28_atomic_pair_bootstrap",
-        "bind_immutable_train_only_atr_spread_rank_through_entry_and_exit",
+        "produce_immutable_train_only_rank_reference_and_execute_bound_exit_routes",
+        "successor_exit_io_contract_replacing_xgb_bridge_with_accepted_entry_outputs",
+        "fresh_v3_and_exit_iql_on_accepted_entry_prediction_evidence",
+        "execute_canonical_full_test_active_exit_replay_on_accepted_chain",
     ]
 ):
     raise SystemExit("FATAL: malformed source-repair checkpoint")

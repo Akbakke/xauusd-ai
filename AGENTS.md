@@ -13,7 +13,17 @@ empirical direction-edge proof and no launch authority. Old Smart520,
 neutral-XGB, anchored Entry and Entry-IQL evidence is historical and cannot
 authorize a run or launch.
 
-V24 (`XAU_SEQ513_REBUILD_20260722_V24`) is the current immutable failed
+V26 (`XAU_SEQ513_REBUILD_20260725_V26`) is the current immutable lineage:
+the first dataset built end to end on an event-local strict native-v3 M5
+tape (2019-01-01→2026-07-24T20:55, 369,303/5,904/4,776 split rows), terminal
+GREEN with all dataset/readiness audits PASS. Its smoke training
+`XAU_SEQ513_SMOKE_20260725_V8` — the first run on the fully repaired
+substrate — ended `TRAIN_FAIL_NO_BEST_STATE` with total FLAT collapse (VAL
+100% FLAT from epoch 3, 58 slice failures, path auxiliaries at chance); no
+checkpoint or bundle exists. Seventeen never-executed post-audit boundaries
+were repaired in existing owners during that campaign (DECISION_LOG
+2026-07-25). V25 is chain-RED evidence; V24/V7 below are historical.
+V24 (`XAU_SEQ513_REBUILD_20260722_V24`) was the previous immutable failed
 dataset/training lineage. It rebuilt a fresh XAU source cascade through the
 last complete M5 bar at `2026-07-22T12:05:00Z` and terminalized `GREEN` under
 the pre-V7 dataset gates.
