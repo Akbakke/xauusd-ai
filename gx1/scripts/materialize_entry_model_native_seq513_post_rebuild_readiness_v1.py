@@ -39,6 +39,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_SOURCE_SCHEMA,
     CURRENT_SNAPSHOT_SCHEMA,
     XAU_INSTRUMENT,
     validate_xau_tape_provenance_v1,
@@ -341,11 +342,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and tuple(pretrain.get("data_splits") or ()) == SPLITS
         and all(pretrain_tape.get(split) == xau_provenance for split in SPLITS)
     )
+    provenance_schema = xau_provenance.get("schema_version")
+    if provenance_schema == CANONICAL_NATIVE_SOURCE_SCHEMA:
+        # A strict native-v3 source root is complete tape provenance by
+        # construction; run identity is bound by the consuming split
+        # manifests, which _manifest_contract validates per split above.
+        tape_identity_ok = xau_provenance.get("instrument") == XAU_INSTRUMENT
+    else:
+        tape_identity_ok = (
+            provenance_schema == CURRENT_SNAPSHOT_SCHEMA
+            and xau_provenance.get("instrument") == XAU_INSTRUMENT
+            and xau_provenance.get("entry_run_id") == run_id
+        )
     splits_ok = (
         not split_failures
-        and xau_provenance.get("schema_version") == CURRENT_SNAPSHOT_SCHEMA
-        and xau_provenance.get("instrument") == XAU_INSTRUMENT
-        and xau_provenance.get("entry_run_id") == run_id
+        and tape_identity_ok
         and all(split_artifacts[split]["rows"] > 0 for split in SPLITS)
     )
 
