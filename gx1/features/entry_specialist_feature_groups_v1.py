@@ -1030,7 +1030,24 @@ def require_model_native_context_specialist_routing(
     )
     if dict(alias_policy_raw) != expected_alias_policy:
         raise RuntimeError(f"[{context}_CONTEXT_TEMPORAL_ALIAS_POLICY_INVALID]")
-    return json.loads(json.dumps(observed))
+    normalized = json.loads(json.dumps(observed))
+    # Immutable JSON events serialize with sorted keys, so a mapping keyed by
+    # specialist cannot carry the canonical registry order through disk. The
+    # equality checks above prove exact content identity against the
+    # code-owned contract; re-key the specialist-owned index maps in exact
+    # registry order so every consumer receives the one canonical ordering.
+    for key in (
+        "ctx_cont_indices",
+        "ctx_cat_indices",
+        "ctx_cont_nominal_indices",
+    ):
+        mapping = normalized.get(key)
+        if isinstance(mapping, dict):
+            normalized[key] = {
+                str(name): mapping[str(name)]
+                for name in MODEL_NATIVE_TRAINING_SPECIALISTS
+            }
+    return normalized
 
 
 for _family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES:
