@@ -7515,6 +7515,43 @@ def _direction_slice_ckpt_score(base_score: float, slice_stats: Dict[str, Any]) 
     )
 
 
+def _checkpoint_admission_ok(
+    *,
+    profile: str,
+    aux_head_health_ok: bool,
+    active_head_health_ok: bool,
+    cooperation_gate_health_ok: bool,
+    class_support_ok: bool,
+) -> bool:
+    """Decide checkpoint admission for the exact training profile.
+
+    Profile-separated admission (user vedtak 2026-07-25).
+
+    ``candidate`` is unchanged: auxiliary head health, active head health and
+    cooperation gate health all block admission, and only a candidate bundle
+    may enter the acceptance chain.
+
+    ``smoke`` answers the trainability question it is named for — does this
+    recipe train at all, and does it emit a non-degenerate three-class
+    decision — so it admits on active-head liveness plus class support.
+    Auxiliary and cooperation health are still computed, logged and journaled
+    identically as diagnostics; they do not veto a smoke checkpoint. A smoke
+    bundle carries zero edge, promotion or launch authority: the smoke bundle
+    audit, candidate readiness, serve parity, sizing, Exit and launch
+    finalizer contracts are unchanged and still require the full evidence set.
+    """
+
+    if profile == "candidate":
+        return bool(
+            aux_head_health_ok
+            and active_head_health_ok
+            and cooperation_gate_health_ok
+        )
+    if profile == "smoke":
+        return bool(active_head_health_ok and class_support_ok)
+    raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+
+
 def _direction_slice_hard_red_stop_ready(
     *,
     epoch: int,
@@ -8431,8 +8468,11 @@ def run_train(
     tf_input_scale_init_d1: float = 0.3,
     run_id: str = "",
     dataset_run_id: str = "",
+    profile: str = "",
 ) -> None:
     _guard_no_rl()
+    if profile not in ("smoke", "candidate"):
+        raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
 
     try:
         normalized_specialist_contract_mode = require_model_native_specialist_contract_mode(
@@ -10234,12 +10274,29 @@ def run_train(
         _cooperation_gate_health_ok = bool(
             val_stats.get("cooperation_gate_health_ok", False)
         ) if val_stats else False
-        _improved = bool(
-            _improved
-            and _aux_head_health_ok
-            and _active_head_health_ok
-            and _cooperation_gate_health_ok
+        _class_support_ok = bool(
+            val_stats.get("direction_class_balance_guard_ok", False)
+        ) if val_stats else False
+        _admission_ok = _checkpoint_admission_ok(
+            profile=profile,
+            aux_head_health_ok=_aux_head_health_ok,
+            active_head_health_ok=_active_head_health_ok,
+            cooperation_gate_health_ok=_cooperation_gate_health_ok,
+            class_support_ok=_class_support_ok,
         )
+        if _improved and not _admission_ok:
+            log.info(
+                "[ENTRY_CHECKPOINT_ADMISSION_BLOCKED] epoch=%d profile=%s "
+                "aux_head_health_ok=%d active_head_health_ok=%d "
+                "cooperation_gate_health_ok=%d class_support_ok=%d",
+                epoch + 1,
+                profile,
+                int(_aux_head_health_ok),
+                int(_active_head_health_ok),
+                int(_cooperation_gate_health_ok),
+                int(_class_support_ok),
+            )
+        _improved = bool(_improved and _admission_ok)
         if _improved:
             best_val = va_loss
             if np.isfinite(acc):
@@ -11825,6 +11882,7 @@ def main() -> None:
         tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
         run_id=str(args.run_id),
         dataset_run_id=str(args.dataset_run_id),
+        profile=str(args.profile),
     )
 
 

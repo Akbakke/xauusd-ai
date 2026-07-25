@@ -1,7 +1,7 @@
 {
     "schema_version": "gx1_xau_direction_launch_state_v1",
     "project": "XAUUSD",
-    "updated_utc": "2026-07-25T18:10:00Z",
+    "updated_utc": "2026-07-25T22:30:00Z",
     "decision": "BLOCK",
     "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260725_V26",
     "latest_terminal_event_decision": "GREEN",
@@ -112,7 +112,9 @@
             "signed_dip_mfe_trainer_admission",
             "train_clip_cap_exact_scale_escalation",
             "canonical_specialist_ordering_from_sorted_json_events",
-            "single_identical_train_serve_clip_boundary"
+            "single_identical_train_serve_clip_boundary",
+            "profile_separated_checkpoint_admission_smoke_liveness_candidate_full_gates",
+            "discrimination_dominant_smoke_objective_weight_rebalance"
         ],
         "remaining_source_p0": [
             "produce_immutable_train_only_rank_reference_and_execute_bound_exit_routes",
@@ -135,9 +137,9 @@
             "canonical_or_live_data_modified": false
         },
         "repository_verification": {
-            "verified_utc": "2026-07-25T18:45:00Z",
-            "tests_collected": 1903,
-            "tests_passed": 1898,
+            "verified_utc": "2026-07-25T22:30:00Z",
+            "tests_collected": 1910,
+            "tests_passed": 1905,
             "tests_skipped": 5,
             "tests_failed": 0,
             "changed_python_compile": "PASS",

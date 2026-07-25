@@ -1651,3 +1651,65 @@ Decision:
   documented rationale.
 - No empirical acceptance threshold is changed by this entry. Launch remains
   `BLOCK`.
+
+## 2026-07-25 — user vedtak: profile-separated admission and a rebalanced objective
+
+The user chose both paths offered above. Neither weakens an acceptance gate.
+
+**Profile-separated checkpoint admission.** `_checkpoint_admission_ok` is now
+the one owner of the decision. `candidate` is byte-for-byte unchanged:
+auxiliary head health, active head health and cooperation gate health all
+block admission. `smoke` answers the trainability question it is named for and
+admits on active-head liveness plus non-degenerate class support
+(`direction_class_balance_guard_ok`, itself governed by the unchanged
+`ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05` and
+`ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35`). Auxiliary and cooperation
+health are still computed, logged and journaled identically at smoke; they no
+longer veto. The purpose is a progress ratchet: smoke runs now produce a
+measurable bundle instead of a binary refusal, so each 1.5-3.5 GPU-hour
+attempt yields comparable evidence.
+
+A smoke bundle gains no authority from this. The smoke bundle audit, candidate
+readiness, selective-edge prediction, replay, serve parity v4, learned sizing,
+joint Exit proof, adaptation lifecycle and the transactional launch finalizer
+are all unchanged and still require the complete evidence set. Only a
+candidate bundle can enter the acceptance chain, and launch still requires the
+newest immutable approval bound to the accepted bundle commit.
+
+**Rebalanced training objective.** Five objective weights change in the
+canonical recipe owner; the key count stays 162 and the contract hash advances
+as designed:
+
+- `ENTRY_DIRECTION_CE_SCALE` 4.00 -> 12.00;
+- `ENTRY_PRED_BALANCE_CLASS_WEIGHTS` `1.0,1.0,4.0` -> `1.0,1.0,1.0`;
+- `ENTRY_DIRECTION_UTILITY_TRIAD_CE_WEIGHT` 8.00 -> 2.00;
+- `ENTRY_DIRECTION_UTILITY_TRADE_CONVICTION_WEIGHT` 8.00 -> 2.00;
+- `ENTRY_DIRECTION_SIDE_UTILITY_CONVICTION_WEIGHT` 6.00 -> 2.00.
+
+Rationale from the V8/V9 loss summaries and the probe: direction
+cross-entropy contributed roughly 10.4 of 88.9 total training loss, about
+12%, while a tower of distributional and conviction penalties at weights
+2.0-12.0 dominated. The probe showed that plain unweighted cross-entropy on
+the same substrate produces exactly the non-degenerate output the full stack
+cannot reach, and that aggressive inverse-frequency rebalancing makes it worse
+(FLAT recall 0.07). The single coherent hypothesis is therefore that
+discrimination must dominate and the distributional/conviction terms must be
+secondary. Direction cross-entropy now outweighs every individual penalty.
+
+Explicitly unchanged: every `ENTRY_CKPT_*` value, every slice policy, minimum
+row count, label-rate floor, tolerance and prediction-rate floor, the
+specialist gate floor, both hard-red stop settings, and the full transition
+cost matrix (`LONG/SHORT->FLAT` 0.45 against `FLAT->LONG/SHORT` 1.60), which
+encodes real trading economics and the abstention-quality goal.
+
+Decision:
+
+- adopt both changes for the next smoke lineage (V10) on the unchanged V26
+  dataset bytes;
+- keep V8 and V9 as immutable evidence; do not rerun their recipe values;
+- if V10 still collapses, the next hypothesis is the balanced sampler's
+  train/validation prior mismatch (`ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER`),
+  which the V8/V9 loss split already suggests: balance penalties were small on
+  sampled TRAIN batches and large on the real VAL prior;
+- launch remains `BLOCK`; a smoke bundle proves trainability only and never
+  edge, promotion or launch.

@@ -2214,12 +2214,39 @@ def test_entry_v10_active_head_target_surfaces_match_exact_output_widths(monkeyp
 
 
 def test_entry_v10_checkpoint_admission_requires_all_active_head_health() -> None:
-    text = TRAINER_PATH.read_text(encoding="utf-8")
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
+    text = TRAINER_PATH.read_text(encoding="utf-8")
     assert 'val_stats.get("active_head_health_ok", False)' in text
-    assert "and _active_head_health_ok" in text
     assert "[ENTRY_ACTIVE_HEAD_HEALTH_CHECKPOINT_BLOCKED]" in text
     assert "[ENTRY_ACTIVE_HEAD_HEALTH]" in text
+
+    # Active-head health is mandatory in BOTH profiles: it is the liveness
+    # proof, not an acceptance metric. Candidate additionally requires
+    # auxiliary and cooperation health (see
+    # tests/test_entry_profile_separated_checkpoint_admission.py for the
+    # complete profile matrix).
+    for profile in ("smoke", "candidate"):
+        assert (
+            trainer._checkpoint_admission_ok(
+                profile=profile,
+                aux_head_health_ok=True,
+                active_head_health_ok=False,
+                cooperation_gate_health_ok=True,
+                class_support_ok=True,
+            )
+            is False
+        )
+        assert (
+            trainer._checkpoint_admission_ok(
+                profile=profile,
+                aux_head_health_ok=True,
+                active_head_health_ok=True,
+                cooperation_gate_health_ok=True,
+                class_support_ok=True,
+            )
+            is True
+        )
 
 
 def test_entry_v10_direction_ce_weight_includes_bad_path_and_short_side(monkeypatch) -> None:

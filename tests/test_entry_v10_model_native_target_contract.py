@@ -470,9 +470,20 @@ def test_cooperation_gate_epoch_health_rejects_starved_specialist() -> None:
         "specialist_gate min mean=0.001000" in failure
         for failure in failures
     )
-    source = TRAINER_PATH.read_text(encoding="utf-8")
-    assert "_improved = bool(" in source
-    assert "and _cooperation_gate_health_ok" in source
+    # A starved cooperation gate must block candidate checkpoint admission.
+    # At smoke it stays a logged diagnostic by user vedtak 2026-07-25; the
+    # complete profile matrix lives in
+    # tests/test_entry_profile_separated_checkpoint_admission.py.
+    assert (
+        trainer._checkpoint_admission_ok(
+            profile="candidate",
+            aux_head_health_ok=True,
+            active_head_health_ok=True,
+            cooperation_gate_health_ok=False,
+            class_support_ok=True,
+        )
+        is False
+    )
 
 
 def test_entry_trainer_has_no_stale_warm_start_artifact_lane() -> None:

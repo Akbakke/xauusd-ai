@@ -244,6 +244,20 @@ The exact active output declaration has 22 heads. Their ordered evidence feeds
 one learned 26-group/96-value direction fusion (`LayerNorm(96)`, `96 -> 128`,
 GELU, `128 -> 3`) before immutable calibration and exact three-class argmax.
 
+### Profile-separated checkpoint admission
+
+`_checkpoint_admission_ok` in the trainer is the one owner of checkpoint
+admission. `candidate` requires auxiliary head health, active head health and
+cooperation gate health, unchanged. `smoke` admits on active-head liveness
+plus non-degenerate class support only; auxiliary and cooperation health stay
+computed, logged and journaled as diagnostics. This is a trainability
+ratchet, not an acceptance change: a smoke bundle carries zero edge,
+promotion or launch authority, and the smoke bundle audit, candidate
+readiness, selective-edge, replay, serve-parity v4, sizing, joint Exit,
+lifecycle and launch finalizer contracts are unchanged. Only a candidate
+bundle may enter the acceptance chain. Never widen smoke admission further,
+and never let a smoke result stand in for candidate evidence.
+
 ### Sizing boundary
 
 The learned `position_size` head is mandatory and must be trained from the

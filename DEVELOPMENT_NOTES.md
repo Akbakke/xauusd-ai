@@ -96,6 +96,24 @@ executed on 2026-07-24 under vedtak `XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`
 (pair generation `077e5419…`); any further production run still requires its
 own explicit vedtak and fresh immutable output root.
 
+Checkpoint admission is profile-separated by user vedtak 2026-07-25 and has
+one owner, `_checkpoint_admission_ok`. Candidate is unchanged and requires
+auxiliary, active-head and cooperation health. Smoke admits on active-head
+liveness plus non-degenerate class support so a trainability run yields a
+measurable bundle; auxiliary and cooperation health remain computed, logged
+and journaled as diagnostics. A smoke bundle is never edge, promotion or
+launch evidence. Do not widen smoke admission further and do not let a smoke
+result substitute for candidate evidence.
+
+The same vedtak rebalanced five objective weights in the canonical recipe
+owner (`ENTRY_DIRECTION_CE_SCALE` to 12.00, prediction-balance class weights
+to `1.0,1.0,1.0`, and the triad/trade/side conviction weights to 2.00) after
+V8 and V9 collapsed while an unweighted-cross-entropy probe on the same
+substrate did not. Objective weights are recipe values. Never move
+`ENTRY_CKPT_*`, slice policy, minimum rows, label-rate floors, prediction-rate
+floors, gate floors, hard-red stop settings or the transition cost matrix to
+make a run pass.
+
 Checkpoint selection must consume exact epoch-wide `specialist_gate`,
 `tf_gate` and `family_tf_cooperation_gate` health. Every token must retain mean
 use above 0.01 and each gate must retain its direction-neutral entropy floor.

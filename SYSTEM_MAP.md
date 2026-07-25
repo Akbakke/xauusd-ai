@@ -185,6 +185,15 @@ cross-timeframe attention, positional encoding, FiLM conditioning and eight
 specialist encoders before producing the public direction surface and its
 supporting heads.
 
+`_checkpoint_admission_ok` in the trainer owns checkpoint admission for both
+profiles (user vedtak 2026-07-25). Candidate requires auxiliary head health,
+active head health and cooperation gate health, unchanged. Smoke admits on
+active-head liveness plus non-degenerate class support and keeps auxiliary and
+cooperation health as logged diagnostics, so a trainability run produces a
+comparable bundle instead of a binary refusal. A smoke bundle has zero edge,
+promotion or launch authority; every downstream acceptance contract is
+unchanged and only candidate bundles enter the acceptance chain.
+
 `gx1/contracts/entry_model_native_readiness_v1.py` owns the exact specialist
 and head declaration. `gx1/contracts/entry_model_native_training_objective_v1.py`
 requires every advertised objective to have a positive loss weight. A head
