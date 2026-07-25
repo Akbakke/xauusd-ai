@@ -1018,6 +1018,7 @@ def _enforce_canonical_train_env_contract() -> None:
     allowed_runtime_env = {
         *_TRAIN_ARTIFACT_HASH_ENV.values(),
         _TRAIN_DATASET_RUN_ID_ENV,
+        _TRAIN_MULTI_TF_CACHE_ENV,
     }
     extra_controls = sorted(
         key
@@ -1460,6 +1461,10 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
 }
 _TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
+# Recipe-validated absolute path of the mandatory verified multi-TF V2 disk
+# cache. The launch contract emits this row; it is exact runtime identity, not
+# an ambient control.
+_TRAIN_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V2_CACHE_DIR"
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
     if not raw.is_absolute():
@@ -8417,7 +8422,7 @@ def run_train(
     if m5_prebuilt_path is None:
         raise RuntimeError("[MULTI_TF_MANDATORY] m5_prebuilt_path is required")
     mtf_cache_raw = str(
-        os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR") or ""
+        os.environ.get(_TRAIN_MULTI_TF_CACHE_ENV) or ""
     ).strip()
     mtf_cache_dir = Path(mtf_cache_raw).expanduser()
     if not mtf_cache_raw or not mtf_cache_dir.is_absolute():
