@@ -1961,11 +1961,16 @@ def build_dataset_canonical(
     _sess_counts = pd.Series(df["session_id"]).value_counts(dropna=False).sort_index()
     log.info("[SESSION_ID_DISTRIBUTION_PROOF] %s", _sess_counts.to_dict())
     df["is_ASIA"] = (canonical_session_id == 0).astype(np.int8)
+    # decision_ts is a DatetimeIndex, so the session helpers return Series
+    # indexed by timestamp; df carries the window-filtered integer index.
+    # Assign positionally — label alignment here silently yields all-NaN.
     df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(
         decision_ts
-    ).astype(np.float32)
+    ).to_numpy(dtype=np.float32)
     df["minutes_to_next_session_boundary"] = (
-        get_session_minutes_to_next_boundary_vectorized(decision_ts).astype(np.float32)
+        get_session_minutes_to_next_boundary_vectorized(decision_ts).to_numpy(
+            dtype=np.float32
+        )
     )
     session_change = np.zeros(len(canonical_session_id), dtype=np.int8)
     if len(canonical_session_id) > 1:
@@ -2139,8 +2144,23 @@ def build_dataset_canonical(
     # Normalize ctx dtypes
     df_ctx_cont = df[ctx_cont_names].astype(np.float32)
     df_ctx_cat = df[ctx_cat_names].astype(np.int64)
-    if not np.isfinite(df_ctx_cont.to_numpy()).all():
-        raise RuntimeError("CTX_CONT_NONFINITE_IN_SOURCE")
+    cont_matrix = df_ctx_cont.to_numpy()
+    if not np.isfinite(cont_matrix).all():
+        bad_mask = ~np.isfinite(cont_matrix)
+        bad_columns = {
+            name: int(count)
+            for name, count in zip(ctx_cont_names, bad_mask.sum(axis=0))
+            if count
+        }
+        first_bad_row = int(np.argwhere(bad_mask.any(axis=1))[0][0])
+        first_bad_time = (
+            str(df["time"].iloc[first_bad_row]) if "time" in df.columns else "unknown"
+        )
+        raise RuntimeError(
+            "CTX_CONT_NONFINITE_IN_SOURCE: "
+            f"columns={bad_columns} first_bad_row={first_bad_row} "
+            f"first_bad_time={first_bad_time}"
+        )
     if not np.isfinite(df_ctx_cat.to_numpy(dtype=np.float64)).all():
         raise RuntimeError("CTX_CAT_NONFINITE_IN_SOURCE")
 
