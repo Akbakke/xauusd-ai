@@ -1,6 +1,6 @@
 # Canonical Exit status
 
-Updated 2026-07-24.
+Updated 2026-07-25.
 
 Status: **BLOCK**. `PROJECT_STATE_artifacts.json` still records the historical
 XGB, V3 and Exit-IQL selections, but `ACTIVE` there is not current production
@@ -40,17 +40,22 @@ result and LONG/SHORT per-M1 decision trace, while binding the exact runtime
 heads, SourceTape, frozen pair, active artifacts, source closure and outputs.
 
 The immutable native OANDA M1/M5 producer and the snapshot-driven
-native→canonical-v3/raw-BASE28 pair producer are now code-proven in their
-existing owners but have not run. The pair route binds native/source/code/
+native→canonical-v3/raw-BASE28 pair producer executed on 2026-07-24 under
+vedtak `XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1`: the 2019-01-01→2026-07-24
+roots are accepted and pair generation `077e5419…` is published at the
+canonical pointer. The pair route binds native/source/code/
 formula/timing lineage and publishes raw BASE28 with exactly 13 native M1
-fields; it cannot copy an old prebuilt. Still required are explicit production
-runs for both timeframes, execution of the pair route, a separate immutable
-TRAIN-only rank reference bound through XGB/V3/Exit dataset, bundle, replay and live,
-a fresh model-native V3 dataset produced by the now code-proven exact
-writer/event, a fresh 79-field Exit-XGB, V3 rescore/retrain, production
+fields; it cannot copy an old prebuilt. XGB is cut by user vedtak 2026-07-24:
+no XGB trainer, rescore or fresh XGB artifact is ever built. The successor
+Exit IO contract replaces the bridge evidence with the accepted model-native
+Entry bundle's calibrated outputs; the current XGB runtime/contracts/registry
+entry remain only as the already-blocked historical surface and are deleted
+with the V8 IO contract in the Exit-rebuild wave. Still required are the
+separate immutable TRAIN-only rank reference bound through V3/Exit dataset,
+bundle, replay and live (the registry intentionally has no
+`train_rank_reference` entry yet), the successor Exit IO contract, a fresh
+model-native V3 dataset on accepted Entry prediction evidence, production
 Exit-IQL retrain, and execution of the code-proven canonical full-TEST
-active-chain producer on that fresh chain. Exact SourceTape lookup, frozen-pair
-loading, V3 dataset production, the Exit-only pipeline factory and full-TEST
-producer now exist in source; no fresh production artifact was created.
+active-chain producer on that fresh chain.
 Until their immutable OOS and live-like gates pass, Exit cannot authorize
 paper, demo or live operation.

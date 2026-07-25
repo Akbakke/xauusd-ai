@@ -47,26 +47,33 @@ T+5/closed-M5 Exit timing, V3 window coverage, transactional TradeState and
 production-only Exit loading. The current repair adds full-history native-M5
 state, atomic canonical/BASE generations, strict source/closure ownership,
 causal spread-only semantics, XGB-bound V3 lineage and the exact V3 dataset
-writer/event in the existing owner. Current data have not been migrated or
-pair-bootstrapped; a fresh V3 dataset and the Exit rebuild/rescore/retrain
-remain artifact gates. The
+writer/event in the existing owner. The native roots and first pair generation are
+executed; a fresh V3 dataset on accepted Entry prediction evidence and the
+successor Exit rebuild remain artifact gates. The
 public launch route owns canonical repository
 registry/state targets and canonical
 `/home/andre2/GX1_DATA/reports/entry_model_native_launch_authority` evidence
-roots; callers may not substitute alternate roots. No new data/model or launch
-artifacts were written. The existing historical OANDA owner now has immutable
+roots; callers may not substitute alternate roots. No model or launch
+artifacts were written. The existing historical OANDA owner's immutable
 `model-native-native-m1-source` and `model-native-native-m5-source`
-publication routes with one strict v3 schema and fixed 3-day/15-day chunk
-policy, but neither has been executed. A complete initial
-native→canonical-v3/raw-BASE28 build and immutable TRAIN-only rank reference
-remain missing.
+publication routes (one strict v3 schema, fixed 3-day/15-day chunk policy)
+both executed on 2026-07-24 under vedtak
+`XAU_NATIVE_PAIR_BOOTSTRAP_20260724_V1` with 2019-01-01→2026-07-24 roots, and
+`model-native-canonical-pair` published the first immutable
+native→canonical-v3/raw-BASE28 generation `077e5419…` at the canonical
+pointer. The immutable TRAIN-only rank reference remains missing and the
+registry has no `train_rank_reference` entry, so exit-chain consumers stay
+fail-closed.
 Caller-supplied joint Exit replay/trace parquets have
 zero launch authority; the retained Exit bundle is research-only and
 non-production. The canonical full-TEST producer is code-complete in the
 existing sizing owner and is routed through
 `model-native-canonical-active-exit-replay`, but it has not run on an accepted
-fresh chain. Causal Exit rebuild, native-M1/M5 execution/pair bootstrap and canonical/live
-December-2024 tape parity remain open.
+fresh chain. Causal Exit rebuild remains open on the accepted future Entry distribution;
+XGB is cut by user vedtak 2026-07-24 and is never rebuilt. New Entry lineages
+use an event-local strict native-v3 M5 tape, which supersedes the
+December-2024 repair path; the old canonical roots retain that defect as
+historical evidence only.
 `PROJECT_STATE_xau_direction_launch.json` remains `BLOCK`.
 
 Never delete or move `GX1_DATA` content merely to reduce repository search
