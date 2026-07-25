@@ -2232,15 +2232,36 @@ def _prebuild_multi_tf_v2_features_once(
         from gx1.features.htf_features import load_multi_tf_v2_cache
 
         loaded = load_multi_tf_v2_cache(disk_cache_raw)
+        # The verified V2 cache binds its own full-history canonical M5 source
+        # (the cascade-audited canonical-v3 parquet). The trainer's
+        # --m5-prebuilt-path is the model-range seq/snapshot source — a
+        # distinct identity bound through the split manifests — so the cache
+        # source is proven against its own declared bytes, not against
+        # m5_path. Requiring equality here would force the five-timeframe
+        # surfaces onto the model-range-trimmed file and reintroduce the
+        # truncated HTF warmup defect.
+        cache_source = Path(
+            str(getattr(loaded, "m5_prebuilt_source", "") or "")
+        ).expanduser()
+        cache_source_sha256 = str(
+            getattr(loaded, "m5_prebuilt_source_sha256", "") or ""
+        )
         if (
-            str(getattr(loaded, "m5_prebuilt_source", "")) != str(m5_path)
-            or str(getattr(loaded, "m5_prebuilt_source_sha256", ""))
-            != source_sha256
+            not cache_source.is_absolute()
+            or not cache_source.is_file()
+            or cache_source.is_symlink()
         ):
             raise RuntimeError(
+                "[MULTI_TF_CACHE_SOURCE_MISSING] "
+                f"cache_source={str(cache_source)!r}"
+            )
+        observed_cache_source_sha256 = _sha256_file(cache_source)
+        if observed_cache_source_sha256 != cache_source_sha256:
+            raise RuntimeError(
                 "[MULTI_TF_CACHE_SOURCE_BINDING_MISMATCH] "
-                f"cache_source={getattr(loaded, 'm5_prebuilt_source', None)!r} "
-                f"expected_source={str(m5_path)!r}"
+                f"cache_source={str(cache_source)!r} "
+                f"declared_sha256={cache_source_sha256} "
+                f"observed_sha256={observed_cache_source_sha256}"
             )
         cache_identity_sha256 = str(
             getattr(loaded, "cache_identity_sha256", "")
