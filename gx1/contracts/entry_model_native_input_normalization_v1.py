@@ -576,21 +576,29 @@ def fit_surface_normalization(
             # satisfies the cap by construction. The statistic is still
             # fitted once on the complete physical TRAIN population and
             # remains immutable bundle state; no value is rewritten.
-            deviations = np.abs(column - field_center)
+            rounded_center = float(np.float32(field_center))
+            deviations = np.abs(column - rounded_center)
             implied_clip_rate = float(
-                (deviations > field_scale * CLIP_ABS).mean()
+                (deviations > float(np.float32(field_scale)) * CLIP_ABS).mean()
             )
             if implied_clip_rate > MAX_TRAIN_CLIP_RATE:
-                cap_scale = float(
-                    np.quantile(deviations, 1.0 - MAX_TRAIN_CLIP_RATE)
-                    / CLIP_ABS
-                ) * (1.0 + 1.0e-6)
+                allowed = int(MAX_TRAIN_CLIP_RATE * deviations.size)
+                order = deviations.size - 1 - allowed
+                threshold = float(
+                    np.partition(deviations, order)[order]
+                )
+                cap_scale = np.float32(threshold / CLIP_ABS)
+                while (
+                    np.isfinite(cap_scale)
+                    and float(cap_scale) * CLIP_ABS < threshold
+                ):
+                    cap_scale = np.nextafter(cap_scale, np.float32(np.inf))
                 if (
                     np.isfinite(cap_scale)
-                    and cap_scale > field_scale
-                    and cap_scale > SCALE_FLOOR
+                    and float(cap_scale) > field_scale
+                    and float(cap_scale) > SCALE_FLOOR
                 ):
-                    field_scale = cap_scale
+                    field_scale = float(cap_scale)
                     source = f"{source}_clip_cap_quantile"
             center[index] = np.float32(field_center)
             scale[index] = np.float32(field_scale)
