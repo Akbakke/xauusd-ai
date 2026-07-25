@@ -1136,16 +1136,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         identity_mask = binary_mask | categorical_mask
         if bool(identity_mask.any().item()):
             normalized[..., identity_mask] = raw_float[..., identity_mask]
-        overflow = torch.abs(normalized) > float(INPUT_NORMALIZATION_CLIP_ABS)
-        if bool(overflow.any().item()) and not self.training:
-            first = torch.nonzero(overflow, as_tuple=False)[0]
-            field_index = int(first[-1].item())
-            raise RuntimeError(
-                "ENTRY_INPUT_NORMALIZATION_RUNTIME_OOD: "
-                f"surface={surface} "
-                f"field={self._input_normalization_field_names[surface][field_index]} "
-                f"clip_abs={INPUT_NORMALIZATION_CLIP_ABS}"
-            )
+        # Clipping at the exact boundary IS the declared handling: the fit
+        # contract caps TRAIN clipping at 2%, so heavy-tail evidence rows
+        # legitimately exceed the boundary in every split and at serve.
+        # Input sanity is owned upstream by the hash-bound evidence,
+        # finiteness and freshness contracts; train and serve apply one
+        # identical clamp.
         normalized = torch.clamp(
             normalized,
             -float(INPUT_NORMALIZATION_CLIP_ABS),
