@@ -110,8 +110,8 @@ if (
 verification = repair.get("repository_verification")
 if (
     not isinstance(verification, dict)
-    or verification.get("tests_collected") != 1898
-    or verification.get("tests_passed") != 1893
+    or verification.get("tests_collected") != 1903
+    or verification.get("tests_passed") != 1898
     or verification.get("tests_skipped") != 5
     or verification.get("tests_failed") != 0
     or verification.get("changed_python_compile") != "PASS"
