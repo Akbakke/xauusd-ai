@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     foundation_audit_policy_binding,
@@ -143,6 +144,16 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
     m5_path = m5_dir / "xau_m5.parquet"
     m5_path.write_bytes(b"xau-m5-fixture")
     artifacts["m5_prebuilt_path"] = m5_path.resolve()
+
+    mtf_cache_dir = (tmp_path / f"MULTI_TF_V2_CACHE_{STAMP}").resolve()
+    mtf_cache_dir.mkdir()
+    artifacts["multi_tf_cache_manifest_json"] = _write_json(
+        mtf_cache_dir / "manifest.json",
+        {
+            "builder_version": HTF_V2_CACHE_BUILDER_VERSION,
+            "m5_prebuilt_source": str(m5_path.resolve()),
+        },
+    )
 
     for split in ("train", "val", "test"):
         parquet = dataset_dir / f"xau_seq513_{split}.parquet"
@@ -584,6 +595,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "val_parquet",
         "test_parquet",
         "m5_prebuilt_path",
+        "multi_tf_cache_manifest_json",
         "post_rebuild_readiness_json",
         "full_input_liveness_audit_json",
         "feature_audit_json",
@@ -673,6 +685,7 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "--val-parquet", str(artifacts["val_parquet"]),
         "--test-parquet", str(artifacts["test_parquet"]),
         "--m5-prebuilt-path", str(artifacts["m5_prebuilt_path"]),
+        "--multi-tf-cache-manifest-json", str(artifacts["multi_tf_cache_manifest_json"]),
         "--post-rebuild-readiness-json", str(artifacts["post_rebuild_readiness_json"]),
         "--full-input-liveness-audit-json", str(artifacts["full_input_liveness_audit_json"]),
         "--feature-audit-json", str(artifacts["feature_audit_json"]),

@@ -422,6 +422,7 @@ case "$cmd" in
       --val-parquet \
       --test-parquet \
       --m5-prebuilt-path \
+      --multi-tf-cache-manifest-json \
       --post-rebuild-readiness-json \
       --full-input-liveness-audit-json \
       --feature-audit-json \

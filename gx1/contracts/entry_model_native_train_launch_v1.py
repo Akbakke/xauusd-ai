@@ -64,6 +64,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     REQUIRED_POSITIVE_LOSS_WEIGHTS,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.features.htf_features import HTF_V2_CACHE_BUILDER_VERSION
 from gx1.features.entry_chart_geometry_v1 import (
     CHART_GEOMETRY_MODEL_NATIVE_FEATURE_NAMES,
 )
@@ -126,6 +127,7 @@ _COMMON_BINDING_KEYS = (
     "val_parquet",
     "test_parquet",
     "m5_prebuilt_path",
+    "multi_tf_cache_manifest_json",
     "post_rebuild_readiness_json",
     "full_input_liveness_audit_json",
     "feature_audit_json",
@@ -160,6 +162,10 @@ TRAINER_ARTIFACT_HASH_ENV = {
     "m5_prebuilt_path": "GX1_ENTRY_M5_PREBUILT_SHA256",
 }
 TRAINER_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
+# The post-V7 audit made the verified five-timeframe V2 disk cache mandatory
+# for admitted training. The trainer receives the exact cache directory only
+# through this recipe-validated environment row; ambient values are rejected.
+TRAINER_MULTI_TF_CACHE_ENV = "GX1_V10_MULTI_TF_V2_CACHE_DIR"
 
 
 class LaunchContractError(RuntimeError):
@@ -719,6 +725,40 @@ def _validate_pretrain_audit(
         )
 
 
+def _validate_multi_tf_cache_manifest(
+    path: Path,
+    payload: Mapping[str, Any],
+) -> Path:
+    """Validate the bound V2 multi-TF cache manifest and return its cache dir.
+
+    The trainer deep-verifies every cache byte (source M5 identity, the ten
+    component arrays, sizes, hashes and the 11-file inventory); this boundary
+    binds the exact manifest bytes and proves the declared builder identity so
+    the recipe-validated environment can name one absolute verified cache.
+    """
+
+    _require(
+        path.name == "manifest.json",
+        f"multi_tf_cache_manifest_json must be the cache manifest.json: {path}",
+    )
+    _require(
+        payload.get("builder_version") == HTF_V2_CACHE_BUILDER_VERSION,
+        "multi-TF cache manifest builder_version mismatch: "
+        f"observed={payload.get('builder_version')!r} "
+        f"expected={HTF_V2_CACHE_BUILDER_VERSION!r}",
+    )
+    _require(
+        bool(str(payload.get("m5_prebuilt_source") or "").strip()),
+        "multi-TF cache manifest missing m5_prebuilt_source",
+    )
+    cache_dir = path.parent
+    _require(
+        cache_dir.is_absolute() and cache_dir.is_dir() and not cache_dir.is_symlink(),
+        f"multi-TF cache directory invalid: {cache_dir}",
+    )
+    return cache_dir
+
+
 def _validate_audits(
     artifacts: Mapping[str, Path],
     payloads: Mapping[str, Mapping[str, Any]],
@@ -1175,6 +1215,11 @@ def validate_launch(
         for key, env_name in TRAINER_ARTIFACT_HASH_ENV.items()
     )
     env_rows.append(f"{TRAINER_DATASET_RUN_ID_ENV}={dataset_run_id}")
+    multi_tf_cache_dir = _validate_multi_tf_cache_manifest(
+        artifacts["multi_tf_cache_manifest_json"],
+        payloads["multi_tf_cache_manifest_json"],
+    )
+    env_rows.append(f"{TRAINER_MULTI_TF_CACHE_ENV}={multi_tf_cache_dir}")
     return env_rows
 
 
