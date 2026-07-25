@@ -212,7 +212,7 @@ def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
 
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
-    assert "V9 completed six full train/validation epochs" in blockers
+    assert "V8 and V9 both completed six full train/validation epochs" in blockers
     assert "source-repaired only" in blockers
     assert "transactional finalizer/recovery" in blockers
     assert "existing sizing/replay owner now has a canonical full-TEST producer" in blockers
