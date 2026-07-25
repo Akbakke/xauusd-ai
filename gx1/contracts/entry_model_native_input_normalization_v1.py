@@ -789,6 +789,8 @@ def require_surface_normalization(
         if not is_binary and not is_categorical and scale_source[index] not in {
             "iqr",
             "median_positive_abs_deviation",
+            "iqr_clip_cap_quantile",
+            "median_positive_abs_deviation_clip_cap_quantile",
         }:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_SCALE_SOURCE_INVALID] "
