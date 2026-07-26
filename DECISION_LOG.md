@@ -1768,3 +1768,65 @@ Decision:
   `ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER`). No `ENTRY_CKPT_*` value, slice
   policy, floor, gate threshold or cost-matrix entry may move.
 - Launch remains `BLOCK`.
+
+## 2026-07-26 — V11 clears gradient clipping; the fusion path is the mechanism
+
+V11 was a deliberately short throughput probe: two epochs,
+`grad_clip_norm` 1.0 -> 10.0, learning rate 3e-4 -> 1e-3, everything else
+identical to V10. Cost about 40 minutes instead of 3.5 hours.
+
+Result: train direction cross-entropy 29.72 -> 30.19, still flat. VAL
+prediction rates 0.000/0.000/1.000. And the decisive detail — `raw_acc`
+0.385840 and direction checkpoint score -0.728320 are **bit-identical to
+V10** despite triple the learning rate and ten times the clipping headroom.
+Gradient clipping is eliminated as the mechanism.
+
+Bit-identical validation metrics under different optimizer settings can only
+mean the public direction output does not meaningfully depend on the input. A
+scratchpad probe (zero authority) instantiated the real architecture and
+measured cross-sample spread through the fusion path:
+
+- inputs vary strongly: cross-sample standard deviation about 1.0 on `seq_x`,
+  `snap_x`, `ctx_cont` and all five timeframe tensors;
+- at `evidence_fusion_in` the cross-sample standard deviation has fallen to
+  0.111 while within-sample spread is 0.883, so the 22-head / 26-group path
+  loses roughly an order of magnitude of sample discrimination;
+- at the direction logits the cross-sample standard deviation is 0.066 while
+  the spread between the three classes inside one row is about 2.9, so the
+  sample-dependent component is on the order of two percent of the
+  class-offset it must overcome. Every one of the 16 distinct inputs produced
+  the same argmax;
+- `evidence_fusion_norm` reports a per-sample mean range of 6.8e-08. This is
+  exact and shape-independent: `LayerNorm(96)` removes the per-sample mean of
+  the evidence vector, so any signal carried by the overall level of evidence
+  — all heads leaning the same way — is deleted before the direction
+  projection. Only the relative pattern across the 96 channels survives.
+
+Caveat recorded honestly: the probe ran on the small test instantiation of the
+architecture with synthetic inputs, so the exact ratios are indicative and not
+production magnitudes. The LayerNorm mean-deletion measurement is exact and
+holds at any shape.
+
+This explains the whole V5-V11 series. Direction can only reach the logits
+through 22 heads that are themselves being trained from scratch; early in
+training their outputs are weakly sample-dependent, LayerNorm then discards
+the shared level, and the surviving signal is far too small to flip any row's
+argmax. The model therefore predicts one class for every row, which class is
+set by the prior, and the tiny gradient it receives competes with fifteen
+distributional penalties. It is a curriculum and amplitude problem in the
+fusion path, not a data, feature, information-ceiling or clipping problem.
+
+Decision:
+
+- V11 is immutable evidence; gradient clipping and learning rate are cleared.
+- The next probe raises the amplitude of sample-dependent evidence reaching
+  the fusion using recipe/CLI values only: `--specialist-fusion-scale`
+  0.25 -> 1.00 and `--multi-tf-scale` 0.50 -> 1.00, two epochs. Both are
+  recipe values; no gate, floor, threshold, cost or architecture contract
+  moves.
+- If amplitude alone does not restore sample dependence, the remaining
+  candidates are architectural and require an explicit user decision, because
+  they touch the pinned fusion contract: whether `LayerNorm(96)` may keep the
+  per-sample level, and whether head pre-training is admissible as a
+  curriculum inside one run.
+- Launch remains `BLOCK`.
