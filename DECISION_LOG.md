@@ -2039,3 +2039,65 @@ Decision:
   measurable bundle for `model-native-smoke-bundle-audit` and an abstention
   reading. Instability across epochs is expected and is the next question.
 - launch remains `BLOCK`; no acceptance threshold changed.
+
+## 2026-07-26 — measured: the V26 training rows carry no synthetic substitution
+
+A direct question — is every value real? — was answered by measurement on all
+369,303 real TRAIN rows rather than by reading code and assuming. Two claims of
+mine were withdrawn in the process, which is the point of rule 2d.
+
+### Withdrawn claim
+
+I reported that `momentum.flow_mtf_bull_confirmation` and
+`flow_mtf_bear_confirmation` sharing exactly 37,576 rows at 0.5 proved a shared
+"undefined -> 0.5" default path. That inference was wrong. `_sign_agreement`
+computes bull and bear as complementary fractions of valid timeframe
+components, so `bull + bear = 1` and `bull == 0.5` is mathematically equivalent
+to `bear == 0.5`. Identical rows are required by the definition. Those 37,576
+rows are genuine even disagreement between timeframes — real evidence.
+
+Measurement confirms the helper is clean in practice as well: `bull + bear` is
+exactly 1.0 in **100.0%** of TRAIN rows, and the case I suspected next — the
+`max(valid_count, 1.0)` placeholder denominator turning "no valid timeframe"
+into a neutral zero — activates in **0 rows**.
+
+### Second suspicion also refuted
+
+`chart.foundation_pullback_depth_norm` sits at exactly 0.5 in 72,881 rows
+(19.7%). All 72,881 occur while a real pullback phase is active, and **none**
+occur in the 24,931 rows with no phase active. The field has 200,002 unique
+values. A mass at 0.5 is the classic 50% retracement, i.e. market behaviour,
+not a placeholder.
+
+### Upgraded from suspected to measured
+
+The `basic_v1` warmup neutrals were registered on 2026-07-26 as unfixed with
+the assumption that the causal warmup trim removes them before TRAIN. That is
+now measured, not assumed: scanning every one of the 513 signal and 142 context
+fields for the exact substitution values found **no RSI field at exactly 50.0
+and no CLV field at exactly 0.5**. The only exact-50.0 and exact-25.0 masses
+sit on minute and bar counters, where those values occur naturally once per
+session or once per episode. The substitutions do not reach the training rows.
+
+The `±25.0` default clip touches one field: `chart.m5_ema50_200_spread_atr`
+saturates at the bound in 56 of 369,303 rows, with 368,377 unique values. The
+age counters reach 96 and 104 with 105,442 values above 25, proving they are
+not clipped. Code hygiene, not corruption.
+
+MTF clip-ladder saturations are legitimate: `regime_class_id` and
+`ema_stack_aligned_v2` at 0 are declared semantic categoricals, the wick shares
+at exactly 0 are the deliberate 2026-07-24 zero-range-bar fix, and
+`session_change_flag` at 98.5% zero matches four session changes against 288 M5
+bars per day exactly.
+
+Decision:
+
+- the V26 training rows are real market evidence; no synthetic substitution
+  reaches them. This is measured on the full population, not sampled.
+- remaining items in this class are code hygiene for the next lineage: the
+  unreachable `GX1_ATR_REGIME_FIX` gate and its dead constant feature, the
+  `±25.0` default clip, and the invented MTF winsorization ladder, which should
+  come from TRAIN-fitted quantiles like every other surface.
+- the withdrawn claim stands as recorded evidence that identical row counts
+  between complementary features prove complementarity, not a shared default.
+- launch remains `BLOCK`.
