@@ -9940,6 +9940,46 @@ def run_train(
 
     for epoch in range(epochs):
         last_epoch = epoch + 1
+        # Specialist-branch opening observability. `specialist_out` is
+        # zero-initialized, so the eight-specialist evidence path contributes
+        # nothing and passes no gradient upstream until this weight grows away
+        # from zero. Checkpoint admission and serve-parity both require the
+        # specialists to influence class margins, so a branch that stays closed
+        # is a fail-closed condition that must be visible per epoch rather than
+        # inferred from red slice metrics.
+        _spec_ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
+        _spec_w = _spec_ckpt_model.specialist_out.weight
+        _spec_upstream = [
+            (name, param)
+            for name, param in _spec_ckpt_model.named_parameters()
+            if name.split(".")[0]
+            in (
+                "specialist_encoder",
+                "specialist_proj",
+                "specialist_cross_attn",
+                "specialist_gate",
+                "specialist_token_gate",
+                "specialist_token_identity",
+            )
+        ]
+        _spec_grads = [
+            float(param.grad.detach().norm())
+            for _name, param in _spec_upstream
+            if param.grad is not None
+        ]
+        log.info(
+            "[ENTRY_SPECIALIST_BRANCH_HEALTH] epoch=%d specialist_out_weight_norm=%.6e "
+            "specialist_out_nonzero=%d/%d upstream_tensors=%d "
+            "upstream_grad_tensors=%d upstream_grad_mean=%.6e upstream_grad_max=%.6e",
+            epoch + 1,
+            float(_spec_w.detach().norm()),
+            int((_spec_w.detach() != 0).sum()),
+            int(_spec_w.numel()),
+            len(_spec_upstream),
+            len(_spec_grads),
+            float(np.mean(_spec_grads)) if _spec_grads else 0.0,
+            float(np.max(_spec_grads)) if _spec_grads else 0.0,
+        )
         tr_loss, tr_stats = train_epoch(
             model,
             train_loader,
