@@ -1986,3 +1986,56 @@ Decision:
   demonstrated why 2d matters: two of the loudest findings were weaker than
   first stated once verified.
 - launch remains `BLOCK`.
+
+## 2026-07-26 — V14: the balanced sampler was the collapse mechanism
+
+`ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER` went 1 to 0 as a recipe value, so
+training sees the real class prior instead of artificially balanced batches.
+V14 was a small read-the-meter run: 12,000 rows, three epochs.
+
+    epoch 1  acc 0.338584  balance_score +0.127033  pred 0.474/0.313/0.213  guard_ok=1  BEST_CHECKPOINT
+    epoch 2  acc 0.382114  balance_score +0.251355  pred 0.340/0.405/0.255  guard_ok=1  BEST_CHECKPOINT
+    epoch 3  acc 0.348916  balance_score -0.563516  pred 0.153/0.764/0.083  guard_ok=0
+
+These are the first admitted checkpoints since the 2026-07-14 reset. The class
+balance guard passed — it had been 0 in every run from V5 through V13 — the
+model produced a genuine three-class distribution, and the direction slice score
+improved between epochs (-0.731459 to -0.287875). Epoch 3 swung to heavy SHORT,
+so instability is not solved; the model is simply no longer frozen.
+
+Five candidate mechanisms were settled by measurement rather than argument:
+objective weights (V10), gradient clipping and learning rate (V11), fusion
+amplitude (V12), the specialist zero-init (V13, refuted on real data), and the
+balanced-sampler prior mismatch (V14, confirmed). The signature had been visible
+in every run — balance penalties small on sampled TRAIN batches, large on the
+real VAL prior — and it is exactly what a decision boundary fitted to a
+balanced world the model never meets at validation looks like.
+
+### The ratchet had a second gate
+
+V14 still refused to write a bundle: `TRAIN_FAIL_DIRECTION_SLICE_GUARD` blocks
+bundle publication when the best checkpoint fails the direction slice contract,
+and the 2026-07-25 vedtak had only separated checkpoint admission. Without this
+repair a full smoke would have hit the same wall after hours of compute, and the
+ratchet would never deliver the measurable artifact it was adopted for.
+
+Closed with the same one-owner pattern, with three deliberate limits:
+
+- only the direction-slice gate is profile-separated. The class-balance bundle
+  guard stays unconditional, because non-degenerate three-class output is
+  precisely what smoke requires, so a smoke best-checkpoint always satisfies it;
+- the slice failure evidence file is written for both profiles, so the failure
+  stays immutable and visible; only the raise is separated;
+- at smoke the bundle is logged explicitly as trainability evidence with no
+  edge, promotion or launch authority. Every downstream acceptance contract is
+  unchanged and only candidate bundles enter the acceptance chain.
+
+Decision:
+
+- keep the sampler at 0 for the next lineage; V14 is the evidence.
+- adopt the bundle-write separation as the completion of the 2026-07-25 vedtak,
+  not a new relaxation.
+- the next run is a full smoke on the unchanged V26 bytes to produce the first
+  measurable bundle for `model-native-smoke-bundle-audit` and an abstention
+  reading. Instability across epochs is expected and is the next question.
+- launch remains `BLOCK`; no acceptance threshold changed.

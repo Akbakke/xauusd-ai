@@ -15,6 +15,7 @@ No empirical acceptance threshold moves in either decision.
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 import pytest
 
@@ -117,3 +118,40 @@ def test_no_acceptance_threshold_moved_with_the_objective_rebalance() -> None:
     assert env["ENTRY_COST_FLAT_TO_LONG"] == "1.60"
     assert env["ENTRY_COST_SHORT_TO_FLAT"] == "0.45"
     assert env["ENTRY_COST_FLAT_TO_SHORT"] == "1.60"
+
+
+def _bundle_gate(profile: str) -> bool:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    return trainer._bundle_write_acceptance_gates_required(profile)
+
+
+def test_candidate_still_refuses_a_slice_failed_bundle() -> None:
+    assert _bundle_gate("candidate") is True
+
+
+def test_smoke_writes_the_bundle_as_trainability_evidence() -> None:
+    # Vedtak A is only fulfilled if a smoke run yields a measurable artifact.
+    # The failure evidence file is still written for both profiles; only the
+    # raise is separated.
+    assert _bundle_gate("smoke") is False
+
+
+def test_bundle_gate_rejects_an_unknown_profile() -> None:
+    with pytest.raises(RuntimeError, match="PROFILE_INVALID"):
+        _bundle_gate("shadow")
+
+
+def test_class_balance_bundle_guard_is_not_profile_separated() -> None:
+    """Non-degenerate class support is what smoke requires, so that gate stays.
+
+    Only the direction-slice contract — an acceptance metric — is separated.
+    """
+    trainer_path = (
+        Path(__file__).resolve().parents[1]
+        / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+    )
+    source = trainer_path.read_text(encoding="utf-8")
+    balance_raise = source.index("TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD")
+    window = source[max(0, balance_raise - 2000) : balance_raise]
+    assert "_bundle_write_acceptance_gates_required" not in window

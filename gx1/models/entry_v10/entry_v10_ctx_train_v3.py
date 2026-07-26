@@ -7734,6 +7734,26 @@ def _direction_ckpt_slice_guard_required() -> bool:
     return bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD)
 
 
+def _bundle_write_acceptance_gates_required(profile: str) -> bool:
+    """Do the acceptance gates block writing the bundle for this profile?
+
+    Same separation as `_checkpoint_admission_ok`, applied to the second gate
+    the trainer owns. Candidate is unchanged: a bundle that fails the
+    class-balance or direction-slice contract is never written. Smoke writes the
+    bundle so a trainability run yields a measurable artifact, and both failure
+    evidence files are still produced exactly as before so the failure remains
+    immutable and visible. A smoke bundle carries no edge, promotion or launch
+    authority; the smoke bundle audit, candidate readiness and every downstream
+    acceptance contract are unchanged.
+    """
+
+    if profile == "candidate":
+        return True
+    if profile == "smoke":
+        return False
+    raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+
+
 def validate(
     model,
     loader,
@@ -10662,7 +10682,14 @@ def run_train(
             "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
             "refusing to write a collapsed direction bundle"
         )
-    if _direction_ckpt_slice_guard_required() and not bool(best_direction_slice_contract_ok):
+    # The class-balance guard above is deliberately NOT profile-separated: a
+    # non-degenerate three-class output is exactly what smoke requires, so a
+    # smoke best-checkpoint always satisfies it. The direction-slice contract is
+    # an acceptance metric that smoke records as diagnostic, so only this gate
+    # separates by profile.
+    if _direction_ckpt_slice_guard_required() and not bool(
+        best_direction_slice_contract_ok
+    ):
         intended_out_bundle_dir = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
         evidence_path = _write_direction_slice_failure_evidence(
             intended_out_bundle_dir,
@@ -10887,10 +10914,18 @@ def run_train(
             },
         )
         log.error("[ENTRY_DIR_SLICE_FAILURE_EVIDENCE] path=%s", evidence_path)
-        raise RuntimeError(
-            "[TRAIN_FAIL_DIRECTION_SLICE_GUARD] "
-            "best checkpoint failed active direction slice contract; "
-            "refusing to write a slice-failed direction bundle"
+        if _bundle_write_acceptance_gates_required(profile):
+            raise RuntimeError(
+                "[TRAIN_FAIL_DIRECTION_SLICE_GUARD] "
+                "best checkpoint failed active direction slice contract; "
+                "refusing to write a slice-failed direction bundle"
+            )
+        log.warning(
+            "[ENTRY_SMOKE_SLICE_CONTRACT_DIAGNOSTIC] profile=smoke "
+            "best checkpoint failed the direction slice contract; the bundle is "
+            "written as trainability evidence only and carries no edge, "
+            "promotion or launch authority (evidence=%s)",
+            evidence_path,
         )
 
     # Build the complete bundle in a hidden sibling directory.  The requested
