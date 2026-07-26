@@ -26,8 +26,12 @@ dataset/readiness audit PASS, and its exact bytes remain admitted to the
 next evidence gate. Smoke training `XAU_SEQ513_SMOKE_20260725_V8` on the
 fully repaired substrate ended `TRAIN_FAIL_NO_BEST_STATE` with a total
 FLAT-collapse signature (VAL 100% FLAT from epoch 3, 58 slice failures,
-path auxiliaries at chance, starved family×TF gate); no checkpoint or
-bundle exists. V25 is chain-RED failure evidence at the builder session
+path auxiliaries at chance, starved family×TF gate). That collapse was
+resolved on 2026-07-26 — the cause is the balanced-sampler prior mismatch,
+confirmed by measurement after four other candidates were refuted — and
+V15 staged the first bundle of this lineage. No bundle is yet published:
+V15–V17 were blocked by four defects in the feature-liveness gate itself,
+now repaired (see the 2026-07-26 section below). V25 is chain-RED failure evidence at the builder session
 wall; V24/V7 are historical failure evidence. Seventeen never-executed
 post-audit boundaries were repaired in their existing owners during this
 first native-lineage campaign (see DECISION_LOG 2026-07-25). The V8
@@ -36,6 +40,52 @@ a future smoke requires a new immutable recipe decision, and no empirical
 acceptance threshold changes. There is no trained model, accepted bundle
 or empirical direction-edge proof. Candidate, replay, paper/demo/live and
 promotion remain closed.
+
+### 2026-07-26 FLAT-collapse resolution and liveness repair (V9–V18)
+
+The V8 FLAT collapse is settled by measurement. Five candidate causes were
+tested in sequence on the same V26 substrate: objective weights (V10, refuted),
+gradient clipping and learning rate (V11, refuted on bit-identical metrics),
+fusion amplitude (V12, refuted), specialist zero-init (V13, refuted on real
+data — the branch opens 0 → 0.236 → 0.328 within one epoch), and the
+balanced-sampler prior mismatch (V14, **CONFIRMED**). V14 produced the first
+admitted checkpoints since the 07-14 reset. The optimization-throughput
+hypothesis recorded on 07-25 is withdrawn.
+
+V15 then staged the first bundle of this lineage: strict state load OK at
+513/513/142/5 with every head present, and the specialist branch opening from 0
+to 0.78 over six epochs. V15, V16 and V17 were each blocked at post-export
+feature liveness — by four defects in the **gate**, not in the model or data:
+
+1. gradient norms read after the epoch had cleared them (my own log placement);
+2. MTF sampled from indicator-warmup row 0, where NaN is the correct causal
+   value and no model row ever looks;
+3. a sample index built from the subsampled length but applied to the full
+   parquet arrays, so the gate read the first contiguous rows instead of the
+   stratified selection — `d1_trend_age_mature_flag_v3` measures std 0.4007 over
+   TRAIN and 0.4006 over the subsample but exactly 0.0000 over the first 50,000
+   rows;
+4. `DEAD_STD` applied to a 1024-row sample, which cannot distinguish a dead
+   field from a 0.024%-frequency impulse or from a richly-varying field whose
+   natural range is `[0, 0.0044]`.
+
+All four are repaired in their existing owners with behavioural regression tests
+through the owner rather than raw-source assertions. Deadness is now ruled on the
+complete declared population: a sample below `DEAD_STD` raises a suspicion and
+the gate escalates that one field, using two constants this owner already
+defines and no new magnitude. Escalation replaces exemption — the model-native
+gate still refuses `KNOWN_ALLOWED_DEAD` entirely.
+
+Rules 2a–2e (value origin and evidence class) and rule 24 (advanced enough to
+trade, never more) were added to the constitution during this campaign, after a
+correction from the user: a probe of mine had used synthetic inputs at toy
+dimensions and proposed an invented magnitude as the fix. Both were withdrawn
+and the verification redone on real V26 bytes at real dimensions.
+
+Not proved: no bundle is published, so there is no direction, calibration or
+abstention evidence. Smoke accuracy is trainability evidence only — no run has
+beaten the 0.3858 majority baseline, and `short_to_long_val` swings across
+epochs. Direction quality remains entirely unproved and launch stays `BLOCK`.
 
 ### 2026-07-25 native-lineage campaign (V25/V26/V8)
 
