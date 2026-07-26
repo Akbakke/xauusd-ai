@@ -1713,3 +1713,58 @@ Decision:
   sampled TRAIN batches and large on the real VAL prior;
 - launch remains `BLOCK`; a smoke bundle proves trainability only and never
   edge, promotion or launch.
+
+## 2026-07-26 — V10 isolates the blocker: the ratchet earned its keep
+
+V10 ran the first lineage with both 2026-07-25 vedtak active: profile-separated
+smoke admission and the discrimination-dominant objective (direction CE scale
+12.00, prediction-balance class weights `1.0,1.0,1.0`, triad/trade/side
+conviction weights 2.00). It failed closed with `TRAIN_FAIL_NO_BEST_STATE`
+after six epochs and wrote no bundle.
+
+The failure is different from V8 and V9 in a way that matters. V8 collapsed to
+FLAT after briefly trying direction; V9 oscillated to heavy SHORT. V10 is
+pinned at 100% FLAT from epoch 1 and never moves: VAL prediction rates
+0.000/0.000/1.000 in every epoch and accuracy exactly the 0.3858 FLAT label
+rate.
+
+The new admission diagnostics did their job and isolated the blocker exactly:
+
+    [ENTRY_CHECKPOINT_ADMISSION_BLOCKED] epoch=1..6 profile=smoke
+    aux_head_health_ok=0 active_head_health_ok=1
+    cooperation_gate_health_ok=1 class_support_ok=0
+
+`active_head_health_ok=1` throughout and `cooperation_gate_health_ok=1` from
+epoch 2 onward. The specialist, timeframe and family-by-timeframe cooperation
+gates are healthy on this substrate — that was never true in V5 through V9 and
+is genuine new information. The sole blocker is the degenerate public
+three-class output.
+
+Two optimization facts point at the next hypothesis:
+
+- train direction cross-entropy did not fall at all across six epochs — 29.40
+  at epoch 1 against 30.36 at epoch 6 — even though its scale was tripled. The
+  objective rebalance reached the loss and changed nothing about learning;
+- total train loss moved only 95.69 to 91.04, about 5%, while VAL loss rose to
+  213-247 against 151-159 in V8.
+
+A model that cannot reduce its dominant loss term over six epochs is not
+mis-weighted, it is not learning. With total loss magnitude near 91 across
+fifteen-plus terms and `grad_clip_norm` at 1.0, every step is clipped to a
+small fraction of the raw gradient, and the surviving direction is whichever
+term happens to dominate that batch. The leading hypothesis is therefore
+optimization throughput — gradient clipping and learning rate against a
+large-magnitude multi-term loss — ahead of the previously recorded
+balanced-sampler prior mismatch.
+
+Decision:
+
+- V10 is immutable empirical failure evidence; do not rerun its recipe values.
+- Both 2026-07-25 vedtak are retained. The ratchet delivered exactly what it
+  was adopted for: it converted a binary refusal into a precise blocker
+  identification, and it proved the cooperation gates healthy.
+- The next attempt tests optimization throughput first, using recipe/CLI
+  values only (`grad_clip_norm`, learning rate, and if needed
+  `ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER`). No `ENTRY_CKPT_*` value, slice
+  policy, floor, gate threshold or cost-matrix entry may move.
+- Launch remains `BLOCK`.

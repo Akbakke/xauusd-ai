@@ -107,7 +107,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_terminal_evidence: VERIFIED state=GREEN" in result.stdout
     assert "dataset_audit_evidence: VERIFIED count=9" in result.stdout
     assert "smoke_recipe_evidence: VERIFIED decision=PASS env_count=162" in result.stdout
-    assert "source_commit=6b70a637d261166fdc2782be1b3c95bf4f447694" in result.stdout
+    assert "source_commit=bbaf493da5143447bcd7f09a65a6c37dfbfec791" in result.stdout
     assert "smoke_recipe_dry_run: PASS" in result.stdout
     assert "smoke_recipe_execution_state: TERMINAL_FAILED" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
@@ -188,7 +188,7 @@ def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
     assert recipe_binding["out_bundle_present"] is False
     assert not Path(recipe_binding["out_bundle_dir"]).exists()
     failed = state["latest_failed_smoke_execution"]
-    assert failed["run_id"] == recipe_binding["run_id"] == "XAU_SEQ513_SMOKE_20260725_V9"
+    assert failed["run_id"] == recipe_binding["run_id"] == "XAU_SEQ513_SMOKE_20260726_V10"
     assert failed["dataset_run_id"] == recipe_binding["dataset_run_id"]
     assert failed["completed_utc"] == recipe_binding["execution_completed_utc"]
     assert failed["failure_code"] == recipe_binding["execution_failure_code"]
@@ -212,7 +212,7 @@ def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
 
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
-    assert "V8 and V9 both completed six full train/validation epochs" in blockers
+    assert "V8, V9 and V10 all completed six train/validation epochs" in blockers
     assert "source-repaired only" in blockers
     assert "transactional finalizer/recovery" in blockers
     assert "existing sizing/replay owner now has a canonical full-TEST producer" in blockers
