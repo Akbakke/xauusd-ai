@@ -387,10 +387,20 @@ def _build_model_native_aux_head_targets(
                 f"MODEL_NATIVE_AUX_TARGET_PREFIX_INVALID: {name} got={values.shape} expected={(valid_rows,)}"
             )
         full = np.full(n_rows, np.nan, dtype=np.float32)
-        if lower is not None:
-            values = np.maximum(values, lower)
-        if upper is not None:
-            values = np.minimum(values, upper)
+        # Declared bounds are a contract to verify, never a value to rewrite.
+        # Silently clamping a target is exactly how V24's signed-target
+        # corruption reached training undetected, so an out-of-domain target
+        # fails closed here and the dataset must be rebuilt.
+        if lower is not None and float(values.min()) < float(lower):
+            raise RuntimeError(
+                f"MODEL_NATIVE_AUX_TARGET_BELOW_DECLARED_DOMAIN: {name} "
+                f"min={float(values.min()):.9g} declared_lower={float(lower):.9g}"
+            )
+        if upper is not None and float(values.max()) > float(upper):
+            raise RuntimeError(
+                f"MODEL_NATIVE_AUX_TARGET_ABOVE_DECLARED_DOMAIN: {name} "
+                f"max={float(values.max()):.9g} declared_upper={float(upper):.9g}"
+            )
         full[:valid_rows] = values.astype(np.float32)
         computed[name] = full
 

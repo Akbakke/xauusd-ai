@@ -239,3 +239,32 @@ def test_launch_derives_dataset_run_id_from_post_rebuild_and_all_splits(
             post_rebuild=post_rebuild,
             payloads=payloads,
         )
+
+
+def test_trainer_has_no_shadow_default_for_any_recipe_value() -> None:
+    """The recipe owner must be the single origin of every training value.
+
+    The trainer used to carry its own literal default at all 160 call sites.
+    62 had drifted from the recipe and 30 of those to zero, which silently
+    deletes the direction-balance, slice-guard and prior-match loss families.
+    A second origin can never be allowed back.
+    """
+    import re
+
+    source = (REPO / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py").read_text(
+        encoding="utf-8"
+    )
+    with_default = re.findall(r'_env_str\(\s*"[A-Z0-9_]+"\s*,', source)
+    assert with_default == [], f"trainer regained shadow defaults: {with_default}"
+    single_arg = re.findall(r'_env_str\(\s*"([A-Z0-9_]+)"\s*\)', source)
+    assert len(single_arg) == 160
+    # Every key the trainer reads must be owned by the recipe contract.
+    unknown = sorted(set(single_arg) - set(MODEL_NATIVE_RECIPE_ENV_KEYS))
+    assert unknown == [], f"trainer reads keys with no recipe owner: {unknown}"
+
+
+def test_env_reader_rejects_a_key_the_recipe_does_not_own() -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    with pytest.raises(RuntimeError, match="RECIPE_KEY_UNKNOWN"):
+        trainer._env_str("ENTRY_NOT_A_RECIPE_KEY")

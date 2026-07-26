@@ -143,18 +143,35 @@ def get_session_id(ts: pd.Timestamp) -> int:
     """
     Get canonical session_id for a single timestamp.
     Mapping: ASIA=0, EU=1, OVERLAP=2, US=3.
+
+    An unknown session fails closed. Defaulting to 0 would silently label it
+    ASIA, which the Entry context contract forbids outright: a fabricated ASIA
+    flag must yield no direction rather than a plausible session.
     """
     session = get_session(ts)
-    return SESSION_ID_MAP.get(session, 0)
+    if session not in SESSION_ID_MAP:
+        raise RuntimeError(f"SESSION_ID_UNKNOWN: session={session!r} ts={ts!r}")
+    return SESSION_ID_MAP[session]
 
 
 def get_session_id_vectorized(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]) -> pd.Series:
     """
     Vectorized session_id for timestamps.
     Mapping: ASIA=0, EU=1, OVERLAP=2, US=3.
+
+    Unmapped sessions fail closed for the same reason as the scalar helper; the
+    former ``fillna(0)`` turned every unknown session into ASIA for the three
+    consumers that read this directly (canonical build, the Entry context adder
+    and the live context augmenter).
     """
     sessions = get_session_vectorized(timestamps)
-    return sessions.map(SESSION_ID_MAP).fillna(0).astype("int32")
+    ids = sessions.map(SESSION_ID_MAP)
+    if bool(ids.isna().any()):
+        unknown = sorted({str(v) for v in sessions[ids.isna()].unique()})
+        raise RuntimeError(
+            f"SESSION_ID_UNKNOWN: rows={int(ids.isna().sum())} sessions={unknown}"
+        )
+    return ids.astype("int32")
 
 
 def get_session_minutes_since_open_vectorized(

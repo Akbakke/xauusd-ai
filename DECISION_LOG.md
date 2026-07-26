@@ -1886,3 +1886,103 @@ Decision:
 - Keep the branch-health log. It is cheap, it settled this question in ten
   minutes, and it converts a future recurrence into a one-line read.
 - Launch remains `BLOCK`.
+
+## 2026-07-26 — value-origin audit: shadow contract removed, absorbers closed, register opened
+
+Two independent read-only audits swept the active model, feature, dataset and
+runtime paths for invented values, fallbacks and silent substitutions. They
+returned 45 findings. Per rule 24 the repairs were limited to what is in the
+active Entry path and closable without changing a data lineage; everything else
+is registered rather than hot-patched. Every finding below was re-verified
+first-hand before acting, and that verification changed the picture twice.
+
+### Repaired
+
+**The trainer's shadow contract is deleted.** Own measurement: 160 `_env_str`
+call sites carried a literal default, 62 had drifted from the canonical recipe
+owner, and 30 of those drifted to zero — including
+`ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE`,
+`ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL`,
+`ENTRY_CKPT_DIRECTION_SLICE_GUARD` and the whole direction-balance,
+prior-match and slice-guard weight family. A zero there silently deletes an
+entire loss family. `main()`'s 162-key guard meant a canonical train could not
+consume the drift, but other importers had no guard at all. The repair is a
+deletion: `_env_str(name)` now sources the value from the recipe owner, all 160
+literals are gone, drift is impossible by construction, and an unknown key
+raises. Two regression tests forbid a second origin returning.
+
+**Two target absorbers now fail closed.** `clamp_min(0.0)` on
+`y_long/short_expected_mae_bps` in the trainer, and the `np.maximum` /
+`np.minimum` domain clamp in the dataset writer's `_store_prefix`. These are
+precisely the mechanism that let V24's signed-target corruption reach training
+undetected: a corrupt target was rewritten into a plausible one. Both now raise
+with the observed extreme and the declared bound.
+
+**The session ASIA fallback is closed.** `get_session_id_vectorized` ended in
+`fillna(0)`, turning any unmapped session into ASIA for three active consumers:
+the canonical builder, the Entry context adder and the live context augmenter.
+The Entry context contract forbids a fabricated ASIA flag outright. Both the
+scalar and vectorized helpers now raise and name the offending sessions.
+
+### Verified and corrected the audit
+
+`_v1_atr_regime_id` really is constant 1.0 for every bar — the legacy chained
+indexing at `basic_v1.py:842-844` writes a temporary copy, and the 2026-06-11
+fix sits behind `GX1_ATR_REGIME_FIX`, which is not one of the 162 recipe keys
+and would therefore be rejected by the trainer's ambient guard. But the audit
+did not check the consumer side: the field is already listed in
+`ENTRY_DEAD_CONSTANT_COLUMNS` and dropped from the Entry projection, so it does
+not reach the Entry model. Severity is dead-code cleanup under rule 10, not
+live corruption. The env gate is unreachable and the live cement it preserved
+parity with is retired, so the buggy branch and its gate should be deleted at
+the next touch of that owner.
+
+### Registered, not repaired
+
+Roughly forty findings sit in the Exit chain — `materialize_build_exit_iql_v2`,
+`materialize_run_exit_iql_with_v2_state_and_reward_variants_v1`,
+`disk_labeled_dataset`, `exit_transformer_v0`, `v12_paper_runner` and
+`v12_exit_iql_live`. Those artifacts are already contractually invalid and must
+be rebuilt from scratch on accepted Entry evidence, and runtime already fails
+closed before loading them. Repairing code slated for replacement would be
+waste. They are recorded here so the Exit-rebuild wave starts from them rather
+than rediscovering them:
+
+- a guessed 1.5 bps spread inside the Exit reward target, applied per row and
+  for a wholly absent column;
+- Exit reward components NaN-filled to 0.0, which is a legitimate learnable
+  reward value;
+- a missing required state column zero-filled into the model matrix, which also
+  defeats the NaN-fraction guard below it;
+- TRAIN-median imputation of every continuous Exit feature, in a module whose
+  own evidence payload claims "No fabricated values";
+- constant features passing normalization via `std or 1.0`;
+- forward-horizon Exit targets fabricated as 0.0 where no future exists;
+- missing Exit labels defaulting to the negative class while a working
+  ignore-index mechanism exists in the same file;
+- a bad timestamp routed into TRAIN by a swallowed parse exception;
+- a synthetic broker fill price and zeroed broker facts in the paper runner;
+- split boundaries and artifact selection supplied as argparse defaults.
+
+Two structural notes worth more than any single item: `v3_m1` received three
+fail-closed guards in June that `v2` never received, and four findings are that
+one gap. And "a correct guard defeated by an earlier fill" recurs — worth
+grepping as its own class rather than reviewing guards in isolation.
+
+Also registered for the next Entry lineage, not hot-patched: `basic_v1`
+substitutes invented neutral values during indicator warmup (RSI 50.0, CLV 0.5,
+ratio 1.0, regime 1.0). Removing them changes where the causal warmup trim
+falls, which is a data-lineage change that must be validated by a rebuild
+rather than patched under a running lineage. The same applies to the invented
+winsorization ladder and ATR floor on the active V2 MTF surface, which should
+come from TRAIN-fitted quantiles the way every other surface already does.
+
+Decision:
+
+- adopt the four repairs above; they are deletions and fail-closed conversions
+  with no new constant introduced;
+- carry the register into the Exit-rebuild wave and the next Entry lineage;
+- rules 2a-2e and rule 24 now govern this class of defect, and the audit itself
+  demonstrated why 2d matters: two of the loudest findings were weaker than
+  first stated once verified.
+- launch remains `BLOCK`.

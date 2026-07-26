@@ -4,6 +4,10 @@ import ast
 import json
 from pathlib import Path
 
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV,
+)
+
 
 TRAINER_PATH = (
     Path(__file__).resolve().parents[1]
@@ -19,26 +23,27 @@ def _trainer_ast() -> ast.Module:
 
 
 def _env_str_defaults(module: ast.Module) -> dict[str, str]:
-    defaults: dict[str, str] = {}
-    for node in ast.walk(module):
-        if not (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Name)
-            and node.func.id == "_env_str"
-            and len(node.args) >= 2
-            and isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[1], ast.Constant)
-        ):
-            continue
-        defaults[str(node.args[0].value)] = str(node.args[1].value)
-    return defaults
+    """Return the recipe-owned value for every key the trainer reads.
+
+    The trainer used to hold a literal default at each call site; those 160
+    literals were a shadow contract with 62 drifts. The recipe owner is now the
+    single origin, so the value a trainer key resolves to is exactly the recipe
+    entry, and these tests assert against that owner.
+    """
+    keys = {
+        str(node.args[0].value)
+        for node in ast.walk(module)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_env_str"
+        and len(node.args) == 1
+        and isinstance(node.args[0], ast.Constant)
+    }
+    assert keys, "trainer reads no recipe keys"
+    return {key: MODEL_NATIVE_RECIPE_ENV[key] for key in keys}
 
 
 def test_entry_v10_env_reads_are_owned_by_the_exact_recipe_contract() -> None:
-    from gx1.contracts.entry_model_native_train_recipe_v1 import (
-        MODEL_NATIVE_RECIPE_ENV,
-    )
-
     module = _trainer_ast()
     env_defaults = _env_str_defaults(module)
     assert set(env_defaults).issubset(MODEL_NATIVE_RECIPE_ENV)

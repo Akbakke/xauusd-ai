@@ -10,7 +10,30 @@ documentation and code together.
 1. Trade and model XAUUSD only. Entry contracts must not depend on market data
    from another instrument or expose another traded output.
 2. No fallback, guessed default, mutable `latest`, stale artifact, synthetic
-   decision input or soft pass-through is allowed.
+   decision input or soft pass-through is allowed. This is absolute and covers
+   evidence used to make a decision about the code, not only values inside it:
+
+   a. Every decision-affecting number has exactly one of three legitimate
+      origins: a named constant in a contract owner, a statistic fitted on
+      real declared data, or an explicit CLI/recipe input. Anything else —
+      including a value chosen because it "looked reasonable" — is forbidden.
+      If you cannot name the origin in one sentence, it is a guessed default.
+   b. Never invent a magnitude to make something work. When an existing value
+      must change, adopt the convention the surrounding code already uses and
+      say which one; do not introduce a new constant. Removing an exception is
+      allowed, inventing a number is not.
+   c. Synthetic, random, placeholder or toy-dimension data may never justify a
+      conclusion about production behaviour, a code change or a claim to the
+      user. A diagnostic on such data proves only that code runs. Conclusions
+      require real declared bytes at real contract dimensions, or a proof from
+      source and algebra that holds independent of data.
+   d. State the evidence class for every claim: proven from source, measured
+      on real data, measured on synthetic data, or unproven. Downgrade or
+      withdraw a claim the moment its evidence class turns out weaker than
+      stated, and record the withdrawal.
+   e. A diagnostic instrument must only report what is valid where it runs. If
+      a measurement cannot be taken at that point, omit the field rather than
+      emitting a zero, an empty value or a placeholder that reads as a result.
 3. Entry direction comes only from the accepted model's calibrated
    `LONG/SHORT/FLAT` logits. No post-model trend, session, confidence, utility
    or threshold rule may veto, flip or manufacture direction.
@@ -91,3 +114,12 @@ documentation and code together.
     rename. Direct year-file mutation, alternate-provider repair, synthesis
     and empty success are forbidden. Production execution never implies that
     the separate native→canonical-v3/BASE28 bootstrap exists.
+24. Advanced enough to trade, never more. Complexity must earn its place by
+    removing a real failure mode, not by adding a mechanism that sounds
+    thorough. Before writing code, prefer in this order: measure the existing
+    system, change one recipe value, extend the existing owner, and only then
+    add something new. When two designs fail closed equally well, keep the
+    smaller one. Diagnose before building: a measurement that eliminates a
+    hypothesis in ten minutes outranks a mechanism that might address it.
+    Delete a diagnostic once its question is permanently settled unless it
+    keeps earning its cost as observability.

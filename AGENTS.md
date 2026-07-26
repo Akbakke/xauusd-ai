@@ -244,6 +244,35 @@ The exact active output declaration has 22 heads. Their ordered evidence feeds
 one learned 26-group/96-value direction fusion (`LayerNorm(96)`, `96 -> 128`,
 GELU, `128 -> 3`) before immutable calibration and exact three-class argmax.
 
+### Value origin and evidence class
+
+Every decision-affecting number has exactly one legitimate origin: a named
+constant in a contract owner, a statistic fitted on real declared data, or an
+explicit CLI/recipe input. If the origin cannot be named in one sentence, the
+value is a guessed default and fails closed. Never invent a magnitude to make
+something work; when a value must change, adopt the convention the surrounding
+code already uses and name it. Removing an exception is allowed, inventing a
+constant is not.
+
+Synthetic, random, placeholder or toy-dimension data proves only that code
+runs. It may never support a conclusion about production behaviour, justify a
+code change or back a claim. Conclusions require real declared bytes at real
+contract dimensions, or a proof from source and algebra that holds independent
+of data. Every claim carries its evidence class — proven from source, measured
+on real data, measured on synthetic data, or unproven — and a claim whose
+evidence turns out weaker than stated is downgraded or withdrawn on the spot,
+with the withdrawal recorded. A diagnostic instrument reports only what is
+valid where it runs; a field that cannot be measured there is omitted, never
+emitted as a zero or placeholder that reads as a result.
+
+### Advanced enough to trade, never more
+
+Complexity must earn its place by removing a real failure mode. Before writing
+code, prefer in order: measure the existing system, change one recipe value,
+extend the existing owner, then add something new. When two designs fail closed
+equally well, keep the smaller one. A measurement that eliminates a hypothesis
+in ten minutes outranks a mechanism that might address it.
+
 ### Profile-separated checkpoint admission
 
 `_checkpoint_admission_ok` in the trainer is the one owner of checkpoint

@@ -1,7 +1,7 @@
 {
     "schema_version": "gx1_xau_direction_launch_state_v1",
     "project": "XAUUSD",
-    "updated_utc": "2026-07-25T22:30:00Z",
+    "updated_utc": "2026-07-26T14:30:00Z",
     "decision": "BLOCK",
     "latest_terminal_event_id": "XAU_SEQ513_REBUILD_20260725_V26",
     "latest_terminal_event_decision": "GREEN",
@@ -114,7 +114,10 @@
             "canonical_specialist_ordering_from_sorted_json_events",
             "single_identical_train_serve_clip_boundary",
             "profile_separated_checkpoint_admission_smoke_liveness_candidate_full_gates",
-            "discrimination_dominant_smoke_objective_weight_rebalance"
+            "discrimination_dominant_smoke_objective_weight_rebalance",
+            "trainer_shadow_default_contract_deleted_recipe_is_single_origin",
+            "mae_target_absorbers_fail_closed_in_trainer_and_dataset_writer",
+            "session_id_asia_fallback_fails_closed"
         ],
         "remaining_source_p0": [
             "produce_immutable_train_only_rank_reference_and_execute_bound_exit_routes",
@@ -137,9 +140,9 @@
             "canonical_or_live_data_modified": false
         },
         "repository_verification": {
-            "verified_utc": "2026-07-25T22:30:00Z",
-            "tests_collected": 1910,
-            "tests_passed": 1905,
+            "verified_utc": "2026-07-26T14:30:00Z",
+            "tests_collected": 1912,
+            "tests_passed": 1907,
             "tests_skipped": 5,
             "tests_failed": 0,
             "changed_python_compile": "PASS",
