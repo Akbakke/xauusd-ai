@@ -2101,3 +2101,78 @@ Decision:
 - the withdrawn claim stands as recorded evidence that identical row counts
   between complementary features prove complementarity, not a shared default.
 - launch remains `BLOCK`.
+
+## 2026-07-26 — the liveness gate measured the wrong rows four times
+
+The post-export feature-liveness gate blocked every bundle from the 07-14 reset
+onward. Four separate defects were found, all of the same class: the instrument
+reported a verdict from a place where that verdict was not valid. None of them
+was a fault in the model or the data.
+
+1. **Gradient norms read after the epoch cleared them.** My own
+   `[ENTRY_SPECIALIST_BRANCH_HEALTH]` log sat at epoch start and printed
+   upstream norms as zero. Corrected to report only fields valid at that point.
+2. **MTF sampled from row 0.** Row 0 is indicator warmup, where NaN is the
+   correct causal value and no model row ever looks. Every timeframe field
+   reported as silently dead. The sample now starts at the cache's own declared
+   `causal_warmup_rows`; all five timeframes declare 27, exactly 27 non-finite
+   rows exist, and zero after.
+3. **The sample index ignored the dataset's row selection.** The index was built
+   as `linspace(0, len(_live_ds)-1)` but applied to `_np_seq`/`_np_snap`/
+   `_np_ctx_cont`, which are the full parquet arrays. After a stratified
+   subsample `len()` is the subsampled count, so the gate read the first
+   contiguous rows. Measured: `d1_trend_age_mature_flag_v3` has std 0.4007 over
+   TRAIN and 0.4006 over the stratified subsample, but exactly 0.0000 over the
+   first 50,000 rows. A field with 74,185 non-zero rows was called dead.
+4. **`DEAD_STD` applied to a 1024-row sample.** Measured on the full 369,303-row
+   population, all six fields V17 called dead are alive:
+   `d1_regime_changed_flag_v3` std 1.53e-02 nunique 2;
+   `session_trend_structure_liquidity_long_score` std 2.31e-04 nunique 15,351;
+   `session_vol_spread_breakout_readiness` std 5.60e-05 nunique 137,844;
+   `eu_structure_breakout_readiness` std 3.44e-05 nunique 60,936.
+
+Defect 4 has two independent causes, so the verdict needs two scales and no new
+constant. `DEAD_STD` settles sparse impulses — a flag firing on 0.024% of rows
+is far above the bar yet absent from almost every sample, and this exact field
+was already documented as alive on a full scan in 2026-07-05.
+`LIVE_TAIL_REF_MIN_NUNIQUE`, this owner's existing was-varying convention,
+settles richly-varying fields of small magnitude, where failing on std measures
+scale rather than liveness. Both halves are load-bearing on the real data: four
+fields clear on nunique, two on std.
+
+A sample below `DEAD_STD` is therefore now a suspicion, not a verdict. The gate
+escalates that one field to its complete declared population and rules there.
+Escalation replaces exemption: no field is excused, each is measured. The
+model-native gate still refuses `KNOWN_ALLOWED_DEAD` entirely, and that refusal
+is now sustainable because the correct measurement is available instead.
+
+The sequence surface is ruled on the snap population by a proof from source, not
+an assumption. The builder cuts both surfaces from one matrix in one column
+order (`build_entry_v10_ctx_training_dataset_v3.py:3468-3469`), so per column the
+seq population is a union of trailing windows and therefore a superset of snap's.
+Non-constant in snap implies non-constant in seq, which is the only direction
+needed to clear a sequence flag. Measuring `_np_seq` directly would stride-read
+all 72.75 GB of the memmap per field and prove nothing more.
+
+The three `session_regime` readiness scores were traced to their owner
+(`entry_session_regime_interactions_v1.py`). They are unfloored multiplicative
+AND-chains of five to eight terms each bounded to `[0,1]`, so a near-zero
+product is the design, not a computation fault. Sibling fields in the same
+68-field family deliberately carry a `0.50 +` additive floor and a `hi=2.0`
+ceiling to avoid the collapse. Whether the unfloored substyle earns its place is
+a feature-quality question that cannot be answered without a dataset rebuild,
+because the values are baked into the parquet.
+
+Decision:
+
+- deadness is a property of the complete declared population; a sample may only
+  raise the suspicion. Any future liveness surface must state which rows it
+  measured and why that is where the verdict is valid.
+- the four repairs are permanent contract behaviour with behavioural regression
+  tests through the owner, not raw-source text assertions.
+- the readiness-score combination style and the earlier-registered `basic_v1`
+  hygiene items belong to the next Entry lineage, not to a hot patch inside a
+  built dataset.
+- smoke accuracy is trainability evidence only. Direction quality is not
+  claimed from a 50,000-row run and remains unproved.
+- launch remains `BLOCK`.
