@@ -11885,8 +11885,64 @@ def run_train(
                     )
                 )
             )
+        # Escalation resolver. A 1024-row sample cannot decide deadness: an
+        # impulse flag firing on 0.024% of rows is absent from almost every
+        # sample, and a score whose natural range is [0, 0.0044] falls under
+        # DEAD_STD on scale alone. So when the sample flags a field, measure
+        # that one field over the complete physical population - the same rows
+        # rule 18 fits normalization on - and let the gate rule on that.
+        # The sequence surface is ruled on the snap population by a proof from
+        # source, not by assumption. The builder cuts both surfaces from ONE
+        # matrix in the same column order
+        # (build_entry_v10_ctx_training_dataset_v3.py:3468-3469):
+        #     seq  = sig_mat[i - (seq_len - 1) : i + 1]
+        #     snap = sig_mat[i]
+        # so for any column j the seq population is the union of trailing
+        # windows and therefore a superset of the snap population. Non-constant
+        # in snap thus implies non-constant in seq, which is the only direction
+        # needed to clear a sequence flag. Measuring _np_seq directly would
+        # stride-read all 72.75 GB of the memmap per field for no added proof.
+        _pop_arrays = {
+            "signal": ("signal", _live_ds._np_snap, _snap_names),
+            "signal_sequence": ("signal", _live_ds._np_snap, _snap_names),
+            "ctx_cont": ("ctx_cont", _live_ds._np_ctx_cont, _live_cc),
+        }
+        _pop_cache: dict = {}
+
+        def _population_stats(surface: str, name: str):
+            entry = _pop_arrays.get(str(surface))
+            if entry is None:
+                return None
+            role, arr, names = entry
+            if str(name) not in names:
+                return None
+            key = (role, str(name))
+            if key not in _pop_cache:
+                col = np.asarray(
+                    arr[..., names.index(str(name))], dtype=np.float64
+                ).reshape(-1)
+                finite = col[np.isfinite(col)]
+                if finite.size == 0:
+                    return None
+                _pop_cache[key] = (
+                    float(finite.std()),
+                    int(np.unique(finite).size),
+                )
+            return _pop_cache[key]
+
         assert_v10_batch_liveness(_ab, ctx_cont_names=_live_cc,
-                                  snap_names=_snap_names, raise_on_fail=True)
+                                  snap_names=_snap_names, raise_on_fail=True,
+                                  population_stats=_population_stats)
+        if _pop_cache:
+            log.info(
+                "[FEATURE_LIVENESS_POPULATION_ESCALATION] %d field(s) below "
+                "DEAD_STD on the sample were ruled on the full population: %s",
+                len(_pop_cache),
+                "; ".join(
+                    f"{s}:{n} std={v[0]:.1e} nunique={v[1]}"
+                    for (s, n), v in sorted(_pop_cache.items())
+                ),
+            )
         log.info("[FEATURE_LIVENESS] post-export audit OK — exact seq513/ctx142 inputs are live")
     except FeatureLivenessError:
         raise

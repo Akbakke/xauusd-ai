@@ -19,7 +19,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -38,6 +38,33 @@ from gx1.execution.v12_state_from_prebuilt import (
 )
 
 DEAD_STD = 1e-4   # std below this over a real batch = constant = "ignored input"
+
+# Escalation resolver: given (surface, field name), return that field's
+# (std, nunique) over its COMPLETE declared population, or None when the caller
+# cannot take that measurement. A sample can only ever raise the suspicion of
+# deadness; the verdict belongs to the full population.
+PopulationStats = Callable[[str, str], Optional[Tuple[float, int]]]
+
+
+def _population_alive(std: float, nunique: int) -> bool:
+    """Is a field alive on its complete declared population?
+
+    Deadness has two scales, so the verdict needs both of this owner's existing
+    conventions and no third constant:
+
+    ``DEAD_STD`` settles sparse impulses whose magnitude is O(1). A binary
+    regime-change flag firing on 0.024% of rows has std 1.5e-02 — far above the
+    bar — yet is absent from almost every sample drawn from it.
+
+    ``LIVE_TAIL_REF_MIN_NUNIQUE`` settles richly-varying fields whose natural
+    magnitude is small. A readiness score taking 137,844 distinct values inside
+    [0, 0.0044] has std 5.6e-05; it is the opposite of constant, and failing it
+    on ``DEAD_STD`` measures scale rather than liveness.
+
+    A genuinely dead field — one value for every row — has nunique 1 and std 0
+    and fails both. That is the only case this gate exists to catch.
+    """
+    return bool(std >= DEAD_STD or nunique >= LIVE_TAIL_REF_MIN_NUNIQUE)
 
 # ── Legacy diagnostic structural/known-dead allowlist ──────────────────────────────────────
 # Format: bare name OR "tf:name" for a per-TF feature. This is available to
@@ -85,11 +112,18 @@ def _dead_cols(
     tf: str = "",
     *,
     allow_known_dead: bool = True,
+    population_stats: Optional[PopulationStats] = None,
+    surface: str = "",
 ) -> List[str]:
     """Return non-finite or constant columns without an allowed legacy exemption.
 
     ``allow_known_dead=False`` is load-bearing for the model-native input gate:
     no structural or legacy exemption is permitted on a contracted model input.
+
+    ``population_stats`` replaces exemption with measurement. A sample below
+    ``DEAD_STD`` is a suspicion, not a verdict: escalate that one field to its
+    complete declared population and let ``_population_alive`` decide. Without a
+    resolver the sample verdict stands, so legacy readers are unaffected.
     """
     arr = np.asarray(arr, dtype=np.float64)
     flat = arr.reshape(-1, arr.shape[-1])
@@ -108,6 +142,17 @@ def _dead_cols(
             nm in KNOWN_ALLOWED_DEAD or (tf and f"{tf}:{nm}" in KNOWN_ALLOWED_DEAD)
         ):
             continue
+        if population_stats is not None:
+            measured = population_stats(surface or tf, str(nm))
+            if measured is not None:
+                pop_std, pop_nunique = float(measured[0]), int(measured[1])
+                if _population_alive(pop_std, pop_nunique):
+                    continue
+                out.append(
+                    f"{qualified} (sample_std={std:.1e} population_std={pop_std:.1e} "
+                    f"population_nunique={pop_nunique})"
+                )
+                continue
         out.append(f"{qualified} (std={std:.1e})")
     return out
 
@@ -118,6 +163,7 @@ def _surface_contract_issues(
     *,
     surface: str,
     expected_dim: int,
+    population_stats: Optional[PopulationStats] = None,
 ) -> List[str]:
     """Validate one authoritative model-native numeric input surface."""
 
@@ -150,6 +196,8 @@ def _surface_contract_issues(
                 arr,
                 normalized_names,
                 allow_known_dead=False,
+                population_stats=population_stats,
+                surface=surface,
             )
         )
     return issues
@@ -234,12 +282,17 @@ def check_multi_tf_integrity(
 
 
 def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[str]] = None,
-                              snap_names: Optional[Sequence[str]] = None, raise_on_fail: bool = True) -> dict:
+                              snap_names: Optional[Sequence[str]] = None, raise_on_fail: bool = True,
+                              population_stats: Optional[PopulationStats] = None) -> dict:
     """Authoritative post-export gate for exact model-native V10 inputs.
 
     The gate never infers names, dimensions, bridge compatibility, or constant
     exemptions. Missing surfaces and retired signal contracts are hard failures
     even when ``raise_on_fail=False``; that mode only returns the FAIL report.
+
+    ``population_stats`` lets the caller escalate a sample-flagged field to its
+    complete declared population, which is the only place a deadness verdict is
+    valid. The caller owns access to its own data; this gate owns the verdict.
     """
     def to_np(x):
         return x.detach().cpu().numpy() if hasattr(x, "detach") else np.asarray(x)
@@ -257,6 +310,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 snap_names,
                 surface="signal_sequence",
                 expected_dim=MODEL_NATIVE_SIGNAL_DIM,
+                population_stats=population_stats,
             )
         )
     if "snap_x" not in batch:
@@ -268,6 +322,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 snap_names,
                 surface="signal",
                 expected_dim=MODEL_NATIVE_SIGNAL_DIM,
+                population_stats=population_stats,
             )
         )
     if ctx_cont_names is None:
@@ -281,6 +336,7 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
                 ctx_cont_names,
                 surface="ctx_cont",
                 expected_dim=142,
+                population_stats=population_stats,
             )
         )
     seq_by_tf = {k.replace("seq_", "").upper(): to_np(batch[k])

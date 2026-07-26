@@ -202,3 +202,153 @@ def test_feature_liveness_cli_uses_current_exact_dataset_constructor() -> None:
         "multi_tf_seq_len",
         "per_tf_seq_lens",
     }
+
+
+# ── Population escalation: a sample cannot rule on deadness ────────────────────
+# The magnitudes pinned below are the ones measured on the real V26 TRAIN
+# population (369,303 rows) on 2026-07-26, not invented fixtures:
+#   d1_regime_changed_flag_v3                     std 1.5347e-02  nunique 2
+#   session_vol_spread_breakout_readiness         std 5.5970e-05  nunique 137,844
+# Both were reported dead by the 1024-row sample gate while being alive.
+V26_SPARSE_IMPULSE = (1.5347e-02, 2)
+V26_SMALL_MAGNITUDE_SCORE = (5.5970e-05, 137844)
+
+
+def _flat_sample(monkeypatch, field: str) -> tuple[dict, list[str], list[str]]:
+    """A batch whose ``field`` is constant on the sample, as the real gate saw it."""
+    _stub_multi_tf(monkeypatch)
+    batch, signal_names, ctx_cont_names = _batch()
+    batch["snap_x"][:, signal_names.index(field)] = 0.0
+    return batch, signal_names, ctx_cont_names
+
+
+def test_sparse_impulse_flag_is_alive_on_its_full_population(monkeypatch) -> None:
+    field = "smc_choch"
+    batch, signal_names, ctx_cont_names = _flat_sample(monkeypatch, field)
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        raise_on_fail=False,
+        population_stats=lambda surface, name: (
+            V26_SPARSE_IMPULSE if name == field else None
+        ),
+    )
+
+    assert report["ok"] is True, report["issues"]
+
+
+def test_small_magnitude_varying_score_is_alive_on_its_full_population(monkeypatch) -> None:
+    field = "smc_choch"
+    batch, signal_names, ctx_cont_names = _flat_sample(monkeypatch, field)
+    assert V26_SMALL_MAGNITUDE_SCORE[0] < feature_liveness.DEAD_STD
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        raise_on_fail=False,
+        population_stats=lambda surface, name: (
+            V26_SMALL_MAGNITUDE_SCORE if name == field else None
+        ),
+    )
+
+    assert report["ok"] is True, report["issues"]
+
+
+def test_truly_constant_field_stays_dead_under_escalation(monkeypatch) -> None:
+    field = "smc_choch"
+    batch, signal_names, ctx_cont_names = _flat_sample(monkeypatch, field)
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        raise_on_fail=False,
+        population_stats=lambda surface, name: (0.0, 1),
+    )
+
+    assert report["ok"] is False
+    assert any(
+        f"signal:{field}" in issue
+        and "population_std=0.0e+00" in issue
+        and "population_nunique=1" in issue
+        for issue in report["issues"]
+    ), report["issues"]
+
+
+def test_escalation_absent_by_default_so_the_sample_verdict_stands(monkeypatch) -> None:
+    field = "smc_choch"
+    batch, signal_names, ctx_cont_names = _flat_sample(monkeypatch, field)
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        raise_on_fail=False,
+    )
+
+    assert report["ok"] is False
+    assert any(f"signal:{field} (std=" in issue for issue in report["issues"])
+
+
+def test_unresolvable_field_keeps_the_sample_verdict(monkeypatch) -> None:
+    field = "smc_choch"
+    batch, signal_names, ctx_cont_names = _flat_sample(monkeypatch, field)
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        raise_on_fail=False,
+        population_stats=lambda surface, name: None,
+    )
+
+    assert report["ok"] is False
+    assert any(f"signal:{field} (std=" in issue for issue in report["issues"])
+
+
+def test_each_surface_is_escalated_separately(monkeypatch) -> None:
+    """The gate asks per surface, so a caller can answer each one deliberately."""
+    field = "smc_choch"
+    _stub_multi_tf(monkeypatch)
+    batch, signal_names, ctx_cont_names = _batch()
+    index = signal_names.index(field)
+    batch["snap_x"][:, index] = 0.0
+    batch["seq_x"][:, :, index] = 0.0
+    asked: list[tuple[str, str]] = []
+
+    def stats(surface: str, name: str):
+        asked.append((surface, name))
+        return V26_SPARSE_IMPULSE if name == field else None
+
+    report = feature_liveness.assert_v10_batch_liveness(
+        batch,
+        snap_names=signal_names,
+        ctx_cont_names=ctx_cont_names,
+        raise_on_fail=False,
+        population_stats=stats,
+    )
+
+    assert report["ok"] is True, report["issues"]
+    assert ("signal", field) in asked
+    assert ("signal_sequence", field) in asked
+
+
+def test_population_verdict_needs_no_third_constant() -> None:
+    """Both halves of the verdict reuse a constant this owner already defines."""
+    assert feature_liveness._population_alive(feature_liveness.DEAD_STD, 1) is True
+    assert (
+        feature_liveness._population_alive(
+            0.0, feature_liveness.LIVE_TAIL_REF_MIN_NUNIQUE
+        )
+        is True
+    )
+    assert (
+        feature_liveness._population_alive(
+            feature_liveness.DEAD_STD / 2.0,
+            feature_liveness.LIVE_TAIL_REF_MIN_NUNIQUE - 1,
+        )
+        is False
+    )
