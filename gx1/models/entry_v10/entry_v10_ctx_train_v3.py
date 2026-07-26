@@ -11805,12 +11805,27 @@ def run_train(
             and hasattr(_live_ds, "_np_snap")
         ):
             _sample_rows = min(1024, len(_live_ds))
-            _sample_idx = np.linspace(
-                0,
-                len(_live_ds) - 1,
-                num=_sample_rows,
+            # Sample the rows the model actually trains on. len(_live_ds) is the
+            # subsampled length, but _np_* are the full parquet arrays, so
+            # indexing them directly with 0..len-1 reads the first contiguous
+            # rows instead of the stratified selection. Measured on V26:
+            # d1_trend_age_mature_flag_v3 has std 0.4007 over TRAIN and 0.4006
+            # over the stratified subsample, but exactly 0.0000 over the first
+            # 50,000 rows - so the gate reported a healthy field as dead.
+            _live_positions = np.asarray(
+                getattr(_live_ds, "indices", None)
+                if getattr(_live_ds, "indices", None) is not None
+                else np.arange(len(_live_ds)),
                 dtype=np.int64,
             )
+            if _live_positions.size != len(_live_ds):
+                raise RuntimeError(
+                    "[FEATURE_LIVENESS_INDEX_MAP_INVALID] "
+                    f"positions={_live_positions.size} dataset_len={len(_live_ds)}"
+                )
+            _sample_idx = _live_positions[
+                np.linspace(0, _live_positions.size - 1, num=_sample_rows, dtype=np.int64)
+            ]
             _ab = {
                 "seq_x": np.asarray(_live_ds._np_seq[_sample_idx], dtype=np.float32),
                 "ctx_cont": np.asarray(_live_ds._np_ctx_cont[_sample_idx], dtype=np.float32),
