@@ -1830,3 +1830,59 @@ Decision:
   per-sample level, and whether head pre-training is admissible as a
   curriculum inside one run.
 - Launch remains `BLOCK`.
+
+## 2026-07-26 — V13 refutes the zero-init hypothesis on real data
+
+The specialist-branch measurement now runs inside the trainer's own validated
+path, so it uses real V26 bytes, real 96x513 dimensions, the real normalization
+contract with full lineage and the real specialist routing. V13 was a
+deliberately small read-the-meter run: 12,000 rows, three epochs.
+
+Result, and it refutes the hypothesis I held:
+
+    epoch=1 specialist_out_weight_norm=0.000000e+00 nonzero=0/16384
+    epoch=2 specialist_out_weight_norm=2.360016e-01 nonzero=16384/16384
+    epoch=3 specialist_out_weight_norm=3.277482e-01 nonzero=16384/16384
+
+The branch is closed at initialization exactly as the source and the algebra
+say, but it opens by itself within one epoch and keeps growing. Once the weight
+is non-zero, gradient reaches all 129 upstream specialist tensors by
+construction. The eight-specialist path is therefore **not** disconnected from
+the decision during real training. The zero-init is a legitimate residual-gate
+pattern that works as intended, and no initialization change is warranted.
+
+Correction to my own instrumentation, recorded honestly: the first version of
+this log also printed upstream gradient norms and reported zero. That was a
+placement artifact — the log sits at the start of the epoch, after the previous
+epoch cleared gradients — not evidence. The line now reports only what is valid
+at that point (weight norm, non-zero count, branch-open flag) and states that
+upstream gradient flow follows exactly from a non-zero weight.
+
+Two earlier probe conclusions are also downgraded. They ran on the small test
+instantiation with synthetic inputs, so their magnitudes prove nothing about
+production: the 0.111/0.066 fusion-variance figures and the "roughly two
+percent of the class offset" ratio are withdrawn as production claims. What
+survives from that work is the LayerNorm mean-deletion property, which is
+definitional, and the observation that the architecture can overfit a small
+batch, which is a plumbing check only.
+
+V13 also showed real direction output early: `short_to_long_val` was 0.144166
+at epoch 1 and 0.094986 at epoch 2 with accuracy 0.3869 and 0.3914, then epoch
+3 collapsed back to zero and 0.385840. Combined with V8's brief epoch-2
+direction and V9's epoch-6 SHORT flip, the honest picture is that the model
+does produce direction early and the objective then drives it into the FLAT
+corner and keeps it there.
+
+Decision:
+
+- The zero-init hypothesis is refuted; do not change `specialist_out`
+  initialization.
+- The collapse is objective and optimization dynamics, not a disconnected
+  path. The remaining recorded candidate is the balanced-sampler prior
+  mismatch (`ENTRY_DIRECTION_SLICE_BALANCED_SAMPLER`): balance penalties were
+  small on sampled TRAIN batches and large on the real VAL prior across every
+  run, which is the signature of a decision boundary fitted to a balanced world
+  the model never meets at validation.
+- Keep the branch-health log. It is cheap, it settled this question in ten
+  minutes, and it converts a future recurrence into a one-line read.
+- Launch remains `BLOCK`.
