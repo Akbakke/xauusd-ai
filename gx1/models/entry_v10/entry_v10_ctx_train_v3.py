@@ -11820,9 +11820,28 @@ def run_train(
                 for _tf, _feats in _live_ds._multi_tf_feats.items():
                     _arr = np.asarray(_feats.attrs.get("feats_np"), dtype=np.float32)
                     if _arr.size:
-                        _tf_rows = min(8192, int(_arr.shape[0]))
+                        # Start after the causal warmup prefix the feature owner
+                        # itself declares. Sampling from row 0 reaches indicator
+                        # warmup, where NaN is the correct causal value and no
+                        # model row ever looks; the liveness gate then reports
+                        # every timeframe field as silently dead. The count is
+                        # the owner's own `causal_warmup_rows`, never a guess,
+                        # and non-finite values after it stay a real failure.
+                        _warmup = _feats.attrs.get("causal_warmup_rows")
+                        if _warmup is None:
+                            raise RuntimeError(
+                                "[FEATURE_LIVENESS_MTF_WARMUP_UNDECLARED] "
+                                f"tf={_tf} cache does not declare causal_warmup_rows"
+                            )
+                        _first = int(_warmup)
+                        if not 0 <= _first < int(_arr.shape[0]):
+                            raise RuntimeError(
+                                "[FEATURE_LIVENESS_MTF_WARMUP_INVALID] "
+                                f"tf={_tf} warmup={_first} rows={int(_arr.shape[0])}"
+                            )
+                        _tf_rows = min(8192, int(_arr.shape[0]) - _first)
                         _tf_idx = np.linspace(
-                            0,
+                            _first,
                             int(_arr.shape[0]) - 1,
                             num=_tf_rows,
                             dtype=np.int64,
