@@ -29,9 +29,12 @@ FLAT-collapse signature (VAL 100% FLAT from epoch 3, 58 slice failures,
 path auxiliaries at chance, starved family×TF gate). That collapse was
 resolved on 2026-07-26 — the cause is the balanced-sampler prior mismatch,
 confirmed by measurement after four other candidates were refuted — and
-V15 staged the first bundle of this lineage. No bundle is yet published:
-V15–V17 were blocked by four defects in the feature-liveness gate itself,
-now repaired (see the 2026-07-26 section below). V25 is chain-RED failure evidence at the builder session
+V15 staged the first bundle of this lineage. V15–V17 were blocked by four
+defects in the feature-liveness gate itself; after those repairs V18
+published the first Entry bundle of this lineage on 2026-07-27. It proves
+trainability only and carries no direction content — one admitted
+checkpoint at epoch 1, below the 0.3858 majority baseline (see the
+2026-07-26 section below). V25 is chain-RED failure evidence at the builder session
 wall; V24/V7 are historical failure evidence. Seventeen never-executed
 post-audit boundaries were repaired in their existing owners during this
 first native-lineage campaign (see DECISION_LOG 2026-07-25). The V8
@@ -82,10 +85,45 @@ correction from the user: a probe of mine had used synthetic inputs at toy
 dimensions and proposed an invented magnitude as the fix. Both were withdrawn
 and the verification redone on real V26 bytes at real dimensions.
 
-Not proved: no bundle is published, so there is no direction, calibration or
-abstention evidence. Smoke accuracy is trainability evidence only — no run has
-beaten the 0.3858 majority baseline, and `short_to_long_val` swings across
-epochs. Direction quality remains entirely unproved and launch stays `BLOCK`.
+V18 then published the first Entry bundle of this lineage by atomic no-replace
+rename. Trainability is proven end to end, and a normalization census over the
+published artifact shows all 655 fields with a named fitted origin — 458 `iqr`,
+61 `iqr_clip_cap_quantile`, 60 `median_positive_abs_deviation`, 57
+`binary_identity`, 11 combined, 8 categorical — with none invented. That census
+also closes the `session_regime` readiness question: the sparse branch restores
+the dynamic range the multiplicative AND-chain compresses.
+
+**V18 carries no direction content.** Exactly one checkpoint was admitted, at
+epoch 1, `dir_acc` 0.3438 against the 0.3858 majority baseline, with 17 to 20 of
+20 audited context slices below their own slice majority in every epoch. The run
+stopped at epoch 6 of 12 on `ENTRY_DIR_HARD_RED_STOP` while train loss was still
+falling 101.37 → 93.10 and validation loss 116.36 → 112.28, on 50,000 of 369,303
+rows. The smoke-bundle audit was deliberately not run on it: auditing a
+below-baseline checkpoint measures noise.
+
+**Structural blocker found 2026-07-27.** The candidate ladder is gated on
+`min_direction_accuracy` and `min_balanced_accuracy` of 0.90 and
+`min_trade_direction_precision` of 0.98 in
+`entry_foundation_audit_policy_v1.py`. Despite the `smoke_edge_pockets` key name
+these are not pocket-scoped — `audit_entry_foundation_smoke_bundle_v1.py:1981-1982`
+scopes only by split with no confidence selection, and the accuracy bars at
+lines 1081-1089 sit outside the `support_scope` branch, so even per-context
+slices must clear 0.90. The majority baseline is 0.3858 and the best figure ever
+measured here is a probe MLP at 0.4021, so the gate demands roughly 2.3× the
+highest number recorded. Introduced 2026-07-19 and unreconciled with the
+retirement of the "97%" goal. By user vedtak the numbers stay untouched until a
+real measurement exists, so acceptance criteria come from measurement rather
+than anticipation, and the candidate ladder stays closed.
+
+V19 is the first honest direction measurement: the complete 369,303 TRAIN rows
+at the same 12 epochs, which is 14.8× V18's total learning signal. Its change
+set is exactly two items — a new run id and `--subsample-rows 0`, the owner's own
+expression for the full population — with the recipe and every threshold
+untouched. No magnitude was invented.
+
+Not proved: direction quality, calibration and abstention quality remain
+entirely unproved. No run has beaten the 0.3858 majority baseline. Launch stays
+`BLOCK`.
 
 ### 2026-07-25 native-lineage campaign (V25/V26/V8)
 
