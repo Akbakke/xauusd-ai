@@ -2176,3 +2176,66 @@ Decision:
 - smoke accuracy is trainability evidence only. Direction quality is not
   claimed from a 50,000-row run and remains unproved.
 - launch remains `BLOCK`.
+
+## 2026-07-27 — V18 published the first bundle; the ladder's own gate is unreachable
+
+V18 published the first Entry bundle of this lineage under its final name by
+atomic no-replace rename, with no staging remnant. Trainability is proven end to
+end: strict state load at 513/513/142/5, all 22 heads present, all 8 specialist
+encoders constructed, and every one of the 655 normalized fields carrying a named
+fitted origin — 458 `iqr`, 61 `iqr_clip_cap_quantile`, 60
+`median_positive_abs_deviation`, 57 `binary_identity`, 11 combined and 8
+`categorical_embedding_identity`. No field received an invented scale.
+
+That census also closes the `session_regime` readiness question. All three
+scores were fitted through the sparse branch, with scales near 1e-05 against raw
+population standard deviations of 3.4e-05 to 2.3e-04, so their typical non-zero
+magnitudes reach the model at order one and the extreme tail is clipped at
+`CLIP_ABS` within the declared 2% rate. `d1_regime_changed_flag_v3` correctly
+received `binary_identity` at scale 1.0 and stays exact 0/1 evidence. The
+multiplicative AND-chain compresses dynamic range; the fitted normalization
+restores it. This is measured on the published artifact, not argued.
+
+The bundle carries no direction content, and its own diagnostic says so. Exactly
+one checkpoint was ever admitted — epoch 1, essentially untrained, `dir_acc`
+0.3438 against the 0.3858 majority baseline. In every epoch, 17 to 20 of the 20
+audited context slices sat below their own slice majority. The run stopped at
+epoch 6 of 12 on `ENTRY_DIR_HARD_RED_STOP` with `epochs_since_improve=5`,
+`patience=3`, `min_epochs=6`, while train loss was still falling from 101.37 to
+93.10 and validation loss from 116.36 to 112.28. The model was still learning
+when the slice admission criterion ended the run, on 50,000 of 369,303 rows.
+
+A separate and more serious finding: the candidate ladder is gated behind
+thresholds that this project has never approached. `smoke_edge_pockets` in
+`entry_foundation_audit_policy_v1.py` sets `min_direction_accuracy` and
+`min_balanced_accuracy` to 0.90 and `min_trade_direction_precision` to 0.98.
+Despite the key name, these are not pocket-scoped: the smoke bundle audit
+evaluates them over the complete split
+(`audit_entry_foundation_smoke_bundle_v1.py:1981-1982` scopes only by `split`,
+with no confidence selection, and lines 1081-1089 apply the accuracy bars outside
+the `support_scope` branch, so even per-context slices must clear 0.90). The
+current majority baseline is 0.3858 and the best figure ever measured on this
+substrate is a probe MLP at 0.4021, so the gate demands roughly 2.3 times the
+highest number the project has recorded. The thresholds were introduced on
+2026-07-19, and no document reconciles them with the retirement of the "97%"
+goal in favour of honest bps, win-rate, MAE and cost gates.
+
+Decision:
+
+- V18 is trainability evidence only. No direction, calibration or abstention
+  quality is claimed from it, and the smoke-bundle audit was deliberately NOT
+  run on it: auditing a checkpoint that is below the majority baseline in every
+  slice would measure noise.
+- the first honest direction measurement comes from V19 on the complete 369,303
+  TRAIN rows at the same 12 epochs, which is 14.8 times V18's total learning
+  signal. The change set is exactly two items — a new run id and
+  `--subsample-rows 0`, the owner's own expression for the full population, with
+  the recipe and every threshold untouched. No magnitude was invented.
+- the hard-red stop policy stays as bound. If it fires at epoch 6 again, that
+  run still carries 7.4 times V18's signal and the stop policy can then be
+  judged on evidence rather than anticipation.
+- the 0.90/0.98 threshold question is DEFERRED by user vedtak until V19 produces
+  a real number, so acceptance criteria are set from measurement rather than
+  before it. The thresholds are recorded here as an identified structural
+  blocker and are left untouched; the candidate ladder therefore remains closed.
+- launch remains `BLOCK`.
