@@ -2239,3 +2239,73 @@ Decision:
   before it. The thresholds are recorded here as an identified structural
   blocker and are left untouched; the candidate ladder therefore remains closed.
 - launch remains `BLOCK`.
+
+## 2026-07-27 — the objective enforced a class prior that has drifted 39 points
+
+The FLAT collapse that has blocked this project since V8 is not an optimization
+pathology, a fusion defect, an initialization problem or a sampler artifact. Five
+separate investigations chased those. The mechanism is an explicit loss term.
+
+`_direction_global_prior_match_term` penalizes the model whenever its mean
+predicted class rates deviate more than `TOLERANCE=0.02` from the current
+batch's actual label rates, at `WEIGHT=8.00`. Two sibling terms do the same for
+the hierarchy trade and side heads at 4.00 each, so 16.00 of total objective
+weight pins the model's output distribution to the TRAIN marginal within two
+percentage points.
+
+That marginal is not stationary. Measured over the full V26 tape by quarter, the
+FLAT label share runs from 0.390 (2026Q1) to 0.782 (2023Q3) — a 39-point spread
+with a clear structural direction, because the label threshold is an absolute
+bps number (`flat_threshold_bps`) while gold's volatility has risen. TRAIN
+averages 0.612 FLAT; VAL is 0.386 and TEST 0.466. The model is therefore trained,
+at weight 16.00, to emit a distribution that is 22 points wrong where it is
+scored. The whole direction edge budget is a few points.
+
+The LONG/SHORT balance, by contrast, is stable: the per-quarter L/S ratio stays
+inside 0.85 to 1.39. So what drifted is not *which way* but *how often there is
+anything there at all*.
+
+V19 measured the trade-off directly before being stopped. Epoch 1 reached
+accuracy 0.3962 — the first time in this lineage above the 0.3858 VAL majority —
+with 20 of 20 audited slices failing the prediction-rate requirement. By epoch 3
+the model had satisfied the prior term, cutting prediction-rate failures to 3,
+and accuracy fell to 0.3560 with all 20 slices below their own majority. The
+model traded four points of accuracy for prior compliance. That is measured on
+real data at full contract dimensions, not argued from source.
+
+Anti-collapse does not depend on these terms. `_direction_min_pred_rate_term`
+(weight 12.00) and its slice sibling (weight 8.00) are one-sided: they require
+each class to reach `max(0.50 × label_rate, 0.05)` and penalize only
+under-prediction. They remove the degenerate-collapse failure mode completely
+without pinning anything to a marginal. The two-sided prior-match terms add no
+protection the floors do not already give.
+
+Decision:
+
+- `ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT`,
+  `ENTRY_HIER_SIDE_GLOBAL_PRIOR_MATCH_WEIGHT` and
+  `ENTRY_HIER_TRADE_GLOBAL_PRIOR_MATCH_WEIGHT` are set to 0.00 in the canonical
+  recipe owner. This removes a mechanism rather than inventing a magnitude, which
+  rule 2b permits explicitly, and rule 24 requires because the floors already
+  remove the real failure mode. The recipe still binds exactly 162 keys and every
+  one-sided floor, tolerance and acceptance threshold is untouched.
+- the current prior belongs at serve time, not in the trunk. The existing
+  calibration owner already fits temperature plus a zero-sum per-class bias on a
+  declared split, which is exactly a label-shift correction, and its
+  `--direction-odds-cap` guard constrains only the LONG/SHORT asymmetry. Held near
+  1.0 it permits the FLAT correction while forbidding any manufactured directional
+  tilt, satisfying rule 3. Fitting a LONG/SHORT tilt from one month of VAL is
+  explicitly rejected: the L/S ratio is stable and recency fits have been refuted.
+- this is NOT the refuted recency or more-data hypothesis. Those tested
+  conditional ranking skill. The class prior is a different quantity and had
+  never been measured until now.
+- V19 is immutable diagnostic evidence and was stopped at epoch 3 once it had
+  established the accuracy-versus-prior trade-off. Its log is retained. It never
+  wrote a bundle.
+- V20 reruns the full 369,303-row population with the prior pinning removed and
+  everything else identical, so the delta is attributable.
+- the absolute-bps label threshold is NOT changed. It is economically correct —
+  a move must clear costs to be worth taking — and rule 16 forbids target
+  rewrites. The non-stationarity it produces is handled as prior, not by
+  redefining the target.
+- launch remains `BLOCK`.
