@@ -212,7 +212,14 @@ def test_launch_authority_binds_exact_current_v26_terminal_bytes() -> None:
 
     blockers = "\n".join(state["blockers"])
     assert "No smoke model" in blockers
-    assert "V8, V9 and V10 all completed six train/validation epochs" in blockers
+    # The optimization-throughput hypothesis this line used to pin was withdrawn
+    # on 2026-07-27 after V14 confirmed the balanced-sampler prior mismatch by
+    # measurement. The blocker now records the settled cause; V8/V9/V10 remain
+    # immutable failure evidence. Pin the withdrawal so it cannot silently
+    # revert to a refuted claim.
+    assert "The FLAT-collapse cause is settled by measurement" in blockers
+    assert "V8, V9 and V10 remain immutable failure evidence" in blockers
+    assert "optimization-throughput hypothesis" in blockers
     assert "source-repaired only" in blockers
     assert "transactional finalizer/recovery" in blockers
     assert "existing sizing/replay owner now has a canonical full-TEST producer" in blockers

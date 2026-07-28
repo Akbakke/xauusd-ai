@@ -4,6 +4,8 @@ import ast
 import inspect
 from pathlib import Path
 
+import pytest
+
 import numpy as np
 
 from gx1.audit import feature_liveness
@@ -352,3 +354,57 @@ def test_population_verdict_needs_no_third_constant() -> None:
         )
         is False
     )
+
+
+# ── Per-timeframe lookback windows must be declared, never defaulted ───────────
+def test_multi_tf_windows_are_caller_declared_not_wrapper_defaults() -> None:
+    """Rule 14: how far back each timeframe reaches is decision-affecting.
+
+    It was hardcoded in two places that silently disagreed 6x - the smoke
+    wrapper pinned 16/16/16/8/8 (D1 = 8 days) while the candidate wrapper pinned
+    96/96/96/48/30 - and a third ladder sat behind the GX1_MTF_TAPERED
+    environment variable, which is exactly the ambient path rule 14 forbids.
+    """
+    repo = Path(__file__).resolve().parents[1]
+    trainer = (repo / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py").read_text()
+
+    assert "GX1_MTF_TAPERED" not in trainer.replace("former GX1_MTF_TAPERED", "")
+    for timeframe in ("m5", "m15", "h1", "h4", "d1"):
+        assert f'"--per-tf-seq-len-{timeframe}"' in trainer
+
+    for wrapper_name in (
+        "run_entry_model_native_seq513_smoke_train.sh",
+        "run_entry_model_native_seq513_candidate_train.sh",
+    ):
+        wrapper = (repo / "scripts" / wrapper_name).read_text()
+        assert "--multi-tf-seq-len 16" not in wrapper
+        assert "--multi-tf-seq-len 96" not in wrapper
+        for variable in (
+            "MULTI_TF_SEQ_LEN",
+            "PER_TF_SEQ_LEN_M5",
+            "PER_TF_SEQ_LEN_M15",
+            "PER_TF_SEQ_LEN_H1",
+            "PER_TF_SEQ_LEN_H4",
+            "PER_TF_SEQ_LEN_D1",
+        ):
+            assert f'"${variable}"' in wrapper, (wrapper_name, variable)
+            assert variable in wrapper.split("; do")[0], (wrapper_name, variable)
+
+
+def test_prior_match_tolerance_cannot_demand_less_than_sampling_noise() -> None:
+    """The prior-match terms compare against the CURRENT BATCH's label rates.
+
+    A rate from n samples has standard error up to sqrt(0.25/n), so a tolerance
+    below that trains the model to chase the batch's own sampling noise. At the
+    bound batch size of 64 the floor is 0.0625 against a declared 0.02, and at
+    the slice minimum of 8 rows it is 0.1768 - nearly nine times the declared
+    tolerance.
+    """
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    assert trainer._batch_rate_sampling_floor(64) == pytest.approx(0.0625)
+    assert trainer._batch_rate_sampling_floor(8) == pytest.approx(0.176776, rel=1e-5)
+    assert trainer._batch_rate_sampling_floor(0) == 0.0
+    # Monotone: more evidence permits a tighter demand.
+    floors = [trainer._batch_rate_sampling_floor(n) for n in (8, 16, 32, 64, 256)]
+    assert floors == sorted(floors, reverse=True)

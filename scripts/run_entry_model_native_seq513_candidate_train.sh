@@ -35,6 +35,8 @@ Required audited execution values (there are no wrapper defaults):
   --early-stop-patience N --early-stop-min-delta X --grad-clip-norm X
   --weight-decay X --multi-tf-scale X
   --specialist-fusion-scale X --subsample-rows N
+  --multi-tf-seq-len N --per-tf-seq-len-m5 N --per-tf-seq-len-m15 N
+  --per-tf-seq-len-h1 N --per-tf-seq-len-h4 N --per-tf-seq-len-d1 N
   --memory-cap SIZE --swap-cap SIZE
 
 --dry-run validates and prints the exact capped command without writing files.
@@ -65,6 +67,8 @@ TRAINABILITY_READINESS_JSON= CANDIDATE_READINESS_JSON= SMOKE_BUNDLE_AUDIT_JSON=
 OUT_BUNDLE_DIR= GX1_DATA_ROOT= DEVICE= SEED= EPOCHS= BATCH_SIZE= LEARNING_RATE=
 EARLY_STOP_PATIENCE= EARLY_STOP_MIN_DELTA= GRAD_CLIP_NORM= WEIGHT_DECAY=
 MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= SUBSAMPLE_ROWS=
+MULTI_TF_SEQ_LEN= PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
+PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
 MEMORY_CAP= SWAP_CAP= RUN_MODE=
 
 while [[ $# -gt 0 ]]; do
@@ -83,7 +87,9 @@ while [[ $# -gt 0 ]]; do
     --out-bundle-dir|--gx1-data-root|--device|--seed|--epochs|--batch-size|\
     --learning-rate|--early-stop-patience|--early-stop-min-delta|--grad-clip-norm|\
     --weight-decay|--multi-tf-scale|--specialist-fusion-scale|\
-    --subsample-rows|--memory-cap|--swap-cap)
+    --subsample-rows|--memory-cap|--swap-cap|\
+    --multi-tf-seq-len|--per-tf-seq-len-m5|--per-tf-seq-len-m15|\
+    --per-tf-seq-len-h1|--per-tf-seq-len-h4|--per-tf-seq-len-d1)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       case "$1" in
         --run-id) variable=RUN_ID ;;
@@ -118,6 +124,12 @@ while [[ $# -gt 0 ]]; do
         --grad-clip-norm) variable=GRAD_CLIP_NORM ;;
         --weight-decay) variable=WEIGHT_DECAY ;;
         --multi-tf-scale) variable=MULTI_TF_SCALE ;;
+        --multi-tf-seq-len) variable=MULTI_TF_SEQ_LEN ;;
+        --per-tf-seq-len-m5) variable=PER_TF_SEQ_LEN_M5 ;;
+        --per-tf-seq-len-m15) variable=PER_TF_SEQ_LEN_M15 ;;
+        --per-tf-seq-len-h1) variable=PER_TF_SEQ_LEN_H1 ;;
+        --per-tf-seq-len-h4) variable=PER_TF_SEQ_LEN_H4 ;;
+        --per-tf-seq-len-d1) variable=PER_TF_SEQ_LEN_D1 ;;
         --specialist-fusion-scale) variable=SPECIALIST_FUSION_SCALE ;;
         --subsample-rows) variable=SUBSAMPLE_ROWS ;;
         --memory-cap) variable=MEMORY_CAP ;;
@@ -141,7 +153,9 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MA
   RECIPE_AUDIT_JSON TRAINABILITY_READINESS_JSON CANDIDATE_READINESS_JSON \
   SMOKE_BUNDLE_AUDIT_JSON OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE \
   LEARNING_RATE EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA GRAD_CLIP_NORM WEIGHT_DECAY \
-  MULTI_TF_SCALE SPECIALIST_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP; do
+  MULTI_TF_SCALE SPECIALIST_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP \
+  MULTI_TF_SEQ_LEN PER_TF_SEQ_LEN_M5 PER_TF_SEQ_LEN_M15 PER_TF_SEQ_LEN_H1 \
+  PER_TF_SEQ_LEN_H4 PER_TF_SEQ_LEN_D1; do
   [[ -n "${!variable}" ]] || die "missing required argument for $variable"
 done
 [[ "$RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]] || die "--run-id has invalid format"
@@ -167,6 +181,12 @@ VALIDATOR_ARGS=(
   --early-stop-min-delta "$EARLY_STOP_MIN_DELTA" --grad-clip-norm "$GRAD_CLIP_NORM"
   --weight-decay "$WEIGHT_DECAY" --multi-tf-scale "$MULTI_TF_SCALE"
   --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE" --subsample-rows "$SUBSAMPLE_ROWS"
+  --multi-tf-seq-len "$MULTI_TF_SEQ_LEN"
+  --per-tf-seq-len-m5 "$PER_TF_SEQ_LEN_M5"
+  --per-tf-seq-len-m15 "$PER_TF_SEQ_LEN_M15"
+  --per-tf-seq-len-h1 "$PER_TF_SEQ_LEN_H1"
+  --per-tf-seq-len-h4 "$PER_TF_SEQ_LEN_H4"
+  --per-tf-seq-len-d1 "$PER_TF_SEQ_LEN_D1"
   --memory-cap "$MEMORY_CAP" --swap-cap "$SWAP_CAP" --gx1-data-root "$GX1_DATA_ROOT"
 )
 if ! RECIPE_ENV_TEXT=$(cd "$REPO" && "$PY" -m gx1.contracts.entry_model_native_train_launch_v1 "${VALIDATOR_ARGS[@]}"); then
@@ -212,7 +232,12 @@ TRAIN_CMD=(
   --early-stopping-min-delta "$EARLY_STOP_MIN_DELTA"
   --num-workers 0 --grad-accum-steps 1 --subsample-rows "$SUBSAMPLE_ROWS"
   --grad-clip-norm "$GRAD_CLIP_NORM" --weight-decay "$WEIGHT_DECAY"
-  --multi-tf-seq-len 96 --per-tf-seq-len-h4 48 --per-tf-seq-len-d1 30
+  --multi-tf-seq-len "$MULTI_TF_SEQ_LEN"
+  --per-tf-seq-len-m5 "$PER_TF_SEQ_LEN_M5"
+  --per-tf-seq-len-m15 "$PER_TF_SEQ_LEN_M15"
+  --per-tf-seq-len-h1 "$PER_TF_SEQ_LEN_H1"
+  --per-tf-seq-len-h4 "$PER_TF_SEQ_LEN_H4"
+  --per-tf-seq-len-d1 "$PER_TF_SEQ_LEN_D1"
   --multi-tf-scale "$MULTI_TF_SCALE"
   --tf-input-scale-init-m5 1.0 --tf-input-scale-init-m15 1.0
   --tf-input-scale-init-h1 0.7 --tf-input-scale-init-h4 0.5 --tf-input-scale-init-d1 0.3

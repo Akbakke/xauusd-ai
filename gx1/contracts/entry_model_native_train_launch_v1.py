@@ -955,11 +955,25 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         "batch_size": int(args.batch_size),
         "early_stop_patience": int(args.early_stop_patience),
         "subsample_rows": int(args.subsample_rows),
+        # Bound as lineage: a bundle must record how far back each timeframe
+        # looked, or train==serve cannot be proved for the multi-TF stack.
+        "multi_tf_seq_len": int(args.multi_tf_seq_len),
+        "per_tf_seq_len_m5": int(args.per_tf_seq_len_m5),
+        "per_tf_seq_len_m15": int(args.per_tf_seq_len_m15),
+        "per_tf_seq_len_h1": int(args.per_tf_seq_len_h1),
+        "per_tf_seq_len_h4": int(args.per_tf_seq_len_h4),
+        "per_tf_seq_len_d1": int(args.per_tf_seq_len_d1),
     }
     _require(integer_values["seed"] >= 0, "seed must be >= 0")
     for key in ("epochs", "batch_size", "early_stop_patience"):
         _require(integer_values[key] > 0, f"{key} must be > 0")
     _require(integer_values["subsample_rows"] >= 0, "subsample_rows must be >= 0")
+    _require(integer_values["multi_tf_seq_len"] > 0, "multi_tf_seq_len must be > 0")
+    for _tf in ("m5", "m15", "h1", "h4", "d1"):
+        _require(
+            integer_values[f"per_tf_seq_len_{_tf}"] >= 0,
+            f"per_tf_seq_len_{_tf} must be >= 0 (0 means use multi_tf_seq_len)",
+        )
 
     float_values = {
         "learning_rate": float(args.learning_rate),
@@ -1244,6 +1258,14 @@ def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParse
     parser.add_argument("--multi-tf-scale", required=True)
     parser.add_argument("--specialist-fusion-scale", required=True)
     parser.add_argument("--subsample-rows", required=True)
+    # Per-timeframe lookback is decision-affecting and therefore a required
+    # explicit input at every layer, never a wrapper default (rule 14).
+    parser.add_argument("--multi-tf-seq-len", required=True)
+    parser.add_argument("--per-tf-seq-len-m5", required=True)
+    parser.add_argument("--per-tf-seq-len-m15", required=True)
+    parser.add_argument("--per-tf-seq-len-h1", required=True)
+    parser.add_argument("--per-tf-seq-len-h4", required=True)
+    parser.add_argument("--per-tf-seq-len-d1", required=True)
     parser.add_argument("--memory-cap", required=True)
     parser.add_argument("--swap-cap", required=True)
     parser.add_argument("--gx1-data-root", required=True)

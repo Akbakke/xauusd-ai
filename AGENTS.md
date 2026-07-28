@@ -265,6 +265,26 @@ with the withdrawal recorded. A diagnostic instrument reports only what is
 valid where it runs; a field that cannot be measured there is omitted, never
 emitted as a zero or placeholder that reads as a result.
 
+### Measure where the decision is made
+
+A threshold compared against a sampled statistic must be at least that
+statistic's sampling error at the sample size where the comparison is actually
+made, or the comparison must be taken on the complete declared population. A
+tolerance tighter than the noise of the quantity it judges does not measure the
+quantity — it trains on, or fails on, the noise. State the sample size and the
+resulting bound whenever a threshold is introduced or moved.
+
+Measurements are taken where the decision is made: on the rows the model trains
+or serves on, at the time the quantity is live, after any declared warmup, and
+through the same index mapping the model uses. When a gate reports a failure,
+prove the gate looked at the right rows before believing it about the system.
+
+Five defects of exactly this shape have been found and repaired: gradient norms
+read after the epoch cleared them, multi-timeframe liveness sampled from
+indicator warmup, a liveness index built from a subsampled length but applied to
+the full arrays, deadness judged on 1,024 of 369,303 rows, and a 0.02
+prior-match tolerance against a batch rate whose standard error is 0.0625.
+
 ### Advanced enough to trade, never more
 
 Complexity must earn its place by removing a real failure mode. Before writing

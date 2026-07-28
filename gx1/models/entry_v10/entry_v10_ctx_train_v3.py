@@ -2842,6 +2842,24 @@ def _direction_pred_rate_probs(probs: torch.Tensor) -> torch.Tensor:
     )
 
 
+def _batch_rate_sampling_floor(sample_count: int) -> float:
+    """Smallest deviation from a batch label rate that is not sampling noise.
+
+    The prior-match terms compare mean predicted class rates against the label
+    rates of the CURRENT BATCH. A rate estimated from ``n`` samples carries a
+    standard error of at most ``sqrt(0.25 / n)``, so demanding a tighter match
+    than that trains the model to chase the batch's own sampling noise. At the
+    bound batch size of 64 this floor is 0.0625, against a declared tolerance of
+    0.02 - the target moved three times more than the tolerance allowed.
+
+    Derived from the batch shape at runtime, so it follows the batch size
+    instead of pinning a second constant beside it.
+    """
+    if sample_count <= 0:
+        return 0.0
+    return float(math.sqrt(0.25 / float(sample_count)))
+
+
 def _direction_global_prior_match_term(
     probs: torch.Tensor,
     targets: torch.Tensor,
@@ -2878,7 +2896,10 @@ def _direction_global_prior_match_term(
         return zero
     pred_rates = pred_rate_probs.mean(dim=0)[: label_rates.numel()]
     drift = torch.abs(pred_rates[active] - label_rates[active])
-    tol = torch.as_tensor(tolerance, device=probs.device, dtype=probs.dtype)
+    effective_tolerance = max(
+        tolerance, _batch_rate_sampling_floor(probs.shape[0])
+    )
+    tol = torch.as_tensor(effective_tolerance, device=probs.device, dtype=probs.dtype)
     return weight * torch.relu(drift - tol).sum()
 
 
@@ -3645,7 +3666,10 @@ def _hier_trade_global_prior_match_term(
         return zero
     pred_rates = _hier_trade_prior_probs(trade_logit).mean(dim=0)
     drift = torch.abs(pred_rates[active] - label_rates[active])
-    tol = torch.as_tensor(tolerance, device=trade_logit.device, dtype=trade_logit.dtype)
+    effective_tolerance = max(
+        tolerance, _batch_rate_sampling_floor(trade_logit.shape[0])
+    )
+    tol = torch.as_tensor(effective_tolerance, device=trade_logit.device, dtype=trade_logit.dtype)
     return weight * torch.relu(drift - tol).sum()
 
 
@@ -3706,7 +3730,10 @@ def _hier_slice_trade_prior_match_term(
                 continue
             pred_rates = pred_rate_probs[mask].mean(dim=0)
             drift = torch.abs(pred_rates[active] - label_rates[active])
-            tol = torch.as_tensor(tolerance, device=trade_logit.device, dtype=trade_logit.dtype)
+            effective_tolerance = max(
+                tolerance, _batch_rate_sampling_floor(int(mask.sum()))
+            )
+            tol = torch.as_tensor(effective_tolerance, device=trade_logit.device, dtype=trade_logit.dtype)
             values.append(torch.relu(drift - tol).sum())
     if not values:
         return zero
@@ -3916,7 +3943,10 @@ def _hier_side_global_prior_match_term(
         return zero
     pred_rates = pred_rate_probs.mean(dim=0)[: label_rates.numel()]
     drift = torch.abs(pred_rates[active] - label_rates[active])
-    tol = torch.as_tensor(tolerance, device=side_logits.device, dtype=side_logits.dtype)
+    effective_tolerance = max(
+        tolerance, _batch_rate_sampling_floor(side_logits.shape[0])
+    )
+    tol = torch.as_tensor(effective_tolerance, device=side_logits.device, dtype=side_logits.dtype)
     return weight * torch.relu(drift - tol).sum()
 
 def _hier_slice_side_prior_match_term(
@@ -3979,7 +4009,10 @@ def _hier_slice_side_prior_match_term(
                 continue
             pred_rates = pred_rate_probs[mask].mean(dim=0)
             drift = torch.abs(pred_rates[active] - label_rates[active])
-            tol = torch.as_tensor(tolerance, device=side_logits.device, dtype=side_logits.dtype)
+            effective_tolerance = max(
+                tolerance, _batch_rate_sampling_floor(int(mask.sum()))
+            )
+            tol = torch.as_tensor(effective_tolerance, device=side_logits.device, dtype=side_logits.dtype)
             values.append(torch.relu(drift - tol).sum())
     if not values:
         return zero
@@ -4189,7 +4222,10 @@ def _direction_slice_prior_match_term(
                 continue
             pred_rates = pred_rate_probs[mask].mean(dim=0)
             drift = torch.abs(pred_rates[active] - label_rates[active])
-            tol = torch.as_tensor(tolerance, device=probs.device, dtype=probs.dtype)
+            effective_tolerance = max(
+                tolerance, _batch_rate_sampling_floor(int(mask.sum()))
+            )
+            tol = torch.as_tensor(effective_tolerance, device=probs.device, dtype=probs.dtype)
             values.append(torch.relu(drift - tol).sum())
     if not values:
         return zero
@@ -8524,6 +8560,9 @@ def run_train(
     specialist_num_layers: int = 1,
     specialist_fusion_scale: float = 0.25,
     # V2 fast-train extras
+    per_tf_seq_len_m5: int = 0,
+    per_tf_seq_len_m15: int = 0,
+    per_tf_seq_len_h1: int = 0,
     per_tf_seq_len_h4: int = 0,
     per_tf_seq_len_d1: int = 0,
     grad_accum_steps: int = 0,
@@ -8588,20 +8627,34 @@ def run_train(
 
     # Build exact per-TF sequence lengths.
     _per_tf_lens: Dict[str, int] = {}
-    # B10 tapered-MTF (GX1_MTF_TAPERED=1, default OFF): coarser TFs reach further with FEWER
-    # bars — m15=64 (drops the ~8h M5 overlap), d1=252 (~1yr regime memory, matches the
-    # D1_atr_percentile_252 lookback). Explicit --per-tf-seq-len-* args still win. The model's
-    # m15/d1_seq_len below mirror these so the bundle metadata records them → live reads the
-    # same lens (train==serve). m5/h1/h4 stay at the global default.
-    _tapered = os.environ.get("GX1_MTF_TAPERED", "0") == "1"
-    if int(per_tf_seq_len_h4) > 0:
-        _per_tf_lens["H4"] = int(per_tf_seq_len_h4)
-    _d1_eff = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else (252 if _tapered else 0)
-    if _d1_eff > 0:
-        _per_tf_lens["D1"] = _d1_eff
-    if _tapered:
-        _per_tf_lens["M15"] = 64
-        log.info("[GX1_MTF_TAPERED] per-TF seq-lens: %s (m5/h1=default %d)", _per_tf_lens, int(multi_tf_seq_len))
+    # How far back each timeframe reaches is decision-affecting, so it is an
+    # explicit caller input for every timeframe - never an ambient environment
+    # value and never a wrapper default (rule 14). The former GX1_MTF_TAPERED
+    # environment switch is removed; its intent is expressed by passing the
+    # windows directly. 0 means "use the global --multi-tf-seq-len".
+    _requested_tf_lens = {
+        "M5": int(per_tf_seq_len_m5),
+        "M15": int(per_tf_seq_len_m15),
+        "H1": int(per_tf_seq_len_h1),
+        "H4": int(per_tf_seq_len_h4),
+        "D1": int(per_tf_seq_len_d1),
+    }
+    for _tf_name, _tf_len in _requested_tf_lens.items():
+        if _tf_len < 0:
+            raise RuntimeError(
+                f"[ENTRY_PER_TF_SEQ_LEN_INVALID] {_tf_name}={_tf_len} expected >= 0"
+            )
+        if _tf_len > 0:
+            _per_tf_lens[_tf_name] = _tf_len
+    _effective_tf_lens = {
+        tf: (_per_tf_lens.get(tf) or int(multi_tf_seq_len))
+        for tf in ("M5", "M15", "H1", "H4", "D1")
+    }
+    log.info(
+        "[PER_TF_SEQ_LEN_DECLARED] %s (global=%d)",
+        " ".join(f"{tf}={n}" for tf, n in _effective_tf_lens.items()),
+        int(multi_tf_seq_len),
+    )
     train_ds = EntryV10CtxDataset(
         train_parquet,
         seq_len=seq_len,
@@ -8610,21 +8663,10 @@ def run_train(
         per_tf_seq_lens=_per_tf_lens,
         multi_tf_closed_bar=True,
     )
-    normalization_per_tf_seq_lens = {
-        "M5": int(multi_tf_seq_len),
-        "M15": 64 if _tapered else int(multi_tf_seq_len),
-        "H1": int(multi_tf_seq_len),
-        "H4": (
-            int(per_tf_seq_len_h4)
-            if int(per_tf_seq_len_h4) > 0
-            else int(multi_tf_seq_len)
-        ),
-        "D1": (
-            int(per_tf_seq_len_d1)
-            if int(per_tf_seq_len_d1) > 0
-            else (252 if _tapered else int(multi_tf_seq_len))
-        ),
-    }
+    # Normalization must be fitted over the same windows the model reads, so it
+    # takes the one resolution above rather than re-deriving it. A second
+    # derivation is a second truth waiting to drift.
+    normalization_per_tf_seq_lens = dict(_effective_tf_lens)
     normalization_fit = fit_entry_v10_train_input_normalization(
         train_seq=train_ds._np_seq,
         train_snap=train_ds._np_snap,
@@ -9120,11 +9162,13 @@ def run_train(
             "[MULTI_TF_EXACT_ARCHITECTURE_REQUIRED] expected causal M5/M15/H1/H4/D1 V2"
         )
     # Per-TF seq_len overrides (default 0 → fall back to global multi_tf_seq_len).
-    _h4_len = int(per_tf_seq_len_h4) if int(per_tf_seq_len_h4) > 0 else int(multi_tf_seq_len)
-    _d1_len = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else (252 if _tapered else int(multi_tf_seq_len))
-    _m15_len = 64 if _tapered else int(multi_tf_seq_len)  # B10 tapered-MTF — mirrors _per_tf_lens above (train==serve via bundle meta)
-    if _h4_len != multi_tf_seq_len or _d1_len != multi_tf_seq_len or _m15_len != multi_tf_seq_len:
-        log.info("[PER_TF_SEQ_LEN] M15=%d H4=%d D1=%d (global=%d)", _m15_len, _h4_len, _d1_len, int(multi_tf_seq_len))
+    # One resolution, mirrored into the model so bundle metadata records the
+    # exact windows and live reads the same ones (train==serve).
+    _m5_len = int(_effective_tf_lens["M5"])
+    _m15_len = int(_effective_tf_lens["M15"])
+    _h1_len = int(_effective_tf_lens["H1"])
+    _h4_len = int(_effective_tf_lens["H4"])
+    _d1_len = int(_effective_tf_lens["D1"])
     specialist_indices, specialist_meta = _load_specialist_fusion_contract(
         specialist_audit_json,
         expected_signal_dim=seq_input_dim,
@@ -11996,6 +12040,9 @@ def main() -> None:
     parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4)
     parser.add_argument("--m5-prebuilt-path", type=Path, required=True)
     parser.add_argument("--multi-tf-seq-len", type=int, default=96)
+    parser.add_argument("--per-tf-seq-len-m5", type=int, default=0)
+    parser.add_argument("--per-tf-seq-len-m15", type=int, default=0)
+    parser.add_argument("--per-tf-seq-len-h1", type=int, default=0)
     parser.add_argument("--per-tf-seq-len-h4", type=int, default=0)
     parser.add_argument("--per-tf-seq-len-d1", type=int, default=0)
     parser.add_argument("--multi-tf-scale", type=float, default=0.5)

@@ -131,7 +131,7 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
 
     assert result.returncode == 0, result.stderr
     assert "Validated model-native seq513 smoke contract" in result.stdout
-    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=0.00" in result.stdout
+    assert "ENTRY_DIRECTION_GLOBAL_PRIOR_MATCH_WEIGHT=8.00" in result.stdout
     assert "ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35" in result.stdout
 
 

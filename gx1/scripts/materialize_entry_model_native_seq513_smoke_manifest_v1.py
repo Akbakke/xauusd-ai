@@ -698,6 +698,24 @@ def _future_command_contracts(
         "0.00001",
         "--multi-tf-scale",
         "0.5",
+        # Per-timeframe lookback. Each band is owned by the coarsest timeframe
+        # that covers it, so no branch spends bars on a span a cheaper one
+        # already sees: M5 the last hour and a half, M15 out to two thirds of a
+        # day, H1 four days, H4 sixteen days, D1 a full trading year. 252 is not
+        # a new number - it is the window D1_atr_percentile_252 already uses,
+        # and 64 is the M15 length this repo chose to drop the M5 overlap.
+        "--multi-tf-seq-len",
+        "96",
+        "--per-tf-seq-len-m5",
+        "16",
+        "--per-tf-seq-len-m15",
+        "64",
+        "--per-tf-seq-len-h1",
+        "96",
+        "--per-tf-seq-len-h4",
+        "96",
+        "--per-tf-seq-len-d1",
+        "252",
         "--specialist-fusion-scale",
         "0.25",
         "--subsample-rows",

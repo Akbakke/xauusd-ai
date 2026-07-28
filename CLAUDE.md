@@ -34,6 +34,20 @@ documentation and code together.
    e. A diagnostic instrument must only report what is valid where it runs. If
       a measurement cannot be taken at that point, omit the field rather than
       emitting a zero, an empty value or a placeholder that reads as a result.
+   f. A threshold compared against a sampled statistic must be at least that
+      statistic's sampling error at the sample size where the comparison is
+      actually made, or the comparison must be taken on the complete declared
+      population. A tolerance tighter than the noise of the quantity it judges
+      does not measure the quantity; it trains on, or fails on, the noise.
+      State the sample size and the resulting bound whenever a threshold is
+      introduced or moved. Five separate defects of this exact shape have been
+      found — deadness judged on 1,024 of 369,303 rows, and a 0.02 prior-match
+      tolerance against a batch rate whose standard error is 0.0625.
+   g. A measurement must be taken where the decision is made: on the rows the
+      model trains or serves on, at the time the quantity is live, after any
+      declared warmup, and through the same index mapping the model uses. When
+      a gate reports a failure, prove the gate looked at the right rows before
+      believing it about the system.
 3. Entry direction comes only from the accepted model's calibrated
    `LONG/SHORT/FLAT` logits. No post-model trend, session, confidence, utility
    or threshold rule may veto, flip or manufacture direction.
