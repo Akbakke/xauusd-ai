@@ -76,11 +76,8 @@ _DIRECTION_METRIC_KEYS = {
     "minimum_trade_rows",
     "trade_coverage",
     "trade_direction_precision",
-    "minimum_trade_direction_precision",
     "trade_direction_precision_wilson_lower",
-    "minimum_trade_precision_wilson_lower",
     "minimum_prediction_rows_per_class",
-    "minimum_class_precision_wilson_lower",
     "log_loss",
     "label_counts",
     "prediction_counts",
@@ -95,8 +92,6 @@ _CONTEXT_SLICE_KEYS = {
     "failures",
     "minimum_rows_per_slice",
     "minimum_trade_rows_per_slice",
-    "minimum_trade_direction_precision",
-    "minimum_trade_precision_wilson_lower",
     "fields",
 }
 
@@ -212,53 +207,22 @@ def _direction_wilson_contract(
 
     if support_scope == "global":
         minimum_trade_rows = int(_SMOKE_EDGE_POLICY["min_trade_rows"])
-        minimum_trade_precision = float(
-            _SMOKE_EDGE_POLICY["min_trade_direction_precision"]
-        )
-        minimum_trade_wilson = float(
-            _SMOKE_EDGE_POLICY["min_trade_precision_wilson_lower"]
-        )
         minimum_prediction_rows: int | None = int(
             _SMOKE_EDGE_POLICY["min_prediction_rows_per_class"]
-        )
-        minimum_class_wilson: float | None = float(
-            _SMOKE_EDGE_POLICY["min_class_precision_wilson_lower"]
         )
     else:
         _require(support_scope == "context", f"[{context}_SUPPORT_SCOPE_UNKNOWN]")
         minimum_trade_rows = int(_SMOKE_EDGE_POLICY["min_context_trade_rows"])
-        minimum_trade_precision = float(
-            _SMOKE_EDGE_POLICY["min_context_trade_direction_precision"]
-        )
-        minimum_trade_wilson = float(
-            _SMOKE_EDGE_POLICY["min_context_trade_precision_wilson_lower"]
-        )
         minimum_prediction_rows = None
-        minimum_class_wilson = None
 
     _require(
         direction.get("minimum_trade_rows") == minimum_trade_rows,
         f"[{context}_MINIMUM_TRADE_ROWS_POLICY_INVALID]",
     )
-    _exact_policy_float(
-        direction.get("minimum_trade_direction_precision"),
-        minimum_trade_precision,
-        context=f"{context}_MINIMUM_TRADE_DIRECTION_PRECISION",
-    )
-    _exact_policy_float(
-        direction.get("minimum_trade_precision_wilson_lower"),
-        minimum_trade_wilson,
-        context=f"{context}_MINIMUM_TRADE_WILSON_LOWER",
-    )
     _require(
         direction.get("minimum_prediction_rows_per_class")
         == minimum_prediction_rows,
         f"[{context}_MINIMUM_CLASS_SUPPORT_POLICY_INVALID]",
-    )
-    _require(
-        direction.get("minimum_class_precision_wilson_lower")
-        == minimum_class_wilson,
-        f"[{context}_MINIMUM_CLASS_WILSON_POLICY_INVALID]",
     )
 
     label_counts = _class_int_mapping(
@@ -344,15 +308,6 @@ def _direction_wilson_contract(
             expected_wilson,
             context=f"{context}_{name}_PRECISION_WILSON_LOWER",
         )
-        _require(
-            precision[name] >= float(_SMOKE_EDGE_POLICY["min_class_precision"]),
-            f"[{context}_{name}_PRECISION_BELOW_POLICY]",
-        )
-        if minimum_class_wilson is not None:
-            _require(
-                precision_wilson[name] >= minimum_class_wilson,
-                f"[{context}_{name}_WILSON_BELOW_POLICY]",
-            )
 
     trade_rows = _exact_int(
         direction.get("trade_rows"), context=f"{context}_TRADE_ROWS"
@@ -395,14 +350,6 @@ def _direction_wilson_contract(
         trade_wilson,
         expected_trade_wilson,
         context=f"{context}_TRADE_DIRECTION_PRECISION_WILSON_LOWER",
-    )
-    _require(
-        trade_precision >= minimum_trade_precision,
-        f"[{context}_TRADE_PRECISION_BELOW_POLICY]",
-    )
-    _require(
-        trade_wilson >= minimum_trade_wilson,
-        f"[{context}_TRADE_WILSON_BELOW_POLICY]",
     )
 
     accuracy = _finite_float(direction.get("accuracy"), context=f"{context}_ACCURACY")
@@ -462,12 +409,6 @@ def _context_wilson_contract(
     )
     minimum_rows = int(_SMOKE_EDGE_POLICY["min_rows_per_context_slice"])
     minimum_trade_rows = int(_SMOKE_EDGE_POLICY["min_context_trade_rows"])
-    minimum_trade_precision = float(
-        _SMOKE_EDGE_POLICY["min_context_trade_direction_precision"]
-    )
-    minimum_trade_wilson = float(
-        _SMOKE_EDGE_POLICY["min_context_trade_precision_wilson_lower"]
-    )
     _require(
         summary.get("minimum_rows_per_slice") == minimum_rows,
         f"[{context}_MINIMUM_ROWS_POLICY_INVALID]",
@@ -475,16 +416,6 @@ def _context_wilson_contract(
     _require(
         summary.get("minimum_trade_rows_per_slice") == minimum_trade_rows,
         f"[{context}_MINIMUM_TRADE_ROWS_POLICY_INVALID]",
-    )
-    _exact_policy_float(
-        summary.get("minimum_trade_direction_precision"),
-        minimum_trade_precision,
-        context=f"{context}_MINIMUM_TRADE_DIRECTION_PRECISION",
-    )
-    _exact_policy_float(
-        summary.get("minimum_trade_precision_wilson_lower"),
-        minimum_trade_wilson,
-        context=f"{context}_MINIMUM_TRADE_WILSON_LOWER",
     )
     fields = summary.get("fields")
     expected_fields = tuple(_SMOKE_EDGE_POLICY["context_fields"])

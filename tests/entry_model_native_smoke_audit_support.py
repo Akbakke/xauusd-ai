@@ -44,25 +44,13 @@ def _passing_direction_metrics(*, support_per_class: int, scope: str) -> dict[st
     trade_precision = trade_successes / trade_rows
     if scope == "global":
         minimum_trade_rows = int(POLICY["min_trade_rows"])
-        minimum_trade_precision = float(POLICY["min_trade_direction_precision"])
-        minimum_trade_wilson = float(POLICY["min_trade_precision_wilson_lower"])
         minimum_prediction_rows: int | None = int(
             POLICY["min_prediction_rows_per_class"]
-        )
-        minimum_class_wilson: float | None = float(
-            POLICY["min_class_precision_wilson_lower"]
         )
     else:
         assert scope == "context"
         minimum_trade_rows = int(POLICY["min_context_trade_rows"])
-        minimum_trade_precision = float(
-            POLICY["min_context_trade_direction_precision"]
-        )
-        minimum_trade_wilson = float(
-            POLICY["min_context_trade_precision_wilson_lower"]
-        )
         minimum_prediction_rows = None
-        minimum_class_wilson = None
     return {
         "decision": "PASS",
         "failures": [],
@@ -79,13 +67,10 @@ def _passing_direction_metrics(*, support_per_class: int, scope: str) -> dict[st
         "minimum_trade_rows": minimum_trade_rows,
         "trade_coverage": trade_rows / rows,
         "trade_direction_precision": trade_precision,
-        "minimum_trade_direction_precision": minimum_trade_precision,
         "trade_direction_precision_wilson_lower": _wilson_lower(
             trade_successes, trade_rows
         ),
-        "minimum_trade_precision_wilson_lower": minimum_trade_wilson,
         "minimum_prediction_rows_per_class": minimum_prediction_rows,
-        "minimum_class_precision_wilson_lower": minimum_class_wilson,
         "log_loss": 0.01,
         "label_counts": {name: support_per_class for name in CLASS_NAMES},
         "prediction_counts": {name: support_per_class for name in CLASS_NAMES},
@@ -108,12 +93,6 @@ def _passing_context_slices() -> dict[str, Any]:
         "failures": [],
         "minimum_rows_per_slice": int(POLICY["min_rows_per_context_slice"]),
         "minimum_trade_rows_per_slice": int(POLICY["min_context_trade_rows"]),
-        "minimum_trade_direction_precision": float(
-            POLICY["min_context_trade_direction_precision"]
-        ),
-        "minimum_trade_precision_wilson_lower": float(
-            POLICY["min_context_trade_precision_wilson_lower"]
-        ),
         "fields": {
             "session": {
                 "values": sessions,

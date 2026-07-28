@@ -408,3 +408,66 @@ def test_prior_match_tolerance_cannot_demand_less_than_sampling_noise() -> None:
     # Monotone: more evidence permits a tighter demand.
     floors = [trainer._batch_rate_sampling_floor(n) for n in (8, 16, 32, 64, 256)]
     assert floors == sorted(floors, reverse=True)
+
+
+def test_every_declared_timeframe_window_reaches_the_trainer() -> None:
+    """A CLI window that never reaches the call site silently falls back.
+
+    Measured on 2026-07-28: the launcher declared M5=16 and M15=64, the trainer
+    logged M5=96 M15=96, because the argparse and the function signature carried
+    the new parameters while the call site still passed only h4 and d1. The
+    fallback is silent by design (0 means "use the global"), so nothing failed
+    closed. Pin that every timeframe is threaded end to end.
+    """
+    repo = Path(__file__).resolve().parents[1]
+    trainer = (repo / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py").read_text()
+
+    for timeframe in ("m5", "m15", "h1", "h4", "d1"):
+        assert f'"--per-tf-seq-len-{timeframe}"' in trainer, timeframe
+        assert f"per_tf_seq_len_{timeframe}: int = 0," in trainer, timeframe
+        assert (
+            f"per_tf_seq_len_{timeframe}=int(args.per_tf_seq_len_{timeframe}),"
+            in trainer
+        ), f"{timeframe} is declared but never passed to the trainer"
+
+
+def test_smoke_audit_measures_edge_and_gates_only_on_validity() -> None:
+    """User vedtak 2026-07-28: the unreachable ambition bars are gone.
+
+    The smoke bundle audit used to fail a bundle below 0.90 direction accuracy,
+    0.90 balanced accuracy, 0.98 trade precision and 0.95 per-class precision,
+    applied over every row of val and test. The majority baseline is 0.3858 and
+    the best figure ever measured on this substrate is 0.4021, so no bundle could
+    pass. What remains is the honest bar the audit already had - beat the majority
+    baseline, which is computed from the split's own label rates - plus the
+    support floors that make a measurement valid at all.
+    """
+    repo = Path(__file__).resolve().parents[1]
+    audit = (repo / "gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py").read_text()
+
+    # The honest, data-derived gate stays.
+    assert "if accuracy <= majority:" in audit
+    assert "does not beat majority" in audit
+
+    # Validity gates stay.
+    assert "below required support={required_trade_rows}" in audit
+    assert "does not contain all three label classes" in audit
+    assert "does not emit all LONG/SHORT/FLAT classes" in audit
+
+    # Ambition gates are gone: no failure is raised against these bars.
+    for retired in (
+        "below {MIN_DIRECTION_ACCURACY",
+        "below {MIN_BALANCED_ACCURACY",
+        "below {required_trade_precision",
+        "below {MIN_CLASS_PRECISION",
+        "below {required_class_wilson_lower",
+    ):
+        assert retired not in audit, retired
+
+    # And nothing reports an unenforced bound as if it were a minimum.
+    for stale in (
+        '"minimum_trade_direction_precision"',
+        '"minimum_trade_precision_wilson_lower"',
+        '"minimum_class_precision_wilson_lower"',
+    ):
+        assert stale not in audit, stale

@@ -108,12 +108,9 @@ DATA_SPLITS = FOUNDATION_AUDIT_SMOKE_SPLITS
 CLASS_NAMES = ("LONG", "SHORT", "FLAT")
 EXPECTED_SESSIONS = tuple(_SMOKE_EDGE_POLICY["expected_sessions"])
 CONTEXT_POCKET_FIELDS = tuple(_SMOKE_EDGE_POLICY["context_fields"])
-MIN_DIRECTION_ACCURACY = float(_SMOKE_EDGE_POLICY["min_direction_accuracy"])
-MIN_BALANCED_ACCURACY = float(_SMOKE_EDGE_POLICY["min_balanced_accuracy"])
 MIN_TRADE_DIRECTION_PRECISION = float(
     _SMOKE_EDGE_POLICY["min_trade_direction_precision"]
 )
-MIN_CLASS_PRECISION = float(_SMOKE_EDGE_POLICY["min_class_precision"])
 WILSON_CONFIDENCE_LEVEL = float(
     _SMOKE_EDGE_POLICY["wilson_confidence_level"]
 )
@@ -1048,24 +1045,17 @@ def _direction_metrics(
         ],
         dtype=np.float64,
     )
+    # Only support floors remain scope-dependent. The precision bars that used to
+    # be selected here are no longer enforced (user vedtak 2026-07-28); edge is
+    # measured and reported, not gated on an ambition.
     if support_scope == "global":
         required_trade_rows = MIN_TRADE_ROWS
-        required_trade_precision = MIN_TRADE_DIRECTION_PRECISION
-        required_trade_wilson_lower = MIN_TRADE_PRECISION_WILSON_LOWER
         required_prediction_rows_per_class: int | None = (
             MIN_PREDICTION_ROWS_PER_CLASS
         )
-        required_class_wilson_lower: float | None = (
-            MIN_CLASS_PRECISION_WILSON_LOWER
-        )
     else:
         required_trade_rows = MIN_CONTEXT_TRADE_ROWS
-        required_trade_precision = MIN_CONTEXT_TRADE_DIRECTION_PRECISION
-        required_trade_wilson_lower = (
-            MIN_CONTEXT_TRADE_PRECISION_WILSON_LOWER
-        )
         required_prediction_rows_per_class = None
-        required_class_wilson_lower = None
     probabilities = np.column_stack(
         [_numeric(frame, "p_long"), _numeric(frame, "p_short"), _numeric(frame, "p_flat")]
     )
@@ -1078,28 +1068,20 @@ def _direction_metrics(
         failures.append("direction evidence does not contain all three label classes")
     if np.any(prediction_counts <= 0):
         failures.append("direction model does not emit all LONG/SHORT/FLAT classes")
-    if accuracy < MIN_DIRECTION_ACCURACY:
-        failures.append(
-            f"accuracy={accuracy:.6f} below {MIN_DIRECTION_ACCURACY:.6f}"
-        )
-    if balanced_accuracy < MIN_BALANCED_ACCURACY:
-        failures.append(
-            f"balanced_accuracy={balanced_accuracy:.6f} below "
-            f"{MIN_BALANCED_ACCURACY:.6f}"
-        )
+    # Edge is MEASURED here, not gated (user vedtak 2026-07-28). The accuracy and
+    # precision bars this block used to enforce - 0.90 direction, 0.90 balanced,
+    # 0.98 trade precision, 0.95 per-class - were introduced on 2026-07-19 and
+    # applied to every row of val and test. The majority baseline is 0.3858 and the
+    # best figure ever measured on this substrate is 0.4021, so they demanded
+    # roughly 2.3x the highest number the project has recorded and could never
+    # pass. They also encode the retired "97%" goal rather than the honest
+    # bps/win/MAE/cost objective. The metrics below are still computed and
+    # reported in full; what fails closed is only whether a measurement is VALID:
+    # all three label classes present, all three predicted, and enough rows for
+    # the statistics to mean anything.
     if trade_rows < required_trade_rows:
         failures.append(
             f"trade_rows={trade_rows} below required support={required_trade_rows}"
-        )
-    if trade_precision < required_trade_precision:
-        failures.append(
-            f"trade_direction_precision={trade_precision:.6f} below "
-            f"{required_trade_precision:.6f}"
-        )
-    if trade_wilson_lower < required_trade_wilson_lower:
-        failures.append(
-            f"trade_direction_precision_wilson_lower={trade_wilson_lower:.6f} "
-            f"below {required_trade_wilson_lower:.6f}"
         )
     for index, name in enumerate(CLASS_NAMES):
         if (
@@ -1110,18 +1092,11 @@ def _direction_metrics(
                 f"{name} prediction_rows={int(prediction_counts[index])} below "
                 f"required support={required_prediction_rows_per_class}"
             )
-        if not np.isfinite(precisions[index]) or precisions[index] < MIN_CLASS_PRECISION:
-            failures.append(
-                f"{name} precision={precisions[index]!r} below {MIN_CLASS_PRECISION:.6f}"
-            )
-        if (
-            required_class_wilson_lower is not None
-            and class_wilson_lower[index] < required_class_wilson_lower
-        ):
-            failures.append(
-                f"{name} precision_wilson_lower={class_wilson_lower[index]:.6f} "
-                f"below {required_class_wilson_lower:.6f}"
-            )
+        if not np.isfinite(precisions[index]):
+            failures.append(f"{name} precision is not finite: {precisions[index]!r}")
+    # The one honest bar, and it stays: beat the majority baseline. It is measured
+    # from the evaluation split's own label rates, so it has a real origin and
+    # moves with the data instead of encoding an ambition.
     if accuracy <= majority:
         failures.append(
             f"accuracy={accuracy:.6f} does not beat majority={majority:.6f}"
@@ -1142,11 +1117,8 @@ def _direction_metrics(
         "minimum_trade_rows": required_trade_rows,
         "trade_coverage": float(trade_rows / rows) if rows else 0.0,
         "trade_direction_precision": trade_precision,
-        "minimum_trade_direction_precision": required_trade_precision,
         "trade_direction_precision_wilson_lower": trade_wilson_lower,
-        "minimum_trade_precision_wilson_lower": required_trade_wilson_lower,
         "minimum_prediction_rows_per_class": required_prediction_rows_per_class,
-        "minimum_class_precision_wilson_lower": required_class_wilson_lower,
         "log_loss": log_loss,
         "label_counts": {name: int(label_counts[i]) for i, name in enumerate(CLASS_NAMES)},
         "prediction_counts": {
@@ -1211,12 +1183,6 @@ def _context_slice_contract(frame: pd.DataFrame, *, split: str) -> dict[str, Any
         "failures": failures,
         "minimum_rows_per_slice": MIN_CONTEXT_ROWS,
         "minimum_trade_rows_per_slice": MIN_CONTEXT_TRADE_ROWS,
-        "minimum_trade_direction_precision": (
-            MIN_CONTEXT_TRADE_DIRECTION_PRECISION
-        ),
-        "minimum_trade_precision_wilson_lower": (
-            MIN_CONTEXT_TRADE_PRECISION_WILSON_LOWER
-        ),
         "fields": fields,
     }
 

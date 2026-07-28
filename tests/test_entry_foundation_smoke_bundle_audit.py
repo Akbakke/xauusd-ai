@@ -233,17 +233,33 @@ def test_training_objective_proof_rejects_zero_or_split_brain(tmp_path: Path) ->
     assert report["failures"]
 
 
-def test_direction_metrics_require_near_perfect_three_class_precision() -> None:
-    frame = _prediction_frame(384)
-    passed = audit._direction_metrics(frame, context="fixture")
-    frame.loc[frame.index[:80], "pred_direction"] = 2
-    failed = audit._direction_metrics(frame, context="fixture")
+def test_direction_metrics_report_degradation_without_gating_on_ambition() -> None:
+    """Precision is measured and reported, not gated (user vedtak 2026-07-28).
 
-    assert passed["decision"] == "PASS"
-    assert passed["trade_direction_precision"] == 1.0
-    assert set(passed["prediction_counts"]) == {"LONG", "SHORT", "FLAT"}
-    assert failed["decision"] == "FAIL"
-    assert failed["failures"]
+    This test used to require near-perfect three-class precision: corrupting 80 of
+    384 predictions had to FAIL. Those bars - 0.90 accuracy, 0.98 trade precision,
+    0.95 per-class - demanded roughly 2.3x the best figure ever measured on this
+    substrate and could never pass. The audit now reports the degradation in full
+    and fails only on validity and on the one data-derived bar: beat the majority
+    baseline.
+    """
+    frame = _prediction_frame(384)
+    clean = audit._direction_metrics(frame, context="fixture")
+    frame.loc[frame.index[:80], "pred_direction"] = 2
+    degraded = audit._direction_metrics(frame, context="fixture")
+
+    assert clean["decision"] == "PASS"
+    assert clean["trade_direction_precision"] == 1.0
+    assert set(clean["prediction_counts"]) == {"LONG", "SHORT", "FLAT"}
+
+    # The damage is visible in the reported metrics ...
+    assert degraded["accuracy"] < clean["accuracy"]
+    assert degraded["trade_direction_precision"] <= clean["trade_direction_precision"]
+    # ... and no failure is raised about how high precision ought to be.
+    assert not any(
+        "precision" in failure.lower() and "below" in failure.lower()
+        for failure in degraded["failures"]
+    ), degraded["failures"]
 
 
 def test_direction_metrics_reject_tiny_perfect_support() -> None:
@@ -253,8 +269,9 @@ def test_direction_metrics_reject_tiny_perfect_support() -> None:
     assert all(value == 1.0 for value in tiny["precision"].values())
     assert tiny["decision"] == "FAIL"
     assert tiny["trade_rows"] < tiny["minimum_trade_rows"]
+    # Support floors survive the vedtak: they decide whether a measurement is
+    # valid at all, which is a different question from how good it must be.
     assert any("required support" in failure for failure in tiny["failures"])
-    assert any("wilson_lower" in failure for failure in tiny["failures"])
 
 
 def test_direction_metrics_context_scope_uses_context_support_contract() -> None:

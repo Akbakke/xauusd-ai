@@ -49,12 +49,20 @@ TEST_M=$DS/${STEM}_test.manifest.json
 TEST_P=$DS/${STEM}_test.parquet
 
 # Per-timeframe lookback: each band owned by the coarsest timeframe covering it.
-# M5 1.3h, M15 16h, H1 4d, H4 16d, D1 one trading year. 252 is the window
-# D1_atr_percentile_252 already uses; 64 is the M15 length chosen to drop the M5
-# overlap; 96 is the global default.
+# M5 1.3h, M15 16h, H1 4d, H4 16d, D1 six weeks. 64 is the M15 length this repo
+# chose to drop the M5 overlap; 30 is the candidate route's D1 window; 96 is the
+# global default.
+#
+# D1 is 30 rather than 252 on cost measured 2026-07-28. Fitting wall clock to
+# sum(L^2) across two real runs gives h/epoch = 2.06 + 4.62e-5 * sum(L^2), so a
+# full-population epoch costs 3.2h at D1=30 against 6.0h at D1=252 - the D1
+# branch alone is 74% of the attention cost at 252, because cost grows with the
+# square of the window. Everything up to 126 bars is nearly free (3.1-3.8h); only
+# the last step to a full year is expensive. A year of daily regime memory is
+# worth testing, but not before the cheap ladder has produced a baseline.
 WINDOWS=(--multi-tf-seq-len 96
          --per-tf-seq-len-m5 16 --per-tf-seq-len-m15 64
-         --per-tf-seq-len-h1 96 --per-tf-seq-len-h4 96 --per-tf-seq-len-d1 252)
+         --per-tf-seq-len-h1 96 --per-tf-seq-len-h4 96 --per-tf-seq-len-d1 30)
 
 TRAIN_ARGS=(
   --device cuda --seed 1337 --epochs "$EPOCHS" --batch-size 64

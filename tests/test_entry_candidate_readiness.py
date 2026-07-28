@@ -306,19 +306,19 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
         assert direction["minimum_prediction_rows_per_class"] == policy[
             "min_prediction_rows_per_class"
         ]
-        assert direction["minimum_trade_precision_wilson_lower"] == policy[
-            "min_trade_precision_wilson_lower"
-        ]
-        assert direction["minimum_class_precision_wilson_lower"] == policy[
-            "min_class_precision_wilson_lower"
-        ]
+        # Support floors are still policy-bound; the retired precision bars must
+        # not reappear anywhere in the consumed contract (user vedtak 2026-07-28).
+        for retired in (
+            "minimum_trade_direction_precision",
+            "minimum_trade_precision_wilson_lower",
+            "minimum_class_precision_wilson_lower",
+        ):
+            assert retired not in direction, retired
         context_contract = split["context_slice_contract"]
         assert context_contract["minimum_trade_rows_per_slice"] == policy[
             "min_context_trade_rows"
         ]
-        assert context_contract["minimum_trade_precision_wilson_lower"] == policy[
-            "min_context_trade_precision_wilson_lower"
-        ]
+        assert "minimum_trade_precision_wilson_lower" not in context_contract
 
 
 @pytest.mark.parametrize(
