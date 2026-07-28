@@ -539,6 +539,62 @@ HTF_V2_CACHE_BUILDER_VERSION = (
 )
 HTF_V2_MATRIX_CONTRACT = "HTF_V2_CAUSAL_MATRIX_V1"
 
+# ── V3 per-bar contract: the same 25, plus the two families that are pure price
+# geometry and therefore mean the same thing at every resolution ──────────────
+#
+# The 513 signal fields are M5-only because their builders sit on 199 upstream
+# source fields, 194 of them derived, with dependencies between the families -
+# reproducing them per timeframe means rebuilding the whole context pipeline.
+# Two owners do NOT have that dependency: the candlestick family needs exactly
+# ["open", "high", "low", "close", "time"], and swing structure is a pure
+# function of (high, low, close). Both were run unchanged on resampled bars on
+# 2026-07-28: every value finite at all five resolutions, and the non-zero share
+# holds instead of collapsing - candles 0.361 at M5 against 0.379 at D1, swing
+# structure 0.981 against 0.968. Sparsity was the reason to fear higher
+# timeframes; measured, it is not present in these two families.
+#
+# V2 is left exactly as it is. Its cache, hashes and every artifact built on it
+# stay valid; V3 is a second contract, not a redefinition.
+def _candlestick_v3_names() -> tuple[str, ...]:
+    """The candlestick family's own declared names, prefixed for this surface.
+
+    Imported from the owner rather than duplicated: one truth for what the
+    family emits, and a name change there cannot silently desync this contract.
+    """
+    from gx1.features.entry_candlestick_patterns_v1 import (
+        CANDLESTICK_PATTERN_FEATURE_NAMES,
+    )
+    return tuple(
+        f"mtf_{name.split('.', 1)[1] if '.' in name else name}"
+        for name in CANDLESTICK_PATTERN_FEATURE_NAMES
+    )
+
+
+MULTI_TF_PER_BAR_CANDLESTICK_V3 = _candlestick_v3_names()
+MULTI_TF_PER_BAR_SWING_V3 = (
+    "swing_bars_since_swing_high",
+    "swing_bars_since_swing_low",
+    "swing_dist_last_swing_high_atr",
+    "swing_dist_last_swing_low_atr",
+    "swing_retracement_from_last_impulse",
+)
+MULTI_TF_PER_BAR_FEATURES_V3 = (
+    MULTI_TF_PER_BAR_FEATURES_V2
+    + MULTI_TF_PER_BAR_CANDLESTICK_V3
+    + MULTI_TF_PER_BAR_SWING_V3
+)
+MULTI_TF_FEATURE_COUNT_V3 = len(MULTI_TF_PER_BAR_FEATURES_V3)
+MULTI_TF_FEATURE_NAMES_SHA256_V3 = hashlib.sha256(
+    json.dumps(
+        list(MULTI_TF_PER_BAR_FEATURES_V3),
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+).hexdigest()
+HTF_V3_MATRIX_CONTRACT = "HTF_V3_CAUSAL_MATRIX_V1"
+HTF_V3_CACHE_SCHEMA_VERSION = "htf_v3_disk_cache_manifest_v1"
+
 MULTI_TF_RESAMPLE_RULES = {
     # V10 (entry) base is M5 → uses M15+H1+H4+D1.
     # V3 (exit) base is M1 → uses M5+M15+H1+H4+D1 (M5 added below).
@@ -874,6 +930,59 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
     return result
 
 
+def compute_per_bar_features_v3(ohlcv: pd.DataFrame) -> pd.DataFrame:
+    """V2's 25 features plus candlestick patterns and swing structure.
+
+    Both additions are pure functions of the bars themselves, so they carry the
+    same meaning at every resolution and need none of the derived context the
+    513-field specialist families depend on. Column order is exactly
+    ``MULTI_TF_PER_BAR_FEATURES_V3``, whose first 25 entries are V2 unchanged.
+    """
+    from gx1.features.entry_candlestick_patterns_v1 import (
+        build_entry_candlestick_pattern_layer,
+    )
+    from gx1.features.swing_structure_v1 import compute_swing_structure_features
+
+    base = compute_per_bar_features_v2(ohlcv)
+
+    frame = ohlcv[["open", "high", "low", "close"]].copy()
+    frame.index.name = "time"
+    candle_arr, candle_names = build_entry_candlestick_pattern_layer(
+        frame.reset_index()
+    )
+    candle_arr = np.asarray(candle_arr, dtype=np.float64)
+    if candle_arr.shape[0] != len(base):
+        raise RuntimeError(
+            "HTF_V3_CANDLE_ROW_MISMATCH: "
+            f"candles={candle_arr.shape[0]} bars={len(base)}"
+        )
+    if len(candle_names) != len(MULTI_TF_PER_BAR_CANDLESTICK_V3):
+        raise RuntimeError(
+            "HTF_V3_CANDLE_WIDTH_MISMATCH: "
+            f"got={len(candle_names)} expected={len(MULTI_TF_PER_BAR_CANDLESTICK_V3)}"
+        )
+
+    swing = compute_swing_structure_features(
+        ohlcv["high"].to_numpy(dtype=np.float64),
+        ohlcv["low"].to_numpy(dtype=np.float64),
+        ohlcv["close"].to_numpy(dtype=np.float64),
+    )
+
+    out = base.copy()
+    for column, values in zip(MULTI_TF_PER_BAR_CANDLESTICK_V3, candle_arr.T, strict=True):
+        out[column] = values
+    for column in MULTI_TF_PER_BAR_SWING_V3:
+        key = column[len("swing_"):]
+        if key not in swing:
+            raise RuntimeError(f"HTF_V3_SWING_FIELD_MISSING: {key}")
+        out[column] = np.asarray(swing[key], dtype=np.float64)
+
+    out = out[list(MULTI_TF_PER_BAR_FEATURES_V3)]
+    if tuple(out.columns) != MULTI_TF_PER_BAR_FEATURES_V3:
+        raise RuntimeError("HTF_V3_COLUMN_ORDER_INVALID")
+    return out
+
+
 def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
     """Build the exact causal V2 feature tables from observed M5 OHLCV.
 
@@ -898,6 +1007,34 @@ def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
         feats.attrs["feats_np"] = feats_np
         feats.attrs["causal_warmup_rows"] = warmup_rows
         feats.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
+        result[tf_name] = feats
+    return result
+
+
+def build_multi_tf_per_bar_features_v3(m5_df: pd.DataFrame) -> dict:
+    """Build the exact causal V3 feature tables from observed M5 OHLCV.
+
+    Resamples M5 → M5/M15/H1/H4/D1, computes V2 25-feature set per TF.
+    Result attaches .attrs["ts_int64"] and .attrs["feats_np"] for fast slicing
+    (same fast-path API as V1).
+    """
+    _validate_m5_input(m5_df, require_volume=True)
+    result = {}
+    for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
+        resampled = _resample_ohlcv(m5_df, rule)
+        resampled = resampled.dropna(subset=["open", "high", "low", "close"])
+        feats = compute_per_bar_features_v3(resampled)
+        ts_int64 = feats.index.asi8.astype(np.int64, copy=True)
+        feats_np = feats.to_numpy(dtype=np.float32, copy=True)
+        warmup_rows = validate_causal_feature_matrix(
+            feats_np,
+            expected_width=MULTI_TF_FEATURE_COUNT_V3,
+            context=f"HTF_V3_{tf_name}",
+        )
+        feats.attrs["ts_int64"] = ts_int64
+        feats.attrs["feats_np"] = feats_np
+        feats.attrs["causal_warmup_rows"] = warmup_rows
+        feats.attrs["htf_feature_contract"] = HTF_V3_MATRIX_CONTRACT
         result[tf_name] = feats
     return result
 
