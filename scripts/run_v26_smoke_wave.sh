@@ -66,6 +66,10 @@ WINDOWS=(--multi-tf-seq-len 96
 
 TRAIN_ARGS=(
   --device cuda --seed 1337 --epochs "$EPOCHS" --batch-size 64
+  # -1 lets the trainer size the loader from the host's CPU count. V21B ran with
+  # 0 - single-process loading - and sat at 9% GPU utilisation for an hour and a
+  # half, so the epoch clock was set by the dataloader, not by compute.
+  --num-workers -1
   --learning-rate 0.0003 --early-stop-patience 8 --early-stop-min-delta 0.0
   --grad-clip-norm 1.0 --weight-decay 1e-05 --multi-tf-scale 0.5
   --specialist-fusion-scale 0.25 --subsample-rows "$SUBSAMPLE_ROWS"

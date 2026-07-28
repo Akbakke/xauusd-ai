@@ -957,6 +957,7 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         "subsample_rows": int(args.subsample_rows),
         # Bound as lineage: a bundle must record how far back each timeframe
         # looked, or train==serve cannot be proved for the multi-TF stack.
+        "num_workers": int(args.num_workers),
         "multi_tf_seq_len": int(args.multi_tf_seq_len),
         "per_tf_seq_len_m5": int(args.per_tf_seq_len_m5),
         "per_tf_seq_len_m15": int(args.per_tf_seq_len_m15),
@@ -968,6 +969,10 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
     for key in ("epochs", "batch_size", "early_stop_patience"):
         _require(integer_values[key] > 0, f"{key} must be > 0")
     _require(integer_values["subsample_rows"] >= 0, "subsample_rows must be >= 0")
+    _require(
+        integer_values["num_workers"] >= -1,
+        "num_workers must be >= -1 (-1 selects from CPU count)",
+    )
     _require(integer_values["multi_tf_seq_len"] > 0, "multi_tf_seq_len must be > 0")
     for _tf in ("m5", "m15", "h1", "h4", "d1"):
         _require(
@@ -1260,6 +1265,7 @@ def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParse
     parser.add_argument("--subsample-rows", required=True)
     # Per-timeframe lookback is decision-affecting and therefore a required
     # explicit input at every layer, never a wrapper default (rule 14).
+    parser.add_argument("--num-workers", required=True)
     parser.add_argument("--multi-tf-seq-len", required=True)
     parser.add_argument("--per-tf-seq-len-m5", required=True)
     parser.add_argument("--per-tf-seq-len-m15", required=True)

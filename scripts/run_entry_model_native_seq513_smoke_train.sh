@@ -67,6 +67,7 @@ SMOKE_MANIFEST_JSON= SMOKE_READINESS_JSON= TRAINABILITY_READINESS_JSON=
 OUT_BUNDLE_DIR= GX1_DATA_ROOT= DEVICE= SEED= EPOCHS= BATCH_SIZE= LEARNING_RATE=
 EARLY_STOP_PATIENCE= EARLY_STOP_MIN_DELTA= GRAD_CLIP_NORM= WEIGHT_DECAY=
 MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= SUBSAMPLE_ROWS=
+NUM_WORKERS=
 MULTI_TF_SEQ_LEN= PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
 PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
 MEMORY_CAP= SWAP_CAP= RUN_MODE=
@@ -88,6 +89,7 @@ while [[ $# -gt 0 ]]; do
     --learning-rate|--early-stop-patience|--early-stop-min-delta|--grad-clip-norm|\
     --weight-decay|--multi-tf-scale|--specialist-fusion-scale|\
     --subsample-rows|--memory-cap|--swap-cap|\
+    --num-workers|\
     --multi-tf-seq-len|--per-tf-seq-len-m5|--per-tf-seq-len-m15|\
     --per-tf-seq-len-h1|--per-tf-seq-len-h4|--per-tf-seq-len-d1)
       [[ $# -ge 2 ]] || die "$1 requires a value"
@@ -124,6 +126,7 @@ while [[ $# -gt 0 ]]; do
         --grad-clip-norm) variable=GRAD_CLIP_NORM ;;
         --weight-decay) variable=WEIGHT_DECAY ;;
         --multi-tf-scale) variable=MULTI_TF_SCALE ;;
+        --num-workers) variable=NUM_WORKERS ;;
         --multi-tf-seq-len) variable=MULTI_TF_SEQ_LEN ;;
         --per-tf-seq-len-m5) variable=PER_TF_SEQ_LEN_M5 ;;
         --per-tf-seq-len-m15) variable=PER_TF_SEQ_LEN_M15 ;;
@@ -154,6 +157,7 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON TEST_MA
   OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE LEARNING_RATE \
   EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA GRAD_CLIP_NORM WEIGHT_DECAY MULTI_TF_SCALE \
   SPECIALIST_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP \
+  NUM_WORKERS \
   MULTI_TF_SEQ_LEN PER_TF_SEQ_LEN_M5 PER_TF_SEQ_LEN_M15 PER_TF_SEQ_LEN_H1 \
   PER_TF_SEQ_LEN_H4 PER_TF_SEQ_LEN_D1; do
   [[ -n "${!variable}" ]] || die "missing required argument for $variable"
@@ -180,6 +184,7 @@ VALIDATOR_ARGS=(
   --early-stop-min-delta "$EARLY_STOP_MIN_DELTA" --grad-clip-norm "$GRAD_CLIP_NORM"
   --weight-decay "$WEIGHT_DECAY" --multi-tf-scale "$MULTI_TF_SCALE"
   --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE" --subsample-rows "$SUBSAMPLE_ROWS"
+  --num-workers "$NUM_WORKERS"
   --multi-tf-seq-len "$MULTI_TF_SEQ_LEN"
   --per-tf-seq-len-m5 "$PER_TF_SEQ_LEN_M5"
   --per-tf-seq-len-m15 "$PER_TF_SEQ_LEN_M15"
@@ -229,7 +234,7 @@ TRAIN_CMD=(
   --seq_len 96 --epochs "$EPOCHS" --lr "$LEARNING_RATE" --batch_size "$BATCH_SIZE"
   --early-stopping-patience "$EARLY_STOP_PATIENCE"
   --early-stopping-min-delta "$EARLY_STOP_MIN_DELTA"
-  --num-workers 0 --grad-accum-steps 1 --subsample-rows "$SUBSAMPLE_ROWS"
+  --num-workers "$NUM_WORKERS" --grad-accum-steps 1 --subsample-rows "$SUBSAMPLE_ROWS"
   --grad-clip-norm "$GRAD_CLIP_NORM" --weight-decay "$WEIGHT_DECAY"
   --multi-tf-seq-len "$MULTI_TF_SEQ_LEN"
   --per-tf-seq-len-m5 "$PER_TF_SEQ_LEN_M5"
