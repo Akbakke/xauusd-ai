@@ -56,7 +56,7 @@ WINDOWS=(--multi-tf-seq-len 96
          --per-tf-seq-len-m5 16 --per-tf-seq-len-m15 64
          --per-tf-seq-len-h1 96 --per-tf-seq-len-h4 96 --per-tf-seq-len-d1 252)
 
-TRAIN_ARGS=(--profile smoke
+TRAIN_ARGS=(
   --device cuda --seed 1337 --epochs "$EPOCHS" --batch-size 64
   --learning-rate 0.0003 --early-stop-patience 8 --early-stop-min-delta 0.0
   --grad-clip-norm 1.0 --weight-decay 1e-05 --multi-tf-scale 0.5
@@ -99,7 +99,7 @@ scripts/entry_next_edge_control.sh model-native-train-recipe-audit \
   --out-bundle-dir "$BUNDLE_OUT" --out-dir "$RC_OUT" \
   --gx1-data-root /home/andre2/GX1_DATA --repo "$REPO" \
   --wrapper-path scripts/run_entry_model_native_seq513_smoke_train.sh \
-  "${TRAIN_ARGS[@]}"
+  --profile smoke "${TRAIN_ARGS[@]}"
 
 RC_JSON=$(ls "$RC_OUT"/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_*.json)
 require_decision "$RC_JSON" "PASS"
