@@ -96,7 +96,10 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
 
 MULTI_TF_NAMES: Sequence[str] = ()
 try:
-    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V2 as _MTF
+    # Names are only used to label a dead column, so carrying the widest
+    # declared contract keeps every V2 index valid (V3's first 25 are V2) while
+    # naming V3's extra columns instead of falling back to "[index]".
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V3 as _MTF
     MULTI_TF_NAMES = tuple(_MTF)
 except Exception:  # pragma: no cover
     pass

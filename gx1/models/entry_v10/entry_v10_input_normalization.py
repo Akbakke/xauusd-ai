@@ -49,10 +49,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     require_model_native_context_specialist_routing,
 )
 from gx1.features.htf_features import (
-    HTF_V2_CACHE_BUILDER_VERSION,
     HTF_V2_MATRIX_CONTRACT,
+    HTF_V3_MATRIX_CONTRACT,
     MULTI_TF_FEATURE_COUNT_V2,
+    MULTI_TF_FEATURE_COUNT_V3,
     MULTI_TF_PER_BAR_FEATURES_V2,
+    MULTI_TF_PER_BAR_FEATURES_V3,
     MULTI_TF_SHIFT,
     MultiTFV2DiskCache,
     load_multi_tf_v2_cache,
@@ -352,6 +354,29 @@ def _validate_full_train_inputs(
     return seq, snap, ctx_cont, ctx_cat
 
 
+_MTF_PER_BAR_CONTRACTS = {
+    HTF_V2_MATRIX_CONTRACT: (MULTI_TF_FEATURE_COUNT_V2, MULTI_TF_PER_BAR_FEATURES_V2),
+    HTF_V3_MATRIX_CONTRACT: (MULTI_TF_FEATURE_COUNT_V3, MULTI_TF_PER_BAR_FEATURES_V3),
+}
+
+
+def resolve_mtf_per_bar_contract(source: object, *, tf: str) -> tuple[int, tuple]:
+    """Return (width, ordered names) for the contract this source declares.
+
+    Normalization must be fitted over the surface the model reads. Pinning these
+    to V2 is what held the higher timeframes at 25 generic features, so the
+    source declares its contract and this resolves it; an undeclared or unknown
+    contract fails closed rather than defaulting.
+    """
+    declared = getattr(source, "attrs", {}).get("htf_feature_contract")
+    if declared not in _MTF_PER_BAR_CONTRACTS:
+        raise RuntimeError(
+            f"[ENTRY_INPUT_NORMALIZATION_MTF_CONTRACT_UNKNOWN] tf={tf} "
+            f"declared={declared!r} known={sorted(_MTF_PER_BAR_CONTRACTS)}"
+        )
+    return _MTF_PER_BAR_CONTRACTS[declared]
+
+
 def _extract_mtf_source(
     source: Any,
     *,
@@ -361,10 +386,10 @@ def _extract_mtf_source(
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_MTF_SOURCE_INVALID] tf={tf}"
         )
+    _mtf_count, _mtf_names = resolve_mtf_per_bar_contract(source, tf=tf)
     if (
-        list(source.columns) != list(MULTI_TF_PER_BAR_FEATURES_V2)
-        or int(source.shape[1]) != MULTI_TF_FEATURE_COUNT_V2
-        or source.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT
+        list(source.columns) != list(_mtf_names)
+        or int(source.shape[1]) != _mtf_count
     ):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_MTF_FIELDS_INVALID] tf={tf}"
@@ -376,7 +401,7 @@ def _extract_mtf_source(
         timestamps.dtype != np.dtype(np.int64)
         or timestamps.shape != (len(source),)
         or values.dtype != np.dtype(np.float32)
-        or values.shape != (len(source), MULTI_TF_FEATURE_COUNT_V2)
+        or values.shape != (len(source), _mtf_count)
         or len(source) < 2
         or np.any(np.diff(timestamps) <= 0)
         or isinstance(warmup, bool)
@@ -457,16 +482,15 @@ def select_causal_mtf_fit_population(
             f"[ENTRY_INPUT_NORMALIZATION_MTF_SELECTED_NONFINITE] tf={tf}"
         )
 
-    ema_stack_index = list(MULTI_TF_PER_BAR_FEATURES_V2).index(
-        "ema_stack_aligned_v2"
-    )
+    _sel_count, _sel_names = resolve_mtf_per_bar_contract(source, tf=tf)
+    ema_stack_index = list(_sel_names).index("ema_stack_aligned_v2")
     if not np.isin(
         selected_values[:, ema_stack_index], (-1.0, 0.0, 1.0)
     ).all():
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_MTF_EMA_STACK_DOMAIN_INVALID] tf={tf}"
         )
-    regime_index = list(MULTI_TF_PER_BAR_FEATURES_V2).index("regime_class_id")
+    regime_index = list(_sel_names).index("regime_class_id")
     if not np.isin(
         selected_values[:, regime_index],
         MTF_SEMANTIC_CATEGORICAL_DOMAINS["regime_class_id"],
@@ -481,7 +505,7 @@ def select_causal_mtf_fit_population(
         indices=selected_indices,
         timestamps_ns=source_ts,
         values=source_values,
-        field_names=MULTI_TF_PER_BAR_FEATURES_V2,
+        field_names=_sel_names,
     )
     window = {
         "left_index_inclusive": int(selected_indices[0]),
@@ -594,6 +618,18 @@ def _verify_artifacts_and_load_mtf(
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_MTF_CACHE_MANIFEST_SHA_MISMATCH]"
         )
+    _mtf_manifest_declared = json.loads(cache_manifest.read_text(encoding="utf-8"))
+    for _key in ("builder_version", "feature_names", "feature_count"):
+        if _key not in _mtf_manifest_declared:
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_MTF_MANIFEST_INCOMPLETE] missing {_key}"
+            )
+    if int(_mtf_manifest_declared["feature_count"]) != len(
+        _mtf_manifest_declared["feature_names"]
+    ):
+        raise RuntimeError(
+            "[ENTRY_INPUT_NORMALIZATION_MTF_MANIFEST_WIDTH_MISMATCH]"
+        )
     base_lineage = {
         "dataset_run_id": dataset_run_id,
         "train_parquet_path": str(train_parquet),
@@ -604,9 +640,12 @@ def _verify_artifacts_and_load_mtf(
         "m5_prebuilt_sha256": m5_sha256,
         "mtf_cache_manifest_path": str(cache_manifest),
         "mtf_cache_manifest_sha256": manifest_sha256,
-        "mtf_builder_version": HTF_V2_CACHE_BUILDER_VERSION,
+        # Builder version and field-name hash come from the manifest the cache
+        # actually published, not from whichever contract this module imports.
+        # Recording V2's names beside a V3 cache would be a lineage that lies.
+        "mtf_builder_version": _mtf_manifest_declared["builder_version"],
         "mtf_feature_names_sha256": _field_names_sha256(
-            MULTI_TF_PER_BAR_FEATURES_V2
+            tuple(_mtf_manifest_declared["feature_names"])
         ),
     }
     return base_lineage, cache
@@ -722,10 +761,13 @@ def fit_entry_v10_train_input_normalization(
             )
         )
         surface_name = f"mtf_{tf.lower()}"
+        _fit_count, _fit_names = resolve_mtf_per_bar_contract(
+            multi_tf_sources[tf], tf=tf
+        )
         surfaces[surface_name] = fit_surface_normalization(
             selected_values,
             surface=surface_name,
-            field_names=MULTI_TF_PER_BAR_FEATURES_V2,
+            field_names=_fit_names,
             row_count=int(selected_values.shape[0]),
             semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS,
         )

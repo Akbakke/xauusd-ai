@@ -77,9 +77,13 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 from gx1.features.htf_features import (
     HTF_V2_MATRIX_CONTRACT,
+    HTF_V3_MATRIX_CONTRACT,
     MULTI_TF_FEATURE_COUNT_V2,
+    MULTI_TF_FEATURE_COUNT_V3,
     MULTI_TF_FEATURE_NAMES_SHA256_V2,
+    MULTI_TF_FEATURE_NAMES_SHA256_V3,
     MULTI_TF_PER_BAR_FEATURES_V2,
+    MULTI_TF_PER_BAR_FEATURES_V3,
 )
 
 
@@ -392,12 +396,33 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_METADATA_MISSING] {missing_mtf}")
     if mtf["enabled"] is not True or mtf["v2_mode"] is not True:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_MTF_V2_REQUIRED]")
+    # The bundle states which per-bar contract it was trained against and is
+    # verified against exactly that one. Accepting a declared contract is not
+    # the same as accepting any width: an unknown declaration fails closed, and
+    # names, order and hash must all match the one named.
+    _bundle_mtf_contracts = {
+        HTF_V2_MATRIX_CONTRACT: (
+            MULTI_TF_PER_BAR_FEATURES_V2,
+            MULTI_TF_FEATURE_NAMES_SHA256_V2,
+            MULTI_TF_FEATURE_COUNT_V2,
+        ),
+        HTF_V3_MATRIX_CONTRACT: (
+            MULTI_TF_PER_BAR_FEATURES_V3,
+            MULTI_TF_FEATURE_NAMES_SHA256_V3,
+            MULTI_TF_FEATURE_COUNT_V3,
+        ),
+    }
+    _declared_contract = mtf.get("matrix_contract")
+    if _declared_contract not in _bundle_mtf_contracts:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_CONTRACT_UNKNOWN] "
+            f"{_declared_contract!r}"
+        )
+    _mtf_names, _mtf_names_sha, _mtf_count = _bundle_mtf_contracts[_declared_contract]
     if (
         mtf["feature_contract"] != "MULTI_TF_PER_BAR_V2"
-        or mtf["matrix_contract"] != HTF_V2_MATRIX_CONTRACT
-        or mtf["feature_names"] != list(MULTI_TF_PER_BAR_FEATURES_V2)
-        or mtf["feature_names_sha256"]
-        != MULTI_TF_FEATURE_NAMES_SHA256_V2
+        or mtf["feature_names"] != list(_mtf_names)
+        or mtf["feature_names_sha256"] != _mtf_names_sha
     ):
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_MTF_FEATURE_CONTRACT_INVALID]"
@@ -423,7 +448,7 @@ def _require_exact_model_native_bundle_metadata(
         if isinstance(mtf[key], bool) or int(mtf[key]) <= 0:
             raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_MTF_VALUE_INVALID] {key}={mtf[key]!r}")
     if any(
-        int(mtf[key]) != int(MULTI_TF_FEATURE_COUNT_V2)
+        int(mtf[key]) != int(_mtf_count)
         for key in (
             "m5_seq_dim",
             "m15_seq_dim",
@@ -476,8 +501,7 @@ def _require_exact_model_native_bundle_metadata(
         lineage["dataset_run_id"]
         != meta["run_lineage"]["dataset_run_id"]
         or lineage["per_tf_seq_lens"] != expected_normalization_seq_lens
-        or lineage["mtf_feature_names_sha256"]
-        != MULTI_TF_FEATURE_NAMES_SHA256_V2
+        or lineage["mtf_feature_names_sha256"] != _mtf_names_sha
     ):
         raise RuntimeError(
             "[ENTRY_BUNDLE_INPUT_NORMALIZATION_LINEAGE_MISMATCH]"

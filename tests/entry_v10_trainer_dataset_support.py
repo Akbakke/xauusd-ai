@@ -39,10 +39,23 @@ def install_multi_tf_stub(
     m5_path = tmp_path / "xau_m5_prebuilt.parquet"
     m5_path.write_bytes(b"test-cache-binding")
     index = pd.DatetimeIndex([pd.Timestamp("2025-01-01", tz="UTC")])
-    frames = {
-        tf: pd.DataFrame(np.zeros((1, 25), dtype=np.float32), index=index)
-        for tf in ("M5", "M15", "H1", "H4", "D1")
-    }
+    # The stub declares which per-bar contract it stands for, exactly as a real
+    # cache does. Undeclared frames now fail closed, which is the point: the
+    # Dataset reads the declaration instead of assuming V2.
+    from gx1.features.htf_features import (
+        HTF_V2_MATRIX_CONTRACT,
+        MULTI_TF_PER_BAR_FEATURES_V2,
+    )
+
+    frames = {}
+    for tf in ("M5", "M15", "H1", "H4", "D1"):
+        frame = pd.DataFrame(
+            np.zeros((1, len(MULTI_TF_PER_BAR_FEATURES_V2)), dtype=np.float32),
+            index=index,
+            columns=list(MULTI_TF_PER_BAR_FEATURES_V2),
+        )
+        frame.attrs["htf_feature_contract"] = HTF_V2_MATRIX_CONTRACT
+        frames[tf] = frame
     cache_key = trainer._multi_tf_cache_key(m5_path)
     monkeypatch.setitem(trainer._MULTI_TF_CACHE, cache_key, frames)
     monkeypatch.setattr(

@@ -2628,7 +2628,12 @@ class EntryV10CtxDataset(Dataset):
         # path + GX1_V10_MULTI_TF_V2 env-gate were removed 2026-05-26 — multi-TF×5
         # is the only supported mode (rule: multi_tf_always_mandatory).
         from gx1.features.htf_features import (
+            HTF_V2_MATRIX_CONTRACT,
+            HTF_V3_MATRIX_CONTRACT,
             MULTI_TF_FEATURE_COUNT_V2,
+            MULTI_TF_FEATURE_COUNT_V3,
+            MULTI_TF_PER_BAR_FEATURES_V2,
+            MULTI_TF_PER_BAR_FEATURES_V3,
             MULTI_TF_SHIFT,
         )
         if m5_prebuilt_path is None:
@@ -2644,8 +2649,55 @@ class EntryV10CtxDataset(Dataset):
         self._multi_tf_feats = _prebuild_multi_tf_v2_features_once(m5_path)
         self._multi_tf_shift = MULTI_TF_SHIFT
         self._multi_tf_target_availability_shift = pd.Timedelta(minutes=5)
-        self._multi_tf_feature_count = int(MULTI_TF_FEATURE_COUNT_V2)
+        # The loaded tables declare their own contract; the Dataset verifies that
+        # declaration instead of assuming one. Pinning the count to V2 here is
+        # what kept the higher timeframes on 25 generic features.
+        _known_contracts = {
+            HTF_V2_MATRIX_CONTRACT: (
+                MULTI_TF_FEATURE_COUNT_V2,
+                MULTI_TF_PER_BAR_FEATURES_V2,
+            ),
+            HTF_V3_MATRIX_CONTRACT: (
+                MULTI_TF_FEATURE_COUNT_V3,
+                MULTI_TF_PER_BAR_FEATURES_V3,
+            ),
+        }
+        _declared = {
+            str(feats.attrs.get("htf_feature_contract"))
+            for feats in self._multi_tf_feats.values()
+        }
+        if len(_declared) != 1:
+            raise RuntimeError(
+                f"[MULTI_TF_CONTRACT_SPLIT_BRAIN] timeframes declare {sorted(_declared)}"
+            )
+        _contract = _declared.pop()
+        if _contract not in _known_contracts:
+            raise RuntimeError(
+                f"[MULTI_TF_CONTRACT_UNKNOWN] {_contract!r} is not a declared "
+                f"per-bar contract: {sorted(_known_contracts)}"
+            )
+        _expected_count, _expected_names = _known_contracts[_contract]
+        for _tf_name, _feats in self._multi_tf_feats.items():
+            if int(_feats.shape[1]) != int(_expected_count):
+                raise RuntimeError(
+                    f"[MULTI_TF_CONTRACT_WIDTH_MISMATCH] {_tf_name} "
+                    f"width={int(_feats.shape[1])} contract={_contract} "
+                    f"expected={int(_expected_count)}"
+                )
+            if tuple(_feats.columns) != tuple(_expected_names):
+                raise RuntimeError(
+                    f"[MULTI_TF_CONTRACT_ORDER_MISMATCH] {_tf_name} under {_contract}"
+                )
+        self._multi_tf_contract = _contract
+        self._multi_tf_feature_names = tuple(_expected_names)
+        self._multi_tf_feature_count = int(_expected_count)
         self._multi_tf_v2 = True
+        log.info(
+            "[MULTI_TF_CONTRACT] %s width=%d across %d timeframes",
+            _contract,
+            int(_expected_count),
+            len(self._multi_tf_feats),
+        )
         for tf_name, feats in self._multi_tf_feats.items():
             log.info(
                 f"[MULTI_TF] {tf_name}: {len(feats):,} bars × {feats.shape[1]} feats  "
@@ -9147,13 +9199,8 @@ def run_train(
         f"[TRAIN_CONTRACT_MISMATCH] expected signal={seq_input_dim} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
     )
 
-    # V12.2: detect multi-TF feature count from dataset (avoid hardcoding 19)
-    from gx1.features.htf_features import (
-        HTF_V2_MATRIX_CONTRACT,
-        MULTI_TF_FEATURE_NAMES_SHA256_V2,
-        MULTI_TF_PER_BAR_FEATURES_V2,
-    )
-
+    # Width and contract both come from the Dataset, which verified them
+    # against the cache's own declaration.
     _mtf_feat_count = int(train_ds._multi_tf_feature_count)
     # Exact mode always includes the causal M5 branch and all four higher TFs.
     _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False))
@@ -11147,9 +11194,18 @@ def run_train(
             "d1_seq_len": int(_d1_len),
             "multi_tf_scale": float(multi_tf_scale),
             "feature_contract": "MULTI_TF_PER_BAR_V2",
-            "matrix_contract": HTF_V2_MATRIX_CONTRACT,
-            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
-            "feature_names_sha256": MULTI_TF_FEATURE_NAMES_SHA256_V2,
+            # What live reads back must be the surface this run actually trained
+            # on, not whichever contract this module imports (rule 6).
+            "matrix_contract": str(train_ds._multi_tf_contract),
+            "feature_names": list(train_ds._multi_tf_feature_names),
+            "feature_names_sha256": hashlib.sha256(
+                json.dumps(
+                    list(train_ds._multi_tf_feature_names),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                ).encode("utf-8")
+            ).hexdigest(),
             "closed_bar_target_availability": bool(
                 getattr(train_ds, "_multi_tf_target_availability_shift", pd.Timedelta(0)) > pd.Timedelta(0)
             ),

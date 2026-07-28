@@ -10,6 +10,8 @@ real price geometry instead of a generic lens.
 """
 from __future__ import annotations
 
+import pathlib
+
 import numpy as np
 import pandas as pd
 
@@ -102,3 +104,46 @@ def test_v3_first_25_columns_equal_v2_exactly() -> None:
     both_finite = np.isfinite(v2) & np.isfinite(v3[:, :25])
     assert np.array_equal(v2[both_finite], v3[:, :25][both_finite])
     assert np.array_equal(np.isfinite(v2), np.isfinite(v3[:, :25]))
+
+
+def test_dataset_rejects_undeclared_and_split_brain_contracts() -> None:
+    """The Dataset reads the cache's declaration; it may not assume one.
+
+    Pinning the width to MULTI_TF_FEATURE_COUNT_V2 is what held the higher
+    timeframes at 25 generic features. Now the tables say what they are: an
+    undeclared contract, an unknown one, or five timeframes that disagree all
+    fail closed rather than silently taking V2.
+    """
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    source = (
+        pathlib.Path(trainer.__file__).read_text(encoding="utf-8")
+    )
+    for marker in (
+        "MULTI_TF_CONTRACT_SPLIT_BRAIN",
+        "MULTI_TF_CONTRACT_UNKNOWN",
+        "MULTI_TF_CONTRACT_WIDTH_MISMATCH",
+        "MULTI_TF_CONTRACT_ORDER_MISMATCH",
+    ):
+        assert marker in source, marker
+    # and the width is no longer pinned to a constant
+    assert "self._multi_tf_feature_count = int(MULTI_TF_FEATURE_COUNT_V2)" not in source
+
+
+def test_bundle_and_normalization_read_the_declared_contract() -> None:
+    """A lineage that records V2's names beside a V3 cache is train != serve."""
+    import pathlib as _p
+
+    repo = _p.Path(__file__).resolve().parents[1]
+
+    normalization = (
+        repo / "gx1/models/entry_v10/entry_v10_input_normalization.py"
+    ).read_text()
+    assert "def resolve_mtf_per_bar_contract(" in normalization
+    assert "ENTRY_INPUT_NORMALIZATION_MTF_CONTRACT_UNKNOWN" in normalization
+    # the lineage hash comes from the manifest, not from an imported constant
+    assert '_mtf_manifest_declared["feature_names"]' in normalization
+
+    bundle = (repo / "gx1/models/entry_v10/entry_v10_bundle.py").read_text()
+    assert "ENTRY_BUNDLE_MODEL_NATIVE_MTF_CONTRACT_UNKNOWN" in bundle
+    assert "_bundle_mtf_contracts" in bundle
