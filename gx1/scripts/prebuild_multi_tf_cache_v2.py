@@ -109,18 +109,39 @@ def publish_multi_tf_v2_cache(
     m5_prebuilt: Path,
     expected_source_sha256: str,
     features: dict,
+    contract: str = "v2",
 ) -> Path:
     from gx1.features.htf_features import (
         HTF_V2_CACHE_BUILDER_VERSION,
         HTF_V2_CACHE_SCHEMA_VERSION,
         HTF_V2_MATRIX_CONTRACT,
+        HTF_V3_CACHE_SCHEMA_VERSION,
+        HTF_V3_MATRIX_CONTRACT,
         MULTI_TF_FEATURE_COUNT_V2,
+        MULTI_TF_FEATURE_COUNT_V3,
         MULTI_TF_PER_BAR_FEATURES_V2,
+        MULTI_TF_PER_BAR_FEATURES_V3,
         MULTI_TF_RESAMPLE_RULES,
         MULTI_TF_SHIFT,
         compute_htf_v2_cache_identity,
         validate_causal_feature_matrix,
     )
+
+    # The cache declares which contract it is; every check below reads that
+    # declaration rather than assuming one, so a V3 cache can never be published
+    # while being validated as a V2 (rule 6: exact ordered fields and dimensions).
+    if contract == "v2":
+        SCHEMA_VERSION = HTF_V2_CACHE_SCHEMA_VERSION
+        MATRIX_CONTRACT = HTF_V2_MATRIX_CONTRACT
+        FEATURE_COUNT = MULTI_TF_FEATURE_COUNT_V2
+        FEATURE_NAMES = MULTI_TF_PER_BAR_FEATURES_V2
+    elif contract == "v3":
+        SCHEMA_VERSION = HTF_V3_CACHE_SCHEMA_VERSION
+        MATRIX_CONTRACT = HTF_V3_MATRIX_CONTRACT
+        FEATURE_COUNT = MULTI_TF_FEATURE_COUNT_V3
+        FEATURE_NAMES = MULTI_TF_PER_BAR_FEATURES_V3
+    else:
+        raise RuntimeError(f"[HTF_CACHE_CONTRACT_INVALID] {contract!r}")
 
     source = m5_prebuilt.expanduser()
     expected_source_sha256 = str(expected_source_sha256)
@@ -172,9 +193,9 @@ def publish_multi_tf_v2_cache(
     published = False
     try:
         manifest = {
-            "schema_version": HTF_V2_CACHE_SCHEMA_VERSION,
-            "feature_count": int(MULTI_TF_FEATURE_COUNT_V2),
-            "feature_names": list(MULTI_TF_PER_BAR_FEATURES_V2),
+            "schema_version": SCHEMA_VERSION,
+            "feature_count": int(FEATURE_COUNT),
+            "feature_names": list(FEATURE_NAMES),
             "shift_contract": {
                 tf: str(shift) for tf, shift in MULTI_TF_SHIFT.items()
             },
@@ -194,7 +215,7 @@ def publish_multi_tf_v2_cache(
             if (
                 feats_np.dtype != np.dtype(np.float32)
                 or feats_np.ndim != 2
-                or feats_np.shape[1] != MULTI_TF_FEATURE_COUNT_V2
+                or feats_np.shape[1] != FEATURE_COUNT
                 or ts_int64.dtype != np.dtype(np.int64)
                 or ts_int64.shape != (len(feats_np),)
                 or len(ts_int64) == 0
@@ -205,7 +226,7 @@ def publish_multi_tf_v2_cache(
                 )
             warmup_rows = validate_causal_feature_matrix(
                 feats_np,
-                expected_width=MULTI_TF_FEATURE_COUNT_V2,
+                expected_width=FEATURE_COUNT,
                 context=f"HTF_V2_CACHE_PUBLISH_{tf}",
             )
             if warmup_rows == len(feats_np):
@@ -214,7 +235,7 @@ def publish_multi_tf_v2_cache(
                 )
             if (
                 frame.attrs.get("causal_warmup_rows") != warmup_rows
-                or frame.attrs.get("htf_feature_contract") != HTF_V2_MATRIX_CONTRACT
+                or frame.attrs.get("htf_feature_contract") != MATRIX_CONTRACT
             ):
                 raise RuntimeError(
                     f"HTF_V2_CACHE_FEATURE_SET_INVALID: {tf} attrs mismatch"
@@ -269,14 +290,26 @@ def main() -> int:
                    help="Path to canonical_v3 M5 OHLCV parquet")
     p.add_argument("--out-dir", type=Path, required=True,
                    help="Output directory for cache files")
+    p.add_argument("--contract", choices=("v2", "v3"), required=True,
+                   help="Per-bar feature contract: v2 = 25 features, "
+                        "v3 = 25 + 60 candlestick + 5 swing = 90")
     args = p.parse_args()
 
     sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
     from gx1.features.htf_features import (
         build_multi_tf_per_bar_features_v2,
+        build_multi_tf_per_bar_features_v3,
         MULTI_TF_FEATURE_COUNT_V2,
+        MULTI_TF_FEATURE_COUNT_V3,
     )
     import pyarrow.parquet as pq
+
+    if args.contract == "v2":
+        build_features = build_multi_tf_per_bar_features_v2
+        feature_count = MULTI_TF_FEATURE_COUNT_V2
+    else:
+        build_features = build_multi_tf_per_bar_features_v3
+        feature_count = MULTI_TF_FEATURE_COUNT_V3
 
     source = args.m5_prebuilt.expanduser()
     if not source.is_absolute() or source.is_symlink() or not source.is_file():
@@ -306,14 +339,18 @@ def main() -> int:
     m5["volume"] = m5["volume"].astype(np.float32)
     print(f"[LOAD] {len(m5):,} M5 bars, range {m5.index[0]} → {m5.index[-1]}")
 
-    print(f"[BUILD] V2 multi-TF features (5 TFs × {MULTI_TF_FEATURE_COUNT_V2} feats)...")
-    feats = build_multi_tf_per_bar_features_v2(m5)
+    print(
+        f"[BUILD] {args.contract.upper()} multi-TF features "
+        f"(5 TFs x {feature_count} feats)..."
+    )
+    feats = build_features(m5)
 
     manifest_path = publish_multi_tf_v2_cache(
         out_dir=args.out_dir,
         m5_prebuilt=source,
         expected_source_sha256=source_sha256,
         features=feats,
+        contract=args.contract,
     )
     for tf, df in feats.items():
         feats_path = args.out_dir / f"{tf}_feats.npy"
