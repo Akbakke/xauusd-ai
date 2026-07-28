@@ -471,3 +471,29 @@ def test_smoke_audit_measures_edge_and_gates_only_on_validity() -> None:
         '"minimum_class_precision_wilson_lower"',
     ):
         assert stale not in audit, stale
+
+
+def test_model_seq_lens_read_the_same_resolution_as_the_data() -> None:
+    """The model's declared per-TF shapes must come from the one resolution.
+
+    Measured on 2026-07-28: after the windows reached the Dataset, V21 still died
+    with SEQ_M5_LEN_MISMATCH got=16 expected=96, because the model was still
+    constructed with m5_seq_len=multi_tf_seq_len and h1_seq_len=multi_tf_seq_len.
+    The data followed the declaration and the model did not. The mismatch failed
+    closed - the shape guard caught it - but a second derivation is a second
+    truth, so both construction sites and the bundle metadata now read
+    _effective_tf_lens.
+    """
+    repo = Path(__file__).resolve().parents[1]
+    trainer = (repo / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py").read_text()
+
+    for timeframe in ("m5", "m15", "h1", "h4", "d1"):
+        assert f"{timeframe}_seq_len=multi_tf_seq_len" not in trainer, timeframe
+        assert f'"{timeframe}_seq_len": int(multi_tf_seq_len)' not in trainer, timeframe
+        # and the resolved local is what is passed
+        assert f"{timeframe}_seq_len=_{timeframe}_len," in trainer, timeframe
+        assert f'"{timeframe}_seq_len": int(_{timeframe}_len)' in trainer, timeframe
+
+    # All five resolved locals come from the single mapping.
+    for timeframe in ("M5", "M15", "H1", "H4", "D1"):
+        assert f'_{timeframe.lower()}_len = int(_effective_tf_lens["{timeframe}"])' in trainer
