@@ -147,3 +147,32 @@ def test_bundle_and_normalization_read_the_declared_contract() -> None:
     bundle = (repo / "gx1/models/entry_v10/entry_v10_bundle.py").read_text()
     assert "ENTRY_BUNDLE_MODEL_NATIVE_MTF_CONTRACT_UNKNOWN" in bundle
     assert "_bundle_mtf_contracts" in bundle
+
+
+def test_trainer_sweeps_orphaned_memmap_scratch() -> None:
+    """Killed runs leaked 69 GB each; four were found holding 295 GB.
+
+    TemporaryDirectory cleans up through a finalizer that a killed process never
+    runs. The scratch name carries the creating PID, so an orphan is provable
+    rather than guessed, and a live PID is left alone so a concurrent run is
+    safe.
+    """
+    import os as _os
+    import pathlib as _pathlib
+    import tempfile
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    with tempfile.TemporaryDirectory() as raw_root:
+        root = _pathlib.Path(raw_root)
+        dead = root / "v10_seq513_dataset__HOLD_03B_train_999999999_abc"
+        dead.mkdir()
+        (dead / "seq.float32.mmap").write_bytes(b"x" * 32)
+        alive = root / f"v10_seq513_dataset__HOLD_03B_train_{_os.getpid()}_xyz"
+        alive.mkdir()
+        (alive / "seq.float32.mmap").write_bytes(b"x" * 32)
+
+        trainer._sweep_orphaned_memmap_scratch(root)
+
+        assert not dead.exists(), "orphaned scratch survived the sweep"
+        assert alive.exists(), "the sweep removed a live run's scratch"

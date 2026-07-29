@@ -19,6 +19,7 @@ import logging
 import math
 import mmap
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -2368,6 +2369,52 @@ def _prebuild_multi_tf_v2_features_once(
     return feats
 
 
+def _sweep_orphaned_memmap_scratch(root: Path) -> None:
+    """Remove per-run memmap scratch whose owning process is gone.
+
+    ``TemporaryDirectory`` cleans up through a finalizer, which never runs when a
+    run is killed. Four such directories were found on 2026-07-29 holding 295 GB
+    between them - one per interrupted run, each a regenerable mirror of the
+    TRAIN parquet. The scratch name carries the creating PID, so a directory
+    whose PID is no longer alive is provably orphaned. A live PID is never
+    touched, so a concurrent run is safe.
+    """
+    for candidate in sorted(root.glob("*_*")):
+        if not candidate.is_dir():
+            continue
+        parts = candidate.name.split("_")
+        owner_pid = next(
+            (int(part) for part in reversed(parts) if part.isdigit()),
+            None,
+        )
+        if owner_pid is None or owner_pid == os.getpid():
+            continue
+        try:
+            os.kill(owner_pid, 0)
+        except ProcessLookupError:
+            pass
+        except PermissionError:
+            continue
+        else:
+            continue
+        try:
+            freed = sum(
+                f.stat().st_size for f in candidate.rglob("*") if f.is_file()
+            )
+            shutil.rmtree(candidate)
+        except OSError as exc:
+            log.warning(
+                "[MEMMAP_SCRATCH_SWEEP] could not remove %s: %r", candidate, exc
+            )
+            continue
+        log.info(
+            "[MEMMAP_SCRATCH_SWEEP] removed orphaned scratch %s (%.1f GB, dead pid %d)",
+            candidate.name,
+            freed / 1e9,
+            owner_pid,
+        )
+
+
 class EntryV10CtxDataset(Dataset):
     """
     Builds rolling-window samples from canonical ENTRY_V10_CTX parquet.
@@ -2528,6 +2575,7 @@ class EntryV10CtxDataset(Dataset):
                     os.environ.get("ENTRY_V10_CTX_MEMMAP_ROOT", "/home/andre2/GX1_DATA/tmp/entry_v10_memmap")
                 )
                 memmap_root.mkdir(parents=True, exist_ok=True)
+                _sweep_orphaned_memmap_scratch(memmap_root)
                 self._memmap_tmpdir = tempfile.TemporaryDirectory(
                     prefix=f"{self.parquet_path.stem}_{os.getpid()}_",
                     dir=str(memmap_root),

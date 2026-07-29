@@ -32,9 +32,17 @@ confirmed by measurement after four other candidates were refuted — and
 V15 staged the first bundle of this lineage. V15–V17 were blocked by four
 defects in the feature-liveness gate itself; after those repairs V18
 published the first Entry bundle of this lineage on 2026-07-27. It proves
-trainability only and carries no direction content — one admitted
-checkpoint at epoch 1, below the 0.3858 majority baseline (see the
-2026-07-26 section below). V25 is chain-RED failure evidence at the builder session
+trainability only and carries no direction content.
+
+**Current empirical position (V21C, 2026-07-29):** the first run with every
+repair in place, on the complete 369,303-row population. It overfits before it
+balances — train loss falls 36% while validation loss doubles, and no epoch is
+both balanced and generalizing. Balanced accuracy 0.3438 against a 0.3858
+majority baseline and 0.4021 from a plain probe MLP on the same substrate. The
+gap is roughly six points and the remaining diagnosis is capacity against
+available signal; no regularization magnitude has been chosen because none is
+declared in the repository. Multi-timeframe coverage is 6 of 8 specialist
+domains. See the 2026-07-28/29 section below. V25 is chain-RED failure evidence at the builder session
 wall; V24/V7 are historical failure evidence. Seventeen never-executed
 post-audit boundaries were repaired in their existing owners during this
 first native-lineage campaign (see DECISION_LOG 2026-07-25). The V8
@@ -43,6 +51,66 @@ a future smoke requires a new immutable recipe decision, and no empirical
 acceptance threshold changes. There is no trained model, accepted bundle
 or empirical direction-edge proof. Candidate, replay, paper/demo/live and
 promotion remain closed.
+
+### 2026-07-28/29 the model overfits before it balances (V21C)
+
+V21C ran every repair at once on the complete 369,303-row population and was
+stopped after eight epochs because the curve was unambiguous.
+
+| epoch | train | val | accuracy | short/long | admitted |
+|-------|-------|-----|----------|------------|----------|
+| 1 | 89.41 | 106.19 | **0.4048** | 0.000 | no — `class_support_ok=0` |
+| 3 | 83.90 | 115.94 | 0.3438 | 0.212 | yes |
+| 5 | 70.44 | 167.91 | 0.3211 | 0.369 | yes |
+| 7 | 57.16 | 206.87 | 0.3269 | 0.434 | yes |
+| 8 | — | 212.18 | 0.3328 | — | yes |
+
+Train loss falls 36% while validation loss doubles. **There is no epoch that is
+both balanced and generalizing.** Epoch 1 beats the 0.3858 majority baseline but
+predicts zero SHORT and is correctly refused; every admissible epoch sits 4 to 5
+points below the baseline.
+
+**The gap is measured and small.** Balanced accuracy 0.3438, majority baseline
+0.3858, and a plain probe MLP on the same substrate reached 0.4021 with all three
+classes alive and 0.5833 tradable AUC. A simple model does what the 22-head model
+cannot, so the substrate is not the constraint — roughly six points separate the
+current balanced state from where the signal demonstrably is.
+
+Everything else is eliminated by measurement: prior pinning removed, four
+liveness-gate defects were instrument errors, seven hidden wrapper defaults
+closed, no synthetic substitution reaches TRAIN, every contracted field alive.
+One diagnosis remains: capacity against available signal. `weight_decay` is
+1e-05 and `dropout` is 0.05. **No regularization magnitude is chosen here** —
+none is declared anywhere in the repo, so picking one would be an invented
+magnitude. `dropout` is a model-class default with no CLI or recipe input and
+must become declarable before any sweep.
+
+**Seven hidden defaults closed this campaign**, all the same defect — a value
+that changes the result, supplied by something other than the caller:
+per-timeframe windows hardcoded in both wrappers (6× disagreement), the
+`GX1_MTF_TAPERED` environment ladder, m5/m15/h1 never reaching the trainer,
+the model reading the global instead of the per-timeframe length, the lineage
+hash taken from an imported constant rather than the manifest, `--num-workers 0`
+costing an order of magnitude in throughput, and `dropout` still open.
+
+Parallel loading took the epoch from an estimated 3.2 h to a measured 1.88 h
+**while carrying 26× more multi-timeframe attention work**, and GPU utilisation
+from 9% to 60%. The cost model fitted earlier against sum(L²) assumed a
+compute-bound run and does not describe this configuration.
+
+**Multi-timeframe coverage is 6 of 8 specialist domains.** HTF V3 carries 90
+per-bar features at every timeframe — V2's 25 plus 60 candlestick patterns and 5
+swing/structure fields — verified bit-identical to V2 on the shared 25, dense at
+every resolution (49–50 of 90), all windows covered (658 usable D1 bars against
+the 30 needed). SMC/liquidity and chart geometry are still M5-only; both hang on
+one missing root, the SMC primitives and S/R levels per resolution. The V3 cache
+is built and verified; nothing has trained on it.
+
+371 GB was released this campaign through the cleanup owner — V24's split
+parquets and 295 GB of orphaned memmap scratch — with every manifest, audit and
+terminal event retained. The scratch leak is fixed at source: killed runs never
+ran `TemporaryDirectory`'s finalizer, so the Dataset now sweeps dead-PID scratch
+before allocating its own.
 
 ### 2026-07-26 FLAT-collapse resolution and liveness repair (V9–V18)
 

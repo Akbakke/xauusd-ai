@@ -660,8 +660,17 @@ kanonisk M5 bid/ask  .../xauusd_m5_bid_ask__CANONICAL/year=*/  (OANDA-native; IK
                     --tape-root --rank-reference <eksakt TRAIN-only NPZ>
                     (eksakt ctx16 + session5/cat5; ingen alternative dimensjoner)
                     → FULL_PLUS_CTX_v3src.parquet (188 kol; aktiv kontrakt) + manifester
-cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir
-        → MULTI_TF_V2_CACHE/ (builder_version må matche HTF_V2_CACHE_BUILDER_VERSION)
+cv3 ─ gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt --out-dir --contract {v2,v3}
+        → v2: MULTI_TF_V2_CACHE/ (25 per-bar features; builder_version må matche
+              HTF_V2_CACHE_BUILDER_VERSION)
+        → v3: 90 per-bar features = V2s 25 + 60 candlestick-mønstre + 5 swing/struktur.
+              Begge familiene er rene funksjoner av barene, så de betyr det samme på
+              hver oppløsning. V2 er et bit-identisk prefiks i V3, så alt bygget på V2
+              består. --contract er PÅKREVD; ingen default velger surface for kalleren.
+        Hver konsument leser kontrakten artefaktet ERKLÆRER (matrix_contract i attrs /
+        manifest), ikke en importert konstant: Dataset, normalisering, lineage-hash og
+        bundle-verifikator feiler lukket på ukjent kontrakt, feil bredde, feil
+        kolonneorden og splitt-hjerne mellom tidsrammer.
 reparert tape + cv2 + cv3 + modelrange + cache + FULL_PLUS
   └─ gx1.scripts.audit_seq513_source_cascade_v1 --run-id --event-root --out
         --required-history-start --expected-full-time-min --expected-full-time-max

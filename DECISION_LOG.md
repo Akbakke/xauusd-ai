@@ -2309,3 +2309,76 @@ Decision:
   rewrites. The non-stationarity it produces is handled as prior, not by
   redefining the target.
 - launch remains `BLOCK`.
+
+## 2026-07-28/29 — the model overfits before it balances
+
+V21C is the first run with every repair in place at once: prior tolerance floored
+on batch sampling noise, all five per-timeframe windows declared and verified end
+to end, D1 at six weeks instead of eight days, acceptance reduced to the majority
+baseline, parallel data loading, and the four liveness-gate defects fixed. It ran
+eight epochs on the complete 369,303-row population before being stopped, because
+the curve was already unambiguous.
+
+| epoch | train | val | accuracy | short/long | admitted |
+|-------|-------|-----|----------|------------|----------|
+| 1     | 89.41 | 106.19 | 0.4048 | 0.000 | no - class_support_ok=0 |
+| 3     | 83.90 | 115.94 | 0.3438 | 0.212 | yes |
+| 5     | 70.44 | 167.91 | 0.3211 | 0.369 | yes |
+| 7     | 57.16 | 206.87 | 0.3269 | 0.434 | yes |
+| 8     |       | 212.18 | 0.3328 |       | yes |
+
+Train loss falls 36% while validation loss doubles. The model passes from
+degenerate straight into overfitting without a usable state in between: epoch 1
+generalizes best and beats the 0.3858 majority baseline at 0.4048, but predicts
+zero SHORT and is correctly refused; every epoch balanced enough to admit sits
+4 to 5 points BELOW the baseline with validation loss rising monotonically.
+
+The checkpoint monitor selects on `dir_acc`, so it admitted epoch 8 at validation
+loss 212 over epoch 3 at 116. Switching `GX1_V10_CKPT_MONITOR` to `val_loss`
+would not rescue this: the best-validation epoch is the degenerate one.
+
+The gap is now precise and small. Balanced accuracy is 0.3438 against a 0.3858
+baseline and against 0.4021 from a plain unweighted-cross-entropy probe on the
+same substrate - a probe that had all three classes alive and 0.5833 tradable
+AUC. A simple model achieves what the 22-head model cannot, so the substrate is
+not the constraint and roughly six points separate the current balanced state
+from where the signal demonstrably is.
+
+Everything else has been eliminated by measurement rather than argument: the
+prior pinning is gone, four liveness-gate defects were instrument errors, seven
+hidden wrapper defaults are closed, no synthetic substitution reaches the TRAIN
+rows, and every contracted field is alive. One diagnosis remains.
+
+Decision:
+
+- the cause is capacity against available signal, not data, features or targets.
+  `weight_decay` is 1e-05 and `dropout` is 0.05 for a model with 22 heads, eight
+  specialist encoders and five timeframe branches over 369,303 rows.
+- no regularization magnitude is chosen here. No stronger value is declared
+  anywhere in the repository, so picking one would be an invented magnitude
+  (rule 2b). The legitimate routes are an explicit user vedtak or a sweep that
+  selects on validation loss, which gives the value the origin of a statistic
+  fitted on real declared data (rule 2a).
+- `dropout` is currently a model-class default with no CLI or recipe input - the
+  seventh hidden default of this campaign - and must become declarable before any
+  sweep is possible.
+- V21C is immutable diagnostic evidence. Its log is retained; it wrote no bundle.
+- launch remains `BLOCK`.
+
+## 2026-07-29 — scratch that never cleaned itself
+
+Four orphaned per-run memmap directories held 295 GB between them, one per
+interrupted run. `TemporaryDirectory` cleans up through a finalizer that a killed
+process never executes, and the trainer had no other cleanup path, so every
+interrupted run leaked a 69 GB mirror of the TRAIN parquet.
+
+The scratch name carries the creating PID, so an orphan is provable rather than
+guessed. The Dataset now sweeps dead-PID scratch before allocating its own, and
+leaves live PIDs untouched so a concurrent run is safe.
+
+Decision:
+
+- released through the cleanup owner with a hash-bound plan, approval and
+  execution, never by direct removal (rule 9).
+- combined with the V24 split-parquet release earlier in the campaign, 371 GB
+  returned while every manifest, audit and terminal event was retained.

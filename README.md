@@ -13,7 +13,17 @@ native-v3 M5 tape is terminal GREEN with all audits PASS
 `XAU_SEQ513_SMOKE_20260725_V8` on the fully repaired substrate failed
 empirically with total FLAT collapse (`TRAIN_FAIL_NO_BEST_STATE`, no
 bundle). Seventeen never-executed post-audit boundaries were repaired in
-existing owners during that campaign; see DECISION_LOG 2026-07-25. The
+existing owners during that campaign; see DECISION_LOG 2026-07-25.
+
+That collapse is resolved — the cause was a loss term pinning predicted class
+rates to a training prior that has drifted 39 points — and V18 published the
+first bundle of this lineage on 2026-07-27 as trainability evidence only. The
+current empirical position is V21C (2026-07-29): with every repair in place on
+the complete population, the model **overfits before it balances**. Train loss
+falls 36% while validation loss doubles, and no epoch is both balanced and
+generalizing. Balanced accuracy is 0.3438 against a 0.3858 majority baseline and
+0.4021 from a plain probe MLP on the same substrate. The remaining diagnosis is
+capacity against available signal; see DECISION_LOG 2026-07-28/29. The
 history below records the earlier V24/V7 boundary. V24 rebuilt fresh XAU
 source through
 `2026-07-22T12:05:00Z`, terminalized GREEN at the designed smoke gate and

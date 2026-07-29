@@ -265,6 +265,27 @@ with the withdrawal recorded. A diagnostic instrument reports only what is
 valid where it runs; a field that cannot be measured there is omitted, never
 emitted as a zero or placeholder that reads as a result.
 
+### Every decision-affecting value is declared by the caller
+
+Rule 14 forbids ambient values and wrapper defaults, and it covers more than
+recipe keys. Seven hidden defaults were found in one campaign, each a value that
+changes the result supplied by something other than the caller: per-timeframe
+lookback windows hardcoded in both training wrappers and disagreeing sixfold, a
+`GX1_MTF_TAPERED` environment ladder nobody had run, three windows that reached
+the argument parser but never the call site, a model reading the global length
+instead of the per-timeframe one, a lineage hash taken from an imported constant
+rather than from the manifest the artifact published, and `--num-workers 0`
+costing an order of magnitude in throughput.
+
+A wrapper literal is a default. An environment variable is a default. A constant
+imported into a consumer instead of read from the artifact is a default. If the
+caller cannot state the value, it is not declared — make it a required input and
+let the chain fail closed when it is missing.
+
+Artifacts declare what they are, and consumers verify against that declaration
+rather than against an assumption. An unknown contract, a width mismatch, a
+column-order mismatch, or surfaces that disagree with each other all fail closed.
+
 ### Measure where the decision is made
 
 A threshold compared against a sampled statistic must be at least that
