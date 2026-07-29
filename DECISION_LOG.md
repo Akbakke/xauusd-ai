@@ -2382,3 +2382,29 @@ Decision:
   execution, never by direct removal (rule 9).
 - combined with the V24 split-parquet release earlier in the campaign, 371 GB
   returned while every manifest, audit and terminal event was retained.
+
+## 2026-07-29 — an interrupted cleanup strands its own quarantine
+
+The scratch release ran in three passes because the first was interrupted. That
+exposed a second defect of the same shape as the memmap leak: the cleanup owner
+stages a target into a `.gx1_delete_<planhash>_NNNN` quarantine wrapper before
+purging it, and an interrupted execute leaves that wrapper behind holding the
+full payload. Re-running the same plan cannot recover it — the plan is
+hash-bound to the original paths, which no longer resolve, so it fails closed on
+`path cannot be resolved exactly`. That failure is correct; what is missing is a
+resume path.
+
+A stranded wrapper was released by planning against the wrapper itself, which
+works but requires noticing it. Recorded, not built: the owner needs to detect
+its own stranded quarantine and finish it, rather than depending on a human
+spotting 69 GB in a directory that should be empty.
+
+Decision:
+
+- 350 GB released across the campaign: 76 GB of V24 split parquets, 206 GB of
+  orphaned per-run scratch and a 69 GB stranded quarantine. GX1_DATA fell from
+  roughly 470 GB to 123 GB and the filesystem from 46% to 17% used. Every
+  manifest, audit and terminal event was retained.
+- both defects share a premise: an operation that assumes its process survives to
+  completion. The trainer now sweeps dead-PID scratch at startup; the cleanup
+  owner still assumes it finishes.
